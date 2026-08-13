@@ -1,6 +1,0 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
-#   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-10-galaxy-round2-backlog.md
-2026-08-10-galaxy-round2-backlog.md: 3924d51444ff2a286ba0e064bfbdedf909b191e2
-2026-08-10-galaxy-round2-backlog.zh.md: a629427bb669bbae14c1fc8d3513dd9e5d34b530

@@ -1,6 +1,0 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
-#   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-07-31-installer-adopts-existing-checkout.md
-2026-07-31-installer-adopts-existing-checkout.md: 3a213a6232e57f305910240505983421dcd288ad
-2026-07-31-installer-adopts-existing-checkout.zh.md: e19baa0b1ee8ce71c1b8f3ee520322fb6557a720

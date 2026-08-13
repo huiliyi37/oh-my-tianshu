@@ -1,6 +1,0 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
-#   pnpm run verify-translation-pairing --write .agents/notes/rejected/simplification/2026-07-12-prune-unused-skill-registry-surface.md
-2026-07-12-prune-unused-skill-registry-surface.md: 30247cad9c3b05f2a3afbffa1e1c140e9cd88e25
-2026-07-12-prune-unused-skill-registry-surface.zh.md: 02e47919c8d171ebd00aa03bf8612d5ca5f3e901

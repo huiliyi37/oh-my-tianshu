@@ -1,6 +1,0 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
-#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-10-tui-agent-error-live-surface.md
-2026-08-10-tui-agent-error-live-surface.md: 9647aaab419c899413bba7be9a8b8cd7dbc6bcbd
-2026-08-10-tui-agent-error-live-surface.zh.md: a720e6700a05bcc9d59dcf90326c69e60b58d5b8

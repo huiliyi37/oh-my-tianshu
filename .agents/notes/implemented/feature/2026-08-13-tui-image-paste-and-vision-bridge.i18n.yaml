@@ -1,6 +1,0 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
-#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-13-tui-image-paste-and-vision-bridge.md
-2026-08-13-tui-image-paste-and-vision-bridge.md: 949a10b58cd47815fa9ed653d2b017158f22ccf5
-2026-08-13-tui-image-paste-and-vision-bridge.zh.md: fdcec84555d3904f9ecd41e04728c21391446f68

@@ -1,6 +1,0 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
-#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-12-dsh-spark-port.md
-2026-08-12-dsh-spark-port.md: 9c426b775663025ae8e2cbf17120d2801d309afc
-2026-08-12-dsh-spark-port.zh.md: 8a2539fa0e753b803470978c2f52b8b55dc2193a

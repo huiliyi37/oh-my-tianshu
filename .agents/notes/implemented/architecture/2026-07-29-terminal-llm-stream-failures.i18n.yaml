@@ -1,6 +1,0 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
-#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-29-terminal-llm-stream-failures.md
-2026-07-29-terminal-llm-stream-failures.md: 3f9fc4255e5b2462e14f73414894c5912191c595
-2026-07-29-terminal-llm-stream-failures.zh.md: b45d2f52919493842e82f2587062bb9cfa7eb0e8

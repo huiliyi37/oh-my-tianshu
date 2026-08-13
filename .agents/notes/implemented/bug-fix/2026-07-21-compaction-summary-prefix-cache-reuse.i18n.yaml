@@ -1,6 +1,0 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
-#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-07-21-compaction-summary-prefix-cache-reuse.md
-2026-07-21-compaction-summary-prefix-cache-reuse.md: fb6524846f837b783423b3ed0e043cd4e1f7849d
-2026-07-21-compaction-summary-prefix-cache-reuse.zh.md: 96adc31d6d6c50b4e6bfee32a5b89388a33a6939

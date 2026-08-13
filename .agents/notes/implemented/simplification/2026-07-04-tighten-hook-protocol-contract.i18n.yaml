@@ -1,6 +1,0 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
-#   pnpm run verify-translation-pairing --write .agents/notes/implemented/simplification/2026-07-04-tighten-hook-protocol-contract.md
-2026-07-04-tighten-hook-protocol-contract.md: 0c2397fa298ebd67d24f86d66d7d049b9da57ce9
-2026-07-04-tighten-hook-protocol-contract.zh.md: b0edd754eb5115936a03a892a2db0b67552f64f1
