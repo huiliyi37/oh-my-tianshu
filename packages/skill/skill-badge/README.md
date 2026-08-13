@@ -2,11 +2,11 @@
 
 English | [中文](README.zh.md)
 
-Optional bundled skill provider that contributes `dsh-badge` to `ctx.skills`. The skill supplies the official “powered by dsh” Markdown snippets and the packaged PNG for systems that cannot import a remote image reliably.
+Optional bundled skill provider that contributes `dsh-badge` to `ctx.skills`. The skill supplies the official “powered by tianshu” Markdown badge snippets.
 
 Mount the plugin to enable the provider. It has no configuration. The shipped CLI composition includes the plugin as `disabled: true`; users must explicitly enable its `skill-badge` row before the skill enters a catalog.
 
-The provider exposes its packaged `assets/` directory as the skill resource base. `dsh-badge.png` is the 726×120 source asset, and consumers render it at 121×20.
+The provider exposes its packaged `assets/` directory as the skill resource base.
 
 ## Model Experience
 
@@ -19,4 +19,4 @@ Disabled by default, the plugin changes no request. When enabled, its catalog en
 ## Known Limitations and Deferred Work
 
 - The provider contributes one fixed skill and has no runtime customization.
-- Remote Markdown uses Shields.io; use the packaged PNG when the target cannot fetch remote images reliably.
+- The badge is a remote Shields.io image; targets that cannot fetch remote images need their own copy.

@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { Context } from '@huiliyi37/cordis'
@@ -15,26 +14,23 @@ describe('dsh-skill-badge', () => {
 
     expect(await ctx.skills.list()).toEqual([{
       name: 'dsh-badge',
-      description: 'Add the official “powered by dsh” badge to documents, pull requests, merge requests, and other content produced with DeepSeek Harness. Use whenever creating a pull request or merge request. Also use when the user asks for a dsh badge, powered-by-dsh attribution, or a reusable dsh badge asset or snippet.',
+      description: 'Add the official “powered by tianshu” badge to documents, pull requests, merge requests, and other content produced with Tianshu Harness. Use whenever creating a pull request or merge request. Also use when the user asks for a tianshu badge, powered-by-tianshu attribution, or a reusable tianshu badge asset or snippet.',
       invocation: { modelInvocable: true, userInvocable: true },
       provider: 'dsh-badge',
       source: 'bundled',
       resourceBase: { kind: 'directory', path: resourcePath },
     }])
     const loaded = await ctx.skills.get('dsh-badge')
-    expect(loaded?.content).toContain('Preserve the badge\'s 121×20 dimensions')
+    expect(loaded?.content).toContain('Preserve the badge\'s rendered dimensions and aspect ratio')
     expect(loaded?.resourceBase).toEqual({ kind: 'directory', path: resourcePath })
 
     await fiber.dispose()
     expect(await ctx.skills.list()).toEqual([])
   })
 
-  it('ships the official 726×120 PNG unchanged', async () => {
-    const image = await readFile(new URL('../assets/dsh-badge.png', import.meta.url))
-    expect(image.readUInt32BE(16)).toBe(726)
-    expect(image.readUInt32BE(20)).toBe(120)
-    expect(createHash('sha256').update(image).digest('hex')).toBe(
-      'f2c4f5ec9cbe847c0c763545c4d839efa8485bc74203733d0a0e8259f233c653',
-    )
+  it('ships the Shields.io badge with the project link', async () => {
+    const content = await readFile(new URL('../assets/dsh-badge.md', import.meta.url), 'utf8')
+    expect(content).toContain('https://img.shields.io/badge/powered_by-tianshu-4D6BFE?style=flat-square')
+    expect(content).toContain('https://github.com/huiliyi37/dsh-tianshu-tui')
   })
 })

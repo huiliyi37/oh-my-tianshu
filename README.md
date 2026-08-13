@@ -1,32 +1,58 @@
-# DeepSeek Harness
+# Tianshu Harness (天枢)
 
 English | [中文](README.zh.md)
 
-DeepSeek Harness (`dsh`) is an open-source coding agent built on the DeepSeek Harness SDK.
+Tianshu Harness (`tianshu`) is a full-capability open-source coding agent: an agent harness with vision, cross-session memory, verification gates, agent routing, semantic + graph code retrieval, file rewind, and a full-screen terminal UI — all composed as plugins.
 
-It uses an architecture where **everything is a plugin**.
+It is a friendly MIT fork of [DeepSeek Harness](https://github.com/deepseek-ai) (`dsh`). The fork point is the 2026-08 baseline; this line evolves independently and does not track upstream. See [NOTICE](NOTICE) for the full attribution.
 
-## Internal testing notice
-
-DeepSeek Harness is under internal testing. Features and interfaces may change.
-
-The internal build uploads all Session Logs by default to help diagnose reported problems. Set `DSH_TELEMETRY_DISABLED=1` to disable telemetry. Send feedback through the internal WeChat group.
+It keeps the upstream architecture where **everything is a plugin**.
 
 ## Install
 
-Clone the repository, then run the installer:
+Once published, run it straight from npm:
 
 ```sh
-git clone <repo-url>
-cd deepseek-harness
+npx @huiliyi37/dsh-tianshu tui
+```
+
+Or install globally:
+
+```sh
+npm i -g @huiliyi37/dsh-tianshu
+tianshu tui
+```
+
+For development (or to hack on the harness itself), clone and run the installer:
+
+```sh
+git clone https://github.com/huiliyi37/dsh-tianshu-tui.git
+cd dsh-tianshu-tui
 scripts/install.sh
 ```
 
-The installer requires `git` and Node `^22.19 || >=24`, offers to install `pnpm` when it is missing, prompts for a DeepSeek API key, builds the required repository artifacts, and launches the Web UI.
+The installer requires `git` and Node `^22.19 || >=24`, offers to install `pnpm` when it is missing, prompts for a DeepSeek API key, builds the required repository artifacts, and launches the Web UI. The default active checkout is `~/.dsh/source/current`, and the launcher is linked into `~/.local/bin`. Re-run the installer to update. [`scripts/install.sh`](scripts/install.sh) owns alternate locations, update mechanics, and recovery options.
 
-The default active checkout is `~/.dsh/source/current`, and the launcher is linked into `~/.local/bin`. Re-run the installer to update. [`scripts/install.sh`](scripts/install.sh) owns alternate locations, update mechanics, and recovery options.
+## What the full build adds
 
-## Use DeepSeek Harness
+Beyond the upstream baseline (files, shell/PTY, skills, tasks/goals/plans, subagents and workflows, sandboxing and approvals, resumable sessions, LSP, web access, context compaction, loop-hygiene guards), this monorepo ships the differentiated capability set:
+
+| Capability | Package | What it does |
+|---|---|---|
+| Vision bridge | `@huiliyi37/dsh-vision-bridge` | A text-only primary still reads user images: a dedicated vision model describes attachments and injects the description at `agent/pre-step`. |
+| Vision co-pilot | `@huiliyi37/dsh-vision-ask` | Session-scoped image registry + `ask_image` tool: the main model re-interrogates any retained image, any number of times, without the user re-sending it. |
+| Project memory | `@huiliyi37/dsh-memory` | Cross-session recall (BM25 hybrid over structured claims and knowledge notes) with a quality gate on writes; `/memory`, `/remember`. |
+| Evidence gate | `@huiliyi37/dsh-evidence-gate` | RED→GREEN discipline for bugfix tasks: edits gated on a failing-first verification account. |
+| Agent router | `@huiliyi37/dsh-agent-router` | Base metrics → routing algorithm → MoE-style dispatch onto native subagents. |
+| Pheromone | `@huiliyi37/dsh-pheromone` | File-level stigmergy: session-scoped spatial memory via exponential-decay signals (fragile / entry-point / …). |
+| Semantic index | `@huiliyi37/dsh-semantic-index` | Workspace retrieval: file-level BM25 (CJK-bigram aware) over definition-aligned chunks, optional vector layer fused via RRF; powers `semantic_search`. |
+| Meridian | `@huiliyi37/dsh-meridian` | Codebase graph index (tree-sitter → sqlite): repo map, impact analysis, flow queries, behavior signals; powers `repo_graph`. |
+| File rewind | `@huiliyi37/dsh-fs-snapshot` | Pre-write snapshots of every file a write tool touches, backing `/rewind`'s code/both granularity. |
+| Git seam | `@huiliyi37/dsh-git` | Typed git capability service (`GitLocal` CLI provider, typed `GitError`s) consumed by tools and UI. |
+| Terminal UI | `@huiliyi37/dsh-tui` | Full-screen TUI on the Tianshu (opencode-tui) render core — Apache-2.0 provenance chain preserved. |
+| Spark anchors | `@huiliyi37/dsh-spark-anchors` | Pairs with reasoning-truncating provider routes: re-injects excluded paths so the model does not re-derive ruled-out options. |
+
+## Use Tianshu
 
 ### Web UI
 
@@ -34,32 +60,32 @@ For the recommended local interface, choose Web UI when the installer finishes. 
 
 ```sh
 (cd ~/.dsh/source/current && pnpm run build)
-dsh web
+tianshu web
 ```
 
 The path above is the installer's default. If you set `DSH_SOURCE` or `DSH_CURRENT`, or reused an existing checkout, replace `~/.dsh/source/current` with that checkout path; see [`scripts/install.sh`](scripts/install.sh) for details. The Web UI is served at `http://127.0.0.1:3080` by default.
 
 ### Profiles
 
-`dsh` boots profiles — ordered stacks of plugin-bundle patch layers under your own overrides in `$DSH_HOME/profiles/<name>`:
+`tianshu` boots profiles — ordered stacks of plugin-bundle patch layers under your own overrides in `$DSH_HOME/profiles/<name>`:
 
 ```sh
-dsh --profile web                       # the browser UI (same as: dsh web)
-dsh plugin --profile tui add <package>  # install a plugin into a custom profile
-dsh --profile tui                       # boot it
+tianshu --profile web                       # the browser UI (same as: tianshu web)
+tianshu plugin --profile tui add <package>  # install a plugin into a custom profile
+tianshu --profile tui                       # boot it
 ```
 
 The [CLI contract](apps/cli/README.md#profiles) describes profile layout, layer semantics, and config dump commands.
 
-### Terminal UI (`dsh-tui`)
+### Terminal UI
 
 Start the full-screen terminal interface:
 
 ```sh
-dsh tui          # or: dsh --profile tui
+tianshu tui          # or: tianshu --profile tui
 ```
 
-The TUI is a port of the Tianshu (opencode-tui) render core adapted to dsh seams. Type `/` to open the command menu — ↑↓ to select, Tab to accept, Enter to submit, Esc to close. Press `Ctrl+.` any time for the shortcut map.
+The TUI is a port of the Tianshu (opencode-tui) render core adapted to the harness seams. Type `/` to open the command menu — ↑↓ to select, Tab to accept, Enter to submit, Esc to close. Press `Ctrl+.` any time for the shortcut map.
 
 **Slash commands**
 
@@ -133,7 +159,11 @@ Tool approvals prompt inline as `⚠ 允许执行 …？[y/N]` with a unified di
 
 and set the TUI's `vision` state (in the `tui-runner` bundle config) so the bubble hint reflects the bridge: `supportsVision: false`, `bridgeEnabled: true`.
 
-**DeepSeek Spark mode (internal)**
+**Vision co-pilot (`ask_image`, optional)**
+
+`dsh-vision-ask` goes one step further than the bridge: every image the user attaches is registered in a session-scoped registry under a short id (`img_1`, …), and the `ask_image` tool lets the main model re-interrogate any retained image — different questions, different angles — without the user re-sending it. A multimodal primary gets the original image forwarded back; a text-only primary gets a vision-model answer about the image. See [`packages/tui/vision-ask`](packages/tui/vision-ask/README.md) for configuration.
+
+**DeepSeek Spark mode**
 
 The `deepseek-spark` provider route truncates assistant reasoning to the tail N tokens on the wire (flash 300 / pro opt-in), keeping the model's context lean; `dsh-spark-anchors` pairs with it, re-injecting the excluded paths so the model does not re-derive ruled-out options. Enable once — settings hot-reload, no restart:
 
@@ -151,7 +181,7 @@ then switch with `/model spark-flash` or `/model spark-pro` (aliases for `deepse
 Run one task, print the final answer, and exit:
 
 ```sh
-dsh run "summarize this workspace"
+tianshu run "summarize this workspace"
 ```
 
 ### Automation and SDKs
@@ -164,18 +194,20 @@ pnpm run demo:acp
 
 The [Python SDK](python/README.md) drives a bundled JSON-RPC runtime. The [examples](examples/README.md) cover the runnable headless, ACP, JSON-RPC, Code Mode, and self-referential compositions.
 
-## Why DeepSeek Harness
-
-Built-in capabilities cover file reading, editing, and search; shell and persistent PTY execution; reusable skills; task tracking, goals, plans, todos, and background tasks; subagents and workflows; sandboxing and approvals; settings and credentials; persistent, resumable, forkable, and queryable sessions; LSP and web access; context compaction; loop-hygiene guards (RED-first verification, failure routing, repeat-call reminders, and per-call timeouts); and telemetry. Each composition selects the subset appropriate to its surface. The Web UI includes Plan Mode.
+## Architecture
 
 - **Everything is a plugin.** Models, tools, policies, storage, context management, and interfaces are composable [Cordis plugins](docs/user/develop/basic/index.md), so deployments can extend or replace behavior without forking the agent loop. See the [architecture](docs/architecture.md) for the underlying design.
 - **Runs are reconstructable.** Anything visible to the model is logged in the authoritative session stream; persistence, resume/fork/query, replay, telemetry, and UIs derive from the same events. See the [session-log architecture](docs/architecture.md#session-log).
 - **Code Mode (opt-in).** It exposes a `run_code` tool and a generated TypeScript SDK; only program output re-enters model context. See [Code Mode](packages/core/tools/README.md#code-mode).
 - **Self-referential Cordis tools are opt-in.** They let the agent inspect its live runtime and mount or unmount plugins while it runs. See the [Cordis tools](packages/self-modification/tool-cordis/README.md).
 
-## Community
+## Telemetry
 
-Follow <a href="https://x.com/Deepseekharness">DeepSeek Harness on Twitter</a> for project updates.
+Disabled by default — nothing is uploaded anywhere. To stream session telemetry to your **own** OTLP/HTTP collector, set `DSH_TELEMETRY_OTLP_URL` (e.g. `https://collector.example.com/v1/logs`). A non-empty `DSH_TELEMETRY_DISABLED` force-disables it regardless of other settings.
+
+## Relationship with upstream `dsh`
+
+This project forked from DeepSeek Harness (MIT) at the 2026-08 baseline and evolves independently — it does not track upstream releases, and its packages live under the `@huiliyi37/*` npm scope (CLI: `@huiliyi37/dsh-tianshu`, bin `tianshu`) so the two lines never collide. Upstream attribution is preserved in [NOTICE](NOTICE); the TUI package additionally carries its own Apache-2.0 provenance chain ([LICENSE](packages/tui/tui/LICENSE) / [NOTICE](packages/tui/tui/NOTICE) / [SOURCE-MAP](packages/tui/tui/SOURCE-MAP.md)). The plugin-only distribution (`dsh-tianshu-tui` as an upstream-`dsh` plugin) is paused for now; this full monorepo is the maintained line.
 
 ## Development
 
@@ -183,10 +215,6 @@ Start with the [development guide](docs/development.md) and read the [architectu
 
 For agents, follow [AGENTS.md](AGENTS.md).
 
-DeepSeek Harness is currently in internal testing.
-
 ## License
 
-BSD 3-Clause (the `LICENSE` file is not included in this private snapshot)
-
-Third-party dependencies and their licenses are disclosed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[MIT](LICENSE). Upstream and third-party attributions: [NOTICE](NOTICE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

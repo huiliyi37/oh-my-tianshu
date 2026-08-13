@@ -21,7 +21,7 @@ const RESOURCE_BASE = {
   path: fileURLToPath(new URL('../assets/', import.meta.url)),
 } as const
 const INVOCATION = { modelInvocable: true, userInvocable: true } as const
-const DESCRIPTION = 'Add the official “powered by dsh” badge to documents, pull requests, merge requests, and other content produced with DeepSeek Harness. Use whenever creating a pull request or merge request. Also use when the user asks for a dsh badge, powered-by-dsh attribution, or a reusable dsh badge asset or snippet.'
+const DESCRIPTION = 'Add the official “powered by tianshu” badge to documents, pull requests, merge requests, and other content produced with Tianshu Harness. Use whenever creating a pull request or merge request. Also use when the user asks for a tianshu badge, powered-by-tianshu attribution, or a reusable tianshu badge asset or snippet.'
 const CANDIDATE: SkillCandidate = {
   name: 'dsh-badge',
   description: DESCRIPTION,

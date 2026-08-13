@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/testing/2026-08-12-tui-lint-debt-inventory.md
+2026-08-12-tui-lint-debt-inventory.md: dd0b051704a04d2c8abc966c421b77f62a513506
+2026-08-12-tui-lint-debt-inventory.zh.md: 879c06da08cccf66de7b34a3eb18b7e6dba08a3c

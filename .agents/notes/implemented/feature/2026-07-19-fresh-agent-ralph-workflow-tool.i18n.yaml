@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-07-19-fresh-agent-ralph-workflow-tool.md
+2026-07-19-fresh-agent-ralph-workflow-tool.md: 2f380eceeb61ed62c826811d31a415513dd0cab9
+2026-07-19-fresh-agent-ralph-workflow-tool.zh.md: 3a0e6899adc6e59b9da87930b035dbed664c661a

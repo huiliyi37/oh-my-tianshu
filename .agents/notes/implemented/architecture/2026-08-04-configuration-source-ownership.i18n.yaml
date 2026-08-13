@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-04-configuration-source-ownership.md
+2026-08-04-configuration-source-ownership.md: dc24fd4eb57294b73c3d2f8935418182726b35c2
+2026-08-04-configuration-source-ownership.zh.md: 20a8aebb626cf2282b7ddf27540be2c05eaae946

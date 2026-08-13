@@ -1,94 +1,120 @@
-# DeepSeek Harness
+# 天枢 Harness(Tianshu)
 
 [English](README.md) | 中文
 
-DeepSeek Harness（`dsh`）是一款基于 DeepSeek Harness SDK 构建的开源 coding agent（智能体）。
+天枢 Harness(`tianshu`)是一款完全体开源 coding agent:在 agent harness 之上带视觉、跨会话记忆、验证门、agent 路由、语义 + 图谱代码检索、文件回滚和全屏终端 UI——全部以插件组合。
 
-它采用了**一切皆插件**的架构。
+它是 [DeepSeek Harness](https://github.com/deepseek-ai)(`dsh`)的友好 MIT fork,分叉点为 2026-08 基线;本线独立演进,不追踪上游。完整署名见 [NOTICE](NOTICE)。
 
-## 内测声明
-
-DeepSeek Harness 正处于内部测试阶段，功能和接口可能发生变化。
-
-为帮助诊断上报的问题，内测版本默认上传所有会话日志。设置 `DSH_TELEMETRY_DISABLED=1` 可关闭遥测。请通过内部企业微信群反馈问题和建议。
+它保留了上游**一切皆插件**的架构。
 
 ## 安装
 
-克隆仓库，然后运行安装器：
+发布到 npm 后,一条命令直接运行:
 
 ```sh
-git clone <repo-url>
-cd deepseek-harness
+npx @huiliyi37/dsh-tianshu tui
+```
+
+或全局安装:
+
+```sh
+npm i -g @huiliyi37/dsh-tianshu
+tianshu tui
+```
+
+如需开发(或修改 harness 本体),克隆仓库后运行安装器:
+
+```sh
+git clone https://github.com/huiliyi37/dsh-tianshu-tui.git
+cd dsh-tianshu-tui
 scripts/install.sh
 ```
 
-安装器要求系统已安装 `git` 和 Node `^22.19 || >=24`，缺少 `pnpm` 时可代为安装，并会提示输入 DeepSeek API 密钥，然后构建所需的仓库产物并启动 Web UI。
+安装器要求系统已安装 `git` 和 Node `^22.19 || >=24`,缺少 `pnpm` 时可代为安装,并会提示输入 DeepSeek API 密钥,然后构建所需的仓库产物并启动 Web UI。默认生效的检出位于 `~/.dsh/source/current`,启动器链接到 `~/.local/bin`。再次运行安装器即可更新。其他位置、更新机制和恢复选项由 [`scripts/install.sh`](scripts/install.sh) 负责。
 
-默认生效的检出位于 `~/.dsh/source/current`，启动器链接到 `~/.local/bin`。再次运行安装器即可更新。其他位置、更新机制和恢复选项由 [`scripts/install.sh`](scripts/install.sh) 负责。
+## 完全体新增什么
 
-## 使用 DeepSeek Harness
+在上游基线(文件、shell/PTY、技能、任务/目标/计划、subagent 与工作流、沙箱与审批、可恢复会话、LSP、Web 访问、上下文压缩、循环卫生 guard)之上,本 monorepo 附带差异化能力集:
+
+| 能力 | 包 | 作用 |
+|---|---|---|
+| 视觉桥 | `@huiliyi37/dsh-vision-bridge` | text-only 主控也能读图:独立视觉模型描述图片附件,`agent/pre-step` 时注入描述。 |
+| 视觉副驾 | `@huiliyi37/dsh-vision-ask` | 会话级图片登记簿 + `ask_image` 工具:主控可对任意留存图片反复重询,无需用户重发。 |
+| 项目记忆 | `@huiliyi37/dsh-memory` | 跨会话召回(结构化 claim 与知识笔记上的 BM25 hybrid),写入带质量门;`/memory`、`/remember`。 |
+| 验证门 | `@huiliyi37/dsh-evidence-gate` | bugfix 任务的 RED→GREEN 纪律:编辑以「先见失败」的验证归账为门。 |
+| Agent 路由 | `@huiliyi37/dsh-agent-router` | 基础指标 → 路由算法 → MoE 式派发到原生 subagent。 |
+| 信息素 | `@huiliyi37/dsh-pheromone` | 文件级 stigmergy:指数衰减信号(fragile / entry-point / …)构成的会话级空间记忆。 |
+| 语义索引 | `@huiliyi37/dsh-semantic-index` | 工作区检索:定义对齐分块上的文件级 BM25(感知 CJK bigram),可选向量层 RRF 融合;支撑 `semantic_search`。 |
+| Meridian | `@huiliyi37/dsh-meridian` | 代码图谱索引(tree-sitter → sqlite):repo map、影响分析、流查询、行为信号;支撑 `repo_graph`。 |
+| 文件回滚 | `@huiliyi37/dsh-fs-snapshot` | 写工具触碰的每个文件先做写前快照,支撑 `/rewind` 的 code/both 粒度。 |
+| Git 接缝 | `@huiliyi37/dsh-git` | 类型化 git 能力服务(`GitLocal` CLI provider、类型化 `GitError`),供工具与 UI 消费。 |
+| 终端 UI | `@huiliyi37/dsh-tui` | 基于天枢(opencode-tui)渲染核的全屏 TUI——Apache-2.0 来源链原样保留。 |
+| Spark 锚点 | `@huiliyi37/dsh-spark-anchors` | 与截断推理的 provider route 成对:回注被排除的路径,防止模型重复推导。 |
+
+## 使用天枢
 
 ### Web UI
 
-推荐在本地使用 Web UI；安装结束时，选择 Web UI 即可。以后需要启动时，或更新当前生效的检出后，请构建仓库并运行：
+推荐在本地使用 Web UI;安装结束时,选择 Web UI 即可。以后需要启动时,或更新当前生效的检出后,请构建仓库并运行:
 
 ```sh
 (cd ~/.dsh/source/current && pnpm run build)
-dsh web
+tianshu web
 ```
 
-上述路径是安装器的默认位置。如果你设置过 `DSH_SOURCE` 或 `DSH_CURRENT`，或者复用了已有检出，请把 `~/.dsh/source/current` 换成该检出路径；详情见 [`scripts/install.sh`](scripts/install.sh)。Web UI 默认通过 `http://127.0.0.1:3080` 提供服务。
+上述路径是安装器的默认位置。如果你设置过 `DSH_SOURCE` 或 `DSH_CURRENT`,或者复用了已有检出,请把 `~/.dsh/source/current` 换成该检出路径;详情见 [`scripts/install.sh`](scripts/install.sh)。Web UI 默认通过 `http://127.0.0.1:3080` 提供服务。
 
 ### Profile
 
-`dsh` 启动 profile：按序叠放的插件组合包 patch 层，之上再叠加你在 `$DSH_HOME/profiles/<name>` 中的自有覆盖层：
+`tianshu` 启动 profile:按序叠放的插件组合包 patch 层,之上再叠加你在 `$DSH_HOME/profiles/<name>` 中的自有覆盖层:
 
 ```sh
-dsh --profile web                       # the browser UI (same as: dsh web)
-dsh plugin --profile tui add <package>  # install a plugin into a custom profile
-dsh --profile tui                       # boot it
+tianshu --profile web                       # the browser UI (same as: tianshu web)
+tianshu plugin --profile tui add <package>  # install a plugin into a custom profile
+tianshu --profile tui                       # boot it
 ```
 
-profile 布局、层语义与配置输出命令详见 [CLI（命令行界面）约定](apps/cli/README.md#profiles)。
+profile 布局、层语义与配置输出命令详见 [CLI(命令行界面)约定](apps/cli/README.md#profiles)。
 
-### 终端 UI（`dsh-tui`）
+### 终端 UI
 
-启动全屏终端界面：
+启动全屏终端界面:
 
 ```sh
-dsh tui          # or: dsh --profile tui
+tianshu tui          # or: tianshu --profile tui
 ```
 
-TUI 是天枢（opencode-tui）渲染核心适配 dsh 接缝的移植。输入 `/` 打开命令菜单——↑↓ 选择、Tab 接受、Enter 提交、Esc 关闭；随时按 `Ctrl+.` 查看键位表。
+TUI 是天枢(opencode-tui)渲染核心适配 harness 接缝的移植。输入 `/` 打开命令菜单——↑↓ 选择、Tab 接受、Enter 提交、Esc 关闭;随时按 `Ctrl+.` 查看键位表。
 
 **Slash 命令**
 
 | 命令 | 作用 |
 |---|---|
-| `/session` | 会话管理（列表 / 切换） |
-| `/fork [directive]` | 分叉当前会话（复制历史）并切换；可带首条消息 |
+| `/session` | 会话管理(列表 / 切换) |
+| `/fork [directive]` | 分叉当前会话(复制历史)并切换;可带首条消息 |
 | `/branch` | `/fork` 别名 |
-| `/model [provider/model]` | 查看/切换模型（热切当前会话；`spark-flash` / `spark-pro` 别名一键切 DeepSeek Spark） |
+| `/model [provider/model]` | 查看/切换模型(热切当前会话;`spark-flash` / `spark-pro` 别名一键切 DeepSeek Spark) |
 | `/theme [name]` | 切换主题 |
 | `/clear` | 清空当前会话滚动区 |
 | `/compact` | 压缩当前会话上下文 |
-| `/steer <text>` | 中轮转向（不中断地纠正方向） |
-| `/status` | 状态面板（5 域投影快照） |
-| `/config` | 设置面板（settings / permission / credentials） |
+| `/steer <text>` | 中轮转向(不中断地纠正方向) |
+| `/status` | 状态面板(5 域投影快照) |
+| `/config` | 设置面板(settings / permission / credentials) |
 | `/skills` | 技能浏览面板 |
 | `/subagents` | 委派树面板 |
 | `/workflow` | workflow 运行中面板 |
-| `/tasks` | 任务窗格（后台任务） |
-| `/goal` | 目标管理（创建 / 暂停 / 恢复 / 完成 / 阻塞） |
-| `/memory` | 记忆浏览器（列表 / 过滤 / 删除 / 预览） |
+| `/tasks` | 任务窗格(后台任务) |
+| `/goal` | 目标管理(创建 / 暂停 / 恢复 / 完成 / 阻塞) |
+| `/memory` | 记忆浏览器(列表 / 过滤 / 删除 / 预览) |
 | `/remember <text>` | 保存一条记忆 |
-| `/rewind` | 两阶段回滚（消息列表 → 粒度） |
+| `/rewind` | 两阶段回滚(消息列表 → 粒度) |
 | `/btw <question>` | 向后台 agent 侧问 |
 | `/doctor` | 终端诊断 + 修复指引 |
 | `/mcp` | 列出已连接 MCP server 与工具 |
 | `/export [path]` | 导出当前会话转录为 Markdown 文件 |
 | `/density` | 切换紧凑工具卡渲染 |
-| `/permission` | 切换权限预设（workspace-write / danger-full-access） |
+| `/permission` | 切换权限预设(workspace-write / danger-full-access) |
 
 **快捷键**
 
@@ -99,28 +125,28 @@ TUI 是天枢（opencode-tui）渲染核心适配 dsh 接缝的移植。输入 `
 | `Ctrl+Q` | 退出 |
 | `Ctrl+P` | 命令面板 |
 | `Ctrl+.` | 键位表 overlay |
-| `Ctrl+F` | 历史搜索（n/N 跳转） |
+| `Ctrl+F` | 历史搜索(n/N 跳转) |
 | `Ctrl+O` | 用 `$EDITOR` 打开输入行 |
 | `Ctrl+T` | 中轮转向 |
-| `Ctrl+V` | 粘贴系统剪贴板图片（剪贴板无图时 fallback 剪贴板文本） |
-| `Alt+W` | 把选区复制到系统剪贴板（OSC52） |
-| `Shift+Tab` | 模式循环：normal → plan → always-approve |
-| `Tab` | `@`-路径补全；接受 slash 菜单选中项 |
-| `↑/↓` | 输入历史（slash 菜单打开时为选择） |
+| `Ctrl+V` | 粘贴系统剪贴板图片(剪贴板无图时 fallback 剪贴板文本) |
+| `Alt+W` | 把选区复制到系统剪贴板(OSC52) |
+| `Shift+Tab` | 模式循环:normal → plan → always-approve |
+| `Tab` | `@`-路径补全;接受 slash 菜单选中项 |
+| `↑/↓` | 输入历史(slash 菜单打开时为选择) |
 | `PageUp/PageDown` | slash 菜单翻页 |
 | `Esc` | 关闭 slash 菜单或 overlay |
 
 **交互**
 
-工具审批以内联 `⚠ 允许执行 …？[y/N]` 提示，上方附统一 diff 预览。subagent 运行以 live 区 spinner 行呈现，完成落为 ✓/✗/◌ scrollback 条目。底部三行：输入行（底边线随模式着色）、footer（模式徽标 + 快捷键提示）、metrics 行（模型 / token 用量 / 缓存命中率）。
+工具审批以内联 `⚠ 允许执行 …？[y/N]` 提示,上方附统一 diff 预览。subagent 运行以 live 区 spinner 行呈现,完成落为 ✓/✗/◌ scrollback 条目。底部三行:输入行(底边线随模式着色)、footer(模式徽标 + 快捷键提示)、metrics 行(模型 / token 用量 / 缓存命中率)。
 
 **图片粘贴与终端预览**
 
-`Ctrl+V`（或右键/终端菜单粘贴）读系统剪贴板图片——macOS `osascript`、Linux `wl-paste`/`xclip`、Windows PowerShell——并附图；粘贴内容像图片路径时改为加载该文件为附件。附件以 `📎 N images` 标记显示在输入行上方，提交后在用户气泡下方以终端内联图形渲染（kitty / iTerm2 协议）。气泡携带识图提示：支持识图的主控直接看图；text-only 主控配置了识图桥时先经视觉模型转描述；两者皆无时 TUI 警告图片未发送（且不提交图片）。
+`Ctrl+V`(或右键/终端菜单粘贴)读系统剪贴板图片——macOS `osascript`、Linux `wl-paste`/`xclip`、Windows PowerShell——并附图;粘贴内容像图片路径时改为加载该文件为附件。附件以 `📎 N images` 标记显示在输入行上方,提交后在用户气泡下方以终端内联图形渲染(kitty / iTerm2 协议)。气泡携带识图提示:支持识图的主控直接看图;text-only 主控配置了识图桥时先经视觉模型转描述;两者皆无时 TUI 警告图片未发送(且不提交图片)。
 
-**视觉桥（可选）**
+**视觉桥(可选)**
 
-`dsh-vision-bridge` 让 text-only 主控仍能读到用户图片：`agent/pre-step` 时经独立视觉模型描述图片附件，描述作为 plugin-source user message 注入（Model-visible ⟺ logged；桥失败降级为可见提示，绝不整轮 failed）。启用方式：把插件加入装配并配置支持识图的 provider/model：
+`dsh-vision-bridge` 让 text-only 主控仍能读到用户图片:`agent/pre-step` 时经独立视觉模型描述图片附件,描述作为 plugin-source user message 注入(Model-visible ⟺ logged;桥失败降级为可见提示,绝不整轮 failed)。启用方式:把插件加入装配并配置支持识图的 provider/model:
 
 ```yaml
 # cordis.yml
@@ -131,11 +157,15 @@ TUI 是天枢（opencode-tui）渲染核心适配 dsh 接缝的移植。输入 `
     model: <vision-capable model>
 ```
 
-并在 `tui-runner` 组合包配置里设置 TUI 的 `vision` 状态使气泡提示与桥一致：`supportsVision: false`、`bridgeEnabled: true`。
+并在 `tui-runner` 组合包配置里设置 TUI 的 `vision` 状态使气泡提示与桥一致:`supportsVision: false`、`bridgeEnabled: true`。
 
-**DeepSeek Spark 模式（内部能力）**
+**视觉副驾(`ask_image`,可选)**
 
-`deepseek-spark` provider route 在 wire 层把 assistant 推理截断为尾部 N token 回传（flash 300 / pro 需显式开启），保持模型上下文精炼；`dsh-spark-anchors` 与之成对，把被截断丢失的排除路径重新注入，防止模型重复推导已排除的选项。一次性启用（settings 热加载，无需重启）：
+`dsh-vision-ask` 比视觉桥更进一步:用户附的每张图片都以短 id(`img_1`、…)登记进会话级登记簿,`ask_image` 工具让主控对任意留存图片反复重询——不同问题、不同角度——无需用户重发。多模态主控会拿回原图;text-only 主控得到视觉模型对图片的回答。配置见 [`packages/tui/vision-ask`](packages/tui/vision-ask/README.md)。
+
+**DeepSeek Spark 模式**
+
+`deepseek-spark` provider route 在 wire 层把 assistant 推理截断为尾部 N token 回传(flash 300 / pro 需显式开启),保持模型上下文精炼;`dsh-spark-anchors` 与之成对,把被截断丢失的排除路径重新注入,防止模型重复推导已排除的选项。一次性启用(settings 热加载,无需重启):
 
 ```yaml
 # settings.yaml
@@ -144,19 +174,19 @@ llm-deepseek:
     enabled: true
 ```
 
-然后用 `/model spark-flash` 或 `/model spark-pro` 切换（`deepseek-spark/deepseek-v4-flash` / `deepseek-spark/deepseek-v4-pro` 的别名）。Spark 与 DeepSeek 共用同一 API key——零额外配置。
+然后用 `/model spark-flash` 或 `/model spark-pro` 切换(`deepseek-spark/deepseek-v4-flash` / `deepseek-spark/deepseek-v4-pro` 的别名)。Spark 与 DeepSeek 共用同一 API key——零额外配置。
 
 ### Headless
 
-运行一项任务，打印最终答案后退出：
+运行一项任务,打印最终答案后退出:
 
 ```sh
-dsh run "summarize this workspace"
+tianshu run "summarize this workspace"
 ```
 
 ### 自动化与 SDK
 
-在源码检出中通过环境变量或根目录 `.env` 设置 `DEEPSEEK_API_KEY`，然后启动 ACP（Agent Client Protocol）自动化服务器：
+在源码检出中通过环境变量或根目录 `.env` 设置 `DEEPSEEK_API_KEY`,然后启动 ACP(Agent Client Protocol)自动化服务器:
 
 ```sh
 pnpm run demo:acp
@@ -164,33 +194,27 @@ pnpm run demo:acp
 
 [Python SDK](python/README.md) 驱动随附的 JSON-RPC 运行时。[示例](examples/README.md)涵盖可运行的 headless、ACP、JSON-RPC、Code Mode 和自指组合。
 
-## 为什么选择 DeepSeek Harness
+## 架构
 
-内置功能涵盖文件读取、编辑与搜索、shell 和持久 PTY 执行、可复用 skill（技能）、任务跟踪、目标、计划、待办事项与后台任务、subagent 与工作流、沙箱与审批、设置与凭据、可持久化、恢复、fork 与查询的会话、LSP 与 Web 访问、上下文压缩（context compaction）、循环卫生 guard（RED-first 验证、失败路由、重复调用提醒、单次调用超时），以及遥测。每个组合只选用适合其使用方式的能力子集。Web UI 包含 Plan Mode。
+- **一切皆插件。** 模型、工具、策略、存储、上下文管理和界面均为可组合的 [Cordis 插件](docs/user/develop/basic/index.md),部署方无需 fork agent loop(智能体循环)即可扩展或替换行为。底层设计见[架构文档](docs/architecture.md)。
+- **运行可重建。** 凡是模型可见的内容,都会记录在权威会话流中;持久化、恢复/fork/查询、回放、遥测和 UI 均从同一组事件派生。参见[会话日志架构](docs/architecture.md#session-log)。
+- **Code Mode(需显式启用)。** 它会提供 `run_code` 工具和生成的 TypeScript SDK,只有程序输出会重新进入模型上下文。参见 [Code Mode](packages/core/tools/README.md#code-mode)。
+- **自指 Cordis 工具需显式启用。** 这些工具可让 agent 检查自身的实时运行时,并在运行中挂载或卸载插件。参见 [Cordis 工具](packages/self-modification/tool-cordis/README.md)。
 
-- **一切皆插件。** 模型、工具、策略、存储、上下文管理和界面均为可组合的 [Cordis 插件](docs/user/develop/basic/index.md)，部署方无需 fork agent loop（智能体循环）即可扩展或替换行为。底层设计见[架构文档](docs/architecture.md)。
-- **运行可重建。** 凡是模型可见的内容，都会记录在权威会话流中；持久化、恢复／fork／查询、回放、遥测和 UI 均从同一组事件派生。参见[会话日志架构](docs/architecture.md#session-log)。
-- **Code Mode（需显式启用）。** 它会提供 `run_code` 工具和生成的 TypeScript SDK，只有程序输出会重新进入模型上下文。参见 [Code Mode](packages/core/tools/README.md#code-mode)。
-- **自指 Cordis 工具需显式启用。** 这些工具可让 agent 检查自身的实时运行时，并在运行中挂载或卸载插件。参见 [Cordis 工具](packages/self-modification/tool-cordis/README.md)。
+## 遥测
 
-## 社区
+默认关闭——不会向任何地方上传任何内容。如需把会话遥测流式发送到**你自己的** OTLP/HTTP 收集器,设置 `DSH_TELEMETRY_OTLP_URL`(如 `https://collector.example.com/v1/logs`)。非空的 `DSH_TELEMETRY_DISABLED` 无条件强制关闭。
 
-扫描二维码，或打开 <a href="https://wj.qq.com/s2/27234598/03eb/">DeepSeek Harness 微信社区申请页面</a> 申请加入。
+## 与上游 `dsh` 的关系
 
-<p>
-  <img src="assets/community-wecom-survey.png" alt="DeepSeek Harness 微信社区二维码" width="240">
-</p>
+本项目于 2026-08 基线从 DeepSeek Harness(MIT)分叉,独立演进——不追踪上游发布;包发布在 `@huiliyi37/*` npm scope 下(CLI:`@huiliyi37/dsh-tianshu`,bin 名 `tianshu`),两条线永不相撞。上游署名保留在 [NOTICE](NOTICE);TUI 包额外携带自己的 Apache-2.0 来源链([LICENSE](packages/tui/tui/LICENSE) / [NOTICE](packages/tui/tui/NOTICE) / [SOURCE-MAP](packages/tui/tui/SOURCE-MAP.md))。纯插件形态的发行(`dsh-tianshu-tui` 作为上游 `dsh` 的插件)暂缓;本完全体 monorepo 是持续维护的主线。
 
 ## 开发
 
-请先阅读[开发指南](docs/development.md)；修改包之前，请阅读[架构文档](docs/architecture.md)。
+请先阅读[开发指南](docs/development.md);修改包之前,请阅读[架构文档](docs/architecture.md)。
 
-面向 agent：遵循 [AGENTS.md](AGENTS.md)。
-
-DeepSeek Harness 目前处于内测阶段。
+面向 agent:遵循 [AGENTS.md](AGENTS.md)。
 
 ## 许可证
 
-BSD 3-Clause（`LICENSE` 文件未包含在本私有快照中）
-
-第三方依赖及其许可证在 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 中披露。
+[MIT](LICENSE)。上游与第三方署名:[NOTICE](NOTICE) 与 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

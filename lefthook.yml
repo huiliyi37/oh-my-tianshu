@@ -6,6 +6,8 @@ pre-commit:
   jobs:
     - name: translation pairing (staged records)
       glob: '*.i18n.yaml'
+      exclude:
+        - '.agents/notes/archived/**'
       run: node_modules/.bin/tsx scripts/verify-translation-pairing.ts --cached {staged_files}
 
     - name: lint (staged)
@@ -35,6 +37,8 @@ pre-merge-commit:
   jobs:
     - name: translation pairing (staged records)
       glob: '*.i18n.yaml'
+      exclude:
+        - '.agents/notes/archived/**'
       run: node_modules/.bin/tsx scripts/verify-translation-pairing.ts --cached {staged_files}
 
 pre-push:
