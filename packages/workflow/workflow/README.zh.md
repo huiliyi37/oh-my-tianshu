@@ -1,10 +1,10 @@
-# @deepseek-ai/dsh-workflow
+# @huiliyi37/dsh-workflow
 
 [English](README.md) | 中文
 
 工作流 seam（`ctx.workflows`）执行由模型编写、可扇出 subagent 的编排脚本。该 seam 定义脚本、运行、结果、错误和事件约定；引擎负责决定如何隔离并执行脚本。
 
-`@deepseek-ai/dsh-workflow-workerthread` 是当前引擎，`@deepseek-ai/dsh-tool-workflow` 是面向模型的消费方。未来的进程或沙箱引擎可以替换实现，而无需更改工具。
+`@huiliyi37/dsh-workflow-workerthread` 是当前引擎，`@huiliyi37/dsh-tool-workflow` 是面向模型的消费方。未来的进程或沙箱引擎可以替换实现，而无需更改工具。
 
 ## 服务与运行约定
 

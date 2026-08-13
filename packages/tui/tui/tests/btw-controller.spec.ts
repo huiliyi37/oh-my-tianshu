@@ -5,14 +5,14 @@
  * 事件流手动触发：捕获 ctx.on('session/event') 的 handler，按 btw session id
  * 注入 assistant/chunk + turn/end，验证状态机与收尾（dispose/折叠回调）。
  *
- * @module @deepseek-ai/dsh-tui/tests/btw-controller
+ * @module @huiliyi37/dsh-tui/tests/btw-controller
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import type { Context } from 'cordis'
-import { SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
 import { BtwController, completedTurnSeed } from '../src/controllers/btw-controller.js'
-import type { AgentHandle } from '@deepseek-ai/dsh-agent'
+import type { AgentHandle } from '@huiliyi37/dsh-agent'
 
 /** 会话事件工厂（seq 连续从 0 起）。 */
 function event(seq: number, type: string, extra: Record<string, unknown> = {}): SessionEvent {

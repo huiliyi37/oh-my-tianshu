@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { SessionId } from '@huiliyi37/dsh-session'
 import {
   ApprovalController,
   type ApprovalControllerOptions,

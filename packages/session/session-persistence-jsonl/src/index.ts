@@ -3,11 +3,11 @@
  * events in one append-only file per session, and delegates orchestration to
  * {@link PersistenceCoordinator}. Its side-effect-free locator returns the
  * absolute per-session log target before materialization.
- * @module @deepseek-ai/dsh-session-persistence-jsonl
+ * @module @huiliyi37/dsh-session-persistence-jsonl
  */
 
-import { Context } from 'cordis'
-import z from 'schemastery'
+import { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 import { readdirSync } from 'node:fs'
 import { open, mkdir, readFile, readdir, realpath, link, rename, rm, stat, truncate } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
@@ -19,8 +19,8 @@ import {
   SessionPersistence, SessionPersistenceRevision, PersistenceCoordinator,
   type PersistenceBackend, type SessionLocation, type SessionPersistenceSnapshot,
   type SessionInspection, type SessionPersistenceRevision as PersistenceRevision, type StoredPrefix,
-} from '@deepseek-ai/dsh-session-persistence'
-import type { SessionEvent, SessionId, SessionHeader, SessionPreparation } from '@deepseek-ai/dsh-session'
+} from '@huiliyi37/dsh-session-persistence'
+import type { SessionEvent, SessionId, SessionHeader, SessionPreparation } from '@huiliyi37/dsh-session'
 import {
   encodeSegment, eventLines, logPath, logSuffix, parseHeaderMeta, projectDir, scanLog, sessionDir,
   SessionLogScanner, toHeaderLine,

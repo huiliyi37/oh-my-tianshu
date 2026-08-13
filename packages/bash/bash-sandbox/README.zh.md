@@ -1,8 +1,8 @@
-# @deepseek-ai/dsh-bash-sandbox
+# @huiliyi37/dsh-bash-sandbox
 
 [English](README.md) | 中文
 
-这是使用沙箱能力的 [`@deepseek-ai/dsh-bash`](../bash/) 执行器 seam Service provider。加载它时，应**用它替代** `@deepseek-ai/dsh-bash-local`，并同时加载 [`ctx.sandbox`](../../sandbox/sandbox/) 提供方（例如 [`@deepseek-ai/dsh-sandbox-local`](../../sandbox/sandbox-local/)）及 [`ctx.sandboxPolicy`](../../sandbox/sandbox-policy/)；默认模式和工作区根目录由后者负责，并与受沙箱约束的文件系统共享这些设置。无需使用替代工具插件；`dsh-tool-bash` 会检测执行器的 `sandboxMode` 能力并添加升权字段。
+这是使用沙箱能力的 [`@huiliyi37/dsh-bash`](../bash/) 执行器 seam Service provider。加载它时，应**用它替代** `@huiliyi37/dsh-bash-local`，并同时加载 [`ctx.sandbox`](../../sandbox/sandbox/) 提供方（例如 [`@huiliyi37/dsh-sandbox-local`](../../sandbox/sandbox-local/)）及 [`ctx.sandboxPolicy`](../../sandbox/sandbox-policy/)；默认模式和工作区根目录由后者负责，并与受沙箱约束的文件系统共享这些设置。无需使用替代工具插件；`dsh-tool-bash` 会检测执行器的 `sandboxMode` 能力并添加升权字段。
 
 包根目录导出默认与具名的 `SandboxBashExecutor` 插件及其 `Config`；结果分类 helper 保留在内部。
 
@@ -26,14 +26,14 @@
 
 ```yaml
 - id: sandbox
-  name: '@deepseek-ai/dsh-sandbox-local'
+  name: '@huiliyi37/dsh-sandbox-local'
 - id: sandbox-policy
-  name: '@deepseek-ai/dsh-sandbox-policy'
+  name: '@huiliyi37/dsh-sandbox-policy'
   config:
     mode: read-only
     workspaceRoot: !!js process.cwd() # fallback for calls without a session cwd
 - id: bash
-  name: '@deepseek-ai/dsh-bash-sandbox'
+  name: '@huiliyi37/dsh-bash-sandbox'
 ```
 
 ## 模型体验

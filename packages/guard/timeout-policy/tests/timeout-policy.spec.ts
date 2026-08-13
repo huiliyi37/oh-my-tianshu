@@ -1,5 +1,5 @@
 /**
- * Unit + real-load-path coverage for @deepseek-ai/dsh-timeout-policy. The
+ * Unit + real-load-path coverage for @huiliyi37/dsh-timeout-policy. The
  * timeout-wins cases drive the deadline under fake timers (deterministic — no
  * wall-clock race) and use a COOPERATIVE tool that settles only when its
  * `exec.signal` aborts, mirroring how a real capability forwards the signal and
@@ -7,13 +7,13 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import { CallId, HarnessError } from '@deepseek-ai/dsh-llm'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry, { defineContentToolFixture, TOOL_ABORTED, type ToolExecutionInput, type PostToolDecision } from '@deepseek-ai/dsh-tools'
-import * as timeoutPolicy from '@deepseek-ai/dsh-timeout-policy'
-import { TOOL_TIMEOUT } from '@deepseek-ai/dsh-timeout-policy'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import { CallId, HarnessError } from '@huiliyi37/dsh-llm'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry, { defineContentToolFixture, TOOL_ABORTED, type ToolExecutionInput, type PostToolDecision } from '@huiliyi37/dsh-tools'
+import * as timeoutPolicy from '@huiliyi37/dsh-timeout-policy'
+import { TOOL_TIMEOUT } from '@huiliyi37/dsh-timeout-policy'
 
 const testToolSignal = new AbortController().signal
 

@@ -17,18 +17,18 @@
  * pheromone keys, so absolute and relative spellings of the same file answer
  * the same query.
  *
- * @module @deepseek-ai/dsh-tool-file-info
+ * @module @huiliyi37/dsh-tool-file-info
  */
 
 import { existsSync } from 'node:fs'
 import { isAbsolute, relative, resolve } from 'node:path'
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import { FsError } from '@deepseek-ai/dsh-fs'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import { StigmergyStore } from '@deepseek-ai/dsh-pheromone'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { FsError } from '@huiliyi37/dsh-fs'
+import type { ContentBlock } from '@huiliyi37/dsh-llm'
+import { StigmergyStore } from '@huiliyi37/dsh-pheromone'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
+import { defineTool } from '@huiliyi37/dsh-tools'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'tool-file-info'

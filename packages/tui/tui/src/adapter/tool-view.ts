@@ -7,12 +7,12 @@
  * 工具未注册、参数 JSON 不可解析、presenter 抛错——一律降级为「无意图」，
  * 渲染层回落 formatToolCard 文本折叠。展示层失败绝不中断会话流。
  *
- * @module @deepseek-ai/dsh-tui/adapter/tool-view
+ * @module @huiliyi37/dsh-tui/adapter/tool-view
  */
 
-import type { ToolCallView, ToolResult, ToolResultView } from '@deepseek-ai/dsh-tools'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { JsonValue } from '@deepseek-ai/dsh-session'
+import type { ToolCallView, ToolResult, ToolResultView } from '@huiliyi37/dsh-tools'
+import type { ContentBlock } from '@huiliyi37/dsh-llm'
+import type { JsonValue } from '@huiliyi37/dsh-session'
 
 /**
  * tools 服务的最小消费面（presenter 槽位可选，与 ToolDefinition 契约对齐）。

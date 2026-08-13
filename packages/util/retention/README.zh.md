@@ -14,11 +14,11 @@
 import {
   ItemRetainer, TextRetainer,
   describeOmitted, formatRetentionNotice,
-} from '@deepseek-ai/dsh-retention'
+} from '@huiliyi37/dsh-retention'
 import type {
   Omitted, PushDecision, RetainedItems, RetainedText,
   ItemRetentionStrategy, TextRetentionStrategy, RetentionNotice,
-} from '@deepseek-ai/dsh-retention'
+} from '@huiliyi37/dsh-retention'
 ```
 
 | 导出项 | 职责 |

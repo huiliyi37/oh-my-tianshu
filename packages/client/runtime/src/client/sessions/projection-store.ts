@@ -7,7 +7,7 @@
  * exists: a domain ships projection support with zero client code. Per-key
  * bare observable faces feed `useProjection` (web-react binds them).
  */
-import type { SessionProjectionMap } from '@deepseek-ai/dsh-session-projection/types'
+import type { SessionProjectionMap } from '@huiliyi37/dsh-session-projection/types'
 import type { ObservableSnapshot } from '../contract/store.ts'
 import { Notifier } from './notifier.ts'
 
@@ -17,7 +17,7 @@ import { Notifier } from './notifier.ts'
 // dsh-session chain would drag the host `Context.sessions` merge into the
 // client program (one program must not hold both sides). No second
 // client-side "views" table (user ruling, RFC Alternatives).
-export type { SessionProjectionMap } from '@deepseek-ai/dsh-session-projection/types'
+export type { SessionProjectionMap } from '@huiliyi37/dsh-session-projection/types'
 
 /**
  * The fifth framework hook seat (session-projection RFC): key-addressed

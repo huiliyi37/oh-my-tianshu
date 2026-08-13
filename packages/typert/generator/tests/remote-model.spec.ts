@@ -582,7 +582,7 @@ import type {
   TypeRTRemoteScopeMap,
   TypeRTRemoteMap,
   TypeRTRemoteNamespaceMap,
-} from '@deepseek-ai/dsh-type-meta'
+} from '@huiliyi37/dsh-type-meta'
 import type { CreateGoalResult, RenameGoalResult } from '@fixture/remote/types'
 
 const contribution: TypeRTRemoteContribution = remote
@@ -610,7 +610,7 @@ void navigated
       composite: false,
       skipLibCheck: false,
       paths: {
-        '@deepseek-ai/dsh-type-meta': ['./type-meta.d.ts'],
+        '@huiliyi37/dsh-type-meta': ['./type-meta.d.ts'],
         '@fixture/domain/types': ['./packages/domain/src/types.ts'],
         '@fixture/remote/types': ['./packages/remote/src/types.ts'],
         '@fixture/remote/remote': ['./packages/remote/lib/typert.remote-client.d.ts'],
@@ -671,7 +671,7 @@ void navigated
 function assertRemoteConsumerWithoutImportHasNoNamespace(consumerRoot: string): void {
   const consumerPath = join(consumerRoot, 'consumer-without-remote.ts')
   writeFileSync(consumerPath, `
-import type { TypeRTRemoteNamespaceMap } from '@deepseek-ai/dsh-type-meta'
+import type { TypeRTRemoteNamespaceMap } from '@huiliyi37/dsh-type-meta'
 declare const ctx: { remote: TypeRTRemoteNamespaceMap }
 ctx.remote.goals.create('agent-1', { title: 'must not compile' })
 `)
@@ -682,7 +682,7 @@ ctx.remote.goals.create('agent-1', { title: 'must not compile' })
       composite: false,
       skipLibCheck: false,
       paths: {
-        '@deepseek-ai/dsh-type-meta': ['./type-meta.d.ts'],
+        '@huiliyi37/dsh-type-meta': ['./type-meta.d.ts'],
       },
     },
     files: ['./consumer-without-remote.ts'],

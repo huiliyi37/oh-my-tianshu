@@ -9,7 +9,7 @@
  * 差异：本包 ActivityPhase 为 idle/tool/waiting/thinking/streaming 五值，
  * 源的 analyzing/mcp/compacting/preflight 档位及其分支已删除。
  *
- * @module @deepseek-ai/dsh-tui/format/fluency-policy
+ * @module @huiliyi37/dsh-tui/format/fluency-policy
  */
 
 import type { ActivityPhase } from '../activity-status.js'

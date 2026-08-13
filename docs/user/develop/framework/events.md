@@ -87,7 +87,7 @@ Harness uses TypeScript declaration merging for type-safe events:
 ```ts
 import 'cordis'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Events {
     'my-plugin/ready': (payload: { id: string }) => void
     'my-plugin/check': (input: string) => boolean | undefined
@@ -121,8 +121,8 @@ export function apply(ctx: Context) {
 This plugin logs tool calls and results:
 
 ```ts
-import type { Context } from 'cordis'
-import '@deepseek-ai/dsh-tools'
+import type { Context } from '@huiliyi37/cordis'
+import '@huiliyi37/dsh-tools'
 
 export const name = 'tool-logger'
 

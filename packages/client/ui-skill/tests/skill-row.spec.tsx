@@ -4,9 +4,9 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { RunningToolCall, ToolResultNode } from '@deepseek-ai/dsh-client-runtime/client'
-import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
-import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+import type { RunningToolCall, ToolResultNode } from '@huiliyi37/dsh-client-runtime/client'
+import { makeTranslate } from '@huiliyi37/dsh-client-test-runtime'
+import { zh as commonZh } from '@huiliyi37/dsh-client-locale/src/locales/zh.ts'
 import { SkillRow } from '../src/client/SkillRow.tsx'
 import { zh } from '../src/client/locales.ts'
 

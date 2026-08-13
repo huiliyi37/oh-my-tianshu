@@ -1,8 +1,15 @@
 {
-  "name": "@deepseek-ai/create-sdk",
-  "description": "Create a DeepSeek Harness SDK project with npm create @deepseek-ai/sdk",
-  "version": "0.0.1",
-  "private": true,
+  "name": "@huiliyi37/create-sdk",
+  "description": "Create a DeepSeek Harness SDK project with npm create @huiliyi37/sdk",
+  "version": "0.2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "directory": "packages/scaffold/create-sdk"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -28,15 +35,15 @@
   ],
   "license": "BSD-3-Clause",
   "dependencies": {
-    "@deepseek-ai/dsh-helper": "workspace:^",
+    "@huiliyi37/dsh-helper": "workspace:^",
     "commander": "^15.0.0"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-invariants": "^0.0.1",
-    "cordis": "^4.0.0-rc.7"
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "cordis": "^4.0.0-rc.7"
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
   }
 }

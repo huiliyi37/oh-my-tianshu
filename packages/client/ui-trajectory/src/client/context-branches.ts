@@ -2,7 +2,7 @@
 
 import type {
   ConversationContext, ConversationNode, RequestView,
-} from '@deepseek-ai/dsh-client-runtime/client'
+} from '@huiliyi37/dsh-client-runtime/client'
 
 /** One continuous context branch; compactions stay inline while rewinds start a successor branch. */
 export interface TrajectoryContextBranch {

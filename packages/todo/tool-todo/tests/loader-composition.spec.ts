@@ -6,16 +6,16 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import Include from '@cordisjs/plugin-include'
-import { CallId } from '@deepseek-ai/dsh-llm'
-import { Session, SessionId } from '@deepseek-ai/dsh-session'
-import AgentRegistry, { Inbox } from '@deepseek-ai/dsh-agent'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry from '@deepseek-ai/dsh-tools'
-import * as ToolTodo from '@deepseek-ai/dsh-tool-todo'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import Include from '@huiliyi37/cordis-plugin-include'
+import { CallId } from '@huiliyi37/dsh-llm'
+import { Session, SessionId } from '@huiliyi37/dsh-session'
+import AgentRegistry, { Inbox } from '@huiliyi37/dsh-agent'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry from '@huiliyi37/dsh-tools'
+import * as ToolTodo from '@huiliyi37/dsh-tool-todo'
 
 let root: string | undefined
 let context: Context | undefined
@@ -55,10 +55,10 @@ async function boot(configLines: readonly string[]): Promise<Context> {
   root = await mkdtemp(join(tmpdir(), 'dsh-todo-loader-'))
   const configPath = join(root, 'cordis.yml')
   await writeFile(configPath, [
-    "- name: '@deepseek-ai/dsh-agent'",
-    "- name: '@deepseek-ai/dsh-system-prompt'",
-    "- name: '@deepseek-ai/dsh-tools'",
-    "- name: '@deepseek-ai/dsh-tool-todo'",
+    "- name: '@huiliyi37/dsh-agent'",
+    "- name: '@huiliyi37/dsh-system-prompt'",
+    "- name: '@huiliyi37/dsh-tools'",
+    "- name: '@huiliyi37/dsh-tool-todo'",
     ...configLines.length > 0 ? ['  config:', ...configLines] : [],
     '',
   ].join('\n'))
@@ -69,10 +69,10 @@ async function boot(configLines: readonly string[]): Promise<Context> {
   await ctx.plugin(Loader)
   ctx.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
-    ['@deepseek-ai/dsh-agent', AgentRegistry],
-    ['@deepseek-ai/dsh-system-prompt', SystemPrompt],
-    ['@deepseek-ai/dsh-tools', ToolRegistry],
-    ['@deepseek-ai/dsh-tool-todo', ToolTodo],
+    ['@huiliyi37/dsh-agent', AgentRegistry],
+    ['@huiliyi37/dsh-system-prompt', SystemPrompt],
+    ['@huiliyi37/dsh-tools', ToolRegistry],
+    ['@huiliyi37/dsh-tool-todo', ToolTodo],
   ])
   ctx.loader.internal = {
     version: 'v2',

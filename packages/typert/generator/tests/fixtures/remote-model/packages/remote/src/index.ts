@@ -1,4 +1,4 @@
-import { GatewayService, Remote, RemoteScope } from '@deepseek-ai/dsh-type-meta'
+import { GatewayService, Remote, RemoteScope } from '@huiliyi37/dsh-type-meta'
 import type { Agent } from '@fixture/domain'
 import type {
   CreateGoalRequest,

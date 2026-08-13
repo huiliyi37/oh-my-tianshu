@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-session-title-first-message-llm`.
- * @module @deepseek-ai/dsh-session-title-first-message-llm/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-session-title-first-message-llm`.
+ * @module @huiliyi37/dsh-session-title-first-message-llm/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-session-title-first-message-llm'
+const PACKAGE_NAME = '@huiliyi37/dsh-session-title-first-message-llm'
 
 /** Cordis companion plugin name. */
 export const name = 'session-title-first-message-llm-invariant'

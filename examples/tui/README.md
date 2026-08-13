@@ -4,7 +4,7 @@ English | [中文](README.zh.md)
 
 An interactive terminal UI composition over the same agent spine the
 [headless-agent](../headless-agent/) example uses: the real DeepSeek adapter,
-one pre-created `main` agent, and the `@deepseek-ai/dsh-tui` bundle's
+one pre-created `main` agent, and the `@huiliyi37/dsh-tui` bundle's
 `tui-runner` plugin. The TUI renders the session log through the read-only
 `adapter/transcript` projection; the session log stays the authoritative fact
 source.
@@ -31,7 +31,7 @@ render core takes over stdin/stdout.
 - `credentials` — resolves `DEEPSEEK_API_KEY` from the process environment
 - `llm-deepseek` — the DeepSeek adapter (full thinking at max effort)
 - `agent-spine` — pre-creates one `main` agent
-- `tui-runner` — the `@deepseek-ai/dsh-tui` bundle's interactive render core
+- `tui-runner` — the `@huiliyi37/dsh-tui` bundle's interactive render core
 
 ## Keyless snapshot
 

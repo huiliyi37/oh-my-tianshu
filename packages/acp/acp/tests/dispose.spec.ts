@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PROTOCOL_VERSION } from '@agentclientprotocol/sdk'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { SessionId } from '@huiliyi37/dsh-session'
 import { makeBridgeHarness, type BridgeHarness } from './harness.ts'
 
 describe('ACP connection ownership', () => {

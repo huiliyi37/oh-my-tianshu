@@ -1,8 +1,8 @@
-# @deepseek-ai/dsh-tasks-local
+# @huiliyi37/dsh-tasks-local
 
 [English](README.md) | 中文
 
-[`@deepseek-ai/dsh-tasks`](../tasks/README.md) 注册表约定的进程本地实现：`LocalTaskService` 把每条记录保存在内存中，按 kind 签发 `<kind>-N` id，并且只交出全新快照，从不交出实时状态。它没有配置；作为插件加载后即注册为 `ctx.tasks`。
+[`@huiliyi37/dsh-tasks`](../tasks/README.md) 注册表约定的进程本地实现：`LocalTaskService` 把每条记录保存在内存中，按 kind 签发 `<kind>-N` id，并且只交出全新快照，从不交出实时状态。它没有配置；作为插件加载后即注册为 `ctx.tasks`。
 
 ## 生命周期
 

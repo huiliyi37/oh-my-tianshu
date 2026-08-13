@@ -1,5 +1,5 @@
 /**
- * Real-load-path guard for @deepseek-ai/dsh-tool-fs-search. `tool-fs-search` is
+ * Real-load-path guard for @huiliyi37/dsh-tool-fs-search. `tool-fs-search` is
  * a NAMESPACE plugin with `inject` — so a stray `export default apply` would
  * make the cordis Loader's `unwrapExports` (`exports.default ?? exports`)
  * collapse the module to the bare `apply` function, DROPPING `inject`. The
@@ -15,12 +15,12 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry from '@deepseek-ai/dsh-tools'
-import LocalSubprocessService from '@deepseek-ai/dsh-subprocess-local'
-import * as toolFsSearch from '@deepseek-ai/dsh-tool-fs-search'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry from '@huiliyi37/dsh-tools'
+import LocalSubprocessService from '@huiliyi37/dsh-subprocess-local'
+import * as toolFsSearch from '@huiliyi37/dsh-tool-fs-search'
 
 describe('dsh-tool-fs-search real-load-path guard', () => {
   it('has no default export and keeps name/inject/Config through unwrapExports', () => {

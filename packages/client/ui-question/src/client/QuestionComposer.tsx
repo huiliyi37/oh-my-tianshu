@@ -3,7 +3,7 @@ import clsx from 'clsx'
 import {
   Button, IconCheckOutline14, IconChevronLeftOutline14, IconChevronRightOutline14,
   IconCloseOutline16, IconEditOutline16, MarkdownText,
-} from '@deepseek-ai/dsh-client-ui-primitives'
+} from '@huiliyi37/dsh-client-ui-primitives'
 import {
   PendingQuestion, planReviewOf,
   type QuestionAnswer, type QuestionComposerProps,

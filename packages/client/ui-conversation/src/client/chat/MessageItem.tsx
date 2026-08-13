@@ -8,8 +8,8 @@ import { memo, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type {
   ModelRetryNode, TurnErrorNode,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import { JsonBlock, MessageText, StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
+} from '@huiliyi37/dsh-client-runtime/client'
+import { JsonBlock, MessageText, StateDot } from '@huiliyi37/dsh-client-ui-primitives'
 import type { ChatNodeViewProps, ChatViewSlotProps } from '../contract/slots.ts'
 import { CompactionItem } from './CompactionItem.tsx'
 import { ContextInjectionRow } from './ContextInjectionRow.tsx'

@@ -8,13 +8,13 @@
  * (and the reverse), the one-shared-state contract of the dual entry.
  * Scope disposal drops the directory (HMR safety).
  */
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it } from 'vitest'
-import { createScope } from '@deepseek-ai/dsh-client-runtime/client'
-import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client'
-import { LocaleService } from '@deepseek-ai/dsh-client-locale/client'
-import type { ModelSelection } from '@deepseek-ai/dsh-client-connection/client'
-import type { CommandContribution, SelectOption } from '@deepseek-ai/dsh-client-ui-command/client'
+import { createScope } from '@huiliyi37/dsh-client-runtime/client'
+import type { SessionId } from '@huiliyi37/dsh-client-runtime/client'
+import { LocaleService } from '@huiliyi37/dsh-client-locale/client'
+import type { ModelSelection } from '@huiliyi37/dsh-client-connection/client'
+import type { CommandContribution, SelectOption } from '@huiliyi37/dsh-client-ui-command/client'
 import type { ModelSelectInjected } from '../src/client/slots.ts'
 import { apply, inject } from '../src/client/index.ts'
 import { zh } from '../src/client/locales.ts'

@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
 import { fileURLToPath } from 'node:url'
 import type { Worker } from 'node:worker_threads'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import SubagentService from '@deepseek-ai/dsh-subagent'
-import type { SubagentCapabilities, SubagentProvider, SubagentResult, SubagentRun, SubagentStartRequest } from '@deepseek-ai/dsh-subagent'
-import type { WorkflowMeta, WorkflowResult, WorkflowResultInfo, WorkflowRun, WorkflowRunInfo } from '@deepseek-ai/dsh-workflow'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import SubagentService from '@huiliyi37/dsh-subagent'
+import type { SubagentCapabilities, SubagentProvider, SubagentResult, SubagentRun, SubagentStartRequest } from '@huiliyi37/dsh-subagent'
+import type { WorkflowMeta, WorkflowResult, WorkflowResultInfo, WorkflowRun, WorkflowRunInfo } from '@huiliyi37/dsh-workflow'
 import * as workerEngineModule from '../src/index.ts'
 import WorkerWorkflowEngine, { type Config } from '../src/index.ts'
 import { HostToWorkerType, WorkerToHostType } from '../src/protocol.ts'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import { SessionId } from '@huiliyi37/dsh-session'
 
 /** A minimal parent stand-in: the engine only threads it through to the provider. */
 function fakeParent(): Agent {

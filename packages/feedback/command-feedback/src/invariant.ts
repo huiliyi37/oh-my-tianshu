@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-command-feedback`.
- * @module @deepseek-ai/dsh-command-feedback/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-command-feedback`.
+ * @module @huiliyi37/dsh-command-feedback/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-command-feedback'
+const PACKAGE_NAME = '@huiliyi37/dsh-command-feedback'
 
 /** Cordis companion plugin name. */
 export const name = 'command-feedback-invariant'

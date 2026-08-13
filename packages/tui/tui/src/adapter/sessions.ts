@@ -4,11 +4,11 @@
  * module only READS logs and the live store; it never appends events and never
  * disposes agents (a handle's teardown belongs to its holder).
  *
- * @module @deepseek-ai/dsh-tui/adapter/sessions
+ * @module @huiliyi37/dsh-tui/adapter/sessions
  */
 
-import type { Context } from 'cordis'
-import type { Session, SessionEvent, SessionForkSource, SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import type { Session, SessionEvent, SessionForkSource, SessionHeader, SessionId } from '@huiliyi37/dsh-session'
 
 /**
  * `ctx.sessionPersistence` 的最小读面（metadata 列表 + 事件日志），不引入

@@ -1,16 +1,16 @@
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import type {
   CommandNode, CompactionSummaryNode, ConversationMatch, ConversationNodeContext,
   ConversationNodeDefinition,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import { isReplacementSurfaceEvent } from '@deepseek-ai/dsh-client-runtime/client'
-import type { CompactCheckpointSource } from '@deepseek-ai/dsh-compact/checkpoint'
-import type {} from '@deepseek-ai/dsh-compact/types'
-import type {} from '@deepseek-ai/dsh-commands/types'
+} from '@huiliyi37/dsh-client-runtime/client'
+import { isReplacementSurfaceEvent } from '@huiliyi37/dsh-client-runtime/client'
+import type { CompactCheckpointSource } from '@huiliyi37/dsh-compact/checkpoint'
+import type {} from '@huiliyi37/dsh-compact/types'
+import type {} from '@huiliyi37/dsh-commands/types'
 import type { ManualCompactionChatData } from '../contract/chat-nodes.ts'
 import { chatNode } from './common.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
+declare module '@huiliyi37/dsh-client-ui-conversation/client' {
   interface ChatNodeDataMap {
     /** Ordinary slash-command lifecycle. */
     command: CommandNode

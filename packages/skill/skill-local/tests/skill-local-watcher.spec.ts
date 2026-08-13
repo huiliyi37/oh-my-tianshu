@@ -4,8 +4,8 @@ import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import SkillService from '@deepseek-ai/dsh-skill'
+import { Context } from '@huiliyi37/cordis'
+import SkillService from '@huiliyi37/dsh-skill'
 
 interface FakeWatcherControl {
   emitter: EventEmitter

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import { bindSnapshotSelector } from '@huiliyi37/dsh-client-web-react'
 import type { GeneralSectionComponentProps } from '../src/client/GeneralSection.tsx'
 import { GeneralSection } from '../src/client/GeneralSection.tsx'
 import { CloseLabel, HeaderContent, TriggerContent } from '../src/client/chrome.tsx'

@@ -2,10 +2,10 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
-import { CompactionId } from '@deepseek-ai/dsh-compact'
-import LlmService, { CallId, createUserMessage, GenerateOptions, LlmAdapter, StreamChunk } from '@deepseek-ai/dsh-llm'
+import { Context } from '@huiliyi37/cordis'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
+import { CompactionId } from '@huiliyi37/dsh-compact'
+import LlmService, { CallId, createUserMessage, GenerateOptions, LlmAdapter, StreamChunk } from '@huiliyi37/dsh-llm'
 import {
   type ReplayEntry,
   type SessionScript,

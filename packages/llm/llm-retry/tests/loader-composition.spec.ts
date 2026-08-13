@@ -3,16 +3,16 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import Include from '@cordisjs/plugin-include'
-import AgentRegistry from '@deepseek-ai/dsh-agent'
-import AgentLoop from '@deepseek-ai/dsh-agent-loop'
-import LlmService, { createUserMessage, LlmAdapter, LlmError, resolveRetryPolicy  } from '@deepseek-ai/dsh-llm'
-import type { GenerateOptions, ResolvedRetryPolicy, StreamChunk } from '@deepseek-ai/dsh-llm'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry from '@deepseek-ai/dsh-tools'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import Include from '@huiliyi37/cordis-plugin-include'
+import AgentRegistry from '@huiliyi37/dsh-agent'
+import AgentLoop from '@huiliyi37/dsh-agent-loop'
+import LlmService, { createUserMessage, LlmAdapter, LlmError, resolveRetryPolicy  } from '@huiliyi37/dsh-llm'
+import type { GenerateOptions, ResolvedRetryPolicy, StreamChunk } from '@huiliyi37/dsh-llm'
+import SessionStore, { SessionId } from '@huiliyi37/dsh-session'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry from '@huiliyi37/dsh-tools'
 import * as retry from '../src/index.ts'
 
 let root: string | undefined
@@ -58,13 +58,13 @@ async function loadYaml(lines: readonly string[]): Promise<Context> {
   await context.plugin(Loader)
   context.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
-    ['@deepseek-ai/dsh-llm', LlmService],
-    ['@deepseek-ai/dsh-session', SessionStore],
-    ['@deepseek-ai/dsh-system-prompt', SystemPrompt],
-    ['@deepseek-ai/dsh-tools', ToolRegistry],
-    ['@deepseek-ai/dsh-agent', AgentRegistry],
-    ['@deepseek-ai/dsh-llm-retry', retry],
-    ['@deepseek-ai/dsh-agent-loop', AgentLoop],
+    ['@huiliyi37/dsh-llm', LlmService],
+    ['@huiliyi37/dsh-session', SessionStore],
+    ['@huiliyi37/dsh-system-prompt', SystemPrompt],
+    ['@huiliyi37/dsh-tools', ToolRegistry],
+    ['@huiliyi37/dsh-agent', AgentRegistry],
+    ['@huiliyi37/dsh-llm-retry', retry],
+    ['@huiliyi37/dsh-agent-loop', AgentLoop],
   ])
   context.loader.internal = {
     version: 'v2',
@@ -87,13 +87,13 @@ describe('real Loader composition', () => {
   // to trip the default 5s budget on cold caches.
   it('loads provider-supplied policy and records recovery through the shipping loop', { timeout: 60_000 }, async () => {
     const loaded = await loadYaml([
-      "- name: '@deepseek-ai/dsh-llm'",
-      "- name: '@deepseek-ai/dsh-session'",
-      "- name: '@deepseek-ai/dsh-system-prompt'",
-      "- name: '@deepseek-ai/dsh-tools'",
-      "- name: '@deepseek-ai/dsh-agent'",
-      "- name: '@deepseek-ai/dsh-llm-retry'",
-      "- name: '@deepseek-ai/dsh-agent-loop'",
+      "- name: '@huiliyi37/dsh-llm'",
+      "- name: '@huiliyi37/dsh-session'",
+      "- name: '@huiliyi37/dsh-system-prompt'",
+      "- name: '@huiliyi37/dsh-tools'",
+      "- name: '@huiliyi37/dsh-agent'",
+      "- name: '@huiliyi37/dsh-llm-retry'",
+      "- name: '@huiliyi37/dsh-agent-loop'",
     ])
 
     const unloaded = [...loaded.loader.entries()]

@@ -5,7 +5,7 @@
  * chunks and keeps the implementation dependency-free. The on-disk snapshot
  * lives beside the BM25 index in `.rivet/`.
  *
- * @module @deepseek-ai/dsh-semantic-index/vector-index
+ * @module @huiliyi37/dsh-semantic-index/vector-index
  */
 
 export interface VectorHit {

@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-client-ui-tool
+# @huiliyi37/dsh-client-ui-tool
 
 English | [中文](README.zh.md)
 

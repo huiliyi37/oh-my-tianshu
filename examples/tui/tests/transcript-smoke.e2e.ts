@@ -2,7 +2,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { runLoaderSmoke } from '@deepseek-ai/dsh-loader-smoke'
+import { runLoaderSmoke } from '@huiliyi37/dsh-loader-smoke'
 
 const binScript = fileURLToPath(new URL('./fixtures/transcript-driver.ts', import.meta.url))
 const configPath = fileURLToPath(new URL('./fixtures/transcript-smoke.cordis.yml', import.meta.url))

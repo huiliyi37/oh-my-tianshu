@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry from '@deepseek-ai/dsh-tools'
+import { Context } from '@huiliyi37/cordis'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry from '@huiliyi37/dsh-tools'
 import * as tool from '../src/index.ts'
 import { call, dummyTool, LISTENER_CODE, REVERSE_TOOL_CODE, setup, text } from './helpers.ts'
 

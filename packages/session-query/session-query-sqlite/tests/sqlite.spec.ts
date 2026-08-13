@@ -1,18 +1,18 @@
-import { createAssistantMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createAssistantMessage, createUserMessage } from '@huiliyi37/dsh-llm'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context, type Fiber } from 'cordis'
+import { Context, type Fiber } from '@huiliyi37/cordis'
 import { DatabaseSync } from 'node:sqlite'
 import { chmod, mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import SessionStore, { SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/dsh-session'
-import type { SessionEvent, SessionHeader, SessionId as SessionIdType } from '@deepseek-ai/dsh-session'
-import SessionPersistence, { SessionPersistenceRevision } from '@deepseek-ai/dsh-session-persistence'
-import type { SessionPersistenceSnapshot } from '@deepseek-ai/dsh-session-persistence'
-import SessionPersistenceSqlite from '@deepseek-ai/dsh-session-persistence-sqlite'
+import SessionStore, { SESSION_FORMAT_VERSION, SessionId } from '@huiliyi37/dsh-session'
+import type { SessionEvent, SessionHeader, SessionId as SessionIdType } from '@huiliyi37/dsh-session'
+import SessionPersistence, { SessionPersistenceRevision } from '@huiliyi37/dsh-session-persistence'
+import type { SessionPersistenceSnapshot } from '@huiliyi37/dsh-session-persistence'
+import SessionPersistenceSqlite from '@huiliyi37/dsh-session-persistence-sqlite'
 import SessionQuerySqlite, {
   SESSION_QUERY_SQLITE_SCHEMA_VERSION,
-} from '@deepseek-ai/dsh-session-query-sqlite'
+} from '@huiliyi37/dsh-session-query-sqlite'
 import {
   SESSION_QUERY_DEFAULT_PERSISTED_INSPECT_CONCURRENCY,
   SessionQueryError,
@@ -20,7 +20,7 @@ import {
   type SessionAvailability,
   type SessionQueryErrorCode,
   type SessionSearchRequest,
-} from '@deepseek-ai/dsh-session-query'
+} from '@huiliyi37/dsh-session-query'
 
 const temporaryDirectories: Array<string> = []
 

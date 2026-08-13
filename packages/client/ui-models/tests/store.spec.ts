@@ -1,6 +1,6 @@
 /** Page-store join: directory × namespaces × credentials, with last-good rows on failure. */
 import { describe, expect, it } from 'vitest'
-import type { RpcResponse } from '@deepseek-ai/dsh-client-connection/client'
+import type { RpcResponse } from '@huiliyi37/dsh-client-connection/client'
 import { messageOf, ModelsSettingsStore } from '../src/client/store.ts'
 
 let nextRpc = 0

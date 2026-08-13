@@ -1,13 +1,13 @@
 /** Direct one-shot Agent driving, durable aggregation, flushing, and exit mapping. */
 
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import AgentRegistry, { Inbox } from '@deepseek-ai/dsh-agent'
-import type { Agent, AgentHandle, CreateAgentOptions } from '@deepseek-ai/dsh-agent'
-import AgentDefaultModelService from '@deepseek-ai/dsh-agent-default-model'
-import { createAssistantMessage } from '@deepseek-ai/dsh-llm'
-import SessionStore from '@deepseek-ai/dsh-session'
-import type { Session, UserMessage } from '@deepseek-ai/dsh-session'
+import { Context } from '@huiliyi37/cordis'
+import AgentRegistry, { Inbox } from '@huiliyi37/dsh-agent'
+import type { Agent, AgentHandle, CreateAgentOptions } from '@huiliyi37/dsh-agent'
+import AgentDefaultModelService from '@huiliyi37/dsh-agent-default-model'
+import { createAssistantMessage } from '@huiliyi37/dsh-llm'
+import SessionStore from '@huiliyi37/dsh-session'
+import type { Session, UserMessage } from '@huiliyi37/dsh-session'
 import { apply, Config, type HeadlessIo } from '../src/index.ts'
 
 interface Script {

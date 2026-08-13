@@ -1,17 +1,17 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import BasicCompactService from '@deepseek-ai/dsh-compact-basic'
-import type { BasicCompactConfig } from '@deepseek-ai/dsh-compact-basic'
-import { selectCompactableRange } from '@deepseek-ai/dsh-compact-basic/src/region.ts'
-import type { SummarizationInput, SummaryResult } from '@deepseek-ai/dsh-compact-basic/src/summarizer.ts'
-import { CompactionId, toolPairingBalancedAfter, toolPairingBalancedBefore } from '@deepseek-ai/dsh-compact'
+import { Context } from '@huiliyi37/cordis'
+import BasicCompactService from '@huiliyi37/dsh-compact-basic'
+import type { BasicCompactConfig } from '@huiliyi37/dsh-compact-basic'
+import { selectCompactableRange } from '@huiliyi37/dsh-compact-basic/src/region.ts'
+import type { SummarizationInput, SummaryResult } from '@huiliyi37/dsh-compact-basic/src/summarizer.ts'
+import { CompactionId, toolPairingBalancedAfter, toolPairingBalancedBefore } from '@huiliyi37/dsh-compact'
 import {
   resolveCompactSpec,
   resolveConfig,
   resolveTargetPolicy,
-} from '@deepseek-ai/dsh-compact-basic/src/config.ts'
-import type { CompactionResult } from '@deepseek-ai/dsh-compact'
-import LlmService, { createUserMessage, CallId, CONTEXT_WINDOW_EXCEEDED_CODE, createToolResultMessage, LlmAdapter , createMessage } from '@deepseek-ai/dsh-llm'
+} from '@huiliyi37/dsh-compact-basic/src/config.ts'
+import type { CompactionResult } from '@huiliyi37/dsh-compact'
+import LlmService, { createUserMessage, CallId, CONTEXT_WINDOW_EXCEEDED_CODE, createToolResultMessage, LlmAdapter , createMessage } from '@huiliyi37/dsh-llm'
 import type {
   ContentBlock,
   GenerateOptions,
@@ -20,11 +20,11 @@ import type {
   Message,
   StreamChunk,
   TokenUsage,
-} from '@deepseek-ai/dsh-llm'
-import SessionStore, { Session, SessionId } from '@deepseek-ai/dsh-session'
-import TokenMeterService from '@deepseek-ai/dsh-token-meter'
-import { agentEvents, type Agent, type RequestErrorAction } from '@deepseek-ai/dsh-agent'
-import ToolResultPruneService from '@deepseek-ai/dsh-compact-tool-result-prune'
+} from '@huiliyi37/dsh-llm'
+import SessionStore, { Session, SessionId } from '@huiliyi37/dsh-session'
+import TokenMeterService from '@huiliyi37/dsh-token-meter'
+import { agentEvents, type Agent, type RequestErrorAction } from '@huiliyi37/dsh-agent'
+import ToolResultPruneService from '@huiliyi37/dsh-compact-tool-result-prune'
 
 const SIGNAL = new AbortController().signal
 const MODEL = 'test-model'

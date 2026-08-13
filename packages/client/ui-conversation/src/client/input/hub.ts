@@ -8,8 +8,8 @@
  * bail events) and owns the default-sink choreography: every session is a
  * real host entity, so the sink is one unconditional prompt path.
  */
-import type { ClientContext, ISessions, SessionBinding, SessionFace, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
-import type { SlashController } from '@deepseek-ai/dsh-client-ui-slash/client'
+import type { ClientContext, ISessions, SessionBinding, SessionFace, SessionId } from '@huiliyi37/dsh-client-runtime/client'
+import type { SlashController } from '@huiliyi37/dsh-client-ui-slash/client'
 import { queueReadFaceOf } from '../queue/store.ts'
 import type { ComposerKeyboard, InputService, SessionInput } from './contract.ts'
 import type { InputSubmitMode } from '../contract/composer-submission.ts'

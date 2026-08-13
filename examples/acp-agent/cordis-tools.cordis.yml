@@ -1,10 +1,10 @@
 # Add the self-referential Cordis tools without changing the base ACP tool
 # presentation mode.
 - id: base
-  name: '@cordisjs/plugin-include'
+  name: '@huiliyi37/cordis-plugin-include'
   config:
     path: ./cordis.yml
     patches:
       - insert:
           - id: tool-cordis
-            name: '@deepseek-ai/dsh-tool-cordis'
+            name: '@huiliyi37/dsh-tool-cordis'

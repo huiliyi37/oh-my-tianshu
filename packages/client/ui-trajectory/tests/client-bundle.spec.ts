@@ -4,15 +4,15 @@
  * window.__ModuleLoader__.load, resolves externals through the injected
  * require, returns the export surface (apply + inject), and a mounted apply
  * registers the view tab into a real SlotsService ring. Skips when dist/ is
- * not built (`pnpm --filter @deepseek-ai/dsh-client-ui-trajectory bundle`).
+ * not built (`pnpm --filter @huiliyi37/dsh-client-ui-trajectory bundle`).
  */
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { afterEach, describe, expect, it } from 'vitest'
-import { SlotsService } from '@deepseek-ai/dsh-client-runtime/client'
+import { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
 
-const PLUGIN_ID = '@deepseek-ai/dsh-client-ui-trajectory'
+const PLUGIN_ID = '@huiliyi37/dsh-client-ui-trajectory'
 
 interface Handoff { id: string; factory: (require: (spec: string) => unknown) => Record<string, unknown> }
 type Win = { __ModuleLoader__?: { load(h: Handoff): void } }
@@ -47,8 +47,8 @@ describe('tsdown client artifact', () => {
       ['react', await import('react')],
       ['react/jsx-runtime', await import('react/jsx-runtime')],
       ['react-dom', await import('react-dom')],
-      ['@deepseek-ai/dsh-client-runtime/client', await import('@deepseek-ai/dsh-client-runtime/client')],
-      ['@deepseek-ai/dsh-client-ui-primitives', await import('@deepseek-ai/dsh-client-ui-primitives')],
+      ['@huiliyi37/dsh-client-runtime/client', await import('@huiliyi37/dsh-client-runtime/client')],
+      ['@huiliyi37/dsh-client-ui-primitives', await import('@huiliyi37/dsh-client-ui-primitives')],
     ])
     const surface = handoff!.factory((spec) => {
       if (!modules.has(spec)) { throw new Error(`unexpected require: ${spec}`) }

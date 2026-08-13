@@ -6,8 +6,8 @@ The shared process substrate for one execution world: executable lookup, fully-s
 
 | Package | ctx key | Role |
 |---|---|---|
-| [`subprocess`](subprocess/README.md) (`@deepseek-ai/dsh-subprocess`) | `ctx.subprocess` | Service Definition: executable lookup, ordinary managed spawns, the terminal-process primitive, handle lifecycles, and shared environment/output vocabulary |
-| [`subprocess-local`](subprocess-local/README.md) (`@deepseek-ai/dsh-subprocess-local`) | — | Local Service provider: detached process trees, bounded collection/spill, `node-pty`, foreground/session inspection, tree signalling, and terminate-and-join disposal |
+| [`subprocess`](subprocess/README.md) (`@huiliyi37/dsh-subprocess`) | `ctx.subprocess` | Service Definition: executable lookup, ordinary managed spawns, the terminal-process primitive, handle lifecycles, and shared environment/output vocabulary |
+| [`subprocess-local`](subprocess-local/README.md) (`@huiliyi37/dsh-subprocess-local`) | — | Local Service provider: detached process trees, bounded collection/spill, `node-pty`, foreground/session inspection, tree signalling, and terminate-and-join disposal |
 
 The service owns process lifetime across consumer reloads; consumers own what a process means (a bash command, a future non-shell runner) and every default that shapes one.
 

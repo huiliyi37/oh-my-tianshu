@@ -9,7 +9,7 @@ The `create-sdk` initializer normally runs an interactive wizard. To create a pr
 **without a terminal**, pass a structured spec and ask for machine-readable events:
 
 ```sh
-npm create @deepseek-ai/sdk -- --config-json '<spec-json>' --json
+npm create @huiliyi37/sdk -- --config-json '<spec-json>' --json
 ```
 
 - `--config-json '<json>'` supplies the whole spec inline (no prompts). Alternatively

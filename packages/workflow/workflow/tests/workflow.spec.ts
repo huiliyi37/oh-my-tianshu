@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import WorkflowServiceDefault, {
   isFatalWorkflowError,
   WorkflowError,

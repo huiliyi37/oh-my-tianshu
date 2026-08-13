@@ -1,7 +1,7 @@
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PROTOCOL_VERSION } from '@agentclientprotocol/sdk'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import { SessionId } from '@huiliyi37/dsh-session'
 import {
   errorResponse,
   makeBridgeHarness,

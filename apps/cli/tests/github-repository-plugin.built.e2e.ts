@@ -5,7 +5,7 @@ import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { startMockLlmServer } from '@deepseek-ai/dsh-llm-mock-server'
+import { startMockLlmServer } from '@huiliyi37/dsh-llm-mock-server'
 import { execa } from 'execa'
 import { describe, expect, it } from 'vitest'
 
@@ -142,7 +142,7 @@ describe.skipIf(!enabled)('dsh run GitHub repository Plugin installation', () =>
     const home = mkdtempSync(join(tmpdir(), 'dsh-github-repository-plugin-'))
     const registry = await startPublishedPackageRegistry(home)
     const npmrc = join(home, 'npmrc')
-    writeFileSync(npmrc, `@deepseek-ai:registry=${registry.url}\n`)
+    writeFileSync(npmrc, `@huiliyi37:registry=${registry.url}\n`)
     const hostBin = join(home, 'host-bin')
     mkdirSync(hostBin)
     writeFileSync(join(hostBin, 'dsh-plugin-prepare'), [
@@ -197,8 +197,8 @@ describe.skipIf(!enabled)('dsh run GitHub repository Plugin installation', () =>
       expect(result.stdout).toBe('trusted GitHub repository package reached dsh run')
       expect(server.requests).toHaveLength(2)
       const runtimeDiagnostic = `${result.stderr}\nstdout:\n${result.stdout}`
-      expect(registry.requests, runtimeDiagnostic).toContain('GET /@deepseek-ai/dsh-repository-plugin')
-      expect(registry.requests, runtimeDiagnostic).toContain('GET /@deepseek-ai/dsh-repository-plugin/-/dsh-repository-plugin-0.0.1.tgz')
+      expect(registry.requests, runtimeDiagnostic).toContain('GET /@huiliyi37/dsh-repository-plugin')
+      expect(registry.requests, runtimeDiagnostic).toContain('GET /@huiliyi37/dsh-repository-plugin/-/dsh-repository-plugin-0.0.1.tgz')
       const firstRequest = JSON.stringify(server.requests[0]!.body)
       const secondRequest = JSON.stringify(server.requests[1]!.body)
       expect(firstRequest, runtimeDiagnostic).toContain(
@@ -229,7 +229,7 @@ describe.skipIf(!enabled)('dsh run GitHub repository Plugin installation', () =>
           '@modelcontextprotocol/sdk': '1.29.0',
         },
         devDependencies: {
-          '@deepseek-ai/dsh-repository-plugin': '0.0.1',
+          '@huiliyi37/dsh-repository-plugin': '0.0.1',
           cordis: '4.0.0-rc.7',
           tsdown: '0.22.2',
           typescript: '6.0.3',

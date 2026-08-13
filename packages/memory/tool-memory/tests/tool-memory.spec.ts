@@ -6,11 +6,11 @@
  * 行为契约：memory_save 调 save（scope 校验/来源 agent）、memory_search 调
  * search（limit 透传）、服务缺失 fail loud、system prompt section 注册。
  *
- * @module @deepseek-ai/dsh-tool-memory/tests/tool-memory
+ * @module @huiliyi37/dsh-tool-memory/tests/tool-memory
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import { apply } from '../src/index.js'
 
 interface CapturedTool {

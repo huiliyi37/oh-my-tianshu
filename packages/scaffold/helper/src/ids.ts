@@ -1,10 +1,10 @@
 /**
  * Branded identities owned by the SDK project domain.
  *
- * @module @deepseek-ai/dsh-helper/ids
+ * @module @huiliyi37/dsh-helper/ids
  */
 
-import type { Branded } from '@deepseek-ai/dsh-brand'
+import type { Branded } from '@huiliyi37/dsh-brand'
 
 /** Stable identity of a builtin SDK feature. */
 export type FeatureId = Branded<'FeatureId'>

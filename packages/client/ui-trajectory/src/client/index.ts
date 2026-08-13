@@ -2,11 +2,11 @@
  * Browser trajectory plugin contributing one entry to the conversation view
  * slot without defining a service.
  */
-import type { Context } from 'cordis'
-import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context } from '@huiliyi37/cordis'
+import type { SessionId } from '@huiliyi37/dsh-client-runtime/client'
 // Type-only: the 'conversation.view' SlotMap row (declared by the slot's
 // owning package) must be in the program for the register calls to type.
-import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type {} from '@huiliyi37/dsh-client-ui-conversation/client'
 import { createTrajectoryDurationStore } from './duration-store.ts'
 import { TrajectoryView, type TrajectoryViewInjected } from './TrajectoryView.tsx'
 

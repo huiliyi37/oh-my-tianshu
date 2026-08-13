@@ -1,12 +1,12 @@
 /**
  * git_log 工具：提交历史（oneline），可选 maxCount 与 paths 限定。
- * @module @deepseek-ai/dsh-tool-git/src/log
+ * @module @huiliyi37/dsh-tool-git/src/log
  */
 
-import type { Context } from 'cordis'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type {} from '@deepseek-ai/dsh-system-prompt'
-import type {} from '@deepseek-ai/dsh-git'
+import type { Context } from '@huiliyi37/cordis'
+import { defineTool } from '@huiliyi37/dsh-tools'
+import type {} from '@huiliyi37/dsh-system-prompt'
+import type {} from '@huiliyi37/dsh-git'
 import { resolveCwd } from './cwd.ts'
 
 /** log 默认条数（与服务默认一致）。 */

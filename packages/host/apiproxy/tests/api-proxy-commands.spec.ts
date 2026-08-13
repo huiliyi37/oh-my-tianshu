@@ -1,4 +1,4 @@
-import { MessageId, freezeMessage } from '@deepseek-ai/dsh-llm'
+import { MessageId, freezeMessage } from '@huiliyi37/dsh-llm'
 /**
  * Command/skill RPC handlers and the two new frames over createApiProxy:
  * command.list serves the addressed agent's effective catalog (missing
@@ -10,16 +10,16 @@ import { MessageId, freezeMessage } from '@deepseek-ai/dsh-llm'
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import AgentRegistry, { Inbox } from '@deepseek-ai/dsh-agent'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import SessionStore from '@deepseek-ai/dsh-session'
-import type { SessionId, UserMessage } from '@deepseek-ai/dsh-session'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry from '@deepseek-ai/dsh-tools'
-import UserInteractionService from '@deepseek-ai/dsh-user-interaction'
-import CommandService from '@deepseek-ai/dsh-commands'
-import SkillService from '@deepseek-ai/dsh-skill'
+import { Context } from '@huiliyi37/cordis'
+import AgentRegistry, { Inbox } from '@huiliyi37/dsh-agent'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import SessionStore from '@huiliyi37/dsh-session'
+import type { SessionId, UserMessage } from '@huiliyi37/dsh-session'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry from '@huiliyi37/dsh-tools'
+import UserInteractionService from '@huiliyi37/dsh-user-interaction'
+import CommandService from '@huiliyi37/dsh-commands'
+import SkillService from '@huiliyi37/dsh-skill'
 import type { HostFrame } from '../src/api/index.ts'
 import type { RpcRequest, RpcResponse } from '../src/api/rpc.ts'
 import { RpcId } from '../src/api/rpc.ts'

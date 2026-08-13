@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import SkillService, {
   isModelInvocable,
   isUserInvocable,
@@ -10,7 +10,7 @@ import SkillService, {
   type SkillLookupOptions,
   type SkillProvider,
   type SkillProviderObservation,
-} from '@deepseek-ai/dsh-skill'
+} from '@huiliyi37/dsh-skill'
 
 function memorySkill(name: string, description: string, rank: number, body = `${name} body.`): SkillCandidate {
   return {

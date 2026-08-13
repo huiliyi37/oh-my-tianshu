@@ -1,7 +1,7 @@
 /**
  * Commander adapter for the dsh-sdk subcommand surface.
  *
- * @module @deepseek-ai/dsh-scripts/args
+ * @module @huiliyi37/dsh-scripts/args
  */
 
 import { parseArgs as parseNodeArgs } from 'node:util'

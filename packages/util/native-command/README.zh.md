@@ -11,7 +11,7 @@
 ## 接口面
 
 ```ts
-import { runNativeCommand, type NativeCommandRunner } from '@deepseek-ai/dsh-native-command'
+import { runNativeCommand, type NativeCommandRunner } from '@huiliyi37/dsh-native-command'
 ```
 
 ## 模型体验

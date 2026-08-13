@@ -9,7 +9,7 @@
  * RED 语义（bugfix 义务）：GREEN 必须由 RED 背书——测试先失败（记 red: 证据）
  * 才允许编辑放行，passed 而无 RED 记 pass-without-red（不满足）。
  *
- * @module @deepseek-ai/dsh-evidence-gate/obligation
+ * @module @huiliyi37/dsh-evidence-gate/obligation
  */
 
 /** 义务族：bugfix 需 RED→GREEN 闭环；delivery/regression/behavior 由通过验证关闭。 */

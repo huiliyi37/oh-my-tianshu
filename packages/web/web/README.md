@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-web
+# @huiliyi37/dsh-web
 
 English | [中文](README.zh.md)
 
@@ -8,11 +8,11 @@ This package owns the Service Definition role of the web capability. Unlike bash
 
 | Package | Role |
 |---|---|
-| `@deepseek-ai/dsh-web` (this) | Service Definition: the service, provider registries, selection policy, request/result vocabulary, the `WebError` taxonomy |
-| `@deepseek-ai/dsh-web-search-exa` | Search provider: Exa |
-| `@deepseek-ai/dsh-web-search-perplexity` | Search provider: Perplexity |
-| `@deepseek-ai/dsh-web-fetch-local` | Fetch provider: anonymous public HTTP(S) |
-| `@deepseek-ai/dsh-tool-web` | Consumer: the model-facing `web_search` / `web_fetch` tool schemas over `ctx.web` |
+| `@huiliyi37/dsh-web` (this) | Service Definition: the service, provider registries, selection policy, request/result vocabulary, the `WebError` taxonomy |
+| `@huiliyi37/dsh-web-search-exa` | Search provider: Exa |
+| `@huiliyi37/dsh-web-search-perplexity` | Search provider: Perplexity |
+| `@huiliyi37/dsh-web-fetch-local` | Fetch provider: anonymous public HTTP(S) |
+| `@huiliyi37/dsh-tool-web` | Consumer: the model-facing `web_search` / `web_fetch` tool schemas over `ctx.web` |
 
 Search and fetch share no request schema and no business logic, but they are deliberately one seam: `ctx.web` is a single web-access middle layer with one provider-selection policy owner, one abort/error vocabulary, and one product-facing "how this harness reaches the web" config surface. The cost is the parallel `Search`/`Fetch` method pairs; that parallelism is intentional, not a missed extraction.
 

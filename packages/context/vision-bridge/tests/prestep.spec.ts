@@ -6,15 +6,15 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import { LlmAdapter } from '@deepseek-ai/dsh-llm'
-import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
-import { Session, SessionId } from '@deepseek-ai/dsh-session'
-import { agentEvents, Inbox } from '@deepseek-ai/dsh-agent'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
-import * as visionBridge from '@deepseek-ai/dsh-vision-bridge'
+import { Context } from '@huiliyi37/cordis'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
+import { LlmAdapter } from '@huiliyi37/dsh-llm'
+import type { GenerateOptions, StreamChunk } from '@huiliyi37/dsh-llm'
+import { Session, SessionId } from '@huiliyi37/dsh-session'
+import { agentEvents, Inbox } from '@huiliyi37/dsh-agent'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { mountAgentLoopTestDependencies } from '@huiliyi37/dsh-agent-loop-testkit'
+import * as visionBridge from '@huiliyi37/dsh-vision-bridge'
 
 const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
 const IMG = `data:image/png;base64,${PNG_B64}`

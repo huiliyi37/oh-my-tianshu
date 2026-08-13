@@ -1,10 +1,10 @@
-# @deepseek-ai/dsh-llm-deepseek
+# @huiliyi37/dsh-llm-deepseek
 
 [English](README.md) | 中文
 
 harness LLM（大语言模型）seam 的 DeepSeek chat-completions 适配器：直接 `fetch` + SSE（Server-Sent Events，由 `eventsource-parser` 分帧），将官方协议格式（wire format；真源：API 文档 guides/thinking_mode、guides/tool_calls、api/create-chat-completion）转换为 `StreamChunk` 协议。
 
-同一 seam 的第二个基于库的实现位于 `@deepseek-ai/dsh-llm-pi-ai`。本包拥有 `deepseek-official` 提供方路由——刻意区别于 pi-ai 的 catalog 名称 `deepseek`，因此同一组合可以并排挂载两条 DeepSeek 路径；而为 `deepseek-official` 本身注册另一个适配器仍会抛出 `LlmError('DUPLICATE_ADAPTER')`。
+同一 seam 的第二个基于库的实现位于 `@huiliyi37/dsh-llm-pi-ai`。本包拥有 `deepseek-official` 提供方路由——刻意区别于 pi-ai 的 catalog 名称 `deepseek`，因此同一组合可以并排挂载两条 DeepSeek 路径；而为 `deepseek-official` 本身注册另一个适配器仍会抛出 `LlmError('DUPLICATE_ADAPTER')`。
 
 包根入口导出 Cordis 插件约定与 `DeepSeekAdapter`；协议序列化、SSE 解析与分片转换 helper 不属于该根约定。
 
@@ -12,7 +12,7 @@ harness LLM（大语言模型）seam 的 DeepSeek chat-completions 适配器：�
 
 ```yaml
 - id: llm-deepseek
-  name: '@deepseek-ai/dsh-llm-deepseek'
+  name: '@huiliyi37/dsh-llm-deepseek'
   config:
     apiKeyEnv: DEEPSEEK_API_KEY  # default; resolved per request via ctx.credentials, then the environment
     baseURL: https://api.deepseek.com # optional; $DEEPSEEK_BASE_URL then the public API when omitted
@@ -113,5 +113,5 @@ loop 保留的响应块会追加到下一个请求，并保留其较早可复用
 
 - **settings 的 `models` 列表会整体替换组合列表**：settings 层按字段合并，而数组是单个字段；按条目合并 catalog 需要带键的形状。
 - **未映射 `tool_choice`**：它不属于核心词汇（MVP 取舍，与 pi-ai twin 共享）。
-- **请求使用原始 `fetch`，而非 `@cordisjs/plugin-http`**：没有共享 proxy／拦截配置；采用暂缓到第二个适配器需要该功能时（`TODO(http)`）。
+- **请求使用原始 `fetch`，而非 `@huiliyi37/cordis-plugin-http`**：没有共享 proxy／拦截配置；采用暂缓到第二个适配器需要该功能时（`TODO(http)`）。
 - **序列化会将 user 与工具结果内容展平为文本块**：会跳过插件添加的块类型，空工具输出会以字面 `(no output)` 通过协议发送。

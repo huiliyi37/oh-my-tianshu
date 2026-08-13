@@ -1,11 +1,11 @@
-/** Package-owned background-task snapshot invariants. @module @deepseek-ai/dsh-tasks/invariant */
+/** Package-owned background-task snapshot invariants. @module @huiliyi37/dsh-tasks/invariant */
 
-import type { Context } from 'cordis'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { InvariantFailure, InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import type { InvariantFailure, InvariantInstaller } from '@huiliyi37/dsh-invariants'
 import type { TaskSnapshot } from './types.ts'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-tasks'
+const PACKAGE_NAME = '@huiliyi37/dsh-tasks'
 const TERMINAL_STATUSES = new Set(['completed', 'killed', 'failed'])
 
 /** Cordis companion plugin name. */

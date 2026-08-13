@@ -5,9 +5,9 @@
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
+import { SessionId } from '@huiliyi37/dsh-session'
 import { codingHarness, waitForIdle, SYSTEM_PROMPT } from './tests/harness.ts'
 
 const RUN = process.argv[2] ?? 'run'

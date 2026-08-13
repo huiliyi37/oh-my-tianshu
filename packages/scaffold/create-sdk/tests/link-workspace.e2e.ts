@@ -11,7 +11,7 @@ import {
   featureId,
   createPackageManager,
   type PackageManagerName,
-} from '@deepseek-ai/dsh-helper'
+} from '@huiliyi37/dsh-helper'
 import { scrubEnvironment } from '../../helper/src/package-managers/package-manager.ts'
 import { scaffoldProject } from '../src/project-scaffolder.ts'
 
@@ -73,7 +73,7 @@ describe.skipIf(!existsSync(builtScripts))('live-linked generated projects', () 
       })
       await writeFile(join(root, 'plugins/probe/src/index.ts'), `
         import { writeFileSync } from 'node:fs'
-        import type { Context } from 'cordis'
+        import type { Context } from '@huiliyi37/cordis'
         export const name = 'probe'
         export function apply(_ctx: Context): void {
           writeFileSync(new URL('../../../plugin-loaded', import.meta.url), 'loaded\\n')
@@ -107,7 +107,7 @@ describe.skipIf(!existsSync(builtScripts))('live-linked generated projects', () 
       })
       expect(existsSync(join(root, 'index.js'))).toBe(true)
       expect(existsSync(join(root, 'plugins/probe/lib/index.js'))).toBe(true)
-      const dshSdk = join(root, 'node_modules/@deepseek-ai/dsh-scripts/lib/bin.js')
+      const dshSdk = join(root, 'node_modules/@huiliyi37/dsh-scripts/lib/bin.js')
       const run = await execFileAsync(process.execPath, [dshSdk, 'dev', 'index.ts'], {
         cwd: root,
         env: { ...commandEnvironment, DEEPSEEK_API_KEY: 'test-key' },

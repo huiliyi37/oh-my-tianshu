@@ -125,7 +125,7 @@ TUI 是天枢（opencode-tui）渲染核心适配 dsh 接缝的移植。输入 `
 ```yaml
 # cordis.yml
 - id: vision-bridge
-  name: '@deepseek-ai/dsh-vision-bridge'
+  name: '@huiliyi37/dsh-vision-bridge'
   config:
     provider: deepseek-official   # any registered llm route that can see images
     model: <vision-capable model>

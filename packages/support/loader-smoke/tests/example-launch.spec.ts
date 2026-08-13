@@ -3,7 +3,7 @@ import {
   EXAMPLE_MODE_ENV,
   resolveExampleLaunch,
   resolveExampleMode,
-} from '@deepseek-ai/dsh-loader-smoke'
+} from '@huiliyi37/dsh-loader-smoke'
 
 const SRC_BIN = '/repo/packages/examples/acp-demo/src/bin.ts'
 const TSCONFIG = '/repo/tsconfig.json'

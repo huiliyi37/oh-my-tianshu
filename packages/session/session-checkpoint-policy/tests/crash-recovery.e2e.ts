@@ -3,13 +3,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execa } from 'execa'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import SessionStore, {
   SessionId, TOOL_OUTCOME_UNKNOWN,
   type SessionEvent,
-} from '@deepseek-ai/dsh-session'
-import SessionPersistenceJsonl from '@deepseek-ai/dsh-session-persistence-jsonl'
+} from '@huiliyi37/dsh-session'
+import SessionPersistenceJsonl from '@huiliyi37/dsh-session-persistence-jsonl'
 
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url))
 const childScript = fileURLToPath(new URL('./fixtures/crash-child.ts', import.meta.url))

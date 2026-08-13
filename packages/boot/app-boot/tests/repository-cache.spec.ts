@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { BUNDLED_PNPM_VERSION, RepositoryCache, type RepositoryInstall } from '@cordisjs/plugin-loader/repository'
+import { BUNDLED_PNPM_VERSION, RepositoryCache, type RepositoryInstall } from '@huiliyi37/cordis-plugin-loader/repository'
 
 const execFileAsync = promisify(execFile)
 const roots: string[] = []

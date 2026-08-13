@@ -1,10 +1,10 @@
 /**
  * Agent-scoped model selection shared by interactive front doors.
- * @module @deepseek-ai/dsh-agent/model-selection
+ * @module @huiliyi37/dsh-agent/model-selection
  */
 
-import type { Context } from 'cordis'
-import type { LlmCallConfig, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import type { Context } from '@huiliyi37/cordis'
+import type { LlmCallConfig, ReasoningEffortId } from '@huiliyi37/dsh-llm'
 
 /** Complete provider, model, and optional reasoning effort selected for one live Agent. */
 export interface ModelSelection {

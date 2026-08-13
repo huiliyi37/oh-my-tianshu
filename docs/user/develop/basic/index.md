@@ -17,7 +17,7 @@ mkdir -p scratch-plugin/src
 In Harness, a plugin is a TypeScript module that exports an `apply` function. The framework calls `apply` when loading the plugin and passes a `ctx` context object through which the plugin registers capabilities:
 
 ```ts
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 
 export const name = 'my-plugin'
 
@@ -33,7 +33,7 @@ That is the complete shape.
 Create `scratch-plugin/src/my-plugin.ts`:
 
 ```ts
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 
 export const name = 'hello-plugin'
 
@@ -68,7 +68,7 @@ Anything registered through `ctx`—event listeners, tools, or timers—is clean
 For a resource that needs explicit cleanup, such as a network connection, use `ctx.effect()` to provide its disposer:
 
 ```ts
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 
 export function apply(ctx: Context) {
   ctx.effect(() => {
@@ -87,7 +87,7 @@ export function apply(ctx: Context) {
 If the plugin consumes another service such as `tools` or `llm`, declare it in `inject`:
 
 ```ts ignore-check
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 
 export const name = 'my-tool-plugin'
 export const inject = ['tools']
@@ -107,7 +107,7 @@ In addition to a function module, a plugin can use object or class form.
 ### Object form
 
 ```ts
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 
 export default {
   name: 'my-plugin',
@@ -121,7 +121,7 @@ export default {
 ### Class form
 
 ```ts
-import { Service, type Context } from 'cordis'
+import { Service, type Context } from '@huiliyi37/cordis'
 
 export default class MyService extends Service {
   static inject = ['tools']

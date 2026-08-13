@@ -6,9 +6,9 @@
  * deferral — the stage follows list.current), binding identity, breadcrumb
  * projection, create.
  */
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { SessionId } from '@deepseek-ai/dsh-client-connection/client'
+import type { SessionId } from '@huiliyi37/dsh-client-connection/client'
 import { SessionCreateError, SessionsService, scopeOf } from '../src/client/sessions/service.ts'
 import { FakeApiClient, deferred, err, ok } from './fake-api.ts'
 

@@ -8,101 +8,101 @@ The ACP demo exposes fresh baseline-prompt agent sessions to programmatic client
 ```mermaid
 flowchart LR
   cfg["examples/acp-agent<br/>cordis.yml"]
-  plugin_acp_llm_deepseek["llm-deepseek<br/>@deepseek-ai/dsh-llm-deepseek"]
+  plugin_acp_llm_deepseek["llm-deepseek<br/>@huiliyi37/dsh-llm-deepseek"]
   cfg --> plugin_acp_llm_deepseek
-  plugin_acp_sandbox["sandbox<br/>@deepseek-ai/dsh-sandbox-local"]
+  plugin_acp_sandbox["sandbox<br/>@huiliyi37/dsh-sandbox-local"]
   cfg --> plugin_acp_sandbox
-  plugin_acp_sandbox_policy["sandbox-policy<br/>@deepseek-ai/dsh-sandbox-policy"]
+  plugin_acp_sandbox_policy["sandbox-policy<br/>@huiliyi37/dsh-sandbox-policy"]
   cfg --> plugin_acp_sandbox_policy
-  plugin_acp_subprocess["subprocess<br/>@deepseek-ai/dsh-subprocess-local"]
+  plugin_acp_subprocess["subprocess<br/>@huiliyi37/dsh-subprocess-local"]
   cfg --> plugin_acp_subprocess
-  plugin_acp_bash["bash<br/>@deepseek-ai/dsh-bash-sandbox"]
+  plugin_acp_bash["bash<br/>@huiliyi37/dsh-bash-sandbox"]
   cfg --> plugin_acp_bash
-  plugin_acp_approval["approval<br/>@deepseek-ai/dsh-user-approval"]
+  plugin_acp_approval["approval<br/>@huiliyi37/dsh-user-approval"]
   cfg --> plugin_acp_approval
-  plugin_acp_acp_agent["acp-agent<br/>@deepseek-ai/dsh-acp-demo"]
+  plugin_acp_acp_agent["acp-agent<br/>@huiliyi37/dsh-acp-demo"]
   cfg --> plugin_acp_acp_agent
-  plugin_acp_acp_agent --> bundle_agent_core["@deepseek-ai/dsh-agent-spine-demo"]
-  plugin_acp_acp_agent --> bundle_jsonl["@deepseek-ai/dsh-session-persistence-jsonl"]
-  plugin_acp_acp_agent --> frontdoor_acp["@deepseek-ai/dsh-acp<br/>automation-only JSON-RPC stdio<br/>fresh sessions created by client"]
+  plugin_acp_acp_agent --> bundle_agent_core["@huiliyi37/dsh-agent-spine-demo"]
+  plugin_acp_acp_agent --> bundle_jsonl["@huiliyi37/dsh-session-persistence-jsonl"]
+  plugin_acp_acp_agent --> frontdoor_acp["@huiliyi37/dsh-acp<br/>automation-only JSON-RPC stdio<br/>fresh sessions created by client"]
   bundle_agent_core --> spine_llm["ctx.llm"]
   bundle_agent_core --> spine_sessions["ctx.sessions"]
   bundle_agent_core --> spine_tools["ctx.tools + tool-bash"]
   bundle_agent_core --> spine_loop["ctx.agents + ctx.agentLoop"]
-  plugin_acp_token_meter["token-meter<br/>@deepseek-ai/dsh-token-meter"]
+  plugin_acp_token_meter["token-meter<br/>@huiliyi37/dsh-token-meter"]
   cfg --> plugin_acp_token_meter
-  plugin_acp_compact_basic["compact-basic<br/>@deepseek-ai/dsh-compact-basic"]
+  plugin_acp_compact_basic["compact-basic<br/>@huiliyi37/dsh-compact-basic"]
   cfg --> plugin_acp_compact_basic
-  plugin_acp_session_projection["session-projection<br/>@deepseek-ai/dsh-session-projection"]
+  plugin_acp_session_projection["session-projection<br/>@huiliyi37/dsh-session-projection"]
   cfg --> plugin_acp_session_projection
-  plugin_acp_subagent["subagent<br/>@deepseek-ai/dsh-subagent"]
+  plugin_acp_subagent["subagent<br/>@huiliyi37/dsh-subagent"]
   cfg --> plugin_acp_subagent
-  plugin_acp_subagent_spawn["subagent-spawn<br/>@deepseek-ai/dsh-subagent-spawn"]
+  plugin_acp_subagent_spawn["subagent-spawn<br/>@huiliyi37/dsh-subagent-spawn"]
   cfg --> plugin_acp_subagent_spawn
-  plugin_acp_subagent_fork["subagent-fork<br/>@deepseek-ai/dsh-subagent-fork"]
+  plugin_acp_subagent_fork["subagent-fork<br/>@huiliyi37/dsh-subagent-fork"]
   cfg --> plugin_acp_subagent_fork
-  plugin_acp_tool_subagent_control["tool-subagent-control<br/>@deepseek-ai/dsh-tool-subagent-control"]
+  plugin_acp_tool_subagent_control["tool-subagent-control<br/>@huiliyi37/dsh-tool-subagent-control"]
   cfg --> plugin_acp_tool_subagent_control
-  plugin_acp_tool_subagent_list_agents["tool-subagent-list-agents<br/>@deepseek-ai/dsh-tool-subagent-control/list-agents"]
+  plugin_acp_tool_subagent_list_agents["tool-subagent-list-agents<br/>@huiliyi37/dsh-tool-subagent-control/list-agents"]
   cfg --> plugin_acp_tool_subagent_list_agents
-  plugin_acp_tool_subagent_report["tool-subagent-report<br/>@deepseek-ai/dsh-tool-subagent-report"]
+  plugin_acp_tool_subagent_report["tool-subagent-report<br/>@huiliyi37/dsh-tool-subagent-report"]
   cfg --> plugin_acp_tool_subagent_report
-  plugin_acp_tool_subagent["tool-subagent<br/>@deepseek-ai/dsh-tool-subagent"]
+  plugin_acp_tool_subagent["tool-subagent<br/>@huiliyi37/dsh-tool-subagent"]
   cfg --> plugin_acp_tool_subagent
-  plugin_acp_tool_subagent_fork["tool-subagent-fork<br/>@deepseek-ai/dsh-tool-subagent"]
+  plugin_acp_tool_subagent_fork["tool-subagent-fork<br/>@huiliyi37/dsh-tool-subagent"]
   cfg --> plugin_acp_tool_subagent_fork
-  plugin_acp_workflow_workerthread["workflow-workerthread<br/>@deepseek-ai/dsh-workflow-workerthread"]
+  plugin_acp_workflow_workerthread["workflow-workerthread<br/>@huiliyi37/dsh-workflow-workerthread"]
   cfg --> plugin_acp_workflow_workerthread
-  plugin_acp_tool_workflow["tool-workflow<br/>@deepseek-ai/dsh-tool-workflow"]
+  plugin_acp_tool_workflow["tool-workflow<br/>@huiliyi37/dsh-tool-workflow"]
   cfg --> plugin_acp_tool_workflow
-  plugin_acp_tool_ralph["tool-ralph<br/>@deepseek-ai/dsh-tool-ralph"]
+  plugin_acp_tool_ralph["tool-ralph<br/>@huiliyi37/dsh-tool-ralph"]
   cfg --> plugin_acp_tool_ralph
-  plugin_acp_tool_todo["tool-todo<br/>@deepseek-ai/dsh-tool-todo"]
+  plugin_acp_tool_todo["tool-todo<br/>@huiliyi37/dsh-tool-todo"]
   cfg --> plugin_acp_tool_todo
-  plugin_acp_repeat_tool_guard["repeat-tool-guard<br/>@deepseek-ai/dsh-repeat-tool-guard"]
+  plugin_acp_repeat_tool_guard["repeat-tool-guard<br/>@huiliyi37/dsh-repeat-tool-guard"]
   cfg --> plugin_acp_repeat_tool_guard
-  plugin_acp_fs_sandbox["fs-sandbox<br/>@deepseek-ai/dsh-fs-sandbox"]
+  plugin_acp_fs_sandbox["fs-sandbox<br/>@huiliyi37/dsh-fs-sandbox"]
   cfg --> plugin_acp_fs_sandbox
-  plugin_acp_fs_policy["fs-policy<br/>@deepseek-ai/dsh-fs-policy"]
+  plugin_acp_fs_policy["fs-policy<br/>@huiliyi37/dsh-fs-policy"]
   cfg --> plugin_acp_fs_policy
-  plugin_acp_tool_fs["tool-fs<br/>@deepseek-ai/dsh-tool-fs"]
+  plugin_acp_tool_fs["tool-fs<br/>@huiliyi37/dsh-tool-fs"]
   cfg --> plugin_acp_tool_fs
-  plugin_acp_hooks_claude["hooks-claude<br/>@deepseek-ai/dsh-hooks-claude"]
+  plugin_acp_hooks_claude["hooks-claude<br/>@huiliyi37/dsh-hooks-claude"]
   cfg --> plugin_acp_hooks_claude
-  plugin_acp_hooks_codex["hooks-codex<br/>@deepseek-ai/dsh-hooks-codex"]
+  plugin_acp_hooks_codex["hooks-codex<br/>@huiliyi37/dsh-hooks-codex"]
   cfg --> plugin_acp_hooks_codex
 ```
 
 | Plugin id | Package / module |
 | --- | --- |
-| `llm-deepseek` | `@deepseek-ai/dsh-llm-deepseek` |
-| `sandbox` | `@deepseek-ai/dsh-sandbox-local` |
-| `sandbox-policy` | `@deepseek-ai/dsh-sandbox-policy` |
-| `subprocess` | `@deepseek-ai/dsh-subprocess-local` |
-| `bash` | `@deepseek-ai/dsh-bash-sandbox` |
-| `approval` | `@deepseek-ai/dsh-user-approval` |
-| `acp-agent` | `@deepseek-ai/dsh-acp-demo` |
-| `token-meter` | `@deepseek-ai/dsh-token-meter` |
-| `compact-basic` | `@deepseek-ai/dsh-compact-basic` |
-| `session-projection` | `@deepseek-ai/dsh-session-projection` |
-| `subagent` | `@deepseek-ai/dsh-subagent` |
-| `subagent-spawn` | `@deepseek-ai/dsh-subagent-spawn` |
-| `subagent-fork` | `@deepseek-ai/dsh-subagent-fork` |
-| `tool-subagent-control` | `@deepseek-ai/dsh-tool-subagent-control` |
-| `tool-subagent-list-agents` | `@deepseek-ai/dsh-tool-subagent-control/list-agents` |
-| `tool-subagent-report` | `@deepseek-ai/dsh-tool-subagent-report` |
-| `tool-subagent` | `@deepseek-ai/dsh-tool-subagent` |
-| `tool-subagent-fork` | `@deepseek-ai/dsh-tool-subagent` |
-| `workflow-workerthread` | `@deepseek-ai/dsh-workflow-workerthread` |
-| `tool-workflow` | `@deepseek-ai/dsh-tool-workflow` |
-| `tool-ralph` | `@deepseek-ai/dsh-tool-ralph` |
-| `tool-todo` | `@deepseek-ai/dsh-tool-todo` |
-| `repeat-tool-guard` | `@deepseek-ai/dsh-repeat-tool-guard` |
-| `fs-sandbox` | `@deepseek-ai/dsh-fs-sandbox` |
-| `fs-policy` | `@deepseek-ai/dsh-fs-policy` |
-| `tool-fs` | `@deepseek-ai/dsh-tool-fs` |
-| `hooks-claude` | `@deepseek-ai/dsh-hooks-claude` |
-| `hooks-codex` | `@deepseek-ai/dsh-hooks-codex` |
+| `llm-deepseek` | `@huiliyi37/dsh-llm-deepseek` |
+| `sandbox` | `@huiliyi37/dsh-sandbox-local` |
+| `sandbox-policy` | `@huiliyi37/dsh-sandbox-policy` |
+| `subprocess` | `@huiliyi37/dsh-subprocess-local` |
+| `bash` | `@huiliyi37/dsh-bash-sandbox` |
+| `approval` | `@huiliyi37/dsh-user-approval` |
+| `acp-agent` | `@huiliyi37/dsh-acp-demo` |
+| `token-meter` | `@huiliyi37/dsh-token-meter` |
+| `compact-basic` | `@huiliyi37/dsh-compact-basic` |
+| `session-projection` | `@huiliyi37/dsh-session-projection` |
+| `subagent` | `@huiliyi37/dsh-subagent` |
+| `subagent-spawn` | `@huiliyi37/dsh-subagent-spawn` |
+| `subagent-fork` | `@huiliyi37/dsh-subagent-fork` |
+| `tool-subagent-control` | `@huiliyi37/dsh-tool-subagent-control` |
+| `tool-subagent-list-agents` | `@huiliyi37/dsh-tool-subagent-control/list-agents` |
+| `tool-subagent-report` | `@huiliyi37/dsh-tool-subagent-report` |
+| `tool-subagent` | `@huiliyi37/dsh-tool-subagent` |
+| `tool-subagent-fork` | `@huiliyi37/dsh-tool-subagent` |
+| `workflow-workerthread` | `@huiliyi37/dsh-workflow-workerthread` |
+| `tool-workflow` | `@huiliyi37/dsh-tool-workflow` |
+| `tool-ralph` | `@huiliyi37/dsh-tool-ralph` |
+| `tool-todo` | `@huiliyi37/dsh-tool-todo` |
+| `repeat-tool-guard` | `@huiliyi37/dsh-repeat-tool-guard` |
+| `fs-sandbox` | `@huiliyi37/dsh-fs-sandbox` |
+| `fs-policy` | `@huiliyi37/dsh-fs-policy` |
+| `tool-fs` | `@huiliyi37/dsh-tool-fs` |
+| `hooks-claude` | `@huiliyi37/dsh-hooks-claude` |
+| `hooks-codex` | `@huiliyi37/dsh-hooks-codex` |
 
 Source config: [`examples/acp-agent/cordis.yml`](cordis.yml).
 

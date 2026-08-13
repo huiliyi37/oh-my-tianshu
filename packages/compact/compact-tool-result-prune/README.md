@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-compact-tool-result-prune
+# @huiliyi37/dsh-compact-tool-result-prune
 
 English | [中文](README.zh.md)
 
@@ -31,8 +31,8 @@ All values are integers; the threshold is positive and head/tail are non-negativ
 ## Usage
 
 ```ts
-import type { Context } from 'cordis'
-import ToolResultPruneService from '@deepseek-ai/dsh-compact-tool-result-prune'
+import type { Context } from '@huiliyi37/cordis'
+import ToolResultPruneService from '@huiliyi37/dsh-compact-tool-result-prune'
 
 export function apply(ctx: Context): void {
   ctx.plugin(ToolResultPruneService)

@@ -6,10 +6,10 @@
  * react; only infrastructure failures (spawn errors, aborts) surface as
  * isError results.
  *
- * @module @deepseek-ai/dsh-tool-pwsh/render
+ * @module @huiliyi37/dsh-tool-pwsh/render
  */
 
-import type { BashProcessRead, CollectedOutput } from '@deepseek-ai/dsh-bash'
+import type { BashProcessRead, CollectedOutput } from '@huiliyi37/dsh-bash'
 
 /* jscpd:ignore-start -- deliberate twin of dsh-tool-bash/render.ts minus the sandbox surface (Agent Note). */
 

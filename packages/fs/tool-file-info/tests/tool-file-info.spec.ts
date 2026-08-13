@@ -7,7 +7,7 @@
  * 解析、stat/readText 走 node:fs），以便断言 file_info 的所有文件访问都
  * 经过 ctx.fs（与 read 工具同级，而非裸 node:fs）。
  *
- * @module @deepseek-ai/dsh-tool-file-info/tests/tool-file-info
+ * @module @huiliyi37/dsh-tool-file-info/tests/tool-file-info
  */
 
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync, statSync, readFileSync } from 'node:fs'
@@ -15,10 +15,10 @@ import { tmpdir } from 'node:os'
 import { isAbsolute, join, resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MockedFunction } from 'vitest'
-import type { Context } from 'cordis'
-import { CallId, createToolResultMessage } from '@deepseek-ai/dsh-llm'
+import type { Context } from '@huiliyi37/cordis'
+import { CallId, createToolResultMessage } from '@huiliyi37/dsh-llm'
 import { apply } from '../src/index.ts'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
 
 interface CapturedTool {
   name: string

@@ -1,20 +1,20 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { createUserMessage, CallId  } from '@deepseek-ai/dsh-llm'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { createUserMessage, CallId  } from '@huiliyi37/dsh-llm'
 import SessionStore, {
   SESSION_FORMAT_VERSION,
   SessionId,
   type Session,
-} from '@deepseek-ai/dsh-session'
-import SessionPersistenceJsonl from '@deepseek-ai/dsh-session-persistence-jsonl'
-import SessionQuerySqlite from '@deepseek-ai/dsh-session-query-sqlite'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry from '@deepseek-ai/dsh-tools'
-import * as ToolSessionQuery from '@deepseek-ai/dsh-tool-session-query'
+} from '@huiliyi37/dsh-session'
+import SessionPersistenceJsonl from '@huiliyi37/dsh-session-persistence-jsonl'
+import SessionQuerySqlite from '@huiliyi37/dsh-session-query-sqlite'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry from '@huiliyi37/dsh-tools'
+import * as ToolSessionQuery from '@huiliyi37/dsh-tool-session-query'
 
 const temporaryDirectories: string[] = []
 const contexts: Context[] = []

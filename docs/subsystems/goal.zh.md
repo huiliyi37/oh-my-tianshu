@@ -257,18 +257,18 @@ Source: [`packages/goal/goal/src/index.ts:183`](../../packages/goal/goal/src/ind
 
 #### `goal/changed` — emit
 
-Goal mutation accepted by one live agent. The matching `goal/change` session event has already committed. Listener failures are contained. Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners receive only that agent.
+Goal mutation accepted by one live agent. The matching `goal/change` session event has already committed. Listener failures are contained. Scope-filtered dispatch (`@huiliyi37/dsh-scope`): agent-scoped listeners receive only that agent.
 
 ```ts cordis-catalog
 /**
  * Goal mutation accepted by one live agent. The matching `goal/change`
  * session event has already committed. Listener failures are contained.
- * Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners receive only that agent.
+ * Scope-filtered dispatch (`@huiliyi37/dsh-scope`): agent-scoped listeners receive only that agent.
  * @param payload.agent - agent whose session owns the goal.
  * @param payload.change - fresh current projection or clear tombstone.
  * @mode emit
  */
-'goal/changed'(this: import('@deepseek-ai/dsh-scope').Scoped<Agent>, payload: { agent: Agent; change: GoalChanged }): void
+'goal/changed'(this: import('@huiliyi37/dsh-scope').Scoped<Agent>, payload: { agent: Agent; change: GoalChanged }): void
 ```
 
 Types: [Agent](core.md) · [Scoped](scope.md)

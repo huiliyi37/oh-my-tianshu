@@ -6,17 +6,17 @@
  * root 缺失 fail loud、摘要走动态区（context 而非 section）、摘要确定性
  * 且 ≤2000 字符。
  *
- * @module @deepseek-ai/dsh-tool-semantic-search/tests/tool
+ * @module @huiliyi37/dsh-tool-semantic-search/tests/tool
  */
 
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import { apply } from '../src/index.ts'
 import { INDEX_SUMMARY_MAX_CHARS, renderIndexSummary } from '../src/summary.ts'
-import { SemanticIndex } from '@deepseek-ai/dsh-semantic-index'
+import { SemanticIndex } from '@huiliyi37/dsh-semantic-index'
 
 interface CapturedTool {
   name: string

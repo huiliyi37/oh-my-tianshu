@@ -7,11 +7,11 @@
  * [SessionsPort](./sessions-port.ts). Widening this interface is the
  * explicit act of widening what features may do to the sessions domain.
  */
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import type {
   RpcResult, SessionId, SubagentAddress,
-} from '@deepseek-ai/dsh-client-connection/client'
-import type { HostObservable, SessionMaybeProvideInfo } from '@deepseek-ai/dsh-client-ui-slots'
+} from '@huiliyi37/dsh-client-connection/client'
+import type { HostObservable, SessionMaybeProvideInfo } from '@huiliyi37/dsh-client-ui-slots'
 import type { AgentContext } from '../agents/scope.ts'
 import type { SessionSearchResultItem } from '../sessions/manager.ts'
 import type {

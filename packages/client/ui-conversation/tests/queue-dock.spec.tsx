@@ -6,13 +6,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { useSyncExternalStore } from 'react'
-import { EMPTY_CHAT_SNAPSHOT } from '@deepseek-ai/dsh-client-runtime/client'
+import { EMPTY_CHAT_SNAPSHOT } from '@huiliyi37/dsh-client-runtime/client'
 import type {
   ConversationSnapshot, QueuedMessage, SessionId, SessionListState,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
-import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
-import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+} from '@huiliyi37/dsh-client-runtime/client'
+import type { SnapshotSelectorHook } from '@huiliyi37/dsh-client-ui-slots'
+import { makeTranslate } from '@huiliyi37/dsh-client-test-runtime'
+import { zh as commonZh } from '@huiliyi37/dsh-client-locale/src/locales/zh.ts'
 import type { QueueItemId } from '../src/client/contract/queue.ts'
 import type { InputState } from '../src/client/input/contract.ts'
 import { zh } from '../src/client/locales.ts'

@@ -8,9 +8,9 @@
 // `result.isError`) keeps the model-facing error text on ToolRow's Output
 // section, its first line in the collapsed summary.
 
-import type { Context } from 'cordis'
-import { IconEditOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+import type { Context } from '@huiliyi37/cordis'
+import { IconEditOutline16 } from '@huiliyi37/dsh-client-ui-primitives'
+import type { PropsLocale } from '@huiliyi37/dsh-client-ui-slots'
 import type { ToolCallViewProps } from '../../contract/slots.ts'
 import { diffCardModel } from '../models/diff-card-model.ts'
 import { toolRowModel } from '../models/tool-call-model.ts'

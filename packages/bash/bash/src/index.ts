@@ -1,12 +1,12 @@
 /**
  * Service Definition for the `ctx.bash` capability seam, covering foreground commands and background process
  * handles. Task ids, ownership, polling, and notices belong to
- * `@deepseek-ai/dsh-tasks`, keeping executors independent of sessions.
- * @module @deepseek-ai/dsh-bash
+ * `@huiliyi37/dsh-tasks`, keeping executors independent of sessions.
+ * @module @huiliyi37/dsh-bash
  */
 
-import { Context, Service } from 'cordis'
-import type { SandboxMode } from '@deepseek-ai/dsh-sandbox'
+import { Context, Service } from '@huiliyi37/cordis'
+import type { SandboxMode } from '@huiliyi37/dsh-sandbox'
 import type { BashExecRequest, BashExecSpec, BashProcess, BashRunResult } from './types.ts'
 
 export { DSH_ENV_PREFIX } from './types.ts'
@@ -25,7 +25,7 @@ export type {
 export { parseExitStatus } from './render.ts'
 export type { ParsedExitStatus } from './render.ts'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     bash: BashExecutor
   }

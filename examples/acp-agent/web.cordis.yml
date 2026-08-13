@@ -4,18 +4,18 @@
 # fixture server the scenario prompt fetches — deterministic content, no
 # external network, in recording and replay alike.
 - id: base
-  name: '@cordisjs/plugin-include'
+  name: '@huiliyi37/cordis-plugin-include'
   config:
     path: ./cordis.yml
     patches:
       - insert:
           - id: web
-            name: '@deepseek-ai/dsh-web'
+            name: '@huiliyi37/dsh-web'
           - id: web-fetch-local
-            name: '@deepseek-ai/dsh-web-fetch-local'
+            name: '@huiliyi37/dsh-web-fetch-local'
           - id: web-fetch-fixture
             name: './web-fetch-fixture-server.mjs'
           - id: tool-web
-            name: '@deepseek-ai/dsh-tool-web'
+            name: '@huiliyi37/dsh-tool-web'
             config:
               search: false

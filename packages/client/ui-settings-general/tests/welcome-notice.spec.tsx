@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import { bindSnapshotSelector } from '@huiliyi37/dsh-client-web-react'
 import { WelcomeNotice } from '../src/client/WelcomeNotice.tsx'
 import type { WelcomeNoticeProps } from '../src/client/WelcomeNotice.tsx'
 import { WelcomeNoticeStore } from '../src/client/welcome-store.ts'

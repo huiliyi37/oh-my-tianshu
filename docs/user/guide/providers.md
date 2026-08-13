@@ -133,7 +133,7 @@ agent-default-model:
   reasoningEffort: high   # optional
 ```
 
-After a session has run a turn, its own log remains authoritative for its model selection; the default applies only to sessions without a recorded request. The shipped fallback under this section is the base bundle's `agent-default-model` composition entry (`deepseek-official` / `deepseek-v4-flash`). A self-assembled `cordis.yml` mounts and configures `@deepseek-ai/dsh-agent-default-model`; both direct front doors and Host-backed front doors read that same service.
+After a session has run a turn, its own log remains authoritative for its model selection; the default applies only to sessions without a recorded request. The shipped fallback under this section is the base bundle's `agent-default-model` composition entry (`deepseek-official` / `deepseek-v4-flash`). A self-assembled `cordis.yml` mounts and configures `@huiliyi37/dsh-agent-default-model`; both direct front doors and Host-backed front doors read that same service.
 
 If the provider a saved default names is later removed, the composer says **Select model** and refuses input until you pick one, rather than sending to a route nothing serves.
 

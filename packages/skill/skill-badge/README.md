@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-skill-badge
+# @huiliyi37/dsh-skill-badge
 
 English | [中文](README.zh.md)
 
@@ -10,7 +10,7 @@ The provider exposes its packaged `assets/` directory as the skill resource base
 
 ## Model Experience
 
-Indirectly, through `@deepseek-ai/dsh-tool-skill`, which renders the catalog entry and selected skill body.
+Indirectly, through `@huiliyi37/dsh-tool-skill`, which renders the catalog entry and selected skill body.
 
 #### KV Cache effect
 

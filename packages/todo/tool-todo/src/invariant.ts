@@ -1,10 +1,10 @@
-/** Package-owned durable todo-snapshot invariants. @module @deepseek-ai/dsh-tool-todo/invariant */
+/** Package-owned durable todo-snapshot invariants. @module @huiliyi37/dsh-tool-todo/invariant */
 
-import type { Context } from 'cordis'
-import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
-import type { InvariantFailure, InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { Session, SessionEvent } from '@huiliyi37/dsh-session'
+import type { InvariantFailure, InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-tool-todo'
+const PACKAGE_NAME = '@huiliyi37/dsh-tool-todo'
 const TODO_STATUSES = new Set(['pending', 'in_progress', 'completed'])
 
 /** Cordis companion plugin name. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import { SessionId } from '@huiliyi37/dsh-session'
 import { settleRun } from '../src/index.ts'
 
 describe('outcome mapping helpers', () => {

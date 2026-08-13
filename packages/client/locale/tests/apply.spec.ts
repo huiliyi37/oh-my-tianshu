@@ -1,11 +1,11 @@
 /** locale apply wiring: service + dictionaries provision, declaration-aware
  * Language row registration, snapshot projection into the row store, and
  * recovery after an HMR collapse of the declaring entry. */
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { SlotsService } from '@deepseek-ai/dsh-client-runtime/client'
-import { apply, inject, SETTINGS_NS } from '@deepseek-ai/dsh-client-locale/client'
-import type { LanguageRowInjected, LocaleService } from '@deepseek-ai/dsh-client-locale/client'
+import { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
+import { apply, inject, SETTINGS_NS } from '@huiliyi37/dsh-client-locale/client'
+import type { LanguageRowInjected, LocaleService } from '@huiliyi37/dsh-client-locale/client'
 import { LanguageRow } from '../src/client/LanguageRow.tsx'
 import type { createLanguageRowStore } from '../src/client/settings-store.ts'
 

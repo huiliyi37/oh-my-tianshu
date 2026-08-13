@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-repeat-tool-guard`.
- * @module @deepseek-ai/dsh-repeat-tool-guard/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-repeat-tool-guard`.
+ * @module @huiliyi37/dsh-repeat-tool-guard/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-repeat-tool-guard'
+const PACKAGE_NAME = '@huiliyi37/dsh-repeat-tool-guard'
 
 /** Cordis companion plugin name. */
 export const name = 'repeat-tool-guard-invariant'

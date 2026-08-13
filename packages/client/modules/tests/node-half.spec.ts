@@ -5,9 +5,9 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { HttpServerService, WebRoute } from '@deepseek-ai/dsh-host-webserver'
+import type { HttpServerService, WebRoute } from '@huiliyi37/dsh-host-webserver'
 import { ClientModuleHostService } from '../src/index.ts'
 
 let root: string | undefined

@@ -2,13 +2,13 @@
  * git 单工具：`operation` 判别（status | diff | log | commit），合并原四工具
  * 为一个 schema——提示词占用从 4 份 tool 定义收敛为 1 份（净省约一半），
  * 模型仍能完成全部四个 git 操作。
- * @module @deepseek-ai/dsh-tool-git/src/git
+ * @module @huiliyi37/dsh-tool-git/src/git
  */
 
-import type { Context } from 'cordis'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type {} from '@deepseek-ai/dsh-system-prompt'
-import type {} from '@deepseek-ai/dsh-git'
+import type { Context } from '@huiliyi37/cordis'
+import { defineTool } from '@huiliyi37/dsh-tools'
+import type {} from '@huiliyi37/dsh-system-prompt'
+import type {} from '@huiliyi37/dsh-git'
 import { resolveCwd } from './cwd.ts'
 
 /** log 默认条数。 */

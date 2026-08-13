@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { isJsonValue } from '@deepseek-ai/dsh-session'
+import { isJsonValue } from '@huiliyi37/dsh-session'
 import { sandboxDefineTool } from '../src/guard.ts'
 import { syntaxErrorContext } from '../src/sandbox.ts'
 import { call, CONTENT_OUTPUT_CODE, dummyTool, LISTENER_CODE, REVERSE_TOOL_CODE, setup, text } from './helpers.ts'

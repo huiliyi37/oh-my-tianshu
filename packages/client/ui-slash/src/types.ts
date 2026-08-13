@@ -8,7 +8,7 @@
  * never a Cordis context or the mutable Session. RPC and service access go
  * through the provider plugin's own root context captured at registration.
  */
-import type { ClientContext, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ClientContext, SessionId } from '@huiliyi37/dsh-client-runtime/client'
 
 /**
  * The provider-facing projection of one client session. It carries stable
@@ -218,7 +218,7 @@ export interface InsertTextRequest {
   readonly span: TokenSpan
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Events {
     /**
      * Applies one command claim to the scoped Input. Dispatched with the

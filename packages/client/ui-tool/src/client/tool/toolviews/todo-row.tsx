@@ -7,9 +7,9 @@
 // narrow row never clips it; the durable list itself renders in the TodoPanel
 // above the composer, so the row stays one line until expanded.
 
-import { IconChecklistOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { Context } from 'cordis'
-import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+import { IconChecklistOutline14 } from '@huiliyi37/dsh-client-ui-primitives'
+import type { Context } from '@huiliyi37/cordis'
+import type { PropsLocale } from '@huiliyi37/dsh-client-ui-slots'
 import type { ToolCallViewProps } from '../../contract/slots.ts'
 import { toolRowModel } from '../models/tool-call-model.ts'
 import { ToolRow } from '../components/ToolRow.tsx'

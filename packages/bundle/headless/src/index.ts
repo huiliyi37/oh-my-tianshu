@@ -1,23 +1,23 @@
 /**
- * @deepseek-ai/dsh-headless — one-shot direct Agent driver. The bundle patch
+ * @huiliyi37/dsh-headless — one-shot direct Agent driver. The bundle patch
  * rides over dsh-base without Host, HTTP, or browser plugins; this runner
  * creates one Agent through the core registry, drives the task to quiescence,
  * flushes its Session, prints the final assistant text, and exits.
  *
- * @module @deepseek-ai/dsh-headless
+ * @module @huiliyi37/dsh-headless
  */
 
 import { randomUUID } from 'node:crypto'
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import { installModelSelection } from '@deepseek-ai/dsh-agent'
-import type { ModelSelectionRef } from '@deepseek-ai/dsh-agent'
-import type {} from '@deepseek-ai/dsh-agent-default-model'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import { SessionId } from '@deepseek-ai/dsh-session'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { installModelSelection } from '@huiliyi37/dsh-agent'
+import type { ModelSelectionRef } from '@huiliyi37/dsh-agent'
+import type {} from '@huiliyi37/dsh-agent-default-model'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
+import { SessionId } from '@huiliyi37/dsh-session'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
 // Empty type import carries the loader Context merge for the settlement await.
-import type {} from '@cordisjs/plugin-loader'
+import type {} from '@huiliyi37/cordis-plugin-loader'
 
 /** Stable Cordis plugin name. */
 export const name = 'headless-runner'
@@ -52,7 +52,7 @@ export interface HeadlessIo {
   exit(code: number): void
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     /** Process-facing effects provided before the headless tree mounts. */
     headlessIo?: HeadlessIo

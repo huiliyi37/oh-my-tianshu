@@ -8,11 +8,11 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render } from '@testing-library/react'
-import { Context } from 'cordis'
-import { SlotsService } from '@deepseek-ai/dsh-client-runtime/client'
-import { TestSessions, TestWorkspaces } from '@deepseek-ai/dsh-client-test-runtime'
-import type { Stabilizer } from '@deepseek-ai/dsh-client-test-runtime'
-import * as AppShell from '@deepseek-ai/dsh-client-web/src/app-shell.ts'
+import { Context } from '@huiliyi37/cordis'
+import { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
+import { TestSessions, TestWorkspaces } from '@huiliyi37/dsh-client-test-runtime'
+import type { Stabilizer } from '@huiliyi37/dsh-client-test-runtime'
+import * as AppShell from '@huiliyi37/dsh-client-web/src/app-shell.ts'
 
 afterEach(cleanup)
 

@@ -2,9 +2,9 @@
 /** Model-list editing, endpoint interrogation, and hand-declared provider creation. */
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import Schema from 'schemastery'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
-import type { RpcResponse, SettingsNamespaceView } from '@deepseek-ai/dsh-client-connection/client'
+import Schema from '@huiliyi37/schemastery'
+import { bindSnapshotSelector } from '@huiliyi37/dsh-client-web-react'
+import type { RpcResponse, SettingsNamespaceView } from '@huiliyi37/dsh-client-connection/client'
 import { ModelsSection } from '../src/client/ModelsSection.tsx'
 import type { ModelsSectionInjected } from '../src/client/ModelsSection.tsx'
 import { CustomProviderCard } from '../src/client/CustomProviderCard.tsx'

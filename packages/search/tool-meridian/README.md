@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-tool-meridian
+# @huiliyi37/dsh-tool-meridian
 
 English | [中文](README.zh.md)
 

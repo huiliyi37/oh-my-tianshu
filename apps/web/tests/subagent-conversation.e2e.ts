@@ -7,9 +7,9 @@ import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   SESSION_FORMAT_VERSION, SessionId as sessionId, type SessionEvent, type SessionId,
-} from '@deepseek-ai/dsh-session'
-import type {} from '@deepseek-ai/dsh-agent'
-import { snapshotSubagentDescriptor } from '@deepseek-ai/dsh-subagent'
+} from '@huiliyi37/dsh-session'
+import type {} from '@huiliyi37/dsh-agent'
+import { snapshotSubagentDescriptor } from '@huiliyi37/dsh-subagent'
 import {
   acknowledgeReloadConnectionLoss, captureStableAria, compareOrRefreshGolden,
   launchWebScaffold, watchConsole,

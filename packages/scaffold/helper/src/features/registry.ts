@@ -1,7 +1,7 @@
 /**
  * Builtin feature registry and definition-time conflict checks.
  *
- * @module @deepseek-ai/dsh-helper/features/registry
+ * @module @huiliyi37/dsh-helper/features/registry
  */
 
 import type { FeatureId, ResourceKey } from '../ids.ts'

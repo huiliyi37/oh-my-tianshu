@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { mkdir, readdir, readFile, rename, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { Context } from 'cordis'
-import SkillService from '@deepseek-ai/dsh-skill'
-import { FileSystem, FsError, FsVersion, type FsDirEntry, type FsEditOutcome, type FsEditRequest, type FsInfo, type FsPathInfo, type FsTarget, type FsWriteOutcome } from '@deepseek-ai/dsh-fs'
+import { Context } from '@huiliyi37/cordis'
+import SkillService from '@huiliyi37/dsh-skill'
+import { FileSystem, FsError, FsVersion, type FsDirEntry, type FsEditOutcome, type FsEditRequest, type FsInfo, type FsPathInfo, type FsTarget, type FsWriteOutcome } from '@huiliyi37/dsh-fs'
 import * as SkillLocal from '../src/index.ts'
 
 async function tempDir(name: string): Promise<string> {

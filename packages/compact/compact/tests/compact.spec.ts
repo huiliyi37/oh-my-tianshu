@@ -1,16 +1,16 @@
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import {
   CompactionId,
   CompactService,
   compactCheckpointSource,
   isCompactCheckpointSource,
-} from '@deepseek-ai/dsh-compact'
-import type { CompactionResult, CompactionTrigger } from '@deepseek-ai/dsh-compact'
-import { Session, SessionId } from '@deepseek-ai/dsh-session'
-import type { CompactAgentContext } from '@deepseek-ai/dsh-compact'
-import type { ManualCompactAgentContext } from '@deepseek-ai/dsh-compact'
+} from '@huiliyi37/dsh-compact'
+import type { CompactionResult, CompactionTrigger } from '@huiliyi37/dsh-compact'
+import { Session, SessionId } from '@huiliyi37/dsh-session'
+import type { CompactAgentContext } from '@huiliyi37/dsh-compact'
+import type { ManualCompactAgentContext } from '@huiliyi37/dsh-compact'
 
 /**
  * A trivial concrete CompactService implementing the abstract contract. The

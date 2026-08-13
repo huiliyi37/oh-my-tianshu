@@ -8,7 +8,7 @@
  * 去掉天枢特有的星域映射与浏览器调试工具分支。
  */
 
-import type { CallId } from '@deepseek-ai/dsh-llm'
+import type { CallId } from '@huiliyi37/dsh-llm'
 
 /** 工具家族：决定截断策略与 diff 分支。 */
 export type ToolFamily = 'read' | 'write' | 'run' | 'find' | 'other'

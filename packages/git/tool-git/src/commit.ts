@@ -1,13 +1,13 @@
 /**
  * git_commit 工具：暂存全部变更并提交（message 必填）。
  * 语义提示：commit 前应先用 git_status / git_diff 检查——README 与引导均注明。
- * @module @deepseek-ai/dsh-tool-git/src/commit
+ * @module @huiliyi37/dsh-tool-git/src/commit
  */
 
-import type { Context } from 'cordis'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type {} from '@deepseek-ai/dsh-system-prompt'
-import type {} from '@deepseek-ai/dsh-git'
+import type { Context } from '@huiliyi37/cordis'
+import { defineTool } from '@huiliyi37/dsh-tools'
+import type {} from '@huiliyi37/dsh-system-prompt'
+import type {} from '@huiliyi37/dsh-git'
 import { resolveCwd } from './cwd.ts'
 
 /** 注册 git_commit。 */

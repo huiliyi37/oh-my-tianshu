@@ -2,16 +2,16 @@
  * Cross-session snapshot preparation. Hosts adapt mentions into structured
  * references; this service owns exact reads, projection, budgets, and durable context.
  *
- * @module @deepseek-ai/dsh-session-reference
+ * @module @huiliyi37/dsh-session-reference
  */
 
-import { Context, Service } from 'cordis'
-import z from 'schemastery'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock, UserMessage } from '@deepseek-ai/dsh-llm'
-import type { SessionId } from '@deepseek-ai/dsh-session'
-import type { SessionSurfaceSnapshot, SessionTitleObservationResult } from '@deepseek-ai/dsh-session-query'
+import { Context, Service } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
+import type { ContentBlock, UserMessage } from '@huiliyi37/dsh-llm'
+import type { SessionId } from '@huiliyi37/dsh-session'
+import type { SessionSurfaceSnapshot, SessionTitleObservationResult } from '@huiliyi37/dsh-session-query'
 import {
   DEFAULT_CANDIDATE_LIMIT,
   DEFAULT_MAX_REFERENCE_BYTES,
@@ -50,7 +50,7 @@ user explicitly repeats them.
 `
 const PROMPT_SUFFIX = '\n</referenced-sessions>'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     sessionReferences: SessionReferenceService
   }

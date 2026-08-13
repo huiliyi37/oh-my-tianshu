@@ -1,6 +1,6 @@
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it } from 'vitest'
-import { Settings, settingsNamespace, type SettingsNamespace } from '@deepseek-ai/dsh-settings'
+import { Settings, settingsNamespace, type SettingsNamespace } from '@huiliyi37/dsh-settings'
 import { apply } from '../src/index.ts'
 import { WELCOME_NOTICE_SETTINGS_NAMESPACE } from '../src/onboarding-copy.ts'
 

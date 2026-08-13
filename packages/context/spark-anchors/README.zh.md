@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-spark-anchors
+# @huiliyi37/dsh-spark-anchors
 
 [English](README.md) | 中文
 
@@ -10,7 +10,7 @@
 
 ```yaml
 - id: spark-anchors
-  name: '@deepseek-ai/dsh-spark-anchors'
+  name: '@huiliyi37/dsh-spark-anchors'
   config:
     enabled: true        # optional; false 时完全不注册监听（默认 true）
     maxAnchors: 20       # optional; 去重后锚点条数上限，溢出淘汰最旧（默认 20）

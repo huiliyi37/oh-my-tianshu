@@ -7,13 +7,13 @@
  * `request.parent` is the session's workspace cwd. This plugin uses named
  * exports only; a default would hide its loader metadata (see
  * `docs/postmortem/0001-acp-default-export-drops-inject.md`).
- * @module @deepseek-ai/dsh-subagent-dsh-sdk
+ * @module @huiliyi37/dsh-subagent-dsh-sdk
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import type { SubagentCapabilities, SubagentProvider, SubagentStartRequest } from '@deepseek-ai/dsh-subagent'
-import { assertPositiveFinite, NO_START_CAPABILITIES, resolveChildCwd, validateConfiguredCwd } from '@deepseek-ai/dsh-subagent'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type { SubagentCapabilities, SubagentProvider, SubagentStartRequest } from '@huiliyi37/dsh-subagent'
+import { assertPositiveFinite, NO_START_CAPABILITIES, resolveChildCwd, validateConfiguredCwd } from '@huiliyi37/dsh-subagent'
 import {
   DEFAULT_DISPOSE_EOF_GRACE_MS,
   DEFAULT_DISPOSE_GRACE_MS,

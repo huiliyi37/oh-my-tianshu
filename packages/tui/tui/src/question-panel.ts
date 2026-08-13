@@ -10,14 +10,14 @@
  *   intent.approve 分类——命中的 label 标 ✓ 且 BOLD 高亮（批准项），其余
  *   标 ✗（否决项）；approve 不命中任何选项时全部按否决渲染（不吞异常、
  *   不伪造批准）；multiSelect 在决策卡形态不追加多选标记（裁决为单选）。
- * 数据面形状结构兼容 @deepseek-ai/dsh-user-interaction 的
+ * 数据面形状结构兼容 @huiliyi37/dsh-user-interaction 的
  * AskUserQuestionRequest/AskUserQuestionItem（intent 唯一 kind
  * 'plan-review' 带 approve: string），纯函数层不跨包依赖、无 I/O。
  * 空 questions 返回仅标题行；每行按显示宽度截断（仅截断时补 …，
  * 极端窄宽退化为 … 不抛错）。TuiApp 消费 user-interaction 提供方的
  * request 快照（接线由其他维度独占）。
  *
- * @module @deepseek-ai/dsh-tui/question-panel
+ * @module @huiliyi37/dsh-tui/question-panel
  */
 
 import { displayWidth } from './width.js'

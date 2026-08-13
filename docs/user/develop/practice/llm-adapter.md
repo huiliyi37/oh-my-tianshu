@@ -11,9 +11,9 @@ An LLM adapter extends `LlmAdapter` and implements `stream()`, translating Harne
 ## Minimal implementation
 
 ```ts
-import type { Context } from 'cordis'
-import Schema from 'schemastery'
-import { LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import type { Context } from '@huiliyi37/cordis'
+import Schema from '@huiliyi37/schemastery'
+import { LlmAdapter, type GenerateOptions, type StreamChunk } from '@huiliyi37/dsh-llm'
 
 class MyAdapter extends LlmAdapter {
   private apiKey: string
@@ -54,7 +54,7 @@ export function apply(ctx: Context, config: Config) {
 `stream()` yields chunks using this protocol:
 
 ```ts
-import { CallId, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { CallId, type StreamChunk } from '@huiliyi37/dsh-llm'
 
 async function* exampleChunks(): AsyncIterable<StreamChunk> {
   // 1. Start each content block with block-start.
@@ -110,7 +110,7 @@ async function* exampleChunks(): AsyncIterable<StreamChunk> {
 
 ## GenerateOptions
 
-`stream()` receives the exported `GenerateOptions` type. It includes the model, adapter-owned reasoning-effort id, conversation history, system prompt, tool schemas, generation parameters, stop sequences, and abort signal; treat the TypeScript type exported by `@deepseek-ai/dsh-llm` as authoritative. Map supported fields to the provider API. If the provider cannot honor a field, throw `LlmError` with a stable code instead of silently dropping it.
+`stream()` receives the exported `GenerateOptions` type. It includes the model, adapter-owned reasoning-effort id, conversation history, system prompt, tool schemas, generation parameters, stop sequences, and abort signal; treat the TypeScript type exported by `@huiliyi37/dsh-llm` as authoritative. Map supported fields to the provider API. If the provider cannot honor a field, throw `LlmError` with a stable code instead of silently dropping it.
 
 Override `resolveModel(provider, model, signal?)` to return exact provider/model identity plus optional `context` and `reasoning` metadata in one lookup. Reasoning metadata contains ordered opaque ids and display names plus an optional configured default; preserve the adapter's authoritative selectable list, including `off` when its upstream capability API returns it, instead of promoting those values into a core enum. Honor the optional signal for asynchronous lookup so cancellation and disposal reach quiescence. The service validates the aggregate and rejects unsupported explicit efforts before `stream()`; omitting `reasoning` means that model has no selectable reasoning-effort capability.
 
@@ -134,7 +134,7 @@ The first argument lists the model names handled by the adapter. If `cordis.yml`
       - my-model-v2
 
 - id: agent-loop
-  name: '@deepseek-ai/dsh-agent-loop'
+  name: '@huiliyi37/dsh-agent-loop'
   config:
     agents:
       - id: main
@@ -163,7 +163,7 @@ import {
   LlmError,
   type GenerateOptions,
   type StreamChunk,
-} from '@deepseek-ai/dsh-llm'
+} from '@huiliyi37/dsh-llm'
 
 class HttpAdapter extends LlmAdapter {
   constructor(private readonly endpoint: string) {

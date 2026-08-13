@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
-import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { BrandWordmark, Button, OnboardingSurface } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-web-react'
+import type { PropsLocale, PropsRuntime } from '@huiliyi37/dsh-client-ui-slots'
+import { BrandWordmark, Button, OnboardingSurface } from '@huiliyi37/dsh-client-ui-primitives'
+import type { SnapshotSelectorHook } from '@huiliyi37/dsh-client-web-react'
 import type { WelcomeNoticeState, WelcomeNoticeStore } from './welcome-store.ts'
 import css from './WelcomeNotice.module.css'
 

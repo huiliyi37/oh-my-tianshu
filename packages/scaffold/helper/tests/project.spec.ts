@@ -103,9 +103,9 @@ describe('SdkProject and ProjectEditSession', () => {
     }
     const acp = await make('dsh-open-acp', {
       name: 'acp', description: 'ACP', packageManager: 'pnpm@10.1.0',
-      dependencies: { '@deepseek-ai/dsh-scripts': '^1.2.3' },
+      dependencies: { '@huiliyi37/dsh-scripts': '^1.2.3' },
     }, `- id: acp
-  name: '@deepseek-ai/dsh-acp'
+  name: '@huiliyi37/dsh-acp'
   config: { model: app-model }
 `, { '.env': 'KEY=value\n', 'tsconfig.json': '{bad', 'pnpm-workspace.yaml': 'bad' })
     expect(acp.profile).toMatchObject({
@@ -116,19 +116,19 @@ describe('SdkProject and ProjectEditSession', () => {
     expect(() => acp.readEnvironment('.env.example', 'KEY')).not.toThrow()
     expect(acp.document('tsconfig.json')).toBeInstanceOf(TextProjectFile)
     const tui = await make('dsh-open-tui', {}, `- id: provider
-  name: '@deepseek-ai/dsh-llm-deepseek'
+  name: '@huiliyi37/dsh-llm-deepseek'
   config: { models: [provider-model] }
 - id: tui
-  name: '@deepseek-ai/dsh-tui'
+  name: '@huiliyi37/dsh-tui'
 `)
     expect(tui.profile.runInterface).toBe('embed')
     expect(tui.profile.runtime.model).toBe('provider-model')
     const tuiSubpath = await make('dsh-open-tui-subpath', {}, `- id: tui-prompt
-  name: '@deepseek-ai/dsh-tui/prompt'
+  name: '@huiliyi37/dsh-tui/prompt'
 `)
     expect(tuiSubpath.profile.runInterface).toBe('embed')
     const embedded = await make('dsh-open-embed', {}, `- id: provider
-  name: '@deepseek-ai/dsh-llm-deepseek'
+  name: '@huiliyi37/dsh-llm-deepseek'
   config: { models: [provider-model] }
 `, { 'yarn.lock': '' })
     expect(embedded.profile.runInterface).toBe('embed')
@@ -145,7 +145,7 @@ describe('SdkProject and ProjectEditSession', () => {
     await expect(make('dsh-open-invalid-manager', { name: 'bad', packageManager: 'bad' }, '[]\n'))
       .rejects.toThrow('invalid packageManager field')
     const providerFallback = await make('dsh-open-provider-fallback', { name: 'fallback' }, `- id: provider
-  name: '@deepseek-ai/dsh-llm-deepseek'
+  name: '@huiliyi37/dsh-llm-deepseek'
   config: { models: [fallback-model] }
 `)
     expect(providerFallback.profile.runtime.model).toBe('fallback-model')
@@ -185,17 +185,17 @@ describe('SdkProject and ProjectEditSession', () => {
     })
     expect(await readFile(join(project.root, '.env.example'), 'utf8')).toContain('EXA_API_KEY=')
     expect(project.cordis.entry('agent-loop')?.config).toEqual({ agents: [] })
-    expect(project.cordis.entry('session-invariant')?.name).toBe('@deepseek-ai/dsh-session/invariant')
-    expect(project.cordis.entry('agent-invariant')?.name).toBe('@deepseek-ai/dsh-agent/invariant')
-    expect(project.cordis.entry('scope-invariant')?.name).toBe('@deepseek-ai/dsh-scope/invariant')
-    expect(project.cordis.entry('agent-loop-invariant')?.name).toBe('@deepseek-ai/dsh-agent-loop/invariant')
+    expect(project.cordis.entry('session-invariant')?.name).toBe('@huiliyi37/dsh-session/invariant')
+    expect(project.cordis.entry('agent-invariant')?.name).toBe('@huiliyi37/dsh-agent/invariant')
+    expect(project.cordis.entry('scope-invariant')?.name).toBe('@huiliyi37/dsh-scope/invariant')
+    expect(project.cordis.entry('agent-loop-invariant')?.name).toBe('@huiliyi37/dsh-agent-loop/invariant')
     expect(project.cordis.entry('system-prompt')?.config?.persona).toContain('{{cwd}}')
-    expect(project.packageManifest().dependencies?.['@cordisjs/plugin-timer']).toBe('^1.1.2')
-    expect(project.packageManifest().dependencies?.['@cordisjs/plugin-hmr']).toBe('^1.0.15')
-    expect(project.packageManifest().dependencies?.['@deepseek-ai/dsh-scope']).toBe('^0.0.1')
-    expect(project.packageManifest().dependencies).not.toHaveProperty('@deepseek-ai/dsh-scope/invariant')
+    expect(project.packageManifest().dependencies?.['@huiliyi37/cordis-plugin-timer']).toBe('^1.1.2')
+    expect(project.packageManifest().dependencies?.['@huiliyi37/cordis-plugin-hmr']).toBe('^1.0.15')
+    expect(project.packageManifest().dependencies?.['@huiliyi37/dsh-scope']).toBe('^0.0.1')
+    expect(project.packageManifest().dependencies).not.toHaveProperty('@huiliyi37/dsh-scope/invariant')
     expect(project.packageManifest().dependencies).not.toHaveProperty('node-addon-require-builtin')
-    expect(project.cordis.entry('hmr')).toMatchObject({ name: '@cordisjs/plugin-hmr' })
+    expect(project.cordis.entry('hmr')).toMatchObject({ name: '@huiliyi37/cordis-plugin-hmr' })
     expect(project.cordis.entry('llm-deepseek')).not.toHaveProperty('config.apiKey')
     expect(project.cordis.entry('llm-deepseek')?.config).not.toHaveProperty('baseURL')
     expect(project.cordis.entry('llm-deepseek')?.config).not.toHaveProperty('models')
@@ -203,13 +203,13 @@ describe('SdkProject and ProjectEditSession', () => {
 
   it.each(['spawn', 'fork'] as const)('mounts Task controls for %s subagents', async (option) => {
     const project = await createCommitted([selection('subagent', [option])])
-    expect(project.cordis.entry('tasks')?.name).toBe('@deepseek-ai/dsh-tasks-local')
-    expect(project.cordis.entry('tool-tasks')?.name).toBe('@deepseek-ai/dsh-tool-tasks')
+    expect(project.cordis.entry('tasks')?.name).toBe('@huiliyi37/dsh-tasks-local')
+    expect(project.cordis.entry('tool-tasks')?.name).toBe('@huiliyi37/dsh-tool-tasks')
     expect(project.packageManifest().dependencies).toMatchObject({
-      '@deepseek-ai/dsh-tasks-local': '^0.0.1',
-      '@deepseek-ai/dsh-tool-tasks': '^0.0.1',
+      '@huiliyi37/dsh-tasks-local': '^0.0.1',
+      '@huiliyi37/dsh-tool-tasks': '^0.0.1',
     })
-    expect(project.packageManifest().dependencies).not.toHaveProperty('@deepseek-ai/dsh-tasks')
+    expect(project.packageManifest().dependencies).not.toHaveProperty('@huiliyi37/dsh-tasks')
   })
 
   it('round-trips embed app projects without a front-door Cordis config entry', async () => {
@@ -239,7 +239,7 @@ describe('SdkProject and ProjectEditSession', () => {
     await edit.commit()
     const cordis = await readFile(join(root, 'cordis.yml'), 'utf8')
     expect(cordis).toContain(`- id: bash
-  name: "@deepseek-ai/dsh-bash-sandbox"
+  name: "@huiliyi37/dsh-bash-sandbox"
   # Uncomment to allow writes under the project workspace.
   # config:
   #   mode: workspace-write
@@ -268,7 +268,7 @@ describe('SdkProject and ProjectEditSession', () => {
     for (const item of creation.features) edit.installFeature(registry.get(item.id), item)
     const committed = (await edit.commit()).project
     expect(committed.cordis.entry('llm-pi-ai')).toMatchObject({
-      name: '@deepseek-ai/dsh-llm-pi-ai',
+      name: '@huiliyi37/dsh-llm-pi-ai',
       config: { baseURL: 'https://custom.example/v1' },
     })
     expect(committed.cordis.entry('llm-pi-ai')?.config).not.toHaveProperty('models')
@@ -314,7 +314,7 @@ describe('SdkProject and ProjectEditSession', () => {
     expect(await readFile(join(embed.root, 'README.md'), 'utf8')).toContain('Embed the harness')
     const embedIndex = await readFile(join(embed.root, 'index.ts'), 'utf8')
     expect(embedIndex).toContain('agents.create')
-    expect(embedIndex).toContain("import { SessionId } from '@deepseek-ai/dsh-session'")
+    expect(embedIndex).toContain("import { SessionId } from '@huiliyi37/dsh-session'")
     expect(embedIndex).not.toContain('AgentId')
 
     await writeFile(join(embed.root, 'README.md'), '# Custom README\n')
@@ -569,7 +569,7 @@ describe('SdkProject and ProjectEditSession', () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-inconsistent-'))
     temporary.push(root)
     await writeFile(join(root, 'package.json'), JSON.stringify({
-      name: 'partial', dependencies: { '@deepseek-ai/dsh-llm-deepseek': '^0.0.1' },
+      name: 'partial', dependencies: { '@huiliyi37/dsh-llm-deepseek': '^0.0.1' },
     }))
     await writeFile(join(root, 'cordis.yml'), '[]\n')
     const project = await SdkProject.open(root)
@@ -582,7 +582,7 @@ describe('SdkProject and ProjectEditSession', () => {
     temporary.push(partialRoot)
     await writeFile(join(partialRoot, 'package.json'), JSON.stringify({ name: 'partial-entry' }))
     await writeFile(join(partialRoot, 'cordis.yml'), `- id: llm-deepseek
-  name: '@deepseek-ai/dsh-llm-deepseek'
+  name: '@huiliyi37/dsh-llm-deepseek'
   config:
     apiKeyEnv: DEEPSEEK_API_KEY
 `)
@@ -590,7 +590,7 @@ describe('SdkProject and ProjectEditSession', () => {
     const installation = createBuiltinRegistry(partial.profile)
       .get(featureId('provider')).inspect(partial)
     expect(installation.state).toBe('inconsistent')
-    expect(installation.diagnostics).toContain('missing package.json dependencies entry @deepseek-ai/dsh-llm-deepseek')
+    expect(installation.diagnostics).toContain('missing package.json dependencies entry @huiliyi37/dsh-llm-deepseek')
     const partialEdit = partial.edit(createBuiltinRegistry(partial.profile))
     const provider = createBuiltinRegistry(partial.profile).get(featureId('provider'))
     expect(() => { partialEdit.configureFeature(provider, selection('provider', ['deepseek-official'])) }).toThrow('inconsistent')
@@ -603,7 +603,7 @@ describe('SdkProject and ProjectEditSession', () => {
     temporary.push(root)
     await writeFile(join(root, 'package.json'), '{"name":"partial"}')
     await writeFile(join(root, 'cordis.yml'), `- id: web-search-exa
-  name: '@deepseek-ai/dsh-web-search-exa'
+  name: '@huiliyi37/dsh-web-search-exa'
 `)
     const project = await SdkProject.open(root)
     const builtin = createBuiltinRegistry(project.profile)
@@ -706,7 +706,7 @@ describe('SdkProject and ProjectEditSession', () => {
     const edit = project.edit(registry)
     for (const item of creation.features) edit.installFeature(registry.get(item.id), item)
     const committed = (await edit.commit()).project
-    expect(committed.packageManifest().dependencies?.['@deepseek-ai/dsh-subagent']).toMatch(/^file:/)
+    expect(committed.packageManifest().dependencies?.['@huiliyi37/dsh-subagent']).toMatch(/^file:/)
     expect(createBuiltinRegistry(committed.profile).get(featureId('subagent')).inspect(committed).state).toBe('absent')
   })
 
@@ -914,8 +914,8 @@ describe('extension points', () => {
       'owned-file', 'owned-file', 'package-script', 'package-script',
     ])
     expect(embedOption?.matchesConfigEntries([
-      { id: 'agent-loop', name: '@deepseek-ai/dsh-agent-loop' },
-      { id: 'acp', name: '@deepseek-ai/dsh-acp' },
+      { id: 'agent-loop', name: '@huiliyi37/dsh-agent-loop' },
+      { id: 'acp', name: '@huiliyi37/dsh-acp' },
     ], profile)).toBe(false)
     const spineAgentLoop = builtins.get(featureId('spine')).contribution(selection('spine', ['default']), profile).resources
       .find((resource): resource is CordisConfigEntryResource =>
@@ -994,7 +994,7 @@ describe('extension points', () => {
     })
     expect(noValidator.inspect(view([{ id: 'plain', name: 'plain-package' }])).state).toBe('enabled')
     const app = createBuiltinRegistry(profile).get(featureId('app'))
-    expect(app.inspect(view([{ id: 'acp', name: '@deepseek-ai/dsh-acp' }])).state)
+    expect(app.inspect(view([{ id: 'acp', name: '@huiliyi37/dsh-acp' }])).state)
       .toBe('inconsistent')
   })
 })

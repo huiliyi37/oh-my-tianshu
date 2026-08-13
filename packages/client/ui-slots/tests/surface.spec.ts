@@ -1,9 +1,9 @@
 // Dynamic-key escape hatches and untouched-key behavior of the terminal core.
 import { describe, expect, it } from 'vitest'
-import type { SlotComponent } from '@deepseek-ai/dsh-client-ui-slots'
-import { SlotCore } from '@deepseek-ai/dsh-client-ui-slots'
+import type { SlotComponent } from '@huiliyi37/dsh-client-ui-slots'
+import { SlotCore } from '@huiliyi37/dsh-client-ui-slots'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@huiliyi37/dsh-client-ui-slots' {
   interface SlotMap {
     'surface.a': { kind: 'single'; scope: 'root' }
     'surface.b': { kind: 'single'; scope: 'root' }

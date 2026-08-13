@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod'
-import type { CommandId } from '@deepseek-ai/dsh-commands/brand'
+import type { CommandId } from '@huiliyi37/dsh-commands/brand'
 import type { RequestPayload, ResponseValue } from './rpc-map.ts'
 import type { Wire } from './rpc.schema.ts'
 import { sessionIdSchema } from './sessions.schema.ts'

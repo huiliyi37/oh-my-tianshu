@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Context, Fiber } from 'cordis'
+import type { Context, Fiber } from '@huiliyi37/cordis'
 import { FiberState } from '../src/fiber-state.ts'
 import { describeApi, describeEvents, describePlugins, describeServices } from '../src/inspect.ts'
 import { call, LISTENER_CODE, setup, text } from './helpers.ts'

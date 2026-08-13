@@ -5,12 +5,12 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import { CallId } from '@deepseek-ai/dsh-llm'
-import { Git, type GitStatusResult } from '@deepseek-ai/dsh-git'
-import ToolRegistry from '@deepseek-ai/dsh-tools'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import * as ToolGit from '@deepseek-ai/dsh-tool-git'
+import { Context } from '@huiliyi37/cordis'
+import { CallId } from '@huiliyi37/dsh-llm'
+import { Git, type GitStatusResult } from '@huiliyi37/dsh-git'
+import ToolRegistry from '@huiliyi37/dsh-tools'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import * as ToolGit from '@huiliyi37/dsh-tool-git'
 
 /** 内存 FakeGit：可编程结果（consumer 单测用，不跑 git CLI）。 */
 class FakeGit extends Git {

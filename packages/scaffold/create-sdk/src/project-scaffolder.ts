@@ -1,7 +1,7 @@
 /**
  * Project creation use case over the shared SDK aggregate and edit session.
  *
- * @module @deepseek-ai/create-sdk/project-scaffolder
+ * @module @huiliyi37/create-sdk/project-scaffolder
  */
 
 import { stat } from 'node:fs/promises'
@@ -10,7 +10,7 @@ import {
   createBuiltinRegistry,
   type ChangeSet,
   type ProjectCreationRequest,
-} from '@deepseek-ai/dsh-helper'
+} from '@huiliyi37/dsh-helper'
 
 /** Result of writing one new SDK project. */
 export interface ScaffoldResult {

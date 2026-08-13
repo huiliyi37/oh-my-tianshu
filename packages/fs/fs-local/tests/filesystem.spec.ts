@@ -11,10 +11,10 @@ import { mkdir, mkdtemp, readFile, realpath, rm, stat, symlink, unlink, utimes, 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { Context } from 'cordis'
-import { LocalFileSystem } from '@deepseek-ai/dsh-fs-local'
-import { FsVersion } from '@deepseek-ai/dsh-fs'
-import type { FsTarget } from '@deepseek-ai/dsh-fs'
+import { Context } from '@huiliyi37/cordis'
+import { LocalFileSystem } from '@huiliyi37/dsh-fs-local'
+import { FsVersion } from '@huiliyi37/dsh-fs'
+import type { FsTarget } from '@huiliyi37/dsh-fs'
 
 let dir: string
 let ctx: Context

@@ -1,5 +1,5 @@
 - id: base
-  name: '@cordisjs/plugin-include'
+  name: '@huiliyi37/cordis-plugin-include'
   config:
     path: ../../cordis.yml
     patches:

@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/create-sdk`.
- * @module @deepseek-ai/create-sdk/invariant
+ * Package-owned invariant companion for `@huiliyi37/create-sdk`.
+ * @module @huiliyi37/create-sdk/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/create-sdk'
+const PACKAGE_NAME = '@huiliyi37/create-sdk'
 
 /** Cordis companion plugin name. */
 export const name = 'create-sdk-invariant'

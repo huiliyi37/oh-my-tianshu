@@ -9,7 +9,7 @@
  * `cordis.yml` is present: without it the directory is not an SDK project, and
  * its manifest belongs to whatever unrelated project the command ran in.
  *
- * @module @deepseek-ai/dsh-telemetry/payload
+ * @module @huiliyi37/dsh-telemetry/payload
  */
 
 import { readFile } from 'node:fs/promises'

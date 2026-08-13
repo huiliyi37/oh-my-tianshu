@@ -1,14 +1,14 @@
 /**
  * Package-owned tool-git invariants：git_commit 的结果渲染必须携带合法 hash
  * （commit 的 canonical 值经 render 进入 tool/result——hash 是可重建性的锚点）。
- * @module @deepseek-ai/dsh-tool-git/invariant
+ * @module @huiliyi37/dsh-tool-git/invariant
  */
 
-import type { Context } from 'cordis'
-import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
-import type { InvariantFailure, InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { Session, SessionEvent } from '@huiliyi37/dsh-session'
+import type { InvariantFailure, InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-tool-git'
+const PACKAGE_NAME = '@huiliyi37/dsh-tool-git'
 const COMMIT_RENDER_PREFIX = 'committed '
 
 /** Cordis companion plugin name. */

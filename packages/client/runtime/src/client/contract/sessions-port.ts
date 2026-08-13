@@ -7,7 +7,7 @@
  * dependency.
  */
 
-import type { SessionId, WorkspaceId } from '@deepseek-ai/dsh-client-connection/client'
+import type { SessionId, WorkspaceId } from '@huiliyi37/dsh-client-connection/client'
 import type { ObservableSnapshot } from './store.ts'
 
 /** Session-list row facts sibling domains read: recency, blank-reuse eligibility, and its cwd canon. */

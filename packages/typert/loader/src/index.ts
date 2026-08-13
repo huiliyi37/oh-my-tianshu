@@ -22,18 +22,18 @@
  * that do not ride a `./typert` artifact (hand-written contract schemas,
  * tests, non-loader compositions).
  *
- * @module @deepseek-ai/dsh-typert-loader
+ * @module @huiliyi37/dsh-typert-loader
  */
 
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import type {} from '@cordisjs/plugin-loader'
-import type {} from '@deepseek-ai/dsh-typert-registry'
-import type { TypertContribution } from '@deepseek-ai/dsh-typert-registry/types'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type {} from '@huiliyi37/cordis-plugin-loader'
+import type {} from '@huiliyi37/dsh-typert-registry'
+import type { TypertContribution } from '@huiliyi37/dsh-typert-registry/types'
 
 /** The package.json exports key naming a package's host-face typert artifact. */
 export const TYPERT_HOST_EXPORT = './typert'

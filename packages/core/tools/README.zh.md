@@ -65,8 +65,8 @@ tools:
 
 ```ts
 import { readFile } from 'node:fs/promises'
-import type { Context } from 'cordis'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@huiliyi37/cordis'
+import { defineTool } from '@huiliyi37/dsh-tools'
 
 declare const ctx: Context
 
@@ -189,7 +189,7 @@ The available tools:
 - **并发策略不是事件门禁**：`executionMode()` 直接读取已解析的工具定义；插件只能在自身拥有的定义上声明分类器。
 - **`tools/pre-execute` 有意不允许改写 `exec.arguments`**：否则日志记录和呈现的参数会与实际运行内容失去同步；改写设计记录在[拟议的 Agent Note](../../../.agents/notes/proposed/feature/2026-06-30-pre-tool-input-rewrite.md)中。
 - **调用方定义的 subagent 与工作流结构化输出仍要求对象根**：这是消费方层面的守卫；共享 schema 词汇和工具输出支持任意 JSON 根。
-- **定义上的 `timeoutMs` 仅为声明**：注册表绝不会强制执行截止时间；要强制执行，必须使用 `@deepseek-ai/dsh-timeout-policy` 包装层。
+- **定义上的 `timeoutMs` 仅为声明**：注册表绝不会强制执行截止时间；要强制执行，必须使用 `@huiliyi37/dsh-timeout-policy` 包装层。
 - **Code Mode 的 SDK 语言跟随唯一加载的运行时，且呈现模式在服务内统一**：`mode: code`/`both` 会拒绝组装提示词，除非 `ctx.codeRuntime.language` 有已注册的 SDK 渲染器（`typescript` 经 worker 后端，`python` 用于任何报告该语言的运行时）；作用域限制／遮蔽仍会选择每个 agent 的可见绑定，但不能让一个工具仅使用 Native、另一个仅使用 Code，且单个运行时把语言固定为服务级（[语言分发 Agent Note](../../../.agents/notes/implemented/feature/2026-07-31-code-mode-language-dispatch.md) 负责这次查表，以及注册表为何读取所加载的运行时而不自带 language 字段）。
 - **Code Mode 中间值只存在于执行局部，且没有字节上限**：这些规范的类型化值无法从会话回放重建，并可能耗尽进程或 worker 内存；只有外层 `run_code` 输出受 worker 可配置的硬上限约束。每个子调用的持久日志副本则确实有上限：`tools/code-dispatch-log` waterfall 允许 spill 策略把过大的 `tool/code-dispatch` 内容替换为预览加定位符（[原理](../../../.agents/notes/implemented/feature/2026-07-26-code-dispatch-log-spill.md)）。
 - **每次运行都会获得全新的 `run_code` 状态**：MVP 不采用持久 REPL 风格内核（跨调用状态不会出现在日志中）；参见 [Code Mode Agent Note](../../../.agents/notes/implemented/feature/2026-06-15-code-mode.md)。

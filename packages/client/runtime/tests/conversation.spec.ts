@@ -1,7 +1,7 @@
 /** Assistant block classifier (moved here with sessions/conversation.ts). */
 
 import { describe, expect, it } from 'vitest'
-import type { ContentBlock } from '@deepseek-ai/dsh-client-connection/client'
+import type { ContentBlock } from '@huiliyi37/dsh-client-connection/client'
 import { toAssistantBlock, toAssistantBlocks } from '../src/client/sessions/conversation.ts'
 
 describe('toAssistantBlock', () => {

@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import z from 'schemastery'
+import { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 import { chmod, lstat, mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
+import { writeFileAtomic } from '@huiliyi37/dsh-atomic-write'
+import { settingsNamespace } from '@huiliyi37/dsh-settings'
 import { SettingsLocal, resolveSpec } from '../src/index.ts'
 
 interface ThemeConfig {

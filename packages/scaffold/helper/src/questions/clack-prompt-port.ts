@@ -1,7 +1,7 @@
 /**
  * Thin @clack/prompts adapter for the shared prompt port.
  *
- * @module @deepseek-ai/dsh-helper/questions/clack-prompt-port
+ * @module @huiliyi37/dsh-helper/questions/clack-prompt-port
  */
 
 import type { Readable, Writable } from 'node:stream'

@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-typert-generator`.
- * @module @deepseek-ai/dsh-typert-generator/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-typert-generator`.
+ * @module @huiliyi37/dsh-typert-generator/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-typert-generator'
+const PACKAGE_NAME = '@huiliyi37/dsh-typert-generator'
 
 /** Cordis companion plugin name. */
 export const name = 'typert-generator-invariant'

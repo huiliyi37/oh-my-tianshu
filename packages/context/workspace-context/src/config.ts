@@ -1,12 +1,12 @@
 /**
  * Configuration normalization for workspace instruction discovery and rendering.
  *
- * @module @deepseek-ai/dsh-workspace-context/config
+ * @module @huiliyi37/dsh-workspace-context/config
  */
 
 import { relative } from 'node:path'
-import z from 'schemastery'
-import { resolveDshHome } from '@deepseek-ai/dsh-paths'
+import z from '@huiliyi37/schemastery'
+import { resolveDshHome } from '@huiliyi37/dsh-paths'
 
 const DEFAULT_PROJECT_ROOT_MARKERS = ['.git'] as const
 const DEFAULT_INSTRUCTION_FILE_CANDIDATES = ['AGENTS.md', 'CLAUDE.md'] as const

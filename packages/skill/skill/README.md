@@ -1,10 +1,10 @@
-# @deepseek-ai/dsh-skill
+# @huiliyi37/dsh-skill
 
 English | [中文](README.zh.md)
 
 Pure agent skill provider registry.
 
-This package owns the `ctx.skills` interface. It does not know whether skills come from local files, embedded plugin data, HTTP, or another backend; providers register those sources with `ctx.skills.registerProvider(...)`. The shipped local implementation is [`@deepseek-ai/dsh-skill-local`](../skill-local).
+This package owns the `ctx.skills` interface. It does not know whether skills come from local files, embedded plugin data, HTTP, or another backend; providers register those sources with `ctx.skills.registerProvider(...)`. The shipped local implementation is [`@huiliyi37/dsh-skill-local`](../skill-local).
 
 ## Service: `SkillService` (ctx key: `skills`)
 
@@ -59,7 +59,7 @@ Definitions remain progressively loaded. `get()` asks the winning provider for t
 
 ## Consumer boundary
 
-The registry does not render model guidance or register model-facing tools. [`@deepseek-ai/dsh-tool-skill`](../tool-skill) consumes `ctx.skills` to provide durable session catalogs and the `skill` tool, so providers remain independent of the model surface.
+The registry does not render model guidance or register model-facing tools. [`@huiliyi37/dsh-tool-skill`](../tool-skill) consumes `ctx.skills` to provide durable session catalogs and the `skill` tool, so providers remain independent of the model surface.
 
 ## Model Experience
 

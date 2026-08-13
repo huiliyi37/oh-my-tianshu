@@ -1,11 +1,11 @@
 /**
  * Package-manager strategies for SDK project workspaces and child commands.
  *
- * @module @deepseek-ai/dsh-helper/package-managers/package-manager
+ * @module @huiliyi37/dsh-helper/package-managers/package-manager
  */
 
 import { execFile, spawn } from 'node:child_process'
-import { scrubbedParentEnv, SENSITIVE_ENV_PATTERN } from '@deepseek-ai/dsh-subprocess'
+import { scrubbedParentEnv, SENSITIVE_ENV_PATTERN } from '@huiliyi37/dsh-subprocess'
 import { promisify } from 'node:util'
 import type { PackageJsonFile } from '../documents/package-json-file.ts'
 import { PnpmWorkspaceFile } from '../documents/pnpm-workspace-file.ts'

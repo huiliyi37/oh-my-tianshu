@@ -3,11 +3,11 @@
  * plugin list, the registered tools, the temporary-plugin table (with per-plugin provides/waits),
  * and the catalog-backed `api` / `events` sections. Exact-name lookups add the
  * original source JSDoc without inflating the default reports.
- * @module @deepseek-ai/dsh-tool-cordis/inspect
+ * @module @huiliyi37/dsh-tool-cordis/inspect
  */
 
-import type { Context, Fiber } from 'cordis'
-import type { ScopeKey } from '@deepseek-ai/dsh-scope'
+import type { Context, Fiber } from '@huiliyi37/cordis'
+import type { ScopeKey } from '@huiliyi37/dsh-scope'
 import { EVENT_API, INHERITED_CTX_API, SERVICE_API, TYPE_API } from './api-catalog.ts'
 import type { EventApiEntry, InheritedApiEntry, ServiceApiEntry, TypeApiEntry } from './api-catalog.ts'
 import { FiberState, STATE_LABELS } from './fiber-state.ts'

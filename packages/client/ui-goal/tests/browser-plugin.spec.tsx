@@ -10,15 +10,15 @@
  * plugin fiber (HMR safety). The node half and the invariant companion are
  * exercised over the same Context.
  */
-import { Context, Service } from 'cordis'
+import { Context, Service } from '@huiliyi37/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
 import { afterEach } from 'vitest'
-import { SlotsService, type SessionId } from '@deepseek-ai/dsh-client-runtime/client'
-import type { GoalProjection } from '@deepseek-ai/dsh-goal/client'
-import { LocaleService } from '@deepseek-ai/dsh-client-locale/client'
-import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
-import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+import { SlotsService, type SessionId } from '@huiliyi37/dsh-client-runtime/client'
+import type { GoalProjection } from '@huiliyi37/dsh-goal/client'
+import { LocaleService } from '@huiliyi37/dsh-client-locale/client'
+import { makeTranslate } from '@huiliyi37/dsh-client-test-runtime'
+import { zh as commonZh } from '@huiliyi37/dsh-client-locale/src/locales/zh.ts'
 import type { GoalBarActions } from '../src/client/slots.ts'
 import { apply, inject } from '../src/client/index.ts'
 import { GoalDock } from '../src/client/GoalBar.tsx'

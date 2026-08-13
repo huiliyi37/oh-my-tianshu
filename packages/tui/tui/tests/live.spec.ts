@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
-import type { CallId } from '@deepseek-ai/dsh-llm'
-import type { AgentStatus } from '@deepseek-ai/dsh-agent'
+import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
+import type { CallId } from '@huiliyi37/dsh-llm'
+import type { AgentStatus } from '@huiliyi37/dsh-agent'
 import { applyLiveEvent, emptyLiveState, trackAgent } from '../src/adapter/live.js'
 
 const sid = 'test-live-1' as SessionId

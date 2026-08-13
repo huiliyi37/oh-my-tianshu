@@ -1,10 +1,10 @@
 /** Registers the conversation components, shared store, and service callbacks. */
-import type { Context } from 'cordis'
-import { resolveSlotLabel, type BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
-import { resolveWorkspacePath, type ISessions, type SessionId } from '@deepseek-ai/dsh-client-runtime/client'
-import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+import type { Context } from '@huiliyi37/cordis'
+import { resolveSlotLabel, type BoundActions } from '@huiliyi37/dsh-client-ui-slots'
+import { resolveWorkspacePath, type ISessions, type SessionId } from '@huiliyi37/dsh-client-runtime/client'
+import type {} from '@huiliyi37/dsh-client-ui-layout/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
-import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@huiliyi37/dsh-client-locale/client'
 import type { ViewTab } from './contract/views.ts'
 import type {
   ApprovalWait, ChatNodeTurnDataInjected, ChatScrollPosition, ChatViewInjected, ComposerBarInjected,
@@ -34,7 +34,7 @@ import { en, NS, zh, type ConversationKey } from './locales.ts'
 import { registerConversationNodes } from './conversation-nodes/register.ts'
 import { registerChatNodeRenderers } from './chat/register-node-renderers.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@huiliyi37/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** The conversation skeleton, chat flow, commands, details, and docks copy. */
     conversation: ConversationKey

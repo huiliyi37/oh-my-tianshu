@@ -8,7 +8,7 @@
  * provider seam stays injectable with `NullEmbeddingProvider` as the offline
  * default (degradation to BM25 is the documented behavior).
  *
- * @module @deepseek-ai/dsh-semantic-index/semantic-index
+ * @module @huiliyi37/dsh-semantic-index/semantic-index
  */
 
 import { createHash } from 'node:crypto'

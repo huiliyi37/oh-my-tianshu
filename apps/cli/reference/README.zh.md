@@ -8,7 +8,7 @@
 
 `dsh --profile <name>` 启动位于 `$DSH_HOME/profiles/<name>` 的 profile。生效配置树在空根节点之上按以下顺序逐层组合：profile manifest（元数据清单）的 `dsh.profile.bundles` 列表所列的各个组合包 patch、profile 自身的 `cordis.patch.yml`、home 级的 `$DSH_HOME/cordis.patch.yml`（各 profile 共享的机器本地偏好，因此优先级高于逐 profile 的层）、按 argv 顺序的各个 `--patch <path>` overlay，以及启动器 flag patch。后应用的层按行胜出；patch 替换目标行完整的 `config` 值，而不是深度合并各键，并且可以插入新行。配置解析、schema 校验、模块解析或插件启动失败会得到报告并以非零状态退出。收到 SIGINT 或 SIGTERM 时，挂载的根节点会先 dispose（资源释放）再退出。
 
-组合包名称先从 dsh 安装解析，再从 profile 目录解析。因此内置组合包（`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-web-app`、`@deepseek-ai/dsh-headless`）总是来自与正在运行的 `dsh` 相同的安装；树外组合包来自 profile 由 pnpm 管理的 `node_modules`。任何 patch 行中的裸插件 `name` 通过 profile 目录的 Node 父目录逐级查找解析，该查找可达到持续维护的安装后备目录 `$DSH_HOME/profiles/node_modules`（安装的应用和组合包所依赖的每个包对应一个符号链接，每次启动时修复）。
+组合包名称先从 dsh 安装解析，再从 profile 目录解析。因此内置组合包（`@huiliyi37/dsh-base`、`@huiliyi37/dsh-web-app`、`@huiliyi37/dsh-headless`）总是来自与正在运行的 `dsh` 相同的安装；树外组合包来自 profile 由 pnpm 管理的 `node_modules`。任何 patch 行中的裸插件 `name` 通过 profile 目录的 Node 父目录逐级查找解析，该查找可达到持续维护的安装后备目录 `$DSH_HOME/profiles/node_modules`（安装的应用和组合包所依赖的每个包对应一个符号链接，每次启动时修复）。
 
 `web` 和 `headless` profile 首次使用时会从随附模板自动初始化（`web`：base + web-app；`headless`：base + headless）。加载时，与安装所管理的 headless 元组（base + web-app + headless）完全一致的列表会规范化为随附模板；包含额外项、缺少项或调整过顺序的组合包列表由用户拥有，保持不变。其他缺失的 profile 会显式报错，并提示运行 `dsh plugin --profile <name> add <package>`。
 
@@ -31,7 +31,7 @@ dsh --profile web --patch ./extra.yml --dump-config
 
 ## 插件管理
 
-`dsh plugin --profile <name> <args...>` 在 profile 缺失时先初始化它（有随附模板的用模板，其他名称只装 `@deepseek-ai/dsh-base`），然后以 profile 目录为工作目录，把 `<args...>` 转发给 `pnpm`：`add`、`remove`、`why`、`update` 及其他所有 pnpm 子命令都照常可用；pnpm 必须在 PATH 上。相对路径 spec（`.`、`../plugin` 及其 `file:`/`link:` 形式）会先锚定到调用目录，因此在插件 checkout 中执行 `add .` 安装的是该 checkout，而不是 profile。每次成功运行后，`dsh.profile.bundles` 都会与已安装状态对齐：每个解析到 manifest 中声明了 `"dsh": { "bundle": { "patch": "./cordis.patch.yml" } }` 的包的依赖加入层栈（因此让包获得该声明的 `update` 会将其激活），没有组合包声明的依赖保持为普通依赖并给出一次性警告，已移除的依赖则退出层栈。
+`dsh plugin --profile <name> <args...>` 在 profile 缺失时先初始化它（有随附模板的用模板，其他名称只装 `@huiliyi37/dsh-base`），然后以 profile 目录为工作目录，把 `<args...>` 转发给 `pnpm`：`add`、`remove`、`why`、`update` 及其他所有 pnpm 子命令都照常可用；pnpm 必须在 PATH 上。相对路径 spec（`.`、`../plugin` 及其 `file:`/`link:` 形式）会先锚定到调用目录，因此在插件 checkout 中执行 `add .` 安装的是该 checkout，而不是 profile。每次成功运行后，`dsh.profile.bundles` 都会与已安装状态对齐：每个解析到 manifest 中声明了 `"dsh": { "bundle": { "patch": "./cordis.patch.yml" } }` 的包的依赖加入层栈（因此让包获得该声明的 `update` 会将其激活），没有组合包声明的依赖保持为普通依赖并给出一次性警告，已移除的依赖则退出层栈。
 
 ```sh
 dsh plugin --profile tui add github:deepseek-harness/turtle-ui
@@ -69,7 +69,7 @@ dsh web --dump-config
 
 会话事件默认作为 OTLP/HTTP 日志流式发送。`DSH_TELEMETRY_OTLP_URL` 选择其他 collector。任何非空 `DSH_TELEMETRY_DISABLED` 都会在启动前禁用遥测配置行。随附基础配置没有遥测脱敏规则，因此导出的记录可能包含消息文本、工具参数与结果以及 workspace 路径；该部署决策由[遥测 Agent Note](../../../.agents/notes/implemented/feature/2026-07-31-web-telemetry-default-mount.md)负责。
 
-空 `repository-plugins` 行让 profile 的 patch 层能够挂载已准备的不可变 repository Plugin generation。参见 [repository Plugin 约定](../../../packages/self-modification/repository-plugin/README.md#standalone-app-configuration)。CLI 还随附 `@deepseek-ai/dsh-mcp-client` 作为供 patch 层使用的依赖，但默认不启用 MCP 服务器，因为每条服务器命令都是 agent（智能体）沙箱之外的受信任可执行代码。
+空 `repository-plugins` 行让 profile 的 patch 层能够挂载已准备的不可变 repository Plugin generation。参见 [repository Plugin 约定](../../../packages/self-modification/repository-plugin/README.md#standalone-app-configuration)。CLI 还随附 `@huiliyi37/dsh-mcp-client` 作为供 patch 层使用的依赖，但默认不启用 MCP 服务器，因为每条服务器命令都是 agent（智能体）沙箱之外的受信任可执行代码。
 
 ## 源码启动器
 

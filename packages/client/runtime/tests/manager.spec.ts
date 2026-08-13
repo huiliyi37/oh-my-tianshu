@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import type { SessionId } from '@deepseek-ai/dsh-client-connection/client'
+import type { SessionId } from '@huiliyi37/dsh-client-connection/client'
 import { SessionManager } from '../src/client/sessions/manager.ts'
 import { FakeApiClient, deferred, err, ok } from './fake-api.ts'
 import { entries, plainTurn } from './event-script.ts'

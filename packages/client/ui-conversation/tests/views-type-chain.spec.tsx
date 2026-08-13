@@ -1,10 +1,10 @@
 // View-ring type-chain samples. This spec pins the conversation-owned SlotMap
 // row, list-kind registration shape, composed view props, and the runtime
 // ledger projection consumed by ConversationRoot.
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it } from 'vitest'
 import type { ReactNode } from 'react'
-import { SlotsService } from '@deepseek-ai/dsh-client-runtime/client'
+import { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
 import type { ChatViewSlotProps, ConvViewProps } from '../src/client/contract/slots.ts'
 
 describe('view-ring type negatives (compile-time; body never runs)', () => {

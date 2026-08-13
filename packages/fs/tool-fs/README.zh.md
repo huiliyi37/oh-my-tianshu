@@ -1,17 +1,17 @@
-# @deepseek-ai/dsh-tool-fs
+# @huiliyi37/dsh-tool-fs
 
 [English](README.md) | 中文
 
-**面向模型的文件系统工具**（`read`、`write`、`edit`）及其**执行器**。这是文件系统栈的消费方层：拥有工具名称、JSON Schema、参数校验、提示词段、**读取窗口逻辑**和结果格式化。它**直接**通过 `ctx.fs` 提供方约定（[`@deepseek-ai/dsh-fs`](../fs)）读取／写入／编辑。新鲜度／观察策略由独立插件（[`@deepseek-ai/dsh-fs-policy`](../fs-policy)）通过 `fs/*` 事件门禁贡献；工具不与其方法耦合。使用施加沙箱限制的提供方时，逐会话执行需要共享沙箱策略服务，工具还会为文件系统变更提供升权路径。
+**面向模型的文件系统工具**（`read`、`write`、`edit`）及其**执行器**。这是文件系统栈的消费方层：拥有工具名称、JSON Schema、参数校验、提示词段、**读取窗口逻辑**和结果格式化。它**直接**通过 `ctx.fs` 提供方约定（[`@huiliyi37/dsh-fs`](../fs)）读取／写入／编辑。新鲜度／观察策略由独立插件（[`@huiliyi37/dsh-fs-policy`](../fs-policy)）通过 `fs/*` 事件门禁贡献；工具不与其方法耦合。使用施加沙箱限制的提供方时，逐会话执行需要共享沙箱策略服务，工具还会为文件系统变更提供升权路径。
 
 ```ts ignore-check
 // Default deployment: a ctx.fs provider, the policy plugin, then the tools.
-await ctx.plugin(LocalFileSystem, { cwd: process.cwd() }) // @deepseek-ai/dsh-fs-local
-await ctx.plugin(FsPolicy)                             // @deepseek-ai/dsh-fs-policy (policy gate)
+await ctx.plugin(LocalFileSystem, { cwd: process.cwd() }) // @huiliyi37/dsh-fs-local
+await ctx.plugin(FsPolicy)                             // @huiliyi37/dsh-fs-policy (policy gate)
 await ctx.plugin(ToolFs)                                  // this package — registers read/write/edit
 ```
 
-`@deepseek-ai/dsh-fs-policy` 是**可选的**：省略时，工具直接使用裸提供方（无条件写入/覆盖/编辑，无已观察状态）。加载这些工具的部署也应加载该插件，从而提供写入/编辑前读取行为。
+`@huiliyi37/dsh-fs-policy` 是**可选的**：省略时，工具直接使用裸提供方（无条件写入/覆盖/编辑，无已观察状态）。加载这些工具的部署也应加载该插件，从而提供写入/编辑前读取行为。
 
 ## 配置
 
@@ -44,13 +44,13 @@ await ctx.plugin(ToolFs)                                  // this package — re
 - **write**：调用 `ctx.waterfall('fs/write-intent', target, exec, () => undefined)` 取得可选防护，然后调用 `ctx.fs.writeText(target, content, intent)`，再发出 `fs/observed`。（0 次 stat。）
 - **edit**：调用 `ctx.waterfall('fs/edit-intent', target, exec, () => undefined)` 取得可选防护，然后调用 `ctx.fs.editText(target, edit, intent)`，再发出 `fs/observed`。（0 次 stat。）
 
-工具在每次分派中把 `exec`（工具执行上下文）作为不透明 `actor` 传入。默认 thunk 返回 `undefined`（不受约束的裸提供方）。加载 `@deepseek-ai/dsh-fs-policy` 后，它会占用单个决策槽：返回 `createIfAbsent`/`replaceIfVersion`/`{ version }` 或抛出 `FS_NOT_OBSERVED`，并在 `fs/observed` 时记录。后端错误（`FsError`）和抛出的 `FS_NOT_OBSERVED` 会流经 `ToolRegistry.execute()`，变成 `isError` 工具结果，并附带 `{ name, code }`。
+工具在每次分派中把 `exec`（工具执行上下文）作为不透明 `actor` 传入。默认 thunk 返回 `undefined`（不受约束的裸提供方）。加载 `@huiliyi37/dsh-fs-policy` 后，它会占用单个决策槽：返回 `createIfAbsent`/`replaceIfVersion`/`{ version }` 或抛出 `FS_NOT_OBSERVED`，并在 `fs/observed` 时记录。后端错误（`FsError`）和抛出的 `FS_NOT_OBSERVED` 会流经 `ToolRegistry.execute()`，变成 `isError` 工具结果，并附带 `{ name, code }`。
 
 当 `ctx.fs.sandboxMode` 表明提供方施加沙箱限制时，write/edit 会公开 `sandbox_permissions` 与 `justification`，并通过 `ctx.approval` 解析经批准的重试。策略归属方会贡献与具体能力无关的常驻策略；工具结果仍保留操作特定的拒绝与重试引导。
 
 ## `fs/observed` 发后即忘
 
-`fs/observed` 在读取/写入/编辑已经成功之后，通过普通 `ctx.emit` 发出。监听器的约定是同步且只有副作用的记录器（`@deepseek-ai/dsh-fs-policy` 使用 `WeakMap.set`）；工具不保护这次发出，因此监听器抛出会作为工具的 `isError` 结果出现。异步或可能失败的观察不属于该事件。
+`fs/observed` 在读取/写入/编辑已经成功之后，通过普通 `ctx.emit` 发出。监听器的约定是同步且只有副作用的记录器（`@huiliyi37/dsh-fs-policy` 使用 `WeakMap.set`）；工具不保护这次发出，因此监听器抛出会作为工具的 `isError` 结果出现。异步或可能失败的观察不属于该事件。
 
 `read` 允许并发调度，因为其唯一变更是同步版本记录器。稍后的 `write` 或 `edit` 会在目标锁内重新检查版本，因此记录器竞态会以拒绝方式关闭；两个变更工具仍保持互斥。见[并行工具调用 Agent Note](../../../.agents/notes/implemented/feature/2026-07-10-parallel-tool-call-execution.md)。
 

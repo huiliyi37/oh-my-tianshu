@@ -6,27 +6,27 @@
 import { randomUUID } from 'node:crypto'
 import { mkdir, stat } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { Context } from 'cordis'
-import { installModelSelection } from '@deepseek-ai/dsh-agent'
-import type { Agent, ModelSelection, ModelSelectionRef, AgentOptions, AgentStatus } from '@deepseek-ai/dsh-agent'
-import { AGENT_DEFAULT_MODEL_SETTINGS_NAMESPACE } from '@deepseek-ai/dsh-agent-default-model'
-import { createUserMessage, freezeMessage, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
-import { errorChain } from '@deepseek-ai/dsh-llm'
-import type { MessageSource } from '@deepseek-ai/dsh-llm'
-import { isAppendSurfaceEvent, lastActivityTime } from '@deepseek-ai/dsh-session'
-import type { Session, SessionEvent, SessionEventMap, SessionHeader, SessionId, UserMessage } from '@deepseek-ai/dsh-session'
-import type { SessionPersistence } from '@deepseek-ai/dsh-session-persistence'
-import { SessionQueryError, type SessionSearchCursor } from '@deepseek-ai/dsh-session-query'
-import { SubagentError } from '@deepseek-ai/dsh-subagent'
-import type { SubagentListEntry as CatalogSubagentListEntry } from '@deepseek-ai/dsh-subagent'
-import { isUserInvocable } from '@deepseek-ai/dsh-skill'
-import type { Workspace, WorkspaceRecord } from '@deepseek-ai/dsh-workspace'
+import type { Context } from '@huiliyi37/cordis'
+import { installModelSelection } from '@huiliyi37/dsh-agent'
+import type { Agent, ModelSelection, ModelSelectionRef, AgentOptions, AgentStatus } from '@huiliyi37/dsh-agent'
+import { AGENT_DEFAULT_MODEL_SETTINGS_NAMESPACE } from '@huiliyi37/dsh-agent-default-model'
+import { createUserMessage, freezeMessage, ReasoningEffortId } from '@huiliyi37/dsh-llm'
+import { errorChain } from '@huiliyi37/dsh-llm'
+import type { MessageSource } from '@huiliyi37/dsh-llm'
+import { isAppendSurfaceEvent, lastActivityTime } from '@huiliyi37/dsh-session'
+import type { Session, SessionEvent, SessionEventMap, SessionHeader, SessionId, UserMessage } from '@huiliyi37/dsh-session'
+import type { SessionPersistence } from '@huiliyi37/dsh-session-persistence'
+import { SessionQueryError, type SessionSearchCursor } from '@huiliyi37/dsh-session-query'
+import { SubagentError } from '@huiliyi37/dsh-subagent'
+import type { SubagentListEntry as CatalogSubagentListEntry } from '@huiliyi37/dsh-subagent'
+import { isUserInvocable } from '@huiliyi37/dsh-skill'
+import type { Workspace, WorkspaceRecord } from '@huiliyi37/dsh-workspace'
 import {
   workspaceDomainState, workspaceRecord, WorkspaceId as brandWorkspaceId,
   WorkspaceMoveInvalidError, WorkspaceUnknownSessionError,
-} from '@deepseek-ai/dsh-workspace'
+} from '@huiliyi37/dsh-workspace'
 // Type-only: brings the `ctx.tools` Context merge into this program (viewFor reads presenters).
-import type {} from '@deepseek-ai/dsh-tools'
+import type {} from '@huiliyi37/dsh-tools'
 import type {
   ApiProxy, ConfigurableProviderView, CredentialView, GoalRef, HistoryEntry, HostFrame,
   ModelCatalogFailure, ModelProviderGroup,
@@ -40,37 +40,37 @@ import {
   truncateUnicodeCodePoints,
 } from './api/session-search.ts'
 // Type-only: resolves `ctx.get('sessionProjections')` to the projection registry.
-import type {} from '@deepseek-ai/dsh-session-projection'
+import type {} from '@huiliyi37/dsh-session-projection'
 // Type-only: resolves `ctx.get('sessionProjectionCache')` (the cold listing column).
-import type {} from '@deepseek-ai/dsh-session-projection-cache'
+import type {} from '@huiliyi37/dsh-session-projection-cache'
 // GoalError narrows domain rejections to their stable codes at the wire boundary.
-import { GoalError } from '@deepseek-ai/dsh-goal'
-import type { GoalRef as CoreGoalRef } from '@deepseek-ai/dsh-goal'
+import { GoalError } from '@huiliyi37/dsh-goal'
+import type { GoalRef as CoreGoalRef } from '@huiliyi37/dsh-goal'
 // Type-only edges: resolve `ctx.get('commands')`, the `commands/change` event, and `ctx.get('skills')`.
-import type {} from '@deepseek-ai/dsh-commands'
-import type {} from '@deepseek-ai/dsh-skill'
+import type {} from '@huiliyi37/dsh-commands'
+import type {} from '@huiliyi37/dsh-skill'
 // The settings/credentials seams: brand guards run at this wire boundary; the
 // service reads stay optional (`ctx.get`) so a composition without either
 // provider still serves every other domain.
-import { SettingsConflictError, settingsNamespace } from '@deepseek-ai/dsh-settings'
-import type { SettingsDescriptor, SettingsNamespace, SettingsPathOp } from '@deepseek-ai/dsh-settings'
-import { credentialRef } from '@deepseek-ai/dsh-credentials'
+import { SettingsConflictError, settingsNamespace } from '@huiliyi37/dsh-settings'
+import type { SettingsDescriptor, SettingsNamespace, SettingsPathOp } from '@huiliyi37/dsh-settings'
+import { credentialRef } from '@huiliyi37/dsh-credentials'
 // Value edge: the rename impl narrows the title service's validation failure; the import also resolves `ctx.get('sessionTitle')`.
-import { SessionTitleInvalidError } from '@deepseek-ai/dsh-session-title'
-import type { CallId } from '@deepseek-ai/dsh-llm/brand'
-import type { ApprovalOutcome, ApprovalRequestId } from '@deepseek-ai/dsh-user-approval'
+import { SessionTitleInvalidError } from '@huiliyi37/dsh-session-title'
+import type { CallId } from '@huiliyi37/dsh-llm/brand'
+import type { ApprovalOutcome, ApprovalRequestId } from '@huiliyi37/dsh-user-approval'
 // Side-effect type import: resolves the `approval/request` waterfall and
 // `ctx.get('approval')` without a value dependency on the seam (optional composition).
-import type {} from '@deepseek-ai/dsh-user-approval'
+import type {} from '@huiliyi37/dsh-user-approval'
 import { approvalResponsePayloadSchema } from './api/approvals.schema.ts'
 import { questionResponsePayloadSchema } from './api/questions.schema.ts'
 import type { ClientResponse, RpcError, RpcReceipt, RpcRequest, RpcResponse } from './api/rpc.ts'
 import { RpcId } from './api/rpc.ts'
 import type {
   AskUserQuestionAnswer, AskUserQuestionItem, AskUserQuestionRequest,
-} from '@deepseek-ai/dsh-user-interaction'
-import { UserInteractionError } from '@deepseek-ai/dsh-user-interaction'
-import { DirectoryPickerError } from '@deepseek-ai/dsh-host-directory-picker'
+} from '@huiliyi37/dsh-user-interaction'
+import { UserInteractionError } from '@huiliyi37/dsh-user-interaction'
+import { DirectoryPickerError } from '@huiliyi37/dsh-host-directory-picker'
 import {
   ApiRemoteSessionNotFound as SessionNotFound,
   ApiRemoteSubagentSessionOwnership as SubagentSessionOwnership,
@@ -78,7 +78,7 @@ import {
   createApiRemoteAgentResolver,
   hasApiRemoteSubagentOwner,
   inspectApiRemoteSession,
-} from '@deepseek-ai/dsh-api-remotes'
+} from '@huiliyi37/dsh-api-remotes'
 import { openNativePath, openNativeTextFile } from './native-path-opener.ts'
 
 /** Page size when history is called without maxMessages. */
@@ -617,7 +617,7 @@ function subagentPromptError(
 function projectionsUnavailableError(): RpcError {
   return {
     code: 'internal',
-    message: 'subagent catalog is unavailable: this deployment does not mount the sessionProjections registry (load @deepseek-ai/dsh-session-projection)',
+    message: 'subagent catalog is unavailable: this deployment does not mount the sessionProjections registry (load @huiliyi37/dsh-session-projection)',
     details: {},
   }
 }
@@ -1194,11 +1194,11 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     return items
   }
 
-  /** Resolve the goal service; absent = the deployment did not compose @deepseek-ai/dsh-goal. */
+  /** Resolve the goal service; absent = the deployment did not compose @huiliyi37/dsh-goal. */
   function goalService(): NonNullable<ReturnType<typeof ctx.get<'goals'>>> | { error: RpcError } {
     const goals = ctx.get('goals')
     if (goals === undefined) {
-      return { error: { code: 'internal', message: 'goal service is absent: this deployment does not mount @deepseek-ai/dsh-goal in its composition (cordis.yml or explicit assembly)', details: {} } }
+      return { error: { code: 'internal', message: 'goal service is absent: this deployment does not mount @huiliyi37/dsh-goal in its composition (cordis.yml or explicit assembly)', details: {} } }
     }
     return goals
   }
@@ -1269,7 +1269,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
 
   /** Missing-service report shared by the settings domain (skills-domain stance). */
   function settingsAbsent(): RpcError {
-    return { code: 'internal', message: 'settings service is absent: this deployment does not mount a settings provider (e.g. @deepseek-ai/dsh-settings-local) in its composition', details: {} }
+    return { code: 'internal', message: 'settings service is absent: this deployment does not mount a settings provider (e.g. @huiliyi37/dsh-settings-local) in its composition', details: {} }
   }
 
   /** Open one Host-resolved target and map native failures onto the wire vocabulary. */
@@ -1316,7 +1316,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
 
   /** Missing-service report shared by the credentials domain. */
   function credentialsAbsent(): RpcError {
-    return { code: 'internal', message: 'credentials service is absent: this deployment does not mount a credential provider (e.g. @deepseek-ai/dsh-credentials-local) in its composition', details: {} }
+    return { code: 'internal', message: 'credentials service is absent: this deployment does not mount a credential provider (e.g. @huiliyi37/dsh-credentials-local) in its composition', details: {} }
   }
 
   /** Map one redacted settings descriptor to its wire view. */
@@ -1438,7 +1438,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         if (sessionQuery === undefined) {
           return err(request, {
             code: 'internal',
-            message: 'session search is unavailable: this deployment does not mount @deepseek-ai/dsh-session-query',
+            message: 'session search is unavailable: this deployment does not mount @huiliyi37/dsh-session-query',
             details: {},
           })
         }
@@ -2282,7 +2282,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         // composition, not an empty catalog: fail loud instead of serving [].
         const commands = ctx.get('commands')
         if (commands === undefined) {
-          return err(request, { code: 'internal', message: 'command registry is absent: this deployment does not mount @deepseek-ai/dsh-commands in its composition (cordis.yml or explicit assembly)', details: {} })
+          return err(request, { code: 'internal', message: 'command registry is absent: this deployment does not mount @huiliyi37/dsh-commands in its composition (cordis.yml or explicit assembly)', details: {} })
         }
         const found = await agentFor(request.payload.sessionId)
         if ('error' in found) return err(request, found.error)
@@ -2292,7 +2292,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       async execute(request, signal) {
         const commands = ctx.get('commands')
         if (commands === undefined) {
-          return err(request, { code: 'internal', message: 'command registry is absent: this deployment does not mount @deepseek-ai/dsh-commands in its composition (cordis.yml or explicit assembly)', details: {} })
+          return err(request, { code: 'internal', message: 'command registry is absent: this deployment does not mount @huiliyi37/dsh-commands in its composition (cordis.yml or explicit assembly)', details: {} })
         }
         const { sessionId, line } = request.payload
         const found = await agentFor(sessionId)
@@ -2389,7 +2389,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         // fails the reflect proxy).
         const skillRegistry = ctx.get('skills')
         if (skillRegistry === undefined) {
-          return err(request, { code: 'internal', message: 'skill registry is absent: this deployment does not mount @deepseek-ai/dsh-skill in its composition (cordis.yml or explicit assembly)', details: {} })
+          return err(request, { code: 'internal', message: 'skill registry is absent: this deployment does not mount @huiliyi37/dsh-skill in its composition (cordis.yml or explicit assembly)', details: {} })
         }
         try {
           const skills = (await skillRegistry.list({ cwd })).filter(isUserInvocable)

@@ -3,11 +3,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import Include from '@cordisjs/plugin-include'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import CommandService from '@deepseek-ai/dsh-commands'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import Include from '@huiliyi37/cordis-plugin-include'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import CommandService from '@huiliyi37/dsh-commands'
 import {
   CompactionId,
   CompactService,
@@ -15,9 +15,9 @@ import {
   type CompactionResult,
   type CompactionTrigger,
   type ManualCompactAgentContext,
-} from '@deepseek-ai/dsh-compact'
-import * as commandCompact from '@deepseek-ai/dsh-command-compact'
-import { Session, SessionId } from '@deepseek-ai/dsh-session'
+} from '@huiliyi37/dsh-compact'
+import * as commandCompact from '@huiliyi37/dsh-command-compact'
+import { Session, SessionId } from '@huiliyi37/dsh-session'
 
 const COMPACTION_ID = CompactionId('loader-command-compact-test')
 
@@ -84,9 +84,9 @@ describe('command-compact real Loader composition', () => {
     root = await mkdtemp(join(tmpdir(), 'dsh-command-compact-loader-'))
     const configPath = join(root, 'cordis.yml')
     await writeFile(configPath, [
-      "- name: '@deepseek-ai/dsh-commands'",
+      "- name: '@huiliyi37/dsh-commands'",
       "- name: '@test/compact-backend'",
-      "- name: '@deepseek-ai/dsh-command-compact'",
+      "- name: '@huiliyi37/dsh-command-compact'",
       '',
     ].join('\n'))
 
@@ -95,9 +95,9 @@ describe('command-compact real Loader composition', () => {
     await context.plugin(Loader)
     context.loader.builtins.include = Include
     const modules = new Map<string, unknown>([
-      ['@deepseek-ai/dsh-commands', CommandService],
+      ['@huiliyi37/dsh-commands', CommandService],
       ['@test/compact-backend', LoaderCompactService],
-      ['@deepseek-ai/dsh-command-compact', commandCompact],
+      ['@huiliyi37/dsh-command-compact', commandCompact],
     ])
     context.loader.internal = {
       version: 'v2',

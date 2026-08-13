@@ -9,9 +9,9 @@ Services support direct calls; **events** let a plugin announce something withou
 Create `stats.ts` in `tmp/cordis-tutorial` — a service that counts things and announces each change:
 
 ```ts
-import { Service, type Context } from 'cordis'
+import { Service, type Context } from '@huiliyi37/cordis'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     stats: StatsService
   }
@@ -46,7 +46,7 @@ The `interface Events` merge is the event-system twin of the `interface Context`
 Create `reporter.ts`:
 
 ```ts ignore-check
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import type {} from './stats.ts'
 
 export const name = 'reporter'
@@ -96,9 +96,9 @@ Every harness event documents its mode in the generated reference on its owning 
 Waterfall is the mode that powers interception. Each listener receives the arguments plus a `next()` continuation; it can transform what `next()` returns, or return without calling `next()` and short-circuit the rest of the chain — what the Cordis docs call the veto. Create `waterfall-demo.ts`:
 
 ```ts
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Events {
     'demo/transform'(input: string, next: () => Promise<string>): Promise<string>
   }

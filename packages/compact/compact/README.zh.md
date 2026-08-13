@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-compact
+# @huiliyi37/dsh-compact
 
 [English](README.md) | 中文
 
@@ -8,11 +8,11 @@
 
 | 包 | 职责 |
 |---|---|
-| `@deepseek-ai/dsh-compact`（本包） | Service Definition：抽象服务 + `compact/*` 事件 + `CompactionResult` + 关联检查点源构造函数 + 工具配对边界 helper |
-| `@deepseek-ai/dsh-compact-basic` | Service provider：`ctx.tokenMeter` 压力 + token 预算保留 + `llm.stream()` 摘要 |
-| `@deepseek-ai/dsh-command-compact` | Consumer：面向人类的 `/compact` 命令，基于 `ctx.compact.compactNow()` 实现 |
+| `@huiliyi37/dsh-compact`（本包） | Service Definition：抽象服务 + `compact/*` 事件 + `CompactionResult` + 关联检查点源构造函数 + 工具配对边界 helper |
+| `@huiliyi37/dsh-compact-basic` | Service provider：`ctx.tokenMeter` 压力 + token 预算保留 + `llm.stream()` 摘要 |
+| `@huiliyi37/dsh-command-compact` | Consumer：面向人类的 `/compact` 命令，基于 `ctx.compact.compactNow()` 实现 |
 
-与 bash seam 不同，该 Service Definition 依赖 `@deepseek-ai/dsh-session` 和 `@deepseek-ai/dsh-llm`。约定的动词基于 `Session` 定义，其输出使用 `ContentBlock` 词汇，因此无法在不指名这些包的情况下表达。这项对「Service Definition 只依赖 cordis」指引的偏离是有意的，并记录在 [压缩能力 seam Agent Note](../../../.agents/notes/implemented/feature/2026-06-18-compaction-capability-seam.md) 中。
+与 bash seam 不同，该 Service Definition 依赖 `@huiliyi37/dsh-session` 和 `@huiliyi37/dsh-llm`。约定的动词基于 `Session` 定义，其输出使用 `ContentBlock` 词汇，因此无法在不指名这些包的情况下表达。这项对「Service Definition 只依赖 cordis」指引的偏离是有意的，并记录在 [压缩能力 seam Agent Note](../../../.agents/notes/implemented/feature/2026-06-18-compaction-capability-seam.md) 中。
 
 ## 服务 API（`ctx.compact`）
 
@@ -68,7 +68,7 @@
 
 ## 在 host 程序之外识别检查点（`./checkpoint`）
 
-`compactCheckpointSource()`、`CompactCheckpointSource` 与 `isCompactCheckpointSource()` 声明在 `@deepseek-ai/dsh-compact/checkpoint` 子路径上，并由包根重新导出，因此 host 侧消费方仍从根读取它们。构造函数要求传入所属 `CompactionId`，防止后端写入缺少关联关系、必然被包不变量拒绝的标记。该叶子不导入 cordis、也不声明任何模块增强（即 [`dsh-commands/brand`](../../interaction/commands/README.md) 的形状），这正是客户端或 wire 程序能够命名该检查点来源的原因：包的**根**根本无法进入这类程序，因为它会到达 `dsh-session` 的根，而那处 `Context` 合并会让 host 的 `sessions` 服务与客户端自己的冲突（`TS2717`——每侧一个程序，见 [development.md](../../../docs/development.md#typescript-project-layout)）。Web 客户端的对话记录适配器用仅类型导入把它的插件字面量钉在该叶子的源类型上，因此在此处改插件 id 会让那边编译失败。
+`compactCheckpointSource()`、`CompactCheckpointSource` 与 `isCompactCheckpointSource()` 声明在 `@huiliyi37/dsh-compact/checkpoint` 子路径上，并由包根重新导出，因此 host 侧消费方仍从根读取它们。构造函数要求传入所属 `CompactionId`，防止后端写入缺少关联关系、必然被包不变量拒绝的标记。该叶子不导入 cordis、也不声明任何模块增强（即 [`dsh-commands/brand`](../../interaction/commands/README.md) 的形状），这正是客户端或 wire 程序能够命名该检查点来源的原因：包的**根**根本无法进入这类程序，因为它会到达 `dsh-session` 的根，而那处 `Context` 合并会让 host 的 `sessions` 服务与客户端自己的冲突（`TS2717`——每侧一个程序，见 [development.md](../../../docs/development.md#typescript-project-layout)）。Web 客户端的对话记录适配器用仅类型导入把它的插件字面量钉在该叶子的源类型上，因此在此处改插件 id 会让那边编译失败。
 
 ## 模型体验
 
@@ -88,6 +88,6 @@
 
 ## 已知限制与暂缓事项
 
-- **面向用户的命令，而非模型工具**：`@deepseek-ai/dsh-command-compact` 通过 `ctx.commands` 暴露无参数 `/compact`；不会注册面向模型的压缩工具。
+- **面向用户的命令，而非模型工具**：`@huiliyi37/dsh-command-compact` 通过 `ctx.commands` 暴露无参数 `/compact`；不会注册面向模型的压缩工具。
 - **部分单元溢出不在约定内**：平衡摘要压缩无法拆分一个不可分单元。当闭合工具对中可移除的主要部分是承载文本的工具结果时，可选剪枝配套服务仍可修复该工具对；无法压缩大型非工具节点，或不可剪枝剩余部分过大的工具单元。
 - **单独接近窗口大小的 envelope 不属于表层压缩工作**：压缩缩减派生历史，绝不缩减系统提示词、工具或会话前缀。

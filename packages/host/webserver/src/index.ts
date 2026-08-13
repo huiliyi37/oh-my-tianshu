@@ -1,5 +1,5 @@
 /**
- * @deepseek-ai/dsh-host-webserver — Web route-registration plugin: a node:http
+ * @huiliyi37/dsh-host-webserver — Web route-registration plugin: a node:http
  * server plus the `httpServer` service (HTTP and upgrade route registries,
  * index transform taps, and the single fallback seat for everything no route
  * claims). Knows no harness concepts and serves no files; the composing
@@ -12,10 +12,10 @@ import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse, Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import type { Duplex } from 'node:stream'
-import { Context, Service } from 'cordis'
-import z from 'schemastery'
+import { Context, Service } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     httpServer: HttpServerService
   }

@@ -19,10 +19,10 @@ const OUT = 'docs/persistence-catalog.md'
 const FENCE = 'ts persistence-catalog'
 
 /** The package that owns the durable event vocabulary. */
-const SESSION_PACKAGE = '@deepseek-ai/dsh-session'
+const SESSION_PACKAGE = '@huiliyi37/dsh-session'
 
 /** The type-only module that plugin declaration merges augment. */
-const SESSION_TYPES_MODULE = '@deepseek-ai/dsh-session/types'
+const SESSION_TYPES_MODULE = '@huiliyi37/dsh-session/types'
 
 /** Event-envelope declarations rendered before the per-event vocabulary. */
 const EVENT_ENVELOPE_TYPE_NAMES = [
@@ -117,8 +117,8 @@ function declarationText(text: string, sf: ts.SourceFile, node: ts.Node): string
 
 /**
  * Every `interface SessionEventMap` declaration in a source file: the owning
- * top-level declaration (in `@deepseek-ai/dsh-session`) and any declaration
- * merge inside a `declare module '@deepseek-ai/dsh-session/types'` block. Both forms
+ * top-level declaration (in `@huiliyi37/dsh-session`) and any declaration
+ * merge inside a `declare module '@huiliyi37/dsh-session/types'` block. Both forms
  * declare members of the SAME merged interface, so both are catalogued
  * uniformly. `topLevel` distinguishes the owning form so the caller can verify
  * it actually lives in the owning package — an unrelated local interface that
@@ -355,7 +355,7 @@ export function render(events: AnnotatedLogEventEntry[], envelopeTypes: EventEnv
     '',
     '# Session Persistence Event Catalog',
     '',
-    'Every event type that can appear in a session\'s durable event log: the complete persisted `SessionEvent` envelope and each member of the merge-extensible `SessionEventMap` — the owning vocabulary in `@deepseek-ai/dsh-session` plus every plugin declaration merge into `@deepseek-ai/dsh-session/types` in this repo — with source JSDoc, full payload declaration, surface badge, and declaration site. It complements [session.md](subsystems/session.md) (surface ordering and the `deriveMessages()` projection), [persistence.md](subsystems/persistence.md) (how the log is made durable), and the generated region of [session.md](subsystems/session.md#cordis-surface) (the live bus wiring — a log event is NOT a cordis event; it reaches listeners via the single `session/event` emit).',
+    'Every event type that can appear in a session\'s durable event log: the complete persisted `SessionEvent` envelope and each member of the merge-extensible `SessionEventMap` — the owning vocabulary in `@huiliyi37/dsh-session` plus every plugin declaration merge into `@huiliyi37/dsh-session/types` in this repo — with source JSDoc, full payload declaration, surface badge, and declaration site. It complements [session.md](subsystems/session.md) (surface ordering and the `deriveMessages()` projection), [persistence.md](subsystems/persistence.md) (how the log is made durable), and the generated region of [session.md](subsystems/session.md#cordis-surface) (the live bus wiring — a log event is NOT a cordis event; it reaches listeners via the single `session/event` emit).',
     '',
     'This file is GENERATED from source (`scripts/gen-persistence-catalog.ts`) and verified fresh by `pnpm run verify-persistence-catalog` (part of `doc-sync`) — do not edit it by hand. Declaration blocks retain the source declaration and nested property JSDoc, removing only the indentation imposed by a containing interface/module, and use a `ts persistence-catalog` fence (skipped by doc-typecheck because declarations reference types from their owning modules). Type names in a payload link to the page that documents them. See [the persistence-log-catalog Agent Note](../.agents/notes/archived/process/2026-07-04-persistence-log-catalog.md).',
     '',

@@ -4,8 +4,8 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { createMessage, createToolResultMessage, createUserMessage, CallId } from '@deepseek-ai/dsh-llm'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import { createMessage, createToolResultMessage, createUserMessage, CallId } from '@huiliyi37/dsh-llm'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
 import { renderSessionExport } from '../src/format/export.ts'
 
 /** 构造含用户/助手（推理+文本+工具调用）/工具结果的事件序列。 */

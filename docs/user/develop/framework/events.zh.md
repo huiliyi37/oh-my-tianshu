@@ -87,7 +87,7 @@ Harness 使用 TypeScript 声明合并来为事件提供类型安全：
 ```ts
 import 'cordis'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Events {
     'my-plugin/ready': (payload: { id: string }) => void
     'my-plugin/check': (input: string) => boolean | undefined
@@ -121,8 +121,8 @@ export function apply(ctx: Context) {
 这个插件记录工具调用和工具结果：
 
 ```ts
-import type { Context } from 'cordis'
-import '@deepseek-ai/dsh-tools'
+import type { Context } from '@huiliyi37/cordis'
+import '@huiliyi37/dsh-tools'
 
 export const name = 'tool-logger'
 

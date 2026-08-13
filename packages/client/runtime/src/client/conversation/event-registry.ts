@@ -1,4 +1,4 @@
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import type { ConversationNodeDefinition } from '../contract/conversation.ts'
 import { ConversationDefinitionRegistry } from './definition-registry.ts'
 

@@ -1,7 +1,7 @@
 /**
  * Structured package.json document owned by an SDK project.
  *
- * @module @deepseek-ai/dsh-helper/documents/package-json-file
+ * @module @huiliyi37/dsh-helper/documents/package-json-file
  */
 
 import { ProjectFile, withTrailingNewline } from './project-file.ts'

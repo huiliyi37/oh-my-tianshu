@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-permission
+# @huiliyi37/dsh-permission
 
 English | [中文](README.zh.md)
 

@@ -2,11 +2,11 @@
  * Headless create input: a structured project spec supplied by an agent or CI
  * instead of interactive prompts.
  *
- * @module @deepseek-ai/create-sdk/headless
+ * @module @huiliyi37/create-sdk/headless
  */
 
 import { readFile } from 'node:fs/promises'
-import type { FeatureSelection, PackageManagerName, RunInterface } from '@deepseek-ai/dsh-helper'
+import type { FeatureSelection, PackageManagerName, RunInterface } from '@huiliyi37/dsh-helper'
 import type { CreateArgs } from './args.ts'
 
 /**

@@ -7,7 +7,7 @@
  * list rows' title projection).
  */
 import { describe, expect, it } from 'vitest'
-import type { SessionId } from '@deepseek-ai/dsh-client-connection/client'
+import type { SessionId } from '@huiliyi37/dsh-client-connection/client'
 import { ProjectionValueStore } from '../src/client/sessions/projection-store.ts'
 import { Session } from '../src/client/sessions/session.ts'
 import { SessionManager } from '../src/client/sessions/manager.ts'
@@ -16,7 +16,7 @@ import { entries, plainTurn } from './event-script.ts'
 
 // Test-domain keys merged into the projection map (the Service Definition package's
 // pure-type outlet), the same way domain host plugins merge theirs.
-declare module '@deepseek-ai/dsh-session-projection/types' {
+declare module '@huiliyi37/dsh-session-projection/types' {
   interface SessionProjectionMap {
     'test/marks': { marks: string[] }
   }

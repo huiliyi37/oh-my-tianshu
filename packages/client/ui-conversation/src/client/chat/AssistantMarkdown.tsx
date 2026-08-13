@@ -10,9 +10,9 @@
 // turn's transcript tail. Think / tool-head-only nodes stay chrome-free.
 
 import { memo, useMemo } from 'react'
-import type { AssistantBlock } from '@deepseek-ai/dsh-client-runtime/client'
-import { JsonBlock, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { MarkdownFileMentions } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { AssistantBlock } from '@huiliyi37/dsh-client-runtime/client'
+import { JsonBlock, MarkdownText } from '@huiliyi37/dsh-client-ui-primitives'
+import type { MarkdownFileMentions } from '@huiliyi37/dsh-client-ui-primitives'
 import type { ChatViewSlotProps } from '../contract/slots.ts'
 import { ReasoningRow } from './ReasoningRow.tsx'
 import css from './AssistantMarkdown.module.css'

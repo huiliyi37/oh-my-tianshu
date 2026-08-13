@@ -11,15 +11,15 @@
  * between this module and one in-package caller, not something a plugin may
  * depend on.
  *
- * @module @deepseek-ai/dsh-subagent/lifecycle
+ * @module @huiliyi37/dsh-subagent/lifecycle
  */
 
 import { randomUUID } from 'node:crypto'
-import type { Context } from 'cordis'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import { findLastMessageTurnEnd } from '@deepseek-ai/dsh-session'
-import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import type { ContentBlock } from '@huiliyi37/dsh-llm'
+import { findLastMessageTurnEnd } from '@huiliyi37/dsh-session'
+import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
 import { SubagentRunId } from './types.ts'
 import type { SubagentResult, SubagentRun, SubagentRunEndInfo, SubagentRunInfo } from './types.ts'
 

@@ -1,14 +1,14 @@
 /**
  * Package-owned terminal templates for create-sdk.
  *
- * @module @deepseek-ai/create-sdk/templates/create-templates
+ * @module @huiliyi37/create-sdk/templates/create-templates
  */
 
 import {
   TextTemplate,
   type PackageManager,
   type PackageManagerName,
-} from '@deepseek-ai/dsh-helper'
+} from '@huiliyi37/dsh-helper'
 
 interface CreatedTemplateModel {
   name: string

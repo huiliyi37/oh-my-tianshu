@@ -1,5 +1,5 @@
 /**
- * @deepseek-ai/dsh-host-apiproxy — the API gateway every client shape shares:
+ * @huiliyi37/dsh-host-apiproxy — the API gateway every client shape shares:
  * the ApiProxy contract (api/: types + zod schemas, browser-safe), the fetch
  * carrier pair (fetch/: toFetchHandler on the host side, AbstractApiClient +
  * platform subclasses on the client side), and the host-side implementation
@@ -13,9 +13,9 @@
  */
 
 import { resolve } from 'node:path'
-import { Context, Service } from 'cordis'
-import z from 'schemastery'
-import type {} from '@deepseek-ai/dsh-agent-default-model'
+import { Context, Service } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type {} from '@huiliyi37/dsh-agent-default-model'
 import type { ApiProxy } from './api/index.ts'
 import { createApiProxy } from './api-proxy.ts'
 
@@ -27,7 +27,7 @@ export type { IApiClient } from './fetch/client.ts'
 export { createApiProxy } from './api-proxy.ts'
 export type { ApiProxyDefaults } from './api-proxy.ts'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     /** The host-side ApiProxy implementation (the transport-agnostic gateway face). */
     apiProxy: ApiProxy

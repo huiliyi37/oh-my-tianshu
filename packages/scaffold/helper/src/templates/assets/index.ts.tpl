@@ -1,9 +1,9 @@
 {{#if isAcp}}
-import { startSDK, type SdkBootContext } from '@deepseek-ai/dsh-scripts'
+import { startSDK, type SdkBootContext } from '@huiliyi37/dsh-scripts'
 {{else}}
 import { randomUUID } from 'node:crypto'
-import { SessionId } from '@deepseek-ai/dsh-session'
-import { startSDK, type SdkBootContext } from '@deepseek-ai/dsh-scripts'
+import { SessionId } from '@huiliyi37/dsh-session'
+import { startSDK, type SdkBootContext } from '@huiliyi37/dsh-scripts'
 {{/if}}
 
 /** Boot this project's cordis.yml when invoked by dsh-scripts. */

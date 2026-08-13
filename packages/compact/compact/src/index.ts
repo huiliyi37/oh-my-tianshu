@@ -4,12 +4,12 @@
  * {@link CompactService}. This interface necessarily depends on session and LLM
  * vocabulary; the rationale is in the
  * [compaction Agent Note](../../../../.agents/notes/implemented/feature/2026-06-18-compaction-capability-seam.md).
- * @module @deepseek-ai/dsh-compact
+ * @module @huiliyi37/dsh-compact
  */
 
-import { Context, Service } from 'cordis'
-import type { Session } from '@deepseek-ai/dsh-session'
-import type { CommandId } from '@deepseek-ai/dsh-commands/brand'
+import { Context, Service } from '@huiliyi37/cordis'
+import type { Session } from '@huiliyi37/dsh-session'
+import type { CommandId } from '@huiliyi37/dsh-commands/brand'
 import type { CompactionResult } from './types.ts'
 
 export type { CompactionResult } from './types.ts'
@@ -78,7 +78,7 @@ export interface ManualCompactAgentContext extends CompactAgentContext {
   runMaintenance<T>(task: (signal: AbortSignal) => Promise<T>): Promise<T>
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     compact: CompactService
   }

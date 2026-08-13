@@ -1,17 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { credentialRef } from '@deepseek-ai/dsh-credentials'
+import { credentialRef } from '@huiliyi37/dsh-credentials'
 import { CredentialsLocal } from '../src/index.ts'
 
 // The atomic write is the gated asynchronous hold point inside a queued
 // write; gating it makes the dispose-versus-queued-write race fully
 // deterministic. The lock helper passes through so the gated operation still
 // runs inside its real acquire/release cycle.
-vi.mock('@deepseek-ai/dsh-atomic-write', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@deepseek-ai/dsh-atomic-write')>()
+vi.mock('@huiliyi37/dsh-atomic-write', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@huiliyi37/dsh-atomic-write')>()
   let gate: Promise<void> = Promise.resolve()
   return {
     ...actual,
@@ -23,7 +23,7 @@ vi.mock('@deepseek-ai/dsh-atomic-write', async (importOriginal) => {
 })
 
 async function setGate(next: Promise<void>): Promise<void> {
-  const mocked = await import('@deepseek-ai/dsh-atomic-write') as unknown as { __setGate: (next: Promise<void>) => void }
+  const mocked = await import('@huiliyi37/dsh-atomic-write') as unknown as { __setGate: (next: Promise<void>) => void }
   mocked.__setGate(next)
 }
 

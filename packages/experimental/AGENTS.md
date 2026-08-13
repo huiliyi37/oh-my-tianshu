@@ -8,4 +8,4 @@ These rules supplement the [package rules](../AGENTS.md). The [experimental and 
 - Experimental packages carry no stability, compatibility, migration, or support promise. Internal-only packages may define narrower internal contracts but make no public release promise.
 - Experimental or internal-only status never relaxes repository engineering, security, documentation, lifecycle, testing, or snapshot requirements.
 - Release packages must not take runtime dependencies on packages here. Examples may; every other runtime dependent is also experimental or internal-only and belongs here. Tests may use them as development dependencies.
-- Promotion moves a package to its product-role group without renaming its `@deepseek-ai/dsh-*` package. Require explicit review of its public contract, limitations, test evidence, and a named owner accepting stable-package obligations.
+- Promotion moves a package to its product-role group without renaming its `@huiliyi37/dsh-*` package. Require explicit review of its public contract, limitations, test evidence, and a named owner accepting stable-package obligations.

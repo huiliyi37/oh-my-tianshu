@@ -234,13 +234,13 @@ jobs:
 
       - name: Install Playwright Chromium and hosted dependencies
         if: vars.DSH_CI_FAILOVER != 'selfhosted' || github.event.pull_request.user.login == 'dependabot[bot]'
-        run: pnpm --filter @deepseek-ai/dsh-frontend exec playwright install --with-deps chromium
+        run: pnpm --filter @huiliyi37/dsh-frontend exec playwright install --with-deps chromium
 
       # The persistent VM image owns Playwright's Linux system packages; do
       # not mutate the shared host with apt on every failover run.
       - name: Install Playwright Chromium on the failover VM
         if: vars.DSH_CI_FAILOVER == 'selfhosted' && github.event.pull_request.user.login != 'dependabot[bot]'
-        run: pnpm --filter @deepseek-ai/dsh-frontend exec playwright install chromium
+        run: pnpm --filter @huiliyi37/dsh-frontend exec playwright install chromium
 
       - name: Configure private GitHub repository Plugin access
         env:
@@ -477,7 +477,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright Chromium and system dependencies
-        run: pnpm --filter @deepseek-ai/dsh-frontend exec playwright install --with-deps chromium
+        run: pnpm --filter @huiliyi37/dsh-frontend exec playwright install --with-deps chromium
 
       - name: Prepare bubblewrap (unrestrict userns)
         run: bash scripts/prepare-ci-bubblewrap.sh
@@ -536,7 +536,7 @@ jobs:
       # The persistent VM image owns Playwright's Linux system packages; this
       # step also proves that browser provisioning remains usable for failover.
       - name: Install Playwright Chromium
-        run: pnpm --filter @deepseek-ai/dsh-frontend exec playwright install chromium
+        run: pnpm --filter @huiliyi37/dsh-frontend exec playwright install chromium
 
       - name: Prepare bubblewrap (unrestrict userns)
         run: bash scripts/prepare-ci-bubblewrap.sh

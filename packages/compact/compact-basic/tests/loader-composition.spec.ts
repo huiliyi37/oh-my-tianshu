@@ -3,14 +3,14 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import Include from '@cordisjs/plugin-include'
-import LlmService from '@deepseek-ai/dsh-llm'
-import SessionStore from '@deepseek-ai/dsh-session'
-import TokenMeterService from '@deepseek-ai/dsh-token-meter'
-import BasicCompactService from '@deepseek-ai/dsh-compact-basic'
-import ToolResultPruneService from '@deepseek-ai/dsh-compact-tool-result-prune'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import Include from '@huiliyi37/cordis-plugin-include'
+import LlmService from '@huiliyi37/dsh-llm'
+import SessionStore from '@huiliyi37/dsh-session'
+import TokenMeterService from '@huiliyi37/dsh-token-meter'
+import BasicCompactService from '@huiliyi37/dsh-compact-basic'
+import ToolResultPruneService from '@huiliyi37/dsh-compact-tool-result-prune'
 
 let root: string | undefined
 let context: Context | undefined
@@ -32,11 +32,11 @@ async function loadYaml(lines: readonly string[]): Promise<Context> {
   await context.plugin(Loader)
   context.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
-    ['@deepseek-ai/dsh-llm', LlmService],
-    ['@deepseek-ai/dsh-session', SessionStore],
-    ['@deepseek-ai/dsh-token-meter', TokenMeterService],
-    ['@deepseek-ai/dsh-compact-tool-result-prune', ToolResultPruneService],
-    ['@deepseek-ai/dsh-compact-basic', BasicCompactService],
+    ['@huiliyi37/dsh-llm', LlmService],
+    ['@huiliyi37/dsh-session', SessionStore],
+    ['@huiliyi37/dsh-token-meter', TokenMeterService],
+    ['@huiliyi37/dsh-compact-tool-result-prune', ToolResultPruneService],
+    ['@huiliyi37/dsh-compact-basic', BasicCompactService],
   ])
   context.loader.internal = {
     version: 'v2',
@@ -56,15 +56,15 @@ async function loadYaml(lines: readonly string[]): Promise<Context> {
 describe('real Loader composition', () => {
   it('loads the shipped token-meter, pruning, and compact-basic YAML order', async () => {
     const loaded = await loadYaml([
-      "- name: '@deepseek-ai/dsh-llm'",
-      "- name: '@deepseek-ai/dsh-session'",
-      "- name: '@deepseek-ai/dsh-token-meter'",
-      "- name: '@deepseek-ai/dsh-compact-tool-result-prune'",
+      "- name: '@huiliyi37/dsh-llm'",
+      "- name: '@huiliyi37/dsh-session'",
+      "- name: '@huiliyi37/dsh-token-meter'",
+      "- name: '@huiliyi37/dsh-compact-tool-result-prune'",
       '  config:',
       '    thresholdChars: 100',
       '    headChars: 20',
       '    tailChars: 10',
-      "- name: '@deepseek-ai/dsh-compact-basic'",
+      "- name: '@huiliyi37/dsh-compact-basic'",
       '  config:',
       '    thresholdRatio: 0.5',
       '    retainRatio: 0.125',

@@ -1,7 +1,7 @@
 /**
  * Required run-interface app feature.
  *
- * @module @deepseek-ai/dsh-helper/features/builtin/app
+ * @module @huiliyi37/dsh-helper/features/builtin/app
  */
 
 import { featureId } from '../../ids.ts'
@@ -53,7 +53,7 @@ class AppOption extends FeatureOption {
   /** Identify options by their unique front door, not the shared interaction service. */
   override markerConfigEntries(): readonly { id: string; name: string }[] {
     switch (this.id) {
-      case 'acp': return [{ id: 'acp', name: '@deepseek-ai/dsh-acp' }]
+      case 'acp': return [{ id: 'acp', name: '@huiliyi37/dsh-acp' }]
       case 'embed': return []
     }
   }
@@ -61,8 +61,8 @@ class AppOption extends FeatureOption {
   /** Embed is identified by the configured loop with no external front door. */
   override matchesConfigEntries(entries: readonly { id: string; name: string }[], profile: ProjectProfile): boolean {
     if (this.id !== 'embed') return super.matchesConfigEntries(entries, profile)
-    return entries.some(entry => entry.id === 'agent-loop' && entry.name === '@deepseek-ai/dsh-agent-loop')
-      && !entries.some(entry => entry.name === '@deepseek-ai/dsh-acp')
+    return entries.some(entry => entry.id === 'agent-loop' && entry.name === '@huiliyi37/dsh-agent-loop')
+      && !entries.some(entry => entry.name === '@huiliyi37/dsh-acp')
   }
 
   override contribution(profile: ProjectProfile): ProjectContribution {
@@ -72,7 +72,7 @@ class AppOption extends FeatureOption {
           ...appProjectResources(profile, this.id),
           ...npmCordisConfigEntry(ID, {
             id: 'acp',
-            name: '@deepseek-ai/dsh-acp',
+            name: '@huiliyi37/dsh-acp',
             config: { model: profile.runtime.model },
           }, ['model'], config => requiredString(config, 'model')),
         ])

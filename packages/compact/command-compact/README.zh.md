@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-command-compact
+# @huiliyi37/dsh-command-compact
 
 [English](README.md) | 中文
 
@@ -34,11 +34,11 @@ busy 结果有意限定在进程范围内：活动的未匹配标记会阻塞，
 
 ```yaml
 - id: commands
-  name: '@deepseek-ai/dsh-commands'
+  name: '@huiliyi37/dsh-commands'
 - id: compact-basic
-  name: '@deepseek-ai/dsh-compact-basic'
+  name: '@huiliyi37/dsh-compact-basic'
 - id: command-compact
-  name: '@deepseek-ai/dsh-command-compact'
+  name: '@huiliyi37/dsh-command-compact'
 ```
 
 随附 `dsh` 基础配置将它挂载在 `compact-basic` 旁，Web 客户端提供命令适配器。未组合命令适配器的自动化接口只保留自动压缩。

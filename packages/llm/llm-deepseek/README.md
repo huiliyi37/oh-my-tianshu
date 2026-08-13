@@ -1,10 +1,10 @@
-# @deepseek-ai/dsh-llm-deepseek
+# @huiliyi37/dsh-llm-deepseek
 
 English | [中文](README.zh.md)
 
 DeepSeek chat-completions adapter for the harness LLM seam: direct `fetch` + SSE (framed by `eventsource-parser`) translating the official wire format (source of truth: the API docs — guides/thinking_mode, guides/tool_calls, api/create-chat-completion) into the `StreamChunk` protocol.
 
-A second, library-backed implementation of the same seam exists in `@deepseek-ai/dsh-llm-pi-ai`. This package owns the `deepseek-official` provider route — deliberately distinct from pi-ai's catalog name `deepseek`, so one composition can mount both DeepSeek paths side by side; registering another adapter for `deepseek-official` itself still throws `LlmError('DUPLICATE_ADAPTER')`.
+A second, library-backed implementation of the same seam exists in `@huiliyi37/dsh-llm-pi-ai`. This package owns the `deepseek-official` provider route — deliberately distinct from pi-ai's catalog name `deepseek`, so one composition can mount both DeepSeek paths side by side; registering another adapter for `deepseek-official` itself still throws `LlmError('DUPLICATE_ADAPTER')`.
 
 The package root exposes the Cordis plugin contract and `DeepSeekAdapter`; wire serialization, SSE parsing, and chunk translation helpers are not part of that root contract.
 
@@ -12,7 +12,7 @@ The package root exposes the Cordis plugin contract and `DeepSeekAdapter`; wire 
 
 ```yaml
 - id: llm-deepseek
-  name: '@deepseek-ai/dsh-llm-deepseek'
+  name: '@huiliyi37/dsh-llm-deepseek'
   config:
     apiKeyEnv: DEEPSEEK_API_KEY  # default; resolved per request via ctx.credentials, then the environment
     baseURL: https://api.deepseek.com # optional; $DEEPSEEK_BASE_URL then the public API when omitted
@@ -113,5 +113,5 @@ Loop-retained response blocks append to the next request and preserve its earlie
 
 - **A settings `models` list replaces the composition list wholesale** — settings-layer merging is per-field, and arrays are one field; per-entry catalog merging would need a keyed shape.
 - **`tool_choice` is not mapped** — not part of the core vocabulary (MVP cut, shared with the pi-ai twin).
-- **Requests use raw `fetch`, not `@cordisjs/plugin-http`** — no shared proxy/interception configuration; adoption is deferred until a second adapter wants it (`TODO(http)`).
+- **Requests use raw `fetch`, not `@huiliyi37/cordis-plugin-http`** — no shared proxy/interception configuration; adoption is deferred until a second adapter wants it (`TODO(http)`).
 - **Serialization flattens user and tool-result content to text blocks** — plugin-added block types are skipped, and empty tool output crosses the wire as the literal `(no output)`.

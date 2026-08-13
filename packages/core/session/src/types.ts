@@ -1,4 +1,4 @@
-import type { Branded } from '@deepseek-ai/dsh-brand'
+import type { Branded } from '@huiliyi37/dsh-brand'
 import type {
   AssistantMessage,
   CallId,
@@ -10,7 +10,7 @@ import type {
   ToolResultMessage,
   ToolSchema,
   UserMessage,
-} from '@deepseek-ai/dsh-llm'
+} from '@huiliyi37/dsh-llm'
 import type { JsonValue } from './json.ts'
 
 /** Identifies one session in the store (and its persistence artifacts). */

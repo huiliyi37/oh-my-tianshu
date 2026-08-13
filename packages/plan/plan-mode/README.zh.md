@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-plan-mode
+# @huiliyi37/dsh-plan-mode
 
 [English](README.md) | 中文
 
@@ -22,13 +22,13 @@ Web 客户端使用该插件提供的 `/plan` 命令；其他入口可以直接�
 
 ## 会话投影
 
-当组合挂载 `ctx.sessionProjections`（[`@deepseek-ai/dsh-session-projection`](../../session/session-projection/README.md)）时，本包会在一个注入的子插件中注册 `plan` 投影单元。该单元折叠两类事件：名为 `plan` 且携带已记录 `args` 的 `command/run` 记录会设置目标状态（`off` → 未激活，其余 → 激活），`plan/mode` 会提交已记录状态并清除该目标；其他任何事件都返回同一个状态引用。`view` 推导 `{ active, pending }`，其中 `pending` 仅在尚未落实的选择与已记录状态不同时为 true。该值完全由日志回放得出，因此 host 重启、其他标签页和冷读都能仅凭日志恢复它。`/plan` 处理器会在任何可能失败的路径之前调用 `set()`，避免已写入日志的请求与运行面分叉。key 由 `src/types.ts` 通过声明合并加入 `SessionProjectionMap`：host 消费方经 `./types` 获取，client 聚合经 `./client` 获取。框架负责驱动该单元，载体通过历史尾页和 `session/projection` 推送帧提供其值。未挂载注册表的组合不受影响。
+当组合挂载 `ctx.sessionProjections`（[`@huiliyi37/dsh-session-projection`](../../session/session-projection/README.md)）时，本包会在一个注入的子插件中注册 `plan` 投影单元。该单元折叠两类事件：名为 `plan` 且携带已记录 `args` 的 `command/run` 记录会设置目标状态（`off` → 未激活，其余 → 激活），`plan/mode` 会提交已记录状态并清除该目标；其他任何事件都返回同一个状态引用。`view` 推导 `{ active, pending }`，其中 `pending` 仅在尚未落实的选择与已记录状态不同时为 true。该值完全由日志回放得出，因此 host 重启、其他标签页和冷读都能仅凭日志恢复它。`/plan` 处理器会在任何可能失败的路径之前调用 `set()`，避免已写入日志的请求与运行面分叉。key 由 `src/types.ts` 通过声明合并加入 `SessionProjectionMap`：host 消费方经 `./types` 获取，client 聚合经 `./client` 获取。框架负责驱动该单元，载体通过历史尾页和 `session/projection` 推送帧提供其值。未挂载注册表的组合不受影响。
 
 ## 配置
 
 ```yaml
 - id: plan-mode
-  name: '@deepseek-ai/dsh-plan-mode'
+  name: '@huiliyi37/dsh-plan-mode'
   config:
     section: |
       You are in plan mode. Explore and design before presenting the complete

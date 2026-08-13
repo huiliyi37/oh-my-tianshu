@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createUserMessage, CallId, ReasoningEffortId , createMessage } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock, GenerateOptions, Message } from '@deepseek-ai/dsh-llm'
+import { createUserMessage, CallId, ReasoningEffortId , createMessage } from '@huiliyi37/dsh-llm'
+import type { ContentBlock, GenerateOptions, Message } from '@huiliyi37/dsh-llm'
 import { serializeMessages, serializeRequest } from '../src/serialize.ts'
 
 function request(overrides: Partial<GenerateOptions> = {}): GenerateOptions {

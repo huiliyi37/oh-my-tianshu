@@ -1,7 +1,7 @@
 /**
  * Typed question objects with prefill, validation, and prompt behavior together.
  *
- * @module @deepseek-ai/dsh-helper/questions/question
+ * @module @huiliyi37/dsh-helper/questions/question
  */
 
 import type { PromptOption, PromptOutcome, PromptPort } from './prompt-port.ts'

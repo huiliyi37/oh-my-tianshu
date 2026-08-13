@@ -1,5 +1,5 @@
 import { defineConfig } from 'tsdown'
-import { ProjectBuild } from '@deepseek-ai/dsh-scripts/dev/tsdown-config'
+import { ProjectBuild } from '@huiliyi37/dsh-scripts/dev/tsdown-config'
 
 export default defineConfig(ProjectBuild({
   entry: ['index.ts'],

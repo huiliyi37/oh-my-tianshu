@@ -1,10 +1,10 @@
 /**
  * Generic-task adaptation for background bash process handles.
  *
- * @module @deepseek-ai/dsh-tool-bash/background
+ * @module @huiliyi37/dsh-tool-bash/background
  */
 
-import type { BashProcess } from '@deepseek-ai/dsh-bash'
+import type { BashProcess } from '@huiliyi37/dsh-bash'
 
 /**
  * Map a settled background process onto the generic task-outcome vocabulary:

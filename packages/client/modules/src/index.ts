@@ -17,7 +17,7 @@
  * expires — plugin-set changes take effect on restart per the config-source
  * ruling; bundle content changes reach the graph only through
  * {@link ClientModuleHostService.rebuilt}.
- * @module @deepseek-ai/dsh-client-modules
+ * @module @huiliyi37/dsh-client-modules
  */
 
 import { createHash } from 'node:crypto'
@@ -26,17 +26,17 @@ import { readFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
-import { Service } from 'cordis'
-import type { Context } from 'cordis'
-import type {} from '@cordisjs/plugin-loader'
-import type {} from '@deepseek-ai/dsh-host-webserver'
+import { Service } from '@huiliyi37/cordis'
+import type { Context } from '@huiliyi37/cordis'
+import type {} from '@huiliyi37/cordis-plugin-loader'
+import type {} from '@huiliyi37/dsh-host-webserver'
 import type { WebBootEntry, WebBootGraph } from './client/manifest.ts'
 
 export type {
   BootManifest, BootModuleRow, BootPluginRow, WebBootEntry, WebBootGraph,
 } from './client/manifest.ts'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     /** The web plugin table (provided by the client-modules node half). */
     clientModuleHost: ClientModuleHostService

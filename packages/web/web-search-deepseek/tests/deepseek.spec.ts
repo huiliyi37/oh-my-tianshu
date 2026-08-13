@@ -2,18 +2,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import { credentialRef } from '@deepseek-ai/dsh-credentials'
-import CredentialsLocal from '@deepseek-ai/dsh-credentials-local'
-import WebService from '@deepseek-ai/dsh-web'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import { credentialRef } from '@huiliyi37/dsh-credentials'
+import CredentialsLocal from '@huiliyi37/dsh-credentials-local'
+import WebService from '@huiliyi37/dsh-web'
 import {
   DeepSeekSearchProvider,
   DEEPSEEK_PROVIDER_ID,
-} from '@deepseek-ai/dsh-web-search-deepseek'
-import * as deepseekPlugin from '@deepseek-ai/dsh-web-search-deepseek'
+} from '@huiliyi37/dsh-web-search-deepseek'
+import * as deepseekPlugin from '@huiliyi37/dsh-web-search-deepseek'
 import { citationSnippets, mapAnthropicResponse } from '../src/provider.ts'
-import type { AnthropicResponse } from '@deepseek-ai/dsh-web-search-deepseek/src/types.ts'
+import type { AnthropicResponse } from '@huiliyi37/dsh-web-search-deepseek/src/types.ts'
 
 const options = {
   apiKey: 'ds-key',

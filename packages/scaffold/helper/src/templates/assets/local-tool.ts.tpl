@@ -1,6 +1,6 @@
 /** Project-local model-facing tool. */
-import type { Context } from 'cordis'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@huiliyi37/cordis'
+import { defineTool } from '@huiliyi37/dsh-tools'
 
 export const name = '{{pluginName}}'
 export const inject = ['tools']

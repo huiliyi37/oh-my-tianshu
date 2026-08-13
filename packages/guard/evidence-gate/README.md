@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-evidence-gate
+# @huiliyi37/dsh-evidence-gate
 
 English | [中文](README.zh.md)
 
@@ -11,7 +11,7 @@ The evidence gate — RED→GREEN discipline for bugfix tasks (a port of Tianshu
 - **TDD gate**: ≥3 consecutive edits without verification → suggest (default) or block (`{ tddMode: 'enforce' }`).
 - **L2 final gate**: task wrap-up — the first unresolved high → `continue_once` + a probe suggestion; after `markContinued` → `honest_blocked` + disclosure of the unresolved list.
 - **Verification accounting**: automatically detects test commands and results from `session/event` tool/call→tool/result pairs (zero test-framework coupling; command-text heuristics).
-- **Native edit-tool adaptation**: `str_replace_editor` (dsh-native, `@deepseek-ai/dsh-tool-str-replace-editor`) — the write operations `create/str_replace/insert` are intercepted while the `view` read operation passes; Tianshu-style tools (edit_file/write_file/hash_edit/apply_patch) are also supported.
+- **Native edit-tool adaptation**: `str_replace_editor` (dsh-native, `@huiliyi37/dsh-tool-str-replace-editor`) — the write operations `create/str_replace/insert` are intercepted while the `view` read operation passes; Tianshu-style tools (edit_file/write_file/hash_edit/apply_patch) are also supported.
 
 ## Assembly
 
@@ -19,7 +19,7 @@ The evidence gate — RED→GREEN discipline for bugfix tasks (a port of Tianshu
 declare const ctx: any
 export {}
 // cordis.yml 或宿主装配（需 tools 服务与编辑工具；fs 由 base 提供）
-plugins: ['@deepseek-ai/dsh-evidence-gate']
+plugins: ['@huiliyi37/dsh-evidence-gate']
 
 // 任务边界（宿主在任务开始处调用）
 ctx.evidence.createObligation({

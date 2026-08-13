@@ -7,13 +7,13 @@
  * writes no session events directly: `followup`/`steer`/`inject` submit inbox
  * input that the agent loop logs through its own durable channels.
  *
- * @module @deepseek-ai/dsh-tui/adapter/send
+ * @module @huiliyi37/dsh-tui/adapter/send
  */
 
-import type { Context } from 'cordis'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { Agent, AgentCancelCause, AgentHandle, CancelOptions } from '@deepseek-ai/dsh-agent'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
+import type { Agent, AgentCancelCause, AgentHandle, CancelOptions } from '@huiliyi37/dsh-agent'
+import type { SessionId } from '@huiliyi37/dsh-session'
 
 /** Build an identified user message from plain TUI input text + optional image attachments. */
 function toUserMessage(text: string, images?: string[]) {

@@ -61,7 +61,7 @@ cd hello-plugin
 dsh plugin --profile demo add .
 ```
 
-The first use initializes the profile (with `@deepseek-ai/dsh-base` as its first bundle), pnpm links the checkout, and `dsh` appends the bundle to `dsh.profile.bundles` because the package declares `dsh.bundle`:
+The first use initializes the profile (with `@huiliyi37/dsh-base` as its first bundle), pnpm links the checkout, and `dsh` appends the bundle to `dsh.profile.bundles` because the package declares `dsh.bundle`:
 
 ```json
 {
@@ -73,7 +73,7 @@ The first use initializes the profile (with `@deepseek-ai/dsh-base` as its first
   "dsh": {
     "profile": {
       "bundles": [
-        "@deepseek-ai/dsh-base",
+        "@huiliyi37/dsh-base",
         "dsh-hello-plugin"
       ]
     }
@@ -94,7 +94,7 @@ dsh --profile demo
 
 The effective configuration composes over an empty root by applying, in order:
 
-1. Each bundle patch named in the profile's `dsh.profile.bundles` list, in list order — `@deepseek-ai/dsh-base` first, then each installed bundle in the order it was added.
+1. Each bundle patch named in the profile's `dsh.profile.bundles` list, in list order — `@huiliyi37/dsh-base` first, then each installed bundle in the order it was added.
 2. The profile's own `cordis.patch.yml`.
 3. The home-level `$DSH_HOME/cordis.patch.yml` — machine-local preferences shared by every profile.
 4. Each `--patch <path>` overlay, in argv order.
@@ -105,7 +105,7 @@ Later layers win per row, and a patch replaces a row's entire `config` value rat
 - Your patch can override rows from earlier layers by `id` — the same way [the `dsh-web-app` bundle](../../../../packages/bundle/web-app/cordis.patch.yml) overrides `dsh-base` rows — but must restate every key the row needs, not just the changed one.
 - Users can override your rows in their profile's `cordis.patch.yml` without touching your package, so prefer configuration defaults users are likely to keep and let the schema carry the rest.
 
-In-box bundle names always resolve from the dsh installation itself; pnpm manages only out-of-tree packages, so your bundle can rely on `@deepseek-ai/dsh-base` being present and current.
+In-box bundle names always resolve from the dsh installation itself; pnpm manages only out-of-tree packages, so your bundle can rely on `@huiliyi37/dsh-base` being present and current.
 
 ## Installing from GitHub: the build-script catch
 

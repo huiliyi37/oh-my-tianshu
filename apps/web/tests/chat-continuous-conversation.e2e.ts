@@ -9,10 +9,10 @@ import { join } from 'node:path'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
-import { CallId, type StreamChunk } from '@deepseek-ai/dsh-llm'
-import type { ReplayEntry, ReplayOverrideDoc } from '@deepseek-ai/dsh-llm-replay'
-import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
-import { conversationContextKey } from '@deepseek-ai/dsh-client-runtime/client'
+import { CallId, type StreamChunk } from '@huiliyi37/dsh-llm'
+import type { ReplayEntry, ReplayOverrideDoc } from '@huiliyi37/dsh-llm-replay'
+import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
+import { conversationContextKey } from '@huiliyi37/dsh-client-runtime/client'
 import {
   launchWebScaffold,
   watchConsole,

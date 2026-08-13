@@ -45,7 +45,7 @@ describe.skipIf(!requiredArtifacts)('Goal Remote built LIB chain', () => {
     }).map(([key, path]) => [key, artifactUrl(path)]))
     const script = `
       import { createServer } from 'node:http'
-      import * as cordis from 'cordis'
+      import * as cordis from '@huiliyi37/cordis'
 
       const urls = ${JSON.stringify(urls)}
       const { Context } = cordis
@@ -129,10 +129,10 @@ describe.skipIf(!requiredArtifacts)('Goal Remote built LIB chain', () => {
       }
       const client = new Context()
       for (const id of [
-        '@deepseek-ai/dsh-typert-registry',
-        '@deepseek-ai/dsh-client-connection',
-        '@deepseek-ai/dsh-api-gateway',
-        '@deepseek-ai/dsh-api-remotes',
+        '@huiliyi37/dsh-typert-registry',
+        '@huiliyi37/dsh-client-connection',
+        '@huiliyi37/dsh-api-gateway',
+        '@huiliyi37/dsh-api-remotes',
       ]) {
         const plugin = instantiate(id)
         await client.plugin({ inject: plugin.inject, apply: plugin.apply })

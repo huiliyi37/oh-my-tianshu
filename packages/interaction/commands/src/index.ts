@@ -1,13 +1,13 @@
 /**
  * Plugin-owned human-command registry shared by interactive UI adapters.
- * @module @deepseek-ai/dsh-commands
+ * @module @huiliyi37/dsh-commands
  */
 
-import { Context, Service } from 'cordis'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { NamedEntries, ScopedLayers } from '@deepseek-ai/dsh-scope'
-import type { ScopeKey, ScopeLayer } from '@deepseek-ai/dsh-scope'
-import type { Session, SessionEvent, SessionEventMap } from '@deepseek-ai/dsh-session'
+import { Context, Service } from '@huiliyi37/cordis'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { NamedEntries, ScopedLayers } from '@huiliyi37/dsh-scope'
+import type { ScopeKey, ScopeLayer } from '@huiliyi37/dsh-scope'
+import type { Session, SessionEvent, SessionEventMap } from '@huiliyi37/dsh-session'
 import { CommandId } from './brand.ts'
 
 export { CommandId } from './brand.ts'
@@ -119,7 +119,7 @@ class CommandLayer implements ScopeLayer {
   }
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     commands: CommandService
   }

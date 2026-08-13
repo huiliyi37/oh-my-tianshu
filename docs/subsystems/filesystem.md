@@ -201,7 +201,7 @@ The policy plugin needs just enough execution context to derive the observed-sta
 ```ts type-equiv
 /**
  * Minimal structural view of a tool execution the policy plugin needs to derive
- * an observed-state owner. `@deepseek-ai/dsh-tools`' `ToolExecution` satisfies
+ * an observed-state owner. `@huiliyi37/dsh-tools`' `ToolExecution` satisfies
  * this shape, so the tool passes its `exec` straight through as the opaque
  * `object` actor on the `fs/*` events; this plugin narrows that actor to this
  * shape without importing `dsh-tools`, `dsh-agent`, or `dsh-session`.
@@ -269,7 +269,7 @@ type FsErrorCode =
 
 ## No timeouts on file IO
 
-`read`/`write`/`edit` take **no** `timeoutMs`, and the provider contract arms no deadline — unlike bash and web (which consume [`@deepseek-ai/dsh-timeout`](../../packages/util/timeout/README.md)) and the bash-backed `glob`/`grep` (whose declared `timeoutMs` is enforced by `@deepseek-ai/dsh-timeout-policy`): those are process-backed, where a deadline can really kill the work. A local syscall is best-effort-abortable at most — a timeout could not force an in-progress `fsync`/`rename` to stop, so a deadline here would be a knob that cannot deliver on its promise, and an implicit default in the exact place explicit-over-implicit forbids. Both reference agents (Claude Code, Codex) leave file IO untimed for the same reason; cancellation still propagates through the tool-execution signal for best-effort abort at syscall boundaries.
+`read`/`write`/`edit` take **no** `timeoutMs`, and the provider contract arms no deadline — unlike bash and web (which consume [`@huiliyi37/dsh-timeout`](../../packages/util/timeout/README.md)) and the bash-backed `glob`/`grep` (whose declared `timeoutMs` is enforced by `@huiliyi37/dsh-timeout-policy`): those are process-backed, where a deadline can really kill the work. A local syscall is best-effort-abortable at most — a timeout could not force an in-progress `fsync`/`rename` to stop, so a deadline here would be a knob that cannot deliver on its promise, and an implicit default in the exact place explicit-over-implicit forbids. Both reference agents (Claude Code, Codex) leave file IO untimed for the same reason; cancellation still propagates through the tool-execution signal for best-effort abort at syscall boundaries.
 
 ## The service and the plugin
 

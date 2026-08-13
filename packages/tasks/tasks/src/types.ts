@@ -1,12 +1,12 @@
 /**
  * Types shared by task producers, the registry, and control surfaces. The
  * service implementation lives in `./index.ts`.
- * @module @deepseek-ai/dsh-tasks/types
+ * @module @huiliyi37/dsh-tasks/types
  */
 
-import type { Branded } from '@deepseek-ai/dsh-brand'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { Branded } from '@huiliyi37/dsh-brand'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import type { SessionId } from '@huiliyi37/dsh-session'
 
 /**
  * Identifies a background task. The registry generates `<kind>-N`; predictable

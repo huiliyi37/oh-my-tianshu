@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs'
 
 /**
  * Register a disposer that keeps process shutdown pending until it is forced.
- * @param {import('cordis').Context} ctx - loader-mounted test plugin context.
+ * @param {import('@huiliyi37/cordis').Context} ctx - loader-mounted test plugin context.
  */
 export function apply(ctx) {
   const keepAlive = setInterval(() => {}, 60_000)

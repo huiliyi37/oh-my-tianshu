@@ -78,7 +78,7 @@ async function makeConsumer(): Promise<string> {
     await link(dirname(resolved), dep, nm)
   }
   await writeFile(join(dir, 'mock-llm.mjs'), [
-    "import { LlmAdapter } from '@deepseek-ai/dsh-llm'",
+    "import { LlmAdapter } from '@huiliyi37/dsh-llm'",
     'class Mock extends LlmAdapter {',
     '  async * stream() {',
     "    yield { type: 'block-start', index: 0, blockType: 'text' }",
@@ -96,11 +96,11 @@ async function makeConsumer(): Promise<string> {
     '- id: mock-llm',
     '  name: \'./mock-llm.mjs\'',
     '- id: subprocess',
-    '  name: \'@deepseek-ai/dsh-subprocess-local\'',
+    '  name: \'@huiliyi37/dsh-subprocess-local\'',
     '- id: bash',
-    '  name: \'@deepseek-ai/dsh-bash-local\'',
+    '  name: \'@huiliyi37/dsh-bash-local\'',
     '- id: acp-agent',
-    '  name: \'@deepseek-ai/dsh-acp-demo\'',
+    '  name: \'@huiliyi37/dsh-acp-demo\'',
     '  config:',
     '    provider: built-acp-mock',
     '    model: built-acp-mock',

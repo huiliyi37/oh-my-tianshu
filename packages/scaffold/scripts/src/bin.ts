@@ -2,7 +2,7 @@
 /**
  * Self-executing dsh-sdk launcher.
  *
- * @module @deepseek-ai/dsh-scripts/bin
+ * @module @huiliyi37/dsh-scripts/bin
  */
 
 import { runDshSdkCommand } from './command.ts'

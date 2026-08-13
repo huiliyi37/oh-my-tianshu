@@ -1,8 +1,15 @@
 {
-  "name": "@deepseek-ai/dsh-client-locale",
+  "name": "@huiliyi37/dsh-client-locale",
   "description": "Locale plugin: LocaleService (zh/en preference with getter/setter/change event + persistence; ns x locale dictionaries, bind(ns) -> t); registers the Language settings row",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "directory": "packages/client/locale"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -24,27 +31,27 @@
   },
   "dshClient": {
     "inject": [
-      "@deepseek-ai/dsh-client-runtime"
+      "@huiliyi37/dsh-client-runtime"
     ],
     "platform": "web",
     "immediately": true
   },
   "license": "BSD-3-Clause",
   "peerDependencies": {
-    "@deepseek-ai/dsh-client-runtime": "^0.0.1",
-    "@deepseek-ai/dsh-client-ui-primitives": "^0.0.1",
-    "@deepseek-ai/dsh-client-ui-slots": "^0.0.1",
-    "@deepseek-ai/dsh-invariants": "^0.0.1",
-    "cordis": "^4.0.0-rc.7",
+    "@huiliyi37/dsh-client-runtime": "^0.2.0",
+    "@huiliyi37/dsh-client-ui-primitives": "^0.2.0",
+    "@huiliyi37/dsh-client-ui-slots": "^0.2.0",
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.7",
     "react": "^18.2.0"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-client-runtime": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "@huiliyi37/dsh-client-runtime": "workspace:^",
+    "@huiliyi37/dsh-client-ui-primitives": "workspace:^",
+    "@huiliyi37/dsh-client-ui-slots": "workspace:^",
+    "@huiliyi37/dsh-invariants": "workspace:^",
     "@types/react": "~18.3.1",
-    "cordis": "^4.0.0-rc.7",
+    "@huiliyi37/cordis": "^4.0.0-rc.7",
     "react": "^18.2.0"
   },
   "files": [

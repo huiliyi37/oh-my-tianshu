@@ -2,13 +2,13 @@
 import { EventEmitter, once } from 'node:events'
 import { createServer, request as httpRequest } from 'node:http'
 import { PassThrough, Readable } from 'node:stream'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it } from 'vitest'
 import type { AddressInfo } from 'node:net'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import type { ApiProxy } from '@deepseek-ai/dsh-host-apiproxy/api'
-import { RpcId, type ClientRequest } from '@deepseek-ai/dsh-host-apiproxy/api'
-import type { HttpServerService, WebRoute, WebUpgradeRoute } from '@deepseek-ai/dsh-host-webserver'
+import type { ApiProxy } from '@huiliyi37/dsh-host-apiproxy/api'
+import { RpcId, type ClientRequest } from '@huiliyi37/dsh-host-apiproxy/api'
+import type { HttpServerService, WebRoute, WebUpgradeRoute } from '@huiliyi37/dsh-host-webserver'
 import { API_PATH, apply, HOST_EVENTS_PATH, inject, MUX_EVENTS_PATH, type HostConnectionHandle } from '../src/index.ts'
 
 /** Structural httpServer fake recording both route registries. */

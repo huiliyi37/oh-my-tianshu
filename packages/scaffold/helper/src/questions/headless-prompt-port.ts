@@ -1,7 +1,7 @@
 /**
  * Non-interactive prompt port for headless create/config and skill-driven runs.
  *
- * @module @deepseek-ai/dsh-helper/questions/headless-prompt-port
+ * @module @huiliyi37/dsh-helper/questions/headless-prompt-port
  */
 
 import type {

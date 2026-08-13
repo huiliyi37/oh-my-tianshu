@@ -5,8 +5,8 @@
  * unwired fail-loud, and re-attach overwriting a stale action set.
  */
 import { describe, expect, it, vi } from 'vitest'
-import { LayoutService } from '@deepseek-ai/dsh-client-ui-layout/src/client/service.ts'
-import type { PanelActions } from '@deepseek-ai/dsh-client-ui-layout/src/client/service.ts'
+import { LayoutService } from '@huiliyi37/dsh-client-ui-layout/src/client/service.ts'
+import type { PanelActions } from '@huiliyi37/dsh-client-ui-layout/src/client/service.ts'
 
 function fakePanels(): PanelActions {
   return {

@@ -1,8 +1,8 @@
-# @deepseek-ai/dsh-host-apiproxy
+# @huiliyi37/dsh-host-apiproxy
 
 [English](README.md) | 中文
 
-所有客户端形态共用的 API 网关：TS 约定（`src/api/`，不依赖 Node，可从浏览器导入）、fetch 载体对（`src/fetch/`：宿主侧的 `toFetchHandler`，以及客户端侧的 `AbstractApiClient` 与平台子类）和宿主侧实现（`src/api-proxy.ts`：`createApiProxy` 加上默认导出的 `ApiProxyService` 网关插件，其配置为 `{workspaceRoot?}`，提供 `ctx.apiProxy`）。该包在设计上与传输方式无关，不注册任何路由；HTTP 等载体自行包装 `ctx.apiProxy`。随发行版交付的 Web 组合位于 [`packages/bundle/web-app/cordis.patch.yml`](../../bundle/web-app/cordis.patch.yml)，其默认 Agent（智能体）模型选择属于 base 组合包中的 [`@deepseek-ai/dsh-agent-default-model`](../../core/agent-default-model/README.md)。
+所有客户端形态共用的 API 网关：TS 约定（`src/api/`，不依赖 Node，可从浏览器导入）、fetch 载体对（`src/fetch/`：宿主侧的 `toFetchHandler`，以及客户端侧的 `AbstractApiClient` 与平台子类）和宿主侧实现（`src/api-proxy.ts`：`createApiProxy` 加上默认导出的 `ApiProxyService` 网关插件，其配置为 `{workspaceRoot?}`，提供 `ctx.apiProxy`）。该包在设计上与传输方式无关，不注册任何路由；HTTP 等载体自行包装 `ctx.apiProxy`。随发行版交付的 Web 组合位于 [`packages/bundle/web-app/cordis.patch.yml`](../../bundle/web-app/cordis.patch.yml)，其默认 Agent（智能体）模型选择属于 base 组合包中的 [`@huiliyi37/dsh-agent-default-model`](../../core/agent-default-model/README.md)。
 
 ## 共享 Agent 默认值（`agent-default-model` Settings 分节）
 
@@ -26,7 +26,7 @@ Settings 分节中的 `reasoningEffort` 在 agent-default-model 插件配置中�
 
 `session.history` 会读取已附加 Session 的内存状态，或通过持久化检查冷日志，而不会恢复或发布 agent，然后按追加来源的消息边界分页：`maxMessages` 统计以追加方式进入 surface 的 `user/message` 和 `assistant/message` 事件，因此仅供模型使用的替换副本不占用配额。每一页仍是一段连续的原始事件区间，从而让压缩（compaction）的仅日志 `compact/summary` 记录与引用它的替换留在同一页。
 
-`session.history` 的尾页（不带 `beforeSeq`）额外携带一个可选的 `projections` 块——`ctx.sessionProjections`（`@deepseek-ai/dsh-session-projection`）上每个已注册单元的水位线快照，`asOfSeq` = 这些值共同反映到的最后一个事件 seq（空日志为 `-1`）。网关还订阅注册表的变更流，为每个状态发生变化的单元生成一个 `session/projection` mux 帧（`{sessionId, key, value, seq}`——实时推送状态，绝不入日志；客户端按 seq 高者胜维护一个按会话的通用值仓）。载体不持有任何领域知识（每个值在注册表内部已过其单元自己的 schema；协议 schema 对 `values`/`value` 保持宽松）；loadOlder 页永不携带该块，未装注册表的组合则两个面都不提供。
+`session.history` 的尾页（不带 `beforeSeq`）额外携带一个可选的 `projections` 块——`ctx.sessionProjections`（`@huiliyi37/dsh-session-projection`）上每个已注册单元的水位线快照，`asOfSeq` = 这些值共同反映到的最后一个事件 seq（空日志为 `-1`）。网关还订阅注册表的变更流，为每个状态发生变化的单元生成一个 `session/projection` mux 帧（`{sessionId, key, value, seq}`——实时推送状态，绝不入日志；客户端按 seq 高者胜维护一个按会话的通用值仓）。载体不持有任何领域知识（每个值在注册表内部已过其单元自己的 schema；协议 schema 对 `values`/`value` 保持宽松）；loadOlder 页永不携带该块，未装注册表的组合则两个面都不提供。
 
 会话标题与其他所有领域一样搭乘这对通用投影机制——历史尾页的 `projections` 块外加 `title` 键下的 `session/projection` 帧（专设的 `session/title` 帧已下线）。标题不会加入 `session.list`；冷会话在其中仍只有元数据，直到打开或恢复操作附加其日志。`session.rename` 接受用户显式标题（冷会话先恢复），委托给 `ctx.sessionTitle.rename`——被接受的 `session/title` 事件将标题钉住、不再被自动生成覆盖——并返回规范化后的标题及其事件 seq，让 client 在推送帧到达前就结算自己的 `title` 投影格；规范化后为空的标题返回 `title-invalid`。
 

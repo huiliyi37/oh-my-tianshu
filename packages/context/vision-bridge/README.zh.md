@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-vision-bridge
+# @huiliyi37/dsh-vision-bridge
 
 [English](README.md) | 中文
 
@@ -10,7 +10,7 @@ TUI 输入框允许用户粘贴图片（data URL 以 `image` ContentBlock 进入
 
 ```yaml
 - id: vision-bridge
-  name: '@deepseek-ai/dsh-vision-bridge'
+  name: '@huiliyi37/dsh-vision-bridge'
   config:
     provider: deepseek-official     # explicit vision model (omit when visionAutoBridge is on)
     model: deepseek-vl             # explicit vision model id (omit when visionAutoBridge is on)

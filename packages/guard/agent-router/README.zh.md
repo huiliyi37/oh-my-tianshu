@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-agent-router
+# @huiliyi37/dsh-agent-router
 
 [English](README.md) | 中文
 
@@ -20,7 +20,7 @@ agent 路由层——基础指标 → 算法 → MoE 路由 → dsh 原生子代
 declare const ctx: any
 export {}
 // cordis.yml 或宿主装配（可选 evidence-gate 联动；无它时 prediction 独立工作）
-plugins: ['@deepseek-ai/dsh-agent-router']
+plugins: ['@huiliyi37/dsh-agent-router']
 
 // 宿主调用（任务边界或 turn 结束）：
 const router = ctx.router

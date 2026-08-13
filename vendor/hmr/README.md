@@ -1,4 +1,4 @@
-# @cordisjs/plugin-hmr
+# @huiliyi37/cordis-plugin-hmr
 
 Hot module replacement for loader-managed Cordis plugins.
 
@@ -9,8 +9,8 @@ application files. Changes to framework-level dependencies fall back to
 
 ## Requirements
 
-- `@cordisjs/plugin-loader`
-- `@cordisjs/plugin-timer`
+- `@huiliyi37/cordis-plugin-loader`
+- `@huiliyi37/cordis-plugin-timer`
 - A runtime that exposes Node's internal module loader. The package throws if
   the loader service has no internal module loader available.
 
@@ -18,9 +18,9 @@ application files. Changes to framework-level dependencies fall back to
 
 ```yaml
 - id: timer
-  name: '@cordisjs/plugin-timer'
+  name: '@huiliyi37/cordis-plugin-timer'
 - id: hmr
-  name: '@cordisjs/plugin-hmr'
+  name: '@huiliyi37/cordis-plugin-hmr'
   config:
     root:
       - src

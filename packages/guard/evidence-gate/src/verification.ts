@@ -7,7 +7,7 @@
  *   超时/中断 → blocked
  * 不 import 任何测试框架——命令文本 + 输出文本纯函数判定。
  *
- * @module @deepseek-ai/dsh-evidence-gate/verification
+ * @module @huiliyi37/dsh-evidence-gate/verification
  */
 
 import type { VerificationMetadata } from './obligation.js'

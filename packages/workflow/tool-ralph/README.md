@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-tool-ralph
+# @huiliyi37/dsh-tool-ralph
 
 English | [中文](README.zh.md)
 

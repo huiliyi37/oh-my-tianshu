@@ -2,7 +2,7 @@
  * Static create-sdk question sequence; dynamic feature/plugin loops remain
  * in the wizard orchestrator.
  *
- * @module @deepseek-ai/create-sdk/create-questions
+ * @module @huiliyi37/create-sdk/create-questions
  */
 
 import { existsSync } from 'node:fs'
@@ -16,7 +16,7 @@ import {
   type PromptPort,
   type Question,
   type RunInterface,
-} from '@deepseek-ai/dsh-helper'
+} from '@huiliyi37/dsh-helper'
 import type { CreateArgs } from './args.ts'
 
 /** Answers that establish project identity and feature applicability. */

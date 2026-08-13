@@ -1,6 +1,6 @@
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it, vi } from 'vitest'
-import type { SessionId } from '@deepseek-ai/dsh-client-connection/client'
+import type { SessionId } from '@huiliyi37/dsh-client-connection/client'
 import { ConversationEventRegistry } from '../src/client/conversation/event-registry.ts'
 import { ConversationViewRegistry } from '../src/client/conversation/view-registry.ts'
 import type {

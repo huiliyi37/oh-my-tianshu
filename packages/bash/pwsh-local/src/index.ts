@@ -10,15 +10,15 @@
  * shell-quoting layer to escape (the `bash -c` string domain has no
  * equivalent here). Native Win32 paths (`C:\...`) pass through unchanged.
  *
- * @module @deepseek-ai/dsh-pwsh-local
+ * @module @huiliyi37/dsh-pwsh-local
  */
 
-import { Context } from 'cordis'
-import z from 'schemastery'
-import { BashExecutor } from '@deepseek-ai/dsh-bash'
-import type { BashExecRequest, BashExecSpec, BashProcess, BashProcessRead, BashRunResult, CollectedOutput } from '@deepseek-ai/dsh-bash'
-import type { SubprocessCollect, SubprocessHandle, SubprocessOutputReader, SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
-import { clampTimeout, deadline, MAX_TIMER_DELAY_MS, timeoutOf } from '@deepseek-ai/dsh-timeout'
+import { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { BashExecutor } from '@huiliyi37/dsh-bash'
+import type { BashExecRequest, BashExecSpec, BashProcess, BashProcessRead, BashRunResult, CollectedOutput } from '@huiliyi37/dsh-bash'
+import type { SubprocessCollect, SubprocessHandle, SubprocessOutputReader, SubprocessSpawnSpec } from '@huiliyi37/dsh-subprocess'
+import { clampTimeout, deadline, MAX_TIMER_DELAY_MS, timeoutOf } from '@huiliyi37/dsh-timeout'
 import { resolvePwshPath } from './resolve.ts'
 
 /* jscpd:ignore-start -- deliberate call-for-call mirror of dsh-bash-local (Agent Note: pwsh-tool-and-executor). */

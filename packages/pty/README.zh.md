@@ -6,9 +6,9 @@
 
 | 包 | 职责 | ctx 键 |
 |---|---|---|
-| [`pty`](pty/README.md)（`@deepseek-ai/dsh-pty`） | 后端注册表、品牌化 id、精确的 Agent 所有权、会话操作与等待完成的清理 | `ctx.pty` |
-| `pty-local`（`@deepseek-ai/dsh-pty-local`） | `ctx.subprocess.spawnTerminal` 之上的 shell 后端：就绪检测、有界终端状态、沙箱策略与会话操作 | 注册到 `ctx.pty` |
-| `tool-pty`（`@deepseek-ai/dsh-tool-pty`） | 6 个面向模型的工具，并为后台发送集成通用任务 | 注册到 `ctx.tools` |
+| [`pty`](pty/README.md)（`@huiliyi37/dsh-pty`） | 后端注册表、品牌化 id、精确的 Agent 所有权、会话操作与等待完成的清理 | `ctx.pty` |
+| `pty-local`（`@huiliyi37/dsh-pty-local`） | `ctx.subprocess.spawnTerminal` 之上的 shell 后端：就绪检测、有界终端状态、沙箱策略与会话操作 | 注册到 `ctx.pty` |
+| `tool-pty`（`@huiliyi37/dsh-tool-pty`） | 6 个面向模型的工具，并为后台发送集成通用任务 | 注册到 `ctx.tools` |
 
 设计与暂缓边界记录在[持久 PTY Agent Note](../../.agents/notes/implemented/feature/2026-07-16-persistent-pty-sessions.md) 中。
 

@@ -8,9 +8,9 @@
  * are derived once.
  * @module
  */
-import { resolveWorkspacePath } from '@deepseek-ai/dsh-client-runtime/client'
-import type { TerminalBlockLabels, TerminalBlockProps } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import { resolveWorkspacePath } from '@huiliyi37/dsh-client-runtime/client'
+import type { TerminalBlockLabels, TerminalBlockProps } from '@huiliyi37/dsh-client-ui-primitives'
+import type { TranslateNS } from '@huiliyi37/dsh-client-ui-slots'
 import type { ToolCallBlock } from './tool-call-model.ts'
 
 /**

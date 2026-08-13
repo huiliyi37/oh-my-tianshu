@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { credentialRef } from '@deepseek-ai/dsh-credentials'
+import { credentialRef } from '@huiliyi37/dsh-credentials'
 import { CredentialsLocal } from '../src/index.ts'
 
 /** Credential documents are seeded owner-only, exactly as the provider creates them. */

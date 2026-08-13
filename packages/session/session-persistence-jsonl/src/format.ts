@@ -9,8 +9,8 @@
  */
 
 import { join } from 'node:path'
-import { decodeStorageRecord, packChunkRuns } from '@deepseek-ai/dsh-session'
-import type { SessionEvent, SessionHeader, SessionId, StorageRecord } from '@deepseek-ai/dsh-session'
+import { decodeStorageRecord, packChunkRuns } from '@huiliyi37/dsh-session'
+import type { SessionEvent, SessionHeader, SessionId, StorageRecord } from '@huiliyi37/dsh-session'
 
 /** Physical encoding selected for JSONL session artifacts. */
 export type JsonlCompression = 'zstd' | 'none'

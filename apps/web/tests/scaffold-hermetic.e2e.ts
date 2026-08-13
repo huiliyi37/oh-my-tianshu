@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, it } from 'vitest'
-import type {} from '@deepseek-ai/dsh-skill'
+import type {} from '@huiliyi37/dsh-skill'
 import { launchWebScaffold, type WebScaffold } from './scaffold.ts'
 
 async function writeSkill(root: string, name: string): Promise<void> {

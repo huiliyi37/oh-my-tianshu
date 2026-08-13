@@ -1,12 +1,12 @@
 /**
  * git_diff 工具：工作区 diff（未暂存），可选 paths 限定与 --stat 摘要。
- * @module @deepseek-ai/dsh-tool-git/src/diff
+ * @module @huiliyi37/dsh-tool-git/src/diff
  */
 
-import type { Context } from 'cordis'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type {} from '@deepseek-ai/dsh-system-prompt'
-import type {} from '@deepseek-ai/dsh-git'
+import type { Context } from '@huiliyi37/cordis'
+import { defineTool } from '@huiliyi37/dsh-tools'
+import type {} from '@huiliyi37/dsh-system-prompt'
+import type {} from '@huiliyi37/dsh-git'
 import { resolveCwd } from './cwd.ts'
 
 /** 注册 git_diff。 */

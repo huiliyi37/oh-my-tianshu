@@ -1,7 +1,7 @@
 /**
  * Result summary for one SDK project edit session.
  *
- * @module @deepseek-ai/dsh-helper/project/change-set
+ * @module @huiliyi37/dsh-helper/project/change-set
  */
 
 import type { FeatureId } from '../ids.ts'

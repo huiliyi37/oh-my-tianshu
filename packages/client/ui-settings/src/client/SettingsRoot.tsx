@@ -13,7 +13,7 @@
  */
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import clsx from 'clsx'
-import { IconCloseOutline16, IconDataOutline16, IconSettingsOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconCloseOutline16, IconDataOutline16, IconSettingsOutline16 } from '@huiliyi37/dsh-client-ui-primitives'
 import type { SettingsRootComponentProps, SettingsSectionRow } from './contract/slots.ts'
 import css from './SettingsRoot.module.css'
 

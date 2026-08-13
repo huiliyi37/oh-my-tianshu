@@ -1,7 +1,7 @@
 /**
  * Ownership-aware, line-preserving dotenv document.
  *
- * @module @deepseek-ai/dsh-helper/documents/env-file
+ * @module @huiliyi37/dsh-helper/documents/env-file
  */
 
 import { ProjectFile, withTrailingNewline } from './project-file.ts'

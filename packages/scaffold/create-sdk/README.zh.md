@@ -1,8 +1,8 @@
-# `@deepseek-ai/create-sdk`
+# `@huiliyi37/create-sdk`
 
 [English](README.md) | 中文
 
-用于 `npm create @deepseek-ai/sdk [directory]` 的交互式初始化器。目录／名称／描述都提供可见且可编辑的默认值。树形选择器用于选择功能，并通过 Right／Left 导航配置取值有限的选项；只有选中相应选项后才会询问密钥文本。本地插件创建提供 none／plugin／tool 三选一。
+用于 `npm create @huiliyi37/sdk [directory]` 的交互式初始化器。目录／名称／描述都提供可见且可编辑的默认值。树形选择器用于选择功能，并通过 Right／Left 导航配置取值有限的选项；只有选中相应选项后才会询问密钥文本。本地插件创建提供 none／plugin／tool 三选一。
 
 受支持的包接口是 `create-sdk` bin。包根不导出任何符号，也不导出 workflow、bin、source 或 package-manifest 子路径。
 

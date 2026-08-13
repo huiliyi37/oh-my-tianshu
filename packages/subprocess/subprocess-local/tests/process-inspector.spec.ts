@@ -3,8 +3,8 @@ import {
   createProcessInspector,
   linuxProcessGroupHasLiveMembers,
   parseProcStat,
-} from '@deepseek-ai/dsh-subprocess-local/src/process-inspector.ts'
-import type { ProcessInspectorInternals } from '@deepseek-ai/dsh-subprocess-local/src/process-inspector.ts'
+} from '@huiliyi37/dsh-subprocess-local/src/process-inspector.ts'
+import type { ProcessInspectorInternals } from '@huiliyi37/dsh-subprocess-local/src/process-inspector.ts'
 
 function stat(pid: number, pgrp: number, session: number, tpgid: number, started: string, parentPid = 1, state = 'S'): string {
   const rest = [state, String(parentPid), String(pgrp), String(session), '99', String(tpgid)]

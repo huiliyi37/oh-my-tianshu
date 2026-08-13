@@ -4,7 +4,7 @@
  * see registerSource alone, the conversation wiring layer resolves its
  * per-session controller through sessionOf.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ClientContext } from '@huiliyi37/dsh-client-runtime/client'
 import type { SlashSource } from '../types.ts'
 import type { SlashController } from './controller.ts'
 

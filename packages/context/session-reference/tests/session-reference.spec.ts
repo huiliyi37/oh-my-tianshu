@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { CompactionId, compactCheckpointSource } from '@deepseek-ai/dsh-compact'
-import { createUserMessage, CallId , createMessage, createToolResultMessage } from '@deepseek-ai/dsh-llm'
-import SessionStore, { Session, SessionId } from '@deepseek-ai/dsh-session'
-import SessionQueryService from '@deepseek-ai/dsh-session-query'
+import { Context } from '@huiliyi37/cordis'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { CompactionId, compactCheckpointSource } from '@huiliyi37/dsh-compact'
+import { createUserMessage, CallId , createMessage, createToolResultMessage } from '@huiliyi37/dsh-llm'
+import SessionStore, { Session, SessionId } from '@huiliyi37/dsh-session'
+import SessionQueryService from '@huiliyi37/dsh-session-query'
 import SessionReferenceService, {
   decodeSessionReferenceUri,
   encodeSessionReferenceUri,
@@ -12,7 +12,7 @@ import SessionReferenceService, {
   parseSessionReferenceText,
   type Config,
   type SessionReferenceErrorCode,
-} from '@deepseek-ai/dsh-session-reference'
+} from '@huiliyi37/dsh-session-reference'
 import { stringifyTagSafeJson } from '../src/serialization.ts'
 
 class TestSessionQueryService extends SessionQueryService {

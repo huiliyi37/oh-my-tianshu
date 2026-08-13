@@ -17,7 +17,7 @@ export const REPOSITORY_PLUGIN_BUILTIN = 'dsh-repository-plugin'
 /** Dependency-provided command that repository package `prepack` lifecycles must invoke. */
 export const REPOSITORY_PLUGIN_PREPARE_COMMAND = 'dsh-plugin-prepare'
 /** Published package whose direct development dependency supplies the prepare command. */
-export const REPOSITORY_PLUGIN_PACKAGE_NAME = '@deepseek-ai/dsh-repository-plugin'
+export const REPOSITORY_PLUGIN_PACKAGE_NAME = '@huiliyi37/dsh-repository-plugin'
 
 /**
  * Whether a package lifecycle declaration names the preparation dependency's helper.

@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import type { StreamChunk } from '@deepseek-ai/dsh-client-connection/client'
+import type { StreamChunk } from '@huiliyi37/dsh-client-connection/client'
 import { PartialAccumulator } from '../src/client/sessions/partial.ts'
 
 const chunk = (c: Record<string, unknown>): StreamChunk => c as unknown as StreamChunk

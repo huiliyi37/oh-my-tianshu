@@ -1,7 +1,7 @@
 /**
  * Repository package discovery and NPM dependency-closure rewriting for live links.
  *
- * @module @deepseek-ai/dsh-helper/package-managers/link-workspace
+ * @module @huiliyi37/dsh-helper/package-managers/link-workspace
  */
 
 import { readFile, readdir } from 'node:fs/promises'
@@ -73,7 +73,7 @@ export class LinkWorkspace {
       if (packages.has(manifest.name)) throw new Error(`duplicate linked package name: ${manifest.name}`)
       packages.set(manifest.name, { directory, manifest })
     }
-    if (!packages.has('cordis') || !packages.has('@deepseek-ai/dsh-scripts')) {
+    if (!packages.has('cordis') || !packages.has('@huiliyi37/dsh-scripts')) {
       throw new Error(`not a DeepSeek Harness repository root: ${absolute}`)
     }
     return new LinkWorkspace(absolute, packages)

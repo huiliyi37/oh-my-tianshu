@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-subagent-dsh-sdk
+# @huiliyi37/dsh-subagent-dsh-sdk
 
 English | [中文](README.zh.md)
 
@@ -40,7 +40,7 @@ The provider advertises no start-time capabilities (`outputSchema`/`depthLimit`/
 
 ```yaml
 - id: subagent-dsh-sdk
-  name: '@deepseek-ai/dsh-subagent-dsh-sdk'
+  name: '@huiliyi37/dsh-subagent-dsh-sdk'
   config:
     providerName: dsh-sdk
     command: node
@@ -49,7 +49,7 @@ The provider advertises no start-time capabilities (`outputSchema`/`depthLimit`/
     env:
       DEEPSEEK_API_KEY: !!js process.env.DEEPSEEK_API_KEY
 - id: tool-subagent
-  name: '@deepseek-ai/dsh-tool-subagent'
+  name: '@huiliyi37/dsh-tool-subagent'
   config: { provider: dsh-sdk, toolName: subagent, maxDepth: 'provider-managed' }
 ```
 

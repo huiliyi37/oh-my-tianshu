@@ -1,4 +1,4 @@
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import { NS } from '../locales.ts'
 import { AssistantNodeView } from './AssistantNodeView.tsx'
 import { CommandNodeView, ManualCompactionNodeView } from './CommandNodeView.tsx'

@@ -4,7 +4,7 @@
  * mapped interfaces make the content, source, and finish unions extensible.
  */
 
-import type { Branded } from '@deepseek-ai/dsh-brand'
+import type { Branded } from '@huiliyi37/dsh-brand'
 import type { CallId, ProviderRequestId, ReasoningEffortId } from './brand.ts'
 import type { Message } from './message.ts'
 

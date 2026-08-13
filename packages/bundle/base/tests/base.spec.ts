@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import * as yaml from 'js-yaml'
-import { entryListSchema } from '@cordisjs/plugin-include'
+import { entryListSchema } from '@huiliyi37/cordis-plugin-include'
 
 describe('dsh-base bundle', () => {
   it('declares a parseable patch list through the dsh.bundle.patch manifest field', () => {

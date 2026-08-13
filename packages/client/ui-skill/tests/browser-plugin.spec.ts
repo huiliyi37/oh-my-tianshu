@@ -11,12 +11,12 @@
  * projections. Direct driving is deliberate: this spec owns only the
  * source's own contract.
  */
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it, vi } from 'vitest'
-import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client'
-import { SlotsService } from '@deepseek-ai/dsh-client-runtime/client'
-import { SlashService } from '@deepseek-ai/dsh-client-ui-slash/client'
-import type { ClientSessionContext, SlashSource } from '@deepseek-ai/dsh-client-ui-slash/client'
+import type { SessionId } from '@huiliyi37/dsh-client-runtime/client'
+import { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
+import { SlashService } from '@huiliyi37/dsh-client-ui-slash/client'
+import type { ClientSessionContext, SlashSource } from '@huiliyi37/dsh-client-ui-slash/client'
 import { apply, inject } from '../src/client/index.ts'
 import { SkillRow as SkillToolRow } from '../src/client/SkillRow.tsx'
 

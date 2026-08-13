@@ -5,7 +5,7 @@ import {
   DEFAULT_REDACTION_PLACEHOLDER,
   SecretRedactor,
   keyLooksSecret,
-} from '@deepseek-ai/dsh-telemetry'
+} from '@huiliyi37/dsh-telemetry'
 
 const REDACTED = DEFAULT_REDACTION_PLACEHOLDER
 
@@ -164,7 +164,7 @@ describe('SecretRedactor.redactText', () => {
   it('redacts standalone secret-shaped tokens while keeping package names and paths', () => {
     expect(redactor.redactText('key sk-abcdefghij1234567890 end'))
       .toBe(`key ${REDACTED} end`)
-    expect(redactor.redactText('name: @deepseek-ai/dsh-telemetry')).toBe('name: @deepseek-ai/dsh-telemetry')
+    expect(redactor.redactText('name: @huiliyi37/dsh-telemetry')).toBe('name: @huiliyi37/dsh-telemetry')
     expect(redactor.redactText('path: ./plugins/local-plugin/src/index.ts'))
       .toBe('path: ./plugins/local-plugin/src/index.ts')
   })

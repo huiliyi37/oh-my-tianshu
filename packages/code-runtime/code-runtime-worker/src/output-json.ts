@@ -1,6 +1,6 @@
-/** JSON string-prefix accounting for the outer-output ledger. @module @deepseek-ai/dsh-code-runtime-worker/output-json */
+/** JSON string-prefix accounting for the outer-output ledger. @module @huiliyi37/dsh-code-runtime-worker/output-json */
 
-import type { CodeJsonValue } from '@deepseek-ai/dsh-code-runtime'
+import type { CodeJsonValue } from '@huiliyi37/dsh-code-runtime'
 
 type IntrinsicCallable = (this: unknown, ...args: unknown[]) => unknown
 

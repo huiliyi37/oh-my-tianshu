@@ -9,13 +9,13 @@
 import { useEffect, useRef } from 'react'
 import type { ChangeEvent, KeyboardEvent, MouseEvent, ReactNode } from 'react'
 import clsx from 'clsx'
-import { IconPlusOutline16, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconPlusOutline16, Tooltip } from '@huiliyi37/dsh-client-ui-primitives'
 // Type-only: the `plan` projection key merge (the TodoDock posture — the
 // composer reads a host-computed value; the domain owns the key).
-import type {} from '@deepseek-ai/dsh-plan-mode/client'
+import type {} from '@huiliyi37/dsh-plan-mode/client'
 // Type-only: the `goal` projection key merge (hint disambiguation).
-import type {} from '@deepseek-ai/dsh-goal/client'
-import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
+import type {} from '@huiliyi37/dsh-goal/client'
+import type { Translate } from '@huiliyi37/dsh-client-ui-slots'
 import type { ComposerBarProps } from '../contract/slots.ts'
 import { deriveDecorations } from '../input/decorations.ts'
 import type { DraftDecorations } from '../input/decorations.ts'

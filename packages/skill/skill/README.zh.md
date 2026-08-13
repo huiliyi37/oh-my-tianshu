@@ -1,10 +1,10 @@
-# @deepseek-ai/dsh-skill
+# @huiliyi37/dsh-skill
 
 [English](README.md) | 中文
 
 纯 agent skill（智能体技能）提供方注册表。
 
-该包负责 `ctx.skills` 接口。它不知道 skill 来自本地文件、嵌入式插件数据、HTTP 还是其他后端；提供方通过 `ctx.skills.registerProvider(...)` 注册这些来源。已发布的本地实现是 [`@deepseek-ai/dsh-skill-local`](../skill-local)。
+该包负责 `ctx.skills` 接口。它不知道 skill 来自本地文件、嵌入式插件数据、HTTP 还是其他后端；提供方通过 `ctx.skills.registerProvider(...)` 注册这些来源。已发布的本地实现是 [`@huiliyi37/dsh-skill-local`](../skill-local)。
 
 ## 服务：`SkillService`（ctx 键：`skills`）
 
@@ -59,7 +59,7 @@
 
 ## 消费方边界
 
-注册表不渲染模型指引，也不注册面向模型的工具。[`@deepseek-ai/dsh-tool-skill`](../tool-skill) 消费 `ctx.skills` 以提供持久会话目录和 `skill` 工具，因此提供方仍与模型接口独立。
+注册表不渲染模型指引，也不注册面向模型的工具。[`@huiliyi37/dsh-tool-skill`](../tool-skill) 消费 `ctx.skills` 以提供持久会话目录和 `skill` 工具，因此提供方仍与模型接口独立。
 
 ## 模型体验
 

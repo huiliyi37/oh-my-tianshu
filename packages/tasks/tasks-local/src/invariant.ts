@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-tasks-local`.
- * @module @deepseek-ai/dsh-tasks-local/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-tasks-local`.
+ * @module @huiliyi37/dsh-tasks-local/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-tasks-local'
+const PACKAGE_NAME = '@huiliyi37/dsh-tasks-local'
 
 /** Cordis companion plugin name. */
 export const name = 'tasks-local-invariant'
@@ -15,7 +15,7 @@ export const name = 'tasks-local-invariant'
 export const inject = ['invariants']
 
 /**
- * No runtime invariant: the Service Definition companion in `@deepseek-ai/dsh-tasks` already
+ * No runtime invariant: the Service Definition companion in `@huiliyi37/dsh-tasks` already
  * validates every registry snapshot this implementation publishes.
  */
 const install: InvariantInstaller = () => {}

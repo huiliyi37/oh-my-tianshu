@@ -1,7 +1,7 @@
 /**
  * NPM dependency baseline and version policy for generated SDK projects.
  *
- * @module @deepseek-ai/dsh-helper/project/npm-dependency-policy
+ * @module @huiliyi37/dsh-helper/project/npm-dependency-policy
  */
 
 import type { NpmDependencySection } from '../documents/package-json-file.ts'
@@ -19,8 +19,8 @@ export interface BaselineNpmDependencies {
 }
 
 const EXTERNAL_NPM_DEPENDENCY_SPECS: Readonly<Record<string, string>> = {
-  '@cordisjs/plugin-hmr': '^1.0.15',
-  '@cordisjs/plugin-timer': '^1.1.2',
+  '@huiliyi37/cordis-plugin-hmr': '^1.0.15',
+  '@huiliyi37/cordis-plugin-timer': '^1.1.2',
   '@types/node': '^22.20.0',
   cordis: '^4.0.0-rc.7',
   tsdown: '0.22.2',
@@ -29,7 +29,7 @@ const EXTERNAL_NPM_DEPENDENCY_SPECS: Readonly<Record<string, string>> = {
 }
 
 const BASELINE_NPM_DEPENDENCY_NAMES: Readonly<Record<NpmDependencySection, readonly string[]>> = {
-  dependencies: ['@deepseek-ai/dsh-scripts', 'cordis'],
+  dependencies: ['@huiliyi37/dsh-scripts', 'cordis'],
   devDependencies: ['@types/node', 'tsdown', 'tsx', 'typescript'],
 }
 
@@ -39,7 +39,7 @@ export function resolveNpmDependency(
   requestedSection: NpmDependencySection,
   releaseVersion: string,
 ): ResolvedNpmDependency {
-  if (name.startsWith('@deepseek-ai/dsh-')) {
+  if (name.startsWith('@huiliyi37/dsh-')) {
     return { section: requestedSection, spec: `^${releaseVersion}` }
   }
   const spec = EXTERNAL_NPM_DEPENDENCY_SPECS[name]

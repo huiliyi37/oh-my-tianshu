@@ -5,7 +5,7 @@
  * profile; `web` is a hardcoded alias for `--profile web` that adds the Web
  * flag family; `plugin` manages a profile's plugin dependencies by forwarding
  * to pnpm. Commander owns help, version, and parse errors.
- * @module @deepseek-ai/dsh/args
+ * @module @huiliyi37/dsh-tianshu/args
  */
 
 import { Command, CommanderError } from 'commander'

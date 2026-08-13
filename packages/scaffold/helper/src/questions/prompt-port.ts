@@ -1,7 +1,7 @@
 /**
  * Terminal-prompt port shared by create and config workflows.
  *
- * @module @deepseek-ai/dsh-helper/questions/prompt-port
+ * @module @huiliyi37/dsh-helper/questions/prompt-port
  */
 
 /** One selectable prompt option. */

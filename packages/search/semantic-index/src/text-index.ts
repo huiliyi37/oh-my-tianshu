@@ -4,7 +4,7 @@
  * models. Good enough for "find code related to authentication" within a
  * project.
  *
- * @module @deepseek-ai/dsh-semantic-index/text-index
+ * @module @huiliyi37/dsh-semantic-index/text-index
  */
 
 export interface IndexedChunk {

@@ -1,7 +1,7 @@
 /**
  * Base abstraction for one file in an SDK project snapshot.
  *
- * @module @deepseek-ai/dsh-helper/documents/project-file
+ * @module @huiliyi37/dsh-helper/documents/project-file
  */
 
 /** Return text with exactly one trailing newline. */

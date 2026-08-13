@@ -1,10 +1,10 @@
-# @deepseek-ai/dsh-client-web
+# @huiliyi37/dsh-client-web
 
 [English](README.md) | 中文
 
-Web 外壳内核：`new AppWebEntry(el, seams?).run()` 通过两阶段启动（web2）挂载整个客户端。第一阶段（模块侧）：构建客户端模块系统（`@deepseek-ai/dsh-client-modules`），以主机推送的配置项图（`window.__DSH_BOOT__`）为基础，并行预取 `immediately` 层级；执行组合包只会注册 factory。第二阶段（插件侧）：挂载仓库内置的 Cordis Loader，并通过其 `internal` 约定注入模块系统；为每一行图数据创建一个 loader 配置项，另创建外壳自身的 app-shell 组装配置项（tree.import 会物化各模块）；以 settle 作为 AppRoot 的门禁（loader 完全停稳 + 每个配置项 fiber 都为 ACTIVE → 一次切换显示完整 UI）。组合完全由主机图决定：花名册和 immediately 层级都位于负责组合的应用中；外壳不作任何组合决策。
+Web 外壳内核：`new AppWebEntry(el, seams?).run()` 通过两阶段启动（web2）挂载整个客户端。第一阶段（模块侧）：构建客户端模块系统（`@huiliyi37/dsh-client-modules`），以主机推送的配置项图（`window.__DSH_BOOT__`）为基础，并行预取 `immediately` 层级；执行组合包只会注册 factory。第二阶段（插件侧）：挂载仓库内置的 Cordis Loader，并通过其 `internal` 约定注入模块系统；为每一行图数据创建一个 loader 配置项，另创建外壳自身的 app-shell 组装配置项（tree.import 会物化各模块）；以 settle 作为 AppRoot 的门禁（loader 完全停稳 + 每个配置项 fiber 都为 ACTIVE → 一次切换显示完整 UI）。组合完全由主机图决定：花名册和 immediately 层级都位于负责组合的应用中；外壳不作任何组合决策。
 
-外壳自给自足（web2 硬性规则）：内核不对任何插件包（package）执行值导入；启动状态 store 与信号在这里手写（`loader-status.ts`），因此即使插件失败，加载页面仍能工作，而此时这一点尤其重要。app-shell 组装（`@deepseek-ai/dsh-client-app-shell`，由外壳拥有、背后没有 npm 包的伪配置项）是唯一通过 `registerStatic` 注册的模块；它与任何插件一样，通过 inject 等待 slots/sessions/layout。
+外壳自给自足（web2 硬性规则）：内核不对任何插件包（package）执行值导入；启动状态 store 与信号在这里手写（`loader-status.ts`），因此即使插件失败，加载页面仍能工作，而此时这一点尤其重要。app-shell 组装（`@huiliyi37/dsh-client-app-shell`，由外壳拥有、背后没有 npm 包的伪配置项）是唯一通过 `registerStatic` 注册的模块；它与任何插件一样，通过 inject 等待 slots/sessions/layout。
 
 `PLATFORM_MODULES`（src/platform.ts）是共享模块表层的唯一真源：种子表 key、tsdown 客户端 external 和 vite alias 集都是它的投影。
 

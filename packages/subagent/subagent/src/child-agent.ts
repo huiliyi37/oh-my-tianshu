@@ -5,13 +5,13 @@
  * continuation manager compose children this way, so depth accounting and
  * lineage stamping have one home.
  *
- * @module @deepseek-ai/dsh-subagent/child-agent
+ * @module @huiliyi37/dsh-subagent/child-agent
  */
 
-import type { Context } from 'cordis'
-import type { Agent, AgentOptions, CreateAgentOptions } from '@deepseek-ai/dsh-agent'
-import type { SessionId } from '@deepseek-ai/dsh-session'
-import type { ToolRestriction } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@huiliyi37/cordis'
+import type { Agent, AgentOptions, CreateAgentOptions } from '@huiliyi37/dsh-agent'
+import type { SessionId } from '@huiliyi37/dsh-session'
+import type { ToolRestriction } from '@huiliyi37/dsh-tools'
 import { delegationDepthOf } from './depth.ts'
 
 /** Thrown when starting a child would exceed the requested depth cap. */

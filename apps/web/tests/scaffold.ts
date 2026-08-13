@@ -29,28 +29,28 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { Page } from 'playwright'
 import { expect } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import Include, { type PatchOptions } from '@cordisjs/plugin-include'
-import { scrubRequestHeaders, stabilizeFixtureMessageIds } from '@deepseek-ai/dsh-acp-snapshot'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import Include, { type PatchOptions } from '@huiliyi37/cordis-plugin-include'
+import { scrubRequestHeaders, stabilizeFixtureMessageIds } from '@huiliyi37/dsh-acp-snapshot'
 import {
   addHarnessSourceSection,
   assertEntriesLoaded,
   composeEntries,
   healProfilesModuleFallback,
   loadOverlayPatches,
-} from '@deepseek-ai/dsh-app-boot'
-import { dshHomePath } from '@deepseek-ai/dsh-paths'
+} from '@huiliyi37/dsh-app-boot'
+import { dshHomePath } from '@huiliyi37/dsh-paths'
 import {
   WELCOME_NOTICE_ACK_FIELD, WELCOME_NOTICE_SETTINGS_NAMESPACE, WELCOME_NOTICE_VERSION,
-} from '@deepseek-ai/dsh-client-ui-settings-general'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
-import { LlmAdapter } from '@deepseek-ai/dsh-llm'
+} from '@huiliyi37/dsh-client-ui-settings-general'
+import { settingsNamespace } from '@huiliyi37/dsh-settings'
+import { LlmAdapter } from '@huiliyi37/dsh-llm'
 import type {
   LlmModelInfo, LlmProviderInfo, LlmResolvedModelInfo, StreamChunk,
-} from '@deepseek-ai/dsh-llm'
-import type { ReplayHandle } from '@deepseek-ai/dsh-llm-replay'
-import { installLlmReplay, parseSessionLog } from '@deepseek-ai/dsh-llm-replay'
+} from '@huiliyi37/dsh-llm'
+import type { ReplayHandle } from '@huiliyi37/dsh-llm-replay'
+import { installLlmReplay, parseSessionLog } from '@huiliyi37/dsh-llm-replay'
 import SessionStore, {
   packChunkRuns,
   SESSION_FORMAT_VERSION,
@@ -58,12 +58,12 @@ import SessionStore, {
   type Session,
   type SessionEvent,
   type SessionHeader,
-} from '@deepseek-ai/dsh-session'
-import SessionPersistenceJsonl from '@deepseek-ai/dsh-session-persistence-jsonl'
-import * as ToolCordis from '@deepseek-ai/dsh-tool-cordis'
+} from '@huiliyi37/dsh-session'
+import SessionPersistenceJsonl from '@huiliyi37/dsh-session-persistence-jsonl'
+import * as ToolCordis from '@huiliyi37/dsh-tool-cordis'
 // Empty type imports carry the httpServer/agents/sessionPersistence Context merges.
-import type {} from '@deepseek-ai/dsh-host-webserver'
-import type {} from '@deepseek-ai/dsh-agent'
+import type {} from '@huiliyi37/dsh-host-webserver'
+import type {} from '@huiliyi37/dsh-agent'
 import { REPO_ROOT, requireDist } from './support.ts'
 
 /** Snapshot mode for the lane, from $DSH_SNAPSHOT (same vocabulary as the other snapshot suites). */
@@ -343,7 +343,7 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
       config: { host: '127.0.0.1', port: 0 },
     },
     // The bundle's web-runtime row resolves the same built dist under test
-    // (apps/web IS @deepseek-ai/dsh-frontend); only the URL line is silenced.
+    // (apps/web IS @huiliyi37/dsh-frontend); only the URL line is silenced.
     // Preserve the composed surface-context choice because a patch replaces
     // the row's complete config.
     { id: 'web-runtime', config: { mode: 'production', printUrl: false, surfaceContext } },
@@ -359,7 +359,7 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
     // host: patch `name` is an assertion, not an override, hence the
     // disable+insert pair.
     { id: 'directory-picker', disabled: true },
-    { insert: [{ id: 'directory-picker-browse', name: '@deepseek-ai/dsh-host-directory-picker-browse' }] },
+    { insert: [{ id: 'directory-picker-browse', name: '@huiliyi37/dsh-host-directory-picker-browse' }] },
     ...options.toolsMode !== undefined ? [{ id: 'tools', config: { mode: options.toolsMode } }] : [],
     ...options.cordisTools === true
       ? [{ insert: [{ id: 'tool-cordis', name: 'cordis:tool-cordis' }] }]

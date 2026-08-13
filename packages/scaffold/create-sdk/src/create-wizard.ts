@@ -1,7 +1,7 @@
 /**
  * Declarative create questions with dynamic feature and plugin orchestration.
  *
- * @module @deepseek-ai/create-sdk/create-wizard
+ * @module @huiliyi37/create-sdk/create-wizard
  */
 
 import { resolve } from 'node:path'
@@ -27,7 +27,7 @@ import {
   type ProjectCreationRequest,
   type ProjectProfile,
   type PromptPort,
-} from '@deepseek-ai/dsh-helper'
+} from '@huiliyi37/dsh-helper'
 import type { CreateArgs } from './args.ts'
 import { collectProjectAnswers, type ProjectAnswers } from './create-questions.ts'
 import { CREATE_TEMPLATES, packageManagerTemplateModel } from './templates/create-templates.ts'

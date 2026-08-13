@@ -13,18 +13,18 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import Include from '@cordisjs/plugin-include'
-import HttpServer from '@deepseek-ai/dsh-host-webserver'
-import type { DirectoryPicker } from '@deepseek-ai/dsh-host-directory-picker'
-import BrowseDirectoryPicker from '@deepseek-ai/dsh-host-directory-picker-browse'
-import NativeDirectoryPicker from '@deepseek-ai/dsh-host-directory-picker-native'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import Include from '@huiliyi37/cordis-plugin-include'
+import HttpServer from '@huiliyi37/dsh-host-webserver'
+import type { DirectoryPicker } from '@huiliyi37/dsh-host-directory-picker'
+import BrowseDirectoryPicker from '@huiliyi37/dsh-host-directory-picker-browse'
+import NativeDirectoryPicker from '@huiliyi37/dsh-host-directory-picker-native'
 import * as DirectoryPickerAuto from '../src/index.ts'
 
-const AUTO = '@deepseek-ai/dsh-host-directory-picker-auto'
-const NATIVE = '@deepseek-ai/dsh-host-directory-picker-native'
-const BROWSE = '@deepseek-ai/dsh-host-directory-picker-browse'
+const AUTO = '@huiliyi37/dsh-host-directory-picker-auto'
+const NATIVE = '@huiliyi37/dsh-host-directory-picker-native'
+const BROWSE = '@huiliyi37/dsh-host-directory-picker-browse'
 
 let root: string | undefined
 let fakeBin: string | undefined
@@ -48,7 +48,7 @@ async function loadComposition(bindHost: '127.0.0.1' | '0.0.0.0'): Promise<{ ctx
   root = await mkdtemp(join(tmpdir(), 'dsh-directory-picker-auto-'))
   const configPath = join(root, 'cordis.yml')
   await writeFile(configPath, [
-    "- name: '@deepseek-ai/dsh-host-webserver'",
+    "- name: '@huiliyi37/dsh-host-webserver'",
     '  config:',
     `    host: '${bindHost}'`,
     '    port: 0',
@@ -61,7 +61,7 @@ async function loadComposition(bindHost: '127.0.0.1' | '0.0.0.0'): Promise<{ ctx
   await context.plugin(Loader)
   context.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
-    ['@deepseek-ai/dsh-host-webserver', HttpServer],
+    ['@huiliyi37/dsh-host-webserver', HttpServer],
     [AUTO, DirectoryPickerAuto],
     [NATIVE, NativeDirectoryPicker],
     [BROWSE, BrowseDirectoryPicker],

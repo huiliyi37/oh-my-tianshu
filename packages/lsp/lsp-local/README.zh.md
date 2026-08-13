@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-lsp-local
+# @huiliyi37/dsh-lsp-local
 
 [English](README.md) | 中文
 

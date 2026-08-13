@@ -11,8 +11,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { act, cleanup, render } from '@testing-library/react'
 
 afterEach(cleanup)
-import { AppRoot } from '@deepseek-ai/dsh-client-web/src/AppRoot.tsx'
-import { createLoaderStatusStore, createSignal } from '@deepseek-ai/dsh-client-web/src/loader-status.ts'
+import { AppRoot } from '@huiliyi37/dsh-client-web/src/AppRoot.tsx'
+import { createLoaderStatusStore, createSignal } from '@huiliyi37/dsh-client-web/src/loader-status.ts'
 
 function mount() {
   const settled = createSignal(false)
@@ -50,11 +50,11 @@ describe('AppRoot', () => {
   it('lists failed entries and stays on the loading page', () => {
     const { status, getByText, queryByTestId } = mount()
     act(() => {
-      status.set('@deepseek-ai/dsh-client-ui-layout', 'failed')
+      status.set('@huiliyi37/dsh-client-ui-layout', 'failed')
       status.set('ok', 'active')
     })
     expect(getByText('Failed to load plugins')).toBeTruthy()
-    expect(getByText('@deepseek-ai/dsh-client-ui-layout')).toBeTruthy()
+    expect(getByText('@huiliyi37/dsh-client-ui-layout')).toBeTruthy()
     expect(queryByTestId('real-ui')).toBeNull()
   })
 

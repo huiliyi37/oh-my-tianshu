@@ -1,8 +1,15 @@
 {
-  "name": "@deepseek-ai/dsh-workspace-context",
+  "name": "@huiliyi37/dsh-workspace-context",
   "description": "Workspace context loader for AGENTS.md/CLAUDE.md instruction files",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "directory": "packages/context/workspace-context"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -25,32 +32,32 @@
   ],
   "license": "BSD-3-Clause",
   "peerDependencies": {
-    "@deepseek-ai/dsh-agent": "^0.0.1",
-    "@deepseek-ai/dsh-fs": "^0.0.1",
-    "@deepseek-ai/dsh-invariants": "^0.0.1",
-    "@deepseek-ai/dsh-llm": "^0.0.1",
-    "@deepseek-ai/dsh-paths": "^0.0.1",
-    "@deepseek-ai/dsh-session": "^0.0.1",
-    "@deepseek-ai/dsh-tools": "^0.0.1",
-    "cordis": "^4.0.0-rc.6"
+    "@huiliyi37/dsh-agent": "^0.2.0",
+    "@huiliyi37/dsh-fs": "^0.2.0",
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/dsh-llm": "^0.2.0",
+    "@huiliyi37/dsh-paths": "^0.2.0",
+    "@huiliyi37/dsh-session": "^0.2.0",
+    "@huiliyi37/dsh-tools": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.6"
   },
   "dependencies": {
-    "schemastery": "^3.18.0"
+    "@huiliyi37/schemastery": "^3.18.0"
   },
   "devDependencies": {
-    "@cordisjs/plugin-loader": "workspace:^",
-    "@deepseek-ai/dsh-agent": "workspace:^",
-    "@deepseek-ai/dsh-agent-loop": "workspace:^",
-    "@deepseek-ai/dsh-fs": "workspace:^",
-    "@deepseek-ai/dsh-fs-local": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-llm-deepseek": "workspace:^",
-    "@deepseek-ai/dsh-paths": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-system-prompt": "workspace:^",
-    "@deepseek-ai/dsh-tool-fs": "workspace:^",
-    "@deepseek-ai/dsh-tools": "workspace:^",
-    "cordis": "^4.0.0-rc.6"
+    "@huiliyi37/cordis-plugin-loader": "workspace:^",
+    "@huiliyi37/dsh-agent": "workspace:^",
+    "@huiliyi37/dsh-agent-loop": "workspace:^",
+    "@huiliyi37/dsh-fs": "workspace:^",
+    "@huiliyi37/dsh-fs-local": "workspace:^",
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/dsh-llm": "workspace:^",
+    "@huiliyi37/dsh-llm-deepseek": "workspace:^",
+    "@huiliyi37/dsh-paths": "workspace:^",
+    "@huiliyi37/dsh-session": "workspace:^",
+    "@huiliyi37/dsh-system-prompt": "workspace:^",
+    "@huiliyi37/dsh-tool-fs": "workspace:^",
+    "@huiliyi37/dsh-tools": "workspace:^",
+    "@huiliyi37/cordis": "^4.0.0-rc.6"
   }
 }

@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-tool-cordis
+# @huiliyi37/dsh-tool-cordis
 
 [English](README.md) | 中文
 

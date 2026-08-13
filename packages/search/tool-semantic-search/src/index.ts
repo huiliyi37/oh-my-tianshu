@@ -1,6 +1,6 @@
 /**
  * `semantic_search` tool — workspace code retrieval over
- * `@deepseek-ai/dsh-semantic-index` (Tianshu `semantic_search` port). The
+ * `@huiliyi37/dsh-semantic-index` (Tianshu `semantic_search` port). The
  * plugin owns one index instance per configured root; each execution runs the
  * stale check → incremental update → hybrid search pipeline, and a bounded
  * index summary is contributed to the dynamic context (order 120) so the
@@ -11,15 +11,15 @@
  * section — the runtime-context content-diff injects it only when it actually
  * changes, preserving prefix-cache byte stability (Wave 4 discipline).
  *
- * @module @deepseek-ai/dsh-tool-semantic-search
+ * @module @huiliyi37/dsh-tool-semantic-search
  */
 
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import { STALE_CHECK_TTL_MS, SemanticIndex } from '@deepseek-ai/dsh-semantic-index'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { STALE_CHECK_TTL_MS, SemanticIndex } from '@huiliyi37/dsh-semantic-index'
+import { defineTool } from '@huiliyi37/dsh-tools'
 import { renderIndexSummary } from './summary.ts'
 
 /** Cordis plugin name used by loader diagnostics. */

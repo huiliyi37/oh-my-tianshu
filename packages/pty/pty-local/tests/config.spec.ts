@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { Config } from '@deepseek-ai/dsh-pty-local/src/config.ts'
-import { validateConfig } from '@deepseek-ai/dsh-pty-local/src/config.ts'
+import type { Config } from '@huiliyi37/dsh-pty-local/src/config.ts'
+import { validateConfig } from '@huiliyi37/dsh-pty-local/src/config.ts'
 
 function config(overrides: Partial<Config> = {}): Config {
   return {

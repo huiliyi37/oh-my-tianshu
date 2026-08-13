@@ -1,18 +1,18 @@
 /**
- * Runtime invariant companion for @deepseek-ai/dsh-fs-snapshot.
+ * Runtime invariant companion for @huiliyi37/dsh-fs-snapshot.
  *
  * The snapshot hook is a pass-through waterfall step over `tools/execute`
  * owned by dsh-tools; its per-session FileHistory index and on-disk backups
  * are process-local caches asserted behaviorally by package tests. No
  * cross-plugin event/data relation is owned here.
  *
- * @module @deepseek-ai/dsh-fs-snapshot/invariant
+ * @module @huiliyi37/dsh-fs-snapshot/invariant
  */
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-fs-snapshot'
+const PACKAGE_NAME = '@huiliyi37/dsh-fs-snapshot'
 
 /** Cordis companion plugin name. */
 export const name = 'fs-snapshot-invariant'

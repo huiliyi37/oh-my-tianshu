@@ -1,6 +1,6 @@
 /**
  * Carrier-independent TypeRT Gateway request, service, and error contracts.
- * @module @deepseek-ai/dsh-api-gateway/types
+ * @module @huiliyi37/dsh-api-gateway/types
  */
 
 /** One Remote method request after a carrier has decoded its envelope. */
@@ -46,7 +46,7 @@ export interface TypertGateway {
   invoke(request: InvokeRemoteRequest): Promise<unknown>
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     /** Host dispatcher for TypeRT Remote calls. */
     typertGateway: TypertGateway

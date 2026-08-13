@@ -1,17 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import { createEnvironmentSnapshot } from '@deepseek-ai/dsh-environment'
+import { Context } from '@huiliyi37/cordis'
+import { createEnvironmentSnapshot } from '@huiliyi37/dsh-environment'
 import LlmService, { createUserMessage,
   CONTEXT_WINDOW_EXCEEDED_CODE,
   ProviderRequestId,
   QUOTA_EXCEEDED_CODE,
   ReasoningEffortId,
   userAgent,
-} from '@deepseek-ai/dsh-llm'
-import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
-import { SessionId } from '@deepseek-ai/dsh-session'
-import * as LlmDeepSeek from '@deepseek-ai/dsh-llm-deepseek'
-import { DeepSeekAdapter, resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek'
+} from '@huiliyi37/dsh-llm'
+import { MAX_TIMER_DELAY_MS } from '@huiliyi37/dsh-timeout'
+import { SessionId } from '@huiliyi37/dsh-session'
+import * as LlmDeepSeek from '@huiliyi37/dsh-llm-deepseek'
+import { DeepSeekAdapter, resolveAdapterOptions } from '@huiliyi37/dsh-llm-deepseek'
 import { httpErrorCode } from '../src/adapter.ts'
 import { assemble } from './assemble.ts'
 import { closeMockServers, mockServer, textEvents } from './mock-server.ts'

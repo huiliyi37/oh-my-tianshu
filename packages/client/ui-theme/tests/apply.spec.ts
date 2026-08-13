@@ -1,13 +1,13 @@
 /** ui-theme apply wiring: service provision, settings dictionaries riding the
  * locale service, declaration-aware Appearance row registration, snapshot
  * projection into the row store, and HMR collapse recovery. */
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it } from 'vitest'
-import { SlotsService } from '@deepseek-ai/dsh-client-runtime/client'
-import { LocaleService } from '@deepseek-ai/dsh-client-locale/client'
-import { usePinnedBrowserLanguages } from '@deepseek-ai/dsh-client-test-runtime'
-import { apply, inject, SETTINGS_NS } from '@deepseek-ai/dsh-client-ui-theme/client'
-import type { AppearanceRowInjected, ThemeService } from '@deepseek-ai/dsh-client-ui-theme/client'
+import { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
+import { LocaleService } from '@huiliyi37/dsh-client-locale/client'
+import { usePinnedBrowserLanguages } from '@huiliyi37/dsh-client-test-runtime'
+import { apply, inject, SETTINGS_NS } from '@huiliyi37/dsh-client-ui-theme/client'
+import type { AppearanceRowInjected, ThemeService } from '@huiliyi37/dsh-client-ui-theme/client'
 import { AppearanceRow } from '../src/client/AppearanceRow.tsx'
 import type { createAppearanceRowStore } from '../src/client/settings-store.ts'
 

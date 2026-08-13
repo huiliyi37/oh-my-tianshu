@@ -1,4 +1,4 @@
-import { Service } from 'cordis'
+import { Service } from '@huiliyi37/cordis'
 
 /** Shared lifecycle and stable-entry storage for one Conversation Definition registry. */
 export abstract class ConversationDefinitionRegistry<Definition> extends Service {

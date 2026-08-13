@@ -7,13 +7,13 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import SubagentService from '@deepseek-ai/dsh-subagent'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+import SubagentService from '@huiliyi37/dsh-subagent'
+import type { Agent } from '@huiliyi37/dsh-agent'
 import * as sdk from '../src/index.ts'
 import {
   DEFAULT_DISPOSE_EOF_GRACE_MS,

@@ -15,31 +15,31 @@ This table connects model-visible tool names to the plugin package and service s
 
 | Tool package | Model-visible names | Requires | Writes / affects | Shipped aliases | Deployment note |
 | --- | --- | --- | --- | --- | --- |
-| `@deepseek-ai/dsh-tool-ask-user` | `ask_user_question` | `ctx.tools`, `ctx.userInteraction` | `tool/call`, `tool/result after a UI/provider answers the question` | - | ask_user_question pauses the tool call until the active UI provider returns a human answer. |
-| `@deepseek-ai/dsh-tools` | `run_code` | `ctx.tools`, `ctx.codeRuntime (execution time)`, `ctx.systemPrompt` | `tool/call`, `one tool/code-dispatch-start + tool/code-dispatch pair per bridged sub-call`, `tool/result` | - | Owned by the tool registry as a reserved transport outside filterable capability layers under `mode: code` / `mode: both` (see the Code Mode Agent Note). Under `code` it is the registry's only wire contribution; the other visible capabilities are declared in a generated SDK section in the loaded runtime's language, and a program calls them through bindings scheduled under the native concurrency contract (submission-ordered starts and policy; concurrency-safe bodies overlap up to `maxParallelSubCalls`) that re-enter the complete guarded tool pipeline and link each nested execution to this outer result. |
-| `@deepseek-ai/dsh-plan-mode` | `exit_plan_mode` | `ctx.tools`, `ctx.systemPrompt`, `ctx.userInteraction (execution time, opportunistic)` | `tool/call`, `plan/mode inactive on an approved review`, `tool/result` | - | exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-interaction seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary. |
-| `@deepseek-ai/dsh-tool-bash` | `bash` | `ctx.tools`, `ctx.bash`, `ctx.systemPrompt`, `ctx.bashEnv`, `ctx.tasks at call time for run_in_background` | `tool/call`, `tool/result` | - | The bash tool is the model-facing consumer of the bash executor seam. A `run_in_background` run registers with the generic `ctx.tasks` runtime and is collected/stopped through the `task_*` tools from `@deepseek-ai/dsh-tool-tasks`; the `enableRunInBackground` config (default true) removes the parameter entirely when disabled. |
-| `@deepseek-ai/dsh-tool-pwsh` | `pwsh` | `ctx.tools`, `ctx.bash`, `ctx.systemPrompt`, `ctx.bashEnv`, `ctx.tasks at call time for run_in_background` | `tool/call`, `tool/result` | - | The pwsh tool is the PowerShell-dialect consumer of the bash executor seam for Windows compositions (a PowerShell executor such as `@deepseek-ai/dsh-pwsh-local` backs `ctx.bash`); it mirrors the bash tool call-for-call minus the sandbox surface — `run_in_background` runs register with the generic `ctx.tasks` runtime and are collected/stopped through the `task_*` tools, and the managed `DSH_*` environment comes from `@deepseek-ai/dsh-bash-env`. Each call runs in a fresh process (no persistent PTY session; ConPTY is roadmap work), with native `C:\...` paths and `$env:NAME` variables. |
-| `@deepseek-ai/dsh-tool-cordis` | `cordis_inspect`, `cordis_mount`, `cordis_unmount` | `ctx.tools` | `tool/call`, `tool/result`, `process-local temporary Plugin lifecycle` | - | Not in any shipped tree (a deliberate opt-in — temporary Plugin code reaches the real runtime, see .agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md). Plugins created by cordis_mount may register ADDITIONAL model-visible tools until unmounted or DSH restarts; a full changed request header logs those tool-set changes. |
-| `@deepseek-ai/dsh-tool-bash-persistent` | `bash` | `ctx.tools`, `ctx.pty`, `an owning Agent at execution time` | `tool/call`, `PTY shell state`, `tool/result` | - | One owner-isolated persistent bash tool; deployment composition supplies the PTY backend and may override the model-facing environment description. |
-| `@deepseek-ai/dsh-tool-str-replace-editor` | `str_replace_editor` | `ctx.tools`, `ctx.fs` | `tool/call`, `fs/observed after view presence/absence, edit absence, or successful mutation`, `tool/result` | - | Standalone view/create/unique literal replace/line insert tool over the filesystem seam; it composes with any shell or terminal surface. |
-| `@deepseek-ai/dsh-tool-fs` | `edit`, `read`, `write` | `ctx.tools`, `ctx.fs`, `ctx.systemPrompt` | `tool/call`, `fs/write-intent or fs/edit-intent for mutations`, `fs/observed after read presence/absence or successful mutation`, `tool/result` | - | The read-before-write/edit policy is added by `@deepseek-ai/dsh-fs-policy` (an `fs/*` event-gate plugin, no schema change); a deployment that loads these tools is expected to also load it. The tool schemas above are identical with or without the policy plugin. |
-| `@deepseek-ai/dsh-tool-fs-search` | `glob`, `grep` | `ctx.tools`, `ctx.subprocess`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | glob and grep are unconditional discovery tools that spawn the packaged ripgrep binary (`@vscode/ripgrep`) through ctx.subprocess as ordinary foreground calls (never background tasks) — no host `rg` install and no shell layer. The catalog uses `sampleOverCapGlobResults: true`; deployments must choose that behavior explicitly. Capped results save the complete formatted list through the optional ctx.spillStore backend; returned locators are follow-up-readable/searchable when the backend exposes local paths in co-located deployments. |
-| `@deepseek-ai/dsh-tool-pty` | `terminal_close`, `terminal_list`, `terminal_open`, `terminal_read`, `terminal_send`, `terminal_signal` | `ctx.tools`, `ctx.pty`, `ctx.systemPrompt`, `ctx.tasks at call time for run_in_background` | `tool/call`, `tool/result` | - | The six terminal tools are opt-in and complement one-shot bash/filesystem tools. `terminal_send(run_in_background: true)` registers with `ctx.tasks`; TUI, named key sequences, BEL, resize, auto-start, and cross-agent sharing are absent from the schema. |
-| `@deepseek-ai/dsh-tool-goal` | `create_goal`, `get_goal`, `update_goal` | `ctx.tools`, `ctx.agents`, `ctx.goals`, `ctx.systemPrompt`, `a calling Agent in an authorized open turn` | `tool/call`, `goal/change for mutations`, `tool/result` | - | create, edit, pause, and resume require direct-human root authority; complete and blocked also accept the exact current goal round. The default blocked lower bound is three admitted rounds. |
-| `@deepseek-ai/dsh-tool-lsp` | `lsp` | `ctx.tools`, `ctx.lsp`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | The lsp tool keeps provider selection and language-server subprocesses behind ctx.lsp, so its model-visible schema stays stable across providers. Requires a registered provider (e.g. `@deepseek-ai/dsh-lsp-local`) at runtime; without one, a query returns the structured `LSP_UNAVAILABLE` error rather than changing the schema. |
-| `@deepseek-ai/dsh-tool-ralph` | `ralph` | `ctx.tools`, `ctx.workflows`, `ctx.subagents`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents every fresh round)` | `tool/call`, `tool/result`, `workflow and child session events during execution` | - | A fixed foreground workflow starts one fresh structured child per round; the model selects only the immutable objective and an optional round cap. |
-| `@deepseek-ai/dsh-tool-skill` | `skill` | `ctx.tools`, `ctx.agents`, `ctx.skills` | `tool/call`, `tool/result`, `user/message replacement catalogs via agent.inject()` | - | - |
-| `@deepseek-ai/dsh-tool-session-query` | `session_event_read`, `session_event_search`, `session_event_trace`, `session_search`, `session_trace` | `ctx.tools`, `ctx.systemPrompt`, `ctx.sessionQuery`, `a calling Agent for workspace authority` | `tool/call`, `tool/result` | - | The five read-only tools hide provider cursors and authorize every result from the immutable calling agent session. The package is opt-in; compositions that need enforced deadlines or bounded inline output also mount the generic timeout or spill policies. |
-| `@deepseek-ai/dsh-tool-subagent` | `subagent` | `ctx.tools`, `ctx.subagents` | `tool/call`, `tool/result`, `child session events through the chosen provider` | `subagent`, `subagent_fork` | The registered tool name is the load-time `toolName` config (default `subagent`); the schema above is that default. The shipped example agents load this package once per subagent backend, so the model additionally sees `subagent_fork` (bound to the fork backend) with an identical schema — see `packages/bundle/base/cordis.patch.yml` and `examples/acp-agent/cordis.yml`. |
-| `@deepseek-ai/dsh-tool-subagent-control` | `interrupt_agent`, `list_agents`, `send_message` | `ctx.tools`, `ctx.subagents`, `ctx.agents and ctx.sessionProjections (list_agents only)` | `tool/call`, `tool/result`, `child session events through ctx.subagents` | - | The globally named control tools over continuable background subagents: provider-bound `tool-subagent` instances register distinct delegation tools, while this package registers `send_message` and `interrupt_agent` once, plus `list_agents` from its separately loaded `/list-agents` plugin (whose catalog rows use the sessionProjections and live Agent registries). |
-| `@deepseek-ai/dsh-tool-subagent-report` | `report` | `ctx.subagents`, `a live continuable in-process child Agent` | `tool/call`, `tool/result`, `a user-role message in the direct parent session` | - | Registered per continuable in-process child rather than globally, so this schema is visible only inside such a child and survives its global `toolFilter`. The parent-facing `send_message` tool is installed independently. |
-| `@deepseek-ai/dsh-tool-tasks` | `task_kill`, `task_list`, `task_output` | `ctx.tools`, `ctx.tasks`, `ctx.systemPrompt` | `tool/call`, `tool/result`, `user/message via agent.inject() for background completion notices` | - | The kind-agnostic background-task control surface: background bash commands, PTY sends, and subagents are read, listed, and killed through the same three tools. Loading the plugin attaches the control surface that arms producers' `ctx.tasks.start()`. |
-| `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`, `owning Agent session` | `tool/call`, `todo/write`, `tool/result` | - | todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task. |
-| `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`, `ctx.workflows`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents the script children)` | `tool/call`, `tool/result` | - | - |
-| `@deepseek-ai/dsh-tool-web` | `web_fetch`, `web_search` | `ctx.tools`, `ctx.web`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps. |
+| `@huiliyi37/dsh-tool-ask-user` | `ask_user_question` | `ctx.tools`, `ctx.userInteraction` | `tool/call`, `tool/result after a UI/provider answers the question` | - | ask_user_question pauses the tool call until the active UI provider returns a human answer. |
+| `@huiliyi37/dsh-tools` | `run_code` | `ctx.tools`, `ctx.codeRuntime (execution time)`, `ctx.systemPrompt` | `tool/call`, `one tool/code-dispatch-start + tool/code-dispatch pair per bridged sub-call`, `tool/result` | - | Owned by the tool registry as a reserved transport outside filterable capability layers under `mode: code` / `mode: both` (see the Code Mode Agent Note). Under `code` it is the registry's only wire contribution; the other visible capabilities are declared in a generated SDK section in the loaded runtime's language, and a program calls them through bindings scheduled under the native concurrency contract (submission-ordered starts and policy; concurrency-safe bodies overlap up to `maxParallelSubCalls`) that re-enter the complete guarded tool pipeline and link each nested execution to this outer result. |
+| `@huiliyi37/dsh-plan-mode` | `exit_plan_mode` | `ctx.tools`, `ctx.systemPrompt`, `ctx.userInteraction (execution time, opportunistic)` | `tool/call`, `plan/mode inactive on an approved review`, `tool/result` | - | exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-interaction seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary. |
+| `@huiliyi37/dsh-tool-bash` | `bash` | `ctx.tools`, `ctx.bash`, `ctx.systemPrompt`, `ctx.bashEnv`, `ctx.tasks at call time for run_in_background` | `tool/call`, `tool/result` | - | The bash tool is the model-facing consumer of the bash executor seam. A `run_in_background` run registers with the generic `ctx.tasks` runtime and is collected/stopped through the `task_*` tools from `@huiliyi37/dsh-tool-tasks`; the `enableRunInBackground` config (default true) removes the parameter entirely when disabled. |
+| `@huiliyi37/dsh-tool-pwsh` | `pwsh` | `ctx.tools`, `ctx.bash`, `ctx.systemPrompt`, `ctx.bashEnv`, `ctx.tasks at call time for run_in_background` | `tool/call`, `tool/result` | - | The pwsh tool is the PowerShell-dialect consumer of the bash executor seam for Windows compositions (a PowerShell executor such as `@huiliyi37/dsh-pwsh-local` backs `ctx.bash`); it mirrors the bash tool call-for-call minus the sandbox surface — `run_in_background` runs register with the generic `ctx.tasks` runtime and are collected/stopped through the `task_*` tools, and the managed `DSH_*` environment comes from `@huiliyi37/dsh-bash-env`. Each call runs in a fresh process (no persistent PTY session; ConPTY is roadmap work), with native `C:\...` paths and `$env:NAME` variables. |
+| `@huiliyi37/dsh-tool-cordis` | `cordis_inspect`, `cordis_mount`, `cordis_unmount` | `ctx.tools` | `tool/call`, `tool/result`, `process-local temporary Plugin lifecycle` | - | Not in any shipped tree (a deliberate opt-in — temporary Plugin code reaches the real runtime, see .agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md). Plugins created by cordis_mount may register ADDITIONAL model-visible tools until unmounted or DSH restarts; a full changed request header logs those tool-set changes. |
+| `@huiliyi37/dsh-tool-bash-persistent` | `bash` | `ctx.tools`, `ctx.pty`, `an owning Agent at execution time` | `tool/call`, `PTY shell state`, `tool/result` | - | One owner-isolated persistent bash tool; deployment composition supplies the PTY backend and may override the model-facing environment description. |
+| `@huiliyi37/dsh-tool-str-replace-editor` | `str_replace_editor` | `ctx.tools`, `ctx.fs` | `tool/call`, `fs/observed after view presence/absence, edit absence, or successful mutation`, `tool/result` | - | Standalone view/create/unique literal replace/line insert tool over the filesystem seam; it composes with any shell or terminal surface. |
+| `@huiliyi37/dsh-tool-fs` | `edit`, `read`, `write` | `ctx.tools`, `ctx.fs`, `ctx.systemPrompt` | `tool/call`, `fs/write-intent or fs/edit-intent for mutations`, `fs/observed after read presence/absence or successful mutation`, `tool/result` | - | The read-before-write/edit policy is added by `@huiliyi37/dsh-fs-policy` (an `fs/*` event-gate plugin, no schema change); a deployment that loads these tools is expected to also load it. The tool schemas above are identical with or without the policy plugin. |
+| `@huiliyi37/dsh-tool-fs-search` | `glob`, `grep` | `ctx.tools`, `ctx.subprocess`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | glob and grep are unconditional discovery tools that spawn the packaged ripgrep binary (`@vscode/ripgrep`) through ctx.subprocess as ordinary foreground calls (never background tasks) — no host `rg` install and no shell layer. The catalog uses `sampleOverCapGlobResults: true`; deployments must choose that behavior explicitly. Capped results save the complete formatted list through the optional ctx.spillStore backend; returned locators are follow-up-readable/searchable when the backend exposes local paths in co-located deployments. |
+| `@huiliyi37/dsh-tool-pty` | `terminal_close`, `terminal_list`, `terminal_open`, `terminal_read`, `terminal_send`, `terminal_signal` | `ctx.tools`, `ctx.pty`, `ctx.systemPrompt`, `ctx.tasks at call time for run_in_background` | `tool/call`, `tool/result` | - | The six terminal tools are opt-in and complement one-shot bash/filesystem tools. `terminal_send(run_in_background: true)` registers with `ctx.tasks`; TUI, named key sequences, BEL, resize, auto-start, and cross-agent sharing are absent from the schema. |
+| `@huiliyi37/dsh-tool-goal` | `create_goal`, `get_goal`, `update_goal` | `ctx.tools`, `ctx.agents`, `ctx.goals`, `ctx.systemPrompt`, `a calling Agent in an authorized open turn` | `tool/call`, `goal/change for mutations`, `tool/result` | - | create, edit, pause, and resume require direct-human root authority; complete and blocked also accept the exact current goal round. The default blocked lower bound is three admitted rounds. |
+| `@huiliyi37/dsh-tool-lsp` | `lsp` | `ctx.tools`, `ctx.lsp`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | The lsp tool keeps provider selection and language-server subprocesses behind ctx.lsp, so its model-visible schema stays stable across providers. Requires a registered provider (e.g. `@huiliyi37/dsh-lsp-local`) at runtime; without one, a query returns the structured `LSP_UNAVAILABLE` error rather than changing the schema. |
+| `@huiliyi37/dsh-tool-ralph` | `ralph` | `ctx.tools`, `ctx.workflows`, `ctx.subagents`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents every fresh round)` | `tool/call`, `tool/result`, `workflow and child session events during execution` | - | A fixed foreground workflow starts one fresh structured child per round; the model selects only the immutable objective and an optional round cap. |
+| `@huiliyi37/dsh-tool-skill` | `skill` | `ctx.tools`, `ctx.agents`, `ctx.skills` | `tool/call`, `tool/result`, `user/message replacement catalogs via agent.inject()` | - | - |
+| `@huiliyi37/dsh-tool-session-query` | `session_event_read`, `session_event_search`, `session_event_trace`, `session_search`, `session_trace` | `ctx.tools`, `ctx.systemPrompt`, `ctx.sessionQuery`, `a calling Agent for workspace authority` | `tool/call`, `tool/result` | - | The five read-only tools hide provider cursors and authorize every result from the immutable calling agent session. The package is opt-in; compositions that need enforced deadlines or bounded inline output also mount the generic timeout or spill policies. |
+| `@huiliyi37/dsh-tool-subagent` | `subagent` | `ctx.tools`, `ctx.subagents` | `tool/call`, `tool/result`, `child session events through the chosen provider` | `subagent`, `subagent_fork` | The registered tool name is the load-time `toolName` config (default `subagent`); the schema above is that default. The shipped example agents load this package once per subagent backend, so the model additionally sees `subagent_fork` (bound to the fork backend) with an identical schema — see `packages/bundle/base/cordis.patch.yml` and `examples/acp-agent/cordis.yml`. |
+| `@huiliyi37/dsh-tool-subagent-control` | `interrupt_agent`, `list_agents`, `send_message` | `ctx.tools`, `ctx.subagents`, `ctx.agents and ctx.sessionProjections (list_agents only)` | `tool/call`, `tool/result`, `child session events through ctx.subagents` | - | The globally named control tools over continuable background subagents: provider-bound `tool-subagent` instances register distinct delegation tools, while this package registers `send_message` and `interrupt_agent` once, plus `list_agents` from its separately loaded `/list-agents` plugin (whose catalog rows use the sessionProjections and live Agent registries). |
+| `@huiliyi37/dsh-tool-subagent-report` | `report` | `ctx.subagents`, `a live continuable in-process child Agent` | `tool/call`, `tool/result`, `a user-role message in the direct parent session` | - | Registered per continuable in-process child rather than globally, so this schema is visible only inside such a child and survives its global `toolFilter`. The parent-facing `send_message` tool is installed independently. |
+| `@huiliyi37/dsh-tool-tasks` | `task_kill`, `task_list`, `task_output` | `ctx.tools`, `ctx.tasks`, `ctx.systemPrompt` | `tool/call`, `tool/result`, `user/message via agent.inject() for background completion notices` | - | The kind-agnostic background-task control surface: background bash commands, PTY sends, and subagents are read, listed, and killed through the same three tools. Loading the plugin attaches the control surface that arms producers' `ctx.tasks.start()`. |
+| `@huiliyi37/dsh-tool-todo` | `todo_write` | `ctx.tools`, `owning Agent session` | `tool/call`, `todo/write`, `tool/result` | - | todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task. |
+| `@huiliyi37/dsh-tool-workflow` | `workflow` | `ctx.tools`, `ctx.workflows`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents the script children)` | `tool/call`, `tool/result` | - | - |
+| `@huiliyi37/dsh-tool-web` | `web_fetch`, `web_search` | `ctx.tools`, `ctx.web`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps. |
 
-## `@deepseek-ai/dsh-tool-ask-user`
+## `@huiliyi37/dsh-tool-ask-user`
 
 ### `ask_user_question`
 
@@ -111,7 +111,7 @@ Source: [`packages/interaction/tool-ask-user/src/index.ts`](../packages/interact
 
 ask_user_question pauses the tool call until the active UI provider returns a human answer.
 
-## `@deepseek-ai/dsh-tools`
+## `@huiliyi37/dsh-tools`
 
 ### `run_code`
 
@@ -141,7 +141,7 @@ Source: [`packages/core/tools/src/code-mode.ts`](../packages/core/tools/src/code
 
 Owned by the tool registry as a reserved transport outside filterable capability layers under `mode: code` / `mode: both` (see the Code Mode Agent Note). Under `code` it is the registry's only wire contribution; the other visible capabilities are declared in a generated SDK section in the loaded runtime's language, and a program calls them through bindings scheduled under the native concurrency contract (submission-ordered starts and policy; concurrency-safe bodies overlap up to `maxParallelSubCalls`) that re-enter the complete guarded tool pipeline and link each nested execution to this outer result.
 
-## `@deepseek-ai/dsh-plan-mode`
+## `@huiliyi37/dsh-plan-mode`
 
 ### `exit_plan_mode`
 
@@ -166,7 +166,7 @@ Source: [`packages/plan/plan-mode/src/index.ts`](../packages/plan/plan-mode/src/
 
 exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-interaction seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary.
 
-## `@deepseek-ai/dsh-tool-bash`
+## `@huiliyi37/dsh-tool-bash`
 
 ### `bash`
 
@@ -206,9 +206,9 @@ Execute a bash command (`bash -c`) and return its stdout/stderr. Each call runs 
 
 Source: [`packages/bash/tool-bash/src/index.ts`](../packages/bash/tool-bash/src/index.ts)
 
-The bash tool is the model-facing consumer of the bash executor seam. A `run_in_background` run registers with the generic `ctx.tasks` runtime and is collected/stopped through the `task_*` tools from `@deepseek-ai/dsh-tool-tasks`; the `enableRunInBackground` config (default true) removes the parameter entirely when disabled.
+The bash tool is the model-facing consumer of the bash executor seam. A `run_in_background` run registers with the generic `ctx.tasks` runtime and is collected/stopped through the `task_*` tools from `@huiliyi37/dsh-tool-tasks`; the `enableRunInBackground` config (default true) removes the parameter entirely when disabled.
 
-## `@deepseek-ai/dsh-tool-pwsh`
+## `@huiliyi37/dsh-tool-pwsh`
 
 ### `pwsh`
 
@@ -248,9 +248,9 @@ Execute a PowerShell command (`pwsh -Command`) and return its stdout/stderr. Eac
 
 Source: [`packages/bash/tool-pwsh/src/index.ts`](../packages/bash/tool-pwsh/src/index.ts)
 
-The pwsh tool is the PowerShell-dialect consumer of the bash executor seam for Windows compositions (a PowerShell executor such as `@deepseek-ai/dsh-pwsh-local` backs `ctx.bash`); it mirrors the bash tool call-for-call minus the sandbox surface — `run_in_background` runs register with the generic `ctx.tasks` runtime and are collected/stopped through the `task_*` tools, and the managed `DSH_*` environment comes from `@deepseek-ai/dsh-bash-env`. Each call runs in a fresh process (no persistent PTY session; ConPTY is roadmap work), with native `C:\...` paths and `$env:NAME` variables.
+The pwsh tool is the PowerShell-dialect consumer of the bash executor seam for Windows compositions (a PowerShell executor such as `@huiliyi37/dsh-pwsh-local` backs `ctx.bash`); it mirrors the bash tool call-for-call minus the sandbox surface — `run_in_background` runs register with the generic `ctx.tasks` runtime and are collected/stopped through the `task_*` tools, and the managed `DSH_*` environment comes from `@huiliyi37/dsh-bash-env`. Each call runs in a fresh process (no persistent PTY session; ConPTY is roadmap work), with native `C:\...` paths and `$env:NAME` variables.
 
-## `@deepseek-ai/dsh-tool-cordis`
+## `@huiliyi37/dsh-tool-cordis`
 
 ### `cordis_inspect`
 
@@ -326,7 +326,7 @@ Source: [`packages/self-modification/tool-cordis/src/index.ts`](../packages/self
 
 Not in any shipped tree (a deliberate opt-in — temporary Plugin code reaches the real runtime, see .agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md). Plugins created by cordis_mount may register ADDITIONAL model-visible tools until unmounted or DSH restarts; a full changed request header logs those tool-set changes.
 
-## `@deepseek-ai/dsh-tool-bash-persistent`
+## `@huiliyi37/dsh-tool-bash-persistent`
 
 ### `bash`
 
@@ -351,7 +351,7 @@ Source: [`packages/pty/tool-bash-persistent/src/index.ts`](../packages/pty/tool-
 
 One owner-isolated persistent bash tool; deployment composition supplies the PTY backend and may override the model-facing environment description.
 
-## `@deepseek-ai/dsh-tool-str-replace-editor`
+## `@huiliyi37/dsh-tool-str-replace-editor`
 
 ### `str_replace_editor`
 
@@ -419,7 +419,7 @@ Source: [`packages/fs/tool-str-replace-editor/src/index.ts`](../packages/fs/tool
 
 Standalone view/create/unique literal replace/line insert tool over the filesystem seam; it composes with any shell or terminal surface.
 
-## `@deepseek-ai/dsh-tool-fs`
+## `@huiliyi37/dsh-tool-fs`
 
 ### `edit`
 
@@ -511,9 +511,9 @@ Create or fully replace a UTF-8 text file.
 
 Source: [`packages/fs/tool-fs/src/index.ts`](../packages/fs/tool-fs/src/index.ts)
 
-The read-before-write/edit policy is added by `@deepseek-ai/dsh-fs-policy` (an `fs/*` event-gate plugin, no schema change); a deployment that loads these tools is expected to also load it. The tool schemas above are identical with or without the policy plugin.
+The read-before-write/edit policy is added by `@huiliyi37/dsh-fs-policy` (an `fs/*` event-gate plugin, no schema change); a deployment that loads these tools is expected to also load it. The tool schemas above are identical with or without the policy plugin.
 
-## `@deepseek-ai/dsh-tool-fs-search`
+## `@huiliyi37/dsh-tool-fs-search`
 
 ### `glob`
 
@@ -571,7 +571,7 @@ Source: [`packages/fs/tool-fs-search/src/index.ts`](../packages/fs/tool-fs-searc
 
 glob and grep are unconditional discovery tools that spawn the packaged ripgrep binary (`@vscode/ripgrep`) through ctx.subprocess as ordinary foreground calls (never background tasks) — no host `rg` install and no shell layer. The catalog uses `sampleOverCapGlobResults: true`; deployments must choose that behavior explicitly. Capped results save the complete formatted list through the optional ctx.spillStore backend; returned locators are follow-up-readable/searchable when the backend exposes local paths in co-located deployments.
 
-## `@deepseek-ai/dsh-tool-pty`
+## `@huiliyi37/dsh-tool-pty`
 
 ### `terminal_close`
 
@@ -734,7 +734,7 @@ Source: [`packages/pty/tool-pty/src/index.ts`](../packages/pty/tool-pty/src/inde
 
 The six terminal tools are opt-in and complement one-shot bash/filesystem tools. `terminal_send(run_in_background: true)` registers with `ctx.tasks`; TUI, named key sequences, BEL, resize, auto-start, and cross-agent sharing are absent from the schema.
 
-## `@deepseek-ai/dsh-tool-goal`
+## `@huiliyi37/dsh-tool-goal`
 
 ### `create_goal`
 
@@ -826,7 +826,7 @@ Source: [`packages/goal/tool-goal/src/index.ts`](../packages/goal/tool-goal/src/
 
 create, edit, pause, and resume require direct-human root authority; complete and blocked also accept the exact current goal round. The default blocked lower bound is three admitted rounds.
 
-## `@deepseek-ai/dsh-tool-lsp`
+## `@huiliyi37/dsh-tool-lsp`
 
 ### `lsp`
 
@@ -870,9 +870,9 @@ Query a language server for precise code navigation. operation is one of goToDef
 
 Source: [`packages/lsp/tool-lsp/src/index.ts`](../packages/lsp/tool-lsp/src/index.ts)
 
-The lsp tool keeps provider selection and language-server subprocesses behind ctx.lsp, so its model-visible schema stays stable across providers. Requires a registered provider (e.g. `@deepseek-ai/dsh-lsp-local`) at runtime; without one, a query returns the structured `LSP_UNAVAILABLE` error rather than changing the schema.
+The lsp tool keeps provider selection and language-server subprocesses behind ctx.lsp, so its model-visible schema stays stable across providers. Requires a registered provider (e.g. `@huiliyi37/dsh-lsp-local`) at runtime; without one, a query returns the structured `LSP_UNAVAILABLE` error rather than changing the schema.
 
-## `@deepseek-ai/dsh-tool-ralph`
+## `@huiliyi37/dsh-tool-ralph`
 
 ### `ralph`
 
@@ -901,7 +901,7 @@ Source: [`packages/workflow/tool-ralph/src/index.ts`](../packages/workflow/tool-
 
 A fixed foreground workflow starts one fresh structured child per round; the model selects only the immutable objective and an optional round cap.
 
-## `@deepseek-ai/dsh-tool-skill`
+## `@huiliyi37/dsh-tool-skill`
 
 ### `skill`
 
@@ -924,7 +924,7 @@ Load the full instructions for an available skill. Call this with the exact skil
 
 Source: [`packages/skill/tool-skill/src/index.ts`](../packages/skill/tool-skill/src/index.ts)
 
-## `@deepseek-ai/dsh-tool-session-query`
+## `@huiliyi37/dsh-tool-session-query`
 
 ### `session_event_read`
 
@@ -1157,7 +1157,7 @@ Source: [`packages/session-query/tool-session-query/src/index.ts`](../packages/s
 
 The five read-only tools hide provider cursors and authorize every result from the immutable calling agent session. The package is opt-in; compositions that need enforced deadlines or bounded inline output also mount the generic timeout or spill policies.
 
-## `@deepseek-ai/dsh-tool-subagent`
+## `@huiliyi37/dsh-tool-subagent`
 
 ### `subagent`
 
@@ -1191,7 +1191,7 @@ Source: [`packages/subagent/tool-subagent/src/index.ts`](../packages/subagent/to
 
 The registered tool name is the load-time `toolName` config (default `subagent`); the schema above is that default. The shipped example agents load this package once per subagent backend, so the model additionally sees `subagent_fork` (bound to the fork backend) with an identical schema — see `packages/bundle/base/cordis.patch.yml` and `examples/acp-agent/cordis.yml`.
 
-## `@deepseek-ai/dsh-tool-subagent-control`
+## `@huiliyi37/dsh-tool-subagent-control`
 
 ### `interrupt_agent`
 
@@ -1264,7 +1264,7 @@ Source: [`packages/subagent/tool-subagent-control/src/index.ts`](../packages/sub
 
 The globally named control tools over continuable background subagents: provider-bound `tool-subagent` instances register distinct delegation tools, while this package registers `send_message` and `interrupt_agent` once, plus `list_agents` from its separately loaded `/list-agents` plugin (whose catalog rows use the sessionProjections and live Agent registries).
 
-## `@deepseek-ai/dsh-tool-subagent-report`
+## `@huiliyi37/dsh-tool-subagent-report`
 
 ### `report`
 
@@ -1289,7 +1289,7 @@ Source: [`packages/subagent/tool-subagent-report/src/index.ts`](../packages/suba
 
 Registered per continuable in-process child rather than globally, so this schema is visible only inside such a child and survives its global `toolFilter`. The parent-facing `send_message` tool is installed independently.
 
-## `@deepseek-ai/dsh-tool-tasks`
+## `@huiliyi37/dsh-tool-tasks`
 
 ### `task_kill`
 
@@ -1360,7 +1360,7 @@ Source: [`packages/tasks/tool-tasks/src/index.ts`](../packages/tasks/tool-tasks/
 
 The kind-agnostic background-task control surface: background bash commands, PTY sends, and subagents are read, listed, and killed through the same three tools. Loading the plugin attaches the control surface that arms producers' `ctx.tasks.start()`.
 
-## `@deepseek-ai/dsh-tool-todo`
+## `@huiliyi37/dsh-tool-todo`
 
 ### `todo_write`
 
@@ -1408,7 +1408,7 @@ Source: [`packages/todo/tool-todo/src/index.ts`](../packages/todo/tool-todo/src/
 
 todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task.
 
-## `@deepseek-ai/dsh-tool-workflow`
+## `@huiliyi37/dsh-tool-workflow`
 
 ### `workflow`
 
@@ -1501,7 +1501,7 @@ Constraints: concurrency and total-agent caps apply; no filesystem, network, tim
 
 Source: [`packages/workflow/tool-workflow/src/index.ts`](../packages/workflow/tool-workflow/src/index.ts)
 
-## `@deepseek-ai/dsh-tool-web`
+## `@huiliyi37/dsh-tool-web`
 
 ### `web_fetch`
 

@@ -4,16 +4,16 @@
  * participates in method lookup, invocation, or type exposure.
  */
 
-import { Service } from 'cordis'
-import type { Context } from 'cordis'
-import type { ConnectionHandle, RpcError } from '@deepseek-ai/dsh-client-connection/client'
+import { Service } from '@huiliyi37/cordis'
+import type { Context } from '@huiliyi37/cordis'
+import type { ConnectionHandle, RpcError } from '@huiliyi37/dsh-client-connection/client'
 import type {
   InvocationDescriptor,
   TypeRTClientRemote,
   TypeRTCodec,
   TypeRTDisposer,
   TypeRTRemoteContribution,
-} from '@deepseek-ai/dsh-type-meta'
+} from '@huiliyi37/dsh-type-meta'
 
 interface MountToken {
   active: boolean
@@ -53,7 +53,7 @@ interface RemoteNamespaceHandle {
 /** Typed Remote service augmented by generated direct namespaces. */
 export type ClientRemote = TypeRTClientRemote
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     /** Generated Remote namespaces selected by the Client assembly. */
     remote: ClientRemote

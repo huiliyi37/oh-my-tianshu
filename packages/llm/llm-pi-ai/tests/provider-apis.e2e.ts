@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import LlmService, { createUserMessage, CallId  } from '@deepseek-ai/dsh-llm'
-import type { Message, ToolSchema } from '@deepseek-ai/dsh-llm'
-import * as LlmPiAi from '@deepseek-ai/dsh-llm-pi-ai'
+import { Context } from '@huiliyi37/cordis'
+import LlmService, { createUserMessage, CallId  } from '@huiliyi37/dsh-llm'
+import type { Message, ToolSchema } from '@huiliyi37/dsh-llm'
+import * as LlmPiAi from '@huiliyi37/dsh-llm-pi-ai'
 import type { PiAiReplayState } from '../src/replay.ts'
 import { assemble, type AssembledResult } from './assemble.ts'
 

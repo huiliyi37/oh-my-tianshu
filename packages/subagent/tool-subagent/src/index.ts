@@ -5,18 +5,18 @@
  * Background policy is selected by this plugin's configuration: one-shot
  * calls own a plain Task, while continuable calls use
  * `ctx.subagents.startContinuable()`.
- * @module @deepseek-ai/dsh-tool-subagent
+ * @module @huiliyi37/dsh-tool-subagent
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { AgentOptions } from '@deepseek-ai/dsh-agent'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { JsonValue } from '@deepseek-ai/dsh-session'
-import { assertSubagentMaxDepth, settleRun } from '@deepseek-ai/dsh-subagent'
-import type { SubagentProvider, SubagentResult, SubagentRun } from '@deepseek-ai/dsh-subagent'
-import type { TaskOutcome } from '@deepseek-ai/dsh-tasks'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { defineTool } from '@huiliyi37/dsh-tools'
+import type { AgentOptions } from '@huiliyi37/dsh-agent'
+import type { ContentBlock } from '@huiliyi37/dsh-llm'
+import type { JsonValue } from '@huiliyi37/dsh-session'
+import { assertSubagentMaxDepth, settleRun } from '@huiliyi37/dsh-subagent'
+import type { SubagentProvider, SubagentResult, SubagentRun } from '@huiliyi37/dsh-subagent'
+import type { TaskOutcome } from '@huiliyi37/dsh-tasks'
 
 export const name = 'tool-subagent'
 export const inject = ['tools', 'subagents']
@@ -351,7 +351,7 @@ export function apply(ctx: Context, config: Config): void {
           }
           const tasks = ctx.get('tasks')
           if (tasks === undefined) {
-            throw new Error('background tasks unavailable: load @deepseek-ai/dsh-tasks and @deepseek-ai/dsh-tool-tasks')
+            throw new Error('background tasks unavailable: load @huiliyi37/dsh-tasks and @huiliyi37/dsh-tool-tasks')
           }
           // One-shot background child: task preflight finishes before the
           // starter can spawn, and the task-owned signal covers startup.

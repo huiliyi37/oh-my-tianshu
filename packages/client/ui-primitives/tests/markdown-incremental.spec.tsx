@@ -6,7 +6,7 @@
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Root, RootContent } from 'mdast'
-import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
+import { MarkdownText } from '@huiliyi37/dsh-client-ui-primitives'
 import { IncrementalMarkdownParser } from '../src/markdown/incremental.ts'
 import { parseGfm } from '../src/markdown/parse.ts'
 

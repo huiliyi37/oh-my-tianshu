@@ -15,16 +15,16 @@
  * reads session state once at each operation boundary; executors and providers
  * remain session-free.
  *
- * @module @deepseek-ai/dsh-sandbox-policy
+ * @module @huiliyi37/dsh-sandbox-policy
  */
 
 import { resolve as resolvePath } from 'node:path'
-import { Context, Service } from 'cordis'
-import z from 'schemastery'
-import type {} from '@deepseek-ai/dsh-agent'
-import { canonicalPath, type SandboxExecutionPolicy, type SandboxMode } from '@deepseek-ai/dsh-sandbox'
-import type { Session } from '@deepseek-ai/dsh-session'
-import type {} from '@deepseek-ai/dsh-system-prompt'
+import { Context, Service } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type {} from '@huiliyi37/dsh-agent'
+import { canonicalPath, type SandboxExecutionPolicy, type SandboxMode } from '@huiliyi37/dsh-sandbox'
+import type { Session } from '@huiliyi37/dsh-session'
+import type {} from '@huiliyi37/dsh-system-prompt'
 import { effectiveSandboxMode } from './session-mode.ts'
 
 export { SANDBOX_MODES, effectiveSandboxMode, setSandboxMode } from './session-mode.ts'
@@ -51,7 +51,7 @@ function renderPolicyContext(policy: SandboxExecutionPolicy): string {
   }
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     sandboxPolicy: SandboxPolicyService
   }

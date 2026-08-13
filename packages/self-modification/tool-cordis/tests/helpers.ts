@@ -1,9 +1,9 @@
-import { Context } from 'cordis'
-import Timer from '@cordisjs/plugin-timer'
-import { CallId } from '@deepseek-ai/dsh-llm'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry from '@deepseek-ai/dsh-tools'
-import type { ToolDefinition, ToolExecutionResult } from '@deepseek-ai/dsh-tools'
+import { Context } from '@huiliyi37/cordis'
+import Timer from '@huiliyi37/cordis-plugin-timer'
+import { CallId } from '@huiliyi37/dsh-llm'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry from '@huiliyi37/dsh-tools'
+import type { ToolDefinition, ToolExecutionResult } from '@huiliyi37/dsh-tools'
 import * as tool from '../src/index.ts'
 
 const testToolSignal = new AbortController().signal

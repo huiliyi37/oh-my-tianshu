@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { FsError } from '@deepseek-ai/dsh-fs'
+import { FsError } from '@huiliyi37/dsh-fs'
 import { remediateFsError } from '../src/error.ts'
 
 describe('remediateFsError', () => {

@@ -1,7 +1,7 @@
 /**
  * Model-facing PowerShell Consumer of the `ctx.bash` capability seam. Intended for
  * Windows compositions where a PowerShell executor (e.g.
- * `@deepseek-ai/dsh-pwsh-local`) backs `ctx.bash`; the tool contract is
+ * `@huiliyi37/dsh-pwsh-local`) backs `ctx.bash`; the tool contract is
  * PowerShell-dialect: native `C:\...` paths and `$env:NAME` variables.
  *
  * Behavior mirrors `dsh-tool-bash` call-for-call minus the sandbox surface:
@@ -10,27 +10,27 @@
  * through the shared `bash-env` registry, and the bash marker/truncation
  * rendering story. UI presentation mirrors the bash tool's too: a completed
  * foreground call is a terminal card with the parsed exit-status pill, using
- * the shared exit-status parse from `@deepseek-ai/dsh-bash`.
+ * the shared exit-status parse from `@huiliyi37/dsh-bash`.
  *
- * @module @deepseek-ai/dsh-tool-pwsh
+ * @module @huiliyi37/dsh-tool-pwsh
  */
 
 import { isAbsolute, resolve as resolvePath } from 'node:path'
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import { defineTool, TOOL_ABORTED } from '@deepseek-ai/dsh-tools'
-import type { GenericCallView, TerminalCallView, ToolResult, ToolResultView } from '@deepseek-ai/dsh-tools'
-import { HarnessError } from '@deepseek-ai/dsh-llm'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import type {} from '@deepseek-ai/dsh-system-prompt'
-import type {} from '@deepseek-ai/dsh-tasks'
-import type {} from '@deepseek-ai/dsh-bash-env'
-import type { BashRunResult } from '@deepseek-ai/dsh-bash'
-import { parseExitStatus } from '@deepseek-ai/dsh-bash'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { defineTool, TOOL_ABORTED } from '@huiliyi37/dsh-tools'
+import type { GenericCallView, TerminalCallView, ToolResult, ToolResultView } from '@huiliyi37/dsh-tools'
+import { HarnessError } from '@huiliyi37/dsh-llm'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import type {} from '@huiliyi37/dsh-system-prompt'
+import type {} from '@huiliyi37/dsh-tasks'
+import type {} from '@huiliyi37/dsh-bash-env'
+import type { BashRunResult } from '@huiliyi37/dsh-bash'
+import { parseExitStatus } from '@huiliyi37/dsh-bash'
 import { processOutcome } from './background.ts'
 import { renderPwshProcessRead, renderPwshResult } from './render.ts'
 
-declare module '@deepseek-ai/dsh-tasks' {
+declare module '@huiliyi37/dsh-tasks' {
   interface TaskKindMap {
     pwsh: 'pwsh'
   }
@@ -238,7 +238,7 @@ export function apply(ctx: Context, config: Config = {}): void {
         }
         const tasks = ctx.get('tasks')
         if (tasks === undefined) {
-          throw new Error('background tasks unavailable: load @deepseek-ai/dsh-tasks and @deepseek-ai/dsh-tool-tasks')
+          throw new Error('background tasks unavailable: load @huiliyi37/dsh-tasks and @huiliyi37/dsh-tool-tasks')
         }
         // The caller owns cancellation until ctx.tasks commits detached ownership.
         /* v8 ignore start -- the bash twin's branch is exercised by its sandbox-approval mid-call abort;

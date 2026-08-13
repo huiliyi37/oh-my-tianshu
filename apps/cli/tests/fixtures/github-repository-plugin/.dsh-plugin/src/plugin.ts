@@ -1,4 +1,4 @@
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 
 const PROOF_TOOL_NAME = 'mcp__github_repository__proof'
 

@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-host-webserver
+# @huiliyi37/dsh-host-webserver
 
 English | [中文](README.zh.md)
 

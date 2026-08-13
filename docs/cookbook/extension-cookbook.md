@@ -13,8 +13,8 @@ A tool registers on `ctx.tools`. The annotated `defineTool` example (typed `exec
 This permission gate is one example of a hook plugin. It returns a typed decision from the `tools/pre-execute` gate to allow or deny a call; sandbox, permission, and plan-mode plugins can use this extension point. Hook plugins can intercept other extension points and are not inherently permission gates. A "native hook" is an ordinary Cordis plugin on an interception point; it needs no external protocol.
 
 ```ts
-import type { Context } from 'cordis'
-import type { PreToolDecision, ToolExecution } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@huiliyi37/cordis'
+import type { PreToolDecision, ToolExecution } from '@huiliyi37/dsh-tools'
 
 declare function isAllowed(exec: ToolExecution): Promise<boolean>
 
@@ -37,9 +37,9 @@ This waterfall is the reorderable policy layer. Use `ctx.tools.guard()` when an 
 A UI plugin renders from the `session/event` feed (the assistant token stream as `assistant/chunk`, plus turn/step boundaries and tool activity), and drives input back in via `agent.followup()` / `agent.steer()`. A browser plugin contributing a business row to the built-in Web Client instead registers a `ConversationNodeDefinition` and keyed Chat renderer; follow the [Conversation Node guide](adding-a-conversation-node.md).
 
 ```ts
-import type { Context } from 'cordis'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
+import { SessionId } from '@huiliyi37/dsh-session'
 
 declare function render(text: string): void
 declare function onUserInput(handler: (text: string) => void): void
@@ -67,7 +67,7 @@ A *protocol driver* adapts a wire peer to `ctx.agents`; it may serve a UI or an 
 [`packages/acp/acp`](../../packages/acp/acp) is the automation-only worked example: it exposes fresh text sessions over Agent Client Protocol JSON-RPC stdio, emits committed assistant text, and registers a one-shot machine permission answerer for agents it owns. Its [README](../../packages/acp/acp/README.md) owns the exact method and lifecycle contract.
 
 ```ts
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 
 export const name = 'my-protocol-bridge'
 export const inject = ['agents', 'sessions', 'sessionPersistence']
@@ -90,7 +90,7 @@ export function apply(ctx: Context) {
 
 ## Runnable wirings
 
-Runnable leaves load their plugin trees from `examples/*/cordis.yml`; the root `demo:*` scripts and those leaf directories are the authoritative inventory. The product `dsh` launcher owns Web and one-shot headless execution, ACP leaves use [`@deepseek-ai/dsh-acp-demo`](../../packages/examples/acp-demo), and JSON-RPC leaves use [`@deepseek-ai/dsh-jsonrpc-demo`](../../packages/examples/jsonrpc-demo). The headless snapshot leaf mounts [`@deepseek-ai/dsh-agent-spine-demo`](../../packages/examples/agent-spine-demo) and JSONL persistence explicitly, then drives them through an example-owned test fixture rather than a shipped app package.
+Runnable leaves load their plugin trees from `examples/*/cordis.yml`; the root `demo:*` scripts and those leaf directories are the authoritative inventory. The product `dsh` launcher owns Web and one-shot headless execution, ACP leaves use [`@huiliyi37/dsh-acp-demo`](../../packages/examples/acp-demo), and JSON-RPC leaves use [`@huiliyi37/dsh-jsonrpc-demo`](../../packages/examples/jsonrpc-demo). The headless snapshot leaf mounts [`@huiliyi37/dsh-agent-spine-demo`](../../packages/examples/agent-spine-demo) and JSONL persistence explicitly, then drives them through an example-owned test fixture rather than a shipped app package.
 
 ## The feature → mechanism map
 
@@ -116,7 +116,7 @@ Every product feature maps to a listener on a documented extension point — the
 | Monotonic terminal turn policy | call `ToolExecution.concludeTurn()` from the successful terminal tool; later tool calls in the same response remain guardable, and the loop stops after the step |
 | Subprocess sandbox (landlock / sandbox-exec) | use a `ctx.sandbox` backend through `dsh-bash-sandbox`; use `tools/pre-execute` for capability-level denial |
 | Permission system / AskUserQuestion | return `ask` from `tools/pre-execute` and answer through `ctx.approval`; register a separate model-facing ask tool for ordinary user questions |
-| Plan mode | Shipped: [`@deepseek-ai/dsh-plan-mode`](../../packages/plan/plan-mode/README.md) — logged `plan/mode` state, the `plan:policy` guidance section, `/plan [message]` entry, `/plan off` direct exit, and the user-reviewed `exit_plan_mode` exit; enforcement stays on the independent sandbox/approval axes |
+| Plan mode | Shipped: [`@huiliyi37/dsh-plan-mode`](../../packages/plan/plan-mode/README.md) — logged `plan/mode` state, the `plan:policy` guidance section, `/plan [message]` entry, `/plan off` direct exit, and the user-reviewed `exit_plan_mode` exit; enforcement stays on the independent sandbox/approval axes |
 | Sub-agent delegation | the `ctx.subagents` provider registry (`dsh-subagent-spawn`/`-fork`/`-acp`/`-codex`/`-claude-code`/`-dsh-sdk`) + `dsh-tool-subagent` exposing one configured provider to the model |
 | MCP | one plugin per server: discover tools → `ctx.tools.register()` |
 | Skills | section + tool registration; `inject()` skill content on invocation |

@@ -20,7 +20,7 @@ Type Driven Schema Validator.
 ### use as validator (JavaScript)
 
 ```js
-const Schema = require('schemastery')
+const Schema = require('@huiliyi37/schemastery')
 
 const validate = Schema.number().default(10)
 
@@ -32,7 +32,7 @@ validate('')    // TypeError
 ### use as constructor (TypeScript)
 
 ```ts
-import Schema from 'schemastery'
+import Schema from '@huiliyi37/schemastery'
 
 interface Config {
   foo: Record<string, string>

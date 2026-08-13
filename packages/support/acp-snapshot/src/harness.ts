@@ -13,7 +13,7 @@
  *
  * See .agents/notes/implemented/testing/2026-06-19-acp-snapshot-tests.md.
  *
- * @module @deepseek-ai/dsh-acp-snapshot/harness
+ * @module @huiliyi37/dsh-acp-snapshot/harness
  */
 
 import { cp, mkdtemp, readFile, readdir, rm } from 'node:fs/promises'

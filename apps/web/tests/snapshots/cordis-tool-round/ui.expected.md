@@ -7,10 +7,10 @@
 - text: "Use only Cordis tools. First call cordis_inspect with what \"temporary\". Then call cordis_mount with this exact code: \"return { name: \\\"snapshot-noop\\\", apply(ctx) {} }\". Read its returned id and call cordis_unmount with that exact id. After all three calls succeed, reply exactly CORDIS_UI_DONE and stop. {{clock}}"
 - button "Copy":
   - img
-- button "Context injection @deepseek-ai/dsh-system-prompt":
+- button "Context injection @huiliyi37/dsh-system-prompt":
   - img
   - img
-  - text: Context injection @deepseek-ai/dsh-system-prompt
+  - text: Context injection @huiliyi37/dsh-system-prompt
 - button "Think The user wants me to:":
   - img
   - img

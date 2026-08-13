@@ -23,7 +23,7 @@
  * 未知 callId 的 result 是 no-op（返回原状态引用）。
  */
 
-import type { CallId } from '@deepseek-ai/dsh-llm'
+import type { CallId } from '@huiliyi37/dsh-llm'
 
 /** 分组折叠的事件最小契约（投影输入；由调用方从 SessionEvent 提取）。
  *  - tool-call：必填 callId/turn/step/name/arguments（与 live.ts 提取一致）。

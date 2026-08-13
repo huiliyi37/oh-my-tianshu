@@ -25,7 +25,7 @@
  * 并发约束：单进程串行调用（TUI 命令与工具调用都走同事件循环）；跨进程
  * 并发写（两个 dsh 实例同 cwd）不在此保证——文档化限制。
  *
- * @module @deepseek-ai/dsh-memory/store
+ * @module @huiliyi37/dsh-memory/store
  */
 
 import { randomUUID } from 'node:crypto'

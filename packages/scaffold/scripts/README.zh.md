@@ -1,4 +1,4 @@
-# `@deepseek-ai/dsh-scripts`
+# `@huiliyi37/dsh-scripts`
 
 [English](README.md) | 中文
 
@@ -12,7 +12,7 @@
 | `dsh-sdk config` | 打开一个交互式编辑会话，审阅累计变更，统一提交一次；NPM 依赖变化时只安装一次 |
 | `dsh-sdk create <source>` | 从包管理器原生支持的来源（`pkg@version` 或 `github:owner/repo#ref`）添加外部 Cordis 插件：确认后执行 `<pm> add <source>`，再将解析出的依赖挂载到 `cordis.yml`。不使用 giget／pacote；由包管理器解析并固定来源（GitHub 依赖会在管理器策略下通过自身 `prepare` 构建） |
 
-`ProjectBuild(tsdownConfig)` 与 `PluginBuild(tsdownConfig)` 只从 `@deepseek-ai/dsh-scripts/dev/tsdown-config` 导出。开发环境与生产环境读取同一个 `cordis.yml`。
+`ProjectBuild(tsdownConfig)` 与 `PluginBuild(tsdownConfig)` 只从 `@huiliyi37/dsh-scripts/dev/tsdown-config` 导出。开发环境与生产环境读取同一个 `cordis.yml`。
 
 生成项目的脚本通过 `dsh-sdk` 执行 dev、build、start 和 config；类型检查直接运行 `tsc -b`。HMR（热模块替换）始终是显式的 `cordis.yml` 功能，并由 dev 与 start 同时加载。
 

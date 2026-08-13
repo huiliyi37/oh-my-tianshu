@@ -5,8 +5,8 @@
  * contract in ./contract.ts; sources register through ctx.slash alone.
  */
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
-import type {} from '@deepseek-ai/dsh-client-locale/client'
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type {} from '@huiliyi37/dsh-client-locale/client'
+import type { ClientContext } from '@huiliyi37/dsh-client-runtime/client'
 import { SlashService } from './service.ts'
 import type { MenuViewInjected } from './slots.ts'
 import { MenuView } from './MenuView.tsx'
@@ -27,14 +27,14 @@ export type {
 export type { DetectTrigger, ExactMatch, MenuEvent, MenuReduce, MenuState, TriggerHit } from '../core/contract.ts'
 export type { SlashServiceContract } from './contract.ts'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     /** The outward face only; the concrete service stays inside this plugin. */
     slash: import('./contract.ts').SlashServiceContract
   }
 }
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@huiliyi37/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** The candidate menu's copy: group titles keyed by source name, the pending row, and the listbox aria. */
     'slash.menu': MenuKey

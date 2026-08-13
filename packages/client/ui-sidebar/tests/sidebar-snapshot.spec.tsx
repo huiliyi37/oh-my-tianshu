@@ -10,9 +10,9 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, waitFor } from '@testing-library/react'
-import { SlotTestRuntime, usePinnedBrowserLanguages } from '@deepseek-ai/dsh-client-test-runtime'
-import { LocaleService } from '@deepseek-ai/dsh-client-locale/client'
-import { apply, inject } from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import { SlotTestRuntime, usePinnedBrowserLanguages } from '@huiliyi37/dsh-client-test-runtime'
+import { LocaleService } from '@huiliyi37/dsh-client-locale/client'
+import { apply, inject } from '@huiliyi37/dsh-client-ui-sidebar/client'
 
 // The service reads its initial locale from the browser; these specs assert
 // the shipped Chinese copy, so they state the browser they assume.

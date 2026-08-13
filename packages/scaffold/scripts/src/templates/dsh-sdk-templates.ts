@@ -1,10 +1,10 @@
 /**
  * Package-owned terminal templates for the dsh-sdk launcher.
  *
- * @module @deepseek-ai/dsh-scripts/templates/dsh-sdk-templates
+ * @module @huiliyi37/dsh-scripts/templates/dsh-sdk-templates
  */
 
-import { TextTemplate, type PackageManagerName } from '@deepseek-ai/dsh-helper'
+import { TextTemplate, type PackageManagerName } from '@huiliyi37/dsh-helper'
 
 interface ConfigInstallFailureTemplateModel {
   error: string

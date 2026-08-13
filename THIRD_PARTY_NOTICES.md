@@ -18,12 +18,12 @@ The Cordis framework and its foundation libraries are source-vendored into this 
 | `cosmokit` | [github.com/deepseek-harness/cosmokit](https://github.com/deepseek-harness/cosmokit) | MIT |
 | `schemastery` | [github.com/deepseek-harness/schemastery](https://github.com/deepseek-harness/schemastery) | MIT |
 | `cordis` | [github.com/cordiverse/cordis](https://github.com/cordiverse/cordis) | MIT |
-| `@cordisjs/plugin-loader` | [github.com/cordiverse/cordis](https://github.com/cordiverse/cordis) | MIT |
-| `@cordisjs/plugin-include` | [github.com/deepseek-harness/cordis](https://github.com/deepseek-harness/cordis) | MIT |
-| `@cordisjs/plugin-group` | [github.com/deepseek-harness/cordis](https://github.com/deepseek-harness/cordis) | MIT |
-| `@cordisjs/plugin-timer` | [github.com/deepseek-harness/cordis](https://github.com/deepseek-harness/cordis) | MIT |
-| `@cordisjs/plugin-hmr` | [github.com/deepseek-harness/cordis](https://github.com/deepseek-harness/cordis) | MIT |
-| `@cordisjs/plugin-logger-console` | [github.com/deepseek-harness/cordis](https://github.com/deepseek-harness/cordis) | MIT |
+| `@huiliyi37/cordis-plugin-loader` | [github.com/cordiverse/cordis](https://github.com/cordiverse/cordis) | MIT |
+| `@huiliyi37/cordis-plugin-include` | [github.com/deepseek-harness/cordis](https://github.com/deepseek-harness/cordis) | MIT |
+| `@huiliyi37/cordis-plugin-group` | [github.com/deepseek-harness/cordis](https://github.com/deepseek-harness/cordis) | MIT |
+| `@huiliyi37/cordis-plugin-timer` | [github.com/deepseek-harness/cordis](https://github.com/deepseek-harness/cordis) | MIT |
+| `@huiliyi37/cordis-plugin-hmr` | [github.com/deepseek-harness/cordis](https://github.com/deepseek-harness/cordis) | MIT |
+| `@huiliyi37/cordis-plugin-logger-console` | [github.com/deepseek-harness/cordis](https://github.com/deepseek-harness/cordis) | MIT |
 
 ## Runtime npm dependencies
 
@@ -197,4 +197,4 @@ Direct dependencies of the `pyproject.toml` manifests, plus `uv` as the developm
 
 ## First-party native packages
 
-`@deepseek-ai/node-addon-landlock-run` (and its platform packages) is built and released from this repository under BSD 3-Clause. It is listed here for completeness; it is first-party, not third-party.
+`@huiliyi37/node-addon-landlock-run` (and its platform packages) is built and released from this repository under BSD 3-Clause. It is listed here for completeness; it is first-party, not third-party.

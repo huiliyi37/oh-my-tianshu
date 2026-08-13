@@ -1,6 +1,6 @@
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it } from 'vitest'
-import type { SessionId, WorkspaceId, WorkspaceView } from '@deepseek-ai/dsh-client-connection/client'
+import type { SessionId, WorkspaceId, WorkspaceView } from '@huiliyi37/dsh-client-connection/client'
 import { SessionsService } from '../src/client/sessions/service.ts'
 import { WorkspaceManager } from '../src/client/workspaces/manager.ts'
 import { DirectoryBrowseError, WorkspaceCreateError, WorkspacesService } from '../src/client/workspaces/service.ts'

@@ -1,25 +1,25 @@
 /**
  * Shared route, framing, timeout, assembly, and validation policy for
  * model-backed session-title providers.
- * @module @deepseek-ai/dsh-session-title-llm
+ * @module @huiliyi37/dsh-session-title-llm
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import { createUserMessage, BlockAssembler, deepFreeze } from '@deepseek-ai/dsh-llm'
-import type { FinishReason, GenerateOptions, Message } from '@deepseek-ai/dsh-llm'
-import { deadline, MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { createUserMessage, BlockAssembler, deepFreeze } from '@huiliyi37/dsh-llm'
+import type { FinishReason, GenerateOptions, Message } from '@huiliyi37/dsh-llm'
+import { deadline, MAX_TIMER_DELAY_MS } from '@huiliyi37/dsh-timeout'
 import {
   normalizeSessionTitle,
   SessionTitleProviderId,
-} from '@deepseek-ai/dsh-session-title'
+} from '@huiliyi37/dsh-session-title'
 import type {
   SessionTitleAutomaticMode,
   SessionTitleModelProvenance,
   SessionTitleProviderRequest,
   SessionTitleProviderResult,
   SessionTitleUserMessage,
-} from '@deepseek-ai/dsh-session-title'
+} from '@huiliyi37/dsh-session-title'
 
 /** Exact model-visible request recorded before one auxiliary title dispatch. */
 export interface SessionTitleLlmRequestEventData {
@@ -37,7 +37,7 @@ export interface SessionTitleLlmRequestEventData {
   readonly maxTokens: number
 }
 
-declare module '@deepseek-ai/dsh-session/types' {
+declare module '@huiliyi37/dsh-session/types' {
   interface SessionEventMap {
     /** Log-only pre-dispatch record of one session-title model request. */
     'session/title-llm-request': SessionTitleLlmRequestEventData

@@ -13,13 +13,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import Include from '@cordisjs/plugin-include'
-import LlmService from '@deepseek-ai/dsh-llm'
-import CredentialsLocal from '@deepseek-ai/dsh-credentials-local'
-import SettingsLocal from '@deepseek-ai/dsh-settings-local'
-import * as LlmPiAi from '@deepseek-ai/dsh-llm-pi-ai'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import Include from '@huiliyi37/cordis-plugin-include'
+import LlmService from '@huiliyi37/dsh-llm'
+import CredentialsLocal from '@huiliyi37/dsh-credentials-local'
+import SettingsLocal from '@huiliyi37/dsh-settings-local'
+import * as LlmPiAi from '@huiliyi37/dsh-llm-pi-ai'
 import { assemble } from './assemble.ts'
 import { closeMockServers, mockServer, textEvents } from './mock-server.ts'
 
@@ -47,17 +47,17 @@ async function loadComposition(): Promise<{ ctx: Context; settingsPath: string }
     '- id: llm',
     "  name: 'test-llm-service'",
     '- id: settings',
-    "  name: '@deepseek-ai/dsh-settings-local'",
+    "  name: '@huiliyi37/dsh-settings-local'",
     '  config:',
     `    path: ${JSON.stringify(settingsPath)}`,
     '    debounceMs: 10',
     '- id: credentials',
-    "  name: '@deepseek-ai/dsh-credentials-local'",
+    "  name: '@huiliyi37/dsh-credentials-local'",
     '  config:',
     `    path: ${JSON.stringify(join(root, '.credentials.yaml'))}`,
     '    debounceMs: 10',
     '- id: llm-pi-ai',
-    "  name: '@deepseek-ai/dsh-llm-pi-ai'",
+    "  name: '@huiliyi37/dsh-llm-pi-ai'",
     '',
   ].join('\n'))
 
@@ -68,9 +68,9 @@ async function loadComposition(): Promise<{ ctx: Context; settingsPath: string }
   ctx.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
     ['test-llm-service', LlmService],
-    ['@deepseek-ai/dsh-settings-local', SettingsLocal],
-    ['@deepseek-ai/dsh-credentials-local', CredentialsLocal],
-    ['@deepseek-ai/dsh-llm-pi-ai', LlmPiAi],
+    ['@huiliyi37/dsh-settings-local', SettingsLocal],
+    ['@huiliyi37/dsh-credentials-local', CredentialsLocal],
+    ['@huiliyi37/dsh-llm-pi-ai', LlmPiAi],
   ])
   ctx.loader.internal = {
     version: 'v2',

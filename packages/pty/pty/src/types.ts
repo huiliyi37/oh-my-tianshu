@@ -1,11 +1,11 @@
 /**
  * Types shared by PTY backends, the owner-scoped registry, and tool consumers.
  * Runtime service code lives in `./index.ts`.
- * @module @deepseek-ai/dsh-pty/types
+ * @module @huiliyi37/dsh-pty/types
  */
 
-import type { Branded } from '@deepseek-ai/dsh-brand'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { Branded } from '@huiliyi37/dsh-brand'
+import type { Agent } from '@huiliyi37/dsh-agent'
 
 /** Internal exported basis for the public `PtySessionId` type/value pair. */
 export type PtySessionIdValue = Branded<'PtySessionId'>
@@ -31,7 +31,7 @@ export type PtyWaitReason = 'stdin_read' | 'inferred_idle' | 'timeout' | 'sessio
 /**
  * Signals the model-facing PTY surface permits for foreground process groups.
  * Kept member-identical to `SubprocessTerminalSignal` in
- * `@deepseek-ai/dsh-subprocess` without a cross-seam dependency; change both together.
+ * `@huiliyi37/dsh-subprocess` without a cross-seam dependency; change both together.
  */
 export type PtySignal = 'SIGINT' | 'SIGTERM' | 'SIGKILL' | 'SIGTSTP' | 'SIGHUP'
 

@@ -1,15 +1,15 @@
 // Sessions remain resident after creation so they continue consuming mux frames off-screen.
 
-import type { Context } from 'cordis'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm/types'
-import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
+import type { Context } from '@huiliyi37/cordis'
+import type { ContentBlock } from '@huiliyi37/dsh-llm/types'
+import type { SessionEvent } from '@huiliyi37/dsh-session/types'
 import type {
   HistoryEntry, IApiClient, MessageId, MuxFrame, QueueAction, RpcError,
   RpcId, RpcResponse, RpcResult, SessionId, SubagentAddress, ToolEventView,
-} from '@deepseek-ai/dsh-client-connection/client'
+} from '@huiliyi37/dsh-client-connection/client'
 // Value import from the inline-safe wire layer (not the connection plugin):
 // plugin-to-plugin value imports are a bundle purity error.
-import { transportError } from '@deepseek-ai/dsh-host-apiproxy/api'
+import { transportError } from '@huiliyi37/dsh-host-apiproxy/api'
 import type { SessionFace } from '../contract/session.ts'
 import { ConversationNodeAssembler } from './conversation-assembler.ts'
 import type { ConversationRuntime } from './conversation-assembler.ts'

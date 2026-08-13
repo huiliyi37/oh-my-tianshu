@@ -17,22 +17,22 @@
  * - **非 spark 零注入**：route 判定走 request/header 折叠（provider），首个请求前
  *   经 agentDefaultModel 兜底；非 spark route 不注入。
  *
- * @module @deepseek-ai/dsh-spark-anchors
+ * @module @huiliyi37/dsh-spark-anchors
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type { Agent, PreStepDecision } from '@huiliyi37/dsh-agent'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
 import {
   extractExcludedClaims,
   resolveTruncateN,
   truncateCutStart,
   SPARK_PROVIDER,
-} from '@deepseek-ai/dsh-llm-deepseek'
-import type { SparkTruncatePolicy } from '@deepseek-ai/dsh-llm-deepseek'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
+} from '@huiliyi37/dsh-llm-deepseek'
+import type { SparkTruncatePolicy } from '@huiliyi37/dsh-llm-deepseek'
+import { settingsNamespace } from '@huiliyi37/dsh-settings'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
 
 /** Cordis plugin name（session 事件的 source.plugin 标记）。 */
 export const name = 'spark-anchors'

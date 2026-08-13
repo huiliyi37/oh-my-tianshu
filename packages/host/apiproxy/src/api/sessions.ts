@@ -4,17 +4,17 @@
  * else references RequestPayload<'session.*'> / ResponseValue<'session.*'>.
  */
 
-import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm/types'
-import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session/types'
+import type { MessageId } from '@huiliyi37/dsh-llm/brand'
+import type { ContentBlock } from '@huiliyi37/dsh-llm/types'
+import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session/types'
 // The pure-type outlet: api/ is browser-importable, and the package root's
 // cordis Context merge (via dsh-agent) must not enter client aggregates.
-import type { SessionProjectionMap } from '@deepseek-ai/dsh-session-projection/types'
+import type { SessionProjectionMap } from '@huiliyi37/dsh-session-projection/types'
 import type { RpcId, RpcRequest, RpcResponse } from './rpc.ts'
 import type { ToolEventView } from './events.ts'
 import type { WorkspaceId } from './workspace.ts'
 
-declare module '@deepseek-ai/dsh-llm' {
+declare module '@huiliyi37/dsh-llm' {
   interface MessageSourceMap {
     /**
      * The prompt's rpcId is passed through MessageSource into the `user/message` event

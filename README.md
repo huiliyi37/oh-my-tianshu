@@ -125,7 +125,7 @@ Tool approvals prompt inline as `⚠ 允许执行 …？[y/N]` with a unified di
 ```yaml
 # cordis.yml
 - id: vision-bridge
-  name: '@deepseek-ai/dsh-vision-bridge'
+  name: '@huiliyi37/dsh-vision-bridge'
   config:
     provider: deepseek-official   # any registered llm route that can see images
     model: <vision-capable model>

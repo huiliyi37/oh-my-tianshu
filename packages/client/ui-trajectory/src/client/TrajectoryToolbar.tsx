@@ -1,6 +1,6 @@
 /** Trajectory toolbar: timeline and ledger fold controls. */
 
-import { IconSearchOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconSearchOutline16 } from '@huiliyi37/dsh-client-ui-primitives'
 import css from './TrajectoryToolbar.module.css'
 
 export interface TrajectoryToolbarProps {

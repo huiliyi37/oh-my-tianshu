@@ -1,7 +1,7 @@
 /**
  * Tree-shaped existing-project feature workflow and single Apply boundary.
  *
- * @module @deepseek-ai/dsh-scripts/config/config-workflow
+ * @module @huiliyi37/dsh-scripts/config/config-workflow
  */
 
 import type { Writable } from 'node:stream'
@@ -19,7 +19,7 @@ import {
   type PromptPort,
   type RunInterface,
   type SdkProject,
-} from '@deepseek-ai/dsh-helper'
+} from '@huiliyi37/dsh-helper'
 import { DSH_SDK_TEMPLATES } from '../templates/dsh-sdk-templates.ts'
 
 /** Config result, including an install failure that happened after commit. */

@@ -31,7 +31,7 @@ The config-driven `ctx.agentLoop.create()` path keeps its agent owned by the loo
 
 ### Invariant companion
 
-The optional `@deepseek-ai/dsh-agent-loop/invariant` companion registers request reconstruction with `ctx.invariants`. The loop records each exact frozen request in the process-local identity set owned by `dsh-llm`; the companion then requires a live session and independently rebuilds the message boundary and folded request header from the log. Direct one-shot calls remain outside this contract even when callers freeze them or attach a session id.
+The optional `@huiliyi37/dsh-agent-loop/invariant` companion registers request reconstruction with `ctx.invariants`. The loop records each exact frozen request in the process-local identity set owned by `dsh-llm`; the companion then requires a live session and independently rebuilds the message boundary and folded request header from the log. Direct one-shot calls remain outside this contract even when callers freeze them or attach a session id.
 
 ### Configuration (schemastery)
 

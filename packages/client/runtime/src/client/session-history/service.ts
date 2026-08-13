@@ -1,7 +1,7 @@
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import type {
   HostFrame, IApiClient, MuxFrame, RpcRequest, SessionId,
-} from '@deepseek-ai/dsh-client-connection/client'
+} from '@huiliyi37/dsh-client-connection/client'
 import type {
   ISessionHistory, SessionHistoryFace,
 } from '../contract/session-history.ts'

@@ -5,8 +5,8 @@
  * `agent-busy` and retain their dedicated continuation owner.
  */
 
-import type { CommandId } from '@deepseek-ai/dsh-commands/brand'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { CommandId } from '@huiliyi37/dsh-commands/brand'
+import type { SessionId } from '@huiliyi37/dsh-session/types'
 import type { RpcRequest, RpcResponse } from './rpc.ts'
 
 /**

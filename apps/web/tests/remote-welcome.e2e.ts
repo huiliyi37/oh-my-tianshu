@@ -8,7 +8,7 @@ import {
   type WebScaffold,
 } from './scaffold.ts'
 import { ZH_BROWSER_LOCALE } from './support.ts'
-import { WELCOME_NOTICE_COPY } from '@deepseek-ai/dsh-client-ui-settings-general'
+import { WELCOME_NOTICE_COPY } from '@huiliyi37/dsh-client-ui-settings-general'
 
 const MODE = webSnapshotMode()
 

@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-tool-subagent
+# @huiliyi37/dsh-tool-subagent
 
 [English](README.md) | 中文
 

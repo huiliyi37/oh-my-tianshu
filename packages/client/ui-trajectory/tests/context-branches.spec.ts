@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type {
   ConversationContext, ConversationNode, RequestView,
-} from '@deepseek-ai/dsh-client-runtime/client'
+} from '@huiliyi37/dsh-client-runtime/client'
 import {
   deriveTrajectoryContextBranches,
   trajectoryBranchContainsRequest,

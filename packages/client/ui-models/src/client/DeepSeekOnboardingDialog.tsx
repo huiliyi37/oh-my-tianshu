@@ -6,9 +6,9 @@
 
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
-import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { BrandWordmark, Button, OnboardingSurface } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-web-react'
+import type { PropsRuntime } from '@huiliyi37/dsh-client-ui-slots'
+import { BrandWordmark, Button, OnboardingSurface } from '@huiliyi37/dsh-client-ui-primitives'
+import type { SnapshotSelectorHook } from '@huiliyi37/dsh-client-web-react'
 import type { ModelsSettingsState, ModelsSettingsStore } from './store.ts'
 import { deepSeekReadiness } from './store.ts'
 import type { en } from './locales.ts'

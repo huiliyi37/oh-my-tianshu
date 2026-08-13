@@ -16,14 +16,14 @@
  *   （装配方派生）；无桥且主控不识图时 TUI 提交侧已过滤图片（气泡警告），
  *   本插件只处理"有桥"一态。
  *
- * @module @deepseek-ai/dsh-vision-bridge
+ * @module @huiliyi37/dsh-vision-bridge
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import type { PreStepDecision } from '@deepseek-ai/dsh-agent'
-import { BlockAssembler, createUserMessage, LlmError } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock, GenerateOptions, UserMessage } from '@deepseek-ai/dsh-llm'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type { PreStepDecision } from '@huiliyi37/dsh-agent'
+import { BlockAssembler, createUserMessage, LlmError } from '@huiliyi37/dsh-llm'
+import type { ContentBlock, GenerateOptions, UserMessage } from '@huiliyi37/dsh-llm'
 
 /** Cordis plugin name（session 事件的 source.plugin 标记）。 */
 export const name = 'vision-bridge'

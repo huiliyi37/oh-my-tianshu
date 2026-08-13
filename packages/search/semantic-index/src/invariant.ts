@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-semantic-index`.
- * @module @deepseek-ai/dsh-semantic-index/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-semantic-index`.
+ * @module @huiliyi37/dsh-semantic-index/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-semantic-index'
+const PACKAGE_NAME = '@huiliyi37/dsh-semantic-index'
 
 /** Cordis companion plugin name. */
 export const name = 'semantic-index-invariant'
@@ -18,7 +18,7 @@ export const inject = ['invariants']
  * No runtime invariant: this pure library owns no event stream or mutable
  * runtime data — BM25/RRF/salience algebra and the index's own persisted-file
  * state are enforced by unit tests; the tool-side assembly relationship is
- * asserted by `@deepseek-ai/dsh-tool-semantic-search`'s invariant.
+ * asserted by `@huiliyi37/dsh-tool-semantic-search`'s invariant.
  */
 const install: InvariantInstaller = () => {}
 

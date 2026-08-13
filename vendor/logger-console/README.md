@@ -1,12 +1,12 @@
-# @cordisjs/plugin-logger-console
+# @huiliyi37/cordis-plugin-logger-console
 
 Console exporter for the built-in Cordis logger service.
 
 ## Usage
 
 ```ts
-import { Context } from 'cordis'
-import ConsoleLogger from '@cordisjs/plugin-logger-console'
+import { Context } from '@huiliyi37/cordis'
+import ConsoleLogger from '@huiliyi37/cordis-plugin-logger-console'
 
 const root = new Context()
 await root.plugin(ConsoleLogger, {

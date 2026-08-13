@@ -1,5 +1,5 @@
-import type { ToolSchema } from '@deepseek-ai/dsh-llm/types'
-import type { HistoryEntry } from '@deepseek-ai/dsh-client-connection/client'
+import type { ToolSchema } from '@huiliyi37/dsh-llm/types'
+import type { HistoryEntry } from '@huiliyi37/dsh-client-connection/client'
 import type {
   ConversationNode, PartialAssistant, RunningToolCall,
 } from './conversation.ts'

@@ -1,10 +1,10 @@
-/** Package-owned invariant companion for `@deepseek-ai/dsh-api-remotes`. */
+/** Package-owned invariant companion for `@huiliyi37/dsh-api-remotes`. */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-api-remotes'
+const PACKAGE_NAME = '@huiliyi37/dsh-api-remotes'
 
 /** Cordis companion plugin name. */
 export const name = 'api-remotes-invariant'

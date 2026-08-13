@@ -5,7 +5,7 @@
  * resolved differently from the code under test could exempt a file whose
  * suites actually run.
  *
- * @module @deepseek-ai/dsh-pwsh-local/resolve
+ * @module @huiliyi37/dsh-pwsh-local/resolve
  */
 
 import { existsSync } from 'node:fs'

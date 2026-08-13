@@ -5,10 +5,10 @@
  */
 import type {
   ConversationNodeDefinition, ToolResultNode,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import { isAppendSurfaceEvent } from '@deepseek-ai/dsh-client-runtime/client'
-import type { MarkdownFileMentions } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { TurnTailOwnerProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
+} from '@huiliyi37/dsh-client-runtime/client'
+import { isAppendSurfaceEvent } from '@huiliyi37/dsh-client-runtime/client'
+import type { MarkdownFileMentions } from '@huiliyi37/dsh-client-ui-primitives'
+import type { TurnTailOwnerProps } from '@huiliyi37/dsh-client-ui-conversation/client'
 
 interface ProducedPath {
   readonly seq: number
@@ -20,7 +20,7 @@ export interface DeliverablesTurnData {
   readonly produced: readonly ProducedPath[]
 }
 
-declare module '@deepseek-ai/dsh-client-runtime/client' {
+declare module '@huiliyi37/dsh-client-runtime/client' {
   interface ConversationTurnDataMap {
     /** Successful mutation paths accumulated in this Turn. */
     deliverables: DeliverablesTurnData

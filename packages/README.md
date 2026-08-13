@@ -2,11 +2,11 @@
 
 English | [中文](README.zh.md)
 
-Packages use the `@deepseek-ai/dsh-*` scope. Cordis `Service` subclasses and function plugins contribute through `ctx.effect()`, `ctx.on()`, or `ctx.waterfall()`. Authoring rules: [package](AGENTS.md) and [root](../AGENTS.md#conventions).
+Packages use the `@huiliyi37/dsh-*` scope. Cordis `Service` subclasses and function plugins contribute through `ctx.effect()`, `ctx.on()`, or `ctx.waterfall()`. Authoring rules: [package](AGENTS.md) and [root](../AGENTS.md#conventions).
 
 ## Hierarchy
 
-Groups hold `packages/<group>/<pkg>/`; names stay `@deepseek-ai/dsh-<pkg>`. **Group READMEs own package/ctx-key maps.**
+Groups hold `packages/<group>/<pkg>/`; names stay `@huiliyi37/dsh-<pkg>`. **Group READMEs own package/ctx-key maps.**
 
 | Group | Role | Release expectation |
 |---|---|---|

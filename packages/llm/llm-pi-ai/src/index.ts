@@ -11,7 +11,7 @@
  *
  * ```yaml
  * - id: llm
- *   name: '@deepseek-ai/dsh-llm-pi-ai'
+ *   name: '@huiliyi37/dsh-llm-pi-ai'
  *   config:
  *     providers:
  *       # Catalog route: everything but the credential comes from pi-ai.
@@ -52,14 +52,14 @@
  *               max: ultra
  * ```
  *
- * @module @deepseek-ai/dsh-llm-pi-ai
+ * @module @huiliyi37/dsh-llm-pi-ai
  */
 
-import type { Context } from 'cordis'
-import { environmentOf } from '@deepseek-ai/dsh-environment'
-import { assertUsableApiKey, LlmError } from '@deepseek-ai/dsh-llm'
-import type { AdapterRegistrationHandle, DirectoryRegistrationHandle, LlmConfigurableProvider } from '@deepseek-ai/dsh-llm'
-import { deepEqualJson, installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
+import type { Context } from '@huiliyi37/cordis'
+import { environmentOf } from '@huiliyi37/dsh-environment'
+import { assertUsableApiKey, LlmError } from '@huiliyi37/dsh-llm'
+import type { AdapterRegistrationHandle, DirectoryRegistrationHandle, LlmConfigurableProvider } from '@huiliyi37/dsh-llm'
+import { deepEqualJson, installSettingsSection, settingsNamespace } from '@huiliyi37/dsh-settings'
 import { PiAiAdapter } from './adapter.ts'
 import { catalogProviderIds } from './catalog.ts'
 import { assertServiceable, Config, resolveProfiles } from './config.ts'

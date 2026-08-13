@@ -5,13 +5,13 @@
  * counterpart, C6 benchmark). This is the consumer layer of the git seam: it
  * owns the tool name, JSON schema, argument validation, prompt section, and
  * result formatting, and executes through the `ctx.git` provider contract
- * (@deepseek-ai/dsh-git) — the tool never touches git subprocesses directly.
+ * (@huiliyi37/dsh-git) — the tool never touches git subprocesses directly.
  *
- * @module @deepseek-ai/dsh-tool-git
+ * @module @huiliyi37/dsh-tool-git
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 import { applyGitTool } from './git.ts'
 
 export const name = 'tool-git'

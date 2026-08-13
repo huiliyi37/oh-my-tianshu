@@ -1,12 +1,12 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-frontend-static`.
- * @module @deepseek-ai/dsh-frontend-static/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-frontend-static`.
+ * @module @huiliyi37/dsh-frontend-static/invariant
  */
 
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-frontend-static'
+const PACKAGE_NAME = '@huiliyi37/dsh-frontend-static'
 
 /** Cordis companion plugin name. */
 export const name = 'frontend-static-invariant'

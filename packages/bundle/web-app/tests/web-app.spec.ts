@@ -9,9 +9,9 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import type { HttpServerService } from '@deepseek-ai/dsh-host-webserver'
+import { Context } from '@huiliyi37/cordis'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import type { HttpServerService } from '@huiliyi37/dsh-host-webserver'
 import { apply, Config, internals } from '../src/index.ts'
 
 let dist: string | undefined

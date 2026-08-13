@@ -1,17 +1,17 @@
 /**
  * Execution types for the bash executor seam. Background task semantics belong
- * to `@deepseek-ai/dsh-tasks`; this seam exposes only process handles. The
+ * to `@huiliyi37/dsh-tasks`; this seam exposes only process handles. The
  * managed-environment and captured-output vocabulary is owned by the
  * subprocess seam and re-exported here so bash consumers keep one import
  * root.
  * @module dsh-bash/types
  */
 
-import type { SandboxEnforcement, SandboxExecutionPolicy, SandboxMode } from '@deepseek-ai/dsh-sandbox'
-import type { CollectedOutput, DshEnvironment } from '@deepseek-ai/dsh-subprocess'
+import type { SandboxEnforcement, SandboxExecutionPolicy, SandboxMode } from '@huiliyi37/dsh-sandbox'
+import type { CollectedOutput, DshEnvironment } from '@huiliyi37/dsh-subprocess'
 
-export { DSH_ENV_PREFIX } from '@deepseek-ai/dsh-subprocess'
-export type { CollectedOutput, DshEnvironment, DshEnvironmentKey } from '@deepseek-ai/dsh-subprocess'
+export { DSH_ENV_PREFIX } from '@huiliyi37/dsh-subprocess'
+export type { CollectedOutput, DshEnvironment, DshEnvironmentKey } from '@huiliyi37/dsh-subprocess'
 
 /**
  * Sandbox facts for one run, present iff a sandboxing executor handled it.

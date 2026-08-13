@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-api-remotes
+# @huiliyi37/dsh-api-remotes
 
 English | [中文](README.zh.md)
 
@@ -6,7 +6,7 @@ Two-sided BFF for Host Remote capabilities selected by this application. The Hos
 
 `createApiRemoteAgentResolver()` reuses live Agents, resumes ordinary cold sessions, deduplicates concurrent resumes, preserves the subagent ownership fence, and configures the same resolver for TypeRT `agent` and `session` lookups. The standard Web API Proxy supplies its Agent defaults and scope setup, then uses the returned resolver for legacy methods, so migrated and unmigrated methods share one policy implementation.
 
-The current Client assembly mounts only the Goal Remote contribution. Cordis effect ownership withdraws every contribution when this assembly unloads, while `@deepseek-ai/dsh-api-gateway/client` owns descriptor validation, traced namespace Services, direct and scoped methods, invocation, and cancellation. The Client entry consumes the shared `TypeRTClientRemote` interface through Cordis and does not import the concrete Gateway.
+The current Client assembly mounts only the Goal Remote contribution. Cordis effect ownership withdraws every contribution when this assembly unloads, while `@huiliyi37/dsh-api-gateway/client` owns descriptor validation, traced namespace Services, direct and scoped methods, invocation, and cancellation. The Client entry consumes the shared `TypeRTClientRemote` interface through Cordis and does not import the concrete Gateway.
 
 This package contains no transport or Host service discovery logic. Its Client face can be reused by Web or a future TUI that provides the same React-free `ctx.remote` contract.
 

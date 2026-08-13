@@ -2,7 +2,7 @@
 
 [English](adding-a-package.md) | 中文
 
-为新建 `@deepseek-ai/dsh-<name>` 包提供的逐文件清单。本清单以 bash 和 adapter 这两个包为模板进行验证；如果清单与模板有出入，请在此修正。
+为新建 `@huiliyi37/dsh-<name>` 包提供的逐文件清单。本清单以 bash 和 adapter 这两个包为模板进行验证；如果清单与模板有出入，请在此修正。
 
 ## 1. 创建包
 
@@ -30,7 +30,7 @@ package.json 不变式（由 `pnpm run constraints` / `scripts/check-workspace-c
 
 | 文件 | 变更 |
 |---|---|
-| `tsconfig.base.json` | 已有分组无需编辑；新分组需为 `@deepseek-ai/dsh-*` 通配符添加 `./packages/<group>/*/src` 候选路径 |
+| `tsconfig.base.json` | 已有分组无需编辑；新分组需为 `@huiliyi37/dsh-*` 通配符添加 `./packages/<group>/*/src` 候选路径 |
 | `tsconfig.host.json`（Host 包）或 `tsconfig.client.json`（Client 包） | 在 `references` 中添加 `{ "path": "./packages/<group>/<pkg>" }`——普通包恰好属于一个 aggregate，绝不两个都加。`api/remotes` 因 Host 生成约定与 Client 消费约定之间存在顺序依赖而使用仓库专属拆分，新增包不得仿照（[布局](../development.md#typescript-project-layout)） |
 | `knip.json` | 仅当包有仓库发现机制尚未覆盖的入口时需要 |
 

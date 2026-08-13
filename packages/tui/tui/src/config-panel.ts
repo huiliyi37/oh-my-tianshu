@@ -19,7 +19,7 @@
  * TuiApp 消费三个投影快照，/config 命令切换显隐，行渲染进 live 区（接线由
  * 其他维度独占）。
  *
- * @module @deepseek-ai/dsh-tui/config-panel
+ * @module @huiliyi37/dsh-tui/config-panel
  */
 
 import { displayWidth } from './width.js'

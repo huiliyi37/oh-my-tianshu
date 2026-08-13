@@ -5,21 +5,21 @@
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { stat } from 'node:fs/promises'
-import AgentRegistry from '@deepseek-ai/dsh-agent'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import SessionStore from '@deepseek-ai/dsh-session'
-import type { SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
-import UserInteractionService from '@deepseek-ai/dsh-user-interaction'
+import AgentRegistry from '@huiliyi37/dsh-agent'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
+import SessionStore from '@huiliyi37/dsh-session'
+import type { SessionHeader, SessionId } from '@huiliyi37/dsh-session'
+import UserInteractionService from '@huiliyi37/dsh-user-interaction'
 import {
   SessionQueryError,
   type SessionSearchHit,
   type SessionSearchRequest,
-} from '@deepseek-ai/dsh-session-query'
-import type { RpcRequest } from '@deepseek-ai/dsh-host-apiproxy/api'
-import { RpcId } from '@deepseek-ai/dsh-host-apiproxy/api'
-import { createApiProxy } from '@deepseek-ai/dsh-host-apiproxy'
+} from '@huiliyi37/dsh-session-query'
+import type { RpcRequest } from '@huiliyi37/dsh-host-apiproxy/api'
+import { RpcId } from '@huiliyi37/dsh-host-apiproxy/api'
+import { createApiProxy } from '@huiliyi37/dsh-host-apiproxy'
 
 vi.mock('node:fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs/promises')>()

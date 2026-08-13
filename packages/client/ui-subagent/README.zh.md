@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-client-ui-subagent
+# @huiliyi37/dsh-client-ui-subagent
 
 [English](README.md) | 中文
 

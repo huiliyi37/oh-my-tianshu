@@ -4,7 +4,7 @@
  */
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { LOADER_SMOKE_TEST_TIMEOUT_MS, runLoaderSmoke } from '@deepseek-ai/dsh-loader-smoke'
+import { LOADER_SMOKE_TEST_TIMEOUT_MS, runLoaderSmoke } from '@huiliyi37/dsh-loader-smoke'
 
 const binScript = fileURLToPath(new URL('./fixtures/headless-driver.ts', import.meta.url))
 const configPath = fileURLToPath(new URL('./fixtures/cli.cordis.yml', import.meta.url))

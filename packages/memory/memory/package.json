@@ -1,8 +1,15 @@
 {
-  "name": "@deepseek-ai/dsh-memory",
+  "name": "@huiliyi37/dsh-memory",
   "description": "Project-level memory/knowledge persistence — Markdown-file backend with a Cordis memory service",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "directory": "packages/memory/memory"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -20,10 +27,10 @@
   ],
   "license": "BSD-3-Clause",
   "peerDependencies": {
-    "cordis": "^4.0.0-rc.7"
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
   },
   "devDependencies": {
-    "cordis": "^4.0.0-rc.7",
-    "schemastery": "^3.0.0-rc.3"
+    "@huiliyi37/cordis": "^4.0.0-rc.7",
+    "@huiliyi37/schemastery": "^3.0.0-rc.3"
   }
 }

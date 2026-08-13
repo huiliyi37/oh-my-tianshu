@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-token-meter
+# @huiliyi37/dsh-token-meter
 
 English | [中文](README.zh.md)
 
@@ -46,8 +46,8 @@ Making the pair atomic was tried and rejected: it required a transient non-repla
 ## Composition
 
 ```yaml
-- name: '@deepseek-ai/dsh-token-meter'
-- name: '@deepseek-ai/dsh-compact-basic'
+- name: '@huiliyi37/dsh-token-meter'
+- name: '@huiliyi37/dsh-compact-basic'
 ```
 
 Both plugins have usable defaults. The meter remains independent of model routing and optional compaction. A deployment configures capacity on its LLM adapter and compaction policy on `dsh-compact-basic`.

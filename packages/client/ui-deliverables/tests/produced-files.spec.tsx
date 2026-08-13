@@ -5,20 +5,20 @@
  * and opener wiring, and the plugin registrations' fiber-teardown removal
  * (HMR safety) against the real SlotsService.
  */
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   ConversationEventRegistry, ConversationNodeAssembler, SlotsService,
-} from '@deepseek-ai/dsh-client-runtime/client'
+} from '@huiliyi37/dsh-client-runtime/client'
 import type {
   ConversationEventInput, ConversationLocationDataStore, ConversationMatch, ConversationNodeDefinition,
   ConversationTimelineSnapshot, ConversationTurnDataMap, ConversationViewDefinition,
   ConversationViewNode, ToolResultNode, TurnLocation,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import { apply as applyLocale } from '@deepseek-ai/dsh-client-locale/client'
-import type { ChatFileMentions, TurnTailOwnerProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
+} from '@huiliyi37/dsh-client-runtime/client'
+import { apply as applyLocale } from '@huiliyi37/dsh-client-locale/client'
+import type { ChatFileMentions, TurnTailOwnerProps } from '@huiliyi37/dsh-client-ui-conversation/client'
+import { makeTranslate } from '@huiliyi37/dsh-client-test-runtime'
 import { ProducedFiles } from '../src/client/ProducedFiles.tsx'
 import {
   basename, deliverablesDefinition, producedFileMentions, producedForClosing, selectProducedFiles,
@@ -325,7 +325,7 @@ describe('package shells', () => {
       register: (pkg: string) => { registered.push(pkg); return () => {} },
     } as never)
     const dispose = await applyInvariant(ctx)
-    expect(registered).toEqual(['@deepseek-ai/dsh-client-ui-deliverables'])
+    expect(registered).toEqual(['@huiliyi37/dsh-client-ui-deliverables'])
     expect(dispose).toBeTypeOf('function')
   })
 })

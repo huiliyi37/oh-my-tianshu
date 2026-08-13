@@ -2,13 +2,13 @@
  * Concrete agent-loop plugin: creates scoped ReactLoopAgents, publishes them
  * through the agent/session registries, and owns their ordered teardown.
  *
- * @module @deepseek-ai/dsh-agent-loop
+ * @module @huiliyi37/dsh-agent-loop
  */
 
-import { Context, FiberState, Service } from 'cordis'
+import { Context, FiberState, Service } from '@huiliyi37/cordis'
 import { randomUUID } from 'node:crypto'
-import z from 'schemastery'
-import { emitAgentEvent } from '@deepseek-ai/dsh-agent'
+import z from '@huiliyi37/schemastery'
+import { emitAgentEvent } from '@huiliyi37/dsh-agent'
 import type {
   Agent,
   AgentFactory,
@@ -18,13 +18,13 @@ import type {
   CreateAgentOptions,
   ResumeAgentOptions,
   SessionStartSource,
-} from '@deepseek-ai/dsh-agent'
-import { errorChain } from '@deepseek-ai/dsh-llm'
-import { SessionId, SessionPreparation } from '@deepseek-ai/dsh-session'
-import type { Session, SessionHeader } from '@deepseek-ai/dsh-session'
-import type {} from '@deepseek-ai/dsh-system-prompt'
-import type {} from '@deepseek-ai/dsh-tools'
-import type { SessionPersistence } from '@deepseek-ai/dsh-session-persistence'
+} from '@huiliyi37/dsh-agent'
+import { errorChain } from '@huiliyi37/dsh-llm'
+import { SessionId, SessionPreparation } from '@huiliyi37/dsh-session'
+import type { Session, SessionHeader } from '@huiliyi37/dsh-session'
+import type {} from '@huiliyi37/dsh-system-prompt'
+import type {} from '@huiliyi37/dsh-tools'
+import type { SessionPersistence } from '@huiliyi37/dsh-session-persistence'
 import { ReactLoopAgent } from './agent.ts'
 import { DEFAULT_MAX_PARALLEL_TOOL_CALLS } from './constants.ts'
 
@@ -156,7 +156,7 @@ interface PreparedAgent {
   dispose(): Promise<void>
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     agentLoop: AgentLoop
     /**

@@ -14,11 +14,11 @@ import {
   type KeyboardEvent, type FocusEvent,
 } from 'react'
 import clsx from 'clsx'
-import type { ModelReasoningEffort, ModelSelection } from '@deepseek-ai/dsh-client-connection/client'
+import type { ModelReasoningEffort, ModelSelection } from '@huiliyi37/dsh-client-connection/client'
 import {
   IconCheckOutline16, IconChevronDownOutline14, IconChevronRightOutline14,
-} from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+} from '@huiliyi37/dsh-client-ui-primitives'
+import type { PropsLocale } from '@huiliyi37/dsh-client-ui-slots'
 import type { ModelSelectInjected } from './slots.ts'
 import css from './ModelSelect.module.css'
 

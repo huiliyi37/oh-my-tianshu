@@ -16,11 +16,11 @@
  * 不负责超时判定）：挂起超过 timeoutMs 无人应答 → fail-closed 自动结算
  * cancelled，卡片不会无限挂起。
  *
- * @module @deepseek-ai/dsh-tui/controllers/approval-controller
+ * @module @huiliyi37/dsh-tui/controllers/approval-controller
  */
 
-import type { SessionId } from '@deepseek-ai/dsh-session'
-import type { CallId } from '@deepseek-ai/dsh-llm'
+import type { SessionId } from '@huiliyi37/dsh-session'
+import type { CallId } from '@huiliyi37/dsh-llm'
 
 /** 审批 answerer 的本地请求形状（与 user-approval 词汇对齐；字段子集——TUI 只需展示所需）。 */
 export interface PendingApprovalRequest {

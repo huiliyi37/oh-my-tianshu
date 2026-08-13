@@ -1,7 +1,7 @@
 /**
  * Comment-preserving root tsconfig editor for local plugin references.
  *
- * @module @deepseek-ai/dsh-helper/documents/tsconfig-file
+ * @module @huiliyi37/dsh-helper/documents/tsconfig-file
  */
 
 import { applyEdits, modify, parse, type ParseError } from 'jsonc-parser'

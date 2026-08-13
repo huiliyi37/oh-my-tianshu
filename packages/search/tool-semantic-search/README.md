@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-tool-semantic-search
+# @huiliyi37/dsh-tool-semantic-search
 
 English | [中文](README.zh.md)
 

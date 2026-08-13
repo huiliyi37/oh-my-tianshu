@@ -2,10 +2,10 @@
  * Runtime mirror and labels for Cordis's `FiberState` const enum. A const enum has no runtime
  * object to import, so these values mirror the pinned vendored definition while retaining its
  * type.
- * @module @deepseek-ai/dsh-tool-cordis/fiber-state
+ * @module @huiliyi37/dsh-tool-cordis/fiber-state
  */
 
-import type { FiberState as FiberStateEnum } from 'cordis'
+import type { FiberState as FiberStateEnum } from '@huiliyi37/cordis'
 
 /** Value mirror of the cordis `FiberState` const enum (see the module doc for why a mirror exists). */
 export const FiberState = {

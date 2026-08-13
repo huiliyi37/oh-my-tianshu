@@ -1,11 +1,11 @@
 /**
  * Live TypeRT Remote dispatch over Cordis Services and registered providers.
  * Transport, request correlation, and response envelopes belong to Connection.
- * @module @deepseek-ai/dsh-api-gateway
+ * @module @huiliyi37/dsh-api-gateway
  */
 
-import { Context, Service, symbols } from 'cordis'
-import type { ConnectionRpcHandler } from '@deepseek-ai/dsh-client-connection'
+import { Context, Service, symbols } from '@huiliyi37/cordis'
+import type { ConnectionRpcHandler } from '@huiliyi37/dsh-client-connection'
 import {
   remoteMethods,
   TypeRTLookupFailure,
@@ -13,7 +13,7 @@ import {
   type InvocationParameterDescriptor,
   type TypeRTCodec,
   type TypeRTGatewayBinding,
-} from '@deepseek-ai/dsh-type-meta'
+} from '@huiliyi37/dsh-type-meta'
 import type {
   InvokeRemoteRequest,
   TypertGateway,

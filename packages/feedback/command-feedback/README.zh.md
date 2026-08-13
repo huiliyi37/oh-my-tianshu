@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-command-feedback
+# @huiliyi37/dsh-command-feedback
 
 [English](README.md) | 中文
 
@@ -27,9 +27,9 @@
 
 ```yaml
 - id: commands
-  name: '@deepseek-ai/dsh-commands'
+  name: '@huiliyi37/dsh-commands'
 - id: command-feedback
-  name: '@deepseek-ai/dsh-command-feedback'
+  name: '@huiliyi37/dsh-command-feedback'
 ```
 
 随附的 `dsh` 基础组合无条件挂载此命令；它没有配置，也不依赖持久 goal 栈。Web 客户端通过命令适配器暴露该命令。无头模式、ACP 自动化和 JSON-RPC 不提供命令适配器，因此不会暴露它。

@@ -38,7 +38,7 @@ function fixture(options: {
   roots.push(root)
   const dir = join(root, 'packages/core/probe')
   mkdirSync(join(dir, 'src'), { recursive: true })
-  const packageName = options.packageName ?? '@deepseek-ai/dsh-probe'
+  const packageName = options.packageName ?? '@huiliyi37/dsh-probe'
   const manifest = {
     name: packageName,
     exports: options.invariantExport === false ? {} : {
@@ -49,10 +49,10 @@ function fixture(options: {
     },
     files: ['lib/index.js', 'lib/invariant.js'],
     peerDependencies: options.invariantDependency === false ? {} : {
-      '@deepseek-ai/dsh-invariants': '^0.0.1',
+      '@huiliyi37/dsh-invariants': '^0.0.1',
     },
     devDependencies: options.invariantDependency === false ? {} : {
-      '@deepseek-ai/dsh-invariants': 'workspace:^',
+      '@huiliyi37/dsh-invariants': 'workspace:^',
     },
   }
   writeFileSync(join(dir, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`)
@@ -109,7 +109,7 @@ export const inject = ['invariants']
 const selected = process.env.PACKAGE_NAME
 const install = (_ctx: unknown, fail: (message: string) => never) => { fail('probe') }
 export const apply = (ctx: { invariants: { register(name: string, install: typeof install): () => void } }) => {
-  ctx.invariants.register('@deepseek-ai/dsh-foreign', install)
+  ctx.invariants.register('@huiliyi37/dsh-foreign', install)
   return ctx.invariants.register(selected!, install)
 }
 `
@@ -122,7 +122,7 @@ export const apply = (ctx: { invariants: { register(name: string, install: typeo
 
   it('rejects generated markers and reporter-free executable installers', () => {
     const generated = fixture({
-      source: `/** @generated */\n${handwrittenInvariant('@deepseek-ai/dsh-probe')}`,
+      source: `/** @generated */\n${handwrittenInvariant('@huiliyi37/dsh-probe')}`,
     })
     expect(collectPackageInvariantViolations(generated).map(violation => violation.message))
       .toContain('invariant companions must be hand-owned and may not carry @generated markers')
@@ -133,7 +133,7 @@ export const name = 'probe-invariant'
 export const inject = ['invariants']
 const install = () => { void 0 }
 export const apply = (ctx: { invariants: { register(name: string, install: typeof install): () => void } }) =>
-  Promise.resolve(ctx.invariants.register('@deepseek-ai/dsh-probe', install))
+  Promise.resolve(ctx.invariants.register('@huiliyi37/dsh-probe', install))
 `,
     })
     expect(collectPackageInvariantViolations(reporterFree).map(violation => violation.message))
@@ -145,7 +145,7 @@ export const name = 'probe-invariant'
 export const inject = ['invariants']
 const install = (_ctx: unknown, _fail: (message: string) => never) => { void 0 }
 export const apply = (ctx: { invariants: { register(name: string, install: typeof install): () => void } }) =>
-  Promise.resolve(ctx.invariants.register('@deepseek-ai/dsh-probe', install))
+  Promise.resolve(ctx.invariants.register('@huiliyi37/dsh-probe', install))
 `,
     })
     expect(collectPackageInvariantViolations(unused).map(violation => violation.message))
@@ -159,7 +159,7 @@ export const name = 'probe-invariant'
 export const inject = ['invariants']
 const install = (_ctx: unknown, fail: (message: string) => never) => { fail('checked decoy') }
 export const apply = (ctx: { invariants: { register(name: string, install: () => void): () => void } }) =>
-  ctx.invariants.register('@deepseek-ai/dsh-probe', () => {})
+  ctx.invariants.register('@huiliyi37/dsh-probe', () => {})
 `,
     })
     expect(collectPackageInvariantViolations(decoy).map(violation => violation.message))
@@ -170,7 +170,7 @@ export const apply = (ctx: { invariants: { register(name: string, install: () =>
     'export default { name, inject, apply }',
     "export * as default from './probe.ts'",
   ])('rejects a default export that would collapse the Loader namespace', (defaultExport) => {
-    const source = `${handwrittenInvariant('@deepseek-ai/dsh-probe')}\n${defaultExport}\n`
+    const source = `${handwrittenInvariant('@huiliyi37/dsh-probe')}\n${defaultExport}\n`
     expect(collectPackageInvariantViolations(fixture({ source })).map(violation => violation.message))
       .toContain('must not default-export; Loader must retain the companion namespace')
   })
@@ -179,7 +179,7 @@ export const apply = (ctx: { invariants: { register(name: string, install: () =>
     const explained = `
 export const name = 'probe-invariant'
 export const inject = ['invariants']
-const PACKAGE_NAME = '@deepseek-ai/dsh-probe'
+const PACKAGE_NAME = '@huiliyi37/dsh-probe'
 /** No runtime invariant: this pure package owns no events or mutable data. */
 const install = () => {}
 export const apply = (ctx: { invariants: { register(name: string, install: () => void): () => void } }) =>
@@ -190,7 +190,7 @@ export const apply = (ctx: { invariants: { register(name: string, install: () =>
     const unexplained = `
 export const name = 'probe-invariant'
 export const inject = ['invariants']
-const PACKAGE_NAME = '@deepseek-ai/dsh-probe'
+const PACKAGE_NAME = '@huiliyi37/dsh-probe'
 const install = () => {}
 export const apply = (ctx: { invariants: { register(name: string, install: () => void): () => void } }) =>
   ctx.invariants.register(PACKAGE_NAME, install)

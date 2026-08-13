@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
-import { STORAGE_KEY, ThemeService } from '@deepseek-ai/dsh-client-ui-theme/client'
+import { Context } from '@huiliyi37/cordis'
+import type { ThemeSnapshot } from '@huiliyi37/dsh-client-ui-theme/client'
+import { STORAGE_KEY, ThemeService } from '@huiliyi37/dsh-client-ui-theme/client'
 
 const make = (): { ctx: Context; theme: ThemeService; events: ThemeSnapshot[] } => {
   const ctx = new Context()

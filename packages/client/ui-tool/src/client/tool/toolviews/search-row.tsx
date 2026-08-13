@@ -11,9 +11,9 @@
 // nested run_code sub-dispatch, a legacy generic result) surfaces its
 // model-facing text through ToolRow's Output section instead.
 
-import type { Context } from 'cordis'
-import { IconSearchOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+import type { Context } from '@huiliyi37/cordis'
+import { IconSearchOutline16 } from '@huiliyi37/dsh-client-ui-primitives'
+import type { PropsLocale } from '@huiliyi37/dsh-client-ui-slots'
 import type { ToolCallViewProps } from '../../contract/slots.ts'
 import { searchCardModel } from '../models/search-card-model.ts'
 import { toolRowModel } from '../models/tool-call-model.ts'

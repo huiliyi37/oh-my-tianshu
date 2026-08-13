@@ -1,9 +1,9 @@
 import { EventEmitter } from 'node:events'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import type { WriteStream } from 'node:tty'
-import { SessionId } from '@deepseek-ai/dsh-session'
-import type { Agent, AgentHandle } from '@deepseek-ai/dsh-agent'
+import { SessionId } from '@huiliyi37/dsh-session'
+import type { Agent, AgentHandle } from '@huiliyi37/dsh-agent'
 import { TuiApp } from '../src/ui/app.js'
 import { formatStatusLine } from '../src/statusline.js'
 

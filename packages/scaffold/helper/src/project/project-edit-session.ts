@@ -1,7 +1,7 @@
 /**
  * Isolated domain-command and commit boundary for SDK project changes.
  *
- * @module @deepseek-ai/dsh-helper/project/project-edit-session
+ * @module @huiliyi37/dsh-helper/project/project-edit-session
  */
 
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'

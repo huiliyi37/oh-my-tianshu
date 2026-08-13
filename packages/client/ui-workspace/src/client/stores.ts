@@ -5,7 +5,7 @@
  * register() receives the factory and the browser derives its PropsStore
  * share from the return type.
  */
-import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-runtime/client'
+import { defineStore, type EngineStoreHandle } from '@huiliyi37/dsh-client-runtime/client'
 
 /** Session-list grouping mode: workspace sections or one flat recency list. */
 export type WorkspaceGroupBy = 'workspace' | 'flat'

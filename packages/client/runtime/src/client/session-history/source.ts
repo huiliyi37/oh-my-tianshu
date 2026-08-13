@@ -1,8 +1,8 @@
 import type {
   HistoryEntry, IApiClient, MuxFrame, RpcError, SessionId,
-} from '@deepseek-ai/dsh-client-connection/client'
-import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
-import { transportError } from '@deepseek-ai/dsh-host-apiproxy/api'
+} from '@huiliyi37/dsh-client-connection/client'
+import type { SessionEvent } from '@huiliyi37/dsh-session/types'
+import { transportError } from '@huiliyi37/dsh-host-apiproxy/api'
 import type {
   SessionHistoryFace, SessionHistorySnapshot,
 } from '../contract/session-history.ts'

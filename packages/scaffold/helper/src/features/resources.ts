@@ -1,7 +1,7 @@
 /**
  * Resource vocabulary contributed by builtin SDK features.
  *
- * @module @deepseek-ai/dsh-helper/features/resources
+ * @module @huiliyi37/dsh-helper/features/resources
  */
 
 import type { CordisConfigEntry } from '../documents/cordis-yaml-file.ts'

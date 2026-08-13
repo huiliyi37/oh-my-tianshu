@@ -152,13 +152,13 @@ Source: [`packages/interaction/user-approval/src/index.ts:193`](../../packages/i
 
 #### `approval/request` — waterfall
 
-Ask composed answerers for one decision. Return an outcome to claim the request or call `next()`; failure yields the fail-closed default. Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners receive only that agent.
+Ask composed answerers for one decision. Return an outcome to claim the request or call `next()`; failure yields the fail-closed default. Scope-filtered dispatch (`@huiliyi37/dsh-scope`): agent-scoped listeners receive only that agent.
 
 ```ts cordis-catalog
 /**
  * Ask composed answerers for one decision. Return an outcome to claim the
  * request or call `next()`; failure yields the fail-closed default.
- * Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners receive only that agent.
+ * Scope-filtered dispatch (`@huiliyi37/dsh-scope`): agent-scoped listeners receive only that agent.
  * @param req - the pending decision (agent, tool identity, reason, signal).
  * @mode waterfall
  */

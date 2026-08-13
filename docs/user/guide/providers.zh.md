@@ -133,7 +133,7 @@ agent-default-model:
   reasoningEffort: high   # optional
 ```
 
-会话跑过一轮后，其自身日志仍是模型选择的权威；默认值只适用于尚无请求记录的会话。这个段落之下的出厂兜底是 base 组合包的 `agent-default-model` 组合条目（`deepseek-official` / `deepseek-v4-flash`）。自行组装的 `cordis.yml` 会挂载并配置 `@deepseek-ai/dsh-agent-default-model`；直接前门与 Host 支撑的前门都读取同一服务。
+会话跑过一轮后，其自身日志仍是模型选择的权威；默认值只适用于尚无请求记录的会话。这个段落之下的出厂兜底是 base 组合包的 `agent-default-model` 组合条目（`deepseek-official` / `deepseek-v4-flash`）。自行组装的 `cordis.yml` 会挂载并配置 `@huiliyi37/dsh-agent-default-model`；直接前门与 Host 支撑的前门都读取同一服务。
 
 如果某个已存默认值指向的提供方后来被删掉了，输入框会显示**选择模型**并拒绝输入，而不是把消息发给一个没人服务的路由。
 

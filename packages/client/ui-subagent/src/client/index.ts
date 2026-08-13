@@ -11,17 +11,17 @@
  */
 import type {
   ClientContext, SessionId, SubagentAddress,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import type { ComposerChainProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { ClientSessionContext, SlashServiceContract, SlashSource } from '@deepseek-ai/dsh-client-ui-slash/client'
+} from '@huiliyi37/dsh-client-runtime/client'
+import type { ComposerChainProps } from '@huiliyi37/dsh-client-ui-conversation/client'
+import type { ClientSessionContext, SlashServiceContract, SlashSource } from '@huiliyi37/dsh-client-ui-slash/client'
 import { SubagentCatalogAction, type SubagentCatalogInjected } from './SubagentCatalogAction.tsx'
 import {
   SubagentReadOnlyComposer, type SubagentReadOnlyMatch,
 } from './SubagentReadOnlyComposer.tsx'
-import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@huiliyi37/dsh-client-locale/client'
 import { en, NS, zh, type SubagentKey } from './locales.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@huiliyi37/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** Subagent catalog and read-only composer copy. */
     'subagent': SubagentKey

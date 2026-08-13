@@ -4,7 +4,7 @@
  * gate, app-shell assembly entry, module-table staticModules, platform constants) is
  * internal to the boot chain. PLATFORM_MODULES is re-exported as the C1
  * single source of truth for the tsdown client externals projection.
- * @module @deepseek-ai/dsh-client-web
+ * @module @huiliyi37/dsh-client-web
  */
 
 export { AppWebEntry, type BootSeams } from './boot.tsx'

@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-agent-spine-demo
+# @huiliyi37/dsh-agent-spine-demo
 
 [English](README.md) | 中文
 
@@ -11,31 +11,31 @@
 `apply(ctx, config)` 将以下每个插件挂载为组合包 fiber 的子节点：
 
 ```
-@cordisjs/plugin-timer            timer service (writes nothing to stdout)
-@deepseek-ai/dsh-llm              abstract LLM service + content-block vocabulary
-@deepseek-ai/dsh-session          event-sourced session log + store
-@deepseek-ai/dsh-session-title    log-backed title service + deterministic fallback
-@deepseek-ai/dsh-system-prompt    prompt-section + tool-schema assembly
-@deepseek-ai/dsh-tools            registry + guarded pre/around/post/final-result pipeline
-@deepseek-ai/dsh-skill            skill provider registry
-@deepseek-ai/dsh-skill-local      local filesystem skill provider
-@deepseek-ai/dsh-agent            agent registry + initiator scope + agent/* events
-@deepseek-ai/dsh-goal             optional persisted same-session goal domain
-@deepseek-ai/dsh-tool-goal        optional model-facing goal controls
-@deepseek-ai/dsh-goal-session     optional same-session goal-round driver
-@deepseek-ai/dsh-llm-retry        provider-routed request retry policy
-@deepseek-ai/dsh-tasks-local      generic background-task registry
-@deepseek-ai/dsh-invariants       configurable invariant registry service
-@deepseek-ai/dsh-session/invariant
-@deepseek-ai/dsh-agent/invariant
-@deepseek-ai/dsh-scope/invariant
-@deepseek-ai/dsh-agent-loop/invariant
+@huiliyi37/cordis-plugin-timer            timer service (writes nothing to stdout)
+@huiliyi37/dsh-llm              abstract LLM service + content-block vocabulary
+@huiliyi37/dsh-session          event-sourced session log + store
+@huiliyi37/dsh-session-title    log-backed title service + deterministic fallback
+@huiliyi37/dsh-system-prompt    prompt-section + tool-schema assembly
+@huiliyi37/dsh-tools            registry + guarded pre/around/post/final-result pipeline
+@huiliyi37/dsh-skill            skill provider registry
+@huiliyi37/dsh-skill-local      local filesystem skill provider
+@huiliyi37/dsh-agent            agent registry + initiator scope + agent/* events
+@huiliyi37/dsh-goal             optional persisted same-session goal domain
+@huiliyi37/dsh-tool-goal        optional model-facing goal controls
+@huiliyi37/dsh-goal-session     optional same-session goal-round driver
+@huiliyi37/dsh-llm-retry        provider-routed request retry policy
+@huiliyi37/dsh-tasks-local      generic background-task registry
+@huiliyi37/dsh-invariants       configurable invariant registry service
+@huiliyi37/dsh-session/invariant
+@huiliyi37/dsh-agent/invariant
+@huiliyi37/dsh-scope/invariant
+@huiliyi37/dsh-agent-loop/invariant
                                   package-owned relational checks
-@deepseek-ai/dsh-tool-bash        the model-facing bash schema (unless toolBash=false)
-@deepseek-ai/dsh-workspace-context  AGENTS.md/CLAUDE.md workspace context loader
-@deepseek-ai/dsh-tool-skill       session-prefix skill catalog + model-facing loader schema
-@deepseek-ai/dsh-tool-tasks       task_output/task_list/task_kill schemas + completion notices
-@deepseek-ai/dsh-agent-loop       THE concrete loop (gets the forwarded `agents`)
+@huiliyi37/dsh-tool-bash        the model-facing bash schema (unless toolBash=false)
+@huiliyi37/dsh-workspace-context  AGENTS.md/CLAUDE.md workspace context loader
+@huiliyi37/dsh-tool-skill       session-prefix skill catalog + model-facing loader schema
+@huiliyi37/dsh-tool-tasks       task_output/task_list/task_kill schemas + completion notices
+@huiliyi37/dsh-agent-loop       THE concrete loop (gets the forwarded `agents`)
                                   (dsh-system-prompt gets the forwarded `persona`)
 ```
 
@@ -54,14 +54,14 @@
 ## 配置
 
 ```ts
-import type { Config } from '@deepseek-ai/dsh-agent-spine-demo'
+import type { Config } from '@huiliyi37/dsh-agent-spine-demo'
 // { agents?, maxParallelToolCalls?, includeHarnessIdentity?, persona?, toolOrder?, tools?, dshHome?, sessionTitle?, skills?, workspaceContext, toolBash?, toolTasks?, goals?, invariants? }
 // workspaceContext requires { maxBytes } or false; the other owner schemas supply defaults.
 ```
 
 组合包将每个字段转发给拥有它的子节点。应用包提供预创建的 agent：无头和 JSON-RPC 组合会创建 `main`，ACP 应用则在 `session/new` 按需创建 agent。提示词、工具、标题、skill、工作区上下文、不变式、目标和任务设置沿用其所属包记录的 schema 与默认值。`pickSpineConfig()` 只复制该组合包拥有的字段，`dshHome` 值冲突会在组合时失败。
 
-例如，`{ invariants: { enabled: true, package_allowlist: ['^@deepseek-ai/dsh-'], package_blocklist: ['agent-loop$'] } }` 会让包拥有的配套插件保持挂载，但抑制被阻止的拥有者。Blocklist 匹配优先于 allowlist 匹配；正则表达式与生命周期规则见 [`dsh-invariants`](../../support/invariants/README.md)。
+例如，`{ invariants: { enabled: true, package_allowlist: ['^@huiliyi37/dsh-'], package_blocklist: ['agent-loop$'] } }` 会让包拥有的配套插件保持挂载，但抑制被阻止的拥有者。Blocklist 匹配优先于 allowlist 匹配；正则表达式与生命周期规则见 [`dsh-invariants`](../../support/invariants/README.md)。
 
 ## 为何使用代码组合包，而非共享 YAML include
 

@@ -4,21 +4,21 @@
  * parent's session log — so the child inherits the parent's conversation context instead of
  * starting fresh. The seed ends at the last `turn/end`: the current tool-call turn is
  * unbalanced and cannot be replayed as a valid child session.
- * @module @deepseek-ai/dsh-subagent-fork
+ * @module @huiliyi37/dsh-subagent-fork
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
+import type { Agent } from '@huiliyi37/dsh-agent'
 import type {
   ContinuableCreateRequest,
   ContinuableCreateSpec,
   ResolvedSubagentStartRequest,
   SubagentCapabilities,
   SubagentProvider,
-} from '@deepseek-ai/dsh-subagent'
-import { startInProcessRun } from '@deepseek-ai/dsh-subagent-inprocess'
+} from '@huiliyi37/dsh-subagent'
+import { startInProcessRun } from '@huiliyi37/dsh-subagent-inprocess'
 
 export const name = 'subagent-fork'
 // `tools` is deliberately NOT injected — same rationale as subagent-spawn: the

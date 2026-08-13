@@ -3,11 +3,11 @@
  * fetch. Duplicate ids are rejected. At execution time, a configured provider must exist and
  * be usable; without one, exactly one usable provider is required, so selection never depends
  * on registration order.
- * @module @deepseek-ai/dsh-web
+ * @module @huiliyi37/dsh-web
  */
 
-import { Context, Service } from 'cordis'
-import z from 'schemastery'
+import { Context, Service } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 import type {
   WebFetchProvider,
   WebFetchRequest,
@@ -32,7 +32,7 @@ export type {
   WebSearchSource,
 } from './types.ts'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     web: WebService
   }

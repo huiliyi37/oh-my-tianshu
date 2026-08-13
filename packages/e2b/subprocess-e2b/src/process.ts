@@ -9,16 +9,16 @@ import {
   FileNotFoundError,
   SandboxNotFoundError,
   quoteE2BShellArg,
-} from '@deepseek-ai/dsh-e2b'
-import type { CommandHandle, CommandResult, Sandbox } from '@deepseek-ai/dsh-e2b'
+} from '@huiliyi37/dsh-e2b'
+import type { CommandHandle, CommandResult, Sandbox } from '@huiliyi37/dsh-e2b'
 import type {
   SubprocessCollect,
   SubprocessHandle,
   SubprocessOutcome,
   SubprocessOutputMode,
   SubprocessSpawnSpec,
-} from '@deepseek-ai/dsh-subprocess'
-import type E2BSandboxService from '@deepseek-ai/dsh-e2b'
+} from '@huiliyi37/dsh-subprocess'
+import type E2BSandboxService from '@huiliyi37/dsh-e2b'
 import { bootstrapEnvironment, readRemoteEnvironment, serializeRemoteEnvironment } from './environment.ts'
 import { E2BBase64Decoder, E2B_OUTPUT_COMPLETE_FRAME, E2BOutputReader } from './output.ts'
 import { asError, commandOpts, signalRemoteGroups, waitTick } from './remote.ts'

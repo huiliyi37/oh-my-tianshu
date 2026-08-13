@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import CommandService, { type CommandResult } from '@deepseek-ai/dsh-commands'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import CommandService, { type CommandResult } from '@huiliyi37/dsh-commands'
 import {
   CompactionId,
   CompactService,
@@ -11,9 +11,9 @@ import {
   type CompactionResult,
   type CompactionTrigger,
   type ManualCompactAgentContext,
-} from '@deepseek-ai/dsh-compact'
-import { Session, SessionId } from '@deepseek-ai/dsh-session'
-import * as commandCompact from '@deepseek-ai/dsh-command-compact'
+} from '@huiliyi37/dsh-compact'
+import { Session, SessionId } from '@huiliyi37/dsh-session'
+import * as commandCompact from '@huiliyi37/dsh-command-compact'
 
 const COMPACTION_ID = CompactionId('command-compact-test')
 
@@ -153,7 +153,7 @@ function expectLastLifecycle(
   return runEvent.data.commandId
 }
 
-describe('@deepseek-ai/dsh-command-compact registration', () => {
+describe('@huiliyi37/dsh-command-compact registration', () => {
   it('registers one argument-free command with Loader-safe exports and disposes it', async () => {
     const test = await harness()
     expect(commandCompact.name).toBe('command-compact')

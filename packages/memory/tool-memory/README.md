@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-tool-memory
+# @huiliyi37/dsh-tool-memory
 
 English | [中文](README.zh.md)
 

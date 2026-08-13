@@ -6,11 +6,11 @@
 // entries. Tool composition belongs to ui-tool and its machinery spec.
 
 import { describe, expect, it, vi } from 'vitest'
-import { SlotTestRuntime, usePinnedBrowserLanguages } from '@deepseek-ai/dsh-client-test-runtime'
-import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
-import { LocaleService } from '@deepseek-ai/dsh-client-locale/client'
-import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client'
-import { apply, inject } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import { SlotTestRuntime, usePinnedBrowserLanguages } from '@huiliyi37/dsh-client-test-runtime'
+import { resolveSlotLabel } from '@huiliyi37/dsh-client-ui-slots'
+import { LocaleService } from '@huiliyi37/dsh-client-locale/client'
+import type { SessionId } from '@huiliyi37/dsh-client-runtime/client'
+import { apply, inject } from '@huiliyi37/dsh-client-ui-conversation/client'
 
 // The service reads its initial locale from the browser; these specs assert
 // the shipped Chinese copy, so they state the browser they assume.

@@ -1,4 +1,4 @@
-// @deepseek-ai/dsh-meridian —— MeridianDB 代码库索引核心库（天枢 meridian 移植）。
+// @huiliyi37/dsh-meridian —— MeridianDB 代码库索引核心库（天枢 meridian 移植）。
 // 数据层：SQLite（node:sqlite DatabaseSync）files/symbols/edges/module_summaries/access_log/co_edits；
 // 解析层：web-tree-sitter（ts/tsx/js/jsx/py/go）；索引层：增量 + 删除复活 + 跨文件边匹配。
 

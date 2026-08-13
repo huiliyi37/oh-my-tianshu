@@ -6,14 +6,14 @@
 // and the invariant companion ride along — one-line surfaces the aggregate
 // coverage gate still requires exercised.
 
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { SlotsService } from '@deepseek-ai/dsh-client-runtime/client'
-import { LocaleService } from '@deepseek-ai/dsh-client-locale/client'
-import { apply as themeApply, inject as themeInject, ThemeService } from '@deepseek-ai/dsh-client-ui-theme/client'
-import { apply, inject, LayoutService } from '@deepseek-ai/dsh-client-ui-layout/client'
-import { apply as nodeApply } from '@deepseek-ai/dsh-client-ui-layout'
-import * as invariant from '@deepseek-ai/dsh-client-ui-layout/invariant'
+import { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
+import { LocaleService } from '@huiliyi37/dsh-client-locale/client'
+import { apply as themeApply, inject as themeInject, ThemeService } from '@huiliyi37/dsh-client-ui-theme/client'
+import { apply, inject, LayoutService } from '@huiliyi37/dsh-client-ui-layout/client'
+import { apply as nodeApply } from '@huiliyi37/dsh-client-ui-layout'
+import * as invariant from '@huiliyi37/dsh-client-ui-layout/invariant'
 
 beforeEach(() => {
   document.head.querySelectorAll('meta[name="theme-color"]').forEach((node) => { node.remove() })
@@ -112,7 +112,7 @@ describe('node half + invariant companion', () => {
     // The /invariant subpath types live in lib/types (build product); assert
     // the surface so the call stays typed where lint runs without a build.
     const dispose = await (invariant as { apply: (ctx: never) => Promise<() => void> }).apply(ctx)
-    expect(register).toHaveBeenCalledWith('@deepseek-ai/dsh-client-ui-layout', expect.any(Function))
+    expect(register).toHaveBeenCalledWith('@huiliyi37/dsh-client-ui-layout', expect.any(Function))
     // The installer is the declared no-op — calling it must not throw.
     expect(() => { (register.mock.calls[0]![1] as (c: never) => void)(undefined as never) }).not.toThrow()
     expect(dispose).toBeTypeOf('function')

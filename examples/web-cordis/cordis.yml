@@ -14,4 +14,4 @@
 
 - insert:
     - id: tool-cordis
-      name: '@deepseek-ai/dsh-tool-cordis'
+      name: '@huiliyi37/dsh-tool-cordis'

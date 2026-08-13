@@ -5,7 +5,7 @@
  * / epoch-guard behavior of the original global cache; the session-key axis
  * is the only extra dimension.
  */
-import type { IApiClient, SessionId } from '@deepseek-ai/dsh-client-connection/client'
+import type { IApiClient, SessionId } from '@huiliyi37/dsh-client-connection/client'
 
 /** command.list success value, derived so the wire type authority stays in apiproxy. */
 type ListValue = Extract<Awaited<ReturnType<IApiClient['commands']['list']>>['result'], { ok: true }>['value']

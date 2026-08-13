@@ -1,9 +1,9 @@
 /** Settings shell registration: slot declaration injection, the ledger projections, and HMR recovery. */
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it, vi } from 'vitest'
-import { SlotsService } from '@deepseek-ai/dsh-client-runtime/client'
-import { apply, inject } from '@deepseek-ai/dsh-client-ui-settings/client'
-import type { SettingsRootInjected } from '@deepseek-ai/dsh-client-ui-settings/client'
+import { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
+import { apply, inject } from '@huiliyi37/dsh-client-ui-settings/client'
+import type { SettingsRootInjected } from '@huiliyi37/dsh-client-ui-settings/client'
 import { SettingsRoot } from '../src/client/SettingsRoot.tsx'
 
 async function bench() {

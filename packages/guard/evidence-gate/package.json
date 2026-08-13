@@ -1,8 +1,15 @@
 {
-  "name": "@deepseek-ai/dsh-evidence-gate",
+  "name": "@huiliyi37/dsh-evidence-gate",
   "description": "Evidence gate — RED→GREEN discipline for bugfix tasks (minimal port of Tianshu evidence obligations)",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "directory": "packages/guard/evidence-gate"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -25,15 +32,15 @@
   ],
   "license": "Apache-2.0",
   "peerDependencies": {
-    "@deepseek-ai/dsh-session": "^0.0.1",
-    "@deepseek-ai/dsh-tools": "^0.0.1",
-    "cordis": "^4.0.0-rc.7",
-    "@deepseek-ai/dsh-invariants": "^0.0.1"
+    "@huiliyi37/dsh-session": "^0.2.0",
+    "@huiliyi37/dsh-tools": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.7",
+    "@huiliyi37/dsh-invariants": "^0.2.0"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-tools": "workspace:^",
-    "cordis": "^4.0.0-rc.7",
-    "@deepseek-ai/dsh-invariants": "workspace:^"
+    "@huiliyi37/dsh-session": "workspace:^",
+    "@huiliyi37/dsh-tools": "workspace:^",
+    "@huiliyi37/cordis": "^4.0.0-rc.7",
+    "@huiliyi37/dsh-invariants": "workspace:^"
   }
 }

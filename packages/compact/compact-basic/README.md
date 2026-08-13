@@ -1,8 +1,8 @@
-# @deepseek-ai/dsh-compact-basic
+# @huiliyi37/dsh-compact-basic
 
 English | [中文](README.zh.md)
 
-The **basic compaction backend**: a `BasicCompactService` implementing the `@deepseek-ai/dsh-compact` Service Definition with reusable `ctx.tokenMeter` pressure, token-budget retention, and summarization as a direct one-shot `ctx.llm.stream()` call that replays the conversation prefix to reuse the provider's KV cache (interceptable at `llm/stream`).
+The **basic compaction backend**: a `BasicCompactService` implementing the `@huiliyi37/dsh-compact` Service Definition with reusable `ctx.tokenMeter` pressure, token-budget retention, and summarization as a direct one-shot `ctx.llm.stream()` call that replays the conversation prefix to reuse the provider's KV cache (interceptable at `llm/stream`).
 
 This package owns the Service provider role of the compaction capability — see the [Service Definition package](../compact/README.md) for its contract and the [capability-seam Agent Note](../../../.agents/notes/implemented/feature/2026-06-18-compaction-capability-seam.md) for the design.
 
@@ -49,10 +49,10 @@ An adapter may return no capacity for a valid dynamic route, and resolved capaci
 `BasicCompactService` requires `ctx.llm`, `ctx.tokenMeter`, and `ctx.sessions`. The composition below receives `ctx.llm` from its host and installs the other two services:
 
 ```ts
-import type { Context } from 'cordis'
-import { BasicCompactService } from '@deepseek-ai/dsh-compact-basic'
-import SessionStore from '@deepseek-ai/dsh-session'
-import TokenMeterService from '@deepseek-ai/dsh-token-meter'
+import type { Context } from '@huiliyi37/cordis'
+import { BasicCompactService } from '@huiliyi37/dsh-compact-basic'
+import SessionStore from '@huiliyi37/dsh-session'
+import TokenMeterService from '@huiliyi37/dsh-token-meter'
 
 export const name = 'compact-basic'
 export const inject = ['llm']
@@ -69,7 +69,7 @@ Loading the plugin registers `ctx.compact`. Add [`dsh-compact-tool-result-prune`
 For example, the same compact plugin can safely serve models with different capacities and one target-specific policy:
 
 ```yaml
-- name: '@deepseek-ai/dsh-compact-basic'
+- name: '@huiliyi37/dsh-compact-basic'
   config:
     thresholdRatio: 0.8
     retainRatio: 0.16

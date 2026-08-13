@@ -3,12 +3,12 @@
 # /tmp. A workspace-write mutation can therefore succeed only when the calling
 # session's cwd replaces the process-level fallback root.
 - id: base
-  name: '@cordisjs/plugin-include'
+  name: '@huiliyi37/cordis-plugin-include'
   config:
     path: ./cordis.yml
     patches:
       - id: sandbox-policy
-        name: '@deepseek-ai/dsh-sandbox-policy'
+        name: '@huiliyi37/dsh-sandbox-policy'
         config:
           mode: !!js "process.env.DSH_PERMISSION_MODE ?? (process.env.DSH_SNAPSHOT === undefined ? 'workspace-write' : 'danger-full-access')"
           workspaceRoot: /tmp

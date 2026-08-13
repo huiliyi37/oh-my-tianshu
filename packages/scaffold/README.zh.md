@@ -14,4 +14,4 @@
 | [`server/`](server/README.md) | 通过 stdio JSON-RPC 为进程外 SDK 客户端提供服务 |
 | [`telemetry/`](telemetry/README.md) | 提供启动器 telemetry、同意与脱敏原语 |
 
-`@deepseek-ai/create-sdk` 遵循 npm 的 scoped initializer 命名约定；其余包遵循仓库的 `@deepseek-ai/dsh-*` 约定。参见[开发者项目工作流](../../.agents/notes/proposed/feature/2026-07-14-sdk-developer-projects.md)、[项目编辑架构](../../.agents/notes/proposed/architecture/2026-07-15-sdk-project-editing-architecture.md)与 [TypeScript SDK 设计](../../.agents/notes/implemented/feature/2026-07-27-typescript-sdk-and-sdk-subagent-backend.md)。
+`@huiliyi37/create-sdk` 遵循 npm 的 scoped initializer 命名约定；其余包遵循仓库的 `@huiliyi37/dsh-*` 约定。参见[开发者项目工作流](../../.agents/notes/proposed/feature/2026-07-14-sdk-developer-projects.md)、[项目编辑架构](../../.agents/notes/proposed/architecture/2026-07-15-sdk-project-editing-architecture.md)与 [TypeScript SDK 设计](../../.agents/notes/implemented/feature/2026-07-27-typescript-sdk-and-sdk-subagent-backend.md)。

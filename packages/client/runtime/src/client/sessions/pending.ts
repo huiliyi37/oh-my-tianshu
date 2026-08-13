@@ -4,7 +4,7 @@
 
 import type {
   ClientResponse, MuxFrame, RpcId, RpcReceipt, SessionId,
-} from '@deepseek-ai/dsh-client-connection/client'
+} from '@huiliyi37/dsh-client-connection/client'
 
 /** Kind-keyed payload map: the requested frame's domain fields (envelope fields stripped). */
 export interface PendingPayloads {

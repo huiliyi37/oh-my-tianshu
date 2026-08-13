@@ -1,10 +1,10 @@
 /**
  * Service Definition for the code-execution capability seam that runs one model-written program against host async bindings.
  * Runtimes know nothing about tools or sessions; consumers own those concerns.
- * @module @deepseek-ai/dsh-code-runtime
+ * @module @huiliyi37/dsh-code-runtime
  */
 
-import { Context, Service } from 'cordis'
+import { Context, Service } from '@huiliyi37/cordis'
 import type { CodeRunRequest, CodeRunResult } from './types.ts'
 
 export type {
@@ -88,7 +88,7 @@ export const PORTABLE_RESERVED_WORDS: ReadonlySet<string> = new Set([
   'global', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'match', 'type', '_',
 ])
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     codeRuntime: CodeRuntime
   }

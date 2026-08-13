@@ -1,11 +1,11 @@
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import type {
   ConversationNodeDefinition, UnknownSurfaceNode,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import { isAppendSurfaceEvent } from '@deepseek-ai/dsh-client-runtime/client'
+} from '@huiliyi37/dsh-client-runtime/client'
+import { isAppendSurfaceEvent } from '@huiliyi37/dsh-client-runtime/client'
 import { chatNode } from './common.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
+declare module '@huiliyi37/dsh-client-ui-conversation/client' {
   interface ChatNodeDataMap {
     /** Generic presentation of an unclaimed append-surface event. */
     unknown: UnknownSurfaceNode

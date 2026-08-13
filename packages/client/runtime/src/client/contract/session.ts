@@ -7,10 +7,10 @@
  * must stub); runtime-internal entry points (history staging, wire-frame
  * dispatch) stay on the class, invisible out here.
  */
-import type { ContentBlock } from '@deepseek-ai/dsh-llm/types'
+import type { ContentBlock } from '@huiliyi37/dsh-llm/types'
 import type {
   MessageId, QueueAction, RpcResult, SessionId,
-} from '@deepseek-ai/dsh-client-connection/client'
+} from '@huiliyi37/dsh-client-connection/client'
 import type { ConversationSnapshot } from '../sessions/conversation.ts'
 import type { ObservableSnapshot } from './store.ts'
 

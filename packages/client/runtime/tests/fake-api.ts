@@ -1,13 +1,13 @@
 // Test-local programmable IApiClient fake (NOT the fixture: fixture is a demo
 // data source on a real clock; behavior tests need per-case responses and
 // deferred-controlled timing). Streams are hand pumps: pushMux/pushHost.
-import type { CommandId } from '@deepseek-ai/dsh-commands/brand'
+import type { CommandId } from '@huiliyi37/dsh-commands/brand'
 import type {
   ClientResponse, CommandDescriptor, HostFrame, IApiClient, ModelSelection, MuxFrame,
   RpcError, RpcReceipt, RpcRequest, RpcResponse, SessionId, SessionModels, SessionSearchItem, SkillEntry,
   WorkspaceId, WorkspaceView,
-} from '@deepseek-ai/dsh-client-connection/client'
-import { RpcId } from '@deepseek-ai/dsh-client-connection/client'
+} from '@huiliyi37/dsh-client-connection/client'
+import { RpcId } from '@huiliyi37/dsh-client-connection/client'
 
 /** Programmable-default workspace row (branded id, ISO-ish times). */
 function fakeWorkspace(id: string, over: Partial<WorkspaceView> = {}): WorkspaceView {

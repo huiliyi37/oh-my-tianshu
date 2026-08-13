@@ -1,7 +1,7 @@
 /**
  * Content identity for workspace instruction duplicate suppression.
  *
- * @module @deepseek-ai/dsh-workspace-context/digest
+ * @module @huiliyi37/dsh-workspace-context/digest
  */
 
 import { createHash } from 'node:crypto'

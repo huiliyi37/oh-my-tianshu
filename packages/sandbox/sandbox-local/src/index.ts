@@ -3,7 +3,7 @@
  * Landlock; macOS Seatbelt), functionally probes competing candidates once, and
  * reports each wrap's enforcement and stderr classification facts. Missing or unusable
  * confinement fails closed rather than returning the original argv.
- * @module @deepseek-ai/dsh-sandbox-local
+ * @module @huiliyi37/dsh-sandbox-local
  */
 
 import { spawnSync } from 'node:child_process'
@@ -12,12 +12,12 @@ import {
   LAUNCHER_FAILURE_EXIT,
   launcherPath as landlockLauncherPath,
   probe as defaultProbeLandlock,
-} from '@deepseek-ai/node-addon-landlock-run'
-import { Context } from 'cordis'
-import z from 'schemastery'
-import { assertNever } from '@deepseek-ai/dsh-llm'
-import { SandboxProvider, SandboxUnavailableError } from '@deepseek-ai/dsh-sandbox'
-import type { ConfinedArgv, ConfinedSandboxMode, RunnerFailureRule, SandboxEnforcement, SandboxPolicy } from '@deepseek-ai/dsh-sandbox'
+} from '@huiliyi37/node-addon-landlock-run'
+import { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { assertNever } from '@huiliyi37/dsh-llm'
+import { SandboxProvider, SandboxUnavailableError } from '@huiliyi37/dsh-sandbox'
+import type { ConfinedArgv, ConfinedSandboxMode, RunnerFailureRule, SandboxEnforcement, SandboxPolicy } from '@huiliyi37/dsh-sandbox'
 import { bwrapProfileArgs, landlockProfileArgs, seatbeltProfileArgs } from './profiles.ts'
 
 /** Plugin config. All optional — `static Config` supplies the defaults. */

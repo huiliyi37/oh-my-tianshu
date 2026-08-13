@@ -1,12 +1,12 @@
 /** All-human-messages model provider for `ctx.sessionTitle`. */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 import {
   registerSessionTitleLlmProvider,
   SessionTitleLlmConfigFields,
-} from '@deepseek-ai/dsh-session-title-llm'
-import type { SessionTitleLlmConfig } from '@deepseek-ai/dsh-session-title-llm'
+} from '@huiliyi37/dsh-session-title-llm'
+import type { SessionTitleLlmConfig } from '@huiliyi37/dsh-session-title-llm'
 
 export const name = 'session-title-all-messages-llm'
 export const inject = ['sessionTitle', 'llm', 'sessions']

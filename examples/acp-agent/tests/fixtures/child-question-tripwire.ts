@@ -1,5 +1,5 @@
-import type { Context } from 'cordis'
-import '@deepseek-ai/dsh-user-interaction'
+import type { Context } from '@huiliyi37/cordis'
+import '@huiliyi37/dsh-user-interaction'
 
 /** Snapshot-only provider whose invocation means the child guard failed. */
 export const name = 'child-question-tripwire'

@@ -1,6 +1,6 @@
-/** Lossless-JSON snapshots for the dependency-free source worker closure. @module @deepseek-ai/dsh-code-runtime-worker/worker-json */
+/** Lossless-JSON snapshots for the dependency-free source worker closure. @module @huiliyi37/dsh-code-runtime-worker/worker-json */
 
-import type { CodeJsonValue } from '@deepseek-ai/dsh-code-runtime'
+import type { CodeJsonValue } from '@huiliyi37/dsh-code-runtime'
 
 /* jscpd:ignore-start -- the source worker mirrors session JSON helpers without workspace runtime imports */
 type IntrinsicCallable = (this: unknown, ...args: unknown[]) => unknown

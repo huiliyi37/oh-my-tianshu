@@ -3,31 +3,31 @@
 # turn over stream-json; the replay adapter supplies the deterministic response.
 
 - id: persistence
-  name: '@deepseek-ai/dsh-session-persistence-jsonl'
+  name: '@huiliyi37/dsh-session-persistence-jsonl'
   config:
     root: './.sessions'
     compression: none
 
 - id: checkpoint
-  name: '@deepseek-ai/dsh-session-checkpoint-policy'
+  name: '@huiliyi37/dsh-session-checkpoint-policy'
 
 - id: replay
-  name: '@deepseek-ai/dsh-llm-replay'
+  name: '@huiliyi37/dsh-llm-replay'
   config:
     file: !!js process.env.DSH_SNAPSHOT_FILE
     overrideFile: !!js process.env.DSH_SNAPSHOT_OVERRIDE
 
 # Managed child-process groups for the bash executor (spawn/kill/output plumbing).
 - id: subprocess
-  name: '@deepseek-ai/dsh-subprocess-local'
+  name: '@huiliyi37/dsh-subprocess-local'
 
 - id: bash
-  name: '@deepseek-ai/dsh-bash-local'
+  name: '@huiliyi37/dsh-bash-local'
   config:
     timeoutMs: 60000
 
 - id: agent
-  name: '@deepseek-ai/dsh-agent-spine-demo'
+  name: '@huiliyi37/dsh-agent-spine-demo'
   config:
     agents: []
     workspaceContext: false

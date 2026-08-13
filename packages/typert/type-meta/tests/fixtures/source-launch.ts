@@ -1,10 +1,10 @@
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import {
   GatewayService,
   Remote,
   RemoteScope,
   remoteMethods,
-} from '@deepseek-ai/dsh-type-meta'
+} from '@huiliyi37/dsh-type-meta'
 
 class Goals extends GatewayService {
   constructor(ctx: Context) {

@@ -1,8 +1,15 @@
 {
-  "name": "@cordisjs/plugin-loader",
+  "name": "@huiliyi37/cordis-plugin-loader",
   "description": "Plugin loader for cordis",
   "version": "1.0.0-rc.5",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "directory": "vendor/loader"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -28,7 +35,7 @@
   "author": "Shigma <shigma10826@gmail.com>",
   "license": "MIT",
   "peerDependencies": {
-    "cordis": "^4.0.0-rc.7",
+    "@huiliyi37/cordis": "^4.0.0-rc.7",
     "node-addon-require-builtin": "^0.1.4"
   },
   "peerDependenciesMeta": {
@@ -37,7 +44,7 @@
     }
   },
   "dependencies": {
-    "cosmokit": "^1.8.1",
+    "@huiliyi37/cosmokit": "^1.8.1",
     "pnpm": "11.7.0"
   }
 }

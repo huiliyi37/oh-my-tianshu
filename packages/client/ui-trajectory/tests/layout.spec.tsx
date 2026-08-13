@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import type {
   ConversationSnapshot, RequestView,
-} from '@deepseek-ai/dsh-client-runtime/client'
+} from '@huiliyi37/dsh-client-runtime/client'
 import { TrajectoryGroupHeader } from '../src/client/TrajectoryGroupHeader.tsx'
 import { TrajectoryTurn } from '../src/client/TrajectoryTurn.tsx'
 import { TrajectoryTurnHeader } from '../src/client/TrajectoryTurnHeader.tsx'

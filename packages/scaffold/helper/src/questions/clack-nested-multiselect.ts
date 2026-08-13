@@ -1,7 +1,7 @@
 /**
  * Tree-shaped Clack picker for root checkboxes with finite child options.
  *
- * @module @deepseek-ai/dsh-helper/questions/clack-nested-multiselect
+ * @module @huiliyi37/dsh-helper/questions/clack-nested-multiselect
  */
 
 import { styleText } from 'node:util'

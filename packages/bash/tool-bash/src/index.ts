@@ -5,25 +5,25 @@
  *
  * TODO(permissions): deployment policy belongs in `tools/pre-execute` and
  * sandboxing executors; see docs/architecture.md § Extending The Harness.
- * @module @deepseek-ai/dsh-tool-bash
+ * @module @huiliyi37/dsh-tool-bash
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 import { isAbsolute, resolve as resolvePath } from 'node:path'
-import { defineTool, TOOL_ABORTED } from '@deepseek-ai/dsh-tools'
-import type { GenericCallView, TerminalCallView, ToolExecution, ToolResult, ToolResultView } from '@deepseek-ai/dsh-tools'
-import { HarnessError } from '@deepseek-ai/dsh-llm'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import type {} from '@deepseek-ai/dsh-system-prompt'
-import type {} from '@deepseek-ai/dsh-tasks'
-import type {} from '@deepseek-ai/dsh-user-approval'
-import type {} from '@deepseek-ai/dsh-bash-env'
-import type { SandboxExecutionPolicy, SandboxMode } from '@deepseek-ai/dsh-sandbox'
-import { ESCALATION_TARGETS, approveEscalation, canonicalPath, validateEscalationArgs } from '@deepseek-ai/dsh-sandbox'
-import type { SandboxPolicyService } from '@deepseek-ai/dsh-sandbox-policy'
-import { DSH_ENV_PREFIX } from '@deepseek-ai/dsh-bash'
-import type { BashRunResult } from '@deepseek-ai/dsh-bash'
+import { defineTool, TOOL_ABORTED } from '@huiliyi37/dsh-tools'
+import type { GenericCallView, TerminalCallView, ToolExecution, ToolResult, ToolResultView } from '@huiliyi37/dsh-tools'
+import { HarnessError } from '@huiliyi37/dsh-llm'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import type {} from '@huiliyi37/dsh-system-prompt'
+import type {} from '@huiliyi37/dsh-tasks'
+import type {} from '@huiliyi37/dsh-user-approval'
+import type {} from '@huiliyi37/dsh-bash-env'
+import type { SandboxExecutionPolicy, SandboxMode } from '@huiliyi37/dsh-sandbox'
+import { ESCALATION_TARGETS, approveEscalation, canonicalPath, validateEscalationArgs } from '@huiliyi37/dsh-sandbox'
+import type { SandboxPolicyService } from '@huiliyi37/dsh-sandbox-policy'
+import { DSH_ENV_PREFIX } from '@huiliyi37/dsh-bash'
+import type { BashRunResult } from '@huiliyi37/dsh-bash'
 import { processOutcome } from './background.ts'
 import { parseExitStatus, renderProcessRead, renderResult } from './render.ts'
 
@@ -351,7 +351,7 @@ export function apply(ctx: Context, config: Config = {}): void {
         }
         const tasks = ctx.get('tasks')
         if (tasks === undefined) {
-          throw new Error('background tasks unavailable: load @deepseek-ai/dsh-tasks and @deepseek-ai/dsh-tool-tasks')
+          throw new Error('background tasks unavailable: load @huiliyi37/dsh-tasks and @huiliyi37/dsh-tool-tasks')
         }
         // The caller owns cancellation until ctx.tasks commits detached ownership.
         if (exec.signal.aborted) {

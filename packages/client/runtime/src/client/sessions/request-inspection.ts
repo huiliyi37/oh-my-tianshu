@@ -2,12 +2,12 @@
 // calls share one chronological projection; presentation-specific grouping
 // remains in the trajectory consumer.
 
-import type { ContentBlock, TokenUsage, ToolSchema } from '@deepseek-ai/dsh-llm/types'
-import type { HistoryEntry } from '@deepseek-ai/dsh-client-connection/client'
-import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
-import type {} from '@deepseek-ai/dsh-compact/types'
-import type {} from '@deepseek-ai/dsh-llm-retry/types'
-import type {} from '@deepseek-ai/dsh-tools/types'
+import type { ContentBlock, TokenUsage, ToolSchema } from '@huiliyi37/dsh-llm/types'
+import type { HistoryEntry } from '@huiliyi37/dsh-client-connection/client'
+import type { SessionEvent } from '@huiliyi37/dsh-session/types'
+import type {} from '@huiliyi37/dsh-compact/types'
+import type {} from '@huiliyi37/dsh-llm-retry/types'
+import type {} from '@huiliyi37/dsh-tools/types'
 import type {
   AssistantProvenanceView, AssistantRequestConfig,
 } from './conversation.ts'

@@ -16,10 +16,10 @@ import { createHash } from 'node:crypto'
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { ListToolsResultSchema } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
-import type { Context } from 'cordis'
-import type { ToolDefinition, ToolExecution } from '@deepseek-ai/dsh-tools'
-import { assertSupportedJsonSchema } from '@deepseek-ai/dsh-tools'
-import type { JsonSchemaNode, JsonValue } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@huiliyi37/cordis'
+import type { ToolDefinition, ToolExecution } from '@huiliyi37/dsh-tools'
+import { assertSupportedJsonSchema } from '@huiliyi37/dsh-tools'
+import type { JsonSchemaNode, JsonValue } from '@huiliyi37/dsh-tools'
 
 /** Resolved options relevant to tool bridging. */
 export interface ToolBridgeOptions {

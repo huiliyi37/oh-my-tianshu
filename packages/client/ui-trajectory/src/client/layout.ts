@@ -11,8 +11,8 @@ import type {
   RequestView,
   ToolCallBlock,
   ToolResultNode,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import { extractMarkdownPlainText } from '@deepseek-ai/dsh-client-ui-primitives'
+} from '@huiliyi37/dsh-client-runtime/client'
+import { extractMarkdownPlainText } from '@huiliyi37/dsh-client-ui-primitives'
 import type {
   TrajectoryCellProps,
   TrajectorySourceBlock,

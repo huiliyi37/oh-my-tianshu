@@ -1,10 +1,10 @@
-/** Package-owned durable clock-context invariants. @module @deepseek-ai/dsh-time-context/invariant */
+/** Package-owned durable clock-context invariants. @module @huiliyi37/dsh-time-context/invariant */
 
-import type { Context } from 'cordis'
-import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
-import type { InvariantFailure, InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { Session, SessionEvent } from '@huiliyi37/dsh-session'
+import type { InvariantFailure, InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-time-context'
+const PACKAGE_NAME = '@huiliyi37/dsh-time-context'
 const SOURCE_NAME = 'time-context'
 const READING = new RegExp(
   '^Time sampled while preparing turn (\\d+), step (\\d+): '

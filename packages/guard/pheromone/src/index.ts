@@ -8,12 +8,12 @@
  * entries. The store is a pure library — signal sources (test-failure RED,
  * read/edit traces) are wired by consuming plugins.
  *
- * @module @deepseek-ai/dsh-pheromone
+ * @module @huiliyi37/dsh-pheromone
  */
 
 import { readFile } from 'node:fs/promises'
 import { writeFileSync } from 'node:fs'
-import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
+import { writeFileAtomic } from '@huiliyi37/dsh-atomic-write'
 
 /** File-level signal kinds (plan Wave 3). */
 export type PheromoneSignal =

@@ -17,7 +17,7 @@ mkdir -p scratch-plugin/src
 在 Harness 中，插件是一个导出 `apply` 函数的 TypeScript 模块。框架在加载时调用 `apply`，传入一个 `ctx`（上下文对象），你通过 `ctx` 注册能力：
 
 ```ts
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 
 export const name = 'my-plugin'
 
@@ -33,7 +33,7 @@ export function apply(ctx: Context) {
 创建 `scratch-plugin/src/my-plugin.ts`：
 
 ```ts
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 
 export const name = 'hello-plugin'
 
@@ -68,7 +68,7 @@ pnpm run dsh web --patch ./scratch-plugin/cordis.yml
 如果你有需要手动清理的资源（比如一个网络连接），用 `ctx.effect()` 告诉框架怎么清理：
 
 ```ts
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 
 export function apply(ctx: Context) {
   ctx.effect(() => {
@@ -87,7 +87,7 @@ export function apply(ctx: Context) {
 如果你的插件需要使用其他服务（如 `tools`、`llm`），需要声明 `inject`：
 
 ```ts ignore-check
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 
 export const name = 'my-tool-plugin'
 export const inject = ['tools']
@@ -107,7 +107,7 @@ export function apply(ctx: Context) {
 ### 对象形式
 
 ```ts
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 
 export default {
   name: 'my-plugin',
@@ -121,7 +121,7 @@ export default {
 ### 类形式
 
 ```ts
-import { Service, type Context } from 'cordis'
+import { Service, type Context } from '@huiliyi37/cordis'
 
 export default class MyService extends Service {
   static inject = ['tools']

@@ -1,12 +1,12 @@
-# @cordisjs/plugin-timer
+# @huiliyi37/cordis-plugin-timer
 
 Disposal-aware timer service for Cordis.
 
 ## Usage
 
 ```ts
-import { Context } from 'cordis'
-import Timer from '@cordisjs/plugin-timer'
+import { Context } from '@huiliyi37/cordis'
+import Timer from '@huiliyi37/cordis-plugin-timer'
 
 const root = new Context()
 await root.plugin(Timer)

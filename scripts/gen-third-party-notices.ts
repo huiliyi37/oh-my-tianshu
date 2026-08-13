@@ -41,9 +41,9 @@ const DEV_ONLY_AREAS = [
 
 /** First-party public native packages: reachable at runtime but not third-party. */
 const FIRST_PARTY = new Set([
-  '@deepseek-ai/node-addon-landlock-run',
-  '@deepseek-ai/node-addon-landlock-run-linux-arm64',
-  '@deepseek-ai/node-addon-landlock-run-linux-x64',
+  '@huiliyi37/node-addon-landlock-run',
+  '@huiliyi37/node-addon-landlock-run-linux-arm64',
+  '@huiliyi37/node-addon-landlock-run-linux-x64',
 ])
 
 /** Official SDK identity covered by the project's narrow owner authorization. */
@@ -736,7 +736,7 @@ ${BUILD_TIME_TOOLS.map(tool => `| [\`${tool.name}\`](${tool.repo}) | ${tool.lice
 
 ## First-party native packages
 
-\`@deepseek-ai/node-addon-landlock-run\` (and its platform packages) is built and released from this repository under BSD 3-Clause. It is listed here for completeness; it is first-party, not third-party.
+\`@huiliyi37/node-addon-landlock-run\` (and its platform packages) is built and released from this repository under BSD 3-Clause. It is listed here for completeness; it is first-party, not third-party.
 `
 }
 

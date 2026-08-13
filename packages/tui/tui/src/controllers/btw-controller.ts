@@ -20,13 +20,13 @@
  * - loading 时 Esc：取消并销毁 btw agent（无答案可写）。
  * 重叠保护：ask 期间再次 ask 静默忽略（一次只跑一个侧问）。
  *
- * @module @deepseek-ai/dsh-tui/controllers/btw-controller
+ * @module @huiliyi37/dsh-tui/controllers/btw-controller
  */
 
 import { randomUUID } from 'node:crypto'
-import type { Context } from 'cordis'
-import { SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
-import type { AgentHandle } from '@deepseek-ai/dsh-agent'
+import type { Context } from '@huiliyi37/cordis'
+import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
+import type { AgentHandle } from '@huiliyi37/dsh-agent'
 import { controlsFromHandle } from '../adapter/send.js'
 
 /** btw 挂起态快照（renderLive 消费；无挂起时 peek() 返回 null）。 */

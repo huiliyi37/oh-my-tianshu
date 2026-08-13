@@ -1,6 +1,6 @@
 /** Validated configuration for the local PTY backend. */
 
-import z from 'schemastery'
+import z from '@huiliyi37/schemastery'
 
 /** Public plugin configuration. */
 export interface Config {

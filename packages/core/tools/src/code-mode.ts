@@ -3,14 +3,14 @@
  * tools through nested executions scheduled under the native concurrency
  * contract; each sub-dispatch is logged for reconstruction, while only the
  * outer curated result enters model history.
- * @module @deepseek-ai/dsh-tools/src/code-mode
+ * @module @huiliyi37/dsh-tools/src/code-mode
  */
 
-import { CallId, HarnessError } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { CodeBindingFunction, CodeRunResult, CodeRuntime } from '@deepseek-ai/dsh-code-runtime'
-import { snapshotJsonValue } from '@deepseek-ai/dsh-session'
-import type { JsonValue } from '@deepseek-ai/dsh-session'
+import { CallId, HarnessError } from '@huiliyi37/dsh-llm'
+import type { ContentBlock } from '@huiliyi37/dsh-llm'
+import type { CodeBindingFunction, CodeRunResult, CodeRuntime } from '@huiliyi37/dsh-code-runtime'
+import { snapshotJsonValue } from '@huiliyi37/dsh-session'
+import type { JsonValue } from '@huiliyi37/dsh-session'
 import { defineTool, parameterSchemaSpecToJsonSchema } from './schema.ts'
 import { TOOL_REGISTRY_SCHEDULER } from './index.ts'
 import type { CodeDispatchLog, ToolDefinition, ToolExecutionResult, ToolRegistry, ToolRunContext } from './index.ts'

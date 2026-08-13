@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Mock } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import type { Sandbox as SandboxType } from 'e2b'
 import E2BSandboxService, {
   e2bControlEnvs,
   FileType,
   SandboxNotFoundError,
   quoteE2BShellArg,
-} from '@deepseek-ai/dsh-e2b'
+} from '@huiliyi37/dsh-e2b'
 import * as E2BInvariant from '../src/invariant.ts'
-import InvariantService from '@deepseek-ai/dsh-invariants'
+import InvariantService from '@huiliyi37/dsh-invariants'
 
 const sdk = vi.hoisted(() => ({
   create: vi.fn(),

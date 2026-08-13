@@ -31,21 +31,21 @@
  * Harness owns and never materializes into the environment cannot also serve
  * as the user's environment layer, and conflating the two is what made a
  * non-secret in the old `$DSH_HOME/.env` silently unreachable.
- * @module @deepseek-ai/dsh-credentials-local
+ * @module @huiliyi37/dsh-credentials-local
  */
 
-import { Context, Service } from 'cordis'
-import z from 'schemastery'
+import { Context, Service } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 import { watch as chokidarWatch } from 'chokidar'
 import { mkdir, readFile, stat } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { Document, parseDocument, type YAMLError } from 'yaml'
-import { withFileLock, writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
-import { resolveDshHome } from '@deepseek-ai/dsh-paths'
-import { environmentOf } from '@deepseek-ai/dsh-environment'
-import { Credentials, credentialRef } from '@deepseek-ai/dsh-credentials'
-import type { CredentialInfo, CredentialRef, ResolvedCredential } from '@deepseek-ai/dsh-credentials'
-import type { EnvironmentEntry } from '@deepseek-ai/dsh-environment'
+import { withFileLock, writeFileAtomic } from '@huiliyi37/dsh-atomic-write'
+import { resolveDshHome } from '@huiliyi37/dsh-paths'
+import { environmentOf } from '@huiliyi37/dsh-environment'
+import { Credentials, credentialRef } from '@huiliyi37/dsh-credentials'
+import type { CredentialInfo, CredentialRef, ResolvedCredential } from '@huiliyi37/dsh-credentials'
+import type { EnvironmentEntry } from '@huiliyi37/dsh-environment'
 
 /** Basename of the credentials document inside the harness home. */
 export const CREDENTIALS_FILENAME = '.credentials.yaml'

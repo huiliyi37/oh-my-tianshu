@@ -4,8 +4,8 @@
  * @module dsh-llm-pi-ai/context
  */
 
-import { CallId } from '@deepseek-ai/dsh-llm'
-import type { GenerateOptions, Message } from '@deepseek-ai/dsh-llm'
+import { CallId } from '@huiliyi37/dsh-llm'
+import type { GenerateOptions, Message } from '@huiliyi37/dsh-llm'
 import type { Context as PiContext, Message as PiMessage, Tool as PiTool } from '@earendil-works/pi-ai'
 import { toPiAssistant } from './replay.ts'
 

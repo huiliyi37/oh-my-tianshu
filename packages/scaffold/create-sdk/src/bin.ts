@@ -2,7 +2,7 @@
 /**
  * Self-executing create-sdk command.
  *
- * @module @deepseek-ai/create-sdk/bin
+ * @module @huiliyi37/create-sdk/bin
  */
 
 import { runCreateCommand } from './command.ts'

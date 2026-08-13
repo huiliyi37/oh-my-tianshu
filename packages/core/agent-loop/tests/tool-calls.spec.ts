@@ -4,14 +4,14 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import { createUserMessage, CallId, StreamChunk  } from '@deepseek-ai/dsh-llm'
-import SessionStore, { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import LlmService from '@deepseek-ai/dsh-llm'
-import ToolRegistry, { defineContentToolFixture, TOOL_ABORTED_BEFORE_DISPATCH, TOOL_REGISTRY_SCHEDULER, type PostToolDecision, type PreToolDecision } from '@deepseek-ai/dsh-tools'
-import AgentRegistry, { type Agent } from '@deepseek-ai/dsh-agent'
-import AgentLoop, { DEFAULT_MAX_PARALLEL_TOOL_CALLS } from '@deepseek-ai/dsh-agent-loop'
+import { Context } from '@huiliyi37/cordis'
+import { createUserMessage, CallId, StreamChunk  } from '@huiliyi37/dsh-llm'
+import SessionStore, { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import LlmService from '@huiliyi37/dsh-llm'
+import ToolRegistry, { defineContentToolFixture, TOOL_ABORTED_BEFORE_DISPATCH, TOOL_REGISTRY_SCHEDULER, type PostToolDecision, type PreToolDecision } from '@huiliyi37/dsh-tools'
+import AgentRegistry, { type Agent } from '@huiliyi37/dsh-agent'
+import AgentLoop, { DEFAULT_MAX_PARALLEL_TOOL_CALLS } from '@huiliyi37/dsh-agent-loop'
 import { MockAdapter, textResponse } from './mock-adapter.ts'
 
 async function harness(adapter: MockAdapter, maxParallelToolCalls?: number) {

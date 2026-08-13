@@ -1,10 +1,10 @@
 /** WorkspacesService projects the Workspace object manager for UI consumers. */
 
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import type {
   DirectoryListing, IApiClient, RpcError,
   SessionId, WorkspaceId, WorkspaceView,
-} from '@deepseek-ai/dsh-client-connection/client'
+} from '@huiliyi37/dsh-client-connection/client'
 import type { SnapshotStore } from '../contract/store.ts'
 import { createSnapshotStore } from '../contract/store.ts'
 import type { SessionsPort, SessionsPortList } from '../contract/sessions-port.ts'

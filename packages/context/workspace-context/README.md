@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-workspace-context
+# @huiliyi37/dsh-workspace-context
 
 English | [中文](README.zh.md)
 

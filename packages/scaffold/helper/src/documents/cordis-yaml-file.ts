@@ -1,7 +1,7 @@
 /**
  * Comment-preserving Cordis YAML document and `!!js` expression value.
  *
- * @module @deepseek-ai/dsh-helper/documents/cordis-yaml-file
+ * @module @huiliyi37/dsh-helper/documents/cordis-yaml-file
  */
 
 import {

@@ -3,10 +3,10 @@
  * surface. Exports the `LlmService` default, the abstract `LlmAdapter` for
  * provider backends, and `BlockAssembler` for chunk assembly.
  *
- * @module @deepseek-ai/dsh-llm
+ * @module @huiliyi37/dsh-llm
  */
 
-import { Context, Service } from 'cordis'
+import { Context, Service } from '@huiliyi37/cordis'
 import type {
   GenerateOptions,
   LlmConfigurableProvider,
@@ -41,7 +41,7 @@ export { BlockAssembler } from './assembler.ts'
 export { callConfigEquals, deepFreeze, isAgentLoopRequest, markAgentLoopRequest } from './call-config.ts'
 export type { LlmCallConfig, LlmCallConfigAdapterDefaults } from './call-config.ts'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     llm: LlmService
   }

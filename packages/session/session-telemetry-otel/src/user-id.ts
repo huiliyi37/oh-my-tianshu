@@ -16,14 +16,14 @@
  * process touches the disk once, and a file deleted mid-run keeps the
  * process's id until the next launch.
  *
- * @module @deepseek-ai/dsh-session-telemetry-otel/user-id
+ * @module @huiliyi37/dsh-session-telemetry-otel/user-id
  */
 
 import { randomUUID } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import type { Branded } from '@deepseek-ai/dsh-brand'
-import { resolveDshHome } from '@deepseek-ai/dsh-paths'
+import type { Branded } from '@huiliyi37/dsh-brand'
+import { resolveDshHome } from '@huiliyi37/dsh-paths'
 
 /** A harness-home-scoped anonymous user id (random UUID v4). */
 export type AnonymousUserId = Branded<'AnonymousUserId'>

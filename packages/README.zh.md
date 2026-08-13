@@ -2,11 +2,11 @@
 
 [English](README.md) | 中文
 
-所有包都使用 `@deepseek-ai/dsh-*` scope。Cordis `Service` 子类和函数插件的贡献通过 `ctx.effect()`、`ctx.on()` 或 `ctx.waterfall()` 注册。编写规则见[包](AGENTS.md)与[根规则](../AGENTS.md#conventions)。
+所有包都使用 `@huiliyi37/dsh-*` scope。Cordis `Service` 子类和函数插件的贡献通过 `ctx.effect()`、`ctx.on()` 或 `ctx.waterfall()` 注册。编写规则见[包](AGENTS.md)与[根规则](../AGENTS.md#conventions)。
 
 ## 层级结构
 
-包按组置于 `packages/<group>/<pkg>/`；包名仍为 `@deepseek-ai/dsh-<pkg>`。**组 README 负责包／ctx 键映射。**
+包按组置于 `packages/<group>/<pkg>/`；包名仍为 `@huiliyi37/dsh-<pkg>`。**组 README 负责包／ctx 键映射。**
 
 | 组 | 职责 | 发布预期 |
 |---|---|---|

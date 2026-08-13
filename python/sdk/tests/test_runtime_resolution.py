@@ -19,9 +19,9 @@ def test_default_config_is_shipped_with_the_package() -> None:
     path = bundled_default_config_path()
     assert path == bundled_package_dir() / "runtime" / "cordis.yml"
     config = path.read_text()
-    assert "@deepseek-ai/dsh-agent-spine-demo" in config
-    assert "@deepseek-ai/dsh-session-persistence-jsonl" in config
-    assert "@deepseek-ai/dsh-session-checkpoint-policy" in config
+    assert "@huiliyi37/dsh-agent-spine-demo" in config
+    assert "@huiliyi37/dsh-session-persistence-jsonl" in config
+    assert "@huiliyi37/dsh-session-checkpoint-policy" in config
 
 
 def test_unknown_explicit_mode_fails_loud() -> None:

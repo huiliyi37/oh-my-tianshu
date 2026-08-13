@@ -13,7 +13,7 @@
  */
 
 import { structuredPatch } from 'diff'
-import type { FileDiff, ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools'
+import type { FileDiff, ToolCallView, ToolResultView } from '@huiliyi37/dsh-tools'
 import { color } from '../engine/ansi.js'
 import type { RivetTheme } from '../theme.js'
 import { truncationHint } from '../truncation-marker.js'

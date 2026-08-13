@@ -8,7 +8,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
-const THEME_PACKAGE = '@deepseek-ai/dsh-client-ui-theme'
+const THEME_PACKAGE = '@huiliyi37/dsh-client-ui-theme'
 const baseCss = readFileSync(fileURLToPath(new URL('../src/base.css', import.meta.url)), 'utf8')
 const themeManifest = JSON.parse(
   readFileSync(fileURLToPath(new URL('../../ui-theme/package.json', import.meta.url)), 'utf8'),

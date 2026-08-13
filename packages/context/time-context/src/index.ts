@@ -2,13 +2,13 @@
  * Opt-in request clock context. Eligible steps add durable,
  * source-attributed time readings to the request history.
  *
- * @module @deepseek-ai/dsh-time-context
+ * @module @huiliyi37/dsh-time-context
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type { Agent, PreStepDecision } from '@huiliyi37/dsh-agent'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'time-context'

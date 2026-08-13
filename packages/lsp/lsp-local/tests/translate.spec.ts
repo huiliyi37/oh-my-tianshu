@@ -6,8 +6,8 @@ import {
   requestMethod,
   supportsOperation,
   supportsTransientOpen,
-} from '@deepseek-ai/dsh-lsp-local'
-import type { WireServerCapabilities } from '@deepseek-ai/dsh-lsp-local/src/protocol.ts'
+} from '@huiliyi37/dsh-lsp-local'
+import type { WireServerCapabilities } from '@huiliyi37/dsh-lsp-local/src/protocol.ts'
 
 const RANGE = { start: { line: 1, character: 2 }, end: { line: 1, character: 5 } }
 

@@ -17,13 +17,13 @@ Harness 使用 `cordis.yml` 描述 agent（智能体）加载哪些插件以及�
 
 ```yaml
 - id: llm-deepseek
-  name: '@deepseek-ai/dsh-llm-deepseek'
+  name: '@huiliyi37/dsh-llm-deepseek'
 
 - id: bash
-  name: '@deepseek-ai/dsh-bash-local'
+  name: '@huiliyi37/dsh-bash-local'
 
 - id: agent-loop
-  name: '@deepseek-ai/dsh-agent-loop'
+  name: '@huiliyi37/dsh-agent-loop'
   config:
     agents:
       - id: main

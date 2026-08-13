@@ -1,7 +1,7 @@
 /**
  * Strict Handlebars wrapper and complete-file SDK project artifacts.
  *
- * @module @deepseek-ai/dsh-helper/templates/project-template
+ * @module @huiliyi37/dsh-helper/templates/project-template
  */
 
 import { PackageJsonFile } from '../documents/package-json-file.ts'

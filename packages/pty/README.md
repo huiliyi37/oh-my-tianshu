@@ -6,9 +6,9 @@ English | [中文](README.zh.md)
 
 | Package | Role | ctx key |
 |---|---|---|
-| [`pty`](pty/README.md) (`@deepseek-ai/dsh-pty`) | Backend registry, branded ids, exact-Agent ownership, session operations, and awaited cleanup | `ctx.pty` |
-| `pty-local` (`@deepseek-ai/dsh-pty-local`) | Shell backend over `ctx.subprocess.spawnTerminal`: readiness detection, bounded terminal state, sandbox policy, and session operations | registers on `ctx.pty` |
-| `tool-pty` (`@deepseek-ai/dsh-tool-pty`) | Six model-facing tools and generic task integration for background sends | registers on `ctx.tools` |
+| [`pty`](pty/README.md) (`@huiliyi37/dsh-pty`) | Backend registry, branded ids, exact-Agent ownership, session operations, and awaited cleanup | `ctx.pty` |
+| `pty-local` (`@huiliyi37/dsh-pty-local`) | Shell backend over `ctx.subprocess.spawnTerminal`: readiness detection, bounded terminal state, sandbox policy, and session operations | registers on `ctx.pty` |
+| `tool-pty` (`@huiliyi37/dsh-tool-pty`) | Six model-facing tools and generic task integration for background sends | registers on `ctx.tools` |
 
 The design and deferred boundaries live in the [persistent PTY Agent Note](../../.agents/notes/implemented/feature/2026-07-16-persistent-pty-sessions.md).
 

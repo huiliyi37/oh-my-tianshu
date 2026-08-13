@@ -7,21 +7,21 @@
 # `llm-deepseek:` section there overrides the adapter entry below without a
 # restart.
 - id: settings
-  name: '@deepseek-ai/dsh-settings-local'
+  name: '@huiliyi37/dsh-settings-local'
 
 # Credential store: the live process environment over `$DSH_HOME/.credentials.yaml`
 # (owner-only file, hot-reloaded). The adapter resolves `DEEPSEEK_API_KEY`
 # through it at each request, so no key is inlined in this file.
 - id: credentials
-  name: '@deepseek-ai/dsh-credentials-local'
+  name: '@huiliyi37/dsh-credentials-local'
 
-# The DeepSeek adapter. Swap to '@deepseek-ai/dsh-llm-pi-ai' for the pi-ai-backed
+# The DeepSeek adapter. Swap to '@huiliyi37/dsh-llm-pi-ai' for the pi-ai-backed
 # twin (a `providers` dict keyed by route; `reasoning: high` replaces
 # thinking/reasoningEffort). Shipped default: full thinking at max effort on
 # every request. Exact-model resolution materializes request defaults before
 # the request header is logged.
 - id: llm-deepseek
-  name: '@deepseek-ai/dsh-llm-deepseek'
+  name: '@huiliyi37/dsh-llm-deepseek'
   config:
     thinking: enabled
     reasoningEffort: max
@@ -33,16 +33,16 @@
 
 # Managed child-process groups for the bash executor (spawn/kill/output plumbing).
 - id: subprocess
-  name: '@deepseek-ai/dsh-subprocess-local'
+  name: '@huiliyi37/dsh-subprocess-local'
 
 - id: bash
-  name: '@deepseek-ai/dsh-bash-local'
+  name: '@huiliyi37/dsh-bash-local'
   config:
     timeoutMs: 60000
 
 # The example composition pre-creates one fresh `main` agent for its test driver.
 - id: agent-spine
-  name: '@deepseek-ai/dsh-agent-spine-demo'
+  name: '@huiliyi37/dsh-agent-spine-demo'
   config:
     agents:
       - id: main
@@ -61,20 +61,20 @@
       factual.
 
 - id: persistence
-  name: '@deepseek-ai/dsh-session-persistence-jsonl'
+  name: '@huiliyi37/dsh-session-persistence-jsonl'
   config:
     root: './.sessions'
     compression: !!js "process.env.DSH_SNAPSHOT === undefined ? 'zstd' : 'none'"
 
 - id: checkpoint-policy
-  name: '@deepseek-ai/dsh-session-checkpoint-policy'
+  name: '@huiliyi37/dsh-session-checkpoint-policy'
 
 # Summarize an older range when derived history approaches the context window.
 - id: token-meter
-  name: '@deepseek-ai/dsh-token-meter'
+  name: '@huiliyi37/dsh-token-meter'
 
 - id: compact-basic
-  name: '@deepseek-ai/dsh-compact-basic'
+  name: '@huiliyi37/dsh-compact-basic'
   config:
     thresholdRatio: 0.8
     retainRatio: 0.16
@@ -84,20 +84,20 @@
 # Projection registry: durable subagent identity (mode/label) folds through
 # its registered units; subagent catalog reads fail loud without the capability.
 - id: session-projection
-  name: '@deepseek-ai/dsh-session-projection'
+  name: '@huiliyi37/dsh-session-projection'
 
 # Expose fresh-child `spawn` and completed-prefix `fork` through independent
 # in-process backends.
 - id: subagent
-  name: '@deepseek-ai/dsh-subagent'
+  name: '@huiliyi37/dsh-subagent'
 
 - id: subagent-spawn
-  name: '@deepseek-ai/dsh-subagent-spawn'
+  name: '@huiliyi37/dsh-subagent-spawn'
   config:
     providerName: spawn
 
 - id: subagent-fork
-  name: '@deepseek-ai/dsh-subagent-fork'
+  name: '@huiliyi37/dsh-subagent-fork'
   config:
     providerName: fork
 
@@ -105,13 +105,13 @@
 # separately loaded control registers global `send_message`; `report` is
 # installed only in continuable child scopes.
 - id: tool-subagent-control
-  name: '@deepseek-ai/dsh-tool-subagent-control'
+  name: '@huiliyi37/dsh-tool-subagent-control'
 
 - id: tool-subagent-report
-  name: '@deepseek-ai/dsh-tool-subagent-report'
+  name: '@huiliyi37/dsh-tool-subagent-report'
 
 - id: tool-subagent
-  name: '@deepseek-ai/dsh-tool-subagent'
+  name: '@huiliyi37/dsh-tool-subagent'
   config:
     provider: spawn
     toolName: subagent
@@ -119,7 +119,7 @@
     maxDepth: 1
 
 - id: tool-subagent-fork
-  name: '@deepseek-ai/dsh-tool-subagent'
+  name: '@huiliyi37/dsh-tool-subagent'
   config:
     provider: fork
     toolName: subagent_fork
@@ -129,33 +129,33 @@
 # The worker-thread workflow engine fans a model-written JavaScript script's
 # `agent()` calls out through the spawn backend.
 - id: workflow-workerthread
-  name: '@deepseek-ai/dsh-workflow-workerthread'
+  name: '@huiliyi37/dsh-workflow-workerthread'
   config:
     provider: spawn
 
 - id: tool-workflow
-  name: '@deepseek-ai/dsh-tool-workflow'
+  name: '@huiliyi37/dsh-tool-workflow'
 
 # A separate fixed consumer demonstrates fresh-agent Ralph iteration without
 # changing the workflow tool or same-session goal behavior.
 - id: tool-ralph
-  name: '@deepseek-ai/dsh-tool-ralph'
+  name: '@huiliyi37/dsh-tool-ralph'
 
 # `todo_write` replaces the logged whole list.
 - id: tool-todo
-  name: '@deepseek-ai/dsh-tool-todo'
+  name: '@huiliyi37/dsh-tool-todo'
   config:
     allowParallelInProgress: true
 
 # Policy loads before the model-facing filesystem tools so writes and edits
 # require an observed file. Relative paths resolve from the process cwd.
 - id: fs-local
-  name: '@deepseek-ai/dsh-fs-local'
+  name: '@huiliyi37/dsh-fs-local'
   config:
     cwd: !!js process.cwd()
 
 - id: fs-policy
-  name: '@deepseek-ai/dsh-fs-policy'
+  name: '@huiliyi37/dsh-fs-policy'
 
 - id: tool-fs
-  name: '@deepseek-ai/dsh-tool-fs'
+  name: '@huiliyi37/dsh-tool-fs'

@@ -1,5 +1,5 @@
 import { once } from 'node:events'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import {
   CommandExitError,
   FileNotFoundError,
@@ -7,14 +7,14 @@ import {
   type CommandHandle,
   type CommandResult,
   type Sandbox,
-} from '@deepseek-ai/dsh-e2b'
-import type E2BSandboxService from '@deepseek-ai/dsh-e2b'
-import type { SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
-import E2BSubprocessService from '@deepseek-ai/dsh-subprocess-e2b'
+} from '@huiliyi37/dsh-e2b'
+import type E2BSandboxService from '@huiliyi37/dsh-e2b'
+import type { SubprocessSpawnSpec } from '@huiliyi37/dsh-subprocess'
+import E2BSubprocessService from '@huiliyi37/dsh-subprocess-e2b'
 import * as E2BSubprocessInvariant from '../src/invariant.ts'
 import { E2BBase64Decoder, E2B_OUTPUT_COMPLETE_FRAME, E2BOutputReader } from '../src/output.ts'
 import { E2BSubprocessHandle } from '../src/process.ts'
-import InvariantService from '@deepseek-ai/dsh-invariants'
+import InvariantService from '@huiliyi37/dsh-invariants'
 import { describe, expect, it, vi } from 'vitest'
 
 function commandError(exitCode: number): CommandExitError {

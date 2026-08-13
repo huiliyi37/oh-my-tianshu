@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-type-meta
+# @huiliyi37/dsh-type-meta
 
 English | [中文](README.zh.md)
 

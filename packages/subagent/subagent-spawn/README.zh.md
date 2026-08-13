@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-subagent-spawn
+# @huiliyi37/dsh-subagent-spawn
 
 [English](README.md) | 中文
 

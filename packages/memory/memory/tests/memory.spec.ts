@@ -11,7 +11,7 @@
  * - list 按 createdAt 倒序；search 朴素子串匹配（大小写不敏感）。
  * - 新实例读同一目录可恢复全部记忆（重启可读）。
  *
- * @module @deepseek-ai/dsh-memory/tests/memory
+ * @module @huiliyi37/dsh-memory/tests/memory
  */
 
 import { mkdtemp, rm } from 'node:fs/promises'

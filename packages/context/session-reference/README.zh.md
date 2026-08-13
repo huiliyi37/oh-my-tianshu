@@ -1,4 +1,4 @@
-# `@deepseek-ai/dsh-session-reference`
+# `@huiliyi37/dsh-session-reference`
 
 [English](README.md) | 中文
 

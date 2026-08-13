@@ -1,16 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context, type Fiber } from 'cordis'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { createUserMessage, CallId, HarnessError , createMessage } from '@deepseek-ai/dsh-llm'
-import { MAX_TIMER_DELAY_MS, TimeoutReason } from '@deepseek-ai/dsh-timeout'
-import * as TimeoutPolicy from '@deepseek-ai/dsh-timeout-policy'
+import { Context, type Fiber } from '@huiliyi37/cordis'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { createUserMessage, CallId, HarnessError , createMessage } from '@huiliyi37/dsh-llm'
+import { MAX_TIMER_DELAY_MS, TimeoutReason } from '@huiliyi37/dsh-timeout'
+import * as TimeoutPolicy from '@huiliyi37/dsh-timeout-policy'
 import SessionStore, {
   SESSION_FORMAT_VERSION,
   SessionId,
   type Session,
   type SessionHeader,
   type SessionId as SessionIdValue,
-} from '@deepseek-ai/dsh-session'
+} from '@huiliyi37/dsh-session'
 import SessionQueryService, {
   SessionQueryError,
   SessionSearchCursor,
@@ -23,10 +23,10 @@ import SessionQueryService, {
   type SessionSearchPage,
   type SessionSearchRequest,
   type SessionTitleObservationResult,
-} from '@deepseek-ai/dsh-session-query'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry, { type ToolExecutionResult } from '@deepseek-ai/dsh-tools'
-import * as ToolSessionQuery from '@deepseek-ai/dsh-tool-session-query'
+} from '@huiliyi37/dsh-session-query'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry, { type ToolExecutionResult } from '@huiliyi37/dsh-tools'
+import * as ToolSessionQuery from '@huiliyi37/dsh-tool-session-query'
 
 const activeContexts: Context[] = []
 

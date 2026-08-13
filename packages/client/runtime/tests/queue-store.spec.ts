@@ -4,10 +4,10 @@
  * projection, and snapshot reference stability.
  */
 import { describe, expect, it } from 'vitest'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock, UserMessage } from '@deepseek-ai/dsh-llm/types'
-import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
-import type { MessageId, MuxFrame, RpcId, SessionId } from '@deepseek-ai/dsh-client-connection/client'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
+import type { ContentBlock, UserMessage } from '@huiliyi37/dsh-llm/types'
+import type { SessionEvent } from '@huiliyi37/dsh-session/types'
+import type { MessageId, MuxFrame, RpcId, SessionId } from '@huiliyi37/dsh-client-connection/client'
 import { Session } from '../src/client/sessions/session.ts'
 import { SessionManager } from '../src/client/sessions/manager.ts'
 import { FakeApiClient } from './fake-api.ts'

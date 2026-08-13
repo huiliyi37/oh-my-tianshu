@@ -7,7 +7,7 @@
  * - 冷却表 ≥2 → 跳过（无信息探针不重复）
  * 纯函数零 IO；tracker 提供已验证命令历史与冷却表。
  *
- * @module @deepseek-ai/dsh-evidence-gate/probe-suggest
+ * @module @huiliyi37/dsh-evidence-gate/probe-suggest
  */
 
 /** RED 探针建议。 */

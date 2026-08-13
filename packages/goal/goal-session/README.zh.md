@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-goal-session
+# @huiliyi37/dsh-goal-session
 
 [English](README.md) | 中文
 
@@ -8,13 +8,13 @@
 
 ```yaml
 - id: goal
-  name: '@deepseek-ai/dsh-goal'
+  name: '@huiliyi37/dsh-goal'
 
 - id: tool-goal
-  name: '@deepseek-ai/dsh-tool-goal'
+  name: '@huiliyi37/dsh-tool-goal'
 
 - id: goal-session
-  name: '@deepseek-ai/dsh-goal-session'
+  name: '@huiliyi37/dsh-goal-session'
 ```
 
 该插件没有可调配置。`maxGoalRounds` 属于目标定义，面向模型的阻塞阈值则属于 [`dsh-tool-goal`](../tool-goal/README.md)；在驱动器中重复任一数值都可能产生分歧策略。

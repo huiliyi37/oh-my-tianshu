@@ -1,4 +1,4 @@
-import { Service } from 'cordis'
+import { Service } from '@huiliyi37/cordis'
 import type HostDefault from '@fixture/host'
 import type * as Host from '@fixture/host'
 import type { AgentPhase } from '@fixture/host'
@@ -30,7 +30,7 @@ export class ClientBridge extends Service {
   }
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     clientBridge: ClientBridge
   }

@@ -6,7 +6,7 @@ import {
   DEEPSEEK_DEFAULT_MAX_TOKENS,
   DEEPSEEK_DEFAULT_MAX_USES,
   DEEPSEEK_DEFAULT_MODEL,
-} from '@deepseek-ai/dsh-web-search-deepseek'
+} from '@huiliyi37/dsh-web-search-deepseek'
 
 /**
  * Disabled real-API probe for the DeepSeek search provider. The live endpoint

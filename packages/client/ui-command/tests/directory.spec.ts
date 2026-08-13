@@ -6,7 +6,7 @@
  * gate, and the per-key ensureReady strong-wait policy.
  */
 import { describe, expect, it } from 'vitest'
-import type { SessionId } from '@deepseek-ai/dsh-client-connection/client'
+import type { SessionId } from '@huiliyi37/dsh-client-connection/client'
 import type { CommandDescriptor } from '../src/client/directory.ts'
 import { CommandDirectory } from '../src/client/directory.ts'
 

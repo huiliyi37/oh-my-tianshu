@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import * as yaml from 'js-yaml'
-import { entryListSchema } from '@cordisjs/plugin-include'
+import { entryListSchema } from '@huiliyi37/cordis-plugin-include'
 import { loadOverlayPatches, renderConfigDump } from '../src/index.ts'
 
 const NAME = 'dsh-test-bin'

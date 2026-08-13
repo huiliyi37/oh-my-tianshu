@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-sandbox-local
+# @huiliyi37/dsh-sandbox-local
 
 English | [中文](README.zh.md)
 
@@ -12,14 +12,14 @@ Policy is per call; the provider stores only the mechanism and cached runner ver
 
 The Seatbelt profile is allow-default with `(deny file-write*)` plus write allow-lists, so exactly the mode's promised file effects are governed: `read-only` grants the `/dev/null` literal alone; `workspace-write` adds the workspace root, `/tmp`, and the per-user darwin temp dir (`os.tmpdir()` — the platform's real temp area for mkstemp-family tools), every root canonicalized because Seatbelt matches resolved paths (`/tmp` IS `/private/tmp`). Apple marks the `sandbox-exec` CLI deprecated but ships it on every macOS; the functional probe is what fails closed if that ever changes.
 
-[`@deepseek-ai/node-addon-landlock-run`](https://www.npmjs.com/package/@deepseek-ai/node-addon-landlock-run) supplies the platform launcher, functional probe, and CLI argument vocabulary. This provider owns only mode-to-grant mapping and runner selection. Keeping path resolution and probe parsing with the versioned binary prevents contract drift.
+[`@huiliyi37/node-addon-landlock-run`](https://www.npmjs.com/package/@huiliyi37/node-addon-landlock-run) supplies the platform launcher, functional probe, and CLI argument vocabulary. This provider owns only mode-to-grant mapping and runner selection. Keeping path resolution and probe parsing with the versioned binary prevents contract drift.
 
 ```yaml
 - id: sandbox
-  name: '@deepseek-ai/dsh-sandbox-local'
+  name: '@huiliyi37/dsh-sandbox-local'
 ```
 
-Consumers: [`@deepseek-ai/dsh-bash-sandbox`](../../bash/bash-sandbox/); see [the acp-agent example](../../../examples/acp-agent/) for the runnable default composition.
+Consumers: [`@huiliyi37/dsh-bash-sandbox`](../../bash/bash-sandbox/); see [the acp-agent example](../../../examples/acp-agent/) for the runnable default composition.
 
 ## Model Experience
 

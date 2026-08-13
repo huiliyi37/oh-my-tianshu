@@ -12,7 +12,7 @@
  * the declarer's own contract is unreachable for locale/ui-theme without a
  * reference cycle.
  */
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@huiliyi37/dsh-client-ui-slots' {
   interface SlotMap {
     /** One preference row inside the settings General section (see module JSDoc). */
     'settings.general.item': { kind: 'list'; scope: 'root'; owner: SettingsGeneralItemOwnerProps }

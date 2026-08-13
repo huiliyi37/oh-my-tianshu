@@ -1,10 +1,10 @@
 /**
  * Remote decorators and explicit Gateway bindings backed only by private
  * module state. Strict reflection remains a TypeRT compiler responsibility.
- * @module @deepseek-ai/dsh-type-meta
+ * @module @huiliyi37/dsh-type-meta
  */
 
-import { Service, type Context } from 'cordis'
+import { Service, type Context } from '@huiliyi37/cordis'
 import type { TypeRTContextMap } from './types.ts'
 
 const TYPERT_REMOTE_SEGMENT_PATTERN = /^[A-Za-z0-9_$.-]+$/

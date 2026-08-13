@@ -4,12 +4,12 @@
  * prompt and settles when the whole agent next becomes idle.
  * Mirrors the Python SDK's `DeepSeekHarness`/`Session` pair.
  *
- * @module @deepseek-ai/dsh-sdk-client/api
+ * @module @huiliyi37/dsh-sdk-client/api
  */
 
 import { randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
 import { HarnessClient, isRecord, SdkProtocolError } from './client.ts'
 import type { ContentBlock, DeepSeekHarnessOptions, HarnessClientOptions, HarnessNotification, RunResult } from './types.ts'
 

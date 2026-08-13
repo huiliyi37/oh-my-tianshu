@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import Lsp, {
   finalExtension,
   LspError,
@@ -7,7 +7,7 @@ import Lsp, {
   type LspProvider,
   type LspProviderQuery,
   type LspQueryResult,
-} from '@deepseek-ai/dsh-lsp'
+} from '@huiliyi37/dsh-lsp'
 
 /** A scripted provider that records the queries it receives. */
 function makeProvider(

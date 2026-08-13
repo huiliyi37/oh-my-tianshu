@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
-import type { SettingsNamespaceView } from '@deepseek-ai/dsh-client-connection/client'
+import { bindSnapshotSelector } from '@huiliyi37/dsh-client-web-react'
+import type { SettingsNamespaceView } from '@huiliyi37/dsh-client-connection/client'
 import { PermissionRow, type PermissionRowProps } from '../src/client/PermissionRow.tsx'
 import { en } from '../src/client/locales.ts'
 import { PermissionSettingsController } from '../src/client/settings-store.ts'

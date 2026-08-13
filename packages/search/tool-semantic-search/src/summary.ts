@@ -5,10 +5,10 @@
  * runtime-context content-diff injects it only when the index actually
  * changes (volatile content never enters the frozen system-prompt prefix).
  *
- * @module @deepseek-ai/dsh-tool-semantic-search/summary
+ * @module @huiliyi37/dsh-tool-semantic-search/summary
  */
 
-import type { SemanticIndex } from '@deepseek-ai/dsh-semantic-index'
+import type { SemanticIndex } from '@huiliyi37/dsh-semantic-index'
 
 /** Injection budget cap for the workspace index summary (new discipline). */
 export const INDEX_SUMMARY_MAX_CHARS = 2000

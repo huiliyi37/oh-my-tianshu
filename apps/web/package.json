@@ -1,8 +1,15 @@
 {
-  "name": "@deepseek-ai/dsh-frontend",
-  "description": "Web application entry: vite build over the @deepseek-ai/dsh-client-web shell library; dist/ served by apps/cli's dsh web",
-  "version": "0.0.1",
-  "private": true,
+  "name": "@huiliyi37/dsh-frontend",
+  "description": "Web application entry: vite build over the @huiliyi37/dsh-client-web shell library; dist/ served by apps/cli's dsh web",
+  "version": "0.2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "directory": "apps/web"
+  },
   "type": "module",
   "exports": {
     "./dist/*": "./dist/*",
@@ -18,16 +25,16 @@
   },
   "license": "BSD-3-Clause",
   "dependencies": {
-    "@deepseek-ai/dsh-client-web": "workspace:^",
+    "@huiliyi37/dsh-client-web": "workspace:^",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-client-modules": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
-    "@deepseek-ai/dsh-client-web-react": "workspace:^",
-    "@deepseek-ai/dsh-pwsh-local": "workspace:^",
+    "@huiliyi37/dsh-client-modules": "workspace:^",
+    "@huiliyi37/dsh-client-ui-primitives": "workspace:^",
+    "@huiliyi37/dsh-client-ui-slots": "workspace:^",
+    "@huiliyi37/dsh-client-web-react": "workspace:^",
+    "@huiliyi37/dsh-pwsh-local": "workspace:^",
     "@types/node": "^22.0.0",
     "@types/react": "~18.3.1",
     "@types/react-dom": "~18.3.0",

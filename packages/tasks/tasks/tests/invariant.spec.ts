@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { SessionId } from '@deepseek-ai/dsh-session'
-import TaskService, { TaskId } from '@deepseek-ai/dsh-tasks'
-import type { TaskDoneListener, TaskSnapshot } from '@deepseek-ai/dsh-tasks'
-import * as TasksInvariant from '@deepseek-ai/dsh-tasks/invariant'
-import InvariantService from '@deepseek-ai/dsh-invariants'
+import { Context } from '@huiliyi37/cordis'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { SessionId } from '@huiliyi37/dsh-session'
+import TaskService, { TaskId } from '@huiliyi37/dsh-tasks'
+import type { TaskDoneListener, TaskSnapshot } from '@huiliyi37/dsh-tasks'
+import * as TasksInvariant from '@huiliyi37/dsh-tasks/invariant'
+import InvariantService from '@huiliyi37/dsh-invariants'
 
 const BASE: TaskSnapshot = {
   id: TaskId('bash-1'),

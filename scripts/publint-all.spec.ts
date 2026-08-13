@@ -19,7 +19,7 @@ function fixture(exportPath = './lib/index.js'): string {
   const packageDir = join(root, 'packages/core/probe')
   mkdirSync(join(packageDir, 'lib'), { recursive: true })
   writeFileSync(join(packageDir, 'package.json'), `${JSON.stringify({
-    name: '@deepseek-ai/dsh-probe',
+    name: '@huiliyi37/dsh-probe',
     version: '0.0.1',
     type: 'module',
     license: 'MIT',

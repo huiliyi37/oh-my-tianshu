@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-llm-mock-server`.
- * @module @deepseek-ai/dsh-llm-mock-server/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-llm-mock-server`.
+ * @module @huiliyi37/dsh-llm-mock-server/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-llm-mock-server'
+const PACKAGE_NAME = '@huiliyi37/dsh-llm-mock-server'
 
 /** Cordis companion plugin name. */
 export const name = 'llm-mock-server-invariant'

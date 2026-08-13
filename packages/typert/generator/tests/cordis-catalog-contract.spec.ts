@@ -91,7 +91,7 @@ function fixtureRoot(eventsBlock: string): string {
   const root = mkdtempSync(join(tmpdir(), 'cordis-catalog-'))
   writeProject(
     root,
-    `declare module 'cordis' {\n  interface Events {\n${eventsBlock}\n  }\n}\n`,
+    `declare module '@huiliyi37/cordis' {\n  interface Events {\n${eventsBlock}\n  }\n}\n`,
   )
   return root
 }
@@ -103,7 +103,7 @@ function serviceFixtureRoot(classSource: string): string {
   const root = mkdtempSync(join(tmpdir(), 'cordis-catalog-'))
   writeProject(
     root,
-    `declare module 'cordis' {\n  interface Context {\n    fix: FixService\n  }\n}\n\n${classSource}\n`,
+    `declare module '@huiliyi37/cordis' {\n  interface Context {\n    fix: FixService\n  }\n}\n\n${classSource}\n`,
   )
   return root
 }

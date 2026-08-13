@@ -1,6 +1,6 @@
 import type {
   RpcError, SessionId,
-} from '@deepseek-ai/dsh-client-connection/client'
+} from '@huiliyi37/dsh-client-connection/client'
 import type { SessionHistoryInspection } from '../sessions/history.ts'
 import type { ObservableSnapshot } from './store.ts'
 

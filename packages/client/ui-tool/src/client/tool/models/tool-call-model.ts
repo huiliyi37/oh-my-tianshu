@@ -9,9 +9,9 @@
 // The block union's defining home is runtime (fold-product types); this
 // contract only forwards it (type-definition authority stays with the layer
 // that produces the values).
-import type { ToolCallBlock, ToolResultNode } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ToolCallBlock, ToolResultNode } from '@huiliyi37/dsh-client-runtime/client'
 
-export type { ToolCallBlock } from '@deepseek-ai/dsh-client-runtime/client'
+export type { ToolCallBlock } from '@huiliyi37/dsh-client-runtime/client'
 
 /** Tool-call row variants selected by the generic atomic renderer. */
 export type ToolRowVariant = 'search' | 'read' | 'bash' | 'write' | 'edit' | 'code' | 'others'

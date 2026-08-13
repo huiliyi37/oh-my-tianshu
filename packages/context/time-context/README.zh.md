@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-time-context
+# @huiliyi37/dsh-time-context
 
 [English](README.md) | 中文
 
@@ -8,7 +8,7 @@
 
 ```yaml
 - id: time-context
-  name: '@deepseek-ai/dsh-time-context'
+  name: '@huiliyi37/dsh-time-context'
   config:
     timeZone: Asia/Shanghai  # optional IANA override; omit for the process zone
     refreshIntervalMs: 60000 # optional; omit or set to 0 for every eligible attempt

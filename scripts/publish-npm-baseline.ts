@@ -34,7 +34,7 @@ const DEPENDENCY_SECTIONS = [
   'peerDependencies',
 ] as const
 const RELEASE_MANIFEST_NAME = 'manifest.json'
-const RELEASE_ENTRY_PACKAGE = '@deepseek-ai/dsh'
+const RELEASE_ENTRY_PACKAGE = '@huiliyi37/dsh-tianshu'
 const LATEST_DIST_TAG = 'latest'
 const POSIX_WEB_PROBE = String.raw`
 import errno, os, pty, select, signal, sys, time
@@ -258,10 +258,10 @@ class WorkspacePackageSet {
       const name = expectString(manifest, 'name', manifestPath)
       const version = expectString(manifest, 'version', manifestPath)
       const isVendored = manifestPath.startsWith('vendor/')
-      if (!isVendored && !name.startsWith('@deepseek-ai/')) {
-        throw new Error(`${manifestPath} must name an @deepseek-ai package`)
+      if (!isVendored && !name.startsWith('@huiliyi37/')) {
+        throw new Error(`${manifestPath} must name an @huiliyi37 package`)
       }
-      if (name === '@deepseek-ai/dsh-root') {
+      if (name === '@huiliyi37/dsh-tianshu-root') {
         throw new Error(`${manifestPath} unexpectedly selected the workspace root`)
       }
       if (names.has(name)) throw new Error(`duplicate package name: ${name}`)
@@ -456,7 +456,7 @@ class InstalledBundleSmoke {
         `--registry=${this.bundle.manifest.registry}`,
       ], consumerRoot, npmClientEnvironment())
 
-      const bin = resolve(consumerRoot, 'node_modules/@deepseek-ai/dsh/lib/bin.js')
+      const bin = resolve(consumerRoot, 'node_modules/@huiliyi37/dsh-tianshu/lib/bin.js')
       assertPathWithin(consumerRoot, bin, 'installed dsh bin')
       const environment = installedArtifactEnvironment(consumerRoot)
       const version = this.runner.capture(
@@ -807,7 +807,7 @@ function parsePackedPackage(value: unknown, index: number): PackedPackage {
   if (origin !== 'harness' && origin !== 'vendor') {
     throw new Error(`invalid package origin in release manifest: ${JSON.stringify(origin)}`)
   }
-  if (origin === 'harness' && (!name.startsWith('@deepseek-ai/') || name === '@deepseek-ai/dsh-root')) {
+  if (origin === 'harness' && (!name.startsWith('@huiliyi37/') || name === '@huiliyi37/dsh-tianshu-root')) {
     throw new Error(`invalid package name in release manifest: ${name}`)
   }
   return {

@@ -1,4 +1,4 @@
-import { Formatter } from 'cordis'
+import { Formatter } from '@huiliyi37/cordis'
 import { inspect } from 'node:util'
 import supportsColor from 'supports-color'
 import { ConsoleExporter as Base } from './shared.ts'

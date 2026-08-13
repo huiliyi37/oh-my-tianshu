@@ -1,5 +1,5 @@
-import { Context } from 'cordis'
-import type { Dict } from 'cosmokit'
+import { Context } from '@huiliyi37/cordis'
+import type { Dict } from '@huiliyi37/cosmokit'
 import { Entry } from './entry.ts'
 
 declare module './entry.ts' {

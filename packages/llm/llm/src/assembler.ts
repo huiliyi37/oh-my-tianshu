@@ -3,7 +3,7 @@
  * algorithm used by the agent loop to build an assistant message from a chunk
  * stream while logging the raw chunks for replay fidelity.
  *
- * @module @deepseek-ai/dsh-llm/assembler
+ * @module @huiliyi37/dsh-llm/assembler
  */
 
 import { CallId } from './brand.ts'

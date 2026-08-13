@@ -11,7 +11,7 @@
 ```yaml
 # cordis.yml（examples/tui 是可运行样例）
 - id: fs-snapshot
-  name: '@deepseek-ai/dsh-fs-snapshot'
+  name: '@huiliyi37/dsh-fs-snapshot'
 ```
 
 配置（`Config`，schemastery 校验）：

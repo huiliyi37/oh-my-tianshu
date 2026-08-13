@@ -3,14 +3,14 @@ import type { ReactNode, RefObject } from 'react'
 import type {
   InjectFace, MaybeSnapshotSelectorHook, PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore,
   SlotHookFactory, SnapshotSelectorHook,
-} from '@deepseek-ai/dsh-client-ui-slots'
+} from '@huiliyi37/dsh-client-ui-slots'
 import type {
   CommandNode, CompactionSummaryNode, ConversationSnapshot, ConversationTurnDataMap,
   ObservableSnapshot, PendingInteraction, PendingWait, SessionId, ToolCallBlock,
   TurnLocation, WorkspaceId,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import type { MarkdownFileMentions } from '@deepseek-ai/dsh-client-ui-primitives'
-import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+} from '@huiliyi37/dsh-client-runtime/client'
+import type { MarkdownFileMentions } from '@huiliyi37/dsh-client-ui-primitives'
+import type {} from '@huiliyi37/dsh-client-ui-layout/client'
 import type { ComposerBlock } from '../input/blocks.ts'
 import type { ComposerKeyboard, EditSelection, InputActions, InputNotice, InputState } from '../input/contract.ts'
 import type { createChatStore } from '../stores.ts'
@@ -18,7 +18,7 @@ import type { ComposerSubmitGesture, InputSubmitMode } from './composer-submissi
 import type { ChatNode, ChatNodeKind } from './chat-nodes.ts'
 import type { CallId, SelectionTarget, ViewTab } from './views.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@huiliyi37/dsh-client-ui-slots' {
   interface SlotMap {
     /**
      * Strict-session body inside the resident conversation scrollport. It
@@ -185,7 +185,7 @@ export interface ChatFileMentions {
   forClosing(owner: TurnTailOwnerProps): MarkdownFileMentions | undefined
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     /** Prose file-mention provider (ui-deliverables); reach via ctx.get — optional. */
     chatFileMentions: ChatFileMentions

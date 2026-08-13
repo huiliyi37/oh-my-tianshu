@@ -1,17 +1,17 @@
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
 /**
  * Keyless real-Loader-path smoke for the combined SQLite session-query service.
  *
- * @module @deepseek-ai/dsh-session-query-sqlite/tests/load-path
+ * @module @huiliyi37/dsh-session-query-sqlite/tests/load-path
  */
 
 import { afterEach, describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import { SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/dsh-session'
-import SessionStore from '@deepseek-ai/dsh-session'
-import SessionPersistenceSqlite from '@deepseek-ai/dsh-session-persistence-sqlite'
-import SessionQuerySqlite, * as queryModule from '@deepseek-ai/dsh-session-query-sqlite'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import { SESSION_FORMAT_VERSION, SessionId } from '@huiliyi37/dsh-session'
+import SessionStore from '@huiliyi37/dsh-session'
+import SessionPersistenceSqlite from '@huiliyi37/dsh-session-persistence-sqlite'
+import SessionQuerySqlite, * as queryModule from '@huiliyi37/dsh-session-query-sqlite'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'

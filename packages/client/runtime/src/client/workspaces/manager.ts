@@ -2,8 +2,8 @@
 
 import type {
   HostFrame, IApiClient, RpcError, RpcRequest, RpcResult, SessionId, WorkspaceId, WorkspaceView,
-} from '@deepseek-ai/dsh-client-connection/client'
-import { transportError } from '@deepseek-ai/dsh-host-apiproxy/api'
+} from '@huiliyi37/dsh-client-connection/client'
+import { transportError } from '@huiliyi37/dsh-host-apiproxy/api'
 import { mergeOrderedBaseline } from '../ordered-baseline.ts'
 import { Notifier } from '../sessions/notifier.ts'
 import { Workspace, type WorkspaceCreateInput } from './workspace.ts'

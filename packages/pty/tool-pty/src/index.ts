@@ -1,21 +1,21 @@
 /**
  * Six model-facing persistent terminal tools. Owner identity comes from the exact
  * tool execution Agent; generic `ctx.tasks` owns background ids and collection.
- * @module @deepseek-ai/dsh-tool-pty
+ * @module @huiliyi37/dsh-tool-pty
  */
 
-import { Context } from 'cordis'
-import z from 'schemastery'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import { PtySessionId } from '@deepseek-ai/dsh-pty'
-import type { PtySendResult, PtySessionId as PtySessionIdType, PtySignal } from '@deepseek-ai/dsh-pty'
-import type {} from '@deepseek-ai/dsh-tasks'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
+import { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import type { ContentBlock } from '@huiliyi37/dsh-llm'
+import { PtySessionId } from '@huiliyi37/dsh-pty'
+import type { PtySendResult, PtySessionId as PtySessionIdType, PtySignal } from '@huiliyi37/dsh-pty'
+import type {} from '@huiliyi37/dsh-tasks'
+import { defineTool } from '@huiliyi37/dsh-tools'
+import type { ToolDefinition } from '@huiliyi37/dsh-tools'
 import { boundTerminalText, renderList, renderRead, renderSend, renderSendRead, renderSpawn } from './render.ts'
 
-declare module '@deepseek-ai/dsh-tasks' {
+declare module '@huiliyi37/dsh-tasks' {
   interface TaskKindMap {
     'pty-send': 'pty-send'
   }
@@ -250,7 +250,7 @@ export function apply(ctx: Context, config: Config = {}): void {
       if (args.run_in_background === true) {
         if (!enableRunInBackground) throw new Error('background terminal sends are disabled by tool-pty configuration')
         const tasks = ctx.get('tasks')
-        if (tasks === undefined) throw new Error('background terminal sends require @deepseek-ai/dsh-tasks and @deepseek-ai/dsh-tool-tasks')
+        if (tasks === undefined) throw new Error('background terminal sends require @huiliyi37/dsh-tasks and @huiliyi37/dsh-tool-tasks')
         let cancelRequested = false
         const taskId = tasks.start({
           kind: 'pty-send',

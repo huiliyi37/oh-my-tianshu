@@ -4,14 +4,14 @@
  * `cordis.patch.yml`, `--patch` overlays, flag-derived patches, the telemetry
  * switch), mount the tree over the profile's empty root config, keep the
  * profile patch layer live, and wire fail-loud plus bounded shutdown.
- * @module @deepseek-ai/dsh/profile-boot
+ * @module @huiliyi37/dsh-tianshu/profile-boot
  */
 
 import { writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { Context } from 'cordis'
-import type { PatchOptions } from '@cordisjs/plugin-include'
+import type { Context } from '@huiliyi37/cordis'
+import type { PatchOptions } from '@huiliyi37/cordis-plugin-include'
 import {
   boot,
   composeEntries,
@@ -23,10 +23,10 @@ import {
   PROFILE_PATCH_FILENAME,
   watchUserPatches,
   type Profile,
-} from '@deepseek-ai/dsh-app-boot'
-import { resolveDshHome } from '@deepseek-ai/dsh-paths'
-import { DSH_ENVIRONMENT_KEY, type EnvironmentSnapshot } from '@deepseek-ai/dsh-environment'
-import type { HeadlessIo } from '@deepseek-ai/dsh-headless'
+} from '@huiliyi37/dsh-app-boot'
+import { resolveDshHome } from '@huiliyi37/dsh-paths'
+import { DSH_ENVIRONMENT_KEY, type EnvironmentSnapshot } from '@huiliyi37/dsh-environment'
+import type { HeadlessIo } from '@huiliyi37/dsh-headless'
 import { createProcessShutdown, type ProcessShutdown } from './process-shutdown.ts'
 
 const NAME = 'dsh'
@@ -256,9 +256,9 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
     // bare custom profile may not mount either.
     if (ctx.get('hmr') === undefined) {
       if (ctx.get('timer') === undefined) {
-        await ctx.loader.create({ name: '@cordisjs/plugin-timer' })
+        await ctx.loader.create({ name: '@huiliyi37/cordis-plugin-timer' })
       }
-      await ctx.loader.create({ name: '@cordisjs/plugin-hmr', config: { root: [] } })
+      await ctx.loader.create({ name: '@huiliyi37/cordis-plugin-hmr', config: { root: [] } })
     }
     await watchUserPatches(ctx, {
       binName: NAME,

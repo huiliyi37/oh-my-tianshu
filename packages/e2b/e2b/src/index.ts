@@ -1,13 +1,13 @@
 /**
  * Shared ownership of one E2B sandbox. Capability adapters await the same SDK
  * handle, so filesystem and process operations inhabit one remote Linux world.
- * @module @deepseek-ai/dsh-e2b
+ * @module @huiliyi37/dsh-e2b
  */
 
 import { randomUUID } from 'node:crypto'
 import { posix } from 'node:path'
-import { Context, Service } from 'cordis'
-import z from 'schemastery'
+import { Context, Service } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 import { FileType, Sandbox, SandboxNotFoundError } from 'e2b'
 
 export {
@@ -60,7 +60,7 @@ interface SchemaResolvedConfig extends Config {
   timeoutMs: number
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     e2b: E2BSandboxService
   }

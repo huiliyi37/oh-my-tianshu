@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-tool-todo
+# @huiliyi37/dsh-tool-todo
 
 English | [中文](README.zh.md)
 
@@ -30,7 +30,7 @@ The canonical result is `{ todos, counts: { pending, inProgress, completed } }`;
 
 ## Session projection
 
-When the composition mounts `ctx.sessionProjections` ([`@deepseek-ai/dsh-session-projection`](../../session/session-projection/README.md)), this package registers the `todos` projection unit under an injected child: `init` = `null` (no write yet), `apply` = take the whole list from each `todo/write` and clear to `null` on each `turn/start` (standing plan; `turn/end` keeps the finished checklist; every other event returns the same state reference), `view` = identity, `stateVersion` = 2. The key merges into `SessionProjectionMap` here (via the Service Definition package's `/types` outlet); the framework drives the unit and carriers serve the value on the history tail page and the `session/projection` push frame. Compositions without the registry are unaffected. Lifetime rationale: [todo plan clears on next turn](../../../.agents/notes/implemented/feature/2026-07-28-todo-plan-clears-on-next-turn.md).
+When the composition mounts `ctx.sessionProjections` ([`@huiliyi37/dsh-session-projection`](../../session/session-projection/README.md)), this package registers the `todos` projection unit under an injected child: `init` = `null` (no write yet), `apply` = take the whole list from each `todo/write` and clear to `null` on each `turn/start` (standing plan; `turn/end` keeps the finished checklist; every other event returns the same state reference), `view` = identity, `stateVersion` = 2. The key merges into `SessionProjectionMap` here (via the Service Definition package's `/types` outlet); the framework drives the unit and carriers serve the value on the history tail page and the `session/projection` push frame. Compositions without the registry are unaffected. Lifetime rationale: [todo plan clears on next turn](../../../.agents/notes/implemented/feature/2026-07-28-todo-plan-clears-on-next-turn.md).
 
 ## Export shape
 

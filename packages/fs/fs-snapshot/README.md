@@ -11,7 +11,7 @@ Distinction from checkpoint-policy: a checkpoint persists the event log (so a cr
 ```yaml
 # cordis.yml（examples/tui 是可运行样例）
 - id: fs-snapshot
-  name: '@deepseek-ai/dsh-fs-snapshot'
+  name: '@huiliyi37/dsh-fs-snapshot'
 ```
 
 Configuration (`Config`, schemastery-validated):

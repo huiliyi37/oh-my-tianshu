@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import { BashExecutor } from '@deepseek-ai/dsh-bash'
-import type { BashExecRequest, BashExecSpec, BashProcess, BashProcessRead, BashRunResult } from '@deepseek-ai/dsh-bash'
+import { Context } from '@huiliyi37/cordis'
+import { BashExecutor } from '@huiliyi37/dsh-bash'
+import type { BashExecRequest, BashExecSpec, BashProcess, BashProcessRead, BashRunResult } from '@huiliyi37/dsh-bash'
 
 /**
  * Minimal concrete executor: canned foreground results, a hand-built process

@@ -11,7 +11,7 @@
  * plain URLs, kebab identifiers) untouched, because those are exactly the
  * signal telemetry exists to capture.
  *
- * @module @deepseek-ai/dsh-telemetry/secret-redactor
+ * @module @huiliyi37/dsh-telemetry/secret-redactor
  */
 
 /** Default text substituted for a detected secret. */

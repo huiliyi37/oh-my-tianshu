@@ -1,4 +1,4 @@
-# `@deepseek-ai/dsh-frontend-static`
+# `@huiliyi37/dsh-frontend-static`
 
 [English](README.md) | 中文
 

@@ -2,12 +2,12 @@
  * The background-task Service Definition (`ctx.tasks`). It owns the contract for
  * task ids, session-scoped access, lifecycle state, completion listeners, and
  * owner cleanup while producers retain their execution resources. The
- * process-local registry lives in `@deepseek-ai/dsh-tasks-local`.
- * @module @deepseek-ai/dsh-tasks
+ * process-local registry lives in `@huiliyi37/dsh-tasks-local`.
+ * @module @huiliyi37/dsh-tasks
  */
 
-import { Context, Service } from 'cordis'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+import { Context, Service } from '@huiliyi37/cordis'
+import type { Agent } from '@huiliyi37/dsh-agent'
 import type { TaskDoneListener, TaskId, TaskRead, TaskSnapshot, TaskStart } from './types.ts'
 
 export { TaskId } from './types.ts'
@@ -23,7 +23,7 @@ export type {
   TaskStatus,
 } from './types.ts'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     tasks: TaskService
   }
@@ -54,7 +54,7 @@ export abstract class TaskService extends Service {
     // register a ctx.tasks with no method implementations and fail far from
     // the misconfiguration. Fail loud at load instead.
     if (new.target === TaskService) {
-      throw new Error('@deepseek-ai/dsh-tasks is the abstract task registry seam; load an implementation such as @deepseek-ai/dsh-tasks-local instead')
+      throw new Error('@huiliyi37/dsh-tasks is the abstract task registry seam; load an implementation such as @huiliyi37/dsh-tasks-local instead')
     }
     super(ctx, 'tasks')
   }

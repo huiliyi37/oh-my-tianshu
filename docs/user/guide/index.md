@@ -10,11 +10,11 @@ Harness implements every capability an AI agent needs—including LLM calls, too
 
 ```yaml
 # Select the LLM backend
-- name: '@deepseek-ai/dsh-llm-deepseek'
+- name: '@huiliyi37/dsh-llm-deepseek'
 
 # Compose one configured agent
 - id: agent-spine
-  name: '@deepseek-ai/dsh-agent-spine-demo'
+  name: '@huiliyi37/dsh-agent-spine-demo'
   config:
     agents:
       - id: main

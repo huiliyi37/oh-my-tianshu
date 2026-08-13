@@ -6,7 +6,7 @@
  * registers nothing on a Cordis context; the runtime process it spawns is a
  * complete harness configured by its own `cordis.yml`.
  *
- * @module @deepseek-ai/dsh-sdk-client
+ * @module @huiliyi37/dsh-sdk-client
  */
 
 export { DeepSeekHarness, HarnessSession } from './api.ts'
@@ -18,7 +18,7 @@ export {
   TransportClosedError,
 } from './client.ts'
 export type { NotificationSubscription } from './client.ts'
-export { JsonRpcResponseError } from '@deepseek-ai/dsh-sdk-protocol'
+export { JsonRpcResponseError } from '@huiliyi37/dsh-sdk-protocol'
 export type {
   ContentBlock,
   DeepSeekHarnessOptions,

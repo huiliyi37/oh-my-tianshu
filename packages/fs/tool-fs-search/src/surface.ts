@@ -1,7 +1,7 @@
 /** Shared surface-only post-policy selection for search result spill. @module dsh-tool-fs-search/surface */
 
-import type { Context } from 'cordis'
-import type { JsonValue, PostToolDecision, ToolDefinition, ToolExecution, ToolExecutionResult } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@huiliyi37/cordis'
+import type { JsonValue, PostToolDecision, ToolDefinition, ToolExecution, ToolExecutionResult } from '@huiliyi37/dsh-tools'
 
 /**
  * Return the accepted canonical value only when this tool still owns a direct

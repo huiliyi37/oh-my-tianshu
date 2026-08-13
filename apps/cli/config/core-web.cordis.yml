@@ -85,7 +85,7 @@
 
 - insert:
     - id: pty
-      name: '@deepseek-ai/dsh-pty'
+      name: '@huiliyi37/dsh-pty'
 
     # This backend consumes the existing Web sandbox and permission policy.
     # It loads only on Linux/macOS; Windows and other platforms fail at boot.
@@ -93,18 +93,18 @@
     # pty-local's 30s default. An open persistent shell fences permission-mode
     # changes until it closes.
     - id: pty-local
-      name: '@deepseek-ai/dsh-pty-local'
+      name: '@huiliyi37/dsh-pty-local'
       config:
         timeoutMs: 300000
 
     - id: persistent-bash
-      name: '@deepseek-ai/dsh-tool-bash-persistent'
+      name: '@huiliyi37/dsh-tool-bash-persistent'
       config:
         timeoutMs: 300000
 
     # The editor consumes the Web fs-sandbox provider and therefore retains
     # the selected session permission mode.
     - id: str-replace-editor
-      name: '@deepseek-ai/dsh-tool-str-replace-editor'
+      name: '@huiliyi37/dsh-tool-str-replace-editor'
       config:
         maxOutputChars: 16000

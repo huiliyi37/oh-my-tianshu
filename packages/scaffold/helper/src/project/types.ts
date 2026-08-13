@@ -1,7 +1,7 @@
 /**
  * Shared creation and project-profile values for SDK project editing.
  *
- * @module @deepseek-ai/dsh-helper/project/types
+ * @module @huiliyi37/dsh-helper/project/types
  */
 
 import type { PackageManager } from '../package-managers/package-manager.ts'

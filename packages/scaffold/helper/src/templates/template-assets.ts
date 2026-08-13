@@ -1,7 +1,7 @@
 /**
  * Asset loader for templates owned by dsh-helper.
  *
- * @module @deepseek-ai/dsh-helper/templates/template-assets
+ * @module @huiliyi37/dsh-helper/templates/template-assets
  */
 
 import { TextTemplate } from './text-template.ts'

@@ -1,8 +1,8 @@
 /** Host loader entry for the browser implementation exported from `./client`. */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { settingsNamespace } from '@huiliyi37/dsh-settings'
 import {
   WELCOME_NOTICE_ACK_FIELD, WELCOME_NOTICE_SETTINGS_NAMESPACE,
 } from './onboarding-copy.ts'

@@ -1,7 +1,7 @@
 // Test-local programmable IApiClient fake (NOT the fixture: fixture is a demo
 // data source on a real clock; behavior tests need per-case responses and
 // deferred-controlled timing). Streams are hand pumps: pushMux/pushHost.
-import type { CommandId } from '@deepseek-ai/dsh-commands/brand'
+import type { CommandId } from '@huiliyi37/dsh-commands/brand'
 import type {
   CommandDescriptor, HostFrame, IApiClient, ModelSelection, MuxFrame,
   RpcRequest, RpcResponse, SessionId, SessionModels, SessionSearchItem, SkillEntry,

@@ -5,11 +5,11 @@
  * read that must skip the end-seed boundary — which this module does
  * not write (`Session`'s constructor does) but whose synthetic closers can
  * inherit that boundary's timestamp, the one real coupling between the two.
- * @module @deepseek-ai/dsh-session/repair
+ * @module @huiliyi37/dsh-session/repair
  */
 
-import { MessageId, freezeMessage, type CallId } from '@deepseek-ai/dsh-llm'
-import type { ToolResultMessage } from '@deepseek-ai/dsh-llm'
+import { MessageId, freezeMessage, type CallId } from '@huiliyi37/dsh-llm'
+import type { ToolResultMessage } from '@huiliyi37/dsh-llm'
 import type { SessionEvent } from './types.ts'
 
 /**

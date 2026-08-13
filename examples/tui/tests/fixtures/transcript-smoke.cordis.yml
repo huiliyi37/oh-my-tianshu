@@ -3,13 +3,13 @@
 # task and fold the canonical session events into the transcript projection.
 
 - id: settings
-  name: '@deepseek-ai/dsh-settings-local'
+  name: '@huiliyi37/dsh-settings-local'
 
 - id: credentials
-  name: '@deepseek-ai/dsh-credentials-local'
+  name: '@huiliyi37/dsh-credentials-local'
 
 - id: llm-deepseek
-  name: '@deepseek-ai/dsh-llm-deepseek'
+  name: '@huiliyi37/dsh-llm-deepseek'
   config:
     thinking: enabled
     reasoningEffort: max
@@ -20,7 +20,7 @@
         contextWindow: 128000
 
 - id: agent-spine
-  name: '@deepseek-ai/dsh-agent-spine-demo'
+  name: '@huiliyi37/dsh-agent-spine-demo'
   config:
     agents:
       - id: main

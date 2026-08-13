@@ -1,14 +1,14 @@
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import { Context } from 'cordis'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it } from 'vitest'
-import SessionStore, { Session, SessionId } from '@deepseek-ai/dsh-session'
+import SessionStore, { Session, SessionId } from '@huiliyi37/dsh-session'
 import SessionTitleService, {
   SessionTitleProviderId,
   fallbackSessionTitle,
   foldSessionTitle,
   normalizeSessionTitle,
   truncateTitleUtf8,
-} from '@deepseek-ai/dsh-session-title'
+} from '@huiliyi37/dsh-session-title'
 
 const CONFIG = {
   fallbackMaxWords: 5,

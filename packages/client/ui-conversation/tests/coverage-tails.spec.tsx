@@ -4,8 +4,8 @@
 
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
-import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
-import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+import { makeTranslate } from '@huiliyi37/dsh-client-test-runtime'
+import { zh as commonZh } from '@huiliyi37/dsh-client-locale/src/locales/zh.ts'
 import { apply as nodeApply } from '../src/index.ts'
 import { AssistantMarkdown, type AssistantMarkdownProps } from '../src/client/chat/AssistantMarkdown.tsx'
 import { zh } from '../src/client/locales.ts'

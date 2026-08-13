@@ -4,12 +4,12 @@
  * layer — consumers depend on this package and never touch backends directly.
  * Plugin `Config` is schemastery; record schemas inside domain specs are zod
  * (see `src/spec.ts` for the split rationale).
- * @module @deepseek-ai/dsh-storage-domain
+ * @module @huiliyi37/dsh-storage-domain
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import { storageBackendServiceKey } from '@deepseek-ai/dsh-storage'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { storageBackendServiceKey } from '@huiliyi37/dsh-storage'
 import { DomainError } from './error.ts'
 import { descriptorOf } from './spec.ts'
 import type { DomainSpec } from './spec.ts'
@@ -26,13 +26,13 @@ export type {
 export type { DomainChanged } from './events.ts'
 export type { Domain, DomainGlobal, DomainGlobalHandleOf, KvTable } from './domain.ts'
 
-declare module '@deepseek-ai/dsh-storage' {
+declare module '@huiliyi37/dsh-storage' {
   interface StorageForms {
     domain: DomainFacility
   }
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     storageDomain: DomainFacility
   }

@@ -1,9 +1,9 @@
 import { PassThrough } from 'node:stream'
 import { describe, expect, it, vi } from 'vitest'
 import { basename, dirname, relative, resolve } from 'node:path'
-import { Context } from 'cordis'
-import LocalSubprocessService from '@deepseek-ai/dsh-subprocess-local'
-import type { SubprocessSpawnSpec, SubprocessTerminalHandle, SubprocessTerminalSpawnSpec } from '@deepseek-ai/dsh-subprocess'
+import { Context } from '@huiliyi37/cordis'
+import LocalSubprocessService from '@huiliyi37/dsh-subprocess-local'
+import type { SubprocessSpawnSpec, SubprocessTerminalHandle, SubprocessTerminalSpawnSpec } from '@huiliyi37/dsh-subprocess'
 import { childEnv } from '../src/spawn.ts'
 
 function spec(command: string, overrides: Partial<SubprocessSpawnSpec> = {}): SubprocessSpawnSpec {

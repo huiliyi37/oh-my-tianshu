@@ -9,16 +9,16 @@
  * VM-realm schemas and canonical values are rebuilt as host objects, while rendered content and
  * presentation metadata are shape-checked before entering the registry. Common JSON-Schema spellings are normalized when they
  * have one meaning; invalid vocabulary fails during registration with a teaching error.
- * @module @deepseek-ai/dsh-tool-cordis/guard
+ * @module @huiliyi37/dsh-tool-cordis/guard
  */
 
-import { Context } from 'cordis'
-import type { Plugin } from 'cordis'
-import { scopeOf } from '@deepseek-ai/dsh-scope'
-import { assertSupportedJsonSchema, defineTool } from '@deepseek-ai/dsh-tools'
-import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { JsonValue } from '@deepseek-ai/dsh-session'
+import { Context } from '@huiliyi37/cordis'
+import type { Plugin } from '@huiliyi37/cordis'
+import { scopeOf } from '@huiliyi37/dsh-scope'
+import { assertSupportedJsonSchema, defineTool } from '@huiliyi37/dsh-tools'
+import type { ToolDefinition } from '@huiliyi37/dsh-tools'
+import type { ContentBlock } from '@huiliyi37/dsh-llm'
+import type { JsonValue } from '@huiliyi37/dsh-session'
 
 const DYNAMIC_TOOL = Symbol('tool-cordis.dynamic-tool')
 const SCHEMA_TYPES = new Set<unknown>(['string', 'number', 'integer', 'boolean', 'null', 'object', 'array', 'json'])

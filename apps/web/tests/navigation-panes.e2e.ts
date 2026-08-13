@@ -12,8 +12,8 @@ import { join } from 'node:path'
 import type { Browser, Page, Response } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, onTestFailed } from 'vitest'
-import { parseSessionLog } from '@deepseek-ai/dsh-llm-replay'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import { parseSessionLog } from '@huiliyi37/dsh-llm-replay'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
   launchWebScaffold, recordFixture, seedSession, watchConsole, webSnapshotMode, type WebScaffold,

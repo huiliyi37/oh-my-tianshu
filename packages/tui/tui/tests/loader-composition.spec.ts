@@ -9,21 +9,21 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import Include from '@cordisjs/plugin-include'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import Include from '@huiliyi37/cordis-plugin-include'
 import type { ReadStream, WriteStream } from 'node:tty'
-import SettingsLocal from '@deepseek-ai/dsh-settings-local'
-import CredentialsLocal from '@deepseek-ai/dsh-credentials-local'
-import UserApproval from '@deepseek-ai/dsh-user-approval'
-import UserInteraction from '@deepseek-ai/dsh-user-interaction'
-import * as LlmReplay from '@deepseek-ai/dsh-llm-replay'
-import * as AgentSpine from '@deepseek-ai/dsh-agent-spine-demo'
-import AgentDefaultModel from '@deepseek-ai/dsh-agent-default-model'
-import Subagent, { SubagentRunId } from '@deepseek-ai/dsh-subagent'
-import { WorkflowRunId } from '@deepseek-ai/dsh-workflow'
-import { scopeTarget } from '@deepseek-ai/dsh-scope'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import SettingsLocal from '@huiliyi37/dsh-settings-local'
+import CredentialsLocal from '@huiliyi37/dsh-credentials-local'
+import UserApproval from '@huiliyi37/dsh-user-approval'
+import UserInteraction from '@huiliyi37/dsh-user-interaction'
+import * as LlmReplay from '@huiliyi37/dsh-llm-replay'
+import * as AgentSpine from '@huiliyi37/dsh-agent-spine-demo'
+import AgentDefaultModel from '@huiliyi37/dsh-agent-default-model'
+import Subagent, { SubagentRunId } from '@huiliyi37/dsh-subagent'
+import { WorkflowRunId } from '@huiliyi37/dsh-workflow'
+import { scopeTarget } from '@huiliyi37/dsh-scope'
+import { SessionId } from '@huiliyi37/dsh-session'
 import * as Tui from '../src/index.js'
 
 interface FakeStdout {
@@ -114,15 +114,15 @@ async function boot(): Promise<Booted> {
   const configPath = join(root, 'cordis.yml')
   await writeFile(configPath, [
     '- id: settings',
-    "  name: '@deepseek-ai/dsh-settings-local'",
+    "  name: '@huiliyi37/dsh-settings-local'",
     '- id: credentials',
-    "  name: '@deepseek-ai/dsh-credentials-local'",
+    "  name: '@huiliyi37/dsh-credentials-local'",
     '- id: user-approval',
-    "  name: '@deepseek-ai/dsh-user-approval'",
+    "  name: '@huiliyi37/dsh-user-approval'",
     '- id: user-interaction',
-    "  name: '@deepseek-ai/dsh-user-interaction'",
+    "  name: '@huiliyi37/dsh-user-interaction'",
     '- id: llm-replay',
-    "  name: '@deepseek-ai/dsh-llm-replay'",
+    "  name: '@huiliyi37/dsh-llm-replay'",
     '  config:',
     `    file: ${JSON.stringify(fixturePath)}`,
     '    providers:',
@@ -133,14 +133,14 @@ async function boot(): Promise<Booted> {
     // tui-runner 的 inject 全量要求 sessions/agents/agentDefaultModel/goals/
     // subagents：spine 开 goals，default-model 与 subagent 对齐 dsh-base bundle。
     '- id: agent-n',
-    "  name: '@deepseek-ai/dsh-agent-default-model'",
+    "  name: '@huiliyi37/dsh-agent-default-model'",
     '  config:',
     '    provider: deepseek-official',
     '    model: deepseek-v4-flash',
     '- id: subagent',
-    "  name: '@deepseek-ai/dsh-subagent'",
+    "  name: '@huiliyi37/dsh-subagent'",
     '- id: agent-spine',
-    "  name: '@deepseek-ai/dsh-agent-spine-demo'",
+    "  name: '@huiliyi37/dsh-agent-spine-demo'",
     '  config:',
     '    agents:',
     '      - id: main',
@@ -153,7 +153,7 @@ async function boot(): Promise<Booted> {
     '    persona: |',
     '      You are the tui composition-test agent, powered by the {{model}} model.',
     '- id: tui-runner',
-    "  name: '@deepseek-ai/dsh-tui'",
+    "  name: '@huiliyi37/dsh-tui'",
     '',
   ].join('\n'))
 
@@ -167,15 +167,15 @@ async function boot(): Promise<Booted> {
     },
   }
   const modules = new Map<string, unknown>([
-    ['@deepseek-ai/dsh-settings-local', SettingsLocal],
-    ['@deepseek-ai/dsh-credentials-local', CredentialsLocal],
-    ['@deepseek-ai/dsh-user-approval', UserApproval],
-    ['@deepseek-ai/dsh-user-interaction', UserInteraction],
-    ['@deepseek-ai/dsh-llm-replay', LlmReplay],
-    ['@deepseek-ai/dsh-agent-default-model', AgentDefaultModel],
-    ['@deepseek-ai/dsh-subagent', Subagent],
-    ['@deepseek-ai/dsh-agent-spine-demo', AgentSpine],
-    ['@deepseek-ai/dsh-tui', wrappedTui],
+    ['@huiliyi37/dsh-settings-local', SettingsLocal],
+    ['@huiliyi37/dsh-credentials-local', CredentialsLocal],
+    ['@huiliyi37/dsh-user-approval', UserApproval],
+    ['@huiliyi37/dsh-user-interaction', UserInteraction],
+    ['@huiliyi37/dsh-llm-replay', LlmReplay],
+    ['@huiliyi37/dsh-agent-default-model', AgentDefaultModel],
+    ['@huiliyi37/dsh-subagent', Subagent],
+    ['@huiliyi37/dsh-agent-spine-demo', AgentSpine],
+    ['@huiliyi37/dsh-tui', wrappedTui],
   ])
 
   const ctx = new Context()

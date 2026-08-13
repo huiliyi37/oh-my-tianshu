@@ -9,11 +9,11 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
-import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
-import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+import { createSnapshotStore } from '@huiliyi37/dsh-client-runtime/client'
+import { makeTranslate } from '@huiliyi37/dsh-client-test-runtime'
+import { zh as commonZh } from '@huiliyi37/dsh-client-locale/src/locales/zh.ts'
 import { zh } from '../src/client/locales.ts'
-import type { MenuState, TriggerHit } from '@deepseek-ai/dsh-client-ui-slash/client'
+import type { MenuState, TriggerHit } from '@huiliyi37/dsh-client-ui-slash/client'
 import { MenuView } from '../src/client/MenuView.tsx'
 
 const hit: TriggerHit = {

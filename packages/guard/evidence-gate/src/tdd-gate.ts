@@ -5,7 +5,7 @@
  * 只提示不硬拦（默认）；enforce 模式硬拦截（config 显式开启）。
  * 写测试文件豁免；skipIfNoTests 且项目无测试设施时豁免（不误伤）。
  *
- * @module @deepseek-ai/dsh-evidence-gate/tdd-gate
+ * @module @huiliyi37/dsh-evidence-gate/tdd-gate
  */
 
 /** 模式：suggest（默认，提示不拦）| enforce（硬拦截）。 */

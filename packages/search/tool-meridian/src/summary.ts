@@ -2,7 +2,7 @@
 // 裁剪版：只输出统计 + Modules 表（无 CLI 条目——cli_entries 表裁剪，无 stale 标记——
 // git head sha 对比后置）。注入预算 ≤2000 字符（纪律 2：索引摘要注入预算）。
 
-import type { MeridianDb } from '@deepseek-ai/dsh-meridian'
+import type { MeridianDb } from '@huiliyi37/dsh-meridian'
 
 /** 注入预算上限（字符）。 */
 export const CODEBASE_INDEX_CAP = 2000

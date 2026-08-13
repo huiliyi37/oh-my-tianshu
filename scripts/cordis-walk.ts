@@ -16,7 +16,7 @@ const MERGE_HEAD = /declare module ['"](?:cordis|\.\/context\.ts)['"]/
 /**
  * Parse every file matching `patterns` (repo-relative, sorted, `/`-normalized)
  * that textually contains a cordis module merge, yielding one entry per merge
- * BLOCK — a file may legally hold several `declare module 'cordis'` blocks
+ * BLOCK — a file may legally hold several `declare module '@huiliyi37/cordis'` blocks
  * (the Typert analyzer reads them all), so the exhaustiveness scan must too.
  * Files without a merge are skipped.
  * @param scanRoot - Repository root the patterns are resolved against.
@@ -39,7 +39,7 @@ export function contextMergeFiles(
   return out
 }
 
-/** Every cordis module-merge body in `sf`: `declare module 'cordis'` (harness
+/** Every cordis module-merge body in `sf`: `declare module '@huiliyi37/cordis'` (harness
  * packages) or `declare module './context.ts'` (vendor core), in source order.
  * Module-local: consumers walk blocks through {@link contextMergeFiles}. */
 function cordisModuleBodies(sf: ts.SourceFile): ts.ModuleBlock[] {
@@ -60,7 +60,7 @@ export function cordisModuleBody(sf: ts.SourceFile): ts.ModuleBlock | null {
 }
 
 /**
- * Every `key: Type` property a `declare module 'cordis'` Context merge
+ * Every `key: Type` property a `declare module '@huiliyi37/cordis'` Context merge
  * declares in one module body.
  * @param body - The cordis module augmentation block.
  * @param sf - Owning source file (for text extraction).
@@ -79,7 +79,7 @@ export function contextKeyMap(body: ts.ModuleBlock, sf: ts.SourceFile): Map<stri
 }
 
 /**
- * Every event name a `declare module 'cordis'` Events merge declares in one
+ * Every event name a `declare module '@huiliyi37/cordis'` Events merge declares in one
  * module body. Names are the literal member keys (`'agent/created'`), read
  * from method and property members alike so a declaration shape the projector
  * would reject still enters the exhaustiveness scan.

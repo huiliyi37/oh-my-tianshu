@@ -4,19 +4,19 @@
   name: './fixture.ts'
 
 - id: subagent
-  name: '@deepseek-ai/dsh-subagent'
+  name: '@huiliyi37/dsh-subagent'
 
 - id: subprocess
-  name: '@deepseek-ai/dsh-subprocess-local'
+  name: '@huiliyi37/dsh-subprocess-local'
 
 - id: subagent-codex
-  name: '@deepseek-ai/dsh-subagent-codex'
+  name: '@huiliyi37/dsh-subagent-codex'
 
 - id: subagent-claude-code
-  name: '@deepseek-ai/dsh-subagent-claude-code'
+  name: '@huiliyi37/dsh-subagent-claude-code'
 
 - id: tool-subagent-codex
-  name: '@deepseek-ai/dsh-tool-subagent'
+  name: '@huiliyi37/dsh-tool-subagent'
   config:
     provider: codex
     toolName: subagent_codex
@@ -24,7 +24,7 @@
     maxDepth: 'provider-managed'
 
 - id: tool-subagent-claude-code
-  name: '@deepseek-ai/dsh-tool-subagent'
+  name: '@huiliyi37/dsh-tool-subagent'
   config:
     provider: claude-code
     toolName: subagent_claude_code
@@ -32,7 +32,7 @@
     maxDepth: 'provider-managed'
 
 - id: agent-spine
-  name: '@deepseek-ai/dsh-agent-spine-demo'
+  name: '@huiliyi37/dsh-agent-spine-demo'
   config:
     agents:
       - id: main
@@ -43,9 +43,9 @@
     workspaceContext: false
 
 - id: persistence
-  name: '@deepseek-ai/dsh-session-persistence-jsonl'
+  name: '@huiliyi37/dsh-session-persistence-jsonl'
   config:
     root: './.sessions'
 
 - id: checkpoint-policy
-  name: '@deepseek-ai/dsh-session-checkpoint-policy'
+  name: '@huiliyi37/dsh-session-checkpoint-policy'

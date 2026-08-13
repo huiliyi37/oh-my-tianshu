@@ -1,9 +1,9 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import { Context } from 'cordis'
-import { Session, SessionId } from '@deepseek-ai/dsh-session'
-import AgentRegistry, { Inbox } from '@deepseek-ai/dsh-agent'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import PtyService, { PtyBackendCleanupError, PtyError, PtySessionId } from '@deepseek-ai/dsh-pty'
+import { Context } from '@huiliyi37/cordis'
+import { Session, SessionId } from '@huiliyi37/dsh-session'
+import AgentRegistry, { Inbox } from '@huiliyi37/dsh-agent'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import PtyService, { PtyBackendCleanupError, PtyError, PtySessionId } from '@huiliyi37/dsh-pty'
 import type {
   PtyBackend,
   PtyBackendSession,
@@ -13,7 +13,7 @@ import type {
   PtySessionId as PtySessionIdType,
   PtySessionStatus,
   PtySignal,
-} from '@deepseek-ai/dsh-pty'
+} from '@huiliyi37/dsh-pty'
 
 const agentScopeDisposers = new WeakMap<Agent, () => Promise<void>>()
 const ptyServiceDisposers = new WeakMap<Context, () => Promise<void>>()

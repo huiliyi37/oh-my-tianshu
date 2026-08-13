@@ -16,7 +16,7 @@
  * resume 回放与实时会话渲染一致。
  */
 
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
 import type { RivetTheme } from '../theme.js'
 import type { TranscriptMessage, TranscriptToolCall, TranscriptView } from '../adapter/transcript.js'
 import type { ResolvedToolViews } from '../adapter/tool-view.js'

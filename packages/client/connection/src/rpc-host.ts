@@ -1,7 +1,7 @@
 /** Host registry and HTTP adapter for generic Connection RPC channels. */
 
-import { Context, Service } from 'cordis'
-import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
+import { Context, Service } from '@huiliyi37/cordis'
+import type { WebRoute } from '@huiliyi37/dsh-host-webserver'
 import {
   clientRequestSchema,
   RpcId,
@@ -10,7 +10,7 @@ import {
   type RpcErrorDetailsMap,
   type RpcId as RpcIdType,
   type ServerResponse as RpcServerResponse,
-} from '@deepseek-ai/dsh-host-apiproxy/api'
+} from '@huiliyi37/dsh-host-apiproxy/api'
 import { bridge, type FetchHandler } from './http-bridge.ts'
 import { isTrustedApiRequest } from './api-request-trust.ts'
 import { API_PATH } from './api-path.ts'
@@ -32,7 +32,7 @@ interface ConnectionRpcInterceptor {
   readonly options: ConnectionRpcHandlerOptions
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     /** Host Connection transport and RPC registrations. */
     connection: HostConnectionHandle

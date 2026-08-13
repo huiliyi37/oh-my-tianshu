@@ -17,13 +17,13 @@ A minimal configuration is a list of plugin entries:
 
 ```yaml
 - id: llm-deepseek
-  name: '@deepseek-ai/dsh-llm-deepseek'
+  name: '@huiliyi37/dsh-llm-deepseek'
 
 - id: bash
-  name: '@deepseek-ai/dsh-bash-local'
+  name: '@huiliyi37/dsh-bash-local'
 
 - id: agent-loop
-  name: '@deepseek-ai/dsh-agent-loop'
+  name: '@huiliyi37/dsh-agent-loop'
   config:
     agents:
       - id: main

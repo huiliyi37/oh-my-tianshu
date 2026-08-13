@@ -61,7 +61,7 @@ cd hello-plugin
 dsh plugin --profile demo add .
 ```
 
-首次使用会初始化 profile（`@deepseek-ai/dsh-base` 作为它的第一个组合包），pnpm 链接该 checkout，而 `dsh` 因为这个包声明了 `dsh.bundle`，把它追加进 `dsh.profile.bundles`：
+首次使用会初始化 profile（`@huiliyi37/dsh-base` 作为它的第一个组合包），pnpm 链接该 checkout，而 `dsh` 因为这个包声明了 `dsh.bundle`，把它追加进 `dsh.profile.bundles`：
 
 ```json
 {
@@ -73,7 +73,7 @@ dsh plugin --profile demo add .
   "dsh": {
     "profile": {
       "bundles": [
-        "@deepseek-ai/dsh-base",
+        "@huiliyi37/dsh-base",
         "dsh-hello-plugin"
       ]
     }
@@ -94,7 +94,7 @@ dsh --profile demo
 
 生效配置在空根之上按以下顺序逐层组合：
 
-1. profile 的 `dsh.profile.bundles` 列表所列的各个组合包 patch，按列表顺序——先是 `@deepseek-ai/dsh-base`，然后是每个已安装组合包，按其加入顺序。
+1. profile 的 `dsh.profile.bundles` 列表所列的各个组合包 patch，按列表顺序——先是 `@huiliyi37/dsh-base`，然后是每个已安装组合包，按其加入顺序。
 2. profile 自己的 `cordis.patch.yml`。
 3. home 级的 `$DSH_HOME/cordis.patch.yml`——各 profile 共享的机器本地偏好。
 4. 每个 `--patch <path>` overlay，按 argv 顺序。
@@ -105,7 +105,7 @@ dsh --profile demo
 - 你的 patch 可以按 `id` 覆盖前面各层的行——就像 [`dsh-web-app` 组合包](../../../../packages/bundle/web-app/cordis.patch.yml)覆盖 `dsh-base` 的行那样——但必须重述该行需要的每一个键，而不是只写改动的那个。
 - 用户可以在自己 profile 的 `cordis.patch.yml` 中覆盖你的行，无需改动你的包，所以优先给出用户大概率会保留的配置默认值，其余交给 schema 承担。
 
-内置组合包名称始终从 dsh 安装目录本身解析；pnpm 只管理树外的包，所以你的组合包可以放心依赖 `@deepseek-ai/dsh-base` 存在且与安装保持一致。
+内置组合包名称始终从 dsh 安装目录本身解析；pnpm 只管理树外的包，所以你的组合包可以放心依赖 `@huiliyi37/dsh-base` 存在且与安装保持一致。
 
 ## 从 GitHub 安装：构建脚本这道坎
 

@@ -10,13 +10,13 @@
  * （摘要经预取缓存：apply 时与 save 后异步刷新，section text 函数同步读缓存
  * ——PromptSection.text 是同步签名，无法直接 await memory.list）。
  *
- * @module @deepseek-ai/dsh-tool-memory
+ * @module @huiliyi37/dsh-tool-memory
  */
 
-import { Context } from 'cordis'
-import z from 'schemastery'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { MemoryService } from '@deepseek-ai/dsh-memory'
+import { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { defineTool } from '@huiliyi37/dsh-tools'
+import type { MemoryService } from '@huiliyi37/dsh-memory'
 
 export const name = 'tool-memory'
 

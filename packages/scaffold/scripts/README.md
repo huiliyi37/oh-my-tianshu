@@ -1,4 +1,4 @@
-# `@deepseek-ai/dsh-scripts`
+# `@huiliyi37/dsh-scripts`
 
 English | [中文](README.zh.md)
 
@@ -12,7 +12,7 @@ The `dsh-sdk` launcher owns SDK project startup and configuration.
 | `dsh-sdk config` | Open one interactive edit session, review accumulated changes, commit once, and install once when NPM dependencies changed |
 | `dsh-sdk create <source>` | Add an external Cordis plugin from a native package-manager source (`pkg@version` or `github:owner/repo#ref`): confirm, `<pm> add <source>`, then mount the resolved dependency in `cordis.yml`. No giget/pacote; the package manager resolves and pins the source (github deps build via their own `prepare` under the manager's policy) |
 
-`ProjectBuild(tsdownConfig)` and `PluginBuild(tsdownConfig)` are exported only from `@deepseek-ai/dsh-scripts/dev/tsdown-config`. Development and production read the same `cordis.yml`.
+`ProjectBuild(tsdownConfig)` and `PluginBuild(tsdownConfig)` are exported only from `@huiliyi37/dsh-scripts/dev/tsdown-config`. Development and production read the same `cordis.yml`.
 
 Generated project scripts invoke `dsh-sdk` for dev, build, start, and config; typecheck runs `tsc -b` directly. HMR remains an explicit `cordis.yml` feature loaded by both dev and start.
 

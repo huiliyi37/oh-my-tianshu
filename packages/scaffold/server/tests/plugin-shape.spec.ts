@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import Loader from '@cordisjs/plugin-loader'
+import Loader from '@huiliyi37/cordis-plugin-loader'
 import * as jsonrpc from '../src/index.ts'
 
 /**

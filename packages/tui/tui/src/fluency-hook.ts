@@ -9,7 +9,7 @@
  * 差异：ActivityPhase 适配本包五值；contextPressure 由装配层喂入
  * （0..1，TUI 无 token 数据源时保持 0）。
  *
- * @module @deepseek-ai/dsh-tui/fluency-hook
+ * @module @huiliyi37/dsh-tui/fluency-hook
  */
 
 import { computeFluencyPolicy, RoutineCounter, type FluencyPolicy, type FluencySignals } from './format/fluency-policy.js'

@@ -5,7 +5,7 @@
  * withholds. Traps steer filesystem, network, process, and timer work to `ctx.fs`, `ctx.web`,
  * `ctx.bash`, and Cordis timers. This keeps cooperative mounts inspectable and disposable but
  * is not containment: host-realm helper functions remain an escape route.
- * @module @deepseek-ai/dsh-tool-cordis/sandbox
+ * @module @huiliyi37/dsh-tool-cordis/sandbox
  */
 
 import { createContext, runInContext } from 'node:vm'

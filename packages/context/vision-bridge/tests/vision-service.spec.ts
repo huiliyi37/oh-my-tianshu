@@ -5,10 +5,10 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import LlmService from '@deepseek-ai/dsh-llm'
-import { LlmAdapter } from '@deepseek-ai/dsh-llm'
-import type { GenerateOptions, StreamChunk, LlmModelInfo } from '@deepseek-ai/dsh-llm'
+import { Context } from '@huiliyi37/cordis'
+import LlmService from '@huiliyi37/dsh-llm'
+import { LlmAdapter } from '@huiliyi37/dsh-llm'
+import type { GenerateOptions, StreamChunk, LlmModelInfo } from '@huiliyi37/dsh-llm'
 import { describeImages, selectVisionPrompt, apply, Config } from '../src/index.ts'
 
 const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='

@@ -1,7 +1,7 @@
 /**
  * Shared filesystem path helpers for DeepSeek Harness user data.
  *
- * @module @deepseek-ai/dsh-paths
+ * @module @huiliyi37/dsh-paths
  */
 
 import { homedir } from 'node:os'

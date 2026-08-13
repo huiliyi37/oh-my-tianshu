@@ -1,7 +1,7 @@
 /**
  * Pure client-safe token-projection vocabulary.
  *
- * @module @deepseek-ai/dsh-token-meter/projection
+ * @module @huiliyi37/dsh-token-meter/projection
  */
 
 /**
@@ -65,7 +65,7 @@ export interface ContextBreakdownProjection {
   messageTokens: number
 }
 
-declare module '@deepseek-ai/dsh-session-projection/types' {
+declare module '@huiliyi37/dsh-session-projection/types' {
   interface SessionProjectionMap {
     /** Provider-reported usage accumulated across the complete durable log. */
     tokenUsage: TokenUsageProjection

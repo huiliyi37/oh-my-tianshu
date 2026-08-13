@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
 import { act, render } from '@testing-library/react'
-import { useInvoke } from '@deepseek-ai/dsh-client-web-react'
+import { useInvoke } from '@huiliyi37/dsh-client-web-react'
 
 function deferred() {
   let resolve!: () => void

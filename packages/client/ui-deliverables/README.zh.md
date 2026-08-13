@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-client-ui-deliverables
+# @huiliyi37/dsh-client-ui-deliverables
 
 [English](README.md) | 中文
 

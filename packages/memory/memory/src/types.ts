@@ -6,7 +6,7 @@
  * memory_save/memory_search 工具是 consumers（经 `ctx.reflect.get('memory', false)`
  * 动态获取——不静态 import 本包）。
  *
- * @module @deepseek-ai/dsh-memory/types
+ * @module @huiliyi37/dsh-memory/types
  */
 
 /** 记忆作用域：项目全局，或绑定到具体会话。 */

@@ -149,12 +149,12 @@ Source: [`packages/core/system-prompt/src/index.ts:314`](../../packages/core/sys
 
 #### `system-prompt/assemble` — waterfall
 
-Expert waterfall over the assembled sections, contexts, tools, and variables. Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): scoped listeners receive only that scope's assemblies. The returned value is authoritative. A supplied signal controls only this explicit assembly request and must not be retained to control later turns.
+Expert waterfall over the assembled sections, contexts, tools, and variables. Scope-filtered dispatch (`@huiliyi37/dsh-scope`): scoped listeners receive only that scope's assemblies. The returned value is authoritative. A supplied signal controls only this explicit assembly request and must not be retained to control later turns.
 
 ```ts cordis-catalog
 /**
  * Expert waterfall over the assembled sections, contexts, tools, and variables.
- * Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): scoped listeners
+ * Scope-filtered dispatch (`@huiliyi37/dsh-scope`): scoped listeners
  * receive only that scope's assemblies. The returned value is authoritative.
  * A supplied signal controls only this explicit assembly request and must not
  * be retained to control later turns.

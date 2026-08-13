@@ -6,20 +6,20 @@
  * user roots, parses YAML frontmatter, and loads bodies through `ctx.fs` when a
  * filesystem service is present.
  *
- * @module @deepseek-ai/dsh-skill-local
+ * @module @huiliyi37/dsh-skill-local
  */
 
 import { access, readdir, readFile, stat } from 'node:fs/promises'
 import { unwatchFile, watchFile, type Stats } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { homedir } from 'node:os'
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import chokidar from 'chokidar'
-import z from 'schemastery'
-import type Schema from 'schemastery'
+import z from '@huiliyi37/schemastery'
+import type Schema from '@huiliyi37/schemastery'
 import { parse as parseYaml } from 'yaml'
-import type { FileSystem, FsDirEntry, FsTarget } from '@deepseek-ai/dsh-fs'
-import { resolveDshHome } from '@deepseek-ai/dsh-paths'
+import type { FileSystem, FsDirEntry, FsTarget } from '@huiliyi37/dsh-fs'
+import { resolveDshHome } from '@huiliyi37/dsh-paths'
 import {
   BUNDLED_SKILL_RANK,
   isSkillName,
@@ -31,7 +31,7 @@ import {
   type SkillProviderControl,
   type SkillProviderObservation,
   type SkillSource,
-} from '@deepseek-ai/dsh-skill'
+} from '@huiliyi37/dsh-skill'
 
 const PROJECT_DSH_RANK = 100
 const PROJECT_AGENTS_RANK = 200

@@ -7,12 +7,12 @@
  * setting never means editing the shell; copy that belongs to no single
  * feature (chrome, the General section) is owned by ui-settings-general.
  */
-import type { HostObservable, InjectFace, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { HostObservable, InjectFace, PropsRenderSlots, PropsRuntime } from '@huiliyi37/dsh-client-ui-slots'
 // Type-only: pulls ui-sidebar's SlotMap merge (the 'sidebar.settings' entry)
 // into every program that sees this contract.
-import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import type {} from '@huiliyi37/dsh-client-ui-sidebar/client'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@huiliyi37/dsh-client-ui-slots' {
   interface SlotMap {
     /**
      * The sidebar-foot trigger row content: icon + label, supplied as slot

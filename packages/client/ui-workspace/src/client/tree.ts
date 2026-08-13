@@ -7,7 +7,7 @@ import {
   indexSubagentDescendants, type PendingInteractionStatus, type SessionId, type SessionListState,
   type SessionSearchResultItem, type SessionSummary, type SubagentDescendantSummary,
   type WorkspaceId, type WorkspaceView,
-} from '@deepseek-ai/dsh-client-runtime/client'
+} from '@huiliyi37/dsh-client-runtime/client'
 
 /** Group key for Sessions outside every Workspace. */
 export const UNGROUPED_KEY = ''

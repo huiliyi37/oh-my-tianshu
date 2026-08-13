@@ -1,37 +1,37 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import AgentLoop from '@deepseek-ai/dsh-agent-loop'
-import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
-import InvariantService from '@deepseek-ai/dsh-invariants'
-import { CommandId } from '@deepseek-ai/dsh-commands/brand'
-import * as SessionInvariant from '@deepseek-ai/dsh-session/invariant'
-import * as AgentInvariant from '@deepseek-ai/dsh-agent/invariant'
-import * as AgentLoopInvariant from '@deepseek-ai/dsh-agent-loop/invariant'
-import * as CompactInvariant from '@deepseek-ai/dsh-compact/invariant'
-import * as CompactBasicInvariant from '@deepseek-ai/dsh-compact-basic/invariant'
-import { BasicCompactService } from '@deepseek-ai/dsh-compact-basic'
-import { CompactionId, isCompactCheckpointSource, ManualCompactionError } from '@deepseek-ai/dsh-compact'
-import type { CompactionResult } from '@deepseek-ai/dsh-compact'
+import { Context } from '@huiliyi37/cordis'
+import AgentLoop from '@huiliyi37/dsh-agent-loop'
+import { mountAgentLoopTestDependencies } from '@huiliyi37/dsh-agent-loop-testkit'
+import InvariantService from '@huiliyi37/dsh-invariants'
+import { CommandId } from '@huiliyi37/dsh-commands/brand'
+import * as SessionInvariant from '@huiliyi37/dsh-session/invariant'
+import * as AgentInvariant from '@huiliyi37/dsh-agent/invariant'
+import * as AgentLoopInvariant from '@huiliyi37/dsh-agent-loop/invariant'
+import * as CompactInvariant from '@huiliyi37/dsh-compact/invariant'
+import * as CompactBasicInvariant from '@huiliyi37/dsh-compact-basic/invariant'
+import { BasicCompactService } from '@huiliyi37/dsh-compact-basic'
+import { CompactionId, isCompactCheckpointSource, ManualCompactionError } from '@huiliyi37/dsh-compact'
+import type { CompactionResult } from '@huiliyi37/dsh-compact'
 import {
   createAssistantMessage,
   createUserMessage,
   LlmAdapter,
-} from '@deepseek-ai/dsh-llm'
+} from '@huiliyi37/dsh-llm'
 import type {
   ContentBlock,
   LlmResolvedModelInfo,
   Message,
   StreamChunk,
   TokenUsage,
-} from '@deepseek-ai/dsh-llm'
-import SessionStore, { Session, SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
-import LlmService from '@deepseek-ai/dsh-llm'
-import TokenMeterService from '@deepseek-ai/dsh-token-meter'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+} from '@huiliyi37/dsh-llm'
+import SessionStore, { Session, SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
+import LlmService from '@huiliyi37/dsh-llm'
+import TokenMeterService from '@huiliyi37/dsh-token-meter'
+import type { Agent } from '@huiliyi37/dsh-agent'
 import type {
   SummarizationInput,
   SummaryResult,
-} from '@deepseek-ai/dsh-compact-basic/src/summarizer.ts'
+} from '@huiliyi37/dsh-compact-basic/src/summarizer.ts'
 
 const MODEL = 'mock'
 const SIGNAL = new AbortController().signal

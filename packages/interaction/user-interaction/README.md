@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-user-interaction
+# @huiliyi37/dsh-user-interaction
 
 English | [中文](README.zh.md)
 
@@ -30,7 +30,7 @@ When a request carries an agent, `ask()` authenticates its exact identity throug
 
 ## Role
 
-This is the Service Definition package. Consumers such as `@deepseek-ai/dsh-tool-ask-user` depend on this service; the Web host runtime supplies the shipped Service provider. The loop stays unchanged: a tool call awaits a promise, and the tool result resumes the normal agent loop.
+This is the Service Definition package. Consumers such as `@huiliyi37/dsh-tool-ask-user` depend on this service; the Web host runtime supplies the shipped Service provider. The loop stays unchanged: a tool call awaits a promise, and the tool result resumes the normal agent loop.
 
 ## Model Experience
 

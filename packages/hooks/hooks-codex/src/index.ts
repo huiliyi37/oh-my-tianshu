@@ -6,21 +6,21 @@
  * blocking decisions are honored. Shared execution and parsing live in
  * `dsh-hook-protocol`; see the
  * [hook-bridges Agent Note](../../../../.agents/notes/implemented/feature/2026-06-30-hook-bridges.md).
- * @module @deepseek-ai/dsh-hooks-codex
+ * @module @huiliyi37/dsh-hooks-codex
  */
 
 // Each dialect bridge keeps its complete dependency list visible at the entry
 // point; a cross-package facade for imports alone would add indirection.
 /* jscpd:ignore-start */
 import { readFileSync } from 'node:fs'
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock, MessageSource } from '@deepseek-ai/dsh-llm'
-import type { UserMessage } from '@deepseek-ai/dsh-session'
-import type {} from '@deepseek-ai/dsh-session-persistence'
-import type { PostToolDecision, PreToolDecision, ToolExecution, ToolExecutionResult } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type { Agent, PreStepDecision } from '@huiliyi37/dsh-agent'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
+import type { ContentBlock, MessageSource } from '@huiliyi37/dsh-llm'
+import type { UserMessage } from '@huiliyi37/dsh-session'
+import type {} from '@huiliyi37/dsh-session-persistence'
+import type { PostToolDecision, PreToolDecision, ToolExecution, ToolExecutionResult } from '@huiliyi37/dsh-tools'
 import {
   appendHookInvoked,
   appendHookResult,
@@ -33,7 +33,7 @@ import {
   type HookOutput,
   type MatcherGroup,
   type MergedHookOutcome,
-} from '@deepseek-ai/dsh-hook-protocol'
+} from '@huiliyi37/dsh-hook-protocol'
 import { parseCodexConfig, type CodexHookConfig } from './config.ts'
 /* jscpd:ignore-end */
 

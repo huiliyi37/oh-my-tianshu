@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
-import type { SessionId } from '@deepseek-ai/dsh-client-connection/client'
+import type { SessionEvent } from '@huiliyi37/dsh-session/types'
+import type { SessionId } from '@huiliyi37/dsh-client-connection/client'
 import { SessionHistorySource } from '../src/client/session-history/source.ts'
 import { FakeApiClient, deferred, err, ok } from './fake-api.ts'
 import { entries, ev, plainTurn } from './event-script.ts'

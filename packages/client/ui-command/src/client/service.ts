@@ -7,14 +7,14 @@
  * addresses the session's agent by sessionId — sessions are always
  * agent-backed.
  */
-import { Service } from 'cordis'
-import type { Context } from 'cordis'
-import type { ConnectionHandle, SessionId } from '@deepseek-ai/dsh-client-connection/client'
-import type { ClientContext, ISessions } from '@deepseek-ai/dsh-client-runtime/client'
+import { Service } from '@huiliyi37/cordis'
+import type { Context } from '@huiliyi37/cordis'
+import type { ConnectionHandle, SessionId } from '@huiliyi37/dsh-client-connection/client'
+import type { ClientContext, ISessions } from '@huiliyi37/dsh-client-runtime/client'
 import type {
   CandidateRequest, ClientSessionContext, CommandClaim, PickOutcome, SlashCandidate, SlashPick,
   SubmitOutcome,
-} from '@deepseek-ai/dsh-client-ui-slash/client'
+} from '@huiliyi37/dsh-client-ui-slash/client'
 import type { CommandContribution, CommandDecoration, CommandServiceContract } from './contract.ts'
 import type { CommandDescriptor } from './directory.ts'
 import { CommandDirectory } from './directory.ts'

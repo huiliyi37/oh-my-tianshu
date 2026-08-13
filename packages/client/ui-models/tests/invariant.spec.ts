@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import * as ModelsInvariant from '@deepseek-ai/dsh-client-ui-models/invariant'
-import InvariantService from '@deepseek-ai/dsh-invariants'
+import { Context } from '@huiliyi37/cordis'
+import * as ModelsInvariant from '@huiliyi37/dsh-client-ui-models/invariant'
+import InvariantService from '@huiliyi37/dsh-invariants'
 import { ModelsSection } from '../src/client/ModelsSection.tsx'
 
 describe('invariant companion', () => {
@@ -12,7 +12,7 @@ describe('invariant companion', () => {
   })
 
   it('node-half apply is a no-op host placeholder', async () => {
-    const { apply } = await import('@deepseek-ai/dsh-client-ui-models')
+    const { apply } = await import('@huiliyi37/dsh-client-ui-models')
     apply()
     expect(true).toBe(true) // reaching here without throw is the contract
   })

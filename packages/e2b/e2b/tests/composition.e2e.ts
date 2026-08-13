@@ -1,21 +1,21 @@
 import { access } from 'node:fs/promises'
 import { join, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it } from 'vitest'
-import { Inbox } from '@deepseek-ai/dsh-agent'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { runLoaderSmoke } from '@deepseek-ai/dsh-loader-smoke'
+import { Inbox } from '@huiliyi37/dsh-agent'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { runLoaderSmoke } from '@huiliyi37/dsh-loader-smoke'
 import {
   FileNotFoundError,
   Sandbox,
   SandboxNotFoundError,
-} from '@deepseek-ai/dsh-e2b'
-import PtyService, { PtySessionId } from '@deepseek-ai/dsh-pty'
-import { LocalPtyBackend } from '@deepseek-ai/dsh-pty-local'
-import SandboxPolicyService from '@deepseek-ai/dsh-sandbox-policy'
-import { Session, SessionId } from '@deepseek-ai/dsh-session'
-import E2BSubprocessService from '@deepseek-ai/dsh-subprocess-e2b'
+} from '@huiliyi37/dsh-e2b'
+import PtyService, { PtySessionId } from '@huiliyi37/dsh-pty'
+import { LocalPtyBackend } from '@huiliyi37/dsh-pty-local'
+import SandboxPolicyService from '@huiliyi37/dsh-sandbox-policy'
+import { Session, SessionId } from '@huiliyi37/dsh-session'
+import E2BSubprocessService from '@huiliyi37/dsh-subprocess-e2b'
 
 const fixtureRoot = fileURLToPath(new URL('../../../../examples/headless-agent/tests/fixtures/e2b/e2b/', import.meta.url))
 const binScript = join(fixtureRoot, 'bin.ts')

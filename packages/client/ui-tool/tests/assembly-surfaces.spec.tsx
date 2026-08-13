@@ -2,11 +2,11 @@
 /** Tool assembly acceptance through the real ui-conversation host. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, waitFor } from '@testing-library/react'
-import { LocaleService } from '@deepseek-ai/dsh-client-locale/client'
-import type { ISession, SessionId, TodoItem, ToolResultNode } from '@deepseek-ai/dsh-client-runtime/client'
-import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
-import { SlotTestRuntime, usePinnedBrowserLanguages } from '@deepseek-ai/dsh-client-test-runtime'
-import { apply as applyConversation, inject as injectConversation } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import { LocaleService } from '@huiliyi37/dsh-client-locale/client'
+import type { ISession, SessionId, TodoItem, ToolResultNode } from '@huiliyi37/dsh-client-runtime/client'
+import type { PropsRenderSlots } from '@huiliyi37/dsh-client-ui-slots'
+import { SlotTestRuntime, usePinnedBrowserLanguages } from '@huiliyi37/dsh-client-test-runtime'
+import { apply as applyConversation, inject as injectConversation } from '@huiliyi37/dsh-client-ui-conversation/client'
 import { apply as applyTool, inject as injectTool } from '../src/client/apply.ts'
 import { toolChatSnapshot } from './tool-details-render.tsx'
 

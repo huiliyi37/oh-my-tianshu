@@ -7,13 +7,13 @@
  * Two layers mirror the transcript module: a pure fold (`emptyLiveState` /
  * `applyLiveEvent`) and a live subscription wrapper (`trackAgent`).
  *
- * @module @deepseek-ai/dsh-tui/adapter/live
+ * @module @huiliyi37/dsh-tui/adapter/live
  */
 
-import type { Context } from 'cordis'
-import type { AgentStatus } from '@deepseek-ai/dsh-agent'
-import type { CallId } from '@deepseek-ai/dsh-llm'
-import type { SessionEvent, SessionId, UserMessage } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import type { AgentStatus } from '@huiliyi37/dsh-agent'
+import type { CallId } from '@huiliyi37/dsh-llm'
+import type { SessionEvent, SessionId, UserMessage } from '@huiliyi37/dsh-session'
 
 /** One surfaced agent error with its in-turn position. */
 export interface LiveError {

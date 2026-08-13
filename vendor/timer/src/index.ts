@@ -1,6 +1,6 @@
-import { Context, Service } from 'cordis'
+import { Context, Service } from '@huiliyi37/cordis'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context extends Pick<TimerService, 'interval' | 'timeout' | 'throttle' | 'debounce' | 'setTimeout' | 'setInterval'> {
     timer: TimerService
   }

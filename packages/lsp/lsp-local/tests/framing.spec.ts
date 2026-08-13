@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { encodeMessage, MessageDecoder } from '@deepseek-ai/dsh-lsp-local'
+import { encodeMessage, MessageDecoder } from '@huiliyi37/dsh-lsp-local'
 
 /** Frame a message the way a server would, for decoder round-trips. */
 function frame(body: string): Buffer {

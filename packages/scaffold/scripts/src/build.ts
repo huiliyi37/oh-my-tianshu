@@ -1,14 +1,14 @@
 /**
  * User-owned tsdown configuration wrappers and child-process invocation.
  *
- * @module @deepseek-ai/dsh-scripts/build
+ * @module @huiliyi37/dsh-scripts/build
  */
 
 import { createRequire } from 'node:module'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import type { UserConfig } from 'tsdown'
-import { NodeCommandRunner, type CommandRunner } from '@deepseek-ai/dsh-helper'
+import { NodeCommandRunner, type CommandRunner } from '@huiliyi37/dsh-helper'
 
 function hasLocalPluginPackages(root: string): boolean {
   const directory = resolve(root, 'plugins')

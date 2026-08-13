@@ -1,5 +1,5 @@
 /**
- * @deepseek-ai/dsh-web-app — the browser-surface bundle's runtime glue plugin
+ * @huiliyi37/dsh-web-app — the browser-surface bundle's runtime glue plugin
  * plus the bundle patch (`cordis.patch.yml`, declared by the `dsh.bundle.patch`
  * manifest field). The plugin owns what used to be launcher code: it resolves
  * the built frontend dist (workspace knowledge of this bundle, never user
@@ -7,17 +7,17 @@
  * web-surface prompt section and the bash-visible web runtime variables, and
  * prints the URL line when configured to. Flag-derived values (`mode`,
  * `lanAddresses`, `printUrl`) arrive as launcher patches over this row.
- * @module @deepseek-ai/dsh-web-app
+ * @module @huiliyi37/dsh-web-app
  */
 
 import { createRequire } from 'node:module'
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import * as FrontendStatic from '@deepseek-ai/dsh-frontend-static'
-import type {} from '@cordisjs/plugin-loader'
-import type {} from '@deepseek-ai/dsh-host-webserver'
-import type {} from '@deepseek-ai/dsh-system-prompt'
-import type {} from '@deepseek-ai/dsh-bash-env'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import * as FrontendStatic from '@huiliyi37/dsh-frontend-static'
+import type {} from '@huiliyi37/cordis-plugin-loader'
+import type {} from '@huiliyi37/dsh-host-webserver'
+import type {} from '@huiliyi37/dsh-system-prompt'
+import type {} from '@huiliyi37/dsh-bash-env'
 
 /** Stable Cordis plugin name. */
 export const name = 'web-app'
@@ -94,7 +94,7 @@ function localWebUrl(ctx: Context): string {
 function resolveDistIndex(): string {
   const require = createRequire(import.meta.url)
   try {
-    return require.resolve('@deepseek-ai/dsh-frontend/dist/index.html')
+    return require.resolve('@huiliyi37/dsh-frontend/dist/index.html')
   } catch {
     /* v8 ignore next 2 -- reachable only on a checkout without a built dist; the test tree builds it */
     throw new Error('web-app: frontend dist not built; run pnpm run build from the repository root first')

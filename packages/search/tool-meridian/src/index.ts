@@ -1,6 +1,6 @@
 /**
  * `repo_graph` tool — code-graph queries (graph/impact/flow) over the
- * `@deepseek-ai/dsh-meridian` SQLite codebase index (Tianshu meridian port).
+ * `@huiliyi37/dsh-meridian` SQLite codebase index (Tianshu meridian port).
  * First tool use kicks an on-demand full-project backfill; a bounded
  * codebase-index summary (stats + module table) is contributed to the dynamic
  * context (order 120) so the agent sees the workspace shape without a full
@@ -11,21 +11,21 @@
  * section — the runtime-context content-diff injects it only when it actually
  * changes, preserving prefix-cache byte stability (Wave 4 discipline).
  *
- * @module @deepseek-ai/dsh-tool-meridian
+ * @module @huiliyi37/dsh-tool-meridian
  */
 
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
-import type { Context } from 'cordis'
-import z from 'schemastery'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 import {
   DEFAULT_MERIDIAN_BACKFILL_MAX,
   MeridianIndexer,
   scheduleMeridianBackfill,
   isUnnamedSymbolId,
   queryFlow,
-} from '@deepseek-ai/dsh-meridian'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+} from '@huiliyi37/dsh-meridian'
+import { defineTool } from '@huiliyi37/dsh-tools'
 import { generateCodebaseIndexBlock } from './summary.ts'
 
 /** Cordis plugin name used by loader diagnostics. */

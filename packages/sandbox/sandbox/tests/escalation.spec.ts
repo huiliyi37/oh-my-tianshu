@@ -14,8 +14,8 @@ import {
   escalationHintMarker,
   sandboxDenialMarker,
   validateEscalationArgs,
-} from '@deepseek-ai/dsh-sandbox'
-import type { EscalationApprover, EscalationOutcome } from '@deepseek-ai/dsh-sandbox'
+} from '@huiliyi37/dsh-sandbox'
+import type { EscalationApprover, EscalationOutcome } from '@huiliyi37/dsh-sandbox'
 
 describe('the strictly-wider ladder', () => {
   it('read-only escalates to either wider mode; workspace-write only to full access', () => {

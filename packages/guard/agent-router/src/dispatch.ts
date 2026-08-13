@@ -7,14 +7,14 @@
  * evidence-gate（零新通道）。工具限制（restrict）签名待探明，
  * 本轮不做——之后慢慢改造。
  *
- * @module @deepseek-ai/dsh-agent-router/dispatch
+ * @module @huiliyi37/dsh-agent-router/dispatch
  */
 
 import { randomUUID } from 'node:crypto'
-import type { Context } from 'cordis'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { SessionId } from '@deepseek-ai/dsh-session'
-import { SessionId as brandSessionId } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
+import type { SessionId } from '@huiliyi37/dsh-session'
+import { SessionId as brandSessionId } from '@huiliyi37/dsh-session'
 
 /** 子代理派发选项。 */
 export interface DispatchOptions {

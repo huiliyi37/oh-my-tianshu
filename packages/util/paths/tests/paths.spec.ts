@@ -9,7 +9,7 @@ import {
   dshHomePath,
   expandHomePath,
   resolveDshHome,
-} from '@deepseek-ai/dsh-paths'
+} from '@huiliyi37/dsh-paths'
 
 afterEach(() => {
   vi.unstubAllEnvs()

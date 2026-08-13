@@ -13,16 +13,16 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import Include from '@cordisjs/plugin-include'
-import LlmService from '@deepseek-ai/dsh-llm'
-import { createMessage, CallId } from '@deepseek-ai/dsh-llm'
-import { credentialRef } from '@deepseek-ai/dsh-credentials'
-import CredentialsLocal from '@deepseek-ai/dsh-credentials-local'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
-import SettingsLocal from '@deepseek-ai/dsh-settings-local'
-import * as LlmDeepSeek from '@deepseek-ai/dsh-llm-deepseek'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import Include from '@huiliyi37/cordis-plugin-include'
+import LlmService from '@huiliyi37/dsh-llm'
+import { createMessage, CallId } from '@huiliyi37/dsh-llm'
+import { credentialRef } from '@huiliyi37/dsh-credentials'
+import CredentialsLocal from '@huiliyi37/dsh-credentials-local'
+import { settingsNamespace } from '@huiliyi37/dsh-settings'
+import SettingsLocal from '@huiliyi37/dsh-settings-local'
+import * as LlmDeepSeek from '@huiliyi37/dsh-llm-deepseek'
 import { assemble } from './assemble.ts'
 import { closeMockServers, mockServer, textEvents } from './mock-server.ts'
 
@@ -67,19 +67,19 @@ async function loadComposition(
     ...options.withDynamic
       ? [
         '- id: settings',
-        "  name: '@deepseek-ai/dsh-settings-local'",
+        "  name: '@huiliyi37/dsh-settings-local'",
         '  config:',
         `    path: ${JSON.stringify(settingsPath)}`,
         '    debounceMs: 10',
         '- id: credentials',
-        "  name: '@deepseek-ai/dsh-credentials-local'",
+        "  name: '@huiliyi37/dsh-credentials-local'",
         '  config:',
         `    path: ${JSON.stringify(credentialsPath)}`,
         '    debounceMs: 10',
       ]
       : [],
     '- id: llm-deepseek',
-    "  name: '@deepseek-ai/dsh-llm-deepseek'",
+    "  name: '@huiliyi37/dsh-llm-deepseek'",
     '  config:',
     `    baseURL: ${JSON.stringify(options.baseURL)}`,
     ...options.spark !== undefined
@@ -109,9 +109,9 @@ async function loadComposition(
   ctx.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
     ['test-llm-service', LlmService],
-    ['@deepseek-ai/dsh-settings-local', SettingsLocal],
-    ['@deepseek-ai/dsh-credentials-local', CredentialsLocal],
-    ['@deepseek-ai/dsh-llm-deepseek', LlmDeepSeek],
+    ['@huiliyi37/dsh-settings-local', SettingsLocal],
+    ['@huiliyi37/dsh-credentials-local', CredentialsLocal],
+    ['@huiliyi37/dsh-llm-deepseek', LlmDeepSeek],
   ])
   ctx.loader.internal = {
     version: 'v2',

@@ -3,7 +3,7 @@
  * `.env`, install the fail-loud Loader guards, resolve the config path (snapshot-aware), load the
  * optional user patch layers from the Harness home (`~/.dsh`), expose its path resolver to
  * config expressions, and drive the Cordis Loader against a leaf `cordis.yml` until the tree settles.
- * @module @deepseek-ai/dsh-app-boot
+ * @module @huiliyi37/dsh-app-boot
  */
 
 import { pathToFileURL } from 'node:url'
@@ -11,16 +11,16 @@ import { readFileSync } from 'node:fs'
 import { parseEnv } from 'node:util'
 import { basename, dirname, resolve } from 'node:path'
 import * as yaml from 'js-yaml'
-import { Context, type FiberState } from 'cordis'
-import Loader, { type Entry, type EntryOptions } from '@cordisjs/plugin-loader'
-import Include, { applyEntryPatches, entryListSchema, type PatchOptions } from '@cordisjs/plugin-include'
-import { dshHomePath, resolveDshHome } from '@deepseek-ai/dsh-paths'
-import { createEnvironmentSnapshot, type EnvironmentSnapshot } from '@deepseek-ai/dsh-environment'
-import type {} from '@cordisjs/plugin-hmr'
+import { Context, type FiberState } from '@huiliyi37/cordis'
+import Loader, { type Entry, type EntryOptions } from '@huiliyi37/cordis-plugin-loader'
+import Include, { applyEntryPatches, entryListSchema, type PatchOptions } from '@huiliyi37/cordis-plugin-include'
+import { dshHomePath, resolveDshHome } from '@huiliyi37/dsh-paths'
+import { createEnvironmentSnapshot, type EnvironmentSnapshot } from '@huiliyi37/dsh-environment'
+import type {} from '@huiliyi37/cordis-plugin-hmr'
 // Side-effect type import: resolves `ctx.get('systemPrompt')` to the service.
-import type {} from '@deepseek-ai/dsh-system-prompt'
+import type {} from '@huiliyi37/dsh-system-prompt'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     /** Harness-home path resolver available to Loader `!!js` config expressions. */
     dshHomePath?: typeof dshHomePath
@@ -264,7 +264,7 @@ export async function watchUserPatches(
 
 /**
  * Load an optional patch-list file: a top-level YAML array of loader patch
- * entries (`@cordisjs/plugin-include`'s `PatchOptions`): id-targeted config
+ * entries (`@huiliyi37/cordis-plugin-include`'s `PatchOptions`): id-targeted config
  * overrides and `insert` lists, with `!!js` expressions allowed. A missing
  * file means "no layer"; an unreadable, unparsable, or non-array file throws —
  * a present patch file that cannot apply is a misconfiguration and must fail
@@ -304,7 +304,7 @@ export function loadOverlayPatches(binName: string, file: string): PatchOptions[
 }
 /**
  * Parse one loader patch list: a top-level YAML array of
- * `@cordisjs/plugin-include` `PatchOptions` (id-targeted config overrides and
+ * `@huiliyi37/cordis-plugin-include` `PatchOptions` (id-targeted config overrides and
  * `insert` lists, `!!js` expressions allowed). Every shape failure throws,
  * because a patch file that cannot be applied at all is a misconfiguration; a
  * single patch whose target row is absent stays a per-entry Loader warning, so

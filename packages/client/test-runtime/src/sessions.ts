@@ -1,16 +1,16 @@
 /** Test-owned sessions face: the SlotsService host contract over declarative fixtures. */
-import type { Context } from 'cordis'
-import { createScope, scopeOf, SessionProvideChannel } from '@deepseek-ai/dsh-client-runtime/client'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context } from '@huiliyi37/cordis'
+import { createScope, scopeOf, SessionProvideChannel } from '@huiliyi37/dsh-client-runtime/client'
+import { createSnapshotStore } from '@huiliyi37/dsh-client-runtime/client'
 import type {
   AgentContext, ConversationSnapshot, ISessions, ObservableSnapshot, ProjectionsFace, SessionFace, SessionId,
   SessionListState, SessionProvideDescriptor, SessionSearchResultItem, SessionSummary, SnapshotStore,
   SubagentAddress,
-} from '@deepseek-ai/dsh-client-runtime/client'
+} from '@huiliyi37/dsh-client-runtime/client'
 // The double reports the wire schema's own search bound, like the production
 // service — a transport-varying limit would be a fiction no client can see.
-import { SESSION_SEARCH_RESULT_LIMIT } from '@deepseek-ai/dsh-host-apiproxy/api'
-import type { HostObservable, SessionMaybeProvideInfo, SessionProvideInfo } from '@deepseek-ai/dsh-client-ui-slots'
+import { SESSION_SEARCH_RESULT_LIMIT } from '@huiliyi37/dsh-host-apiproxy/api'
+import type { HostObservable, SessionMaybeProvideInfo, SessionProvideInfo } from '@huiliyi37/dsh-client-ui-slots'
 import { conversationSnapshot } from './fixtures.ts'
 import type { SessionFixture, Stabilizer } from './fixtures.ts'
 

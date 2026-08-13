@@ -8,21 +8,21 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { z } from 'zod'
-import AgentRegistry, { Inbox } from '@deepseek-ai/dsh-agent'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
-import type { Session } from '@deepseek-ai/dsh-session'
-import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
-import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
-import UserInteractionService from '@deepseek-ai/dsh-user-interaction'
-import type { MuxFrame, RpcRequest } from '@deepseek-ai/dsh-host-apiproxy/api'
-import { RpcId } from '@deepseek-ai/dsh-host-apiproxy/api/rpc'
-import { createApiProxy } from '@deepseek-ai/dsh-host-apiproxy'
+import AgentRegistry, { Inbox } from '@huiliyi37/dsh-agent'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
+import SessionStore, { SessionId } from '@huiliyi37/dsh-session'
+import type { Session } from '@huiliyi37/dsh-session'
+import SessionProjectionRegistry from '@huiliyi37/dsh-session-projection'
+import type { ProjectionDefinition } from '@huiliyi37/dsh-session-projection'
+import UserInteractionService from '@huiliyi37/dsh-user-interaction'
+import type { MuxFrame, RpcRequest } from '@huiliyi37/dsh-host-apiproxy/api'
+import { RpcId } from '@huiliyi37/dsh-host-apiproxy/api/rpc'
+import { createApiProxy } from '@huiliyi37/dsh-host-apiproxy'
 
-declare module '@deepseek-ai/dsh-session-projection/types' {
+declare module '@huiliyi37/dsh-session-projection/types' {
   interface SessionProjectionMap {
     'test/last-user': { text: string } | null
   }

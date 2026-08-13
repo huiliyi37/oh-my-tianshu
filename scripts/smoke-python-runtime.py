@@ -67,9 +67,9 @@ SNAPSHOT_DIRECTORY = (
 SNAPSHOT_FILENAMES = ("result.json", "session.jsonl", "session.1.jsonl", "session.2.jsonl")
 CUSTOM_CORDIS = """\
 - id: jsonrpc
-  name: '@deepseek-ai/dsh-jsonrpc'
+  name: '@huiliyi37/dsh-jsonrpc'
 - id: agent-core
-  name: '@deepseek-ai/dsh-agent-spine-demo'
+  name: '@huiliyi37/dsh-agent-spine-demo'
   config:
     workspaceContext: false
     skills:
@@ -78,56 +78,56 @@ CUSTOM_CORDIS = """\
     tools:
       mode: both
 - id: sessions
-  name: '@deepseek-ai/dsh-session-persistence-jsonl'
+  name: '@huiliyi37/dsh-session-persistence-jsonl'
   config:
     root: !!js process.env.DSH_SESSION_ROOT
     compression: 'none'
 - id: code-runtime
-  name: '@deepseek-ai/dsh-code-runtime-worker'
+  name: '@huiliyi37/dsh-code-runtime-worker'
 - id: subagents
-  name: '@deepseek-ai/dsh-subagent'
+  name: '@huiliyi37/dsh-subagent'
 - id: subagent-spawn
-  name: '@deepseek-ai/dsh-subagent-spawn'
+  name: '@huiliyi37/dsh-subagent-spawn'
   config:
     providerName: spawn
 - id: subagent-tool
-  name: '@deepseek-ai/dsh-tool-subagent'
+  name: '@huiliyi37/dsh-tool-subagent'
   config:
     provider: spawn
 - id: workflow-engine
-  name: '@deepseek-ai/dsh-workflow-workerthread'
+  name: '@huiliyi37/dsh-workflow-workerthread'
   config:
     provider: spawn
 - id: workflow-tool
-  name: '@deepseek-ai/dsh-tool-workflow'
+  name: '@huiliyi37/dsh-tool-workflow'
 - id: cordis-tool
-  name: '@deepseek-ai/dsh-tool-cordis'
+  name: '@huiliyi37/dsh-tool-cordis'
 """
 PERSISTENT_TOOLS_CORDIS = """\
 - id: jsonrpc
-  name: '@deepseek-ai/dsh-jsonrpc'
+  name: '@huiliyi37/dsh-jsonrpc'
 - id: llm
-  name: '@deepseek-ai/dsh-llm-deepseek'
+  name: '@huiliyi37/dsh-llm-deepseek'
   config:
     apiKey: !!js process.env.DEEPSEEK_API_KEY
     baseURL: !!js process.env.DEEPSEEK_BASE_URL
 - id: sandbox
-  name: '@deepseek-ai/dsh-sandbox-local'
+  name: '@huiliyi37/dsh-sandbox-local'
 - id: sandbox-policy
-  name: '@deepseek-ai/dsh-sandbox-policy'
+  name: '@huiliyi37/dsh-sandbox-policy'
   config:
     mode: danger-full-access
     workspaceRoot: !!js process.env.DSH_CWD
 - id: pty
-  name: '@deepseek-ai/dsh-pty'
+  name: '@huiliyi37/dsh-pty'
 - id: pty-local
-  name: '@deepseek-ai/dsh-pty-local'
+  name: '@huiliyi37/dsh-pty-local'
 - id: fs
-  name: '@deepseek-ai/dsh-fs-local'
+  name: '@huiliyi37/dsh-fs-local'
   config:
     cwd: !!js process.env.DSH_CWD
 - id: agent-core
-  name: '@deepseek-ai/dsh-agent-spine-demo'
+  name: '@huiliyi37/dsh-agent-spine-demo'
   config:
     includeHarnessIdentity: false
     persona: 'You are a helpful software engineer assistant.'
@@ -137,14 +137,14 @@ PERSISTENT_TOOLS_CORDIS = """\
     toolBash: false
     toolTasks: false
 - id: sessions
-  name: '@deepseek-ai/dsh-session-persistence-jsonl'
+  name: '@huiliyi37/dsh-session-persistence-jsonl'
   config:
     root: !!js process.env.DSH_SESSION_ROOT
     compression: 'none'
 - id: persistent-bash
-  name: '@deepseek-ai/dsh-tool-bash-persistent'
+  name: '@huiliyi37/dsh-tool-bash-persistent'
 - id: str-replace-editor
-  name: '@deepseek-ai/dsh-tool-str-replace-editor'
+  name: '@huiliyi37/dsh-tool-str-replace-editor'
 """
 
 

@@ -3,10 +3,10 @@
  * The serialized schemastery envelope (`schema.toJSON()`) rehydrates into a
  * live validator whose node relations (`dict`/`inner`) editors probe for
  * field presence and roles; drafts are edited immutably by path.
- * @module @deepseek-ai/dsh-client-schema-form/model
+ * @module @huiliyi37/dsh-client-schema-form/model
  */
 
-import Schema from 'schemastery'
+import Schema from '@huiliyi37/schemastery'
 
 /** Live schemastery node; the renderer reads only its structural relations. */
 export type SchemaNode = Schema

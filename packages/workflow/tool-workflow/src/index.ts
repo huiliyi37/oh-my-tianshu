@@ -2,23 +2,23 @@
  * The model-facing `workflow` tool: run a JavaScript orchestration script that fans out
  * subagents, and return the script's final value. Pure schema + lifecycle shaping — script
  * parsing, execution, caps, and cancellation live behind `ctx.workflows`
- * (`@deepseek-ai/dsh-workflow`), so a hardened engine swaps in without touching what the model
+ * (`@huiliyi37/dsh-workflow`), so a hardened engine swaps in without touching what the model
  * sees. Execution awaits `run.result` and always disposes the run; non-completed reasons become tool
  * errors, and background collection remains deferred. Presentation is an args-only generic card
  * titled from `meta.name`. Explicit-ask usage guidance is registered as the tool's own prompt
  * section rather than deployment persona prose.
- * @module @deepseek-ai/dsh-tool-workflow
+ * @module @huiliyi37/dsh-tool-workflow
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { JsonValue } from '@deepseek-ai/dsh-session'
-import type { WorkflowResult, WorkflowRun } from '@deepseek-ai/dsh-workflow'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { defineTool } from '@huiliyi37/dsh-tools'
+import type { ToolCallView, ToolResultView } from '@huiliyi37/dsh-tools'
+import type { ContentBlock } from '@huiliyi37/dsh-llm'
+import type { JsonValue } from '@huiliyi37/dsh-session'
+import type { WorkflowResult, WorkflowRun } from '@huiliyi37/dsh-workflow'
 // Declaration merge only: makes ctx.systemPrompt visible for the section registration.
-import type {} from '@deepseek-ai/dsh-system-prompt'
+import type {} from '@huiliyi37/dsh-system-prompt'
 
 export const name = 'tool-workflow'
 export const inject = ['tools', 'workflows', 'systemPrompt']

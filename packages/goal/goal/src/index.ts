@@ -1,20 +1,20 @@
 /**
  * Same-session goal domain: event-sourced state, compare-and-set mutations,
  * and process-local continuation activation.
- * @module @deepseek-ai/dsh-goal
+ * @module @huiliyi37/dsh-goal
  */
 
 import { randomUUID } from 'node:crypto'
-import { Context } from 'cordis'
-import z from 'schemastery'
+import { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 import { z as zod } from 'zod'
 import type { ZodType } from 'zod'
-import { agentEvents } from '@deepseek-ai/dsh-agent'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
-import { GatewayService, Remote } from '@deepseek-ai/dsh-type-meta'
+import { agentEvents } from '@huiliyi37/dsh-agent'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import type { Session, SessionEvent } from '@huiliyi37/dsh-session'
+import { GatewayService, Remote } from '@huiliyi37/dsh-type-meta'
 // Type-only: resolves ctx.sessionProjections for the optional unit child.
-import type {} from '@deepseek-ai/dsh-session-projection'
+import type {} from '@huiliyi37/dsh-session-projection'
 import {
   applyGoalEvent,
   decodeGoalChange,
@@ -56,7 +56,7 @@ export type * from './domain.ts'
 export { GOAL_CHANGE_VERSION, GoalError, GoalId } from './runtime.ts'
 export { decodeGoalChange, foldGoal, goalChangeRef } from './fold.ts'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     goals: GoalService
   }

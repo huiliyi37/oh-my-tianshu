@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-tool-file-info
+# @huiliyi37/dsh-tool-file-info
 
 [English](README.md) | 中文
 

@@ -7,7 +7,7 @@ import {
   type AnonymousId,
   type ConsentDecision,
   type TelemetryPayload,
-} from '@deepseek-ai/dsh-telemetry'
+} from '@huiliyi37/dsh-telemetry'
 
 const ALLOW: ConsentDecision = { allowed: true, reason: 'enabled' }
 const DENY: ConsentDecision = { allowed: false, reason: 'disabled' }
@@ -40,7 +40,7 @@ describe('TelemetryReporter.report', () => {
       command: 'config',
       durationMs: 7,
       success: true,
-      cordisYmlContent: 'apiKey: sk-abcdefghij1234567890\nname: \'@deepseek-ai/dsh-llm-deepseek\'\n',
+      cordisYmlContent: 'apiKey: sk-abcdefghij1234567890\nname: \'@huiliyi37/dsh-llm-deepseek\'\n',
       packageJsonContent: '{ "name": "app" }',
     }
     reporter.report(payload, ALLOW)
@@ -57,7 +57,7 @@ describe('TelemetryReporter.report', () => {
     expect(body.sentAt).toBe('1970-01-01T00:00:00.000Z')
     expect(body.command).toBe('config')
     expect(body.cordisYmlContent).not.toContain('sk-abcdefghij1234567890')
-    expect(body.cordisYmlContent).toContain('@deepseek-ai/dsh-llm-deepseek')
+    expect(body.cordisYmlContent).toContain('@huiliyi37/dsh-llm-deepseek')
     expect(body.packageJsonContent).toContain('app')
   })
 

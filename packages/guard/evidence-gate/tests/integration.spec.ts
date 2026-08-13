@@ -6,9 +6,9 @@
  * 测试 passed（GREEN）→ 义务 satisfied → final allow。
  */
 import { describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { apply as applyEvidenceGate, type EvidenceService } from '../src/index.js'
-import type { ToolGuard, ToolExecution } from '@deepseek-ai/dsh-tools'
+import type { ToolGuard, ToolExecution } from '@huiliyi37/dsh-tools'
 
 /** 最小 tools 服务面：guard 注册捕获（真实 ctx.provide，非 mock 语义）。 */
 interface ToolsFacet {

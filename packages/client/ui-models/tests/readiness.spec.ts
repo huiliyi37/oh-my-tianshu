@@ -1,6 +1,6 @@
 /** Pure official-DeepSeek readiness projection over the shared Models join. */
 import { describe, expect, it } from 'vitest'
-import type { CredentialView } from '@deepseek-ai/dsh-client-connection/client'
+import type { CredentialView } from '@huiliyi37/dsh-client-connection/client'
 import type { ModelsSettingsState, ProviderRow } from '../src/client/store.ts'
 import { deepSeekReadiness } from '../src/client/store.ts'
 

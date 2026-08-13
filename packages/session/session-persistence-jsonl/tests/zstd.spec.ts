@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { appendFile, mkdir, mkdtemp, open, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import type { FileHandle } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { performance } from 'node:perf_hooks'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
-import SessionPersistenceJsonl from '@deepseek-ai/dsh-session-persistence-jsonl'
+import SessionStore, { SessionId } from '@huiliyi37/dsh-session'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
+import SessionPersistenceJsonl from '@huiliyi37/dsh-session-persistence-jsonl'
 import { logPath, scanLog, sessionDir, toHeaderLine, type JsonlCompression } from '../src/format.ts'
 import {
   compressZstdFrame, createZstdFrameDecoder, decompressZstdFrame, decompressZstdPrefix, scanZstdFrames,

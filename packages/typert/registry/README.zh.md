@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-typert-registry
+# @huiliyi37/dsh-typert-registry
 
 [English](README.md) | 中文
 
@@ -17,7 +17,7 @@
 - `toJSONSchema(key, params?)` 使用 `z.toJSONSchema()` 投影当前有效的 schema，且不缓存结果。
 - `typertKey()` 和 `typertPackageKey()` 构造两种稳定的标识形式。
 
-`@deepseek-ai/dsh-typert-registry/types` 子路径包含注册项和记录的纯类型约定。[`dsh-typert-loader`](../loader/README.md) 会在 Loader 组合中发现并注册生成的宿主侧产物；其他组合所有者可以直接调用 `ctx.typert.register()`。
+`@huiliyi37/dsh-typert-registry/types` 子路径包含注册项和记录的纯类型约定。[`dsh-typert-loader`](../loader/README.md) 会在 Loader 组合中发现并注册生成的宿主侧产物；其他组合所有者可以直接调用 `ctx.typert.register()`。
 
 ## 模型体验
 

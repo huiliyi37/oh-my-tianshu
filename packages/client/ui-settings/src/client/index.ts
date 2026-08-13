@@ -7,12 +7,12 @@
  * ui-settings-general owns the chrome and General content; features own their
  * rows, sections, and onboarding pages. Export discipline: packages/client/AGENTS.md.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ClientContext } from '@huiliyi37/dsh-client-runtime/client'
 // Type-only: the ctx.locale Context merge for the optional ctx.get('locale')
 // read (nav labels may be locale-following thunks; the shell still ships no
 // copy of its own and takes no hard locale dependency).
-import type {} from '@deepseek-ai/dsh-client-locale/client'
-import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
+import type {} from '@huiliyi37/dsh-client-locale/client'
+import { resolveSlotLabel } from '@huiliyi37/dsh-client-ui-slots'
 import type {
   SettingsOnboardingStep, SettingsRootInjected, SettingsSectionRow,
 } from './contract/slots.ts'

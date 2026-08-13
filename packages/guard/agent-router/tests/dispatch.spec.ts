@@ -6,7 +6,7 @@
  * （profile → allow 列表）、restrict 抛错时降级不限制。
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { dispatchSubagent } from '../src/dispatch.js'
 
 /** mock agents 服务：create 捕获 setup 并调用（返回 handle）。 */

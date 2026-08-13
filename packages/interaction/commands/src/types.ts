@@ -1,7 +1,7 @@
 /**
  * Durable command event vocabulary shared with type-only consumers.
  *
- * @module @deepseek-ai/dsh-commands/types
+ * @module @huiliyi37/dsh-commands/types
  */
 
 import type { CommandId } from './brand.ts'
@@ -19,7 +19,7 @@ export interface CommandSourceMap {
 /** The union over {@link CommandSourceMap} — who issued a command line. */
 export type CommandSource = CommandSourceMap[keyof CommandSourceMap]
 
-declare module '@deepseek-ai/dsh-session/types' {
+declare module '@huiliyi37/dsh-session/types' {
   interface SessionEventMap {
     /**
      * A resolved slash command entered its handler. Log-only (never model

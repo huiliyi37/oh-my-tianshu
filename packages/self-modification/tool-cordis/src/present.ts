@@ -5,10 +5,10 @@
  * No `presentResult` overrides exist — the tools' text results are their
  * correct completed rendering.
  *
- * @module @deepseek-ai/dsh-tool-cordis/present
+ * @module @huiliyi37/dsh-tool-cordis/present
  */
 
-import type { GenericCallView } from '@deepseek-ai/dsh-tools'
+import type { GenericCallView } from '@huiliyi37/dsh-tools'
 
 /**
  * The `cordis_inspect` call card: a read, titled with the requested section.

@@ -16,17 +16,17 @@
  * artifact is the formatted result saved through `ctx.spillStore.saveText()`
  * ({@link trySaveFormattedResult}).
  *
- * @module @deepseek-ai/dsh-tool-fs-search/search-core
+ * @module @huiliyi37/dsh-tool-fs-search/search-core
  */
 
 import { isAbsolute, relative, sep } from 'node:path'
-import type { Context } from 'cordis'
-import { HarnessError } from '@deepseek-ai/dsh-llm'
-import { ItemRetainer, TextRetainer } from '@deepseek-ai/dsh-retention'
-import type { RetainedItems } from '@deepseek-ai/dsh-retention'
-import type { SubprocessHandle, SubprocessOutcome, SubprocessOutputRead, SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
-import type { SaveTextSpill, SpillRef } from '@deepseek-ai/dsh-spill'
-import type { ToolExecution } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@huiliyi37/cordis'
+import { HarnessError } from '@huiliyi37/dsh-llm'
+import { ItemRetainer, TextRetainer } from '@huiliyi37/dsh-retention'
+import type { RetainedItems } from '@huiliyi37/dsh-retention'
+import type { SubprocessHandle, SubprocessOutcome, SubprocessOutputRead, SubprocessSpawnSpec } from '@huiliyi37/dsh-subprocess'
+import type { SaveTextSpill, SpillRef } from '@huiliyi37/dsh-spill'
+import type { ToolExecution } from '@huiliyi37/dsh-tools'
 
 /**
  * Default cap on the complete raw `rg` stdout the tools will parse (the
@@ -37,7 +37,7 @@ export const RAW_OUTPUT_MAX_BYTES = 20_000_000
 /**
  * Default cooperative tool-call timeout budget in milliseconds (the `timeoutMs`
  * config), attached to both tool definitions for
- * `@deepseek-ai/dsh-timeout-policy` to enforce through `exec.signal`.
+ * `@huiliyi37/dsh-timeout-policy` to enforce through `exec.signal`.
  */
 export const SEARCH_TIMEOUT_MS = 30_000
 
@@ -178,7 +178,7 @@ export function resolveRgPath(): Promise<string> {
  * complete raw stdout. The working directory is the calling agent's session
  * cwd (`exec.agent.session.header.cwd`) when available, else
  * `process.cwd()`. `exec.signal` is forwarded so the cooperative tool timeout
- * (`@deepseek-ai/dsh-timeout-policy`) and caller cancellation terminate the
+ * (`@huiliyi37/dsh-timeout-policy`) and caller cancellation terminate the
  * process tree.
  *
  * The spawn is unconfined (a plain `ctx.subprocess` call), so `--no-config`
@@ -320,9 +320,9 @@ export function previewLine(line: string, maxBytes: number): string {
 /**
  * Apply the shared inline cap to a canonical `grep` match list: preview each
  * retained line to `maxLineBytes` and keep the first `maxMatches`. The single
- * retention pass both the model-facing render ({@link module:@deepseek-ai/dsh-tool-fs-search/grep}
+ * retention pass both the model-facing render ({@link module:@huiliyi37/dsh-tool-fs-search/grep}
  * `formatGrepOutput`) and the search-card projection
- * ({@link module:@deepseek-ai/dsh-tool-fs-search/presentation} `grepSearchMeta`)
+ * ({@link module:@huiliyi37/dsh-tool-fs-search/presentation} `grepSearchMeta`)
  * consume, so text and card never disagree about which matches survived.
  *
  * @param matches - every match the search parsed (the canonical value's matches).

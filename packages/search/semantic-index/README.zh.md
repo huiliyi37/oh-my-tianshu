@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-semantic-index
+# @huiliyi37/dsh-semantic-index
 
 [English](README.md) | 中文
 

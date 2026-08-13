@@ -6,10 +6,10 @@ import { realpath } from 'node:fs/promises'
 import { execFile } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
-import { Context } from 'cordis'
-import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
-import { deadline } from '@deepseek-ai/dsh-timeout'
-import { canonicalizeWorkspace, readHostSource } from '@deepseek-ai/dsh-lsp-local'
+import { Context } from '@huiliyi37/cordis'
+import LocalFileSystem from '@huiliyi37/dsh-fs-local'
+import { deadline } from '@huiliyi37/dsh-timeout'
+import { canonicalizeWorkspace, readHostSource } from '@huiliyi37/dsh-lsp-local'
 
 const execFileAsync = promisify(execFile)
 

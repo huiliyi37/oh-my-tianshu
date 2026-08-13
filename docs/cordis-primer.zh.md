@@ -39,7 +39,7 @@ Cordis 是 DeepSeek Harness SDK 底层以 vendor 方式引入的插件框架。�
 
 ## Loader 配置
 
-`@cordisjs/plugin-include` 将 `!!js` 解析为表达式节点，但 Loader 仅在挂载插件前对条目的 `config` 做插值。条目元数据（`id`、`name`、`group`、`disabled`、`inject`、`intercept` 和 `isolate`）保持字面值；因此 `disabled: !!js ...` 是一个 truthy 对象，会始终禁用该条目。需要根据环境选择挂载哪些插件时，请使用显式的配置覆盖层。
+`@huiliyi37/cordis-plugin-include` 将 `!!js` 解析为表达式节点，但 Loader 仅在挂载插件前对条目的 `config` 做插值。条目元数据（`id`、`name`、`group`、`disabled`、`inject`、`intercept` 和 `isolate`）保持字面值；因此 `disabled: !!js ...` 是一个 truthy 对象，会始终禁用该条目。需要根据环境选择挂载哪些插件时，请使用显式的配置覆盖层。
 
 ## 实践规则
 

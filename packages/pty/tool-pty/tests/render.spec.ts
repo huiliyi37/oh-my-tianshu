@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { PtySessionId } from '@deepseek-ai/dsh-pty'
-import { boundTerminalText, renderList, renderRead, renderSend, renderSendRead, renderSpawn } from '@deepseek-ai/dsh-tool-pty/src/render.ts'
+import { PtySessionId } from '@huiliyi37/dsh-pty'
+import { boundTerminalText, renderList, renderRead, renderSend, renderSendRead, renderSpawn } from '@huiliyi37/dsh-tool-pty/src/render.ts'
 
 describe('tool-pty rendering', () => {
   it('renders spawn with and without names or MOTD', () => {

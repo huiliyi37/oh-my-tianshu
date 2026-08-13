@@ -1,10 +1,10 @@
 /**
  * Browser-side judgement of a typed API key.
- * @module @deepseek-ai/dsh-client-ui-models/apiKey
+ * @module @huiliyi37/dsh-client-ui-models/apiKey
  */
 
 /**
- * Twin of `normalizeApiKey` in `@deepseek-ai/dsh-llm`: printable ASCII, space
+ * Twin of `normalizeApiKey` in `@huiliyi37/dsh-llm`: printable ASCII, space
  * excluded. Client packages reference only client packages, so the charset
  * rule is mirrored here rather than imported; keep the two in step, as
  * `validateDeepSeekModels` is kept in step with the host's `catalogModel`.

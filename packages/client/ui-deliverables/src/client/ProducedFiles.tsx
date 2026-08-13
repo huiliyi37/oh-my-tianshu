@@ -4,8 +4,8 @@
 // through the same openFile the tool rows use — the Host's own opener, on the
 // Host machine.
 
-import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import type { TurnTailOwnerProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { PropsLocale } from '@huiliyi37/dsh-client-ui-slots'
+import type { TurnTailOwnerProps } from '@huiliyi37/dsh-client-ui-conversation/client'
 import { basename } from './turn-deliverables.ts'
 import type { NS } from './locales.ts'
 import css from './ProducedFiles.module.css'

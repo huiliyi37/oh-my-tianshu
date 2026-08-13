@@ -57,7 +57,7 @@ Real-API tests and demos read `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_URL`, 
 
 ## Conventions
 
-- Every npm package is `@deepseek-ai/dsh-<name>`; vendored packages keep upstream names and are `private: true`. `cordis` is a peerDependency (+ dev) of every harness package.
+- Every npm package is `@huiliyi37/dsh-<name>`; vendored packages keep upstream names and are `private: true`. `cordis` is a peerDependency (+ dev) of every harness package.
 - ESM everywhere (`"type": "module"`). Cross-package imports use package names; in-package relative imports include `.ts`. Config subprocesses run built `lib/` under plain Node; source regressions use their declared launcher ([testing policy](docs/testing.md#test-subprocess-launch-modes)). The `dsh` CLI source launch runs through tsx's ESM-only hook (`node --import tsx/esm`); modules it reaches must stay ESM (no CJS-only shapes) — Node's native TypeScript modes are unavailable across the engines range ([source-launch contract](.agents/notes/implemented/architecture/2026-07-29-dsh-source-launch-tsx-esm.md)). Raw/Web `cordis.yml` bare plugins must appear in their resolver manifest's `dependencies`; `verify-cordis-config` enforces it.
 - **Registrations are effects**: every contribution goes through `ctx.effect()` / `ctx.on()`; a registry's `register()` returns the disposer.
 - **Runtime invariants assert owned relationships.** Check authoritative event streams or mutable data, not service or method presence, plugin metadata or effects, or fixed pure examples. If a package has no plausible relationship, an explained empty companion is correct ([package contract](packages/AGENTS.md)).

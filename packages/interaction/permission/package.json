@@ -1,8 +1,15 @@
 {
-  "name": "@deepseek-ai/dsh-permission",
+  "name": "@huiliyi37/dsh-permission",
   "description": "User-facing permission presets (ctx.permission) for the DeepSeek Harness: one product-level Permissions select bundling the sandbox-mode and approval-policy knobs, written through to their own session events",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "directory": "packages/interaction/permission"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -34,31 +41,31 @@
   ],
   "license": "BSD-3-Clause",
   "peerDependencies": {
-    "@deepseek-ai/dsh-bash": "^0.0.1",
-    "@deepseek-ai/dsh-commands": "^0.0.1",
-    "@deepseek-ai/dsh-invariants": "^0.0.1",
-    "@deepseek-ai/dsh-sandbox": "^0.0.1",
-    "@deepseek-ai/dsh-sandbox-policy": "^0.0.1",
-    "@deepseek-ai/dsh-session": "^0.0.1",
-    "@deepseek-ai/dsh-session-projection": "^0.0.1",
-    "@deepseek-ai/dsh-settings": "^0.0.1",
-    "@deepseek-ai/dsh-user-approval": "^0.0.1",
-    "cordis": "^4.0.0-rc.7"
+    "@huiliyi37/dsh-bash": "^0.2.0",
+    "@huiliyi37/dsh-commands": "^0.2.0",
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/dsh-sandbox": "^0.2.0",
+    "@huiliyi37/dsh-sandbox-policy": "^0.2.0",
+    "@huiliyi37/dsh-session": "^0.2.0",
+    "@huiliyi37/dsh-session-projection": "^0.2.0",
+    "@huiliyi37/dsh-settings": "^0.2.0",
+    "@huiliyi37/dsh-user-approval": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
   },
   "dependencies": {
-    "schemastery": "^3.18.0",
+    "@huiliyi37/schemastery": "^3.18.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-bash": "workspace:^",
-    "@deepseek-ai/dsh-commands": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-sandbox": "workspace:^",
-    "@deepseek-ai/dsh-sandbox-policy": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-session-projection": "workspace:^",
-    "@deepseek-ai/dsh-settings": "workspace:^",
-    "@deepseek-ai/dsh-user-approval": "workspace:^",
-    "cordis": "^4.0.0-rc.7"
+    "@huiliyi37/dsh-bash": "workspace:^",
+    "@huiliyi37/dsh-commands": "workspace:^",
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/dsh-sandbox": "workspace:^",
+    "@huiliyi37/dsh-sandbox-policy": "workspace:^",
+    "@huiliyi37/dsh-session": "workspace:^",
+    "@huiliyi37/dsh-session-projection": "workspace:^",
+    "@huiliyi37/dsh-settings": "workspace:^",
+    "@huiliyi37/dsh-user-approval": "workspace:^",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
   }
 }

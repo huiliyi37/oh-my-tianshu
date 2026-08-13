@@ -1,6 +1,6 @@
 # examples/tui — the interactive terminal UI composition.
 #
-# This leaf rides the @deepseek-ai/dsh-tui bundle over the same agent spine
+# This leaf rides the @huiliyi37/dsh-tui bundle over the same agent spine
 # the headless-agent example uses: settings + credentials + the real
 # DeepSeek adapter + one pre-created `main` agent, then mounts the
 # `tui-runner` plugin that drives the terminal render core. Run it with the
@@ -8,16 +8,16 @@
 
 # User-settings document (`$DSH_HOME/settings.yaml`, hot-reloaded).
 - id: settings
-  name: '@deepseek-ai/dsh-settings-local'
+  name: '@huiliyi37/dsh-settings-local'
 
 # Credential store: resolves DEEPSEEK_API_KEY from the process environment
 # at each request — no key is inlined in this file.
 - id: credentials
-  name: '@deepseek-ai/dsh-credentials-local'
+  name: '@huiliyi37/dsh-credentials-local'
 
 # The DeepSeek adapter. Shipped default: full thinking at max effort.
 - id: llm-deepseek
-  name: '@deepseek-ai/dsh-llm-deepseek'
+  name: '@huiliyi37/dsh-llm-deepseek'
   config:
     thinking: enabled
     reasoningEffort: max
@@ -30,7 +30,7 @@
 # The example composition pre-creates one fresh `main` agent; the TUI runner
 # switches into it on attach.
 - id: agent-spine
-  name: '@deepseek-ai/dsh-agent-spine-demo'
+  name: '@huiliyi37/dsh-agent-spine-demo'
   config:
     agents:
       - id: main
@@ -48,9 +48,9 @@
 # read-only adapter/transcript projection and renders it with the ported
 # render core. No new event vocabulary — the session log stays authoritative.
 - id: tui-runner
-  name: '@deepseek-ai/dsh-tui'
+  name: '@huiliyi37/dsh-tui'
 
 # C3 项 3：文件快照（rewind 文件回退的底层）——写工具执行前全文件备份，
 # /rewind 的 code/both 粒度依赖它。backupDir 默认 $TMPDIR/dsh-fs-snapshot。
 - id: fs-snapshot
-  name: '@deepseek-ai/dsh-fs-snapshot'
+  name: '@huiliyi37/dsh-fs-snapshot'

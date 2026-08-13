@@ -5,8 +5,8 @@
  * 折叠为单条活动状态：phase（idle/tool/waiting/thinking/streaming）+ 状态
  * （idle/active/completed/failed）+ 起止时间。耗时/摘要格式化无假精度。
  */
-import type { AgentStatus } from '@deepseek-ai/dsh-agent'
-import type { StreamChunk } from '@deepseek-ai/dsh-llm'
+import type { AgentStatus } from '@huiliyi37/dsh-agent'
+import type { StreamChunk } from '@huiliyi37/dsh-llm'
 
 /** 工具失败信息（tool-result 事件携带；出现即判定活动 failed）。 */
 export interface ToolError {

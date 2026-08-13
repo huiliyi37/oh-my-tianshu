@@ -1,5 +1,5 @@
 /** Local Cordis plugin. */
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 
 export const name = '{{pluginName}}'
 

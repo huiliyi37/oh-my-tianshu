@@ -3,10 +3,10 @@
 // TestSessions mints tagged scopes through the production createScope, so the
 // service's scopeOf/binding path runs against production resolution (no local
 // tag probe).
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it, vi } from 'vitest'
-import { SlotTestRuntime } from '@deepseek-ai/dsh-client-test-runtime'
-import { ConversationService } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import { SlotTestRuntime } from '@huiliyi37/dsh-client-test-runtime'
+import { ConversationService } from '@huiliyi37/dsh-client-ui-conversation/client'
 import { ComposerBlockRegistry } from '../src/client/input/blocks.ts'
 import { InputHub } from '../src/client/input/hub.ts'
 

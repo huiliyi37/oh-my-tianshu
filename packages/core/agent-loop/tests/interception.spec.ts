@@ -1,21 +1,21 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import LlmService, { createUserMessage, CallId  } from '@deepseek-ai/dsh-llm'
+import { Context } from '@huiliyi37/cordis'
+import LlmService, { createUserMessage, CallId  } from '@huiliyi37/dsh-llm'
 import SessionStore, {
   SessionId,
   type SessionEvent,
   type TurnEndReason,
   type UserMessage,
-} from '@deepseek-ai/dsh-session'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry, { defineContentToolFixture, type PostToolDecision, type PreToolDecision } from '@deepseek-ai/dsh-tools'
+} from '@huiliyi37/dsh-session'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry, { defineContentToolFixture, type PostToolDecision, type PreToolDecision } from '@huiliyi37/dsh-tools'
 import AgentRegistry, {
   type Agent,
   type PreStepDecision,
   type SessionStartSource,
-} from '@deepseek-ai/dsh-agent'
+} from '@huiliyi37/dsh-agent'
 
-import AgentLoop from '@deepseek-ai/dsh-agent-loop'
+import AgentLoop from '@huiliyi37/dsh-agent-loop'
 import { MockAdapter, textResponse, toolCallResponse } from './mock-adapter.ts'
 
 /**

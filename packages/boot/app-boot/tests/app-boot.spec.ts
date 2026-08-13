@@ -2,8 +2,8 @@ import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, sep } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import SystemPrompt, { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
+import { Context } from '@huiliyi37/cordis'
+import SystemPrompt, { renderPrompt } from '@huiliyi37/dsh-system-prompt'
 import {
   addHarnessSourceSection, assertEntriesActivated, assertEntriesLoaded, boot,
   FAIL_LOUD_RELEASE_TIMEOUT_MS, HARNESS_SOURCE_SECTION,

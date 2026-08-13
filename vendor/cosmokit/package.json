@@ -1,8 +1,15 @@
 {
-  "name": "cosmokit",
+  "name": "@huiliyi37/cosmokit",
   "description": "A collection of common utilities",
   "version": "1.8.1",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "directory": "vendor/cosmokit"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",

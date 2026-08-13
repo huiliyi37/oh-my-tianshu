@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-tool-pty
+# @huiliyi37/dsh-tool-pty
 
 [English](README.md) | 中文
 
@@ -68,4 +68,4 @@ spawn 会返回 id 和有界 MOTD。发送／读取会返回有界终端文本�
 ## 已知限制与暂缓事项
 
 - 不公开具名按键序列、TUI、BEL、调整大小、自动启动或跨 agent 共享 schema。
-- 后台模式同时依赖 `@deepseek-ai/dsh-tasks` 及其面向模型的控制接口。
+- 后台模式同时依赖 `@huiliyi37/dsh-tasks` 及其面向模型的控制接口。

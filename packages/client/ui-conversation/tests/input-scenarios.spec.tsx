@@ -8,22 +8,22 @@
  * itself is not a dependency of this package; the source below is the
  * decision-table contract at the `SlashSource` boundary.
  */
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
-import { EMPTY_CHAT_SNAPSHOT, SessionsService } from '@deepseek-ai/dsh-client-runtime/client'
-import { SlashService } from '@deepseek-ai/dsh-client-ui-slash/client'
-import type { ClientSessionContext, CommandClaim, PickOutcome, SubmitOutcome } from '@deepseek-ai/dsh-client-ui-slash/client'
+import { EMPTY_CHAT_SNAPSHOT, SessionsService } from '@huiliyi37/dsh-client-runtime/client'
+import { SlashService } from '@huiliyi37/dsh-client-ui-slash/client'
+import type { ClientSessionContext, CommandClaim, PickOutcome, SubmitOutcome } from '@huiliyi37/dsh-client-ui-slash/client'
 import { FakeApiClient, ok } from '../../runtime/tests/fake-api.ts'
-import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
-import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+import { makeTranslate } from '@huiliyi37/dsh-client-test-runtime'
+import { zh as commonZh } from '@huiliyi37/dsh-client-locale/src/locales/zh.ts'
 import { SessionInputShell } from '../src/client/input/facade.ts'
 import { InputBar } from '../src/client/skeleton/InputBar.tsx'
 import type { InputBarProps } from '../src/client/skeleton/InputBar.tsx'
 import { zh } from '../src/client/locales.ts'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
-import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-runtime/client'
+import { bindSnapshotSelector } from '@huiliyi37/dsh-client-web-react'
+import { createSnapshotStore } from '@huiliyi37/dsh-client-runtime/client'
+import type { ConversationSnapshot } from '@huiliyi37/dsh-client-runtime/client'
 
 afterEach(cleanup)
 

@@ -7,10 +7,10 @@
 - text: Load the snapshot-skill skill with the skill tool, then reply DONE. {{date}} {{clock}}
 - button "Copy":
   - img
-- button "Context injection @deepseek-ai/dsh-system-prompt":
+- button "Context injection @huiliyi37/dsh-system-prompt":
   - img
   - img
-  - text: Context injection @deepseek-ai/dsh-system-prompt
+  - text: Context injection @huiliyi37/dsh-system-prompt
 - button "Context injection skill-catalog":
   - img
   - img

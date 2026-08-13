@@ -8,13 +8,13 @@
  * 方法均显式接收 `cwd`（调用方从会话 header 取，服务不猜）；`signal` 透传取消
  * （工具层 exec.signal）。
  *
- * @module @deepseek-ai/dsh-git
+ * @module @huiliyi37/dsh-git
  */
 
-import { Service, type Context } from 'cordis'
+import { Service, type Context } from '@huiliyi37/cordis'
 import { execFile } from 'node:child_process'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     /** Git capability seam（dsh-tool-git 消费）。 */
     git: Git
@@ -179,7 +179,7 @@ export class GitLocal extends Git {
 
 /**
  * Cordis 插件入口：default 导出 provider 类（与 fs-local 同构——服务类即插件）。
- * 装配 `@deepseek-ai/dsh-git` 时 Cordis new GitLocal(ctx) 并注册 `ctx.git`；
+ * 装配 `@huiliyi37/dsh-git` 时 Cordis new GitLocal(ctx) 并注册 `ctx.git`；
  * 包入口必须 default 导出（loader 取 default ?? module，namespace 对象不是插件）。
  */
 export default GitLocal

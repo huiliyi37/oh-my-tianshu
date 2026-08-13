@@ -12,9 +12,9 @@
 
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import type { IApiClient } from '@deepseek-ai/dsh-client-connection/client'
-import { Button, IconPlusOutline16, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-web-react'
+import type { IApiClient } from '@huiliyi37/dsh-client-connection/client'
+import { Button, IconPlusOutline16, Modal } from '@huiliyi37/dsh-client-ui-primitives'
+import type { SnapshotSelectorHook } from '@huiliyi37/dsh-client-web-react'
 import { CustomProviderCard } from './CustomProviderCard.tsx'
 import { deriveKeyRef, messageOf, protocolChoices } from './store.ts'
 import type { ModelsSettingsState, ModelsSettingsStore, ProviderRow } from './store.ts'

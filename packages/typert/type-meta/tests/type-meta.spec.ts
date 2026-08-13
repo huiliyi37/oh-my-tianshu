@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it } from 'vitest'
 import {
   bindTypeRTGateway,
@@ -9,9 +9,9 @@ import {
   RemoteScope,
   remoteMethods,
   type TypeRTContext,
-} from '@deepseek-ai/dsh-type-meta'
+} from '@huiliyi37/dsh-type-meta'
 
-declare module '@deepseek-ai/dsh-type-meta' {
+declare module '@huiliyi37/dsh-type-meta' {
   interface TypeRTContextMap {
     metaFixture: TypeRTContext<string>
   }

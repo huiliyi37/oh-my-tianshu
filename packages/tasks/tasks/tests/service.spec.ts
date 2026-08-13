@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { TaskId, TaskService } from '@deepseek-ai/dsh-tasks'
-import type { TaskDoneListener, TaskRead, TaskSnapshot, TaskStart } from '@deepseek-ai/dsh-tasks'
+import { Context } from '@huiliyi37/cordis'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { TaskId, TaskService } from '@huiliyi37/dsh-tasks'
+import type { TaskDoneListener, TaskRead, TaskSnapshot, TaskStart } from '@huiliyi37/dsh-tasks'
 
 /**
  * Minimal concrete registry: one canned record. The Service Definition owns the contract
  * only (ids, snapshots, authorization-shaped signatures); the registry
- * behavior suite lives with `@deepseek-ai/dsh-tasks-local`.
+ * behavior suite lives with `@huiliyi37/dsh-tasks-local`.
  */
 class StubTaskService extends TaskService {
   snapshotOf(id: TaskId): TaskSnapshot {
@@ -83,6 +83,6 @@ describe('TaskService seam', () => {
   it('mounting the abstract seam directly fails loudly at load (stale-composition fence)', async () => {
     const ctx = new Context()
     await expect(ctx.plugin(TaskService as unknown as typeof StubTaskService))
-      .rejects.toThrow(/abstract task registry seam; load an implementation such as @deepseek-ai\/dsh-tasks-local/)
+      .rejects.toThrow(/abstract task registry seam; load an implementation such as @huiliyi37\/dsh-tasks-local/)
   })
 })

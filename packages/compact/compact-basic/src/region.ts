@@ -2,7 +2,7 @@
  * Surface retention selection and the shared log-recorded compaction
  * transaction for automatic open-turn and manual idle-session compaction.
  *
- * @module @deepseek-ai/dsh-compact-basic/region
+ * @module @huiliyi37/dsh-compact-basic/region
  */
 
 import { randomUUID } from 'node:crypto'
@@ -13,14 +13,14 @@ import {
   compactCheckpointSource,
   toolPairingBalancedAfter,
   toolPairingBalancedBefore,
-} from '@deepseek-ai/dsh-compact'
-import type { CompactionResult } from '@deepseek-ai/dsh-compact'
-import type { CommandId } from '@deepseek-ai/dsh-commands/brand'
-import { createUserMessage, errorChain } from '@deepseek-ai/dsh-llm'
-import type { Message, UserMessage } from '@deepseek-ai/dsh-llm'
-import type { TokenMeasurement, TokenMeterService } from '@deepseek-ai/dsh-token-meter'
-import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+} from '@huiliyi37/dsh-compact'
+import type { CompactionResult } from '@huiliyi37/dsh-compact'
+import type { CommandId } from '@huiliyi37/dsh-commands/brand'
+import { createUserMessage, errorChain } from '@huiliyi37/dsh-llm'
+import type { Message, UserMessage } from '@huiliyi37/dsh-llm'
+import type { TokenMeasurement, TokenMeterService } from '@huiliyi37/dsh-token-meter'
+import type { Session, SessionEvent } from '@huiliyi37/dsh-session'
+import type { Agent } from '@huiliyi37/dsh-agent'
 import { frameSummary } from './summarizer.ts'
 import type { SummarizationInput, SummaryResult } from './summarizer.ts'
 

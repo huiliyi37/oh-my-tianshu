@@ -17,12 +17,12 @@ export type {
   SettingsApi, SettingsNamespaceView, SettingsPathOpView, SettingsSecretView,
   CredentialsApi, CredentialView, ConfigurableProviderView, DiscoveredModelView, LlmApi,
   SubagentsApi, SubagentAddress, SubagentCatalog, SubagentListEntry, SubagentPromptReceipt,
-} from '@deepseek-ai/dsh-host-apiproxy/api'
-export type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools/presentation'
+} from '@huiliyi37/dsh-host-apiproxy/api'
+export type { ToolCallView, ToolResultView } from '@huiliyi37/dsh-tools/presentation'
 export type {
   RpcRequest, RpcResponse, RpcResult, RpcError, RpcErrorCode,
   ClientRequest, ServerResponse, ServerRequest, ClientResponse, RpcMessage, RpcReceipt,
-} from '@deepseek-ai/dsh-host-apiproxy/api'
+} from '@huiliyi37/dsh-host-apiproxy/api'
 // transportError moved down to the apiproxy api layer (it belongs beside
 // RpcResult, its subject); re-exported here so connection consumers keep one
 // contract entry point.
@@ -30,14 +30,14 @@ export {
   RpcId,
   SESSION_SEARCH_RESULT_LIMIT,
   transportError,
-} from '@deepseek-ai/dsh-host-apiproxy/api'
-export { AbstractApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
-export type { IApiClient } from '@deepseek-ai/dsh-host-apiproxy/client'
-export type { SessionId, SessionEvent } from '@deepseek-ai/dsh-session/types'
-export type { MessageId } from '@deepseek-ai/dsh-llm/brand'
-export type { ContentBlock, StreamChunk } from '@deepseek-ai/dsh-llm/types'
+} from '@huiliyi37/dsh-host-apiproxy/api'
+export { AbstractApiClient } from '@huiliyi37/dsh-host-apiproxy/client'
+export type { IApiClient } from '@huiliyi37/dsh-host-apiproxy/client'
+export type { SessionId, SessionEvent } from '@huiliyi37/dsh-session/types'
+export type { MessageId } from '@huiliyi37/dsh-llm/brand'
+export type { ContentBlock, StreamChunk } from '@huiliyi37/dsh-llm/types'
 
-import type { RpcResponse, RpcResult } from '@deepseek-ai/dsh-host-apiproxy/api'
+import type { RpcResponse, RpcResult } from '@huiliyi37/dsh-host-apiproxy/api'
 
 /**
  * Unwrap a unary response: RpcResponse<T> -> RpcResult<T> (business code only

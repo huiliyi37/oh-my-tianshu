@@ -6,22 +6,22 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import { bindSnapshotSelector } from '@huiliyi37/dsh-client-web-react'
+import { createSnapshotStore } from '@huiliyi37/dsh-client-runtime/client'
 import type {
   ConversationSnapshot, RunningToolCall, SessionId, SessionListState, ToolResultNode, WorkspaceListState,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-client-connection/client'
-import type { SelectionTarget } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
-import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+} from '@huiliyi37/dsh-client-runtime/client'
+import type { ToolCallView, ToolResultView } from '@huiliyi37/dsh-client-connection/client'
+import type { SelectionTarget } from '@huiliyi37/dsh-client-ui-conversation/client'
+import { makeTranslate } from '@huiliyi37/dsh-client-test-runtime'
+import { zh as commonZh } from '@huiliyi37/dsh-client-locale/src/locales/zh.ts'
 import { CHAT_DIFF_MAX_LINES, diffCardModel } from '../src/client/tool/models/diff-card-model.ts'
-import { createChatStore } from '@deepseek-ai/dsh-client-ui-conversation/src/client/stores.ts'
+import { createChatStore } from '@huiliyi37/dsh-client-ui-conversation/src/client/stores.ts'
 import { GenericToolCard, type GenericToolCardProps } from '../src/client/tool/toolviews/GenericToolCard.tsx'
-import { DetailsPanel } from '@deepseek-ai/dsh-client-ui-conversation/src/client/skeleton/DetailsPanel.tsx'
+import { DetailsPanel } from '@huiliyi37/dsh-client-ui-conversation/src/client/skeleton/DetailsPanel.tsx'
 import { FileMutationRow, fileMutationToolview } from '../src/client/tool/toolviews/file-mutation-row.tsx'
 import { renderToolDetails, SessionProviderStub, toolChatSnapshot } from './tool-details-render.tsx'
-import { zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
+import { zh } from '@huiliyi37/dsh-client-ui-conversation/src/client/locales.ts'
 
 afterEach(cleanup)
 

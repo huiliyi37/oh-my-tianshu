@@ -1,10 +1,10 @@
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { describe, expect, it } from 'vitest'
-import { Context, Service, symbols } from 'cordis'
+import { Context, Service, symbols } from '@huiliyi37/cordis'
 import { z } from 'zod'
-import { apply as applyConnection, inject as connectionInject } from '@deepseek-ai/dsh-client-connection'
-import type { HttpServerService, WebRoute } from '@deepseek-ai/dsh-host-webserver'
+import { apply as applyConnection, inject as connectionInject } from '@huiliyi37/dsh-client-connection'
+import type { HttpServerService, WebRoute } from '@huiliyi37/dsh-host-webserver'
 import {
   bindTypeRTGateway,
   Remote,
@@ -14,9 +14,9 @@ import {
   type TypeRTContext,
   type TypeRTLookup,
   type TypeRTLookupProvider,
-} from '@deepseek-ai/dsh-type-meta'
-import TypertRegistry, { type TypertContribution } from '@deepseek-ai/dsh-typert-registry'
-import TypertGatewayService, { TypertGatewayError } from '@deepseek-ai/dsh-api-gateway'
+} from '@huiliyi37/dsh-type-meta'
+import TypertRegistry, { type TypertContribution } from '@huiliyi37/dsh-typert-registry'
+import TypertGatewayService, { TypertGatewayError } from '@huiliyi37/dsh-api-gateway'
 
 interface FixtureAgent {
   readonly id: string
@@ -26,7 +26,7 @@ interface MarkedContext extends Context {
   readonly fixtureScope?: string
 }
 
-declare module '@deepseek-ai/dsh-type-meta' {
+declare module '@huiliyi37/dsh-type-meta' {
   interface TypeRTLookupMap {
     gatewayFixture: TypeRTLookup<FixtureAgent, string>
     gatewayFixtureAlias: TypeRTLookup<FixtureAgent, string>

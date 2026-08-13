@@ -1,7 +1,7 @@
 /**
  * Stateful builtin feature and option domain objects.
  *
- * @module @deepseek-ai/dsh-helper/features/feature
+ * @module @huiliyi37/dsh-helper/features/feature
  */
 
 import type { CordisConfigEntry } from '../documents/cordis-yaml-file.ts'

@@ -4,11 +4,11 @@
  * collected stdio, and one terminal-process primitive. Command defaulting,
  * shell semantics, deadlines, protocol framing, terminal readiness, and
  * presentation belong to consumers. The local implementation lives in
- * `@deepseek-ai/dsh-subprocess-local`.
- * @module @deepseek-ai/dsh-subprocess
+ * `@huiliyi37/dsh-subprocess-local`.
+ * @module @huiliyi37/dsh-subprocess
  */
 
-import { Context, Service } from 'cordis'
+import { Context, Service } from '@huiliyi37/cordis'
 import { DSH_ENV_PREFIX } from './types.ts'
 import type { SubprocessHandle, SubprocessSpawnSpec } from './types.ts'
 import type { SubprocessTerminalHandle, SubprocessTerminalSpawnSpec } from './types.ts'
@@ -65,7 +65,7 @@ export function scrubbedParentEnv(): Record<string, string> {
   return env
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     subprocess: SubprocessService
   }

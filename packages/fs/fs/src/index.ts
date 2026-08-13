@@ -5,11 +5,11 @@
  * observed-state policy stay in consumer and policy plugins; `editText`
  * remains here so version check, literal match, and rewrite share one critical
  * section.
- * @module @deepseek-ai/dsh-fs
+ * @module @huiliyi37/dsh-fs
  */
 
-import { Context, Service } from 'cordis'
-import type { SandboxExecutionPolicy, SandboxMode } from '@deepseek-ai/dsh-sandbox'
+import { Context, Service } from '@huiliyi37/cordis'
+import type { SandboxExecutionPolicy, SandboxMode } from '@huiliyi37/dsh-sandbox'
 import type {
   FsDirEntry,
   FsEditOutcome,
@@ -41,7 +41,7 @@ export type {
   FsWriteOutcome,
 } from './types.ts'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     fs: FileSystem
   }
@@ -93,7 +93,7 @@ export abstract class FileSystem extends Service {
    * `undefined` when it does not confine at all — the capability fact the tool
    * layer reads to advertise the escalation fields honestly (mirrors
    * `BashExecutor.sandboxMode`). The base class and the bare local backend
-   * report `undefined`; a sandboxing backend (`@deepseek-ai/dsh-fs-sandbox`)
+   * report `undefined`; a sandboxing backend (`@huiliyi37/dsh-fs-sandbox`)
    * overrides it with the deployment default. A session override may make the
    * effective mode narrower or wider, so strict escalation widening is checked
    * per call rather than encoded in this default-relative fact.

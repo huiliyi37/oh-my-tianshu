@@ -11,14 +11,14 @@
  * neither entry because those Agent-bound RPCs would activate persisted
  * history outside the direct-parent continuation path.
  */
-import type { ModelSelection, SessionModels } from '@deepseek-ai/dsh-client-connection/client'
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
-import type { CommandServiceContract, SelectOption } from '@deepseek-ai/dsh-client-ui-command/client'
+import type { ModelSelection, SessionModels } from '@huiliyi37/dsh-client-connection/client'
+import type { ClientContext } from '@huiliyi37/dsh-client-runtime/client'
+import type { CommandServiceContract, SelectOption } from '@huiliyi37/dsh-client-ui-command/client'
 // Type-only: pulls the ui-conversation SlotMap merge (the input.model seat).
-import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type {} from '@huiliyi37/dsh-client-ui-conversation/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
-import type {} from '@deepseek-ai/dsh-client-locale/client'
-import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import type {} from '@huiliyi37/dsh-client-locale/client'
+import type { TranslateNS } from '@huiliyi37/dsh-client-ui-slots'
 import type { ModelDirectoryState } from './directory.ts'
 import { ModelService } from './service.ts'
 import type { ModelSelectInjected } from './slots.ts'
@@ -31,7 +31,7 @@ export { ModelService } from './service.ts'
 export type { ModelSelectInjected } from './slots.ts'
 export type { ModelKey } from './locales.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@huiliyi37/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** The model selection surfaces' copy (/model popup + composer seat). */
     model: ModelKey

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { Context } from 'cordis'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry from '@deepseek-ai/dsh-tools'
-import Lsp, { LspProviderId, type LspProvider, type LspProviderQuery, type LspQueryResult } from '@deepseek-ai/dsh-lsp'
-import * as ToolLsp from '@deepseek-ai/dsh-tool-lsp'
-import { DEFAULT_LSP_TOOL_TIMEOUT_MS, LSP_PROMPT_TEXT } from '@deepseek-ai/dsh-tool-lsp'
-import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
+import { Context } from '@huiliyi37/cordis'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry from '@huiliyi37/dsh-tools'
+import Lsp, { LspProviderId, type LspProvider, type LspProviderQuery, type LspQueryResult } from '@huiliyi37/dsh-lsp'
+import * as ToolLsp from '@huiliyi37/dsh-tool-lsp'
+import { DEFAULT_LSP_TOOL_TIMEOUT_MS, LSP_PROMPT_TEXT } from '@huiliyi37/dsh-tool-lsp'
+import { MAX_TIMER_DELAY_MS } from '@huiliyi37/dsh-timeout'
 
 /** A scripted provider recording queries; `respond` yields the result or throws. */
 function stubProvider(

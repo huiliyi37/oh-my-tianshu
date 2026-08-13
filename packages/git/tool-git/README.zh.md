@@ -1,14 +1,14 @@
-# @deepseek-ai/dsh-tool-git
+# @huiliyi37/dsh-tool-git
 
 [English](README.md) | 中文
 
-**模型面向的 git 工具**——单个 `git` 工具 + `operation` 判别（`status` | `diff` | `log` | `commit`）。四个操作共用一个工具 schema，提示词占用保持最小（H1：Claude Code 原生 git 工具的对应物，C6 基准）。这是 git 接缝的消费层：拥有工具名、JSON schema、参数校验、prompt 引导与结果格式化，经 `ctx.git` provider 契约（[`@deepseek-ai/dsh-git`](../git)）执行——工具从不直接接触 git 子进程。
+**模型面向的 git 工具**——单个 `git` 工具 + `operation` 判别（`status` | `diff` | `log` | `commit`）。四个操作共用一个工具 schema，提示词占用保持最小（H1：Claude Code 原生 git 工具的对应物，C6 基准）。这是 git 接缝的消费层：拥有工具名、JSON schema、参数校验、prompt 引导与结果格式化，经 `ctx.git` provider 契约（[`@huiliyi37/dsh-git`](../git)）执行——工具从不直接接触 git 子进程。
 
 ## Config
 
 ```yaml
 - id: tool-git
-  name: '@deepseek-ai/dsh-tool-git'
+  name: '@huiliyi37/dsh-tool-git'
   config:
     enabled: true   # optional; false registers no tools (default true)
 ```

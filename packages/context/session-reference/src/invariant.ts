@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-session-reference`.
- * @module @deepseek-ai/dsh-session-reference/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-session-reference`.
+ * @module @huiliyi37/dsh-session-reference/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-session-reference'
+const PACKAGE_NAME = '@huiliyi37/dsh-session-reference'
 
 /** Cordis companion plugin name. */
 export const name = 'session-reference-invariant'

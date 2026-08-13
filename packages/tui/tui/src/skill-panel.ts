@@ -10,14 +10,14 @@
  *   调用形态由 invocation.modelInvocable/userInvocable 组合推导
  *   （模型+用户可调 / 仅模型可调 / 仅用户可调 / 不可调），selected 未命中
  *   或缺省不渲染详情行。
- * 数据面形状结构兼容 @deepseek-ai/dsh-skill 的 SkillSummary（纯函数层只消费
+ * 数据面形状结构兼容 @huiliyi37/dsh-skill 的 SkillSummary（纯函数层只消费
  * name/description/whenToUse/invocation/source/provider；resourceBase 不参与
  * 渲染），skills/change 无 payload 事件、刷新靠重查，面板层只消费 list 快照
  * 投影。空列表渲染标题 + 空态占位；每行按显示宽度截断（仅截断时补 …，
  * 极端窄宽退化为 … 不抛错）。TuiApp 消费技能快照与 /skills 命令切换显隐
  * （接线由其他维度独占）。
  *
- * @module @deepseek-ai/dsh-tui/skill-panel
+ * @module @huiliyi37/dsh-tui/skill-panel
  */
 
 import { displayWidth } from './width.js'

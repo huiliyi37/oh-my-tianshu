@@ -46,7 +46,7 @@ pnpm run typecheck
 
 ```
 vendor/      Vendored Cordis source — manifest + sync procedure in vendor/README.md
-packages/    @deepseek-ai/dsh-<pkg> workspaces at packages/<group>/<pkg>/
+packages/    @huiliyi37/dsh-<pkg> workspaces at packages/<group>/<pkg>/
   core/        product API spine: session, system-prompt, tools, agent, agent-loop
   api/         Remote BFF assembly and TypeRT RPC gateway
   typert/      type graph generator, loader, and runtime registry
@@ -80,7 +80,7 @@ packages/    @deepseek-ai/dsh-<pkg> workspaces at packages/<group>/<pkg>/
   support/     dev/test infrastructure
   util/        zero-dependency utilities
 python/      Python SDK and bundled runtime (see python/README.md)
-native/      @deepseek-ai/node-addon-landlock-run source of record (see native/README.md)
+native/      @huiliyi37/node-addon-landlock-run source of record (see native/README.md)
 examples/    Runnable cordis.yml leaves over packages/examples bundles (see examples/AGENTS.md)
 .agents/     Agent workflows and Agent Notes (`notes/`)
 docs/        architecture, generated catalogs, postmortems, cookbook (see docs/AGENTS.md)

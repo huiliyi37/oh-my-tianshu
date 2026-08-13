@@ -3,17 +3,17 @@
  * plus the Web flag family (`--host/--port/--dev/--workspace-root/
  * --trusted-host`), each flag becoming a patch over the composed profile
  * tree. All web runtime glue (dist serving, prompt section, URL line) lives
- * in the `@deepseek-ai/dsh-web-app` bundle; this launcher only derives
+ * in the `@huiliyi37/dsh-web-app` bundle; this launcher only derives
  * flag patches and the LAN-trust snapshot.
- * @module @deepseek-ai/dsh/web
+ * @module @huiliyi37/dsh-tianshu/web
  */
 
 import { networkInterfaces } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import type { Context } from 'cordis'
-import type { PatchOptions } from '@cordisjs/plugin-include'
-import { addHarnessSourceSection } from '@deepseek-ai/dsh-app-boot'
-import type { EnvironmentSnapshot } from '@deepseek-ai/dsh-environment'
+import type { Context } from '@huiliyi37/cordis'
+import type { PatchOptions } from '@huiliyi37/cordis-plugin-include'
+import { addHarnessSourceSection } from '@huiliyi37/dsh-app-boot'
+import type { EnvironmentSnapshot } from '@huiliyi37/dsh-environment'
 import { runProfile, type ProfileRows } from './profile-boot.ts'
 
 const SOURCE_ROOT = fileURLToPath(new URL('../../..', import.meta.url))
@@ -102,7 +102,7 @@ function deriveWebFlagPatches(
     if (composed === undefined) throw new Error(`dsh: patch target row "${id}" not found in the web profile composition`)
     return { id, config: { ...(composed.config ?? {}) as Record<string, unknown>, ...bag } }
   })
-  if (flags.dev) patches.push({ insert: [{ id: 'client-hmr', name: '@deepseek-ai/dsh-client-hmr' }] })
+  if (flags.dev) patches.push({ insert: [{ id: 'client-hmr', name: '@huiliyi37/dsh-client-hmr' }] })
   return patches
 }
 

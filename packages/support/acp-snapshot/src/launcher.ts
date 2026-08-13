@@ -4,7 +4,7 @@
  * stdout tee, SDK client, update collection, permission fallback, and process
  * shutdown so e2e and snapshot suites do not each reconstruct that boundary.
  *
- * @module @deepseek-ai/dsh-acp-snapshot/launcher
+ * @module @huiliyi37/dsh-acp-snapshot/launcher
  */
 
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
@@ -19,7 +19,7 @@ import {
   type RequestPermissionResponse,
   type SessionNotification,
 } from '@agentclientprotocol/sdk'
-import { resolveExampleLaunch } from '@deepseek-ai/dsh-loader-smoke'
+import { resolveExampleLaunch } from '@huiliyi37/dsh-loader-smoke'
 
 const EXIT_MARKER_GRACE_MS = 250
 

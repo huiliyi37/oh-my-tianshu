@@ -8,9 +8,9 @@
  * booted tree from the process environment.
  */
 
-import type { Context } from 'cordis'
-import { boot, installFailLoud, loadEnv, resolveConfigPath } from '@deepseek-ai/dsh-app-boot'
-import { runFixtureTurn } from '@deepseek-ai/dsh-loader-smoke'
+import type { Context } from '@huiliyi37/cordis'
+import { boot, installFailLoud, loadEnv, resolveConfigPath } from '@huiliyi37/dsh-app-boot'
+import { runFixtureTurn } from '@huiliyi37/dsh-loader-smoke'
 import { applyTranscriptEvent, emptyTranscript } from '../../../../packages/tui/tui/src/adapter/transcript.ts'
 
 const NAME = 'tui-transcript-driver'

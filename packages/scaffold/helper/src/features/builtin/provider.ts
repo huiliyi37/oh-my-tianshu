@@ -1,7 +1,7 @@
 /**
  * Required direct-fetch DeepSeek and custom pi-ai provider behavior.
  *
- * @module @deepseek-ai/dsh-helper/features/builtin/provider
+ * @module @huiliyi37/dsh-helper/features/builtin/provider
  */
 
 import { featureId } from '../../ids.ts'
@@ -32,7 +32,7 @@ class DeepSeekOption extends FeatureOption {
     return new ProjectContribution([
       ...npmCordisConfigEntry(ID, {
         id: 'llm-deepseek',
-        name: '@deepseek-ai/dsh-llm-deepseek',
+        name: '@huiliyi37/dsh-llm-deepseek',
       }, ['baseURL', 'models']),
       environment(ID, 'DEEPSEEK_API_KEY', secrets.apiKey, API_KEY_COMMENT),
     ])
@@ -57,7 +57,7 @@ class CustomOption extends FeatureOption {
     return new ProjectContribution([
       ...npmCordisConfigEntry(ID, {
         id: 'llm-pi-ai',
-        name: '@deepseek-ai/dsh-llm-pi-ai',
+        name: '@huiliyi37/dsh-llm-pi-ai',
       }, ['baseURL', 'models']),
       environment(ID, 'DEEPSEEK_API_KEY', secrets.apiKey, API_KEY_COMMENT),
     ])

@@ -4,7 +4,7 @@
  * 输入 adapter/sessions.ts 的 SessionSummary[] → 可恢复会话视图。
  * 不接管启动流程、不读 ctx——读取由装配层调 listSessions 后喂入。
  */
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { SessionId } from '@huiliyi37/dsh-session'
 import type { SessionSummary } from './adapter/sessions.js'
 
 /** 可恢复会话视图行（live = 当前进程内仍活跃）。 */

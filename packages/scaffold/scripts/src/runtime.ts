@@ -1,15 +1,15 @@
 /**
  * Shared start/dev runtime and project-local module resolution.
  *
- * @module @deepseek-ai/dsh-scripts/runtime
+ * @module @huiliyi37/dsh-scripts/runtime
  */
 
 import { register as registerHook } from 'node:module'
 import { access, readFile, readdir } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import type { Context } from 'cordis'
-import { boot, installFailLoud, loadEnv, resolveConfigPath } from '@deepseek-ai/dsh-app-boot'
+import type { Context } from '@huiliyi37/cordis'
+import { boot, installFailLoud, loadEnv, resolveConfigPath } from '@huiliyi37/dsh-app-boot'
 import { parseSdkBootArgs } from './args.ts'
 
 /** Options that distinguish dev boot from production boot. */

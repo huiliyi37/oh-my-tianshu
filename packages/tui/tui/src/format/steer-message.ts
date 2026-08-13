@@ -5,7 +5,7 @@
  * - marker：`➤`（truecolor 轨）/ `>>`（ascii 轨），warning 色 + bold
  * - 正文：assistantColor 中性色（同 user 正文层级）
  *
- * @module @deepseek-ai/dsh-tui/format/steer-message
+ * @module @huiliyi37/dsh-tui/format/steer-message
  */
 
 import chalk from 'chalk'

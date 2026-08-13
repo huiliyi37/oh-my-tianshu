@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-evidence-gate
+# @huiliyi37/dsh-evidence-gate
 
 [English](README.md) | 中文
 
@@ -11,7 +11,7 @@
 - **TDD 门**：连续编辑 ≥3 次无验证 → suggest（默认）或 block（`{ tddMode: 'enforce' }`）。
 - **L2 final gate**：任务收尾——首次未决 high → `continue_once` + 探针建议；`markContinued` 后 → `honest_blocked` + 未决清单披露。
 - **验证归账**：自动从 `session/event` 的 tool/call→tool/result 配对检测测试命令与结果（零测试框架耦合，命令文本启发式）。
-- **原生编辑工具适配**：`str_replace_editor`（dsh 原生，`@deepseek-ai/dsh-tool-str-replace-editor`）——写操作 `create/str_replace/insert` 拦截，`view` 读操作放行；兼容天枢风格工具（edit_file/write_file/hash_edit/apply_patch）。
+- **原生编辑工具适配**：`str_replace_editor`（dsh 原生，`@huiliyi37/dsh-tool-str-replace-editor`）——写操作 `create/str_replace/insert` 拦截，`view` 读操作放行；兼容天枢风格工具（edit_file/write_file/hash_edit/apply_patch）。
 
 ## 装配
 
@@ -19,7 +19,7 @@
 declare const ctx: any
 export {}
 // cordis.yml 或宿主装配（需 tools 服务与编辑工具；fs 由 base 提供）
-plugins: ['@deepseek-ai/dsh-evidence-gate']
+plugins: ['@huiliyi37/dsh-evidence-gate']
 
 // 任务边界（宿主在任务开始处调用）
 ctx.evidence.createObligation({

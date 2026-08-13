@@ -12,7 +12,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import type { ToolResultView } from '@deepseek-ai/dsh-tools'
+import type { ToolResultView } from '@huiliyi37/dsh-tools'
 import type { RivetTheme } from '../src/theme.js'
 import { resetTermCapsCache } from '../src/term-caps.js'
 import {

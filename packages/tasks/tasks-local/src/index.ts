@@ -6,14 +6,14 @@
  * Registrations outlive producer and control-surface fibers. Agent or service
  * disposal cancels live work and awaits compliant producers; a throwing
  * teardown cancel force-fails only the record and reports a possible orphan.
- * @module @deepseek-ai/dsh-tasks-local
+ * @module @huiliyi37/dsh-tasks-local
  */
 
-import { Context } from 'cordis'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { deadline, timeoutOf } from '@deepseek-ai/dsh-timeout'
-import { TaskService, TaskId } from '@deepseek-ai/dsh-tasks'
-import type { TaskDoneListener, TaskKind, TaskOutcome, TaskRead, TaskSnapshot, TaskStart, TaskStatus } from '@deepseek-ai/dsh-tasks'
+import { Context } from '@huiliyi37/cordis'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { deadline, timeoutOf } from '@huiliyi37/dsh-timeout'
+import { TaskService, TaskId } from '@huiliyi37/dsh-tasks'
+import type { TaskDoneListener, TaskKind, TaskOutcome, TaskRead, TaskSnapshot, TaskStart, TaskStatus } from '@huiliyi37/dsh-tasks'
 
 /** Timeout code that distinguishes a bounded wait from caller cancellation. */
 export const TASK_WAIT_TIMEOUT = 'TASK_WAIT_TIMEOUT'
@@ -51,7 +51,7 @@ function isTerminal(status: TaskStatus): boolean {
 
 /**
  * The in-memory `tasks` registry. See the Service Definition contract in
- * `@deepseek-ai/dsh-tasks` for the ownership, isolation, and lifecycle
+ * `@huiliyi37/dsh-tasks` for the ownership, isolation, and lifecycle
  * semantics this implementation honors.
  */
 export class LocalTaskService extends TaskService {
@@ -73,7 +73,7 @@ export class LocalTaskService extends TaskService {
 
   start(spec: TaskStart): TaskId {
     if (this.surfaces.size === 0) {
-      throw new Error('background tasks unavailable: no control surface is attached (load @deepseek-ai/dsh-tool-tasks)')
+      throw new Error('background tasks unavailable: no control surface is attached (load @huiliyi37/dsh-tool-tasks)')
     }
     if (spec.kind.length === 0) throw new Error('invalid task kind: expected a non-empty string')
     if (spec.label.length === 0) throw new Error('invalid task label: expected a non-empty string')
@@ -303,7 +303,7 @@ export class LocalTaskService extends TaskService {
     const ownerId = owner.id
     const agents = this.selfCtx.get('agents')
     if (agents === undefined) {
-      throw new Error('background task ownership requires the agent registry (load @deepseek-ai/dsh-agent)')
+      throw new Error('background task ownership requires the agent registry (load @huiliyi37/dsh-agent)')
     }
     if (agents.get(ownerId) !== owner) {
       throw new Error(`agent "${ownerId}" is not the registered agent instance (background task owner must be live)`)

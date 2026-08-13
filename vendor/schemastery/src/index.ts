@@ -1,4 +1,4 @@
-import { Binary, clone, deepEqual, filterKeys, isNullable, isPlainObject, pick, valueMap, type Dict } from 'cosmokit'
+import { Binary, clone, deepEqual, filterKeys, isNullable, isPlainObject, pick, valueMap, type Dict } from '@huiliyi37/cosmokit'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 const kSchema = Symbol.for('schemastery')

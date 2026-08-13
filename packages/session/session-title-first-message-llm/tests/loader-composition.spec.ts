@@ -1,16 +1,16 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import Include from '@cordisjs/plugin-include'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import Include from '@huiliyi37/cordis-plugin-include'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import LlmService, { createUserMessage, LlmAdapter  } from '@deepseek-ai/dsh-llm'
-import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
-import SessionTitleService from '@deepseek-ai/dsh-session-title'
-import * as providerPlugin from '@deepseek-ai/dsh-session-title-first-message-llm'
+import LlmService, { createUserMessage, LlmAdapter  } from '@huiliyi37/dsh-llm'
+import type { GenerateOptions, StreamChunk } from '@huiliyi37/dsh-llm'
+import SessionStore, { SessionId } from '@huiliyi37/dsh-session'
+import SessionTitleService from '@huiliyi37/dsh-session-title'
+import * as providerPlugin from '@huiliyi37/dsh-session-title-first-message-llm'
 
 let root: string | undefined
 let context: Context | undefined
@@ -36,14 +36,14 @@ async function loadComposition(): Promise<Context> {
   root = await mkdtemp(join(tmpdir(), 'dsh-title-loader-'))
   const configPath = join(root, 'cordis.yml')
   await writeFile(configPath, [
-    "- name: '@deepseek-ai/dsh-llm'",
-    "- name: '@deepseek-ai/dsh-session'",
-    "- name: '@deepseek-ai/dsh-session-title'",
+    "- name: '@huiliyi37/dsh-llm'",
+    "- name: '@huiliyi37/dsh-session'",
+    "- name: '@huiliyi37/dsh-session-title'",
     '  config:',
     '    fallbackMaxWords: 5',
     '    fallbackMaxBytes: 40',
     '    maxTitleBytes: 80',
-    "- name: '@deepseek-ai/dsh-session-title-first-message-llm'",
+    "- name: '@huiliyi37/dsh-session-title-first-message-llm'",
     '  config:',
     '    targetWords: 5',
     '    targetCjkCharacters: 10',
@@ -60,10 +60,10 @@ async function loadComposition(): Promise<Context> {
   await context.plugin(Loader)
   context.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
-    ['@deepseek-ai/dsh-llm', LlmService],
-    ['@deepseek-ai/dsh-session', SessionStore],
-    ['@deepseek-ai/dsh-session-title', SessionTitleService],
-    ['@deepseek-ai/dsh-session-title-first-message-llm', providerPlugin],
+    ['@huiliyi37/dsh-llm', LlmService],
+    ['@huiliyi37/dsh-session', SessionStore],
+    ['@huiliyi37/dsh-session-title', SessionTitleService],
+    ['@huiliyi37/dsh-session-title-first-message-llm', providerPlugin],
   ])
   context.loader.internal = {
     version: 'v2',

@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-client-ui-permission
+# @huiliyi37/dsh-client-ui-permission
 
 [English](README.md) | 中文
 

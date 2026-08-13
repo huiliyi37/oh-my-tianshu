@@ -1,5 +1,5 @@
-import { defineProperty, isNullable } from 'cosmokit'
-import type { Awaitable, Dict } from 'cosmokit'
+import { defineProperty, isNullable } from '@huiliyi37/cosmokit'
+import type { Awaitable, Dict } from '@huiliyi37/cosmokit'
 import { Context } from './context.ts'
 import type { Plugin } from './registry.ts'
 import { buildOuterStack, composeError, DisposableList, getTraceable, isConstructor, isObject, symbols } from './utils.ts'

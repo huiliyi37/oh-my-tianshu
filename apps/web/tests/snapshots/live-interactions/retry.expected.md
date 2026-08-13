@@ -7,10 +7,10 @@
 - text: Reply with a one-sentence description of event sourcing, then stop. {{clock}}
 - button "Copy":
   - img
-- button "Context injection @deepseek-ai/dsh-system-prompt":
+- button "Context injection @huiliyi37/dsh-system-prompt":
   - img
   - img
-  - text: Context injection @deepseek-ai/dsh-system-prompt
+  - text: Context injection @huiliyi37/dsh-system-prompt
 - group:
   - status: Retried model request (1/2) · {{duration}}
 - button "Think The user is asking for a one-sentence description of event sourcing. This is a straightforward knowledge question that doesn't require any skill loading or tool calls.":

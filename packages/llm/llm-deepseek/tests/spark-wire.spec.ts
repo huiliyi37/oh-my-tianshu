@@ -5,8 +5,8 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { CallId, createMessage } from '@deepseek-ai/dsh-llm'
-import type { GenerateOptions } from '@deepseek-ai/dsh-llm'
+import { CallId, createMessage } from '@huiliyi37/dsh-llm'
+import type { GenerateOptions } from '@huiliyi37/dsh-llm'
 import { resolveAdapterOptions } from '../src/index.ts'
 import { serializeMessages, serializeRequest } from '../src/serialize.ts'
 import { SPARK_PROVIDER } from '../src/spark.ts'

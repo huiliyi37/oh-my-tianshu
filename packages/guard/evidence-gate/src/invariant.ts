@@ -1,5 +1,5 @@
 /**
- * Runtime invariant companion for @deepseek-ai/dsh-evidence-gate.
+ * Runtime invariant companion for @huiliyi37/dsh-evidence-gate.
  *
  * The evidence tracker owns no independent durable state (obligations live in
  * memory for the session and are superseded at task boundaries) — the owned
@@ -7,13 +7,13 @@
  * tests assert behaviorally (obligation state machine, L1 edit gate, final
  * once latch). No separate runtime invariant is needed.
  *
- * @module @deepseek-ai/dsh-evidence-gate/invariant
+ * @module @huiliyi37/dsh-evidence-gate/invariant
  */
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-evidence-gate'
+const PACKAGE_NAME = '@huiliyi37/dsh-evidence-gate'
 
 /** Cordis companion plugin name. */
 export const name = 'evidence-gate-invariant'

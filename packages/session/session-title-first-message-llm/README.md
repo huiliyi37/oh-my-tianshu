@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-session-title-first-message-llm
+# @huiliyi37/dsh-session-title-first-message-llm
 
 English | [中文](README.zh.md)
 

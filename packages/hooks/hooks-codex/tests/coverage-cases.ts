@@ -1,18 +1,18 @@
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, rmSync, writeFileSync, chmodSync, existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Context } from 'cordis'
-import { SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
-import SessionPersistenceJsonl from '@deepseek-ai/dsh-session-persistence-jsonl'
-import { defineContentToolFixture } from '@deepseek-ai/dsh-tools'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import AgentLoop from '@deepseek-ai/dsh-agent-loop'
-import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
-import { LocalBashExecutor } from '@deepseek-ai/dsh-bash-local'
-import LocalSubprocessService from '@deepseek-ai/dsh-subprocess-local'
-import * as HooksCodex from '@deepseek-ai/dsh-hooks-codex'
+import { Context } from '@huiliyi37/cordis'
+import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
+import SessionPersistenceJsonl from '@huiliyi37/dsh-session-persistence-jsonl'
+import { defineContentToolFixture } from '@huiliyi37/dsh-tools'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import AgentLoop from '@huiliyi37/dsh-agent-loop'
+import { mountAgentLoopTestDependencies } from '@huiliyi37/dsh-agent-loop-testkit'
+import { LocalBashExecutor } from '@huiliyi37/dsh-bash-local'
+import LocalSubprocessService from '@huiliyi37/dsh-subprocess-local'
+import * as HooksCodex from '@huiliyi37/dsh-hooks-codex'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 
 const testToolSignal = new AbortController().signal
@@ -458,7 +458,7 @@ export function defineCoverageCases(groups: CoverageGroup | readonly CoverageGro
       const ctx = await harness(join(d, 'hooks.json'), new MockAdapter([]))
       let ran = false
       ctx.tools.register(defineContentToolFixture({ name: 'Bash', description: 'b', parameters: { command: { type: 'string' } }, async execute() { ran = true; return [{ type: 'text', text: 'x' }] } }))
-      const { CallId } = await import('@deepseek-ai/dsh-llm')
+      const { CallId } = await import('@huiliyi37/dsh-llm')
       const result = await ctx.tools.execute({ signal: testToolSignal, callId: CallId('c1'), name: 'Bash', arguments: { command: 'x' } })
       expect(ran).toBe(false) // denied
       expect(result.isError).toBe(true)
@@ -469,7 +469,7 @@ export function defineCoverageCases(groups: CoverageGroup | readonly CoverageGro
       hooks(d, { PostToolUse: [{ hooks: [{ type: 'command', command: sh(d, 'pc.sh', '#!/usr/bin/env bash\necho \'{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"x"}}\'\n') }] }] })
       const ctx = await harness(join(d, 'hooks.json'), new MockAdapter([]))
       ctx.tools.register(defineContentToolFixture({ name: 'Bash', description: 'b', parameters: { command: { type: 'string' } }, async execute() { return [{ type: 'text', text: 'ok' }] } }))
-      const { CallId } = await import('@deepseek-ai/dsh-llm')
+      const { CallId } = await import('@huiliyi37/dsh-llm')
       const result = await ctx.tools.execute({ signal: testToolSignal, callId: CallId('c1'), name: 'Bash', arguments: { command: 'x' } })
       expect(result.isError).toBeFalsy()
       expect(result.additionalContexts?.[0]?.content.some(b => b.type === 'text' && b.text === 'x')).toBe(true)
@@ -630,7 +630,7 @@ export function defineCoverageCases(groups: CoverageGroup | readonly CoverageGro
       await ctx.plugin(HooksCodex, { configPath: join(serverDir, 'hooks.json'), model: 'm' })
       ctx.llm.registerAdapter(['mock'], adapter)
       ctx.tools.register(defineContentToolFixture({ name: 'Bash', description: 'b', parameters: { command: { type: 'string' } }, async execute() { return [{ type: 'text', text: 'ok' }] } }))
-      const { SessionId } = await import('@deepseek-ai/dsh-session')
+      const { SessionId } = await import('@huiliyi37/dsh-session')
       const handle = await ctx.agents.create({ sessionId: SessionId('s1'), meta: { cwd: sessionDir }, agentOptions: { provider: 'mock', model: 'mock' } })
       handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: 'go' }], source: { kind: 'user' } }))
       await waitForIdle(ctx, handle.agent)

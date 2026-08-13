@@ -1,5 +1,5 @@
 import { createRequire, type LoadHookContext } from 'node:module'
-import type { Dict } from 'cosmokit'
+import type { Dict } from '@huiliyi37/cosmokit'
 
 /** Node internal module format names handled by loader hooks. */
 export type ModuleFormat = 'builtin' | 'commonjs' | 'json' | 'module' | 'wasm'

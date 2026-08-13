@@ -2,10 +2,10 @@ import { mkdirSync, mkdtempSync, readFileSync, unlinkSync, writeFileSync } from 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { Context } from 'cordis'
-import Hmr from '@cordisjs/plugin-hmr'
-import Loader from '@cordisjs/plugin-loader'
-import Timer from '@cordisjs/plugin-timer'
+import { Context } from '@huiliyi37/cordis'
+import Hmr from '@huiliyi37/cordis-plugin-hmr'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import Timer from '@huiliyi37/cordis-plugin-timer'
 import { describe, expect, it } from 'vitest'
 
 async function bootHmr(dir: string): Promise<Context> {

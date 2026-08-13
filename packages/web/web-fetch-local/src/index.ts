@@ -1,15 +1,15 @@
 /**
- * `@deepseek-ai/dsh-web-fetch-local`: registers an anonymous public HTTP(S)
+ * `@huiliyi37/dsh-web-fetch-local`: registers an anonymous public HTTP(S)
  * `WebFetchProvider` with `ctx.web`. A function/namespace plugin (NOT a
  * default-export service): it registers INTO the seam's fetch registry, like the
  * search providers register into the search registry.
  *
- * @module @deepseek-ai/dsh-web-fetch-local
+ * @module @huiliyi37/dsh-web-fetch-local
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import type {} from '@deepseek-ai/dsh-web'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type {} from '@huiliyi37/dsh-web'
 import { LocalFetchProvider } from './provider.ts'
 import type { LocalFetchLimits } from './provider.ts'
 

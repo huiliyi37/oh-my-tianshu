@@ -5,7 +5,7 @@
  * focused on them, and a per-file quota keeps one noisy file from displacing
  * a second implementation file.
  *
- * @module @deepseek-ai/dsh-semantic-index/search-salience
+ * @module @huiliyi37/dsh-semantic-index/search-salience
  */
 
 export interface SearchCandidate {

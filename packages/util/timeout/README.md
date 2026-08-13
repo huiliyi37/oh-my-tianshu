@@ -11,7 +11,7 @@ It is a **library, not a service or plugin**: no `ctx`, registers nothing, holds
 ## Surface
 
 ```ts
-import { clampTimeout, deadline, idleWatchdog, MAX_TIMER_DELAY_MS, timeoutOf, TimeoutReason } from '@deepseek-ai/dsh-timeout'
+import { clampTimeout, deadline, idleWatchdog, MAX_TIMER_DELAY_MS, timeoutOf, TimeoutReason } from '@huiliyi37/dsh-timeout'
 ```
 
 | Export | Role |
@@ -30,7 +30,7 @@ import { clampTimeout, deadline, idleWatchdog, MAX_TIMER_DELAY_MS, timeoutOf, Ti
 ## Usage shape
 
 ```ts
-import { deadline, timeoutOf } from '@deepseek-ai/dsh-timeout'
+import { deadline, timeoutOf } from '@huiliyi37/dsh-timeout'
 
 declare function runWork(options: { signal: AbortSignal }): Promise<unknown>
 

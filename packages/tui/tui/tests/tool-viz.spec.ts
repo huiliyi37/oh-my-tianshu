@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import type { CallId } from '@deepseek-ai/dsh-llm'
+import type { CallId } from '@huiliyi37/dsh-llm'
 import type { RivetTheme } from '../src/theme.js'
 import { getToolColorFamily, toolFamilyColor } from '../src/format/tool-family.js'
 import { emptyToolTimer, applyToolTimerEvent, toolElapsedMs, formatElapsed } from '../src/format/tool-meta.js'

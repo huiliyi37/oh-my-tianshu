@@ -1,8 +1,15 @@
 {
-  "name": "@deepseek-ai/dsh-spill-policy",
+  "name": "@huiliyi37/dsh-spill-policy",
   "description": "Tool-result spill policy for the DeepSeek Harness — replaces oversized plain-text tool results with a retained preview plus a spill-file path (no service surface)",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "directory": "packages/spill/spill-policy"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -25,26 +32,26 @@
   ],
   "license": "BSD-3-Clause",
   "peerDependencies": {
-    "@deepseek-ai/dsh-invariants": "^0.0.1",
-    "@deepseek-ai/dsh-llm": "^0.0.1",
-    "@deepseek-ai/dsh-retention": "^0.0.1",
-    "@deepseek-ai/dsh-session": "^0.0.1",
-    "@deepseek-ai/dsh-spill": "^0.0.1",
-    "@deepseek-ai/dsh-tools": "^0.0.1",
-    "cordis": "^4.0.0-rc.6"
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/dsh-llm": "^0.2.0",
+    "@huiliyi37/dsh-retention": "^0.2.0",
+    "@huiliyi37/dsh-session": "^0.2.0",
+    "@huiliyi37/dsh-spill": "^0.2.0",
+    "@huiliyi37/dsh-tools": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.6"
   },
   "dependencies": {
-    "schemastery": "^3.18.0"
+    "@huiliyi37/schemastery": "^3.18.0"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-agent": "workspace:^",
-    "@deepseek-ai/dsh-code-runtime-worker": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-retention": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-spill": "workspace:^",
-    "@deepseek-ai/dsh-tools": "workspace:^",
-    "cordis": "^4.0.0-rc.6"
+    "@huiliyi37/dsh-agent": "workspace:^",
+    "@huiliyi37/dsh-code-runtime-worker": "workspace:^",
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/dsh-llm": "workspace:^",
+    "@huiliyi37/dsh-retention": "workspace:^",
+    "@huiliyi37/dsh-session": "workspace:^",
+    "@huiliyi37/dsh-spill": "workspace:^",
+    "@huiliyi37/dsh-tools": "workspace:^",
+    "@huiliyi37/cordis": "^4.0.0-rc.6"
   }
 }

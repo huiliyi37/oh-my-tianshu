@@ -3,18 +3,18 @@
  * `ctx.tasks`. Loading the plugin attaches the control surface required by
  * producers. It also injects unreported completions as durable context for the
  * owner's next request; notices do not wake idle agents.
- * @module @deepseek-ai/dsh-tool-tasks
+ * @module @huiliyi37/dsh-tool-tasks
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import { boundContextSummary, createUserMessage, type ContentBlock } from '@deepseek-ai/dsh-llm'
-import { TextRetainer } from '@deepseek-ai/dsh-retention'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { GenericCallView, ToolDefinition, ToolExecution } from '@deepseek-ai/dsh-tools'
-import { TaskId } from '@deepseek-ai/dsh-tasks'
-import type { TaskSnapshot } from '@deepseek-ai/dsh-tasks'
-import type {} from '@deepseek-ai/dsh-system-prompt'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { boundContextSummary, createUserMessage, type ContentBlock } from '@huiliyi37/dsh-llm'
+import { TextRetainer } from '@huiliyi37/dsh-retention'
+import { defineTool } from '@huiliyi37/dsh-tools'
+import type { GenericCallView, ToolDefinition, ToolExecution } from '@huiliyi37/dsh-tools'
+import { TaskId } from '@huiliyi37/dsh-tasks'
+import type { TaskSnapshot } from '@huiliyi37/dsh-tasks'
+import type {} from '@huiliyi37/dsh-system-prompt'
 
 export const name = 'tool-tasks'
 export const inject = ['tools', 'tasks', 'systemPrompt']

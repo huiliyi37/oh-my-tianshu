@@ -10,17 +10,17 @@
  * disposing the old instance and creating a new one; identical `serverName`
  * reproduces identical public tool names.
  *
- * @module @deepseek-ai/dsh-mcp-client
+ * @module @huiliyi37/dsh-mcp-client
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js'
 import { createTransport } from './transport.ts'
 import { syncTools } from './tools.ts'
 // Side-effect type import: declaration-merges `ctx.tools` onto Context.
-import type {} from '@deepseek-ai/dsh-tools'
+import type {} from '@huiliyi37/dsh-tools'
 
 export type { McpResult } from './tools.ts'
 

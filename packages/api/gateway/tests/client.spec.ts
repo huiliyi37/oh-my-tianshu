@@ -1,18 +1,18 @@
-import { Context, Service } from 'cordis'
+import { Context, Service } from '@huiliyi37/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
-import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
+import type { ConnectionHandle } from '@huiliyi37/dsh-client-connection/client'
 import type {
   InvocationDescriptor,
   TypeRTClientRemote,
   TypeRTContext,
   TypeRTRemoteScopeApi,
   TypeRTRemoteNamespace,
-} from '@deepseek-ai/dsh-type-meta'
-import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
+} from '@huiliyi37/dsh-type-meta'
+import TypertRegistry from '@huiliyi37/dsh-typert-registry'
 import { apply, inject } from '../src/client/index.ts'
 
-declare module '@deepseek-ai/dsh-type-meta' {
+declare module '@huiliyi37/dsh-type-meta' {
   interface TypeRTContextMap {
     fixture: TypeRTContext<string>
   }

@@ -9,12 +9,12 @@
  * 存储位置：`<root>/.dsh/memory/`（root 缺省 process.cwd()，部署可变 →
  * Config 字段；目录按需创建，不依赖 git 仓库存在——非 git 目录同样可用）。
  *
- * @module @deepseek-ai/dsh-memory/plugin
+ * @module @huiliyi37/dsh-memory/plugin
  */
 
 import { join } from 'node:path'
-import { Context } from 'cordis'
-import z from 'schemastery'
+import { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 import { MarkdownMemoryStore } from './store.js'
 
 export const name = 'memory'

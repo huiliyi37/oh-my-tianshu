@@ -7,13 +7,13 @@ import { fileURLToPath } from 'node:url'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
-import { createMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createMessage, createUserMessage } from '@huiliyi37/dsh-llm'
 import {
   SESSION_FORMAT_VERSION,
   Session,
   SessionId,
-} from '@deepseek-ai/dsh-session'
-import type {} from '@deepseek-ai/dsh-session-title'
+} from '@huiliyi37/dsh-session'
+import type {} from '@huiliyi37/dsh-session-title'
 import {
   assertFixtureInventory,
   captureStableAria,

@@ -1,11 +1,11 @@
 /**
  * Commander adapter for the create-sdk command surface.
  *
- * @module @deepseek-ai/create-sdk/args
+ * @module @huiliyi37/create-sdk/args
  */
 
 import { Command, Option } from 'commander'
-import type { PackageManagerName, RunInterface } from '@deepseek-ai/dsh-helper'
+import type { PackageManagerName, RunInterface } from '@huiliyi37/dsh-helper'
 
 /** Parsed create command flags before interactive resolution. */
 export interface CreateArgs {

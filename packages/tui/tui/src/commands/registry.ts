@@ -12,11 +12,11 @@
  * dsh 纪律：命令执行只改 UI 状态（主题/滚动区/会话切换）或调用既有服务，不写回 session
  * log、不发明事件类型。命令文本经 `/` 前缀在输入层分流，未知命令回显提示而非提交给 agent。
  *
- * @module @deepseek-ai/dsh-tui/commands
+ * @module @huiliyi37/dsh-tui/commands
  */
 
-import type { Context } from 'cordis'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import type { SessionId } from '@huiliyi37/dsh-session'
 import { getActiveThemeName, setTheme, THEME_NAMES } from '../theme.js'
 import { listSessions } from '../adapter/sessions.js'
 import { collectDoctorReport, getDoctorFixGuidance } from '../format/doctor-report.js'

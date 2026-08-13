@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-tool-semantic-search`.
- * @module @deepseek-ai/dsh-tool-semantic-search/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-tool-semantic-search`.
+ * @module @huiliyi37/dsh-tool-semantic-search/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-tool-semantic-search'
+const PACKAGE_NAME = '@huiliyi37/dsh-tool-semantic-search'
 
 /** Cordis companion plugin name. */
 export const name = 'tool-semantic-search-invariant'
@@ -19,7 +19,7 @@ export const inject = ['invariants']
  * `apply` closure (a missing root fails loud at load, the instance outlives
  * every tool call), and the stale→update→search discipline is asserted
  * behaviorally by package tests. The index library's own algebra is covered by
- * `@deepseek-ai/dsh-semantic-index`'s tests.
+ * `@huiliyi37/dsh-semantic-index`'s tests.
  */
 const install: InvariantInstaller = () => {}
 

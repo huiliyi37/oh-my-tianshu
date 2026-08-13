@@ -1,5 +1,5 @@
-import { defineProperty } from 'cosmokit'
-import type { Dict } from 'cosmokit'
+import { defineProperty } from '@huiliyi37/cosmokit'
+import type { Dict } from '@huiliyi37/cosmokit'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { Context } from './context.ts'
 import { Fiber } from './fiber.ts'

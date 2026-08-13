@@ -18,9 +18,9 @@ scaffolder requires Node 22 or newer.
 ## Quick Start
 
 ```ts
-import { Context, Service } from 'cordis'
+import { Context, Service } from '@huiliyi37/cordis'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     counter: Counter
   }
@@ -79,12 +79,12 @@ The important pieces are:
 | --- | --- |
 | `cordis` | Core context, plugin registry, fiber lifecycle, events, services, and logger. |
 | `create-cordis` | Interactive project scaffolder. |
-| `@cordisjs/plugin-loader` | Runtime plugin tree and loader service. |
-| `@cordisjs/plugin-include` | YAML/JSON config-file include support for the loader. |
-| `@cordisjs/plugin-group` | Nested plugin groups for loader configs. |
-| `@cordisjs/plugin-hmr` | Hot module replacement for loader-managed plugins. |
-| `@cordisjs/plugin-logger-console` | Console exporter for the built-in logger. |
-| `@cordisjs/plugin-timer` | Disposal-aware timeout, interval, throttle, and debounce helpers. |
+| `@huiliyi37/cordis-plugin-loader` | Runtime plugin tree and loader service. |
+| `@huiliyi37/cordis-plugin-include` | YAML/JSON config-file include support for the loader. |
+| `@huiliyi37/cordis-plugin-group` | Nested plugin groups for loader configs. |
+| `@huiliyi37/cordis-plugin-hmr` | Hot module replacement for loader-managed plugins. |
+| `@huiliyi37/cordis-plugin-logger-console` | Console exporter for the built-in logger. |
+| `@huiliyi37/cordis-plugin-timer` | Disposal-aware timeout, interval, throttle, and debounce helpers. |
 | `@cordisjs/utils` | Shared utilities used by Cordis packages. |
 
 ## Development
@@ -98,4 +98,4 @@ yarn lint
 
 The monorepo uses Yakumo to build and test all packages. Most examples in the
 docs use public APIs from `cordis`; loader examples additionally use
-`@cordisjs/plugin-loader` and `@cordisjs/plugin-include`.
+`@huiliyi37/cordis-plugin-loader` and `@huiliyi37/cordis-plugin-include`.

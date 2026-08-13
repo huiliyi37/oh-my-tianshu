@@ -5,7 +5,7 @@
 
 [English](module-graph.md) | 中文
 
-`@deepseek-ai/dsh-*` harness 包之间的依赖关系。该关系图根据各包的 `peerDependencies`（规范的运行时依赖信号）生成，并按 `packages/<group>/<pkg>` 层级分组。边 `a --> b` 表示包 `a` 依赖包 `b`。名称中的 `@deepseek-ai/dsh-` 前缀已移除。
+`@huiliyi37/dsh-*` harness 包之间的依赖关系。该关系图根据各包的 `peerDependencies`（规范的运行时依赖信号）生成，并按 `packages/<group>/<pkg>` 层级分组。边 `a --> b` 表示包 `a` 依赖包 `b`。名称中的 `@huiliyi37/dsh-` 前缀已移除。
 
 ```mermaid
 flowchart TD

@@ -1,4 +1,4 @@
-import { createToolResultMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createToolResultMessage, createUserMessage } from '@huiliyi37/dsh-llm'
 /**
  * Coordinator semantics against a bare fake backend — the RFC's named unit
  * tier for the seam: adoption (fresh, seeded, re-adoption via the handoff
@@ -7,9 +7,9 @@ import { createToolResultMessage, createUserMessage } from '@deepseek-ai/dsh-llm
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import SessionStore, { SessionId, type Session, type SessionEvent } from '@deepseek-ai/dsh-session'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+import { Context } from '@huiliyi37/cordis'
+import SessionStore, { SessionId, type Session, type SessionEvent } from '@huiliyi37/dsh-session'
+import type { Agent } from '@huiliyi37/dsh-agent'
 import {
   TelemetryCoordinator,
   type TelemetryBackend,
@@ -17,7 +17,7 @@ import {
   type TelemetryRecord,
 } from '../src/index.ts'
 
-declare module '@deepseek-ai/dsh-session/types' {
+declare module '@huiliyi37/dsh-session/types' {
   interface SessionEventMap {
     /**
      * Test-only merged event proving unknown types flow through unchanged.

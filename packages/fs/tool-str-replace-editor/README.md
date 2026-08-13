@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-tool-str-replace-editor
+# @huiliyi37/dsh-tool-str-replace-editor
 
 English | [中文](README.zh.md)
 

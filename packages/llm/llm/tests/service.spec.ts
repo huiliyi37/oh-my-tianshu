@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import LlmService, {
   errorChain,
   GenerateOptions,
@@ -13,14 +13,14 @@ import LlmService, {
   resolveRetryPolicy,
   StreamChunk,
   createMessage,
-} from '@deepseek-ai/dsh-llm'
+} from '@huiliyi37/dsh-llm'
 import type {
   LlmModelContext,
   LlmModelInfo,
   LlmModelReasoningInfo,
   LlmProviderInfo,
   LlmResolvedModelInfo,
-} from '@deepseek-ai/dsh-llm'
+} from '@huiliyi37/dsh-llm'
 
 class ScriptedAdapter extends LlmAdapter {
   constructor(private script: StreamChunk[]) {
@@ -1153,7 +1153,7 @@ describe('LlmService', () => {
   })
 
   it('LlmError extends the shared HarnessError base', async () => {
-    const { HarnessError, isHarnessError } = await import('@deepseek-ai/dsh-llm')
+    const { HarnessError, isHarnessError } = await import('@huiliyi37/dsh-llm')
     const cause = new Error('root cause')
     const err = new LlmError('boom', 'AUTH', { cause })
     expect(err).toBeInstanceOf(HarnessError)
@@ -1163,7 +1163,7 @@ describe('LlmService', () => {
   })
 
   it('HarnessError carries a code, names itself by subclass, and chains cause', async () => {
-    const { HarnessError, isHarnessError } = await import('@deepseek-ai/dsh-llm')
+    const { HarnessError, isHarnessError } = await import('@huiliyi37/dsh-llm')
     const root = new Error('root cause')
     const err = new HarnessError('wrapper', 'UNKNOWN', { cause: root })
     expect(err).toBeInstanceOf(Error)

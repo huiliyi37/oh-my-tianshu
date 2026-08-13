@@ -1,11 +1,11 @@
-/** Package-owned hook invocation/result stream invariants. @module @deepseek-ai/dsh-hook-protocol/invariant */
+/** Package-owned hook invocation/result stream invariants. @module @huiliyi37/dsh-hook-protocol/invariant */
 
-import type { Context } from 'cordis'
-import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
-import type { InvariantFailure, InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { Session, SessionEvent } from '@huiliyi37/dsh-session'
+import type { InvariantFailure, InvariantInstaller } from '@huiliyi37/dsh-invariants'
 import type {} from './types.ts'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-hook-protocol'
+const PACKAGE_NAME = '@huiliyi37/dsh-hook-protocol'
 
 /** Cordis companion plugin name. */
 export const name = 'hook-protocol-invariant'

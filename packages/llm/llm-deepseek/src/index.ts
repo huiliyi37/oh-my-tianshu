@@ -8,17 +8,17 @@
  * anything, while an in-flight stream keeps the facts it started with. The
  * one registration-captured fact — the retry policy — re-registers the route
  * in place when it changes.
- * @module @deepseek-ai/dsh-llm-deepseek
+ * @module @huiliyi37/dsh-llm-deepseek
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import { assertUsableApiKey, LlmError, resolveRetryPolicy, RetryPolicySchema } from '@deepseek-ai/dsh-llm'
-import type { RetryPolicyConfig } from '@deepseek-ai/dsh-llm'
-import { credentialRef } from '@deepseek-ai/dsh-credentials'
-import { environmentOf, type EnvironmentSnapshot } from '@deepseek-ai/dsh-environment'
-import { deepEqualJson, installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
-import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { assertUsableApiKey, LlmError, resolveRetryPolicy, RetryPolicySchema } from '@huiliyi37/dsh-llm'
+import type { RetryPolicyConfig } from '@huiliyi37/dsh-llm'
+import { credentialRef } from '@huiliyi37/dsh-credentials'
+import { environmentOf, type EnvironmentSnapshot } from '@huiliyi37/dsh-environment'
+import { deepEqualJson, installSettingsSection, settingsNamespace } from '@huiliyi37/dsh-settings'
+import { MAX_TIMER_DELAY_MS } from '@huiliyi37/dsh-timeout'
 import {
   DEFAULT_CONTEXT_WINDOW,
   DEFAULT_MAX_TOKENS,

@@ -11,11 +11,11 @@
  * 未装配时零行为（可选插件）；子代理结果经 session/event 自动归账回
  * evidence-gate（零新通道）。
  *
- * @module @deepseek-ai/dsh-agent-router
+ * @module @huiliyi37/dsh-agent-router
  */
 
-import type { Context } from 'cordis'
-import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
 import {
   createPredictionAccumulator,
   getInterventionLevel,

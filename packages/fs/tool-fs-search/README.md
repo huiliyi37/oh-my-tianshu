@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-tool-fs-search
+# @huiliyi37/dsh-tool-fs-search
 
 English | [中文](README.zh.md)
 
@@ -6,10 +6,10 @@ The **model-facing filesystem discovery tools**—`glob`, `grep`—are backed by
 
 ```ts ignore-check
 // A deployment chooses how over-cap glob pages are selected.
-await ctx.plugin(LocalSubprocessService)                     // @deepseek-ai/dsh-subprocess-local
+await ctx.plugin(LocalSubprocessService)                     // @huiliyi37/dsh-subprocess-local
 await ctx.plugin(ToolFsSearch, { sampleOverCapGlobResults: false })
 // Optional: a spill backend makes capped results fully recoverable.
-await ctx.plugin(LocalSpillStore)                           // @deepseek-ai/dsh-spill-local
+await ctx.plugin(LocalSpillStore)                           // @huiliyi37/dsh-spill-local
 ```
 
 Why spawn-backed: local workspace discovery is naturally a process-backed `rg` workflow, and putting search on `ctx.fs` would force every filesystem backend to grow a search API. The subprocess seam owns spawn execution, process-tree termination, environment scrubbing, and bounded output capture; this package owns schemas, argument validation, argv construction, parsing, retention, formatted-result spill, and timeout declaration. The tools never expose a background task — the call returns only after `rg` exits, is terminated by the cooperative timeout, is aborted, or fails.
@@ -29,7 +29,7 @@ The binary ships with the package on every supported platform (macOS/Linux/Windo
 | `grepMaxMatches` | `250` | Max flat matches one `grep` call retains inline (matches Claude Code's `GrepTool` `head_limit`); later matches go to the formatted spill artifact. |
 | `grepMaxLineBytes` | `2000` | Byte cap per matched-line preview; the cut preserves UTF-8 boundaries and is marked `(line truncated)`. |
 | `rawOutputMaxBytes` | `20000000` | Max complete raw `rg` stdout a search will parse (matches Claude Code's ripgrep raw buffer); larger raw output fails with `SEARCH_RAW_OUTPUT_OVERFLOW`. |
-| `timeoutMs` | `30000` | Cooperative tool-call budget attached to both tool definitions, enforced by `@deepseek-ai/dsh-timeout-policy` through `exec.signal`; the subprocess seam's terminate escalation is the hard kill. |
+| `timeoutMs` | `30000` | Cooperative tool-call budget attached to both tool definitions, enforced by `@huiliyi37/dsh-timeout-policy` through `exec.signal`; the subprocess seam's terminate escalation is the hard kill. |
 | `graceMs` | `3000` | Positive terminate-escalation grace the subprocess seam grants past `timeoutMs` before the search fails as `SEARCH_ABORTED`; it cannot exceed [`MAX_TIMER_DELAY_MS`](../../util/timeout/README.md). |
 | `stderrMaxBytes` | `65536` | Diagnostic-tail budget for `rg` stderr, captured through the subprocess seam's collect disposition; a lossy read keeps only the tail (marked `[stderr truncated]`). |
 

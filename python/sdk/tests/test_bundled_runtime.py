@@ -19,25 +19,25 @@ _MODES = ("exe", "node")
 # The config must include the JSON-RPC serving plugin.
 _CORDIS_YML = """\
 - id: jsonrpc
-  name: '@deepseek-ai/dsh-jsonrpc'
+  name: '@huiliyi37/dsh-jsonrpc'
 - id: agent-core
-  name: '@deepseek-ai/dsh-agent-spine-demo'
+  name: '@huiliyi37/dsh-agent-spine-demo'
   config:
     workspaceContext: false
 - id: sessions
-  name: '@deepseek-ai/dsh-session-persistence-jsonl'
+  name: '@huiliyi37/dsh-session-persistence-jsonl'
   config:
     root: './sessions'
 - id: session-checkpoints
-  name: '@deepseek-ai/dsh-session-checkpoint-policy'
+  name: '@huiliyi37/dsh-session-checkpoint-policy'
 - id: subprocess
-  name: '@deepseek-ai/dsh-subprocess-local'
+  name: '@huiliyi37/dsh-subprocess-local'
 - id: bash
-  name: '@deepseek-ai/dsh-bash-local'
+  name: '@huiliyi37/dsh-bash-local'
   config:
     cwd: '.'
 - id: todo
-  name: '@deepseek-ai/dsh-tool-todo'
+  name: '@huiliyi37/dsh-tool-todo'
   config:
     allowParallelInProgress: true
 """
@@ -84,7 +84,7 @@ def test_bundled_runtime_boots_a_cordis_config(tmp_path: Path, mode: str) -> Non
 def test_bundled_runtime_surfaces_unbundled_plugin_failure(tmp_path: Path, mode: str) -> None:
     launch_args = _launch_args(mode)
     (tmp_path / "cordis.yml").write_text(
-        "- id: missing\n  name: '@deepseek-ai/dsh-does-not-exist'\n"
+        "- id: missing\n  name: '@huiliyi37/dsh-does-not-exist'\n"
     )
 
     client = _client(tmp_path, launch_args)
@@ -95,7 +95,7 @@ def test_bundled_runtime_surfaces_unbundled_plugin_failure(tmp_path: Path, mode:
     finally:
         client.close()
 
-    assert "@deepseek-ai/dsh-does-not-exist" in str(excinfo.value)
+    assert "@huiliyi37/dsh-does-not-exist" in str(excinfo.value)
 
 
 @pytest.mark.parametrize("mode", _MODES)

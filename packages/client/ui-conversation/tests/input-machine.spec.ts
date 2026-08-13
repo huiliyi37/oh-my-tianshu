@@ -8,7 +8,7 @@
  * Pure event sequences — no React, no DOM, no ambient clock.
  */
 import { describe, expect, it } from 'vitest'
-import type { CommandClaim, ReferenceInsert, TokenSpan } from '@deepseek-ai/dsh-client-ui-slash/client'
+import type { CommandClaim, ReferenceInsert, TokenSpan } from '@huiliyi37/dsh-client-ui-slash/client'
 import type { InputEffect, SubmitAttempt } from '../src/client/input/contract.ts'
 import { InputMachine, PLACEHOLDER, projectClipboard } from '../src/client/input/machine.ts'
 import { deriveDecorations, scanTextRefs } from '../src/client/input/decorations.ts'

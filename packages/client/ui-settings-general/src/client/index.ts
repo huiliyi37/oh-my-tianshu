@@ -5,13 +5,13 @@
  * dictionaries. Feature-owned rows and sections stay with their features.
  * Export discipline: packages/client/AGENTS.md.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
-import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import type { ClientContext } from '@huiliyi37/dsh-client-runtime/client'
+import type { ConnectionHandle } from '@huiliyi37/dsh-client-connection/client'
+import { bindSnapshotSelector } from '@huiliyi37/dsh-client-web-react'
 // Type-only: pulls the shell's SlotMap merges (trigger/header/section/item).
-import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import type {} from '@huiliyi37/dsh-client-ui-settings/client'
 // Type-only: pulls ctx.locale and the 'settings.general.item' SlotMap merge.
-import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@huiliyi37/dsh-client-locale/client'
 import { CloseLabel, HeaderContent, TriggerContent } from './chrome.tsx'
 import { GeneralSection } from './GeneralSection.tsx'
 import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
@@ -36,7 +36,7 @@ export type { WelcomeNoticeInjected, WelcomeNoticeProps } from './WelcomeNotice.
 export type { WelcomeNoticeState } from './welcome-store.ts'
 export type { SettingsKey } from './locales.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@huiliyi37/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** Shell chrome + shell-owned General section copy. */
     settings: SettingsKey

@@ -7,15 +7,15 @@
  * scope-birth roster warm — is SlashController behavior, tested on a real
  * session scope (createScope).
  */
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it, vi } from 'vitest'
-import { createScope, scopeOf } from '@deepseek-ai/dsh-client-runtime/client'
-import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client'
-import { SlashController, SlashService } from '@deepseek-ai/dsh-client-ui-slash/client'
+import { createScope, scopeOf } from '@huiliyi37/dsh-client-runtime/client'
+import type { SessionId } from '@huiliyi37/dsh-client-runtime/client'
+import { SlashController, SlashService } from '@huiliyi37/dsh-client-ui-slash/client'
 import type {
   BeginCommandRequest, ClientSessionContext, CommandClaim, InsertReferenceRequest, PickOutcome,
   ReferenceInsert, SlashCandidate, SlashPick, SlashSource, SourceRoster, TriggerChar,
-} from '@deepseek-ai/dsh-client-ui-slash/client'
+} from '@huiliyi37/dsh-client-ui-slash/client'
 
 const sid = (k: string): SessionId => k as SessionId
 

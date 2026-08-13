@@ -1,4 +1,4 @@
-import SessionQueryService from '@deepseek-ai/dsh-session-query'
+import SessionQueryService from '@huiliyi37/dsh-session-query'
 import type {
   SessionEventSearchPage,
   SessionEventSearchRequest,
@@ -6,7 +6,7 @@ import type {
   SessionSearchHit,
   SessionSearchPage,
   SessionSearchRequest,
-} from '@deepseek-ai/dsh-session-query'
+} from '@huiliyi37/dsh-session-query'
 
 /** Test-only concrete query service for backend-independent behavior. */
 export class TestSessionQueryService extends SessionQueryService {

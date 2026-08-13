@@ -10,21 +10,21 @@
  * capture mode and an outer shutdown deadline: the SDK's export timeout does
  * not bound its preceding `forceFlush()` wait.
  *
- * @module @deepseek-ai/dsh-session-telemetry-otel
+ * @module @huiliyi37/dsh-session-telemetry-otel
  */
 
 import { createRequire } from 'node:module'
-import z from 'schemastery'
-import type { Context } from 'cordis'
-import type {} from '@deepseek-ai/dsh-command-feedback'
+import z from '@huiliyi37/schemastery'
+import type { Context } from '@huiliyi37/cordis'
+import type {} from '@huiliyi37/dsh-command-feedback'
 import {
   Telemetry,
   TelemetryCoordinator,
   type TelemetryBackend,
   type TelemetryRecord,
   type TelemetrySeverity,
-} from '@deepseek-ai/dsh-session-telemetry'
-import { APP_IDENTITY } from '@deepseek-ai/dsh-llm'
+} from '@huiliyi37/dsh-session-telemetry'
+import { APP_IDENTITY } from '@huiliyi37/dsh-llm'
 import { getOrCreateAnonymousUserId } from './user-id.ts'
 import {
   BatchLogRecordProcessor,
@@ -204,8 +204,8 @@ export class TelemetryOtel extends Telemetry {
         }),
       ],
     })
-    const ledger = this.provider.getLogger('@deepseek-ai/dsh-session-telemetry-otel', version)
-    const ops = this.provider.getLogger('@deepseek-ai/dsh-session-telemetry-otel/ops', version)
+    const ledger = this.provider.getLogger('@huiliyi37/dsh-session-telemetry-otel', version)
+    const ops = this.provider.getLogger('@huiliyi37/dsh-session-telemetry-otel/ops', version)
     const enqueue: TelemetryBackend['emit'] = (record) => {
       const logger: Logger = record.channel === 'ops' ? ops : ledger
       logger.emit({

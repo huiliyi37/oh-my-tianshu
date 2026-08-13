@@ -2,11 +2,11 @@
  * The five ui-theme sheets are the sole token source (--dsw-*); the shell
  * links them here so tokens exist before any plugin CSS lands. scrollbar.css
  * follows design-platform.css because it reads that sheet's tokens. */
-@import '@deepseek-ai/dsh-client-ui-theme/styles/base.css';
-@import '@deepseek-ai/dsh-client-ui-theme/styles/design-platform.css';
-@import '@deepseek-ai/dsh-client-ui-theme/styles/scrollbar.css';
-@import '@deepseek-ai/dsh-client-ui-theme/styles/gradient-shadow-text.css';
-@import '@deepseek-ai/dsh-client-ui-theme/styles/shiki.css';
+@import '@huiliyi37/dsh-client-ui-theme/styles/base.css';
+@import '@huiliyi37/dsh-client-ui-theme/styles/design-platform.css';
+@import '@huiliyi37/dsh-client-ui-theme/styles/scrollbar.css';
+@import '@huiliyi37/dsh-client-ui-theme/styles/gradient-shadow-text.css';
+@import '@huiliyi37/dsh-client-ui-theme/styles/shiki.css';
 
 html,
 body,

@@ -3,17 +3,17 @@
  *
  * This package owns the Service Definition role of the skill capability seam.
  * Concrete
- * providers such as `@deepseek-ai/dsh-skill-local` decide where skills come
+ * providers such as `@huiliyi37/dsh-skill-local` decide where skills come
  * from; this service only merges provider catalogs, resolves the winning skill
  * for a name, and exposes the winning summaries and definitions to consumers.
  *
- * @module @deepseek-ai/dsh-skill
+ * @module @huiliyi37/dsh-skill
  */
 
-import { Context, Service } from 'cordis'
-import { assertNever } from '@deepseek-ai/dsh-llm'
-import z from 'schemastery'
-import type Schema from 'schemastery'
+import { Context, Service } from '@huiliyi37/cordis'
+import { assertNever } from '@huiliyi37/dsh-llm'
+import z from '@huiliyi37/schemastery'
+import type Schema from '@huiliyi37/schemastery'
 
 const SKILL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const DEFAULT_COLLECT_CACHE_ENTRIES = 128
@@ -139,7 +139,7 @@ export interface SkillInvocationSource {
   readonly form: 'instructions'
 }
 
-declare module '@deepseek-ai/dsh-llm' {
+declare module '@huiliyi37/dsh-llm' {
   interface MessageSourceMap {
     /** A user-explicit skill invocation injected by the host. */
     'skill-invocation': SkillInvocationSource
@@ -268,7 +268,7 @@ export interface Config {
   readonly collectCacheMaxEntries?: number
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     skills: SkillService
   }

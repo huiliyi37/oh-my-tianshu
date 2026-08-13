@@ -1,23 +1,23 @@
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import type {
   ConversationMatch, ConversationNodeContext, ConversationNodeDefinition, TurnLocation,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import { isAppendSurfaceEvent, toAssistantBlocks } from '@deepseek-ai/dsh-client-runtime/client'
-import type {} from '@deepseek-ai/dsh-llm-retry/types'
+} from '@huiliyi37/dsh-client-runtime/client'
+import { isAppendSurfaceEvent, toAssistantBlocks } from '@huiliyi37/dsh-client-runtime/client'
+import type {} from '@huiliyi37/dsh-llm-retry/types'
 import type {
   AssistantChatData, FinalAssistantChatData, TurnTailChatData,
 } from '../contract/chat-nodes.ts'
 import { deriveTurnMetrics } from '../chat/turn-metrics.ts'
 import { CHAT_SYNTHETIC_SEQ_OFFSETS, chatNode } from './common.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
+declare module '@huiliyi37/dsh-client-ui-conversation/client' {
   interface ChatNodeDataMap {
     /** Completed-turn actions and extension tail. */
     'turn-tail': TurnTailChatData
   }
 }
 
-declare module '@deepseek-ai/dsh-client-runtime/client' {
+declare module '@huiliyi37/dsh-client-runtime/client' {
   interface ConversationTurnDataMap {
     /** Closing Assistant and footer facts derived for this completed Turn. */
     'turn-tail': TurnTailChatData

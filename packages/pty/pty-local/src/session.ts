@@ -5,8 +5,8 @@ import type {
   SubprocessOutcome,
   SubprocessTerminalForeground,
   SubprocessTerminalHandle,
-} from '@deepseek-ai/dsh-subprocess'
-import { PtyError } from '@deepseek-ai/dsh-pty'
+} from '@huiliyi37/dsh-subprocess'
+import { PtyError } from '@huiliyi37/dsh-pty'
 import type {
   PtyBackendSession,
   PtyReadRequest,
@@ -19,7 +19,7 @@ import type {
   PtySignal,
   PtySignalResult,
   PtyWaitReason,
-} from '@deepseek-ai/dsh-pty'
+} from '@huiliyi37/dsh-pty'
 import type { ResolvedConfig } from './config.ts'
 import { CONTROLLED_PROMPT, TerminalSanitizer } from './sanitize.ts'
 

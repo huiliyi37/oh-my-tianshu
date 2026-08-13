@@ -3,10 +3,10 @@
  * supplied each value. Harness consumers resolve through it instead of a flattened
  * `process.env`; launchers may still materialize accepted values for config
  * expressions and third-party libraries.
- * @module @deepseek-ai/dsh-environment
+ * @module @huiliyi37/dsh-environment
  */
 
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 
 /**
  * Which layer supplied a value, from most to least trusted: the environment
@@ -116,7 +116,7 @@ export function environmentOf(ctx: Context): EnvironmentSnapshot {
     ?? createEnvironmentSnapshot([{ source: 'process', values: process.env as Record<string, string> }])
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     /** Launcher-owned snapshot of this run's environment; absent in compositions the product CLI did not boot. */
     launcherEnvironment?: EnvironmentSnapshot

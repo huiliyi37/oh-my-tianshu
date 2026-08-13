@@ -1,4 +1,4 @@
-# `@deepseek-ai/dsh-base`
+# `@huiliyi37/dsh-base`
 
 English | [中文](README.zh.md)
 

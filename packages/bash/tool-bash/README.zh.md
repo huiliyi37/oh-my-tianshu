@@ -1,10 +1,10 @@
-# @deepseek-ai/dsh-tool-bash
+# @huiliyi37/dsh-tool-bash
 
 [English](README.md) | 中文
 
-模型侧 `bash` 工具，注册在 `ctx.bash` 执行器 seam 上。前台执行始终位于该 seam 之后；后台进程句柄会注册到通用 `ctx.tasks` 运行时，并通过 `task_output`、`task_list` 和 `task_kill` 控制；这些工具由 `@deepseek-ai/dsh-tool-tasks` 提供。
+模型侧 `bash` 工具，注册在 `ctx.bash` 执行器 seam 上。前台执行始终位于该 seam 之后；后台进程句柄会注册到通用 `ctx.tasks` 运行时，并通过 `task_output`、`task_list` 和 `task_kill` 控制；这些工具由 `@huiliyi37/dsh-tool-tasks` 提供。
 
-需要加载执行器 Service provider（例如 `@deepseek-ai/dsh-bash-local`）与 [`@deepseek-ai/dsh-bash-env`](../bash-env/README.md) 注册表；在每个注入服务就绪之前，插件会保持等待状态（`inject: ['tools', 'bash', 'systemPrompt', 'bashEnv']`）。工具约定是 bash 方言——请挂载能解析 bash 的执行器。
+需要加载执行器 Service provider（例如 `@huiliyi37/dsh-bash-local`）与 [`@huiliyi37/dsh-bash-env`](../bash-env/README.md) 注册表；在每个注入服务就绪之前，插件会保持等待状态（`inject: ['tools', 'bash', 'systemPrompt', 'bashEnv']`）。工具约定是 bash 方言——请挂载能解析 bash 的执行器。
 
 包（package）根只公开 Cordis 插件约定（`name`、`inject`、`Config`、`apply`）；结果渲染和后台进程适配仍保留在包内部。
 
@@ -122,7 +122,7 @@ renderer 先输出依数据而定的 stdout 尾部，再输出可选的 `[stderr
 
 #### 模型看到的内容
 
-验证和策略失败统一为 `Error: <message>`。此包的稳定消息包括 `invalid command: expected a non-empty string`、`invalid description: expected a non-empty string`、`invalid timeoutMs: expected a positive number, got <value>`、`invalid escalation: sandbox_permissions requires a justification`、`invalid escalation: justification is only valid together with sandbox_permissions`、`invalid justification: expected a non-empty sentence`、`background execution is disabled for this bash tool`、`background tasks unavailable: load @deepseek-ai/dsh-tasks and @deepseek-ai/dsh-tool-tasks`、`sandbox_permissions is not available in this composition (no sandboxing executor to escalate)`、`sandbox escalation to "<mode>" is not strictly wider than this call's current "<mode>" mode`、审批不可用／拒绝／取消变体，以及 `tool call aborted`。
+验证和策略失败统一为 `Error: <message>`。此包的稳定消息包括 `invalid command: expected a non-empty string`、`invalid description: expected a non-empty string`、`invalid timeoutMs: expected a positive number, got <value>`、`invalid escalation: sandbox_permissions requires a justification`、`invalid escalation: justification is only valid together with sandbox_permissions`、`invalid justification: expected a non-empty sentence`、`background execution is disabled for this bash tool`、`background tasks unavailable: load @huiliyi37/dsh-tasks and @huiliyi37/dsh-tool-tasks`、`sandbox_permissions is not available in this composition (no sandboxing executor to escalate)`、`sandbox escalation to "<mode>" is not strictly wider than this call's current "<mode>" mode`、审批不可用／拒绝／取消变体，以及 `tool call aborted`。
 
 #### Token 影响
 

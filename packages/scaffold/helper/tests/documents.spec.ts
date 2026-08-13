@@ -282,9 +282,9 @@ describe('package manager strategies', () => {
     expect(resolveNpmDependency('cordis', 'devDependencies', '0.0.1')).toEqual({
       section: 'devDependencies', spec: '^4.0.0-rc.7',
     })
-    expect(resolveNpmDependency('@cordisjs/plugin-hmr', 'dependencies', '0.0.1').spec).toBe('^1.0.15')
+    expect(resolveNpmDependency('@huiliyi37/cordis-plugin-hmr', 'dependencies', '0.0.1').spec).toBe('^1.0.15')
     expect(resolveNpmDependency('tsdown', 'devDependencies', '0.0.1').spec).toBe('0.22.2')
-    expect(resolveNpmDependency('@deepseek-ai/dsh-tools', 'dependencies', '1.2.3').spec).toBe('^1.2.3')
+    expect(resolveNpmDependency('@huiliyi37/dsh-tools', 'dependencies', '1.2.3').spec).toBe('^1.2.3')
     expect(() => resolveNpmDependency('unknown', 'dependencies', '0.0.1')).toThrow('no generated-project')
   })
 
@@ -354,16 +354,16 @@ describe('package manager strategies', () => {
     await mkdir(join(root, 'packages', 'sdk', 'scripts'), { recursive: true })
     await mkdir(join(root, 'packages', 'sdk', 'helper'), { recursive: true })
     await writeFile(join(root, 'vendor', 'cordis', 'package.json'), JSON.stringify({ name: 'cordis' }))
-    await writeFile(join(root, 'packages', 'sdk', 'helper', 'package.json'), JSON.stringify({ name: '@deepseek-ai/dsh-helper' }))
+    await writeFile(join(root, 'packages', 'sdk', 'helper', 'package.json'), JSON.stringify({ name: '@huiliyi37/dsh-helper' }))
     await writeFile(join(root, 'packages', 'sdk', 'scripts', 'package.json'), JSON.stringify({
-      name: '@deepseek-ai/dsh-scripts', dependencies: { '@deepseek-ai/dsh-helper': '^0.0.1' }, peerDependencies: { cordis: '^4' },
+      name: '@huiliyi37/dsh-scripts', dependencies: { '@huiliyi37/dsh-helper': '^0.0.1' }, peerDependencies: { cordis: '^4' },
     }))
     const workspace = await LinkWorkspace.open(root)
-    expect(workspace.closure(['@deepseek-ai/dsh-scripts'])).toEqual([
-      '@deepseek-ai/dsh-helper', '@deepseek-ai/dsh-scripts', 'cordis',
+    expect(workspace.closure(['@huiliyi37/dsh-scripts'])).toEqual([
+      '@huiliyi37/dsh-helper', '@huiliyi37/dsh-scripts', 'cordis',
     ])
     const manifest = PackageJsonFile.create('{"name":"consumer","description":"test"}')
-    manifest.setNpmDependency('dependencies', '@deepseek-ai/dsh-scripts', '^0.0.1')
+    manifest.setNpmDependency('dependencies', '@huiliyi37/dsh-scripts', '^0.0.1')
     const pnpmWorkspace = PnpmWorkspaceFile.create()
     workspace.apply(join(root, 'consumer'), manifest, new PnpmPackageManager('10.0.0'), [pnpmWorkspace])
     expect(manifest.npmDependency('cordis')?.spec).toMatch(/^link:/)
@@ -372,11 +372,11 @@ describe('package manager strategies', () => {
     expect(await readFile(join(root, 'vendor', 'cordis', 'package.json'), 'utf8')).toContain('cordis')
     expect(workspace.packageDirectory('missing')).toBeUndefined()
     const yarnManifest = PackageJsonFile.create('{"name":"consumer"}')
-    yarnManifest.setNpmDependency('dependencies', '@deepseek-ai/dsh-scripts', '^0.0.1')
+    yarnManifest.setNpmDependency('dependencies', '@huiliyi37/dsh-scripts', '^0.0.1')
     workspace.apply(join(root, 'consumer-yarn'), yarnManifest, new YarnPackageManager('4.0.0'), [])
     expect(yarnManifest.value().resolutions).toBeDefined()
     const pnpmManifest = PackageJsonFile.create('{"name":"consumer"}')
-    pnpmManifest.setNpmDependency('dependencies', '@deepseek-ai/dsh-scripts', '^0.0.1')
+    pnpmManifest.setNpmDependency('dependencies', '@huiliyi37/dsh-scripts', '^0.0.1')
     expect(() => { workspace.apply(join(root, 'consumer-pnpm'), pnpmManifest, new PnpmPackageManager('10.0.0'), []) })
       .toThrow('requires pnpm-workspace.yaml')
   })

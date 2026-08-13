@@ -1,8 +1,8 @@
-# @deepseek-ai/dsh-pwsh-local
+# @huiliyi37/dsh-pwsh-local
 
 [English](README.md) | 中文
 
-`@deepseek-ai/dsh-bash` 执行器 seam 的本地 PowerShell Service provider，基于 [`@deepseek-ai/dsh-subprocess`](../../subprocess/subprocess/README.md) 服务：`PwshLocalExecutor` 每次调用以受管进程的方式通过 `ctx.subprocess` spawn `pwsh -NoLogo -NoProfile -NonInteractive -Command <command>`，并拥有所有 PowerShell 形状的职责——可执行文件解析、命令默认化与上限、超时/取消分类、面向模型的终端环境，以及后台读取的 stdout/stderr 合并。进程组机制（有界 spill 输出、凭据清理、终止升级、销毁）属于 subprocess 服务。
+`@huiliyi37/dsh-bash` 执行器 seam 的本地 PowerShell Service provider，基于 [`@huiliyi37/dsh-subprocess`](../../subprocess/subprocess/README.md) 服务：`PwshLocalExecutor` 每次调用以受管进程的方式通过 `ctx.subprocess` spawn `pwsh -NoLogo -NoProfile -NonInteractive -Command <command>`，并拥有所有 PowerShell 形状的职责——可执行文件解析、命令默认化与上限、超时/取消分类、面向模型的终端环境，以及后台读取的 stdout/stderr 合并。进程组机制（有界 spill 输出、凭据清理、终止升级、销毁）属于 subprocess 服务。
 
 命令字符串作为 ONE argv 元素传给 `-Command`：由 PowerShell 自己解析文本，不存在中间 shell，因此没有需要转义的 shell 引号层（这里不存在与 `bash -c` 字符串域对应的层）。原生 Win32 路径（`C:\...`）原样通过。
 
@@ -12,7 +12,7 @@
 
 ```yaml
 - id: bash
-  name: '@deepseek-ai/dsh-pwsh-local'
+  name: '@huiliyi37/dsh-pwsh-local'
   config:
     cwd: C:\path\to\workspace   # default: process.cwd()
     timeoutMs: 120000           # default foreground timeout

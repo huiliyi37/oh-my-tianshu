@@ -30,10 +30,10 @@
  * composes the wire.
  */
 
-import type {} from 'cordis'
+import type {} from '@huiliyi37/cordis'
 import type { ClientModuleSystem } from './system.ts'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     /** The client module system the web shell builds at boot (contract C5; provided by the `./client` wrapper plugin). */
     modules: ClientModuleLoader

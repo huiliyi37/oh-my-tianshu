@@ -7,8 +7,8 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
-import type { SessionId } from '@deepseek-ai/dsh-client-connection/client'
+import type { SessionEvent } from '@huiliyi37/dsh-session/types'
+import type { SessionId } from '@huiliyi37/dsh-client-connection/client'
 import { Session } from '../src/client/sessions/session.ts'
 import type {
   ChatConversationViewNode, ChatLocationNodeIndex, ChatNodeStore, ChatSnapshot,

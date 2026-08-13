@@ -6,9 +6,9 @@
 
 | 包 | npm 名称 | 角色 |
 |---|---|---|
-| [`agent-spine-demo/`](agent-spine-demo/README.md) | `@deepseek-ai/dsh-agent-spine-demo` | 可复用的 agent（智能体）主干组合包 |
-| [`acp-demo/`](acp-demo/README.md) | `@deepseek-ai/dsh-acp-demo` | ACP（Agent Client Protocol）自动化应用组合包 |
-| [`jsonrpc-demo/`](jsonrpc-demo/README.md) | `@deepseek-ai/dsh-jsonrpc-demo` | 外部配置 JSON-RPC 运行时 |
+| [`agent-spine-demo/`](agent-spine-demo/README.md) | `@huiliyi37/dsh-agent-spine-demo` | 可复用的 agent（智能体）主干组合包 |
+| [`acp-demo/`](acp-demo/README.md) | `@huiliyi37/dsh-acp-demo` | ACP（Agent Client Protocol）自动化应用组合包 |
+| [`jsonrpc-demo/`](jsonrpc-demo/README.md) | `@huiliyi37/dsh-jsonrpc-demo` | 外部配置 JSON-RPC 运行时 |
 
 `agent-spine-demo` 是共享组合包；`acp-demo` 添加自动化入口，`jsonrpc-demo` 则启动由部署方拥有的插件树。产品单次执行由 `dsh run` 提供；本目录没有任何包提供该功能。
 

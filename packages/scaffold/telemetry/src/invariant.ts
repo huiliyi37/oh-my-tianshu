@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-telemetry`.
- * @module @deepseek-ai/dsh-telemetry/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-telemetry`.
+ * @module @huiliyi37/dsh-telemetry/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-telemetry'
+const PACKAGE_NAME = '@huiliyi37/dsh-telemetry'
 
 /** Cordis companion plugin name. */
 export const name = 'telemetry-invariant'

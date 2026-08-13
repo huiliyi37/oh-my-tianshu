@@ -4,7 +4,7 @@ import { deepStrictEqual } from 'node:assert'
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { decodeStorageRecord, packChunkRuns, type SessionEvent } from '@deepseek-ai/dsh-session'
+import { decodeStorageRecord, packChunkRuns, type SessionEvent } from '@huiliyi37/dsh-session'
 
 /** One repository session fixture and its canonical packed representation. */
 export interface SessionFixtureLayout {

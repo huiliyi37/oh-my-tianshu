@@ -1,12 +1,12 @@
 /**
  * workspace domain contract. Wire projection of the host-side workspace
- * entity (@deepseek-ai/dsh-workspace): a stable id over a directory path,
+ * entity (@huiliyi37/dsh-workspace): a stable id over a directory path,
  * a display title, and the ordered session account. Method signatures are the
  * source of truth, same as the sessions domain.
  */
 
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { Branded } from '@deepseek-ai/dsh-brand'
+import type { SessionId } from '@huiliyi37/dsh-session/types'
+import type { Branded } from '@huiliyi37/dsh-brand'
 import type { RpcRequest, RpcResponse } from './rpc.ts'
 
 /**

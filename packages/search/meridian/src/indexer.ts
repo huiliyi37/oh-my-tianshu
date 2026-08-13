@@ -14,7 +14,7 @@ import type { RepoMapResult, MeridianSymbol, MeridianEdge, MeridianSymbolKind } 
 import type { CallSite } from './types.ts'
 import type { RepoMapOptions } from './graph.ts'
 import type { ImpactResult } from './impact.ts'
-import type { StigmergyStore } from '@deepseek-ai/dsh-pheromone'
+import type { StigmergyStore } from '@huiliyi37/dsh-pheromone'
 
 const TS_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx']
 const ALL_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go']

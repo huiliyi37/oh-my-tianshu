@@ -1,4 +1,4 @@
-# `@deepseek-ai/dsh-helper`
+# `@huiliyi37/dsh-helper`
 
 English | [中文](README.zh.md)
 
@@ -10,7 +10,7 @@ All business and document validation completes before commit writes any affected
 
 Builtin features are provider, bash, app, persistence, HMR, filesystem, todo, skill, web, subagent, workflow, compaction, hooks, repeat-tool guard, and timeout policy. The catalog owns feature options, required and non-default Cordis plugin config, feature requirements, resource contribution, and round-trip markers; create and config use the same registry and configurator. The ACP app option contributes only the automation bridge; interactive services belong to host compositions.
 
-`SdkProject.open()` requires only readable root `package.json` and `cordis.yml`. A config referencing `@deepseek-ai/dsh-tui` (root or a subpath) opens as the embed run interface; `@deepseek-ai/dsh-acp` opens as the acp interface. A Cordis config entry anchors feature installation; a package present only through a linked NPM dependency closure leaves the feature absent. Once an owned Cordis config entry exists, an incomplete resource shape is `inconsistent` and cannot be modified automatically.
+`SdkProject.open()` requires only readable root `package.json` and `cordis.yml`. A config referencing `@huiliyi37/dsh-tui` (root or a subpath) opens as the embed run interface; `@huiliyi37/dsh-acp` opens as the acp interface. A Cordis config entry anchors feature installation; a package present only through a linked NPM dependency closure leaves the feature absent. Once an owned Cordis config entry exists, an incomplete resource shape is `inconsistent` and cannot be modified automatically.
 
 `.env.example` follows the currently selected features. `.env` is append-only: helper may add a missing differently named variable, but never updates or removes existing content.
 

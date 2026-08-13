@@ -13,7 +13,7 @@
  * until the result arrives.
  * @module
  */
-import type { ReadBlockLine, ReadBlockProps } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { ReadBlockLine, ReadBlockProps } from '@huiliyi37/dsh-client-ui-primitives'
 import { relativizeToCwd, type ToolCallBlock } from './tool-call-model.ts'
 
 /**

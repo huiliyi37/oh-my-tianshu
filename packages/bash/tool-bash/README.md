@@ -1,10 +1,10 @@
-# @deepseek-ai/dsh-tool-bash
+# @huiliyi37/dsh-tool-bash
 
 English | [中文](README.zh.md)
 
-The model-facing `bash` tool registered over the `ctx.bash` executor seam. Foreground execution stays behind that seam; a background process handle is registered with the generic `ctx.tasks` runtime and controlled through `task_output`, `task_list`, and `task_kill` from `@deepseek-ai/dsh-tool-tasks`.
+The model-facing `bash` tool registered over the `ctx.bash` executor seam. Foreground execution stays behind that seam; a background process handle is registered with the generic `ctx.tasks` runtime and controlled through `task_output`, `task_list`, and `task_kill` from `@huiliyi37/dsh-tool-tasks`.
 
-Requires a loaded executor Service provider (e.g. `@deepseek-ai/dsh-bash-local`) and the [`@deepseek-ai/dsh-bash-env`](../bash-env/README.md) registry; the plugin stays pending until every injected service exists (`inject: ['tools', 'bash', 'systemPrompt', 'bashEnv']`). The tool contract is bash-dialect — mount a bash-parsing executor.
+Requires a loaded executor Service provider (e.g. `@huiliyi37/dsh-bash-local`) and the [`@huiliyi37/dsh-bash-env`](../bash-env/README.md) registry; the plugin stays pending until every injected service exists (`inject: ['tools', 'bash', 'systemPrompt', 'bashEnv']`). The tool contract is bash-dialect — mount a bash-parsing executor.
 
 The package root exposes only the Cordis plugin contract (`name`, `inject`, `Config`, `apply`); result rendering and background-process adaptation remain package-internal.
 
@@ -122,7 +122,7 @@ Append-only; newly visible content follows the reusable request prefix and does 
 
 #### What the model sees
 
-Validation and policy failures are normalized as `Error: <message>`. This package's stable messages are `invalid command: expected a non-empty string`, `invalid description: expected a non-empty string`, `invalid timeoutMs: expected a positive number, got <value>`, `invalid escalation: sandbox_permissions requires a justification`, `invalid escalation: justification is only valid together with sandbox_permissions`, `invalid justification: expected a non-empty sentence`, `background execution is disabled for this bash tool`, `background tasks unavailable: load @deepseek-ai/dsh-tasks and @deepseek-ai/dsh-tool-tasks`, `sandbox_permissions is not available in this composition (no sandboxing executor to escalate)`, `sandbox escalation to "<mode>" is not strictly wider than this call's current "<mode>" mode`, the approval-availability/rejection/cancellation variants, and `tool call aborted`.
+Validation and policy failures are normalized as `Error: <message>`. This package's stable messages are `invalid command: expected a non-empty string`, `invalid description: expected a non-empty string`, `invalid timeoutMs: expected a positive number, got <value>`, `invalid escalation: sandbox_permissions requires a justification`, `invalid escalation: justification is only valid together with sandbox_permissions`, `invalid justification: expected a non-empty sentence`, `background execution is disabled for this bash tool`, `background tasks unavailable: load @huiliyi37/dsh-tasks and @huiliyi37/dsh-tool-tasks`, `sandbox_permissions is not available in this composition (no sandboxing executor to escalate)`, `sandbox escalation to "<mode>" is not strictly wider than this call's current "<mode>" mode`, the approval-availability/rejection/cancellation variants, and `tool call aborted`.
 
 #### Token effect
 

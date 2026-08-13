@@ -7,9 +7,9 @@
  * providing it as `ctx.modules`. The kernel statically registers this module,
  * so the graph row for this package never triggers a real fetch — arrival is
  * a no-op against the already-registered entry.
- * @module @deepseek-ai/dsh-client-modules/client
+ * @module @huiliyi37/dsh-client-modules/client
  */
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import type { DshWindow } from './manifest.ts'
 
 export { ClientModuleSystem } from './system.ts'

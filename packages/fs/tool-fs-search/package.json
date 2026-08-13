@@ -1,8 +1,15 @@
 {
-  "name": "@deepseek-ai/dsh-tool-fs-search",
+  "name": "@huiliyi37/dsh-tool-fs-search",
   "description": "Model-facing filesystem discovery tools (glob, grep) backed by the packaged ripgrep binary (@vscode/ripgrep)",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "directory": "packages/fs/tool-fs-search"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -26,32 +33,32 @@
   "license": "BSD-3-Clause",
   "dependencies": {
     "@vscode/ripgrep": "^1.18.0",
-    "schemastery": "^3.18.0"
+    "@huiliyi37/schemastery": "^3.18.0"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-invariants": "^0.0.1",
-    "@deepseek-ai/dsh-llm": "^0.0.1",
-    "@deepseek-ai/dsh-retention": "^0.0.1",
-    "@deepseek-ai/dsh-session": "^0.0.1",
-    "@deepseek-ai/dsh-spill": "^0.0.1",
-    "@deepseek-ai/dsh-subprocess": "^0.0.1",
-    "@deepseek-ai/dsh-system-prompt": "^0.0.1",
-    "@deepseek-ai/dsh-timeout": "^0.0.1",
-    "@deepseek-ai/dsh-tools": "^0.0.1",
-    "cordis": "^4.0.0-rc.6"
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/dsh-llm": "^0.2.0",
+    "@huiliyi37/dsh-retention": "^0.2.0",
+    "@huiliyi37/dsh-session": "^0.2.0",
+    "@huiliyi37/dsh-spill": "^0.2.0",
+    "@huiliyi37/dsh-subprocess": "^0.2.0",
+    "@huiliyi37/dsh-system-prompt": "^0.2.0",
+    "@huiliyi37/dsh-timeout": "^0.2.0",
+    "@huiliyi37/dsh-tools": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.6"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-agent": "workspace:^",
-    "@deepseek-ai/dsh-subprocess": "workspace:^",
-    "@deepseek-ai/dsh-subprocess-local": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-retention": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-spill": "workspace:^",
-    "@deepseek-ai/dsh-system-prompt": "workspace:^",
-    "@deepseek-ai/dsh-timeout": "workspace:^",
-    "@deepseek-ai/dsh-tools": "workspace:^",
-    "cordis": "^4.0.0-rc.6"
+    "@huiliyi37/dsh-agent": "workspace:^",
+    "@huiliyi37/dsh-subprocess": "workspace:^",
+    "@huiliyi37/dsh-subprocess-local": "workspace:^",
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/dsh-llm": "workspace:^",
+    "@huiliyi37/dsh-retention": "workspace:^",
+    "@huiliyi37/dsh-session": "workspace:^",
+    "@huiliyi37/dsh-spill": "workspace:^",
+    "@huiliyi37/dsh-system-prompt": "workspace:^",
+    "@huiliyi37/dsh-timeout": "workspace:^",
+    "@huiliyi37/dsh-tools": "workspace:^",
+    "@huiliyi37/cordis": "^4.0.0-rc.6"
   }
 }

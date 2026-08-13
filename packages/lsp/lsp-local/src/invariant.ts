@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-lsp-local`.
- * @module @deepseek-ai/dsh-lsp-local/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-lsp-local`.
+ * @module @huiliyi37/dsh-lsp-local/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-lsp-local'
+const PACKAGE_NAME = '@huiliyi37/dsh-lsp-local'
 
 /** Cordis companion plugin name. */
 export const name = 'lsp-local-invariant'

@@ -6,9 +6,9 @@ Pre-composed plugin bundles a thin leaf `cordis.yml` loads instead of assembling
 
 | Package | npm name | Role |
 |---|---|---|
-| [`agent-spine-demo/`](agent-spine-demo/README.md) | `@deepseek-ai/dsh-agent-spine-demo` | Reusable agent-spine bundle |
-| [`acp-demo/`](acp-demo/README.md) | `@deepseek-ai/dsh-acp-demo` | ACP automation application bundle |
-| [`jsonrpc-demo/`](jsonrpc-demo/README.md) | `@deepseek-ai/dsh-jsonrpc-demo` | External-config JSON-RPC runtime |
+| [`agent-spine-demo/`](agent-spine-demo/README.md) | `@huiliyi37/dsh-agent-spine-demo` | Reusable agent-spine bundle |
+| [`acp-demo/`](acp-demo/README.md) | `@huiliyi37/dsh-acp-demo` | ACP automation application bundle |
+| [`jsonrpc-demo/`](jsonrpc-demo/README.md) | `@huiliyi37/dsh-jsonrpc-demo` | External-config JSON-RPC runtime |
 
 `agent-spine-demo` is the shared bundle; `acp-demo` adds its automation front door, while `jsonrpc-demo` boots a deployment-owned plugin tree. Product one-shot execution belongs to `dsh run`; no package in this directory provides it.
 

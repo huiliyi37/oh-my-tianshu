@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import AgentRegistry, { agentEvents, Inbox } from '@deepseek-ai/dsh-agent'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { createUserMessage, HarnessError } from '@deepseek-ai/dsh-llm'
-import SessionStore, { Session, SessionId, type UserMessage } from '@deepseek-ai/dsh-session'
+import { Context } from '@huiliyi37/cordis'
+import AgentRegistry, { agentEvents, Inbox } from '@huiliyi37/dsh-agent'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { createUserMessage, HarnessError } from '@huiliyi37/dsh-llm'
+import SessionStore, { Session, SessionId, type UserMessage } from '@huiliyi37/dsh-session'
 import GoalService, {
   GoalError,
   GoalId,
   decodeGoalChange,
   foldGoal,
-} from '@deepseek-ai/dsh-goal'
-import type { GoalChangeMeta, GoalRef, GoalSnapshotChangeMeta } from '@deepseek-ai/dsh-goal'
+} from '@huiliyi37/dsh-goal'
+import type { GoalChangeMeta, GoalRef, GoalSnapshotChangeMeta } from '@huiliyi37/dsh-goal'
 
 interface StubAgent {
   agent: Agent
@@ -53,7 +53,7 @@ function stubAgentForSession(session: Session): StubAgent {
 }
 
 /** Build a registry-compatible agent around a fresh session. */
-function stubAgent(rawId: string, seed?: readonly import('@deepseek-ai/dsh-session').SessionEvent[]): StubAgent {
+function stubAgent(rawId: string, seed?: readonly import('@huiliyi37/dsh-session').SessionEvent[]): StubAgent {
   return stubAgentForSession(Session.create(SessionId(rawId), seed))
 }
 

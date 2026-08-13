@@ -6,8 +6,8 @@
  * @module dsh-llm-deepseek/serialize
  */
 
-import { LlmError } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock, GenerateOptions, Message } from '@deepseek-ai/dsh-llm'
+import { LlmError } from '@huiliyi37/dsh-llm'
+import type { ContentBlock, GenerateOptions, Message } from '@huiliyi37/dsh-llm'
 import {
   defaultTokenizer,
   resolveTruncateN,

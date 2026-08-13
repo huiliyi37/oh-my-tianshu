@@ -8,7 +8,7 @@
  *
  * Chunks carry 1-based inclusive line ranges.
  *
- * @module @deepseek-ai/dsh-semantic-index/chunker
+ * @module @huiliyi37/dsh-semantic-index/chunker
  */
 
 import { chunkFileContent } from './text-index.ts'

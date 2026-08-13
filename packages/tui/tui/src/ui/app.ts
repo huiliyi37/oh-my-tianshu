@@ -15,7 +15,7 @@
  * 反目标（不做）：设置/权限审批/主题定制/插件管理、slash 命令全集、
  * worker/星域面板。本装配只覆盖目标 1-6。
  *
- * @module @deepseek-ai/dsh-tui/ui
+ * @module @huiliyi37/dsh-tui/ui
  */
 
 import { randomUUID } from 'node:crypto'
@@ -23,12 +23,12 @@ import { execSync } from 'node:child_process'
 import { writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import type { ReadStream, WriteStream } from 'node:tty'
-import type { Context } from 'cordis'
-import { SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
-import type { CallId, TokenUsage } from '@deepseek-ai/dsh-llm'
-import { installModelSelection, type AgentHandle, type ModelSelection, type ModelSelectionRef } from '@deepseek-ai/dsh-agent'
+import type { Context } from '@huiliyi37/cordis'
+import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
+import type { CallId, TokenUsage } from '@huiliyi37/dsh-llm'
+import { installModelSelection, type AgentHandle, type ModelSelection, type ModelSelectionRef } from '@huiliyi37/dsh-agent'
 // 空类型导入引入 Context 上 agentDefaultModel 服务的声明合并（headless 同款）。
-import type {} from '@deepseek-ai/dsh-agent-default-model'
+import type {} from '@huiliyi37/dsh-agent-default-model'
 import { CommitEngine } from '../engine/commit-engine.js'
 import { ANSI, color, imageProtocol, osc52Clipboard } from '../engine/ansi.js'
 import { LiveEngine, type LiveRegionLine } from '../engine/live-engine.js'
@@ -183,12 +183,12 @@ import { formatSessionAge } from '../restore-session.js'
 // 副作用声明合并：让 ctx.on('approval/request') 的 handler 参数由 cordis 事件
 // 类型推导（user-approval 的 module augmentation）。不 import 具体类型——
 // 该包的 lib 声明带 .ts 后缀相对导入，跨包 tsc 解析会触发 rootDir 冲突。
-import type {} from '@deepseek-ai/dsh-user-approval'
+import type {} from '@huiliyi37/dsh-user-approval'
 // T2.1/T2.2：subagent/workflow 事件从属主 import（module augmentation 同源，
 // 避免本地 wire 声明与属主 Events 合并成 union 污染全局 ctx.on 类型；
 // handler 参数仍按本地结构子集标注，属主类型逆变兼容）。
-import type {} from '@deepseek-ai/dsh-subagent'
-import type {} from '@deepseek-ai/dsh-workflow'
+import type {} from '@huiliyi37/dsh-subagent'
+import type {} from '@huiliyi37/dsh-workflow'
 
 /** Phase 8：审批 answerer 的请求/结果类型由 ApprovalController 持有（单向依赖）。 */
 import {

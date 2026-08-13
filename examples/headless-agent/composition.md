@@ -8,85 +8,85 @@ The headless snapshot composition combines the real DeepSeek adapter and coding 
 ```mermaid
 flowchart LR
   cfg["examples/headless-agent<br/>cordis.yml"]
-  plugin_headless_settings["settings<br/>@deepseek-ai/dsh-settings-local"]
+  plugin_headless_settings["settings<br/>@huiliyi37/dsh-settings-local"]
   cfg --> plugin_headless_settings
-  plugin_headless_credentials["credentials<br/>@deepseek-ai/dsh-credentials-local"]
+  plugin_headless_credentials["credentials<br/>@huiliyi37/dsh-credentials-local"]
   cfg --> plugin_headless_credentials
-  plugin_headless_llm_deepseek["llm-deepseek<br/>@deepseek-ai/dsh-llm-deepseek"]
+  plugin_headless_llm_deepseek["llm-deepseek<br/>@huiliyi37/dsh-llm-deepseek"]
   cfg --> plugin_headless_llm_deepseek
-  plugin_headless_subprocess["subprocess<br/>@deepseek-ai/dsh-subprocess-local"]
+  plugin_headless_subprocess["subprocess<br/>@huiliyi37/dsh-subprocess-local"]
   cfg --> plugin_headless_subprocess
-  plugin_headless_bash["bash<br/>@deepseek-ai/dsh-bash-local"]
+  plugin_headless_bash["bash<br/>@huiliyi37/dsh-bash-local"]
   cfg --> plugin_headless_bash
-  plugin_headless_agent_spine["agent-spine<br/>@deepseek-ai/dsh-agent-spine-demo"]
+  plugin_headless_agent_spine["agent-spine<br/>@huiliyi37/dsh-agent-spine-demo"]
   cfg --> plugin_headless_agent_spine
-  plugin_headless_persistence["persistence<br/>@deepseek-ai/dsh-session-persistence-jsonl"]
+  plugin_headless_persistence["persistence<br/>@huiliyi37/dsh-session-persistence-jsonl"]
   cfg --> plugin_headless_persistence
-  plugin_headless_checkpoint_policy["checkpoint-policy<br/>@deepseek-ai/dsh-session-checkpoint-policy"]
+  plugin_headless_checkpoint_policy["checkpoint-policy<br/>@huiliyi37/dsh-session-checkpoint-policy"]
   cfg --> plugin_headless_checkpoint_policy
-  plugin_headless_token_meter["token-meter<br/>@deepseek-ai/dsh-token-meter"]
+  plugin_headless_token_meter["token-meter<br/>@huiliyi37/dsh-token-meter"]
   cfg --> plugin_headless_token_meter
-  plugin_headless_compact_basic["compact-basic<br/>@deepseek-ai/dsh-compact-basic"]
+  plugin_headless_compact_basic["compact-basic<br/>@huiliyi37/dsh-compact-basic"]
   cfg --> plugin_headless_compact_basic
-  plugin_headless_session_projection["session-projection<br/>@deepseek-ai/dsh-session-projection"]
+  plugin_headless_session_projection["session-projection<br/>@huiliyi37/dsh-session-projection"]
   cfg --> plugin_headless_session_projection
-  plugin_headless_subagent["subagent<br/>@deepseek-ai/dsh-subagent"]
+  plugin_headless_subagent["subagent<br/>@huiliyi37/dsh-subagent"]
   cfg --> plugin_headless_subagent
-  plugin_headless_subagent_spawn["subagent-spawn<br/>@deepseek-ai/dsh-subagent-spawn"]
+  plugin_headless_subagent_spawn["subagent-spawn<br/>@huiliyi37/dsh-subagent-spawn"]
   cfg --> plugin_headless_subagent_spawn
-  plugin_headless_subagent_fork["subagent-fork<br/>@deepseek-ai/dsh-subagent-fork"]
+  plugin_headless_subagent_fork["subagent-fork<br/>@huiliyi37/dsh-subagent-fork"]
   cfg --> plugin_headless_subagent_fork
-  plugin_headless_tool_subagent_control["tool-subagent-control<br/>@deepseek-ai/dsh-tool-subagent-control"]
+  plugin_headless_tool_subagent_control["tool-subagent-control<br/>@huiliyi37/dsh-tool-subagent-control"]
   cfg --> plugin_headless_tool_subagent_control
-  plugin_headless_tool_subagent_report["tool-subagent-report<br/>@deepseek-ai/dsh-tool-subagent-report"]
+  plugin_headless_tool_subagent_report["tool-subagent-report<br/>@huiliyi37/dsh-tool-subagent-report"]
   cfg --> plugin_headless_tool_subagent_report
-  plugin_headless_tool_subagent["tool-subagent<br/>@deepseek-ai/dsh-tool-subagent"]
+  plugin_headless_tool_subagent["tool-subagent<br/>@huiliyi37/dsh-tool-subagent"]
   cfg --> plugin_headless_tool_subagent
-  plugin_headless_tool_subagent_fork["tool-subagent-fork<br/>@deepseek-ai/dsh-tool-subagent"]
+  plugin_headless_tool_subagent_fork["tool-subagent-fork<br/>@huiliyi37/dsh-tool-subagent"]
   cfg --> plugin_headless_tool_subagent_fork
-  plugin_headless_workflow_workerthread["workflow-workerthread<br/>@deepseek-ai/dsh-workflow-workerthread"]
+  plugin_headless_workflow_workerthread["workflow-workerthread<br/>@huiliyi37/dsh-workflow-workerthread"]
   cfg --> plugin_headless_workflow_workerthread
-  plugin_headless_tool_workflow["tool-workflow<br/>@deepseek-ai/dsh-tool-workflow"]
+  plugin_headless_tool_workflow["tool-workflow<br/>@huiliyi37/dsh-tool-workflow"]
   cfg --> plugin_headless_tool_workflow
-  plugin_headless_tool_ralph["tool-ralph<br/>@deepseek-ai/dsh-tool-ralph"]
+  plugin_headless_tool_ralph["tool-ralph<br/>@huiliyi37/dsh-tool-ralph"]
   cfg --> plugin_headless_tool_ralph
-  plugin_headless_tool_todo["tool-todo<br/>@deepseek-ai/dsh-tool-todo"]
+  plugin_headless_tool_todo["tool-todo<br/>@huiliyi37/dsh-tool-todo"]
   cfg --> plugin_headless_tool_todo
-  plugin_headless_fs_local["fs-local<br/>@deepseek-ai/dsh-fs-local"]
+  plugin_headless_fs_local["fs-local<br/>@huiliyi37/dsh-fs-local"]
   cfg --> plugin_headless_fs_local
-  plugin_headless_fs_policy["fs-policy<br/>@deepseek-ai/dsh-fs-policy"]
+  plugin_headless_fs_policy["fs-policy<br/>@huiliyi37/dsh-fs-policy"]
   cfg --> plugin_headless_fs_policy
-  plugin_headless_tool_fs["tool-fs<br/>@deepseek-ai/dsh-tool-fs"]
+  plugin_headless_tool_fs["tool-fs<br/>@huiliyi37/dsh-tool-fs"]
   cfg --> plugin_headless_tool_fs
 ```
 
 | Plugin id | Package / module |
 | --- | --- |
-| `settings` | `@deepseek-ai/dsh-settings-local` |
-| `credentials` | `@deepseek-ai/dsh-credentials-local` |
-| `llm-deepseek` | `@deepseek-ai/dsh-llm-deepseek` |
-| `subprocess` | `@deepseek-ai/dsh-subprocess-local` |
-| `bash` | `@deepseek-ai/dsh-bash-local` |
-| `agent-spine` | `@deepseek-ai/dsh-agent-spine-demo` |
-| `persistence` | `@deepseek-ai/dsh-session-persistence-jsonl` |
-| `checkpoint-policy` | `@deepseek-ai/dsh-session-checkpoint-policy` |
-| `token-meter` | `@deepseek-ai/dsh-token-meter` |
-| `compact-basic` | `@deepseek-ai/dsh-compact-basic` |
-| `session-projection` | `@deepseek-ai/dsh-session-projection` |
-| `subagent` | `@deepseek-ai/dsh-subagent` |
-| `subagent-spawn` | `@deepseek-ai/dsh-subagent-spawn` |
-| `subagent-fork` | `@deepseek-ai/dsh-subagent-fork` |
-| `tool-subagent-control` | `@deepseek-ai/dsh-tool-subagent-control` |
-| `tool-subagent-report` | `@deepseek-ai/dsh-tool-subagent-report` |
-| `tool-subagent` | `@deepseek-ai/dsh-tool-subagent` |
-| `tool-subagent-fork` | `@deepseek-ai/dsh-tool-subagent` |
-| `workflow-workerthread` | `@deepseek-ai/dsh-workflow-workerthread` |
-| `tool-workflow` | `@deepseek-ai/dsh-tool-workflow` |
-| `tool-ralph` | `@deepseek-ai/dsh-tool-ralph` |
-| `tool-todo` | `@deepseek-ai/dsh-tool-todo` |
-| `fs-local` | `@deepseek-ai/dsh-fs-local` |
-| `fs-policy` | `@deepseek-ai/dsh-fs-policy` |
-| `tool-fs` | `@deepseek-ai/dsh-tool-fs` |
+| `settings` | `@huiliyi37/dsh-settings-local` |
+| `credentials` | `@huiliyi37/dsh-credentials-local` |
+| `llm-deepseek` | `@huiliyi37/dsh-llm-deepseek` |
+| `subprocess` | `@huiliyi37/dsh-subprocess-local` |
+| `bash` | `@huiliyi37/dsh-bash-local` |
+| `agent-spine` | `@huiliyi37/dsh-agent-spine-demo` |
+| `persistence` | `@huiliyi37/dsh-session-persistence-jsonl` |
+| `checkpoint-policy` | `@huiliyi37/dsh-session-checkpoint-policy` |
+| `token-meter` | `@huiliyi37/dsh-token-meter` |
+| `compact-basic` | `@huiliyi37/dsh-compact-basic` |
+| `session-projection` | `@huiliyi37/dsh-session-projection` |
+| `subagent` | `@huiliyi37/dsh-subagent` |
+| `subagent-spawn` | `@huiliyi37/dsh-subagent-spawn` |
+| `subagent-fork` | `@huiliyi37/dsh-subagent-fork` |
+| `tool-subagent-control` | `@huiliyi37/dsh-tool-subagent-control` |
+| `tool-subagent-report` | `@huiliyi37/dsh-tool-subagent-report` |
+| `tool-subagent` | `@huiliyi37/dsh-tool-subagent` |
+| `tool-subagent-fork` | `@huiliyi37/dsh-tool-subagent` |
+| `workflow-workerthread` | `@huiliyi37/dsh-workflow-workerthread` |
+| `tool-workflow` | `@huiliyi37/dsh-tool-workflow` |
+| `tool-ralph` | `@huiliyi37/dsh-tool-ralph` |
+| `tool-todo` | `@huiliyi37/dsh-tool-todo` |
+| `fs-local` | `@huiliyi37/dsh-fs-local` |
+| `fs-policy` | `@huiliyi37/dsh-fs-policy` |
+| `tool-fs` | `@huiliyi37/dsh-tool-fs` |
 
 Source config: [`examples/headless-agent/cordis.yml`](cordis.yml).
 

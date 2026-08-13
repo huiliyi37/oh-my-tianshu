@@ -123,13 +123,13 @@ export class StatusLineRunner {
 // 工作流阶段与当前工具活动，不发明事件类型、不写回 session log。
 // ─────────────────────────────────────────────────────────────────────
 
-import type { Context } from 'cordis'
-import type { AgentStatus } from '@deepseek-ai/dsh-agent'
-import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import type { AgentStatus } from '@huiliyi37/dsh-agent'
+import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
 // 事件声明合并：approval/policy（user-approval）与 permission/preset
 // （permission）扩展 SessionEventMap——本类折叠这两个会话事件为授权徽标。
-import type {} from '@deepseek-ai/dsh-user-approval'
-import type {} from '@deepseek-ai/dsh-permission'
+import type {} from '@huiliyi37/dsh-user-approval'
+import type {} from '@huiliyi37/dsh-permission'
 
 /** 六阶段工作流：理解 → 调研 → 拆解 → 实施 → 验证 → 收尾。 */
 export type WorkflowPhase = 'understand' | 'research' | 'decompose' | 'implement' | 'verify' | 'wrapup'

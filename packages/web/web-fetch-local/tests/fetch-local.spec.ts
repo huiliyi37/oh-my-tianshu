@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { AddressInfo } from 'node:net'
-import { Context } from 'cordis'
-import WebService from '@deepseek-ai/dsh-web'
-import { LocalFetchProvider, LOCAL_FETCH_PROVIDER_ID } from '@deepseek-ai/dsh-web-fetch-local'
-import type { LocalFetchLimits } from '@deepseek-ai/dsh-web-fetch-local'
-import * as fetchPlugin from '@deepseek-ai/dsh-web-fetch-local'
+import { Context } from '@huiliyi37/cordis'
+import WebService from '@huiliyi37/dsh-web'
+import { LocalFetchProvider, LOCAL_FETCH_PROVIDER_ID } from '@huiliyi37/dsh-web-fetch-local'
+import type { LocalFetchLimits } from '@huiliyi37/dsh-web-fetch-local'
+import * as fetchPlugin from '@huiliyi37/dsh-web-fetch-local'
 import { classifyContentType, decoderForCharset, isSameOrigin, parseCharset, validateFetchUrl } from '../src/policy.ts'
 
 const limits: LocalFetchLimits = {

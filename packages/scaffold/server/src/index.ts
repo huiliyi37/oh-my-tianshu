@@ -6,17 +6,17 @@
  * owns EOF and signal exits. Keep named plugin exports with no default export so
  * Loader `unwrapExports` preserves `name`, `inject`, `Config`, and `apply`.
  *
- * FIXME: rename to `@deepseek-ai/dsh-sdk-server` before the first tagged release —
+ * FIXME: rename to `@huiliyi37/dsh-sdk-server` before the first tagged release —
  * the current name says the wire encoding, not the role; it is the server half of
  * the SDK protocol ([regrouping Agent Note](../../../../.agents/notes/implemented/architecture/2026-07-29-package-regrouping.md)).
  *
- * @module @deepseek-ai/dsh-jsonrpc
+ * @module @huiliyi37/dsh-jsonrpc
  */
 
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import type { Readable, Writable } from 'node:stream'
-import Schema from 'schemastery'
-import { JsonRpcLineTransport } from '@deepseek-ai/dsh-sdk-protocol'
+import Schema from '@huiliyi37/schemastery'
+import { JsonRpcLineTransport } from '@huiliyi37/dsh-sdk-protocol'
 import { HarnessSdkServer } from './server.ts'
 
 export * from './server.ts'

@@ -11,12 +11,12 @@
  *
  * 未装配时零行为（可选插件）；headless 无 tools/events 时静默降级。
  *
- * @module @deepseek-ai/dsh-evidence-gate
+ * @module @huiliyi37/dsh-evidence-gate
  */
 
-import type { Context } from 'cordis'
-import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
-import type { ToolGuard } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@huiliyi37/cordis'
+import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
+import type { ToolGuard } from '@huiliyi37/dsh-tools'
 import { ObligationTracker, type FinalEvaluation } from './tracker.js'
 import type { EvidenceObligation, ObligationInput } from './obligation.js'
 import { detectVerification } from './verification.js'
@@ -29,7 +29,7 @@ export const name = 'evidence-gate'
 /** 编辑工具 → 参数字段提取（dsh 原生工具 str_replace_editor + 天枢风格工具兼容；
  *  提取不到路径或纯读操作时保守放行）。 */
 const EDIT_TOOLS: ReadonlyArray<readonly [string, (args: Record<string, unknown>) => string | undefined]> = [
-  // dsh 原生编辑工具（@deepseek-ai/dsh-tool-str-replace-editor）：写命令
+  // dsh 原生编辑工具（@huiliyi37/dsh-tool-str-replace-editor）：写命令
   // create/str_replace/insert 拦；view 是读操作放行。
   ['str_replace_editor', (args) => {
     const command = asString(args.command)

@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import * as primitives from '@deepseek-ai/dsh-client-ui-primitives'
+import * as primitives from '@huiliyi37/dsh-client-ui-primitives'
 import {
   IconApiOutline14, IconArchiveOutline20, IconFolderClose16, IconGoalOutline16, IconSendOutline16,
-} from '@deepseek-ai/dsh-client-ui-primitives'
+} from '@huiliyi37/dsh-client-ui-primitives'
 
 afterEach(cleanup)
 

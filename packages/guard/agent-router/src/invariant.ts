@@ -1,5 +1,5 @@
 /**
- * Runtime invariant companion for @deepseek-ai/dsh-agent-router.
+ * Runtime invariant companion for @huiliyi37/dsh-agent-router.
  *
  * The router owns no independent durable state: the prediction accumulator is
  * in-memory per-session, and subagent dispatch is a transient lifecycle over
@@ -7,13 +7,13 @@
  * (metrics → action, native dispatch) is asserted behaviorally by package
  * tests. No separate runtime invariant is needed.
  *
- * @module @deepseek-ai/dsh-agent-router/invariant
+ * @module @huiliyi37/dsh-agent-router/invariant
  */
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-agent-router'
+const PACKAGE_NAME = '@huiliyi37/dsh-agent-router'
 
 /** Cordis companion plugin name. */
 export const name = 'agent-router-invariant'

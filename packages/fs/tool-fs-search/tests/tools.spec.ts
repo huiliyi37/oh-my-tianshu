@@ -11,18 +11,18 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { join, sep } from 'node:path'
-import { createUserMessage, CallId } from '@deepseek-ai/dsh-llm'
-import SystemPrompt, { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry, { TOOL_ABORTED_BEFORE_DISPATCH, type ToolExecution, type ToolExecutionToken } from '@deepseek-ai/dsh-tools'
-import { SubprocessService } from '@deepseek-ai/dsh-subprocess'
-import type { SubprocessCollectedOutputs, SubprocessHandle, SubprocessOutcome, SubprocessOutputRead, SubprocessOutputReader, SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
-import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
+import { createUserMessage, CallId } from '@huiliyi37/dsh-llm'
+import SystemPrompt, { renderPrompt } from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry, { TOOL_ABORTED_BEFORE_DISPATCH, type ToolExecution, type ToolExecutionToken } from '@huiliyi37/dsh-tools'
+import { SubprocessService } from '@huiliyi37/dsh-subprocess'
+import type { SubprocessCollectedOutputs, SubprocessHandle, SubprocessOutcome, SubprocessOutputRead, SubprocessOutputReader, SubprocessSpawnSpec } from '@huiliyi37/dsh-subprocess'
+import { MAX_TIMER_DELAY_MS } from '@huiliyi37/dsh-timeout'
 import { rgPath } from '@vscode/ripgrep'
-import { SpillLocator, SpillStore } from '@deepseek-ai/dsh-spill'
-import type { SaveTextSpill, SpillRef } from '@deepseek-ai/dsh-spill'
-import * as ToolFsSearch from '@deepseek-ai/dsh-tool-fs-search'
+import { SpillLocator, SpillStore } from '@huiliyi37/dsh-spill'
+import type { SaveTextSpill, SpillRef } from '@huiliyi37/dsh-spill'
+import * as ToolFsSearch from '@huiliyi37/dsh-tool-fs-search'
 import {
   buildGlobCommand,
   buildGrepCommand,
@@ -37,7 +37,7 @@ import {
   runRipgrep,
   sampleAcrossTopLevel,
   toWorkdirRelative,
-} from '@deepseek-ai/dsh-tool-fs-search'
+} from '@huiliyi37/dsh-tool-fs-search'
 
 const testToolSignal = new AbortController().signal
 

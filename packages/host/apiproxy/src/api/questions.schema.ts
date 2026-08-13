@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod'
-import type { AskUserQuestionAnswer } from '@deepseek-ai/dsh-user-interaction/types'
+import type { AskUserQuestionAnswer } from '@huiliyi37/dsh-user-interaction/types'
 import type { QuestionResponsePayload } from './questions.ts'
 import type { Wire } from './rpc.schema.ts'
 import { sessionIdSchema } from './sessions.schema.ts'

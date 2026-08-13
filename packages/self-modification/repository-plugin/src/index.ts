@@ -1,16 +1,16 @@
 /**
  * Trusted repository-package runtime for code, skills, and common MCP definitions.
- * @module @deepseek-ai/dsh-repository-plugin
+ * @module @huiliyi37/dsh-repository-plugin
  */
 
 import { readFile, stat } from 'node:fs/promises'
 import { dirname, isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { Context } from 'cordis'
-import type {} from '@cordisjs/plugin-loader'
-import { RepositoryCache } from '@cordisjs/plugin-loader/repository'
-import * as SkillLocal from '@deepseek-ai/dsh-skill-local'
-import * as McpClient from '@deepseek-ai/dsh-mcp-client'
+import type { Context } from '@huiliyi37/cordis'
+import type {} from '@huiliyi37/cordis-plugin-loader'
+import { RepositoryCache } from '@huiliyi37/cordis-plugin-loader/repository'
+import * as SkillLocal from '@huiliyi37/dsh-skill-local'
+import * as McpClient from '@huiliyi37/dsh-mcp-client'
 import { z } from 'zod'
 import {
   REPOSITORY_PLUGIN_BUILTIN,

@@ -6,8 +6,8 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import { FileSystem, FsError, FsTargetKey, FsVersion } from '@deepseek-ai/dsh-fs'
+import { Context } from '@huiliyi37/cordis'
+import { FileSystem, FsError, FsTargetKey, FsVersion } from '@huiliyi37/dsh-fs'
 import type {
   FsDirEntry,
   FsEditOutcome,
@@ -17,7 +17,7 @@ import type {
   FsTarget,
   FsWriteIntent,
   FsWriteOutcome,
-} from '@deepseek-ai/dsh-fs'
+} from '@huiliyi37/dsh-fs'
 
 /** A minimal in-memory fake implementing the provider primitives. */
 class FakeFileSystem extends FileSystem {

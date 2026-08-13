@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-git
+# @huiliyi37/dsh-git
 
 English | [中文](README.zh.md)
 
@@ -8,7 +8,7 @@ The **git capability seam**: the `Git` service definition plus the `GitLocal` CL
 
 ```yaml
 - id: git
-  name: '@deepseek-ai/dsh-git'
+  name: '@huiliyi37/dsh-git'
   config:
     gitBin: git   # optional; git executable (default `git`; tests inject a stub)
 ```

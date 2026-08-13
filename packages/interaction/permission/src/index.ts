@@ -10,21 +10,21 @@
  * @module dsh-permission
  */
 
-import { Context, Service } from 'cordis'
-import z from 'schemastery'
+import { Context, Service } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 import { z as zod } from 'zod'
-import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
-import type { SandboxMode } from '@deepseek-ai/dsh-sandbox'
-import { SANDBOX_MODES, effectiveSandboxMode, setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
+import type { Session, SessionEvent } from '@huiliyi37/dsh-session'
+import type { SandboxMode } from '@huiliyi37/dsh-sandbox'
+import { SANDBOX_MODES, effectiveSandboxMode, setSandboxMode } from '@huiliyi37/dsh-sandbox-policy'
 // Side-effect type import: declaration-merges `ctx.bash` (the capability fact
 // `sandboxMode` this service reads), without a value dependency on the seam.
-import type {} from '@deepseek-ai/dsh-bash'
-import type { ApprovalPolicy } from '@deepseek-ai/dsh-user-approval'
-import { APPROVAL_POLICIES, effectiveApprovalPolicy, setApprovalPolicy } from '@deepseek-ai/dsh-user-approval'
-import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
+import type {} from '@huiliyi37/dsh-bash'
+import type { ApprovalPolicy } from '@huiliyi37/dsh-user-approval'
+import { APPROVAL_POLICIES, effectiveApprovalPolicy, setApprovalPolicy } from '@huiliyi37/dsh-user-approval'
+import { installSettingsSection, settingsNamespace } from '@huiliyi37/dsh-settings'
 // Type-only: resolves ctx.sessionProjections / ctx.commands for the optional children.
-import type {} from '@deepseek-ai/dsh-session-projection'
-import type {} from '@deepseek-ai/dsh-commands'
+import type {} from '@huiliyi37/dsh-session-projection'
+import type {} from '@huiliyi37/dsh-commands'
 import type { PermissionSelect, PresetOption } from './types.ts'
 
 // The `permissions` projection-key declaration lives in src/types.ts (its one
@@ -33,13 +33,13 @@ import type { PermissionSelect, PresetOption } from './types.ts'
 // consuming the declarations still receive the SessionProjectionMap merge.
 export type * from './types.ts'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     permission: PermissionService
   }
 }
 
-declare module '@deepseek-ai/dsh-session/types' {
+declare module '@huiliyi37/dsh-session/types' {
   interface SessionEventMap {
     /**
      * Records the selected preset as durable, log-only user intent. The knob

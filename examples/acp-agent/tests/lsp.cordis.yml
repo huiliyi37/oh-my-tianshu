@@ -1,15 +1,15 @@
 # Exercise the model-facing LSP tool through the shipped ACP app and Loader entry path.
 # The scenario workspace supplies the deterministic stdio server used by this test composition.
 - id: base
-  name: '@cordisjs/plugin-include'
+  name: '@huiliyi37/cordis-plugin-include'
   config:
     path: ../cordis.yml
     patches:
       - insert:
           - id: lsp
-            name: '@deepseek-ai/dsh-lsp'
+            name: '@huiliyi37/dsh-lsp'
           - id: lsp-local
-            name: '@deepseek-ai/dsh-lsp-local'
+            name: '@huiliyi37/dsh-lsp-local'
             config:
               servers:
                 fixture:
@@ -18,8 +18,8 @@
                   extensionToLanguage:
                     '.ts': typescript
           - id: timeout-policy
-            name: '@deepseek-ai/dsh-timeout-policy'
+            name: '@huiliyi37/dsh-timeout-policy'
           - id: tool-lsp
-            name: '@deepseek-ai/dsh-tool-lsp'
+            name: '@huiliyi37/dsh-tool-lsp'
             config:
               maxLocations: 1

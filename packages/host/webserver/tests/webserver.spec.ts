@@ -12,9 +12,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import Include from '@cordisjs/plugin-include'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import Include from '@huiliyi37/cordis-plugin-include'
 import HttpServer from '../src/index.ts'
 
 let root: string | undefined
@@ -32,7 +32,7 @@ async function loadComposition(port = 0): Promise<Context> {
   root = await mkdtemp(join(tmpdir(), 'dsh-webserver-loader-'))
   const configPath = join(root, 'cordis.yml')
   await writeFile(configPath, [
-    "- name: '@deepseek-ai/dsh-host-webserver'",
+    "- name: '@huiliyi37/dsh-host-webserver'",
     '  config:',
     "    host: '127.0.0.1'",
     `    port: ${String(port)}`,
@@ -44,7 +44,7 @@ async function loadComposition(port = 0): Promise<Context> {
   await context.plugin(Loader)
   context.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
-    ['@deepseek-ai/dsh-host-webserver', HttpServer],
+    ['@huiliyi37/dsh-host-webserver', HttpServer],
   ])
   context.loader.internal = {
     version: 'v2',

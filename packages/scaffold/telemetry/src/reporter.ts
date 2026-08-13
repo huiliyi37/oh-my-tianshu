@@ -7,7 +7,7 @@
  * of rejecting. {@link TelemetryReporter.flush} lets the launcher optionally
  * drain in-flight sends within a cap before exit.
  *
- * @module @deepseek-ai/dsh-telemetry/reporter
+ * @module @huiliyi37/dsh-telemetry/reporter
  */
 
 import type { ConsentDecision } from './consent-resolver.ts'

@@ -1,10 +1,10 @@
-import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
+import type { SessionEvent } from '@huiliyi37/dsh-session/types'
 import {
   SurfaceManager, isSurfaceEligibleType, isSurfaceEvent,
-} from '@deepseek-ai/dsh-session/surface'
+} from '@huiliyi37/dsh-session/surface'
 import type {
   HistoryEntry, ToolCallView, ToolResultView,
-} from '@deepseek-ai/dsh-client-connection/client'
+} from '@huiliyi37/dsh-client-connection/client'
 import type {
   AssistantRequestConfig, AssistantTiming, ConversationNode,
   PartialAssistant, RunningToolCall,

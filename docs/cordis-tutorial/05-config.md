@@ -9,8 +9,8 @@ Each `cordis.yml` entry can carry a `config` block, and the plugin declares a sc
 Create `config-demo.ts` in `tmp/cordis-tutorial`:
 
 ```ts
-import type { Context } from 'cordis'
-import Schema from 'schemastery'
+import type { Context } from '@huiliyi37/cordis'
+import Schema from '@huiliyi37/schemastery'
 
 export const name = 'config-demo'
 

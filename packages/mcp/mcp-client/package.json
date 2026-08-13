@@ -1,8 +1,15 @@
 {
-  "name": "@deepseek-ai/dsh-mcp-client",
+  "name": "@huiliyi37/dsh-mcp-client",
   "description": "MCP client bridge: connects to MCP servers and registers their tools on ctx.tools",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "directory": "packages/mcp/mcp-client"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -25,24 +32,24 @@
   ],
   "license": "BSD-3-Clause",
   "peerDependencies": {
-    "@deepseek-ai/dsh-invariants": "^0.0.1",
-    "@deepseek-ai/dsh-llm": "^0.0.1",
-    "@deepseek-ai/dsh-subprocess": "^0.0.1",
-    "@deepseek-ai/dsh-tools": "^0.0.1",
-    "cordis": "^4.0.0-rc.7"
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/dsh-llm": "^0.2.0",
+    "@huiliyi37/dsh-subprocess": "^0.2.0",
+    "@huiliyi37/dsh-tools": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
-    "schemastery": "^3.18.0",
+    "@huiliyi37/schemastery": "^3.18.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-llm": "workspace:^",
-    "@deepseek-ai/dsh-subprocess": "workspace:^",
-    "@deepseek-ai/dsh-tools": "workspace:^",
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/dsh-llm": "workspace:^",
+    "@huiliyi37/dsh-subprocess": "workspace:^",
+    "@huiliyi37/dsh-tools": "workspace:^",
     "@modelcontextprotocol/server-everything": "^2026.7.4",
     "@modelcontextprotocol/server-filesystem": "^2026.7.4",
-    "cordis": "^4.0.0-rc.7"
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
   }
 }

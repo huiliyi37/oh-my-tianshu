@@ -7,12 +7,12 @@
  * through one property read; assignment through the tracker proxy and `#`
  * private fields bypass that rebinding.
  */
-import { Service } from 'cordis'
-import type { Context } from 'cordis'
+import { Service } from '@huiliyi37/cordis'
+import type { Context } from '@huiliyi37/cordis'
 // Type-only imports: a plugin-to-plugin value import is a bundle purity
 // error, so scope resolution goes through the sessions service (scopeOf
 // method) instead of the standalone helper.
-import type { ISessions, SessionFace, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ISessions, SessionFace, SessionId } from '@huiliyi37/dsh-client-runtime/client'
 import type { QueueAction, QueueItemId } from './contract/queue.ts'
 import type { ComposerBlocks } from './input/blocks.ts'
 import type { InputService } from './input/contract.ts'

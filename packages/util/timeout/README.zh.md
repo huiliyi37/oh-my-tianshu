@@ -11,7 +11,7 @@
 ## 对外接口
 
 ```ts
-import { clampTimeout, deadline, idleWatchdog, MAX_TIMER_DELAY_MS, timeoutOf, TimeoutReason } from '@deepseek-ai/dsh-timeout'
+import { clampTimeout, deadline, idleWatchdog, MAX_TIMER_DELAY_MS, timeoutOf, TimeoutReason } from '@huiliyi37/dsh-timeout'
 ```
 
 | 导出项 | 职责 |
@@ -30,7 +30,7 @@ import { clampTimeout, deadline, idleWatchdog, MAX_TIMER_DELAY_MS, timeoutOf, Ti
 ## 使用形态
 
 ```ts
-import { deadline, timeoutOf } from '@deepseek-ai/dsh-timeout'
+import { deadline, timeoutOf } from '@huiliyi37/dsh-timeout'
 
 declare function runWork(options: { signal: AbortSignal }): Promise<unknown>
 

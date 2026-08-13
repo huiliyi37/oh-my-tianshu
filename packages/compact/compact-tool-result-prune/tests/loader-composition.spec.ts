@@ -3,11 +3,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import Include from '@cordisjs/plugin-include'
-import TokenMeterService from '@deepseek-ai/dsh-token-meter'
-import ToolResultPruneService from '@deepseek-ai/dsh-compact-tool-result-prune'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import Include from '@huiliyi37/cordis-plugin-include'
+import TokenMeterService from '@huiliyi37/dsh-token-meter'
+import ToolResultPruneService from '@huiliyi37/dsh-compact-tool-result-prune'
 
 let root: string | undefined
 let context: Context | undefined
@@ -24,8 +24,8 @@ describe('compact-tool-result-prune real Loader composition', () => {
     root = await mkdtemp(join(tmpdir(), 'dsh-compact-tool-result-prune-loader-'))
     const configPath = join(root, 'cordis.yml')
     await writeFile(configPath, [
-      "- name: '@deepseek-ai/dsh-token-meter'",
-      "- name: '@deepseek-ai/dsh-compact-tool-result-prune'",
+      "- name: '@huiliyi37/dsh-token-meter'",
+      "- name: '@huiliyi37/dsh-compact-tool-result-prune'",
       '  config:',
       '    thresholdChars: 100',
       '    headChars: 20',
@@ -40,8 +40,8 @@ describe('compact-tool-result-prune real Loader composition', () => {
     context.loader.internal = {
       version: 'v2',
       async import(specifier: string) {
-        if (specifier === '@deepseek-ai/dsh-token-meter') return TokenMeterService
-        if (specifier === '@deepseek-ai/dsh-compact-tool-result-prune') return ToolResultPruneService
+        if (specifier === '@huiliyi37/dsh-token-meter') return TokenMeterService
+        if (specifier === '@huiliyi37/dsh-compact-tool-result-prune') return ToolResultPruneService
         throw new Error(`unexpected Loader import: ${specifier}`)
       },
     } as unknown as NonNullable<typeof context.loader.internal>

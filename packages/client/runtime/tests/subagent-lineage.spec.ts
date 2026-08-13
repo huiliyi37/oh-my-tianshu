@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { SessionId, SessionSummary } from '@deepseek-ai/dsh-client-runtime/client'
-import { indexSubagentDescendants } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SessionId, SessionSummary } from '@huiliyi37/dsh-client-runtime/client'
+import { indexSubagentDescendants } from '@huiliyi37/dsh-client-runtime/client'
 
 const sid = (id: string) => id as SessionId
 

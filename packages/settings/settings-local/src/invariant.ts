@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-settings-local`.
- * @module @deepseek-ai/dsh-settings-local/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-settings-local`.
+ * @module @huiliyi37/dsh-settings-local/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-settings-local'
+const PACKAGE_NAME = '@huiliyi37/dsh-settings-local'
 
 /** Cordis companion plugin name. */
 export const name = 'settings-local-invariant'
@@ -17,7 +17,7 @@ export const inject = ['invariants']
 /**
  * No runtime invariant: this provider's contracts are file round-trip,
  * watcher timing, and atomic-write behavior — IO effects proven by package
- * tests; the in-process commit relation is owned by `@deepseek-ai/dsh-settings`.
+ * tests; the in-process commit relation is owned by `@huiliyi37/dsh-settings`.
  */
 const install: InvariantInstaller = () => {}
 

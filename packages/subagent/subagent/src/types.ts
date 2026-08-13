@@ -6,14 +6,14 @@
  * continuation host in `./continuation.ts` — so this module stays the published
  * surface rather than a bag of everything type-shaped.
  *
- * @module @deepseek-ai/dsh-subagent/types
+ * @module @huiliyi37/dsh-subagent/types
  */
 
-import type { Agent, AgentOptions } from '@deepseek-ai/dsh-agent'
-import type { Branded } from '@deepseek-ai/dsh-brand'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
-import type { ObjectJsonSchema, ToolRestriction } from '@deepseek-ai/dsh-tools'
+import type { Agent, AgentOptions } from '@huiliyi37/dsh-agent'
+import type { Branded } from '@huiliyi37/dsh-brand'
+import type { ContentBlock } from '@huiliyi37/dsh-llm'
+import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
+import type { ObjectJsonSchema, ToolRestriction } from '@huiliyi37/dsh-tools'
 import type { SubagentDescriptorData } from './descriptor.ts'
 
 /** Identifies one accepted subagent run across its lifecycle event pair. */

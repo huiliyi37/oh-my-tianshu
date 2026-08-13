@@ -5,7 +5,7 @@
  * 输出 RouterAction（self / delegate 子代理）。规则确定性、优先级降序、
  * 纯函数可单测——不做学习/bandit（天枢 bandit-promotion 太重，之后慢慢改造）。
  *
- * @module @deepseek-ai/dsh-agent-router/router
+ * @module @huiliyi37/dsh-agent-router/router
  */
 
 import type { InterventionLevel } from './prediction.js'

@@ -2,7 +2,7 @@
  * dsh-sdk create command: add an external Cordis plugin (github or npm) as a
  * native package-manager dependency and mount it in cordis.yml.
  *
- * @module @deepseek-ai/dsh-scripts/create-plugin
+ * @module @huiliyi37/dsh-scripts/create-plugin
  */
 
 import { readFile } from 'node:fs/promises'
@@ -16,7 +16,7 @@ import {
   type PackageManager,
   type ProjectCommitResult,
   type PromptPort,
-} from '@deepseek-ai/dsh-helper'
+} from '@huiliyi37/dsh-helper'
 
 /** Process and interaction slice required by dsh-sdk create. */
 export interface CreatePluginContext {

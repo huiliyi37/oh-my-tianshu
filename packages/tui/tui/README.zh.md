@@ -9,7 +9,7 @@
 ```yaml
 # cordis.yml（examples/tui 是可运行样例；bundle patch 自动插入同一行）
 - id: tui-runner
-  name: '@deepseek-ai/dsh-tui'
+  name: '@huiliyi37/dsh-tui'
 ```
 
 `TuiRunnerConfig`（全部可选）：

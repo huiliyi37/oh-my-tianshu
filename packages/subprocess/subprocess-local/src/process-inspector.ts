@@ -2,7 +2,7 @@
 
 import { closeSync, openSync, readFileSync, readdirSync, readSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
-import type { SubprocessTerminalSignal } from '@deepseek-ai/dsh-subprocess'
+import type { SubprocessTerminalSignal } from '@huiliyi37/dsh-subprocess'
 
 /** PID plus start identity, preventing teardown escalation after PID reuse. */
 export interface ProcessIdentity {

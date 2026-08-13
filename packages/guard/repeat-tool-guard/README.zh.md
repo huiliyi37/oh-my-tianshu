@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-repeat-tool-guard
+# @huiliyi37/dsh-repeat-tool-guard
 
 [English](README.md) | 中文
 
@@ -8,7 +8,7 @@
 
 ```yaml
 - id: repeat-tool-guard
-  name: '@deepseek-ai/dsh-repeat-tool-guard'
+  name: '@huiliyi37/dsh-repeat-tool-guard'
   config:
     thresholds: [3, 5, 8]        # default; consecutive counts that trigger a reminder
     include: []                  # tool-name patterns to track; empty ⇒ all tools

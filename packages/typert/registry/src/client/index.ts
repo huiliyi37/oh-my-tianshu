@@ -1,6 +1,6 @@
 /** Browser face of the shared TypeRT runtime registry. */
 
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import { TypertRegistry } from '../service.ts'
 
 /** Required services: none; this is the Client reflection root. */

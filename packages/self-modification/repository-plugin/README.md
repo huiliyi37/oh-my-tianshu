@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-repository-plugin
+# @huiliyi37/dsh-repository-plugin
 
 English | [中文](README.zh.md)
 
@@ -27,13 +27,13 @@ Place an ordinary package in the repository's `.dsh-plugin` directory:
     "@modelcontextprotocol/sdk": "1.29.0"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-repository-plugin": "^0.0.1",
+    "@huiliyi37/dsh-repository-plugin": "^0.0.1",
     "typescript": "6.0.3"
   }
 }
 ```
 
-`scripts.prepack` must be non-empty and invoke `dsh-plugin-prepare`; it may run arbitrary package-owned build steps first. The package declares `@deepseek-ai/dsh-repository-plugin` as an ordinary development dependency so its published executable is available to that lifecycle. DSH does not inject the helper: the repository package declares and runs its own compiler, runtime dependencies, preparation helper, and other npm lifecycle code. The selected package is installed from its own manifest instead of inheriting an enclosing pnpm workspace, so declare every dependency it needs and do not depend on workspace-only hoisting. DSH does not transpile TypeScript or infer a package entry.
+`scripts.prepack` must be non-empty and invoke `dsh-plugin-prepare`; it may run arbitrary package-owned build steps first. The package declares `@huiliyi37/dsh-repository-plugin` as an ordinary development dependency so its published executable is available to that lifecycle. DSH does not inject the helper: the repository package declares and runs its own compiler, runtime dependencies, preparation helper, and other npm lifecycle code. The selected package is installed from its own manifest instead of inheriting an enclosing pnpm workspace, so declare every dependency it needs and do not depend on workspace-only hoisting. DSH does not transpile TypeScript or infer a package entry.
 
 `dsh.entry` is an optional relative path to a compiled ESM Cordis Plugin inside `.dsh-plugin`. The module may use either namespace exports or a default export and owns its ordinary `name`, `inject`, `Config`, registrations, and effects. `dsh.skills` is an optional array of local skill roots, and `dsh.mcpServers` is an optional path to one `.mcp.json`; at least one of the three fields is required. Skill and MCP paths may reach adjacent repository assets but must remain beneath the directory containing `.dsh-plugin`; the compiled entry must remain inside the package selected and packed by the package manager. A repository containing several Plugins gives each one its own `.dsh-plugin` package under a different selectable subdirectory.
 
@@ -45,7 +45,7 @@ The shipped `dsh-base` bundle every profile starts from contains an empty `repos
 
 ```yaml
 - id: repository-plugins
-  name: '@deepseek-ai/dsh-repository-plugin'
+  name: '@huiliyi37/dsh-repository-plugin'
   config:
     repositories:
       - 'github:PolyArch/humanize#<commit>'
@@ -60,7 +60,7 @@ Long-lived surfaces watch both `cordis.patch.yml` layers through Cordis HMR. A v
 
 ## Preparation
 
-During exact Git installation, DSH's bundled pnpm installs the selected package from its own manifest. A transaction-owned `pnpm` wrapper reinvokes the same pinned pnpm with `--ignore-workspace`, so an enclosing workspace lockfile cannot suppress dependencies declared only by the selected `.dsh-plugin` package. The required `prepack` lifecycle runs after that dependency installation and before the selected subdirectory is packed; its ordinary `node_modules/.bin` lookup obtains `dsh-plugin-prepare` from the declared direct development dependency on `@deepseek-ai/dsh-repository-plugin`. That package marks its Cordis/DSH runtime peers optional so using the executable alone does not install the runtime graph. Package-owned commands may build TypeScript or other source before invoking the helper. The helper validates `package.json#dsh`, verifies that the compiled entry is an in-package file, validates skill and MCP sources, copies static assets under `dsh-plugin-assets`, and writes `dsh-plugin.mjs`. Before importing that wrapper, DSH revalidates that the installed package retained both the direct development dependency and a `prepack` declaration containing the helper command. Failure to resolve the published helper, install dependencies, build, or prepare fails before a cache generation is published. Rationale: [npm-backed Git source preparation Agent Note](../../../.agents/notes/implemented/bug-fix/2026-08-08-npm-backed-git-repository-plugin-preparation.md).
+During exact Git installation, DSH's bundled pnpm installs the selected package from its own manifest. A transaction-owned `pnpm` wrapper reinvokes the same pinned pnpm with `--ignore-workspace`, so an enclosing workspace lockfile cannot suppress dependencies declared only by the selected `.dsh-plugin` package. The required `prepack` lifecycle runs after that dependency installation and before the selected subdirectory is packed; its ordinary `node_modules/.bin` lookup obtains `dsh-plugin-prepare` from the declared direct development dependency on `@huiliyi37/dsh-repository-plugin`. That package marks its Cordis/DSH runtime peers optional so using the executable alone does not install the runtime graph. Package-owned commands may build TypeScript or other source before invoking the helper. The helper validates `package.json#dsh`, verifies that the compiled entry is an in-package file, validates skill and MCP sources, copies static assets under `dsh-plugin-assets`, and writes `dsh-plugin.mjs`. Before importing that wrapper, DSH revalidates that the installed package retained both the direct development dependency and a `prepack` declaration containing the helper command. Failure to resolve the published helper, install dependencies, build, or prepare fails before a cache generation is published. Rationale: [npm-backed Git source preparation Agent Note](../../../.agents/notes/implemented/bug-fix/2026-08-08-npm-backed-git-repository-plugin-preparation.md).
 
 ## Runtime composition
 

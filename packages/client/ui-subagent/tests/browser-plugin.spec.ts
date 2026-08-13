@@ -9,16 +9,16 @@
  * projections. Direct driving is deliberate: this spec owns only the
  * source's own contract.
  */
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it } from 'vitest'
 import {
   SlotsService, type ConversationSnapshot, type SessionId, type SessionListState,
   type SessionSummary, type SubagentAddress,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import type { ComposerChainProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import { SlashService } from '@deepseek-ai/dsh-client-ui-slash/client'
-import type { ClientSessionContext, SlashSource } from '@deepseek-ai/dsh-client-ui-slash/client'
-import { apply as applyLocale } from '@deepseek-ai/dsh-client-locale/client'
+} from '@huiliyi37/dsh-client-runtime/client'
+import type { ComposerChainProps } from '@huiliyi37/dsh-client-ui-conversation/client'
+import { SlashService } from '@huiliyi37/dsh-client-ui-slash/client'
+import type { ClientSessionContext, SlashSource } from '@huiliyi37/dsh-client-ui-slash/client'
+import { apply as applyLocale } from '@huiliyi37/dsh-client-locale/client'
 import {
   SubagentCatalogAction, type SubagentCatalogInjected,
 } from '../src/client/SubagentCatalogAction.tsx'

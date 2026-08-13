@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-tasks
+# @huiliyi37/dsh-tasks
 
 [English](README.md) | 中文
 

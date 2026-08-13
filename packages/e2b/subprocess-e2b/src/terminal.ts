@@ -10,16 +10,16 @@ import {
   FileNotFoundError,
   SandboxNotFoundError,
   quoteE2BShellArg,
-} from '@deepseek-ai/dsh-e2b'
-import type { CommandHandle, CommandResult, Sandbox } from '@deepseek-ai/dsh-e2b'
+} from '@huiliyi37/dsh-e2b'
+import type { CommandHandle, CommandResult, Sandbox } from '@huiliyi37/dsh-e2b'
 import type {
   SubprocessOutcome,
   SubprocessTerminalForeground,
   SubprocessTerminalHandle,
   SubprocessTerminalSignal,
   SubprocessTerminalSpawnSpec,
-} from '@deepseek-ai/dsh-subprocess'
-import type E2BSandboxService from '@deepseek-ai/dsh-e2b'
+} from '@huiliyi37/dsh-subprocess'
+import type E2BSandboxService from '@huiliyi37/dsh-e2b'
 import {
   bootstrapEnvironment,
   readRemoteEnvironment,

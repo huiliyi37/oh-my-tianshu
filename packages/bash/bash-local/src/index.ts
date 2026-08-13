@@ -6,15 +6,15 @@
  * classification, the model-friendly terminal environment, and the model-facing
  * stdout/stderr merge for background reads. Execution policy belongs in
  * `tools/pre-execute` or a sandboxing executor.
- * @module @deepseek-ai/dsh-bash-local
+ * @module @huiliyi37/dsh-bash-local
  */
 
-import { Context } from 'cordis'
-import z from 'schemastery'
-import { BashExecutor } from '@deepseek-ai/dsh-bash'
-import type { BashExecRequest, BashExecSpec, BashProcess, BashProcessRead, BashRunResult, CollectedOutput } from '@deepseek-ai/dsh-bash'
-import type { SubprocessCollect, SubprocessHandle, SubprocessOutputReader, SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
-import { clampTimeout, deadline, MAX_TIMER_DELAY_MS, timeoutOf } from '@deepseek-ai/dsh-timeout'
+import { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { BashExecutor } from '@huiliyi37/dsh-bash'
+import type { BashExecRequest, BashExecSpec, BashProcess, BashProcessRead, BashRunResult, CollectedOutput } from '@huiliyi37/dsh-bash'
+import type { SubprocessCollect, SubprocessHandle, SubprocessOutputReader, SubprocessSpawnSpec } from '@huiliyi37/dsh-subprocess'
+import { clampTimeout, deadline, MAX_TIMER_DELAY_MS, timeoutOf } from '@huiliyi37/dsh-timeout'
 
 /**
  * Model-friendly environment overrides: disable colors, pagers, and

@@ -1,10 +1,10 @@
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { Context } from 'cordis'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import { SessionId } from '@huiliyi37/dsh-session'
 import { fsHarness, waitForIdle } from './harness.ts'
 
 /** Key-gated smoke for a real model driving the local read/write/edit tools. */

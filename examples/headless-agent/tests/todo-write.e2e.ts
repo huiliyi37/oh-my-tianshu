@@ -1,11 +1,11 @@
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import { codingHarness, TODO_SYSTEM_PROMPT, waitForIdle } from './harness.ts'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import { SessionId } from '@huiliyi37/dsh-session'
 
 /**
  * A REAL model drives the REAL todo_write tool: verify the WORLD (the session

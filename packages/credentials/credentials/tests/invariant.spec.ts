@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import InvariantService from '@deepseek-ai/dsh-invariants'
+import { Context } from '@huiliyi37/cordis'
+import InvariantService from '@huiliyi37/dsh-invariants'
 import { credentialRef } from '../src/index.ts'
 import * as CredentialsInvariant from '../src/invariant.ts'
 import { MemoryCredentials } from './memory.ts'
@@ -22,7 +22,7 @@ describe('credentials invariant companion', () => {
     await ctx.plugin(InvariantService)
     await ctx.plugin(CredentialsInvariant)
 
-    expect(() => { ctx.emit('credentials/updated', REF) }).toThrow(/invariant violated by "@deepseek-ai\/dsh-credentials"/)
+    expect(() => { ctx.emit('credentials/updated', REF) }).toThrow(/invariant violated by "@huiliyi37\/dsh-credentials"/)
   })
 
   it('reserves the package name against duplicate registration', async () => {
@@ -31,7 +31,7 @@ describe('credentials invariant companion', () => {
     await ctx.plugin(CredentialsInvariant)
 
     expect(() => {
-      ctx.invariants.register('@deepseek-ai/dsh-credentials', () => {})
+      ctx.invariants.register('@huiliyi37/dsh-credentials', () => {})
     }).toThrow(/already registered/)
   })
 })

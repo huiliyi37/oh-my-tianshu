@@ -1,10 +1,10 @@
 /**
  * Compiler-independent TypeRT protocol shared by business packages, generated
  * Remote artifacts, the Host Gateway, and Client API implementations.
- * @module @deepseek-ai/dsh-type-meta/types
+ * @module @huiliyi37/dsh-type-meta/types
  */
 
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 
 declare const LOOKUP_HOST: unique symbol
 declare const LOOKUP_WIRE: unique symbol
@@ -421,7 +421,7 @@ export interface TypeRTService {
   readonly contexts: TypeRTContextRegistry
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     typert: TypeRTService
   }

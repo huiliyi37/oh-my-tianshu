@@ -1,17 +1,17 @@
 /**
- * @deepseek-ai/dsh-tui — interactive terminal UI profile bundle. The bundle
+ * @huiliyi37/dsh-tui — interactive terminal UI profile bundle. The bundle
  * patch rides over dsh-base and inserts this runner under the stable
  * `tui-runner` id. Render core: the terminal rendering engine ported from
  * `.rivet/tui-source/tui/` (Apache-2.0 source; see SOURCE-MAP.md for the
  * per-file mapping). The engine is pure presentation — all agent state arrives
  * via {@link TuiPort}.
  *
- * @module @deepseek-ai/dsh-tui
+ * @module @huiliyi37/dsh-tui
  */
 
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import type { ReadStream, WriteStream } from 'node:tty'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { SessionId } from '@huiliyi37/dsh-session'
 import type { KeyName } from './engine/input-handler.ts'
 import { TuiApp } from './ui/app.ts'
 

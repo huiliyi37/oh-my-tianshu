@@ -3,11 +3,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type {
   SessionListState, WorkspaceId, WorkspaceListState, WorkspaceView,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
-import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+} from '@huiliyi37/dsh-client-runtime/client'
+import { makeTranslate } from '@huiliyi37/dsh-client-test-runtime'
+import { zh as commonZh } from '@huiliyi37/dsh-client-locale/src/locales/zh.ts'
 import type { DirectoryFlowOwnerProps, WorkspacePickerProps } from '../src/client/contract/slots.ts'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import { bindSnapshotSelector } from '@huiliyi37/dsh-client-web-react'
 import { WorkspacePicker } from '../src/client/WorkspacePicker.tsx'
 import { zh } from '../src/client/locales.ts'
 

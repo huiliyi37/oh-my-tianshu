@@ -24,28 +24,28 @@ const vendoredPackages = new Set([
   'cordis',
   'cosmokit',
   'schemastery',
-  '@cordisjs/plugin-loader',
-  '@cordisjs/plugin-include',
-  '@cordisjs/plugin-group',
-  '@cordisjs/plugin-timer',
-  '@cordisjs/plugin-hmr',
-  '@cordisjs/plugin-logger-console',
+  '@huiliyi37/cordis-plugin-loader',
+  '@huiliyi37/cordis-plugin-include',
+  '@huiliyi37/cordis-plugin-group',
+  '@huiliyi37/cordis-plugin-timer',
+  '@huiliyi37/cordis-plugin-hmr',
+  '@huiliyi37/cordis-plugin-logger-console',
 ])
 const publicLandlockPackages = new Set([
-  '@deepseek-ai/node-addon-landlock-run',
-  '@deepseek-ai/node-addon-landlock-run-linux-arm64',
-  '@deepseek-ai/node-addon-landlock-run-linux-x64',
+  '@huiliyi37/node-addon-landlock-run',
+  '@huiliyi37/node-addon-landlock-run-linux-arm64',
+  '@huiliyi37/node-addon-landlock-run-linux-x64',
 ])
 /** Deliberate source payloads whose exact bytes are part of the package's audit surface. */
 const publicationSourceAllowlist: Readonly<Record<string, readonly string[]>> = {
-  '@deepseek-ai/node-addon-landlock-run': ['src/main.c'],
+  '@huiliyi37/node-addon-landlock-run': ['src/main.c'],
 }
 const repositoryUrl = 'git+https://github.com/deepseek-harness/deepseek-harness.git'
 
 const localArtifactDirs = new Set(['node_modules'])
 const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
-  '@deepseek-ai/dsh': ['lib/*.js', 'config'],
-  '@deepseek-ai/dsh-frontend': ['dist'],
+  '@huiliyi37/dsh-tianshu': ['lib/*.js', 'config'],
+  '@huiliyi37/dsh-frontend': ['dist'],
 }
 
 /** The subset of package.json fields this constraint check cares about. */
@@ -120,15 +120,15 @@ function workspaceManifests(): WorkspaceManifest[] {
 
 const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   // Profile bundles publish their dsh.bundle.patch layer beside the lib.
-  '@deepseek-ai/dsh-base': ['cordis.patch.yml'],
-  '@deepseek-ai/dsh-web-app': ['cordis.patch.yml'],
-  '@deepseek-ai/dsh-headless': ['cordis.patch.yml'],
-  '@deepseek-ai/dsh-tui': ['cordis.patch.yml'],
-  '@deepseek-ai/dsh-client-ui-theme': ['lib/styles'],
-  '@deepseek-ai/dsh-helper': ['lib/assets'],
-  '@deepseek-ai/dsh-skill-badge': ['assets'],
-  '@deepseek-ai/dsh-subprocess-local': ['scripts/ensure-spawn-helper.mjs'],
-  '@deepseek-ai/dsh-scripts': [
+  '@huiliyi37/dsh-base': ['cordis.patch.yml'],
+  '@huiliyi37/dsh-web-app': ['cordis.patch.yml'],
+  '@huiliyi37/dsh-headless': ['cordis.patch.yml'],
+  '@huiliyi37/dsh-tui': ['cordis.patch.yml'],
+  '@huiliyi37/dsh-client-ui-theme': ['lib/styles'],
+  '@huiliyi37/dsh-helper': ['lib/assets'],
+  '@huiliyi37/dsh-skill-badge': ['assets'],
+  '@huiliyi37/dsh-subprocess-local': ['scripts/ensure-spawn-helper.mjs'],
+  '@huiliyi37/dsh-scripts': [
     'lib/dev/tsdown-config.js',
     'lib/local-plugin-loader-hooks.js',
     'lib/assets',
@@ -239,7 +239,7 @@ function checkWorkspace({ dir, manifest }: WorkspaceManifest): string[] {
     return errors
   }
 
-  if (manifest.name?.startsWith('@deepseek-ai/')) {
+  if (manifest.name?.startsWith('@huiliyi37/')) {
     const allowedSources = publicationSourceAllowlist[manifest.name] ?? []
     const publicationPolicy = { typeRTRemoteNavigation: hasTypeRTRemoteNavigation(manifest) }
     for (const file of manifest.files ?? []) {
@@ -249,7 +249,7 @@ function checkWorkspace({ dir, manifest }: WorkspaceManifest): string[] {
     }
   }
 
-  if (dir.startsWith('apps/') && manifest.name?.startsWith('@deepseek-ai/')) {
+  if (dir.startsWith('apps/') && manifest.name?.startsWith('@huiliyi37/')) {
     const expectedFiles = appPackageFiles[manifest.name]
     if (expectedFiles === undefined) {
       errors.push(`${label}: app package has no publication files policy`)
@@ -267,7 +267,7 @@ function checkWorkspace({ dir, manifest }: WorkspaceManifest): string[] {
     }
   }
 
-  if (dir.startsWith('packages/') && manifest.name?.startsWith('@deepseek-ai/dsh-')) {
+  if (dir.startsWith('packages/') && manifest.name?.startsWith('@huiliyi37/dsh-')) {
     const peer = manifest.peerDependencies?.cordis
     const dev = manifest.devDependencies?.cordis
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import type { HistoryEntry } from '@deepseek-ai/dsh-client-connection/client'
-import { createAssistantMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
+import type { HistoryEntry } from '@huiliyi37/dsh-client-connection/client'
+import { createAssistantMessage, createUserMessage } from '@huiliyi37/dsh-llm'
+import type { SessionEvent } from '@huiliyi37/dsh-session/types'
 import { inspectRequests } from '../src/client/sessions/request-inspection.ts'
 
 const at = (seq: number, type: string, data: unknown): SessionEvent =>

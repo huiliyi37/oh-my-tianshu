@@ -9,10 +9,10 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import { act, render } from '@testing-library/react'
-import { SlotCore, type PropsRenderSlots, type SlotRendererHost } from '@deepseek-ai/dsh-client-ui-slots'
-import { createSlotRenderer, StaleAuthorizationError } from '@deepseek-ai/dsh-client-web-react'
+import { SlotCore, type PropsRenderSlots, type SlotRendererHost } from '@huiliyi37/dsh-client-ui-slots'
+import { createSlotRenderer, StaleAuthorizationError } from '@huiliyi37/dsh-client-web-react'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@huiliyi37/dsh-client-ui-slots' {
   interface SlotMap {
     // No 'root' merge: the aggregate client program already carries runtime's
     // authoritative 'root' declaration (a private merge would TS2717-collide);

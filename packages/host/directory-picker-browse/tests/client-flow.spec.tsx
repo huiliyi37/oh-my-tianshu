@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { SlotsService } from '@deepseek-ai/dsh-client-runtime/client'
-import type { DirectoryListing } from '@deepseek-ai/dsh-client-runtime/client'
-import { LocaleService } from '@deepseek-ai/dsh-client-locale/client'
-import { usePinnedBrowserLanguages } from '@deepseek-ai/dsh-client-test-runtime'
-import type { DirectoryFlowOwnerProps } from '@deepseek-ai/dsh-client-ui-workspace/client'
+import { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
+import type { DirectoryListing } from '@huiliyi37/dsh-client-runtime/client'
+import { LocaleService } from '@huiliyi37/dsh-client-locale/client'
+import { usePinnedBrowserLanguages } from '@huiliyi37/dsh-client-test-runtime'
+import type { DirectoryFlowOwnerProps } from '@huiliyi37/dsh-client-ui-workspace/client'
 import { apply, inject } from '../src/client/index.ts'
 import { BrowseDirectoryFlow } from '../src/client/flow.ts'
 

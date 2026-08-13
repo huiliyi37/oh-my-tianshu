@@ -15,14 +15,14 @@
  * absent `ctx.bash`, or a failed query is a no-op, never an error: an executor
  * rejection is contained and logged as a warning so the turn continues.
  *
- * @module @deepseek-ai/dsh-tmux-context
+ * @module @huiliyi37/dsh-tmux-context
  */
 
-import type { Context, LoggerService } from 'cordis'
-import z from 'schemastery'
-import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
-import type { BashExecutor, BashRunResult } from '@deepseek-ai/dsh-bash'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import type { Context, LoggerService } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type { Agent, PreStepDecision } from '@huiliyi37/dsh-agent'
+import type { BashExecutor, BashRunResult } from '@huiliyi37/dsh-bash'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'tmux-context'

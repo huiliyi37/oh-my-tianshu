@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-spill
+# @huiliyi37/dsh-spill
 
 English | [中文](README.zh.md)
 
@@ -8,9 +8,9 @@ This package is one third of the spill capability, split so each concern evolves
 
 | Package | Role |
 |---|---|
-| `@deepseek-ai/dsh-spill` (this) | Service Definition: abstract service + vocabulary types |
-| `@deepseek-ai/dsh-spill-local` | Service provider: private session-scoped files on the host filesystem |
-| `@deepseek-ai/dsh-spill-policy` | Consumer: the tool-result policy that spills oversized final results |
+| `@huiliyi37/dsh-spill` (this) | Service Definition: abstract service + vocabulary types |
+| `@huiliyi37/dsh-spill-local` | Service provider: private session-scoped files on the host filesystem |
+| `@huiliyi37/dsh-spill-policy` | Consumer: the tool-result policy that spills oversized final results |
 
 The split mirrors the bash/fs seams. A future remote or virtual backend (e.g. a `spill://…` URI, a database key, or a backend-specific retrieval tool) implements this Service Definition without touching the policy plugin.
 
@@ -20,7 +20,7 @@ The split mirrors the bash/fs seams. A future remote or virtual backend (e.g. a 
 |---|---|
 | `saveText(input)` | Persist `input.content` verbatim; resolves with a `SpillRef` (opaque locator, exact bytes written, and retrieval hint). **Rejects on a real storage failure** (permissions, ENOSPC, backend unavailable) — the caller decides how to degrade. |
 
-Storage is grouped by the request's `owner` session as a save-time namespace; the backend chooses its own private representation and may derive names from — never trust as a path — the caller's `suggestedName`. The seam owns storage only: NO retention policy (that is [`@deepseek-ai/dsh-retention`](../../util/retention)), NO tool-result replacement (that is `@deepseek-ai/dsh-spill-policy`), NO retrieval/search API (the backend's `retrievalHint` tells the model what to do with the locator).
+Storage is grouped by the request's `owner` session as a save-time namespace; the backend chooses its own private representation and may derive names from — never trust as a path — the caller's `suggestedName`. The seam owns storage only: NO retention policy (that is [`@huiliyi37/dsh-retention`](../../util/retention)), NO tool-result replacement (that is `@huiliyi37/dsh-spill-policy`), NO retrieval/search API (the backend's `retrievalHint` tells the model what to do with the locator).
 
 ## Vocabulary
 

@@ -3,19 +3,19 @@
  * appends one authoritative log-only event and does not start model work. The
  * append is eager but unflushed, so acknowledgement reports that the entry is
  * logged, not that it reached disk.
- * @module @deepseek-ai/dsh-command-feedback
+ * @module @huiliyi37/dsh-command-feedback
  */
 
-import type { Context } from 'cordis'
-import type { CommandInvocation, CommandResult } from '@deepseek-ai/dsh-commands'
-import type { Session } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import type { CommandInvocation, CommandResult } from '@huiliyi37/dsh-commands'
+import type { Session } from '@huiliyi37/dsh-session'
 
 export const name = 'command-feedback'
 export const inject = ['commands']
 
 const USAGE = 'Usage: /feedback <text>'
 
-declare module '@deepseek-ai/dsh-session/types' {
+declare module '@huiliyi37/dsh-session/types' {
   interface SessionEventMap {
     /**
      * One recorded human remark about this session. Log-only and independent

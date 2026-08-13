@@ -6,11 +6,11 @@
  * also registers the Appearance preference row into the settings General
  * section — the theme feature owns its own settings surface.
  */
-import type { Context } from 'cordis'
-import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context } from '@huiliyi37/cordis'
+import type { BoundActions } from '@huiliyi37/dsh-client-ui-slots'
+import type { ClientContext } from '@huiliyi37/dsh-client-runtime/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
-import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@huiliyi37/dsh-client-locale/client'
 import type { AppearanceRowInjected } from './AppearanceRow.tsx'
 import { AppearanceRow } from './AppearanceRow.tsx'
 import { createAppearanceRowStore } from './settings-store.ts'
@@ -23,7 +23,7 @@ export type { ThemeKey } from './locales.ts'
 /** Namespace owning this feature's settings-row copy. */
 export const SETTINGS_NS = 'settings.theme'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@huiliyi37/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** The Appearance settings row's copy. */
     'settings.theme': ThemeKey
@@ -61,7 +61,7 @@ export interface ThemeSnapshot {
   revision: number
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     theme: ThemeService
   }

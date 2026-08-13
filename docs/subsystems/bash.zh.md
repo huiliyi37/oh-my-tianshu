@@ -140,7 +140,7 @@ interface BashRunResult {
 
 ## 文件沙箱：`BashSandboxInfo`
 
-使用沙箱的执行器通过 `BashExecutor.sandboxMode` 暴露其已配置的模式回退值。工具层请求 [`@deepseek-ai/dsh-sandbox-policy`](../../packages/sandbox/sandbox-policy/README.md)，把每个调用会话的持久 `sandbox/mode` 覆盖值与不可变 cwd 解析为 `BashExecRequest.sandboxPolicy`；经用户批准、严格更宽松的调用只替换模式。模式/root/enforcement 词汇归 [`@deepseek-ai/dsh-sandbox` 沙箱 seam](sandbox.md) 所有；模式仅管辖文件效果。
+使用沙箱的执行器通过 `BashExecutor.sandboxMode` 暴露其已配置的模式回退值。工具层请求 [`@huiliyi37/dsh-sandbox-policy`](../../packages/sandbox/sandbox-policy/README.md)，把每个调用会话的持久 `sandbox/mode` 覆盖值与不可变 cwd 解析为 `BashExecRequest.sandboxPolicy`；经用户批准、严格更宽松的调用只替换模式。模式/root/enforcement 词汇归 [`@huiliyi37/dsh-sandbox` 沙箱 seam](sandbox.md) 所有；模式仅管辖文件效果。
 
 沙箱化运行会报告其模式、保守的拒绝分类与强制执行完整度。`runnerFailed` 标记命令运行前沙箱 runner 已失败；前台执行会抛出 `SANDBOX_UNAVAILABLE`，而已结束的后台进程只能通过其事实通道报告。
 

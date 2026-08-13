@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-tool-file-info`.
- * @module @deepseek-ai/dsh-tool-file-info/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-tool-file-info`.
+ * @module @huiliyi37/dsh-tool-file-info/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-tool-file-info'
+const PACKAGE_NAME = '@huiliyi37/dsh-tool-file-info'
 
 /** Cordis companion plugin name. */
 export const name = 'tool-file-info-invariant'
@@ -18,7 +18,7 @@ export const inject = ['invariants']
  * No runtime invariant: the tool↔store assembly is owned by the plugin's own
  * `apply` closure, and the event→deposit signal wiring is asserted
  * behaviorally by package tests (simulated `session/event` streams). The
- * store's decay/persistence algebra is covered by `@deepseek-ai/dsh-pheromone`.
+ * store's decay/persistence algebra is covered by `@huiliyi37/dsh-pheromone`.
  */
 const install: InvariantInstaller = () => {}
 

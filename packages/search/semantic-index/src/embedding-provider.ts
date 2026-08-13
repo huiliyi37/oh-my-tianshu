@@ -6,7 +6,7 @@
  * provider is wired in by the tool package (or a deployment plugin) with
  * validated Config fields; the library itself carries no network code.
  *
- * @module @deepseek-ai/dsh-semantic-index/embedding-provider
+ * @module @huiliyi37/dsh-semantic-index/embedding-provider
  */
 
 export interface EmbeddingProvider {

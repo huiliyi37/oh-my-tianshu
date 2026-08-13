@@ -5,8 +5,8 @@
  * @module dsh-tui/format/export
  */
 
-import type { ContentBlock, Message } from '@deepseek-ai/dsh-llm'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import type { ContentBlock, Message } from '@huiliyi37/dsh-llm'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
 
 /** 导出元信息（头块）。 */
 export interface SessionExportMeta {

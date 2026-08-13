@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { SecretRedactor, buildTelemetryPayload } from '@deepseek-ai/dsh-telemetry'
+import { SecretRedactor, buildTelemetryPayload } from '@huiliyi37/dsh-telemetry'
 
 const dirs: Array<string> = []
 
@@ -20,21 +20,21 @@ afterEach(async () => {
 describe('buildTelemetryPayload', () => {
   it('carries lifecycle facts and redacted file content', async () => {
     const dir = await projectDir({
-      'cordis.yml': '- id: llm\n  name: \'@deepseek-ai/dsh-llm-deepseek\'\n  config:\n    apiKey: sk-abcdefghij1234567890\n',
+      'cordis.yml': '- id: llm\n  name: \'@huiliyi37/dsh-llm-deepseek\'\n  config:\n    apiKey: sk-abcdefghij1234567890\n',
       'package.json': '{ "name": "my-app", "config": { "token": "sk-abcdefghij1234567890" } }',
     })
     const payload = await buildTelemetryPayload({ command: 'build', durationMs: 42, success: true, projectDir: dir })
     expect(payload.command).toBe('build')
     expect(payload.durationMs).toBe(42)
     expect(payload.success).toBe(true)
-    expect(payload.cordisYmlContent).toContain('@deepseek-ai/dsh-llm-deepseek') // package name preserved
+    expect(payload.cordisYmlContent).toContain('@huiliyi37/dsh-llm-deepseek') // package name preserved
     expect(payload.cordisYmlContent).not.toContain('sk-abcdefghij1234567890') // secret scrubbed
     expect(payload.packageJsonContent).toContain('my-app')
     expect(payload.packageJsonContent).not.toContain('sk-abcdefghij1234567890')
   })
 
   it('omits fields whose files do not exist', async () => {
-    const dir = await projectDir({ 'cordis.yml': '- id: llm\n  name: \'@deepseek-ai/dsh-llm-deepseek\'\n' })
+    const dir = await projectDir({ 'cordis.yml': '- id: llm\n  name: \'@huiliyi37/dsh-llm-deepseek\'\n' })
     const payload = await buildTelemetryPayload({ command: 'create', durationMs: 1, success: false, projectDir: dir })
     expect(payload.cordisYmlContent).toBeDefined()
     expect('packageJsonContent' in payload).toBe(false)
@@ -56,7 +56,7 @@ describe('buildTelemetryPayload', () => {
 
   it('uses a supplied redactor', async () => {
     const dir = await projectDir({
-      'cordis.yml': '- id: llm\n  name: \'@deepseek-ai/dsh-llm-deepseek\'\n',
+      'cordis.yml': '- id: llm\n  name: \'@huiliyi37/dsh-llm-deepseek\'\n',
       'package.json': '{ "password": "hunter2" }',
     })
     const redactor = new SecretRedactor({ placeholder: '<<hidden>>' })

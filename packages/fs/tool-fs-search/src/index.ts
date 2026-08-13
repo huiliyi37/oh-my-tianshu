@@ -10,8 +10,8 @@
  * execute through `ctx.subprocess.spawn()` with fixed ripgrep argv templates —
  * never `ctx.bash`, never `ctx.bash.start()`, never a model-visible background
  * task. The tool layer owns schemas, argument validation, argv construction
- * ({@link module:@deepseek-ai/dsh-tool-fs-search/glob} /
- * {@link module:@deepseek-ai/dsh-tool-fs-search/grep}), result parsing,
+ * ({@link module:@huiliyi37/dsh-tool-fs-search/glob} /
+ * {@link module:@huiliyi37/dsh-tool-fs-search/grep}), result parsing,
  * retention, formatted-result spill, and timeout declaration; the subprocess
  * seam owns spawn execution, process-tree termination, environment scrubbing,
  * and raw output capture. The package injects `tools`, `systemPrompt`, and
@@ -23,12 +23,12 @@
  * filesystem `read` root are the same workspace — a documented v1 deployment
  * requirement, not runtime-validated.
  *
- * @module @deepseek-ai/dsh-tool-fs-search
+ * @module @huiliyi37/dsh-tool-fs-search
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { MAX_TIMER_DELAY_MS } from '@huiliyi37/dsh-timeout'
 import { GLOB_MAX_RESULTS, applyGlobTool } from './glob.ts'
 import { GREP_MAX_LINE_BYTES, GREP_MAX_MATCHES, applyGrepTool } from './grep.ts'
 import { RAW_OUTPUT_MAX_BYTES, SEARCH_GRACE_MS, SEARCH_META_MAX_BYTES, SEARCH_STDERR_MAX_BYTES, SEARCH_TIMEOUT_MS } from './search-core.ts'
@@ -87,7 +87,7 @@ export interface Config {
   graceMs?: number
   /** Max bytes retained for one search's stderr tail; the excerpt is embedded in `SEARCH_*` error messages, never shown on success. */
   stderrMaxBytes?: number
-  /** Cooperative tool-call timeout budget (ms) on both tools, enforced by `@deepseek-ai/dsh-timeout-policy` through `exec.signal`. */
+  /** Cooperative tool-call timeout budget (ms) on both tools, enforced by `@huiliyi37/dsh-timeout-policy` through `exec.signal`. */
   timeoutMs?: number
 }
 

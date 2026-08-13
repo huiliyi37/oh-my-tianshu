@@ -1,4 +1,4 @@
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
 /**
  * The `telemetry/record` waterfall contract: pass-through when no listener is
  * mounted, listener stacking and replacement, ops-record coverage, the
@@ -6,8 +6,8 @@ import { createUserMessage } from '@deepseek-ai/dsh-llm'
  */
 
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
+import { Context } from '@huiliyi37/cordis'
+import SessionStore, { SessionId } from '@huiliyi37/dsh-session'
 import {
   TelemetryCoordinator,
   type TelemetryBackend,

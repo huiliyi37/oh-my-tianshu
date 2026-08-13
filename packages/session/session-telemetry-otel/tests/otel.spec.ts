@@ -12,11 +12,11 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { gunzipSync } from 'node:zlib'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { getOrCreateAnonymousUserId } from '../src/user-id.ts'
-import Loader from '@cordisjs/plugin-loader'
-import { recordFeedback } from '@deepseek-ai/dsh-command-feedback'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import { recordFeedback } from '@huiliyi37/dsh-command-feedback'
+import SessionStore, { SessionId } from '@huiliyi37/dsh-session'
 import TelemetryOtel, { Config, DEFAULT_TELEMETRY_MODE, TelemetryMode } from '../src/index.ts'
 
 interface Capture {
@@ -143,8 +143,8 @@ describe('TelemetryOtel wire', () => {
     expect(resource).toContainEqual({ key: 'user.id', value: { stringValue: getOrCreateAnonymousUserId() } })
 
     const records = allRecords(captures)
-    const ledger = records.filter(r => r.scope === '@deepseek-ai/dsh-session-telemetry-otel')
-    const ops = records.filter(r => r.scope === '@deepseek-ai/dsh-session-telemetry-otel/ops')
+    const ledger = records.filter(r => r.scope === '@huiliyi37/dsh-session-telemetry-otel')
+    const ops = records.filter(r => r.scope === '@huiliyi37/dsh-session-telemetry-otel/ops')
 
     const start = ledger.find(r => r.record.attributes?.some(a => a.key === 'event.type' && a.value.stringValue === 'turn/start'))
     expect(start).toBeDefined()
@@ -193,7 +193,7 @@ describe('TelemetryOtel wire', () => {
     gate.resolve(true)
     await disposal
 
-    const ops = allRecords(captures).filter(r => r.scope === '@deepseek-ai/dsh-session-telemetry-otel/ops')
+    const ops = allRecords(captures).filter(r => r.scope === '@huiliyi37/dsh-session-telemetry-otel/ops')
     expect(ops).toHaveLength(1)
     expect(ops[0]!.record.attributes).toContainEqual({ key: 'telemetry.op', value: { stringValue: 'shutdown' } })
   })

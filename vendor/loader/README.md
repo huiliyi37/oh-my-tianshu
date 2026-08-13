@@ -1,4 +1,4 @@
-# @cordisjs/plugin-loader
+# @huiliyi37/cordis-plugin-loader
 
 Runtime plugin loader for Cordis. The loader owns an `EntryTree`, imports plugin
 modules by name, applies their config, and keeps the running plugin graph in
@@ -7,8 +7,8 @@ sync with entry updates.
 ## Usage
 
 ```ts
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
 
 const root = new Context()
 await root.plugin(Loader, { baseUrl: import.meta.url })
@@ -45,4 +45,4 @@ root.loader.update(id, { config: { enabled: false } })
 | `loader.await()` | Wait for pending entry imports and fiber reloads. |
 | `loader.locate(fiber?)` | Return the loader entry id that owns a fiber. |
 
-For file-backed trees, use `@cordisjs/plugin-include`.
+For file-backed trees, use `@huiliyi37/cordis-plugin-include`.

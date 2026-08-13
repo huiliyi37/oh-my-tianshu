@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-llm-replay
+# @huiliyi37/dsh-llm-replay
 
 [English](README.md) | 中文
 
@@ -34,7 +34,7 @@ fixture 就是持久化的会话日志（`<scenario>/session.jsonl`）。其 `as
 
 ```yaml
 - id: llm-replay
-  name: '@deepseek-ai/dsh-llm-replay'
+  name: '@huiliyi37/dsh-llm-replay'
   config:
     providers:
       - id: deepseek-official

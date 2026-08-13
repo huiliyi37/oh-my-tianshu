@@ -14,8 +14,8 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import type { CallId } from '@deepseek-ai/dsh-llm'
-import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
+import type { CallId } from '@huiliyi37/dsh-llm'
+import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
 import type { RivetTheme } from '../src/theme.js'
 import type { TranscriptMessage, TranscriptToolCall, TranscriptView } from '../src/adapter/transcript.js'
 import {

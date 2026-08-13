@@ -19,22 +19,22 @@
  * Agent Note:
  * - .agents/notes/implemented/simplification/2026-07-22-plan-specific-collaboration-state.md
  *
- * @module @deepseek-ai/dsh-plan-mode
+ * @module @huiliyi37/dsh-plan-mode
  */
 
-import { Context, Service } from 'cordis'
+import { Context, Service } from '@huiliyi37/cordis'
 import { z as zod } from 'zod'
 import type { ZodType } from 'zod'
-import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { Session, SessionEvent, UserMessage } from '@deepseek-ai/dsh-session'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type {} from '@deepseek-ai/dsh-system-prompt'
-import { UserInteractionError } from '@deepseek-ai/dsh-user-interaction'
+import type { Agent, PreStepDecision } from '@huiliyi37/dsh-agent'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
+import type { Session, SessionEvent, UserMessage } from '@huiliyi37/dsh-session'
+import { defineTool } from '@huiliyi37/dsh-tools'
+import type {} from '@huiliyi37/dsh-system-prompt'
+import { UserInteractionError } from '@huiliyi37/dsh-user-interaction'
 // Type-only edge: resolves `ctx.commands` for the optional command child.
-import type {} from '@deepseek-ai/dsh-commands'
+import type {} from '@huiliyi37/dsh-commands'
 // Type-only: resolves ctx.sessionProjections for the optional unit child.
-import type {} from '@deepseek-ai/dsh-session-projection'
+import type {} from '@huiliyi37/dsh-session-projection'
 import type { PlanProjection } from './types.ts'
 // The `plan` projection-key declaration lives in src/types.ts (its one home);
 // this re-export projects the type face onto the package root AND keeps the
@@ -42,7 +42,7 @@ import type { PlanProjection } from './types.ts'
 // declarations still receive the SessionProjectionMap merge.
 export type * from './types.ts'
 
-declare module '@deepseek-ai/dsh-session/types' {
+declare module '@huiliyi37/dsh-session/types' {
   interface SessionEventMap {
     /**
      * Whether plan mode is in force from this point on: log-only, non-surface,
@@ -53,7 +53,7 @@ declare module '@deepseek-ai/dsh-session/types' {
   }
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     planMode: PlanModeService
   }

@@ -1,13 +1,13 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { isAbsolute, join, resolve } from 'node:path'
-import { defaultDshHome } from '@deepseek-ai/dsh-paths'
+import { defaultDshHome } from '@huiliyi37/dsh-paths'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   ANONYMOUS_ID_FILE_NAME,
   getOrCreateAnonymousId,
   globalConfigDir,
-} from '@deepseek-ai/dsh-telemetry'
+} from '@huiliyi37/dsh-telemetry'
 
 const dirs: string[] = []
 

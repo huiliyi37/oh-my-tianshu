@@ -3,7 +3,7 @@
 # The redact-rule entry models a deployment mounting its own scrub rule on the
 # telemetry/record waterfall — the seam itself ships no rules.
 - id: logger-console
-  name: '@cordisjs/plugin-logger-console'
+  name: '@huiliyi37/cordis-plugin-logger-console'
   config:
     colors: false
     levels:
@@ -18,20 +18,20 @@
 
 # Managed child-process groups required by the bash executor.
 - id: subprocess
-  name: '@deepseek-ai/dsh-subprocess-local'
+  name: '@huiliyi37/dsh-subprocess-local'
 
 - id: bash
-  name: '@deepseek-ai/dsh-bash-local'
+  name: '@huiliyi37/dsh-bash-local'
 
 - id: telemetry-otel
-  name: '@deepseek-ai/dsh-session-telemetry-otel'
+  name: '@huiliyi37/dsh-session-telemetry-otel'
   config:
     mode: !!js process.env.DSH_TELEMETRY_E2E_MODE || 'FULL'
     exporter:
       url: !!js process.env.DSH_TELEMETRY_E2E_URL
 
 - id: agent-spine
-  name: '@deepseek-ai/dsh-agent-spine-demo'
+  name: '@huiliyi37/dsh-agent-spine-demo'
   config:
     agents:
       - id: main
@@ -42,10 +42,10 @@
     workspaceContext: false
 
 - id: persistence
-  name: '@deepseek-ai/dsh-session-persistence-jsonl'
+  name: '@huiliyi37/dsh-session-persistence-jsonl'
   config:
     root: './.sessions'
     compression: 'none'
 
 - id: checkpoint-policy
-  name: '@deepseek-ai/dsh-session-checkpoint-policy'
+  name: '@huiliyi37/dsh-session-checkpoint-policy'

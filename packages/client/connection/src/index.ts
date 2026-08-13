@@ -1,9 +1,9 @@
 /** Host HTTP bridge for browser-client RPC. */
-import type { Context } from 'cordis'
-import z from 'schemastery'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 // Activates the httpServer Context merge used below.
-import type { WebRoute, WebUpgradeRoute } from '@deepseek-ai/dsh-host-webserver'
-import { toFetchHandler } from '@deepseek-ai/dsh-host-apiproxy'
+import type { WebRoute, WebUpgradeRoute } from '@huiliyi37/dsh-host-webserver'
+import { toFetchHandler } from '@huiliyi37/dsh-host-apiproxy'
 import { API_PATH, HOST_EVENTS_PATH, MUX_EVENTS_PATH } from './api-path.ts'
 import { bridge } from './http-bridge.ts'
 import { assertTrustedAuthority, isTrustedApiRequest } from './api-request-trust.ts'

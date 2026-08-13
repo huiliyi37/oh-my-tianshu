@@ -6,7 +6,7 @@
  * （tipping point：环境恢复，干预撤销）。纯函数零依赖（只 import type），
  * EFE/season/vigor/sensorium 部分明确不移植（依赖天枢重状态）。
  *
- * @module @deepseek-ai/dsh-agent-router/prediction
+ * @module @huiliyi37/dsh-agent-router/prediction
  */
 
 /** 干预级别（路由消费：hint=提示 / gate=闸门 / escalate=升级）。 */

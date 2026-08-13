@@ -6,9 +6,9 @@
 import { readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import type { Context, Fiber, FiberState, Plugin } from 'cordis'
-import type { RepositoryCache } from '@cordisjs/plugin-loader/repository'
-import { resolveDshHome } from '@deepseek-ai/dsh-paths'
+import type { Context, Fiber, FiberState, Plugin } from '@huiliyi37/cordis'
+import type { RepositoryCache } from '@huiliyi37/cordis-plugin-loader/repository'
+import { resolveDshHome } from '@huiliyi37/dsh-paths'
 import { z } from 'zod'
 import {
   PREPARED_ENTRY_FILENAME,

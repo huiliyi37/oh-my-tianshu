@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-repository-plugin
+# @huiliyi37/dsh-repository-plugin
 
 [English](README.md) | 中文
 
@@ -27,13 +27,13 @@
     "@modelcontextprotocol/sdk": "1.29.0"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-repository-plugin": "^0.0.1",
+    "@huiliyi37/dsh-repository-plugin": "^0.0.1",
     "typescript": "6.0.3"
   }
 }
 ```
 
-`scripts.prepack` 必须非空并调用 `dsh-plugin-prepare`；可以先运行任意包自有的构建步骤。包将 `@deepseek-ai/dsh-repository-plugin` 声明为普通开发依赖，使该生命周期可以使用其已发布的可执行文件。DSH 不会注入辅助程序：repository 包自行声明并运行编译器、运行时依赖、准备辅助程序及其他 NPM 生命周期代码。所选包按自身 manifest 独立安装，而不继承外层 pnpm workspace，因此必须声明所需的每项依赖，不能依赖仅由 workspace 提升而可见的包。DSH 不转译 TypeScript，也不推断包入口。
+`scripts.prepack` 必须非空并调用 `dsh-plugin-prepare`；可以先运行任意包自有的构建步骤。包将 `@huiliyi37/dsh-repository-plugin` 声明为普通开发依赖，使该生命周期可以使用其已发布的可执行文件。DSH 不会注入辅助程序：repository 包自行声明并运行编译器、运行时依赖、准备辅助程序及其他 NPM 生命周期代码。所选包按自身 manifest 独立安装，而不继承外层 pnpm workspace，因此必须声明所需的每项依赖，不能依赖仅由 workspace 提升而可见的包。DSH 不转译 TypeScript，也不推断包入口。
 
 `dsh.entry` 是指向 `.dsh-plugin` 内已编译 ESM Cordis 插件的可选相对路径。该模块可以使用 namespace 导出或 default export，并自行拥有常规的 `name`、`inject`、`Config`、注册和 effect。`dsh.skills` 是可选的本地 skill 根数组，`dsh.mcpServers` 是指向一个 `.mcp.json` 的可选路径；三个字段中至少声明一个。skill 和 MCP 路径可以引用相邻的 repository 资源，但必须留在包含 `.dsh-plugin` 的目录下；已编译入口必须留在由包管理器选中并打包的包内。一个仓库可以在不同的可选择子目录下放置多个各自独立的 `.dsh-plugin` 包。
 
@@ -45,7 +45,7 @@ repository 包及其运行的每项依赖或生命周期脚本都是受信任代
 
 ```yaml
 - id: repository-plugins
-  name: '@deepseek-ai/dsh-repository-plugin'
+  name: '@huiliyi37/dsh-repository-plugin'
   config:
     repositories:
       - 'github:PolyArch/humanize#<commit>'
@@ -60,7 +60,7 @@ Git 传输使用宿主的常规 Git 认证。公共仓库无需凭据；私有�
 
 ## 准备阶段
 
-安装精确指定的 Git 源时，DSH 随附的 pnpm 会按所选包自身的 manifest 安装。由事务持有的 `pnpm` 包装脚本会以 `--ignore-workspace` 重新调用同一份锁定的 pnpm，因此外层 workspace lockfile 无法抑制仅由所选 `.dsh-plugin` 包声明的依赖。必需的 `prepack` 生命周期在该依赖安装完成后、选定子目录打包前运行；其常规 `node_modules/.bin` 查找会从直接声明的 `@deepseek-ai/dsh-repository-plugin` 开发依赖中取得 `dsh-plugin-prepare`。该包把 Cordis／DSH 运行时对等依赖（peer dependency）标为可选，因此单独使用该可执行文件不会安装运行时依赖图。包自有命令可以在调用辅助程序前构建 TypeScript 或其他源码。辅助程序会校验 `package.json#dsh`，确认已编译入口是包内文件，校验 skill 与 MCP 源，把静态资源复制到 `dsh-plugin-assets`，并写入 `dsh-plugin.mjs`。导入该包装层前，DSH 会重新校验已安装包是否仍同时保留该直接开发依赖，以及包含该辅助命令的 `prepack` 声明。无法解析已发布的辅助程序，或安装依赖、构建或准备失败时，流程会在发布缓存 generation 前失败。设计依据见[基于 NPM 的 Git 源准备 Agent Note](../../../.agents/notes/implemented/bug-fix/2026-08-08-npm-backed-git-repository-plugin-preparation.md)。
+安装精确指定的 Git 源时，DSH 随附的 pnpm 会按所选包自身的 manifest 安装。由事务持有的 `pnpm` 包装脚本会以 `--ignore-workspace` 重新调用同一份锁定的 pnpm，因此外层 workspace lockfile 无法抑制仅由所选 `.dsh-plugin` 包声明的依赖。必需的 `prepack` 生命周期在该依赖安装完成后、选定子目录打包前运行；其常规 `node_modules/.bin` 查找会从直接声明的 `@huiliyi37/dsh-repository-plugin` 开发依赖中取得 `dsh-plugin-prepare`。该包把 Cordis／DSH 运行时对等依赖（peer dependency）标为可选，因此单独使用该可执行文件不会安装运行时依赖图。包自有命令可以在调用辅助程序前构建 TypeScript 或其他源码。辅助程序会校验 `package.json#dsh`，确认已编译入口是包内文件，校验 skill 与 MCP 源，把静态资源复制到 `dsh-plugin-assets`，并写入 `dsh-plugin.mjs`。导入该包装层前，DSH 会重新校验已安装包是否仍同时保留该直接开发依赖，以及包含该辅助命令的 `prepack` 声明。无法解析已发布的辅助程序，或安装依赖、构建或准备失败时，流程会在发布缓存 generation 前失败。设计依据见[基于 NPM 的 Git 源准备 Agent Note](../../../.agents/notes/implemented/bug-fix/2026-08-08-npm-backed-git-repository-plugin-preparation.md)。
 
 ## 运行时组合
 

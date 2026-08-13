@@ -8,18 +8,18 @@
  *
  * Namespace plugin (named exports, no default export). Lifecycle is effect-scoped: disposal
  * unregisters from `ctx.lsp` and tears down every live server.
- * @module @deepseek-ai/dsh-lsp-local
+ * @module @huiliyi37/dsh-lsp-local
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import { LspError, LspProviderId } from '@deepseek-ai/dsh-lsp'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { LspError, LspProviderId } from '@huiliyi37/dsh-lsp'
 import type {
   LspProvider,
   LspProviderQuery,
   LspQueryResult,
-} from '@deepseek-ai/dsh-lsp'
-import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
+} from '@huiliyi37/dsh-lsp'
+import { MAX_TIMER_DELAY_MS } from '@huiliyi37/dsh-timeout'
 import { abortable, abortError } from './abort.ts'
 import { canonicalizeWorkspace, readHostSource } from './host.ts'
 import type { HostWorkspace } from './host.ts'

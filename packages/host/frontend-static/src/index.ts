@@ -1,5 +1,5 @@
 /**
- * @deepseek-ai/dsh-frontend-static — SPA dist server over the webserver
+ * @huiliyi37/dsh-frontend-static — SPA dist server over the webserver
  * fallback seat: serves the built frontend directory with the semantics the
  * Web shell locked at step1 — traversal outside the dist root is 403, any
  * miss falls back to index.html with HTTP 200 (SPA routing), unknown
@@ -8,15 +8,15 @@
  * injection). The dist location is workspace knowledge of the composing
  * application, so `distIndex` is typically supplied through a `!!js`
  * expression, never hardcoded by a deployment.
- * @module @deepseek-ai/dsh-frontend-static
+ * @module @huiliyi37/dsh-frontend-static
  */
 
 import type { ServerResponse } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path'
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import type {} from '@deepseek-ai/dsh-host-webserver'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type {} from '@huiliyi37/dsh-host-webserver'
 
 /** Stable Cordis plugin name. */
 export const name = 'frontend-static'

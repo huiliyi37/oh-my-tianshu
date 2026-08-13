@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-session-persistence-sqlite
+# @huiliyi37/dsh-session-persistence-sqlite
 
 English | [中文](README.zh.md)
 

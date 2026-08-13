@@ -1,8 +1,15 @@
 {
-  "name": "@deepseek-ai/dsh-fs-e2b",
+  "name": "@huiliyi37/dsh-fs-e2b",
   "description": "E2B filesystem implementation for DeepSeek Harness",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "directory": "packages/e2b/fs-e2b"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -25,15 +32,15 @@
   ],
   "license": "BSD-3-Clause",
   "peerDependencies": {
-    "@deepseek-ai/dsh-e2b": "^0.0.1",
-    "@deepseek-ai/dsh-fs": "^0.0.1",
-    "@deepseek-ai/dsh-invariants": "^0.0.1",
-    "cordis": "^4.0.0-rc.7"
+    "@huiliyi37/dsh-e2b": "^0.2.0",
+    "@huiliyi37/dsh-fs": "^0.2.0",
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-e2b": "workspace:^",
-    "@deepseek-ai/dsh-fs": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "cordis": "^4.0.0-rc.7"
+    "@huiliyi37/dsh-e2b": "workspace:^",
+    "@huiliyi37/dsh-fs": "workspace:^",
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
   }
 }

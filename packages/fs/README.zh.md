@@ -18,6 +18,6 @@ Service Definition 位于 `fs/fs/`。沙箱化、远程或限定项目作用域�
 
 ## 文件 I/O 不设超时
 
-`read`/`write`/`edit` **不** 接受 `timeoutMs`，提供方约定也不启动 deadline。这与 bash 和 web（两者使用 [`@deepseek-ai/dsh-timeout`](../util/timeout/README.md)）及基于 bash 的 `glob`/`grep` 不同（它们声明的 `timeoutMs` 由 `@deepseek-ai/dsh-timeout-policy` 强制执行）：这些工作由进程支持，deadline 可以实际终止工作。本地系统调用至多只能尽力中止：超时无法强制正在进行的 `fsync`/`rename` 停止，因此这里的 deadline 会成为无法兑现承诺的配置项。在此添加 deadline 还会在「显式优于隐式」明确禁止的地方引入隐式默认值。两个参考 agent（Claude Code、Codex）出于同一原因都不为文件 I/O 计时；取消仍通过工具执行信号传播，在系统调用边界尽力中止。
+`read`/`write`/`edit` **不** 接受 `timeoutMs`，提供方约定也不启动 deadline。这与 bash 和 web（两者使用 [`@huiliyi37/dsh-timeout`](../util/timeout/README.md)）及基于 bash 的 `glob`/`grep` 不同（它们声明的 `timeoutMs` 由 `@huiliyi37/dsh-timeout-policy` 强制执行）：这些工作由进程支持，deadline 可以实际终止工作。本地系统调用至多只能尽力中止：超时无法强制正在进行的 `fsync`/`rename` 停止，因此这里的 deadline 会成为无法兑现承诺的配置项。在此添加 deadline 还会在「显式优于隐式」明确禁止的地方引入隐式默认值。两个参考 agent（Claude Code、Codex）出于同一原因都不为文件 I/O 计时；取消仍通过工具执行信号传播，在系统调用边界尽力中止。
 
 子系统参考——目标、结果、防护、策略事件、错误分类体系，以及文件 IO 为何不设超时——见 [docs/subsystems/filesystem.md](../../docs/subsystems/filesystem.md)；沙箱围栏见[跨家族 fs 沙箱 Agent Note](../../.agents/notes/implemented/feature/2026-07-14-cross-family-fs-sandbox.md)。

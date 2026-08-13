@@ -26,15 +26,15 @@
  * This browser half also owns the `skill` keyed toolview: a replay-stable
  * accent row derived only from each logged call/result slice.
  */
-import type { ConnectionHandle, SessionId, SkillEntry } from '@deepseek-ai/dsh-client-connection/client'
-import type { ClientContext, ISessions } from '@deepseek-ai/dsh-client-runtime/client'
-import type { SlashServiceContract, SlashSource } from '@deepseek-ai/dsh-client-ui-slash/client'
+import type { ConnectionHandle, SessionId, SkillEntry } from '@huiliyi37/dsh-client-connection/client'
+import type { ClientContext, ISessions } from '@huiliyi37/dsh-client-runtime/client'
+import type { SlashServiceContract, SlashSource } from '@huiliyi37/dsh-client-ui-slash/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
-import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@huiliyi37/dsh-client-locale/client'
 import { SkillRow } from './SkillRow.tsx'
 import { en, NS, zh, type SkillKey } from './locales.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@huiliyi37/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** The dedicated skill tool row's copy. */
     skill: SkillKey

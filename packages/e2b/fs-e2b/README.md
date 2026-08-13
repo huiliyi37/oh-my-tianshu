@@ -1,8 +1,8 @@
-# @deepseek-ai/dsh-fs-e2b
+# @huiliyi37/dsh-fs-e2b
 
 English | [中文](README.zh.md)
 
-E2B implementation of the [`@deepseek-ai/dsh-fs`](../../fs/fs/README.md) provider contract. It has no config: load [`@deepseek-ai/dsh-e2b`](../e2b/README.md) first, then this service in place of `dsh-fs-local`. The provider uses the owner's remote cwd and SDK handle, so file tools observe the same world as E2B-backed Bash processes.
+E2B implementation of the [`@huiliyi37/dsh-fs`](../../fs/fs/README.md) provider contract. It has no config: load [`@huiliyi37/dsh-e2b`](../e2b/README.md) first, then this service in place of `dsh-fs-local`. The provider uses the owner's remote cwd and SDK handle, so file tools observe the same world as E2B-backed Bash processes.
 
 ## Behavior
 

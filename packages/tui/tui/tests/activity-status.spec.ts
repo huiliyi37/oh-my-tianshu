@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { AgentStatus } from '@deepseek-ai/dsh-agent'
-import type { StreamChunk } from '@deepseek-ai/dsh-llm'
+import type { AgentStatus } from '@huiliyi37/dsh-agent'
+import type { StreamChunk } from '@huiliyi37/dsh-llm'
 import {
   applyActivityEvent,
   emptyActivity,

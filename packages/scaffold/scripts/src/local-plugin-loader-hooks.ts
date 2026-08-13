@@ -1,7 +1,7 @@
 /**
  * Node module customization hook for project-local plugin package names.
  *
- * @module @deepseek-ai/dsh-scripts/local-plugin-loader-hooks
+ * @module @huiliyi37/dsh-scripts/local-plugin-loader-hooks
  */
 
 import type { ResolveHookContext, ResolveFnOutput } from 'node:module'

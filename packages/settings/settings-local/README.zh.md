@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-settings-local
+# @huiliyi37/dsh-settings-local
 
 [English](README.md) | 中文
 

@@ -1,24 +1,24 @@
 import { describe, expect, it, vi } from 'vitest'
 import { PassThrough } from 'node:stream'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import SessionStore, { Session, SessionId } from '@deepseek-ai/dsh-session'
-import AgentRegistry, { Inbox, type Agent } from '@deepseek-ai/dsh-agent'
-import SandboxProvider from '@deepseek-ai/dsh-sandbox'
-import type { ConfinedArgv, SandboxPolicy } from '@deepseek-ai/dsh-sandbox'
-import SandboxPolicyService, { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
-import PtyService, { PtyBackendCleanupError, PtySessionId } from '@deepseek-ai/dsh-pty'
-import { LocalPtyBackend } from '@deepseek-ai/dsh-pty-local'
-import * as ptyLocal from '@deepseek-ai/dsh-pty-local'
-import type { ResolvedConfig } from '@deepseek-ai/dsh-pty-local/src/config.ts'
-import type { LocalPtySession } from '@deepseek-ai/dsh-pty-local/src/session.ts'
-import { SubprocessService } from '@deepseek-ai/dsh-subprocess'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import SessionStore, { Session, SessionId } from '@huiliyi37/dsh-session'
+import AgentRegistry, { Inbox, type Agent } from '@huiliyi37/dsh-agent'
+import SandboxProvider from '@huiliyi37/dsh-sandbox'
+import type { ConfinedArgv, SandboxPolicy } from '@huiliyi37/dsh-sandbox'
+import SandboxPolicyService, { setSandboxMode } from '@huiliyi37/dsh-sandbox-policy'
+import PtyService, { PtyBackendCleanupError, PtySessionId } from '@huiliyi37/dsh-pty'
+import { LocalPtyBackend } from '@huiliyi37/dsh-pty-local'
+import * as ptyLocal from '@huiliyi37/dsh-pty-local'
+import type { ResolvedConfig } from '@huiliyi37/dsh-pty-local/src/config.ts'
+import type { LocalPtySession } from '@huiliyi37/dsh-pty-local/src/session.ts'
+import { SubprocessService } from '@huiliyi37/dsh-subprocess'
 import type {
   SubprocessHandle,
   SubprocessSpawnSpec,
   SubprocessTerminalHandle,
   SubprocessTerminalSpawnSpec,
-} from '@deepseek-ai/dsh-subprocess'
+} from '@huiliyi37/dsh-subprocess'
 
 class EmptySandbox extends SandboxProvider {
   confine(_argv: readonly string[], _policy: SandboxPolicy): ConfinedArgv {

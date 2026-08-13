@@ -1,15 +1,15 @@
 /**
  * Instruction-file discovery and bounded, abort-aware provider reads.
  *
- * @module @deepseek-ai/dsh-workspace-context/files
+ * @module @huiliyi37/dsh-workspace-context/files
  */
 
 import { createReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
-import type { FileSystem, FsInfo, FsTarget, FsVersion } from '@deepseek-ai/dsh-fs'
-import { assertNever } from '@deepseek-ai/dsh-llm'
-import { dshHomeDisplay } from '@deepseek-ai/dsh-paths'
+import type { FileSystem, FsInfo, FsTarget, FsVersion } from '@huiliyi37/dsh-fs'
+import { assertNever } from '@huiliyi37/dsh-llm'
+import { dshHomeDisplay } from '@huiliyi37/dsh-paths'
 import { resolveConfig, resolveDiscoveryConfig, type ResolvedConfig } from './config.ts'
 import { trimmedInstructionDigest } from './digest.ts'
 import { decodeScopeKey, renderWorkspaceContext, USER_GLOBAL_DIRECTORY, USER_GLOBAL_FILE, type RenderedWorkspaceContext } from './render.ts'

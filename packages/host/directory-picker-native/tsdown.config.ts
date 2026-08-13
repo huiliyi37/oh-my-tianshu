@@ -4,7 +4,7 @@ import { clientBundle } from '../../client/tsdown.client.ts'
 // dsh-workflow-workerthread's worker): path-loaded by the driver, inlining
 // the dialog logic while koffi stays an external native require.
 export default clientBundle(
-  '@deepseek-ai/dsh-host-directory-picker-native',
+  '@huiliyi37/dsh-host-directory-picker-native',
   ['lib/types/index.js', 'lib/types/invariant.js'],
   {
     companions: [{

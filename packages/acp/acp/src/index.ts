@@ -6,15 +6,15 @@
  * permission decisions; presentation and human-interaction features stay with
  * the harness's UI modules.
  *
- * @module @deepseek-ai/dsh-acp
+ * @module @huiliyi37/dsh-acp
  */
 
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import { randomUUID } from 'node:crypto'
 import { isAbsolute } from 'node:path'
 import { Readable, Writable } from 'node:stream'
-import Schema from 'schemastery'
-import { createUserMessage, errorChain } from '@deepseek-ai/dsh-llm'
+import Schema from '@huiliyi37/schemastery'
+import { createUserMessage, errorChain } from '@huiliyi37/dsh-llm'
 import {
   AgentSideConnection,
   ndJsonStream,
@@ -33,10 +33,10 @@ import {
   type StopReason,
   type Stream,
 } from '@agentclientprotocol/sdk'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { SessionId, type SessionEvent, type TurnEndReason } from '@deepseek-ai/dsh-session'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { SessionId, type SessionEvent, type TurnEndReason } from '@huiliyi37/dsh-session'
 // Side-effect type import: declaration-merges the approval waterfall answered below.
-import type {} from '@deepseek-ai/dsh-user-approval'
+import type {} from '@huiliyi37/dsh-user-approval'
 import { acpPromptToText, promptHasUnsupportedContent, turnEndToStopReason } from './codec.ts'
 
 export const name = 'acp'

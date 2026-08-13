@@ -11,12 +11,12 @@
  * stop-on-throw) or touch the agent loop. Composed by a backend in its
  * constructor.
  *
- * @module @deepseek-ai/dsh-session-telemetry/coordinator
+ * @module @huiliyi37/dsh-session-telemetry/coordinator
  */
 
-import type { Context } from 'cordis'
-import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { Context } from '@huiliyi37/cordis'
+import type { Session, SessionEvent } from '@huiliyi37/dsh-session'
+import type { Agent } from '@huiliyi37/dsh-agent'
 import type { TelemetryBackend, TelemetryRecord, TelemetrySeverity } from './index.ts'
 
 /** Whether capture follows live events or reads the canonical log only when requested. */

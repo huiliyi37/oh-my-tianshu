@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-subagent-claude-code
+# @huiliyi37/dsh-subagent-claude-code
 
 English | [中文](README.zh.md)
 
@@ -35,13 +35,13 @@ Install this package and add the following rows to your own `cordis.yml`. Shippe
 
 ```yaml
 - id: subagent-claude-code
-  name: '@deepseek-ai/dsh-subagent-claude-code'
+  name: '@huiliyi37/dsh-subagent-claude-code'
   config:
     env:
       ANTHROPIC_API_KEY: !!js process.env.ANTHROPIC_API_KEY
 
 - id: tool-subagent-claude-code
-  name: '@deepseek-ai/dsh-tool-subagent'
+  name: '@huiliyi37/dsh-tool-subagent'
   config:
     provider: claude-code
     toolName: subagent_claude_code

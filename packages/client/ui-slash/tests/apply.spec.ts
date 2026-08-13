@@ -4,14 +4,14 @@
  * registration follows the slot declaration, resolves the per-session controller from the slot's
  * sessionId, and unregisters on fiber teardown.
  */
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it } from 'vitest'
-import { LocaleService } from '@deepseek-ai/dsh-client-locale/client'
-import { usePinnedBrowserLanguages } from '@deepseek-ai/dsh-client-test-runtime'
-import { createScope, scopeOf, SlotsService } from '@deepseek-ai/dsh-client-runtime/client'
-import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client'
-import { apply, inject, SlashService } from '@deepseek-ai/dsh-client-ui-slash/client'
-import type { MenuViewInjected } from '@deepseek-ai/dsh-client-ui-slash/client'
+import { LocaleService } from '@huiliyi37/dsh-client-locale/client'
+import { usePinnedBrowserLanguages } from '@huiliyi37/dsh-client-test-runtime'
+import { createScope, scopeOf, SlotsService } from '@huiliyi37/dsh-client-runtime/client'
+import type { SessionId } from '@huiliyi37/dsh-client-runtime/client'
+import { apply, inject, SlashService } from '@huiliyi37/dsh-client-ui-slash/client'
+import type { MenuViewInjected } from '@huiliyi37/dsh-client-ui-slash/client'
 
 // The service reads its initial locale from the browser; these specs assert
 // the shipped Chinese copy, so they state the browser they assume.

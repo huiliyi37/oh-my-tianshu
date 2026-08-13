@@ -7,9 +7,9 @@
  * cordis.yml row; no client code branches on a capability kind. The dialog's
  * copy is locale-registered here — the flow package owns its own strings.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ClientContext } from '@huiliyi37/dsh-client-runtime/client'
 // Type-only: pulls the SlotMap merge declaring the directory-flow holes.
-import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
+import type {} from '@huiliyi37/dsh-client-ui-workspace/client'
 import type { BrowseFlowInjected } from './flow.ts'
 import { BrowseDirectoryFlow } from './flow.ts'
 

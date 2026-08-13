@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import InvariantService from '@deepseek-ai/dsh-invariants'
+import { Context } from '@huiliyi37/cordis'
+import InvariantService from '@huiliyi37/dsh-invariants'
 import * as MockServerInvariant from '../src/invariant.ts'
 
 describe('mock LLM server invariant companion', () => {
@@ -10,7 +10,7 @@ describe('mock LLM server invariant companion', () => {
     const fiber = await ctx.plugin(MockServerInvariant)
 
     expect(() => {
-      ctx.invariants.register('@deepseek-ai/dsh-llm-mock-server', () => {})
+      ctx.invariants.register('@huiliyi37/dsh-llm-mock-server', () => {})
     }).toThrow(/already registered/)
     await fiber.dispose()
     await ctx.fiber.dispose()

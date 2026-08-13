@@ -11,7 +11,7 @@ It is a **library, not a service or plugin**: no `ctx`, registers nothing, holds
 ## Surface
 
 ```ts
-import { runNativeCommand, type NativeCommandRunner } from '@deepseek-ai/dsh-native-command'
+import { runNativeCommand, type NativeCommandRunner } from '@huiliyi37/dsh-native-command'
 ```
 
 ## Model Experience

@@ -3,16 +3,16 @@
  * with logged model context without vetoing or rewriting calls. Configuration
  * and chain semantics live in the package README; rationale lives in the
  * repeat-tool-guard Agent Note.
- * @module @deepseek-ai/dsh-repeat-tool-guard
+ * @module @huiliyi37/dsh-repeat-tool-guard
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { MessageSource } from '@deepseek-ai/dsh-llm'
-import type { UserMessage } from '@deepseek-ai/dsh-session'
-import type { PostToolDecision, ToolExecution } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type { Agent, PreStepDecision } from '@huiliyi37/dsh-agent'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
+import type { MessageSource } from '@huiliyi37/dsh-llm'
+import type { UserMessage } from '@huiliyi37/dsh-session'
+import type { PostToolDecision, ToolExecution } from '@huiliyi37/dsh-tools'
 
 export const name = 'repeat-tool-guard'
 

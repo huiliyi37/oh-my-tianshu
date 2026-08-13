@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-repeat-tool-guard
+# @huiliyi37/dsh-repeat-tool-guard
 
 English | [中文](README.zh.md)
 
@@ -8,7 +8,7 @@ An advisory loop-breaker, not a model-facing tool: it never appears in the tool 
 
 ```yaml
 - id: repeat-tool-guard
-  name: '@deepseek-ai/dsh-repeat-tool-guard'
+  name: '@huiliyi37/dsh-repeat-tool-guard'
   config:
     thresholds: [3, 5, 8]        # default; consecutive counts that trigger a reminder
     include: []                  # tool-name patterns to track; empty ⇒ all tools

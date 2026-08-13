@@ -9,11 +9,11 @@
  * detachProjections({ keepHandle: true }) 让渡所有权给 registry）；本层不
  * 创建/销毁会话——退出时由 factory 统一 teardown。
  *
- * @module @deepseek-ai/dsh-tui/controllers/session-manager
+ * @module @huiliyi37/dsh-tui/controllers/session-manager
  */
 
-import type { Context } from 'cordis'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import type { SessionId } from '@huiliyi37/dsh-session'
 
 /** 会话投影元数据（tab 栏/列表渲染消费；不存完整 transcript）。 */
 export interface SessionSnapshot {

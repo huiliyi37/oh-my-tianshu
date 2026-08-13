@@ -2,7 +2,7 @@
  * Typed declarative definitions for features whose behavior is entirely
  * the shared resource lifecycle.
  *
- * @module @deepseek-ai/dsh-helper/features/define-feature
+ * @module @huiliyi37/dsh-helper/features/define-feature
  */
 
 import type { CordisConfigEntry } from '../documents/cordis-yaml-file.ts'

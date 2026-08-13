@@ -5,13 +5,13 @@
  * to the full page's single credential editor. Export discipline:
  * packages/client/AGENTS.md.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
-import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import type { ClientContext } from '@huiliyi37/dsh-client-runtime/client'
+import type { ConnectionHandle } from '@huiliyi37/dsh-client-connection/client'
+import { bindSnapshotSelector } from '@huiliyi37/dsh-client-web-react'
 // Type-only: pulls the shell's SlotMap merge (the 'settings.section' entry).
-import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import type {} from '@huiliyi37/dsh-client-ui-settings/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
-import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@huiliyi37/dsh-client-locale/client'
 import { ModelsSection } from './ModelsSection.tsx'
 import type { ModelsSectionInjected } from './ModelsSection.tsx'
 import { DeepSeekOnboardingDialog } from './DeepSeekOnboardingDialog.tsx'
@@ -22,7 +22,7 @@ import { en, zh, type ModelsKey } from './locales.ts'
 export type { ModelsSectionInjected, ModelsSectionProps } from './ModelsSection.tsx'
 export type { ModelsKey } from './locales.ts'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@huiliyi37/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** The Models page + onboarding overlay copy. */
     'settings.models': ModelsKey

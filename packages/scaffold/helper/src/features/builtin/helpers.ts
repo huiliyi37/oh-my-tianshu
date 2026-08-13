@@ -1,7 +1,7 @@
 /**
  * Small resource constructors shared by builtin feature modules.
  *
- * @module @deepseek-ai/dsh-helper/features/builtin/helpers
+ * @module @huiliyi37/dsh-helper/features/builtin/helpers
  */
 
 import type { CordisConfigEntry } from '../../documents/cordis-yaml-file.ts'

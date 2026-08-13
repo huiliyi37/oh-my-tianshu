@@ -1,14 +1,14 @@
-# @deepseek-ai/dsh-tool-git
+# @huiliyi37/dsh-tool-git
 
 English | [中文](README.zh.md)
 
-The **model-facing git tool** — one `git` tool with an `operation` discriminator (`status` | `diff` | `log` | `commit`). The four operations share a single tool schema so the prompt footprint stays small (H1: the Claude Code native git tools counterpart, C6 benchmark). This is the consumer layer of the git seam: it owns the tool name, JSON schema, argument validation, prompt section, and result formatting, and executes through the `ctx.git` provider contract ([`@deepseek-ai/dsh-git`](../git)) — the tool never touches git subprocesses directly.
+The **model-facing git tool** — one `git` tool with an `operation` discriminator (`status` | `diff` | `log` | `commit`). The four operations share a single tool schema so the prompt footprint stays small (H1: the Claude Code native git tools counterpart, C6 benchmark). This is the consumer layer of the git seam: it owns the tool name, JSON schema, argument validation, prompt section, and result formatting, and executes through the `ctx.git` provider contract ([`@huiliyi37/dsh-git`](../git)) — the tool never touches git subprocesses directly.
 
 ## Config
 
 ```yaml
 - id: tool-git
-  name: '@deepseek-ai/dsh-tool-git'
+  name: '@huiliyi37/dsh-tool-git'
   config:
     enabled: true   # optional; false registers no tools (default true)
 ```

@@ -3,10 +3,10 @@
  * → ctx 'commands/changed'; each established connection generation →
  * ctx 'connection/reset' (the forced cache-invalidation broadcast).
  */
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it } from 'vitest'
-import type { ConnectionHandle, ConnectionSinks } from '@deepseek-ai/dsh-client-connection/client'
-import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
+import type { ConnectionHandle, ConnectionSinks } from '@huiliyi37/dsh-client-connection/client'
+import TypertRegistry from '@huiliyi37/dsh-typert-registry'
 import * as RuntimeClient from '../src/client/index.ts'
 import { FakeApiClient } from './fake-api.ts'
 

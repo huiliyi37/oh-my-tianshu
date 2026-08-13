@@ -6,7 +6,7 @@
  * code is irrelevant; it makes the omission explicit and lets the caller read
  * an exact range when more evidence is needed.
  *
- * @module @deepseek-ai/dsh-tool-fs/src/focus
+ * @module @huiliyi37/dsh-tool-fs/src/focus
  */
 
 /** Max chars of one focus string (normalized). */

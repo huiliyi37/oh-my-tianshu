@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SERVER_NAME_PATTERN as CLIENT_SERVER_NAME_PATTERN } from '@deepseek-ai/dsh-mcp-client'
+import { SERVER_NAME_PATTERN as CLIENT_SERVER_NAME_PATTERN } from '@huiliyi37/dsh-mcp-client'
 import { SERVER_NAME_PATTERN, parseMcpDocument, resolveMcpServers } from '../src/mcp.ts'
 
 describe('repository plugin common .mcp.json support', () => {

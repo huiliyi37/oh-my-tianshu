@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-client-connection
+# @huiliyi37/dsh-client-connection
 
 English | [中文](README.zh.md)
 

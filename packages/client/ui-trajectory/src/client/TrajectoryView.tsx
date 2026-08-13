@@ -1,12 +1,12 @@
 /** Trajectory view: compact summary over a turn-aware event ledger. */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { ConvViewProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { InjectFace } from '@deepseek-ai/dsh-client-ui-slots'
+import type { ConvViewProps } from '@huiliyi37/dsh-client-ui-conversation/client'
+import type { InjectFace } from '@huiliyi37/dsh-client-ui-slots'
 import type {
   AssistantBlock, AssistantMessageNode, ConversationContext, ConversationSnapshot,
   SessionHistoryFace, SnapshotStore,
-} from '@deepseek-ai/dsh-client-runtime/client'
+} from '@huiliyi37/dsh-client-runtime/client'
 import {
   deriveTrajectoryContextBranches, trajectoryBranchContainsRequest,
 } from './context-branches.ts'

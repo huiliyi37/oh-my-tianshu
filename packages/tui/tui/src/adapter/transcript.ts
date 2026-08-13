@@ -10,12 +10,12 @@
  * (`createTranscript`) that replays the session's existing log and then folds
  * every `session/event` publication for that session.
  *
- * @module @deepseek-ai/dsh-tui/adapter/transcript
+ * @module @huiliyi37/dsh-tui/adapter/transcript
  */
 
-import type { Context } from 'cordis'
-import type { CallId, ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import type { CallId, ContentBlock } from '@huiliyi37/dsh-llm'
+import type { Session, SessionEvent, SessionId } from '@huiliyi37/dsh-session'
 
 /** One completed message row on the TUI surface. */
 export interface TranscriptMessage {

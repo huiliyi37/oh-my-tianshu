@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
+import { Context } from '@huiliyi37/cordis'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
 import {
   agentEvents,
   installModelSelection,
   type Agent,
   type ModelSelectionRef,
 } from '../src/index.ts'
-import { ReasoningEffortId, type LlmCallConfig } from '@deepseek-ai/dsh-llm'
+import { ReasoningEffortId, type LlmCallConfig } from '@huiliyi37/dsh-llm'
 
 describe('installModelSelection()', () => {
   it('snapshots prompt variables and request routing together, then disposes both listeners', async () => {

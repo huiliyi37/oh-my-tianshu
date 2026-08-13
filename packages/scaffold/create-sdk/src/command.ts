@@ -1,7 +1,7 @@
 /**
  * Internal create-sdk command composition used by the package bin.
  *
- * @module @deepseek-ai/create-sdk/command
+ * @module @huiliyi37/create-sdk/command
  */
 
 import { readFile } from 'node:fs/promises'
@@ -13,7 +13,7 @@ import {
   PromptCancelledError,
   type PackageManagerVersionProbe,
   type PromptPort,
-} from '@deepseek-ai/dsh-helper'
+} from '@huiliyi37/dsh-helper'
 import { parseCreateArgs, type CreateArgs } from './args.ts'
 import { CreateWizard, type ResolvedCreateRequest } from './create-wizard.ts'
 import { resolveHeadless } from './headless.ts'

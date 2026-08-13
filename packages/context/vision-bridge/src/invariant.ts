@@ -2,14 +2,14 @@
  * Package-owned vision-bridge invariants：本插件注入的每个模型可见 user
  * message 都带本插件 source 标记且 text block 非空（Model-visible ⟺ logged
  * 的包级校验）。
- * @module @deepseek-ai/dsh-vision-bridge/invariant
+ * @module @huiliyi37/dsh-vision-bridge/invariant
  */
 
-import type { Context } from 'cordis'
-import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
-import type { InvariantFailure, InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { Session, SessionEvent } from '@huiliyi37/dsh-session'
+import type { InvariantFailure, InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-vision-bridge'
+const PACKAGE_NAME = '@huiliyi37/dsh-vision-bridge'
 const SOURCE_NAME = 'vision-bridge'
 
 /** Cordis companion plugin name. */

@@ -6,10 +6,10 @@
  * domain-face behavior is covered props-direct in question-composer.spec.tsx;
  * no renderer machinery here.
  */
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it } from 'vitest'
-import { SlotsService } from '@deepseek-ai/dsh-client-runtime/client'
-import { LocaleService } from '@deepseek-ai/dsh-client-locale/client'
+import { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
+import { LocaleService } from '@huiliyi37/dsh-client-locale/client'
 import { QuestionComposer } from '../src/client/QuestionComposer.tsx'
 import { apply, inject } from '../src/client/index.ts'
 

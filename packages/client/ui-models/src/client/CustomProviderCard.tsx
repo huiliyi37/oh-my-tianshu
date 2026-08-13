@@ -23,7 +23,7 @@
 
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import type { IApiClient } from '@deepseek-ai/dsh-client-connection/client'
+import type { IApiClient } from '@huiliyi37/dsh-client-connection/client'
 import { apiKeyFailure } from './apiKey.ts'
 import { EditorFooter } from './EditorFooter.tsx'
 import { validateDeepSeekModels } from './DeepSeekModelsEditor.tsx'

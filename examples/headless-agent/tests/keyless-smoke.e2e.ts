@@ -5,14 +5,14 @@ import { promisify } from 'node:util'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { LOADER_SMOKE_TEST_TIMEOUT_MS, runLoaderSmoke } from '@deepseek-ai/dsh-loader-smoke'
+import { LOADER_SMOKE_TEST_TIMEOUT_MS, runLoaderSmoke } from '@huiliyi37/dsh-loader-smoke'
 import {
   PREPARED_ENTRY_FILENAME,
   REPOSITORY_PLUGIN_PREPARE_COMMAND,
   REPOSITORY_PLUGIN_PACKAGE_NAME,
   prepareDshPlugin,
-} from '@deepseek-ai/dsh-repository-plugin'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
+} from '@huiliyi37/dsh-repository-plugin'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
 
 const binScript = fileURLToPath(new URL('./fixtures/headless-driver.ts', import.meta.url))
 const configPath = fileURLToPath(new URL('./fixtures/cli.cordis.yml', import.meta.url))

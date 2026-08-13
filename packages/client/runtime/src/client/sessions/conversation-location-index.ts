@@ -1,4 +1,4 @@
-import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
+import type { SessionEvent } from '@huiliyi37/dsh-session/types'
 import type {
   ConversationEventInput, ConversationLocation, ConversationLocationData,
   ConversationLocationDataStore, ConversationStepDataMap, ConversationTimelineSnapshot,

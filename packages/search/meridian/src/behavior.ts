@@ -2,7 +2,7 @@
 // StigmergyStore 直接接 dsh-pheromone（形状一致：query() → {path, currentStrength}[]）。
 
 import type { MeridianDb } from './db.ts'
-import type { StigmergyStore } from '@deepseek-ai/dsh-pheromone'
+import type { StigmergyStore } from '@huiliyi37/dsh-pheromone'
 
 const CO_EDIT_BLACKLIST = [
   'package.json', 'package-lock.json', 'tsconfig.json',

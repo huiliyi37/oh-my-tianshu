@@ -8,7 +8,7 @@
  * (`build`, `create`) never boot Cordis at all. `DO_NOT_TRACK` and CI
  * environment signals force a denial regardless of file state.
  *
- * @module @deepseek-ai/dsh-telemetry/consent-resolver
+ * @module @huiliyi37/dsh-telemetry/consent-resolver
  */
 
 import { readFile } from 'node:fs/promises'
@@ -16,7 +16,7 @@ import { join } from 'node:path'
 import { parseDocument, type ScalarTag } from 'yaml'
 
 /** Default `cordis.yml` entry name that carries telemetry consent. */
-export const DEFAULT_TELEMETRY_PLUGIN_NAME = '@deepseek-ai/dsh-telemetry'
+export const DEFAULT_TELEMETRY_PLUGIN_NAME = '@huiliyi37/dsh-telemetry'
 
 /**
  * Passthrough for Cordis' `!!js` expression tag so parsing consent never fails

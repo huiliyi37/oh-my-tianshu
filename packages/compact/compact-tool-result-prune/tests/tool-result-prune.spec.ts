@@ -1,22 +1,22 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import { CallId , createMessage, createToolResultMessage } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
+import { Context } from '@huiliyi37/cordis'
+import { CallId , createMessage, createToolResultMessage } from '@huiliyi37/dsh-llm'
+import type { ContentBlock } from '@huiliyi37/dsh-llm'
 import SessionStore, {
   Session,
   SessionId,
-} from '@deepseek-ai/dsh-session'
-import type { SurfaceEvent } from '@deepseek-ai/dsh-session'
-import * as SessionInvariant from '@deepseek-ai/dsh-session/invariant'
-import InvariantService from '@deepseek-ai/dsh-invariants'
-import TokenMeterService from '@deepseek-ai/dsh-token-meter'
+} from '@huiliyi37/dsh-session'
+import type { SurfaceEvent } from '@huiliyi37/dsh-session'
+import * as SessionInvariant from '@huiliyi37/dsh-session/invariant'
+import InvariantService from '@huiliyi37/dsh-invariants'
+import TokenMeterService from '@huiliyi37/dsh-token-meter'
 import ToolResultPruneService, {
   codePointLength,
   DEFAULTS,
   PRUNE_MARKER,
   resolveConfig,
-} from '@deepseek-ai/dsh-compact-tool-result-prune'
-import type { ToolResultPruneConfig } from '@deepseek-ai/dsh-compact-tool-result-prune'
+} from '@huiliyi37/dsh-compact-tool-result-prune'
+import type { ToolResultPruneConfig } from '@huiliyi37/dsh-compact-tool-result-prune'
 
 const MODEL = 'test-model'
 const SMALL: ToolResultPruneConfig = {

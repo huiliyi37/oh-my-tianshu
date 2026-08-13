@@ -1,11 +1,11 @@
 /**
  * Shared domain and infrastructure for DeepSeek Harness SDK project tooling.
  *
- * FIXME: rename to `@deepseek-ai/dsh-sdk-helper` before the first tagged release —
+ * FIXME: rename to `@huiliyi37/dsh-sdk-helper` before the first tagged release —
  * the current name is indefensibly generic as a published name
  * ([regrouping Agent Note](../../../../.agents/notes/implemented/architecture/2026-07-29-package-regrouping.md)).
  *
- * @module @deepseek-ai/dsh-helper
+ * @module @huiliyi37/dsh-helper
  */
 
 export { featureId } from './ids.ts'

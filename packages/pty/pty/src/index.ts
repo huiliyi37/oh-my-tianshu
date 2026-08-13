@@ -1,11 +1,11 @@
 /**
  * Owner-scoped persistent PTY registry. Backends own terminal mechanics while
  * this service owns ids, publication, authorization, and awaited cleanup.
- * @module @deepseek-ai/dsh-pty
+ * @module @huiliyi37/dsh-pty
  */
 
-import { Context, Service } from 'cordis'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+import { Context, Service } from '@huiliyi37/cordis'
+import type { Agent } from '@huiliyi37/dsh-agent'
 import { PtyBackendCleanupError } from './types.ts'
 import type {
   PtyBackend,
@@ -45,7 +45,7 @@ export { PtyBackendCleanupError } from './types.ts'
 /** Opaque identity minted by {@link PtyService} for one live PTY session. */
 export type PtySessionId = PtySessionIdValue
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     pty: PtyService
   }

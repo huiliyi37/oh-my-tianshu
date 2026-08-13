@@ -5,10 +5,10 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { CallId, createMessage } from '@deepseek-ai/dsh-llm'
-import type { SparkTruncatePolicy } from '@deepseek-ai/dsh-llm-deepseek'
-import { truncateReasoningTail, defaultTokenizer } from '@deepseek-ai/dsh-llm-deepseek'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import { CallId, createMessage } from '@huiliyi37/dsh-llm'
+import type { SparkTruncatePolicy } from '@huiliyi37/dsh-llm-deepseek'
+import { truncateReasoningTail, defaultTokenizer } from '@huiliyi37/dsh-llm-deepseek'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
 import { anchorsFromReasoning, collectAnchors, reasoningFromEvents, renderAnchors } from '../src/index.ts'
 
 const POLICY: SparkTruncatePolicy = { flash: 300, pro: 0 }

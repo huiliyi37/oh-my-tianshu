@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
-import type { CallId } from '@deepseek-ai/dsh-llm'
+import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
+import type { CallId } from '@huiliyi37/dsh-llm'
 import { applyTranscriptEvent, createTranscript, emptyTranscript } from '../src/adapter/transcript.js'
 
 const sid = 'test-session-1' as SessionId

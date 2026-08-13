@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-pheromone
+# @huiliyi37/dsh-pheromone
 
 English | [中文](README.zh.md)
 

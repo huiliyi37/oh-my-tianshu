@@ -1,8 +1,8 @@
 /** Browser runtime services for slots, sessions, workspaces, and connection-stream delivery. */
-import type { Context } from 'cordis'
-import type { ConnectionHandle, SessionId } from '@deepseek-ai/dsh-client-connection/client'
-import type { TypeRTContext } from '@deepseek-ai/dsh-type-meta'
-import type { MaybeSnapshotSelectorHook, SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
+import type { Context } from '@huiliyi37/cordis'
+import type { ConnectionHandle, SessionId } from '@huiliyi37/dsh-client-connection/client'
+import type { TypeRTContext } from '@huiliyi37/dsh-type-meta'
+import type { MaybeSnapshotSelectorHook, SnapshotSelectorHook } from '@huiliyi37/dsh-client-ui-slots'
 import { SlotsService } from './slots.ts'
 import { SessionsService } from './sessions/service.ts'
 import type { SessionListState } from './sessions/service.ts'
@@ -13,7 +13,7 @@ import type { UseProjection } from './sessions/projection-store.ts'
 import { ConversationEventRegistry } from './conversation/event-registry.ts'
 import { ConversationViewRegistry } from './conversation/view-registry.ts'
 
-export { isAppendSurfaceEvent, isReplacementSurfaceEvent } from '@deepseek-ai/dsh-session/surface'
+export { isAppendSurfaceEvent, isReplacementSurfaceEvent } from '@huiliyi37/dsh-session/surface'
 
 export { SlotsService } from './slots.ts'
 export { ConversationEventRegistry } from './conversation/event-registry.ts'
@@ -55,12 +55,12 @@ export type {
   SessionBinding, SessionListState, SessionProvideContribution, SessionProvideDescriptor, SessionSummary,
 } from './sessions/service.ts'
 export type { SessionListPhase, SessionSearchResultItem, SubagentCatalogSnapshot } from './sessions/manager.ts'
-export type { SubagentAddress } from '@deepseek-ai/dsh-client-connection/client'
+export type { SubagentAddress } from '@huiliyi37/dsh-client-connection/client'
 export type { WorkspaceListPhase } from './workspaces/manager.ts'
 export type { WorkspaceListState } from './workspaces/service.ts'
 export type {
   DirectoryEntry, DirectoryListing, WorkspaceId, WorkspaceView,
-} from '@deepseek-ai/dsh-client-connection/client'
+} from '@huiliyi37/dsh-client-connection/client'
 // Runtime owns the snapshot store; web-react only binds it to React.
 export { createSnapshotStore, defineStore, shallowEqual } from './contract/store.ts'
 export type {
@@ -99,12 +99,12 @@ export type {
 export type {
   ProjectionsBaseline, ProjectionValueStore, SessionProjectionMap, UseProjection,
 } from './sessions/projection-store.ts'
-export type { SessionId } from '@deepseek-ai/dsh-client-connection/client'
+export type { SessionId } from '@huiliyi37/dsh-client-connection/client'
 
 /** Client-side Cordis context after declaration merging. */
 export type ClientContext = Context
 
-declare module '@deepseek-ai/dsh-type-meta' {
+declare module '@huiliyi37/dsh-type-meta' {
   interface TypeRTContextMap {
     /** Client Agent scope identity; the agent and session share one wire id. */
     agent: TypeRTContext<SessionId>
@@ -114,7 +114,7 @@ declare module '@deepseek-ai/dsh-type-meta' {
 /** The conversation-snapshot selector hook supplied to session-scoped UI entries. */
 export type UseConversationSession = SnapshotSelectorHook<ConversationSnapshot>
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@huiliyi37/dsh-client-ui-slots' {
   /**
    * Session standard kit, real members (ui-slots declares the empty seat;
    * the runtime — where the subjects live — merges the concrete types):
@@ -143,7 +143,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Events {
     /**
      * A slot's definition or registration set changed.

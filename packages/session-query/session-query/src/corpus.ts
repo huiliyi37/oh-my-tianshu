@@ -1,8 +1,8 @@
 /** Live/persisted logical-corpus resolution for session-query. */
 
-import type { Context, Fiber } from 'cordis'
-import type { Session, SessionEvent, SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
-import SessionPersistence, { SessionPersistenceCorruptionError } from '@deepseek-ai/dsh-session-persistence'
+import type { Context, Fiber } from '@huiliyi37/cordis'
+import type { Session, SessionEvent, SessionHeader, SessionId } from '@huiliyi37/dsh-session'
+import SessionPersistence, { SessionPersistenceCorruptionError } from '@huiliyi37/dsh-session-persistence'
 import type { SessionRecord } from './types.ts'
 import { SessionQueryError } from './config.ts'
 import { assertSessionHeadersCompatible } from './sources.ts'

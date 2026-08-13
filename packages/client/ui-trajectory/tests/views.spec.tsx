@@ -7,28 +7,28 @@
  * event ledger with its timing overview, and fiber disposal removes the tab.
  * Timeline projection and inclusive focus edge cases ride along.
  */
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createElement, type ComponentProps, type FC, type ReactNode } from 'react'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
-import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
-import type { UseSession } from '@deepseek-ai/dsh-client-web-react'
-import { SlotsService } from '@deepseek-ai/dsh-client-runtime/client'
+import { bindSnapshotSelector } from '@huiliyi37/dsh-client-web-react'
+import { resolveSlotLabel } from '@huiliyi37/dsh-client-ui-slots'
+import { createSnapshotStore } from '@huiliyi37/dsh-client-runtime/client'
+import type { UseSession } from '@huiliyi37/dsh-client-web-react'
+import { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
 import type {
   ConversationSnapshot, RequestView, SessionHistoryFace, SessionHistoryInspection,
   SessionHistorySnapshot, SessionId, SessionListState, WorkspaceListState,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import type { ConvViewProps, ViewTab } from '@deepseek-ai/dsh-client-ui-conversation/client'
+} from '@huiliyi37/dsh-client-runtime/client'
+import type { ConvViewProps, ViewTab } from '@huiliyi37/dsh-client-ui-conversation/client'
 import {
   ConversationSession, ConversationSessionHeader,
   type ConversationSessionHeaderProps, type ConversationSessionProps,
-} from '@deepseek-ai/dsh-client-ui-conversation/src/client/skeleton/ConversationSession.tsx'
-import { createChatStore } from '@deepseek-ai/dsh-client-ui-conversation/src/client/stores.ts'
-import { zh as conversationZh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
-import { apply, inject } from '@deepseek-ai/dsh-client-ui-trajectory/client'
-import { apply as nodeApply } from '@deepseek-ai/dsh-client-ui-trajectory'
+} from '@huiliyi37/dsh-client-ui-conversation/src/client/skeleton/ConversationSession.tsx'
+import { createChatStore } from '@huiliyi37/dsh-client-ui-conversation/src/client/stores.ts'
+import { zh as conversationZh } from '@huiliyi37/dsh-client-ui-conversation/src/client/locales.ts'
+import { apply, inject } from '@huiliyi37/dsh-client-ui-trajectory/client'
+import { apply as nodeApply } from '@huiliyi37/dsh-client-ui-trajectory'
 import type { TrajectoryTurnModel } from '../src/client/layout.ts'
 import { TrajectoryTimeline } from '../src/client/TrajectoryTimeline.tsx'
 import {

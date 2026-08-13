@@ -1,8 +1,15 @@
 {
-  "name": "@cordisjs/plugin-group",
+  "name": "@huiliyi37/cordis-plugin-group",
   "description": "Nested plugin group for cordis",
   "version": "1.0.0",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "directory": "vendor/group"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -23,7 +30,7 @@
   "author": "Shigma <shigma10826@gmail.com>",
   "license": "MIT",
   "peerDependencies": {
-    "@cordisjs/plugin-loader": "^1.0.0-rc.5",
-    "cordis": "^4.0.0-rc.7"
+    "@huiliyi37/cordis-plugin-loader": "^1.0.0-rc.5",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
   }
 }

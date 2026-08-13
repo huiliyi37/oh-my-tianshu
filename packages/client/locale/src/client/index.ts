@@ -9,11 +9,11 @@
  * ui-slots): in THIS unit the map holds only this package's own merges, but
  * consumers merge more namespaces in and the intersection keeps them
  * string-typed. The rule fires on the narrow-map view, not real redundancy. */
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import {
   type BoundActions, type LocaleDictOf, type LocaleNamespaceMap, type Translate, type TranslateNS,
-} from '@deepseek-ai/dsh-client-ui-slots'
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+} from '@huiliyi37/dsh-client-ui-slots'
+import type { ClientContext } from '@huiliyi37/dsh-client-runtime/client'
 import { en, zh, type CommonKey } from '../locales/index.ts'
 import {
   en as settingsEn, zh as settingsZh, type SettingsLocaleKey,
@@ -30,9 +30,9 @@ export type { CommonKey } from '../locales/index.ts'
 // The translate currency lives in ui-slots (the render machinery synthesizes
 // the seat); re-exported here so dictionary owners import one package.
 // TranslateNS<'model'> is the namespace-addressed developer-facing form.
-export type { Translate, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+export type { Translate, TranslateNS } from '@huiliyi37/dsh-client-ui-slots'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@huiliyi37/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** Shared cross-feature vocabulary, consulted by the lookup chain after the entry's own namespace misses. */
     common: CommonKey
@@ -65,7 +65,7 @@ export interface LocaleSnapshot {
   revision: number
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     locale: LocaleService
   }

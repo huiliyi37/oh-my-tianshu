@@ -8,41 +8,41 @@
 # falls back to /home/user/workspace while Bash and PTY keep targeting the
 # host path, so every tool call fails with a remote spawn error.
 - id: base
-  name: '@cordisjs/plugin-include'
+  name: '@huiliyi37/cordis-plugin-include'
   config:
     path: ./advanced.cordis.yml
     patches:
       - id: subprocess
-        name: '@deepseek-ai/dsh-subprocess-local'
+        name: '@huiliyi37/dsh-subprocess-local'
         disabled: true
       - id: fs-local
-        name: '@deepseek-ai/dsh-fs-local'
+        name: '@huiliyi37/dsh-fs-local'
         disabled: true
       - insert:
           - id: e2b
-            name: '@deepseek-ai/dsh-e2b'
+            name: '@huiliyi37/dsh-e2b'
             config:
               cwd: !!js process.cwd()
               timeoutMs: 300000
           - id: subprocess-e2b
-            name: '@deepseek-ai/dsh-subprocess-e2b'
+            name: '@huiliyi37/dsh-subprocess-e2b'
           - id: fs-e2b
-            name: '@deepseek-ai/dsh-fs-e2b'
+            name: '@huiliyi37/dsh-fs-e2b'
           - id: sandbox-policy
-            name: '@deepseek-ai/dsh-sandbox-policy'
+            name: '@huiliyi37/dsh-sandbox-policy'
             config:
               mode: danger-full-access
               workspaceRoot: !!js process.cwd()
           - id: pty
-            name: '@deepseek-ai/dsh-pty'
+            name: '@huiliyi37/dsh-pty'
           - id: pty-local
-            name: '@deepseek-ai/dsh-pty-local'
+            name: '@huiliyi37/dsh-pty-local'
           - id: tool-pty
-            name: '@deepseek-ai/dsh-tool-pty'
+            name: '@huiliyi37/dsh-tool-pty'
           - id: lsp
-            name: '@deepseek-ai/dsh-lsp'
+            name: '@huiliyi37/dsh-lsp'
           - id: lsp-local
-            name: '@deepseek-ai/dsh-lsp-local'
+            name: '@huiliyi37/dsh-lsp-local'
             config:
               servers:
                 typescript:
@@ -54,4 +54,4 @@
                     .js: javascript
                     .jsx: javascriptreact
           - id: tool-lsp
-            name: '@deepseek-ai/dsh-tool-lsp'
+            name: '@huiliyi37/dsh-tool-lsp'

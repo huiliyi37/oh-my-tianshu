@@ -5,11 +5,11 @@
  * operation, so a changed credential reaches the next operation without any
  * plugin restart, and configuration surfaces describe a reference without
  * ever seeing its value.
- * @module @deepseek-ai/dsh-credentials
+ * @module @huiliyi37/dsh-credentials
  */
 
-import { Context, Service } from 'cordis'
-import type { Branded } from '@deepseek-ai/dsh-brand'
+import { Context, Service } from '@huiliyi37/cordis'
+import type { Branded } from '@huiliyi37/dsh-brand'
 
 /** Nominal reference to one credential: a POSIX-style environment-variable name. */
 export type CredentialRef = Branded<'CredentialRef'>
@@ -46,7 +46,7 @@ export interface CredentialInfo {
   writable: boolean
 }
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     credentials: Credentials
   }

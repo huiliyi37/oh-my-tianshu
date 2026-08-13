@@ -1,8 +1,8 @@
-# @deepseek-ai/dsh-tool-web
+# @huiliyi37/dsh-tool-web
 
 English | [中文](README.zh.md)
 
-The model-facing web tool suite — `web_search` and `web_fetch` — over the [web capability seam](../web/README.md) (`ctx.web`). It owns model-facing concerns only: tool names, JSON schemas, snake_case argument names, prompt sections, the result-count bound, result formatting, HTML→markdown presentation, and the UI presentation projection — `presentCall`, `presentResult` (a `card: 'web'` result card discriminated by `kind: 'search' | 'fetch'`), and the `output.presentationMeta` that carries the structured search sources or the fetch summary the lossy render text cannot (see the [web-result-card Agent Note](../../../.agents/notes/implemented/feature/2026-07-30-web-result-card.md)). All web access goes through `ctx.web`; this package never imports a concrete provider. Neither tool exposes a model-facing timeout — each tool's cooperative tool-call budget is declared here via config (`fetchTimeoutMs`/`searchTimeoutMs`, attached as `ToolDefinition.timeoutMs`) and enforced by [`@deepseek-ai/dsh-timeout-policy`](../../guard/timeout-policy/README.md) (a `tools/execute` wrapper); each tool just forwards `exec.signal` to the seam.
+The model-facing web tool suite — `web_search` and `web_fetch` — over the [web capability seam](../web/README.md) (`ctx.web`). It owns model-facing concerns only: tool names, JSON schemas, snake_case argument names, prompt sections, the result-count bound, result formatting, HTML→markdown presentation, and the UI presentation projection — `presentCall`, `presentResult` (a `card: 'web'` result card discriminated by `kind: 'search' | 'fetch'`), and the `output.presentationMeta` that carries the structured search sources or the fetch summary the lossy render text cannot (see the [web-result-card Agent Note](../../../.agents/notes/implemented/feature/2026-07-30-web-result-card.md)). All web access goes through `ctx.web`; this package never imports a concrete provider. Neither tool exposes a model-facing timeout — each tool's cooperative tool-call budget is declared here via config (`fetchTimeoutMs`/`searchTimeoutMs`, attached as `ToolDefinition.timeoutMs`) and enforced by [`@huiliyi37/dsh-timeout-policy`](../../guard/timeout-policy/README.md) (a `tools/execute` wrapper); each tool just forwards `exec.signal` to the seam.
 
 Each tool is registered independently; a product that wants only one disables the other via config (`{ search: false }` / `{ fetch: false }`). Search guidance mentions `web_fetch` only when fetch is also config-enabled; a search-only composition instead tells the model to use returned snippets and cite their URLs.
 
@@ -28,11 +28,11 @@ The normalized service results are also the canonical tool values: `WebSearchRes
 | `searchTimeoutMs` | `30000` | Cooperative tool-call timeout budget (ms) for `web_search`. |
 | `fetchMaxOutputChars` | `200000` | Cap on source characters converted synchronously and on one complete `web_fetch` output (header, rendered body, and footer); a cut body gets the truncation notice when it fits. |
 
-`fetchTimeoutMs`/`searchTimeoutMs` declare each tool's cooperative timeout budget (attached as `ToolDefinition.timeoutMs`), enforced by [`@deepseek-ai/dsh-timeout-policy`](../../guard/timeout-policy/README.md); the model-facing schema exposes no timeout argument. `fetchMaxOutputChars` bounds both synchronous conversion work and the complete rendered result: only that many source characters are converted, and the header, converted prefix, and truncation notice are then capped together. The default leaves headroom above the local provider's 100,000-character body cap, but rendered expansion can still make the final bound truncate the result.
+`fetchTimeoutMs`/`searchTimeoutMs` declare each tool's cooperative timeout budget (attached as `ToolDefinition.timeoutMs`), enforced by [`@huiliyi37/dsh-timeout-policy`](../../guard/timeout-policy/README.md); the model-facing schema exposes no timeout argument. `fetchMaxOutputChars` bounds both synchronous conversion work and the complete rendered result: only that many source characters are converted, and the header, converted prefix, and truncation notice are then capped together. The default leaves headroom above the local provider's 100,000-character body cap, but rendered expansion can still make the final bound truncate the result.
 
 ```yaml
 - id: tool-web
-  name: '@deepseek-ai/dsh-tool-web'
+  name: '@huiliyi37/dsh-tool-web'
 ```
 
 ## Stable registration

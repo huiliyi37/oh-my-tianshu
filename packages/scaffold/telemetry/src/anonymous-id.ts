@@ -10,14 +10,14 @@
  * `$DSH_HOME` moves the id with the rest of the harness data — the single-root
  * convention this package shares, not a telemetry-specific policy.
  *
- * @module @deepseek-ai/dsh-telemetry/anonymous-id
+ * @module @huiliyi37/dsh-telemetry/anonymous-id
  */
 
 import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import type { Branded } from '@deepseek-ai/dsh-brand'
-import { resolveDshHome } from '@deepseek-ai/dsh-paths'
+import type { Branded } from '@huiliyi37/dsh-brand'
+import { resolveDshHome } from '@huiliyi37/dsh-paths'
 
 /** A harness-home-scoped anonymous telemetry id (random UUID v4). */
 export type AnonymousId = Branded<'AnonymousId'>

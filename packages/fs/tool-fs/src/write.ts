@@ -2,15 +2,15 @@
  * Model-facing full-file write. It obtains an optional intent from the single policy slot, calls
  * `ctx.fs.writeText` without a stat, then records the resulting version; no policy means an
  * unconditional atomic create-or-overwrite.
- * @module @deepseek-ai/dsh-tool-fs/src/write
+ * @module @huiliyi37/dsh-tool-fs/src/write
  */
 
-import type { Context } from 'cordis'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { DiffCallView, DiffResultView, ToolResult } from '@deepseek-ai/dsh-tools'
-import type { FsWriteOutcome } from '@deepseek-ai/dsh-fs'
-import type {} from '@deepseek-ai/dsh-fs'
-import type {} from '@deepseek-ai/dsh-system-prompt'
+import type { Context } from '@huiliyi37/cordis'
+import { defineTool } from '@huiliyi37/dsh-tools'
+import type { DiffCallView, DiffResultView, ToolResult } from '@huiliyi37/dsh-tools'
+import type { FsWriteOutcome } from '@huiliyi37/dsh-fs'
+import type {} from '@huiliyi37/dsh-fs'
+import type {} from '@huiliyi37/dsh-system-prompt'
 import { computeHunkDiffs, diffsFromMeta } from './diff.ts'
 import { remediateFsError } from './error.ts'
 import { sessionResolveOptions } from './session-cwd.ts'

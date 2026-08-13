@@ -8,9 +8,9 @@
  * (web2 §0): the snapshot-store machinery lives in the runtime PLUGIN
  * package, and the shell kernel must not value-import any plugin package —
  * the loading page has to work while (and especially when) plugins fail.
- * @module @deepseek-ai/dsh-client-web/src/loader-status
+ * @module @huiliyi37/dsh-client-web/src/loader-status
  */
-import type { FiberState } from 'cordis'
+import type { FiberState } from '@huiliyi37/cordis'
 
 /**
  * Value mirror of cordis's `FiberState` const enum: a const enum has no

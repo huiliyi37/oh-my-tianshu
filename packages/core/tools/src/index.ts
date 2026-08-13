@@ -1,23 +1,23 @@
 /**
  * Tool registry, model presentation modes, and pre/guard/around/post/result
  * execution pipeline.
- * @module @deepseek-ai/dsh-tools
+ * @module @huiliyi37/dsh-tools
  */
 
-import { Context, Service } from 'cordis'
-import z from 'schemastery'
-import { AnonymousEntries, NamedEntries, ScopedLayers, scopeOf, scopeTarget } from '@deepseek-ai/dsh-scope'
-import type { ScopeKey, ScopeLayer, Scoped } from '@deepseek-ai/dsh-scope'
-import type { CallId, ContentBlock, ToolSchema } from '@deepseek-ai/dsh-llm'
-import { assertNever, deepFreeze, HarnessError } from '@deepseek-ai/dsh-llm'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { snapshotJsonValue } from '@deepseek-ai/dsh-session'
-import type { JsonValue, UserMessage } from '@deepseek-ai/dsh-session'
-import type { ToolProviderResult } from '@deepseek-ai/dsh-system-prompt'
-import type { CodeRuntime } from '@deepseek-ai/dsh-code-runtime'
+import { Context, Service } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { AnonymousEntries, NamedEntries, ScopedLayers, scopeOf, scopeTarget } from '@huiliyi37/dsh-scope'
+import type { ScopeKey, ScopeLayer, Scoped } from '@huiliyi37/dsh-scope'
+import type { CallId, ContentBlock, ToolSchema } from '@huiliyi37/dsh-llm'
+import { assertNever, deepFreeze, HarnessError } from '@huiliyi37/dsh-llm'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { snapshotJsonValue } from '@huiliyi37/dsh-session'
+import type { JsonValue, UserMessage } from '@huiliyi37/dsh-session'
+import type { ToolProviderResult } from '@huiliyi37/dsh-system-prompt'
+import type { CodeRuntime } from '@huiliyi37/dsh-code-runtime'
 // Type-only: makes `ctx.get('approval')` resolve to the ApprovalService
 // augmentation. The seam stays optional at runtime — see `serviceAsk`.
-import type {} from '@deepseek-ai/dsh-user-approval'
+import type {} from '@huiliyi37/dsh-user-approval'
 import type { ToolCallView, ToolResultView } from './presentation.ts'
 import { assertSupportedJsonSchema, validateJsonSchemaValue } from './json-schema.ts'
 import type { JsonSchemaNode } from './json-schema.ts'
@@ -84,7 +84,7 @@ export {
   type JsonSchemaScalar,
 } from './json-schema.ts'
 
-export type { JsonValue } from '@deepseek-ai/dsh-session'
+export type { JsonValue } from '@huiliyi37/dsh-session'
 export type { CodeDispatchEventData, CodeDispatchStartEventData } from './types.ts'
 
 export { CodeRunFailedError, RUN_CODE_NAME } from './code-mode.ts'
@@ -93,7 +93,7 @@ export { jsonSchemaToPy, renderToolsSdkPy } from './py-types.ts'
 export { defineContentToolFixture, type ContentToolFixtureOptions } from './testing.ts'
 
 // The render-intent vocabulary a tool declares via `presentCall`/`presentResult`
-// lives in its own UI-facing module; re-export it so `@deepseek-ai/dsh-tools`
+// lives in its own UI-facing module; re-export it so `@huiliyi37/dsh-tools`
 // stays the single public surface for tool producers and UI adapters.
 export type {
   ToolCallKind,
@@ -120,7 +120,7 @@ export type {
   WebSource,
 } from './presentation.ts'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     tools: ToolRegistry
   }
@@ -131,7 +131,7 @@ declare module 'cordis' {
      * approval support turns `ask` into denial. Async gates must observe
      * `exec.signal`; the registry rechecks cancellation after they settle but
      * never abandons their promise.
-     * Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners receive only that agent's calls.
+     * Scope-filtered dispatch (`@huiliyi37/dsh-scope`): agent-scoped listeners receive only that agent's calls.
      * @param exec - the pending call (name, parsed arguments, caller agent).
      * @mode waterfall
      */
@@ -142,7 +142,7 @@ declare module 'cordis' {
      * identity remains immutable. The registry re-fuses the original caller
      * signal before the body, so replacement cannot detach caller cancellation;
      * wrappers must still restore their signal and reach quiescence.
-     * Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners receive only that agent's calls.
+     * Scope-filtered dispatch (`@huiliyi37/dsh-scope`): agent-scoped listeners receive only that agent's calls.
      * @param exec - the allowed call about to dispatch (name, parsed arguments, caller agent, signal).
      * @mode waterfall
      */
@@ -153,7 +153,7 @@ declare module 'cordis' {
      * listeners must observe `exec.signal`; after they settle, caller
      * cancellation replaces only a successful accepted outcome with the code
      * selected by whether the tool body was invoked.
-     * Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners receive only that agent's calls.
+     * Scope-filtered dispatch (`@huiliyi37/dsh-scope`): agent-scoped listeners receive only that agent's calls.
      * @param exec - the call that just ran (name, parsed arguments, caller agent).
      * @param result - the dispatch outcome a listener may accept, replace, or block.
      * @mode waterfall
@@ -167,14 +167,14 @@ declare module 'cordis' {
      * logged copy is affected — the program already received the complete
      * value, and the model sees neither. A throwing listener is contained:
      * the bridge falls back to logging the unshaped content.
-     * Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners receive only that agent's dispatches.
+     * Scope-filtered dispatch (`@huiliyi37/dsh-scope`): agent-scoped listeners receive only that agent's dispatches.
      * @param dispatch - the parent execution, sub-call identity, and the settled content to log.
      * @mode waterfall
      */
     'tools/code-dispatch-log'(this: Scoped<ToolRegistry>, dispatch: CodeDispatchLog, next: () => Promise<ContentBlock[]>): Promise<ContentBlock[]>
     /**
      * Observe the frozen, lossless-JSON final outcome. Listener failures are contained.
-     * Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): keyed by `exec.agent`.
+     * Scope-filtered dispatch (`@huiliyi37/dsh-scope`): keyed by `exec.agent`.
      * @param exec - the execution object that traversed the pipeline.
      * @param result - a deep-frozen snapshot of the final returned result.
      * @mode emit
@@ -232,7 +232,7 @@ export interface ToolDefinition extends ToolSchema {
   finalizeContent?(exec: Readonly<ToolExecution>, result: Readonly<ToolExecutionResult>): ContentBlock[] | undefined
   /**
    * Cooperative tool-call timeout budget in milliseconds. Omit for no deadline.
-   * Enforced by `@deepseek-ai/dsh-timeout-policy` (a `tools/execute` wrapper); it
+   * Enforced by `@huiliyi37/dsh-timeout-policy` (a `tools/execute` wrapper); it
    * is NEVER sent to the model — `schemas()` whitelists only name/description/
    * parameters. Declaring it asserts this tool forwards `exec.signal` to a
    * cooperative implementation that can reach quiescence when the signal aborts.
@@ -444,7 +444,7 @@ export interface ToolRegistryScheduler {
  * Scheduler entry point omitted from the generated named service API.
  * @internal
  */
-export const TOOL_REGISTRY_SCHEDULER: unique symbol = Symbol('@deepseek-ai/dsh-tools.scheduler')
+export const TOOL_REGISTRY_SCHEDULER: unique symbol = Symbol('@huiliyi37/dsh-tools.scheduler')
 
 /** Canonical error code for cancellation after a tool body was invoked. */
 export const TOOL_ABORTED = 'ABORTED'
@@ -864,7 +864,7 @@ export class ToolRegistry extends Service {
   private requireCodeRuntime(): CodeRuntime {
     const runtime = this.ctx.get('codeRuntime')
     if (!runtime) {
-      throw new Error(`dsh-tools: mode "${this.mode}" requires a code runtime — load a ctx.codeRuntime implementation (e.g. @deepseek-ai/dsh-code-runtime-worker) or set tools mode to "native"`)
+      throw new Error(`dsh-tools: mode "${this.mode}" requires a code runtime — load a ctx.codeRuntime implementation (e.g. @huiliyi37/dsh-code-runtime-worker) or set tools mode to "native"`)
     }
     if (!Object.hasOwn(SDK_RENDERERS, runtime.language)) {
       const known = Object.keys(SDK_RENDERERS).map(name => JSON.stringify(name)).join(', ')

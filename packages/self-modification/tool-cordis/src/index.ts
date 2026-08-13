@@ -4,12 +4,12 @@
  * so plugin disposal removes the entire dynamic subtree. The VM and context façade prevent
  * accidental misuse, not hostile code: an allowed service such as `ctx.bash` reaches the real
  * runtime. Named exports preserve loader injection metadata.
- * @module @deepseek-ai/dsh-tool-cordis
+ * @module @huiliyi37/dsh-tool-cordis
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { defineTool } from '@huiliyi37/dsh-tools'
 import { STATE_LABELS } from './fiber-state.ts'
 import { isPlugin, pluginName } from './guard.ts'
 import { EVENT_API, INHERITED_CTX_API, SERVICE_API, TYPE_API } from './api-catalog.ts'

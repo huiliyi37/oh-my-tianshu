@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-jsonrpc
+# @huiliyi37/dsh-jsonrpc
 
 English | [中文](README.zh.md)
 

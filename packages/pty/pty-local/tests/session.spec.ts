@@ -1,18 +1,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PassThrough } from 'node:stream'
-import { LocalPtySession } from '@deepseek-ai/dsh-pty-local/src/session.ts'
-import type { ResolvedConfig } from '@deepseek-ai/dsh-pty-local/src/config.ts'
-import type { PtySendOperation, PtySessionStatus, PtySignal } from '@deepseek-ai/dsh-pty'
+import { LocalPtySession } from '@huiliyi37/dsh-pty-local/src/session.ts'
+import type { ResolvedConfig } from '@huiliyi37/dsh-pty-local/src/config.ts'
+import type { PtySendOperation, PtySessionStatus, PtySignal } from '@huiliyi37/dsh-pty'
 import type {
   SubprocessOutcome,
   SubprocessTerminalHandle,
   SubprocessTerminalSignal,
-} from '@deepseek-ai/dsh-subprocess'
-import { PtyError } from '@deepseek-ai/dsh-pty'
+} from '@huiliyi37/dsh-subprocess'
+import { PtyError } from '@huiliyi37/dsh-pty'
 import type {
   ProcessIdentity,
   ProcessInspector,
-} from '@deepseek-ai/dsh-subprocess-local/src/process-inspector.ts'
+} from '@huiliyi37/dsh-subprocess-local/src/process-inspector.ts'
 
 class FakeInspector implements ProcessInspector {
   pgid: number | undefined = 456

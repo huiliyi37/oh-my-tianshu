@@ -4,22 +4,22 @@
  * terminates and joins live trees. It has no config: every disposition and
  * limit arrives on the spec, so the deployment-varying choices stay with the
  * caller's config (the bash executor's, the LSP host's, …).
- * @module @deepseek-ai/dsh-subprocess-local
+ * @module @huiliyi37/dsh-subprocess-local
  */
 
 import { constants } from 'node:fs'
 import { access, stat } from 'node:fs/promises'
 import { delimiter, extname, isAbsolute, resolve } from 'node:path'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import * as nodePty from 'node-pty'
 import type { IPtyForkOptions } from 'node-pty'
-import { SubprocessService } from '@deepseek-ai/dsh-subprocess'
+import { SubprocessService } from '@huiliyi37/dsh-subprocess'
 import type {
   SubprocessHandle,
   SubprocessSpawnSpec,
   SubprocessTerminalHandle,
   SubprocessTerminalSpawnSpec,
-} from '@deepseek-ai/dsh-subprocess'
+} from '@huiliyi37/dsh-subprocess'
 import { childEnv, spawnSubprocess } from './spawn.ts'
 import type { SpawnInternals } from './spawn.ts'
 import { createProcessInspector } from './process-inspector.ts'

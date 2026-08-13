@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import type { BashExecRequest, BashExecSpec, BashExecutor, BashRunResult } from '@deepseek-ai/dsh-bash'
-import { DEFAULT_HOOK_TIMEOUT_MS, runHook } from '@deepseek-ai/dsh-hook-protocol'
-import type { RunHookOptions } from '@deepseek-ai/dsh-hook-protocol'
+import type { BashExecRequest, BashExecSpec, BashExecutor, BashRunResult } from '@huiliyi37/dsh-bash'
+import { DEFAULT_HOOK_TIMEOUT_MS, runHook } from '@huiliyi37/dsh-hook-protocol'
+import type { RunHookOptions } from '@huiliyi37/dsh-hook-protocol'
 
 /**
  * A minimal stand-in for the bits of {@link BashExecutor} that {@link runHook}

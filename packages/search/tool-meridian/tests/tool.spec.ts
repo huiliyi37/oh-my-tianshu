@@ -6,14 +6,14 @@
  * on-demand backfill、索引为空提示、root 缺失 fail loud、摘要走动态区
  * （context 而非 section）。
  *
- * @module @deepseek-ai/dsh-tool-meridian/tests/tool
+ * @module @huiliyi37/dsh-tool-meridian/tests/tool
  */
 
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import { apply } from '../src/index.ts'
 
 interface CapturedTool {

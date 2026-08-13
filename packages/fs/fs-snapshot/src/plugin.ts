@@ -1,8 +1,8 @@
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Context } from 'cordis'
-import z from 'schemastery'
-import type { ToolExecutionResult } from '@deepseek-ai/dsh-tools'
+import { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type { ToolExecutionResult } from '@huiliyi37/dsh-tools'
 import { FileHistory } from './file-history.js'
 
 /**

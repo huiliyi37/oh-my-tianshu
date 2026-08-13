@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-token-meter
+# @huiliyi37/dsh-token-meter
 
 [English](README.md) | 中文
 
@@ -46,8 +46,8 @@ fold 跟踪完整请求标头快照、步骤边界、表层追加与替换、成
 ## 组合
 
 ```yaml
-- name: '@deepseek-ai/dsh-token-meter'
-- name: '@deepseek-ai/dsh-compact-basic'
+- name: '@huiliyi37/dsh-token-meter'
+- name: '@huiliyi37/dsh-compact-basic'
 ```
 
 两个插件都有可用默认值。meter 保持与模型路由和可选压缩无关。部署会在 LLM（大语言模型）适配器上配置容量，并在 `dsh-compact-basic` 上配置压缩策略。

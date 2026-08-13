@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-tool-pty
+# @huiliyi37/dsh-tool-pty
 
 English | [中文](README.zh.md)
 
@@ -68,4 +68,4 @@ Append-only; new results follow the reusable request prefix.
 ## Known Limitations and Deferred Work
 
 - No named key sequence, TUI, BEL, resize, auto-start, or cross-agent sharing schema is exposed.
-- Background mode requires both `@deepseek-ai/dsh-tasks` and its model-facing control surface.
+- Background mode requires both `@huiliyi37/dsh-tasks` and its model-facing control surface.

@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-bash-env`.
- * @module @deepseek-ai/dsh-bash-env/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-bash-env`.
+ * @module @huiliyi37/dsh-bash-env/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-bash-env'
+const PACKAGE_NAME = '@huiliyi37/dsh-bash-env'
 
 /** Cordis companion plugin name. */
 export const name = 'bash-env-invariant'

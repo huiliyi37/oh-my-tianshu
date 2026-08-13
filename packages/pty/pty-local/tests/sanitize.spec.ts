@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeTerminalText, TerminalSanitizer } from '@deepseek-ai/dsh-pty-local/src/sanitize.ts'
+import { normalizeTerminalText, TerminalSanitizer } from '@huiliyi37/dsh-pty-local/src/sanitize.ts'
 
 describe('TerminalSanitizer', () => {
   it('removes split CSI and owned OSC prompt markers', () => {

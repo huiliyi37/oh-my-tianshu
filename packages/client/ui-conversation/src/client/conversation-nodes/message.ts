@@ -1,16 +1,16 @@
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import type {
   ContextMessageNode, ConversationNodeDefinition, SteeringMessageNode, UserMessageNode,
-} from '@deepseek-ai/dsh-client-runtime/client'
+} from '@huiliyi37/dsh-client-runtime/client'
 import {
   contextForm, contextProvenance, isAppendSurfaceEvent, isReplacementSurfaceEvent,
-} from '@deepseek-ai/dsh-client-runtime/client'
+} from '@huiliyi37/dsh-client-runtime/client'
 import type { InboxState } from './inbox.ts'
 import { chatNode } from './common.ts'
 
 type MessageNode = UserMessageNode | SteeringMessageNode | ContextMessageNode
 
-declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
+declare module '@huiliyi37/dsh-client-ui-conversation/client' {
   interface ChatNodeDataMap {
     /** Ordinary turn-opening user message. */
     user: UserMessageNode

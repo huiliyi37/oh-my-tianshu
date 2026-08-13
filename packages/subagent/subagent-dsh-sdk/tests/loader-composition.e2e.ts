@@ -14,8 +14,8 @@ import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { type SessionEvent } from '@deepseek-ai/dsh-session'
-import { resolveExampleLaunch, runLoaderSmoke } from '@deepseek-ai/dsh-loader-smoke'
+import { type SessionEvent } from '@huiliyi37/dsh-session'
+import { resolveExampleLaunch, runLoaderSmoke } from '@huiliyi37/dsh-loader-smoke'
 
 const fixtureDir = new URL('../../../../examples/jsonrpc-agent/tests/fixtures/subagent/subagent-dsh-sdk/', import.meta.url)
 const driver = fileURLToPath(new URL('driver.ts', fixtureDir))

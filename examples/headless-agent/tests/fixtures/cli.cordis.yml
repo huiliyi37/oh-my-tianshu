@@ -2,30 +2,30 @@
   name: './cli-mock-llm.ts'
 
 - id: evidence-gate
-  name: '@deepseek-ai/dsh-evidence-gate'
+  name: '@huiliyi37/dsh-evidence-gate'
 
 - id: agent-router
-  name: '@deepseek-ai/dsh-agent-router'
+  name: '@huiliyi37/dsh-agent-router'
   config:
     provider: cli-mock
     model: cli-mock
 
 - id: str-replace-editor
-  name: '@deepseek-ai/dsh-tool-str-replace-editor'
+  name: '@huiliyi37/dsh-tool-str-replace-editor'
 
 - id: repository-plugin-fixture
   name: './repository-plugin/load.mjs'
 
 - id: base
-  name: '@cordisjs/plugin-include'
+  name: '@huiliyi37/cordis-plugin-include'
   config:
     path: ../../cordis.yml
     patches:
       - id: llm-deepseek
-        name: '@deepseek-ai/dsh-llm-deepseek'
+        name: '@huiliyi37/dsh-llm-deepseek'
         disabled: true
       - id: agent-spine
-        name: '@deepseek-ai/dsh-agent-spine-demo'
+        name: '@huiliyi37/dsh-agent-spine-demo'
         config:
           agents:
             - id: main
@@ -39,6 +39,6 @@
               agentsHome: './.agents-home'
           persona: 'Keyless headless-agent smoke.'
       - id: persistence
-        name: '@deepseek-ai/dsh-session-persistence-jsonl'
+        name: '@huiliyi37/dsh-session-persistence-jsonl'
         config:
           root: './.sessions'

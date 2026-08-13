@@ -3,15 +3,15 @@
  * child's unpublished context. Roots, one-shot children, remote providers, and
  * agentless executions never see the registration.
  *
- * @module @deepseek-ai/dsh-tool-subagent-report
+ * @module @huiliyi37/dsh-tool-subagent-report
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { SubagentReportDelivery } from '@deepseek-ai/dsh-subagent'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import type { ContentBlock } from '@huiliyi37/dsh-llm'
+import type { SubagentReportDelivery } from '@huiliyi37/dsh-subagent'
+import { defineTool } from '@huiliyi37/dsh-tools'
 
 export const name = 'tool-subagent-report'
 // The contribution registers only through childCtx.tools, but declaring tools

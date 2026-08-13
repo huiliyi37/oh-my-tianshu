@@ -10,23 +10,23 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve as resolvePath } from 'node:path'
-import { CallId } from '@deepseek-ai/dsh-llm'
-import SystemPrompt, { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry, { TOOL_ABORTED, TOOL_ABORTED_BEFORE_DISPATCH } from '@deepseek-ai/dsh-tools'
-import LocalTaskService from '@deepseek-ai/dsh-tasks-local'
-import * as ToolTasks from '@deepseek-ai/dsh-tool-tasks'
-import AgentRegistry from '@deepseek-ai/dsh-agent'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { SessionId } from '@deepseek-ai/dsh-session'
-import { BashExecutor } from '@deepseek-ai/dsh-bash'
-import type { BashExecRequest, BashExecSpec, BashProcess, BashRunResult } from '@deepseek-ai/dsh-bash'
-import * as ToolPwsh from '@deepseek-ai/dsh-tool-pwsh'
-import * as BashEnvPlugin from '@deepseek-ai/dsh-bash-env'
-import type { BashProcessRead } from '@deepseek-ai/dsh-bash'
+import { CallId } from '@huiliyi37/dsh-llm'
+import SystemPrompt, { renderPrompt } from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry, { TOOL_ABORTED, TOOL_ABORTED_BEFORE_DISPATCH } from '@huiliyi37/dsh-tools'
+import LocalTaskService from '@huiliyi37/dsh-tasks-local'
+import * as ToolTasks from '@huiliyi37/dsh-tool-tasks'
+import AgentRegistry from '@huiliyi37/dsh-agent'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { SessionId } from '@huiliyi37/dsh-session'
+import { BashExecutor } from '@huiliyi37/dsh-bash'
+import type { BashExecRequest, BashExecSpec, BashProcess, BashRunResult } from '@huiliyi37/dsh-bash'
+import * as ToolPwsh from '@huiliyi37/dsh-tool-pwsh'
+import * as BashEnvPlugin from '@huiliyi37/dsh-bash-env'
+import type { BashProcessRead } from '@huiliyi37/dsh-bash'
 import { processOutcome } from '../src/background.ts'
 import { renderPwshProcessRead, renderPwshResult } from '../src/render.ts'
 
@@ -445,7 +445,7 @@ describe('background execution through the task runtime', () => {
     const { ctx } = await setup() // no LocalTaskService / ToolTasks
     const result = await call(ctx, 'pwsh', { command: 'Start-Sleep -Seconds 60', description: 'test command', run_in_background: true })
     expect(result.isError).toBe(true)
-    expect(text(result)).toContain('background tasks unavailable: load @deepseek-ai/dsh-tasks and @deepseek-ai/dsh-tool-tasks')
+    expect(text(result)).toContain('background tasks unavailable: load @huiliyi37/dsh-tasks and @huiliyi37/dsh-tool-tasks')
   })
 
   it('a pre-aborted call is skipped before the process starts', async () => {

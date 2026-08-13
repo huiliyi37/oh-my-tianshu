@@ -6,15 +6,15 @@
 
 import { afterEach, describe, expect, it } from 'vitest'
 import { execFile } from 'node:child_process'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { CallId } from '@deepseek-ai/dsh-llm'
-import { GitLocal } from '@deepseek-ai/dsh-git'
-import ToolRegistry from '@deepseek-ai/dsh-tools'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import * as ToolGit from '@deepseek-ai/dsh-tool-git'
+import { CallId } from '@huiliyi37/dsh-llm'
+import { GitLocal } from '@huiliyi37/dsh-git'
+import ToolRegistry from '@huiliyi37/dsh-tools'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import * as ToolGit from '@huiliyi37/dsh-tool-git'
 
 async function runGit(cwd: string, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {

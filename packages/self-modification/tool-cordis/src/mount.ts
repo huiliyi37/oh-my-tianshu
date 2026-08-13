@@ -6,10 +6,10 @@
  * `fiber.dispose()`, because everything the plugin registered is an effect on
  * its fiber.
  *
- * @module @deepseek-ai/dsh-tool-cordis/mount
+ * @module @huiliyi37/dsh-tool-cordis/mount
  */
 
-import type { Context, Fiber, Plugin } from 'cordis'
+import type { Context, Fiber, Plugin } from '@huiliyi37/cordis'
 import { guardedPlugin } from './guard.ts'
 
 /** One tracked dynamic mount: the fiber plus the display name captured at mount time. */

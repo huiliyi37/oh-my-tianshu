@@ -1,7 +1,7 @@
 /**
  * Structured pnpm workspace configuration for generated SDK projects.
  *
- * @module @deepseek-ai/dsh-helper/documents/pnpm-workspace-file
+ * @module @huiliyi37/dsh-helper/documents/pnpm-workspace-file
  */
 
 import {

@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Context, FiberState, Service, ValidationError } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import z from 'schemastery'
-import InvariantService from '@deepseek-ai/dsh-invariants'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import { Context, FiberState, Service, ValidationError } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import z from '@huiliyi37/schemastery'
+import InvariantService from '@huiliyi37/dsh-invariants'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 import { packageInvariantOwners } from './package-invariants.ts'
 import {
   TEST_INVARIANT_READY_SERVICE,
@@ -13,7 +13,7 @@ import {
   usesManualInvariantTree,
 } from './test-invariants.ts'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     testInvariantProbe: TestInvariantProbe
   }

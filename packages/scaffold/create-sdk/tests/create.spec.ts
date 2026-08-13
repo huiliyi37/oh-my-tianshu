@@ -13,7 +13,7 @@ import {
   type FeatureSelection,
   type NestedMultiSelectValue,
   type PromptPort,
-} from '@deepseek-ai/dsh-helper'
+} from '@huiliyi37/dsh-helper'
 import type {
   ConfirmPromptRequest,
   MultiSelectPromptRequest,

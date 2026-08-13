@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import type { LocaleSnapshot } from '@deepseek-ai/dsh-client-locale/client'
-import { LocaleService, STORAGE_KEY } from '@deepseek-ai/dsh-client-locale/client'
+import { Context } from '@huiliyi37/cordis'
+import type { LocaleSnapshot } from '@huiliyi37/dsh-client-locale/client'
+import { LocaleService, STORAGE_KEY } from '@huiliyi37/dsh-client-locale/client'
 
 const make = (): { ctx: Context; svc: LocaleService; events: LocaleSnapshot[] } => {
   const ctx = new Context()

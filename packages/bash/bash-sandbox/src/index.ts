@@ -5,12 +5,12 @@
  * the command never ran: foreground calls throw `SANDBOX_UNAVAILABLE`, while
  * background processes carry `runnerFailed`; other spawn rejections retain
  * local-executor semantics. The tool owns approval and passes a complete per-call policy.
- * @module @deepseek-ai/dsh-bash-sandbox
+ * @module @huiliyi37/dsh-bash-sandbox
  */
 
-import { Context } from 'cordis'
-import type { BashExecRequest, BashExecSpec, BashProcess, BashRunResult } from '@deepseek-ai/dsh-bash'
-import { SandboxUnavailableError } from '@deepseek-ai/dsh-sandbox'
+import { Context } from '@huiliyi37/cordis'
+import type { BashExecRequest, BashExecSpec, BashProcess, BashRunResult } from '@huiliyi37/dsh-bash'
+import { SandboxUnavailableError } from '@huiliyi37/dsh-sandbox'
 import type {
   ConfinedArgv,
   ConfinedSandboxMode,
@@ -19,16 +19,16 @@ import type {
   SandboxExecutionPolicy,
   SandboxMode,
   SandboxPolicy,
-} from '@deepseek-ai/dsh-sandbox'
-import type {} from '@deepseek-ai/dsh-sandbox-policy'
-import { LocalBashExecutor } from '@deepseek-ai/dsh-bash-local'
-import type { Config as LocalConfig } from '@deepseek-ai/dsh-bash-local'
+} from '@huiliyi37/dsh-sandbox'
+import type {} from '@huiliyi37/dsh-sandbox-policy'
+import { LocalBashExecutor } from '@huiliyi37/dsh-bash-local'
+import type { Config as LocalConfig } from '@huiliyi37/dsh-bash-local'
 import { classifyDenial, classifyRunnerFailure, isRunnerSpawnFailure, matchesSignature } from './helpers.ts'
 
 /**
  * Plugin config: the local executor's knobs, verbatim. The sandbox policy —
  * the default mode and fallback `workspace-write` root — is NOT here: it lives
- * on `ctx.sandboxPolicy` (`@deepseek-ai/dsh-sandbox-policy`), which resolves
+ * on `ctx.sandboxPolicy` (`@huiliyi37/dsh-sandbox-policy`), which resolves
  * each calling session's mode and cwd for every enforcing capability. The runner
  * choice is likewise the `ctx.sandbox` provider's config, not this executor's.
  */

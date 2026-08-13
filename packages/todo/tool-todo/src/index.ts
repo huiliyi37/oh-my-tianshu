@@ -2,17 +2,17 @@
  * Model-facing whole-list replacement. Each call appends a `todo/write` snapshot to the calling
  * agent's session; replay is last-write-wins, and UIs render from session events. A non-agent
  * caller has no owning list and is rejected. Named exports preserve loader injection metadata.
- * @module @deepseek-ai/dsh-tool-todo
+ * @module @huiliyi37/dsh-tool-todo
  */
 
-import type { Context } from 'cordis'
-import z from 'schemastery'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 import { z as zod } from 'zod'
 import type { ZodType } from 'zod'
-import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { TodoItem } from '@deepseek-ai/dsh-session'
+import { defineTool } from '@huiliyi37/dsh-tools'
+import type { TodoItem } from '@huiliyi37/dsh-session'
 // Type-only: resolves ctx.sessionProjections for the optional unit child.
-import type {} from '@deepseek-ai/dsh-session-projection'
+import type {} from '@huiliyi37/dsh-session-projection'
 // The `todos` projection-key declaration lives in src/types.ts (its one home);
 // this re-export projects the type face onto the package root AND keeps the
 // module edge in the emitted index.d.ts, so aggregate programs consuming the

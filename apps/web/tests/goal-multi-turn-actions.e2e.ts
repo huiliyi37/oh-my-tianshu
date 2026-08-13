@@ -7,9 +7,9 @@ import { fileURLToPath } from 'node:url'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterEach, describe, expect, it, onTestFailed } from 'vitest'
-import { parseSessionLog } from '@deepseek-ai/dsh-llm-replay'
-import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
-import type {} from '@deepseek-ai/dsh-goal'
+import { parseSessionLog } from '@huiliyi37/dsh-llm-replay'
+import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
+import type {} from '@huiliyi37/dsh-goal'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
   launchWebScaffold, recordFixture, watchConsole, webSnapshotMode, type WebScaffold,
@@ -27,20 +27,20 @@ const COMMAND = `/goal ${PROMPT}`
 
 const PACKAGE_FILES: Readonly<Record<string, string>> = {
   'packages/client/ui-conversation/README.md': '# UI conversation\n',
-  'packages/client/ui-conversation/package.json': '{"name":"@deepseek-ai/dsh-client-ui-conversation"}\n',
+  'packages/client/ui-conversation/package.json': '{"name":"@huiliyi37/dsh-client-ui-conversation"}\n',
   'packages/client/ui-conversation/src/client.ts': 'export {}\n',
   'packages/client/ui-conversation/tests/chat-view.spec.tsx': 'export {}\n',
   'packages/context/session-reference/README.md': '# Session reference\n',
-  'packages/context/session-reference/package.json': '{"name":"@deepseek-ai/dsh-session-reference"}\n',
+  'packages/context/session-reference/package.json': '{"name":"@huiliyi37/dsh-session-reference"}\n',
   'packages/context/session-reference/src/index.ts': 'export {}\n',
   'packages/context/session-reference/src/uri.ts': 'export {}\n',
   'packages/context/session-reference/tests/session-reference.spec.ts': 'export {}\n',
   'packages/llm/token-meter/README.md': '# Token meter\n',
-  'packages/llm/token-meter/package.json': '{"name":"@deepseek-ai/dsh-token-meter"}\n',
+  'packages/llm/token-meter/package.json': '{"name":"@huiliyi37/dsh-token-meter"}\n',
   'packages/llm/token-meter/src/index.ts': 'export {}\n',
   'packages/llm/token-meter/tests/token-meter.spec.ts': 'export {}\n',
   'packages/skill/skill-local/README.md': '# Local skill provider\n',
-  'packages/skill/skill-local/package.json': '{"name":"@deepseek-ai/dsh-skill-local"}\n',
+  'packages/skill/skill-local/package.json': '{"name":"@huiliyi37/dsh-skill-local"}\n',
   'packages/skill/skill-local/src/index.ts': 'export {}\n',
   'packages/skill/skill-local/src/invariant.ts': 'export {}\n',
   'packages/skill/skill-local/tests/skill-local.spec.ts': 'export {}\n',

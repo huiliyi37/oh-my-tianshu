@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import z from 'schemastery'
+import { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
 import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
+import { settingsNamespace } from '@huiliyi37/dsh-settings'
 import { SettingsLocal } from '../src/index.ts'
 
 // chokidar is the nondeterministic OS boundary: faking it lets these tests

@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-subagent-codex
+# @huiliyi37/dsh-subagent-codex
 
 English | [中文](README.zh.md)
 
@@ -31,13 +31,13 @@ Install this package and add the following rows to your own `cordis.yml`. Shippe
 
 ```yaml
 - id: subagent-codex
-  name: '@deepseek-ai/dsh-subagent-codex'
+  name: '@huiliyi37/dsh-subagent-codex'
   config:
     env:
       OPENAI_API_KEY: !!js process.env.OPENAI_API_KEY
 
 - id: tool-subagent-codex
-  name: '@deepseek-ai/dsh-tool-subagent'
+  name: '@huiliyi37/dsh-tool-subagent'
   config:
     provider: codex
     toolName: subagent_codex

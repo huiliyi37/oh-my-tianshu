@@ -4,6 +4,6 @@
  * common dependency of every item registrant); this file exists so row
  * modules import the type from within their own package.
  */
-export type { SettingsGeneralItemOwnerProps } from '@deepseek-ai/dsh-client-locale/client'
+export type { SettingsGeneralItemOwnerProps } from '@huiliyi37/dsh-client-locale/client'
 // Side-effect type import: pulls the SlotMap merge into this program.
-import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@huiliyi37/dsh-client-locale/client'

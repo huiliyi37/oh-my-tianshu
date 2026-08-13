@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-subagent-spawn`.
- * @module @deepseek-ai/dsh-subagent-spawn/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-subagent-spawn`.
+ * @module @huiliyi37/dsh-subagent-spawn/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-subagent-spawn'
+const PACKAGE_NAME = '@huiliyi37/dsh-subagent-spawn'
 
 /** Cordis companion plugin name. */
 export const name = 'subagent-spawn-invariant'

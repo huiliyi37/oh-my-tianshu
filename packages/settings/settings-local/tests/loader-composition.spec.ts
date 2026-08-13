@@ -11,11 +11,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import Include from '@cordisjs/plugin-include'
-import z from 'schemastery'
-import { settingsNamespace, type SettingsScope } from '@deepseek-ai/dsh-settings'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import Include from '@huiliyi37/cordis-plugin-include'
+import z from '@huiliyi37/schemastery'
+import { settingsNamespace, type SettingsScope } from '@huiliyi37/dsh-settings'
 import SettingsLocal from '../src/index.ts'
 
 interface ThemeConfig {
@@ -79,7 +79,7 @@ async function loadComposition(
     ...withSettings
       ? [
         '- id: settings',
-        "  name: '@deepseek-ai/dsh-settings-local'",
+        "  name: '@huiliyi37/dsh-settings-local'",
         '  config:',
         `    path: ${JSON.stringify(settingsPath)}`,
         '    debounceMs: 10',
@@ -96,7 +96,7 @@ async function loadComposition(
   await ctx.plugin(Loader)
   ctx.loader.builtins.include = Include
   const modules = new Map<string, unknown>([
-    ['@deepseek-ai/dsh-settings-local', SettingsLocal],
+    ['@huiliyi37/dsh-settings-local', SettingsLocal],
     ['test-settings-consumer', consumer],
   ])
   ctx.loader.internal = {

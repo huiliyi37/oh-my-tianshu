@@ -6,11 +6,11 @@
 import { describe, expect, it } from 'vitest'
 import { act, render } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import type { SlotEntryDef, SlotSpec, StoredEntry } from '@deepseek-ai/dsh-client-ui-slots'
+import type { SlotEntryDef, SlotSpec, StoredEntry } from '@huiliyi37/dsh-client-ui-slots'
 import {
   createSlotRenderer, StaleAuthorizationError,
   type RenderOpts, type SlotRendererHost,
-} from '@deepseek-ai/dsh-client-web-react'
+} from '@huiliyi37/dsh-client-web-react'
 
 type RenderSlotFn = (key: string, owner: object, opts?: RenderOpts) => ReactNode
 type DeclaredSpec = SlotSpec<SlotEntryDef>

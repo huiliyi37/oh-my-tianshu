@@ -1,4 +1,4 @@
-declare module '@deepseek-ai/dsh-type-meta' {
+declare module '@huiliyi37/dsh-type-meta' {
   export interface TypeRTLookup<Host, Wire> {
     readonly host: Host
     readonly wire: Wire

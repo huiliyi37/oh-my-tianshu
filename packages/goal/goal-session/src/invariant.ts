@@ -1,13 +1,13 @@
-/** Package-owned goal-round prompt invariants. @module @deepseek-ai/dsh-goal-session/invariant */
+/** Package-owned goal-round prompt invariants. @module @huiliyi37/dsh-goal-session/invariant */
 
 import { isDeepStrictEqual } from 'node:util'
-import type { Context } from 'cordis'
-import { foldGoal, type FoldedGoal, type GoalMessageSource, type GoalView } from '@deepseek-ai/dsh-goal'
-import type { InvariantFailure, InvariantInstaller } from '@deepseek-ai/dsh-invariants'
-import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import { foldGoal, type FoldedGoal, type GoalMessageSource, type GoalView } from '@huiliyi37/dsh-goal'
+import type { InvariantFailure, InvariantInstaller } from '@huiliyi37/dsh-invariants'
+import type { Session, SessionEvent } from '@huiliyi37/dsh-session'
 import { renderGoalRoundPrompt } from './prompt.ts'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-goal-session'
+const PACKAGE_NAME = '@huiliyi37/dsh-goal-session'
 
 /** Cordis companion plugin name. */
 export const name = 'goal-session-invariant'

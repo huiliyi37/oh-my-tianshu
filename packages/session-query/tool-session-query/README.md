@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-tool-session-query
+# @huiliyi37/dsh-tool-session-query
 
 English | [中文](README.zh.md)
 
@@ -17,7 +17,7 @@ The caller comes exclusively from `ToolExecution.exec.agent`. Cross-session acce
 
 Every trusted `ctx.sessionQuery` call crosses one model-boundary sanitizer. Caller cancellation is checked first and preserved exactly. Available corpus and provider diagnostics, including safely inspectable nested causes, are logged internally on a best-effort basis; unprintable failures use a fixed log placeholder. Diagnostic formatting and error classification are independently guarded, so an unprintable cause cannot escape or prevent a safely classified outer error, while unsafe classification or logging falls back to the fixed `SESSION_QUERY_TOOL_FAILED` code and message. Local argument-validation and authorization errors retain their precise tool-owned messages.
 
-The package deliberately performs no byte or character truncation and does not import a spill backend. Deployments that need bounded inline output mount `@deepseek-ai/dsh-spill-policy`, which can replace the rendered text after execution while retaining the complete result.
+The package deliberately performs no byte or character truncation and does not import a spill backend. Deployments that need bounded inline output mount `@huiliyi37/dsh-spill-policy`, which can replace the rendered text after execution while retaining the complete result.
 
 ## Model Experience
 

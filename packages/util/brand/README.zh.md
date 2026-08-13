@@ -9,7 +9,7 @@
 品牌使 `SessionId` 和 `CallId` 这样结构相同的字符串在类型层面不可互换，尽管两者在运行时都是普通 `string`。
 
 ```ts
-import type { Branded } from '@deepseek-ai/dsh-brand'
+import type { Branded } from '@huiliyi37/dsh-brand'
 
 export type SessionId = Branded<'SessionId'>
 

@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-subagent-fork
+# @huiliyi37/dsh-subagent-fork
 
 English | [中文](README.zh.md)
 

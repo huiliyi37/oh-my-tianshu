@@ -2,16 +2,16 @@
  * Ordered builtin feature catalog: behavior entities only where project
  * context changes the contribution, typed specs everywhere else.
  *
- * @module @deepseek-ai/dsh-helper/features/builtin
+ * @module @huiliyi37/dsh-helper/features/builtin
  */
 
-import type { Config as ClaudeHooksConfig } from '@deepseek-ai/dsh-hooks-claude'
-import type { Config as CodexHooksConfig } from '@deepseek-ai/dsh-hooks-codex'
-import type { Config as JsonlConfig } from '@deepseek-ai/dsh-session-persistence-jsonl'
-import type { Config as SqliteConfig } from '@deepseek-ai/dsh-session-persistence-sqlite'
-import type { Config as ToolSubagentConfig } from '@deepseek-ai/dsh-tool-subagent'
-import type { Config as ToolTodoConfig } from '@deepseek-ai/dsh-tool-todo'
-import type { Config as ToolWebConfig } from '@deepseek-ai/dsh-tool-web'
+import type { Config as ClaudeHooksConfig } from '@huiliyi37/dsh-hooks-claude'
+import type { Config as CodexHooksConfig } from '@huiliyi37/dsh-hooks-codex'
+import type { Config as JsonlConfig } from '@huiliyi37/dsh-session-persistence-jsonl'
+import type { Config as SqliteConfig } from '@huiliyi37/dsh-session-persistence-sqlite'
+import type { Config as ToolSubagentConfig } from '@huiliyi37/dsh-tool-subagent'
+import type { Config as ToolTodoConfig } from '@huiliyi37/dsh-tool-todo'
+import type { Config as ToolWebConfig } from '@huiliyi37/dsh-tool-web'
 import type { ProjectProfile } from '../../project/types.ts'
 import { defineFeatures } from '../define-feature.ts'
 import { FeatureRegistry } from '../registry.ts'
@@ -34,26 +34,26 @@ export function createBuiltinRegistry(profile: ProjectProfile): FeatureRegistry 
       mode: 'exclusive',
       required: true,
       baseResources: [
-        { kind: 'npm-cordis-config-entry', id: 'subprocess', package: '@deepseek-ai/dsh-subprocess-local' },
-        { kind: 'npm-cordis-config-entry', id: 'bash-env', package: '@deepseek-ai/dsh-bash-env' },
-        { kind: 'npm-cordis-config-entry', id: 'tool-bash', package: '@deepseek-ai/dsh-tool-bash' },
+        { kind: 'npm-cordis-config-entry', id: 'subprocess', package: '@huiliyi37/dsh-subprocess-local' },
+        { kind: 'npm-cordis-config-entry', id: 'bash-env', package: '@huiliyi37/dsh-bash-env' },
+        { kind: 'npm-cordis-config-entry', id: 'tool-bash', package: '@huiliyi37/dsh-tool-bash' },
       ],
       options: [
         {
           id: 'local',
           label: 'Local executor',
           default: true,
-          resources: [{ kind: 'npm-cordis-config-entry', id: 'bash', package: '@deepseek-ai/dsh-bash-local' }],
+          resources: [{ kind: 'npm-cordis-config-entry', id: 'bash', package: '@huiliyi37/dsh-bash-local' }],
         },
         {
           id: 'sandbox',
           label: 'Sandboxed executor',
           resources: [
-            { kind: 'npm-cordis-config-entry', id: 'sandbox', package: '@deepseek-ai/dsh-sandbox-local' },
+            { kind: 'npm-cordis-config-entry', id: 'sandbox', package: '@huiliyi37/dsh-sandbox-local' },
             {
               kind: 'npm-cordis-config-entry',
               id: 'bash',
-              package: '@deepseek-ai/dsh-bash-sandbox',
+              package: '@huiliyi37/dsh-bash-sandbox',
               commentedExample: `Uncomment to allow writes under the project workspace.
 config:
   mode: workspace-write
@@ -77,7 +77,7 @@ config:
           resources: [{
             kind: 'npm-cordis-config-entry',
             id: 'session-persistence',
-            package: '@deepseek-ai/dsh-session-persistence-jsonl',
+            package: '@huiliyi37/dsh-session-persistence-jsonl',
             config: { root: './.sessions' } satisfies JsonlConfig,
           }],
         },
@@ -87,7 +87,7 @@ config:
           resources: [{
             kind: 'npm-cordis-config-entry',
             id: 'session-persistence',
-            package: '@deepseek-ai/dsh-session-persistence-sqlite',
+            package: '@huiliyi37/dsh-session-persistence-sqlite',
             config: { path: './.sessions/sessions.sqlite' } satisfies SqliteConfig,
           }],
         },
@@ -101,7 +101,7 @@ config:
         id: 'default',
         label: 'Cordis HMR',
         default: true,
-        resources: [{ kind: 'npm-cordis-config-entry', id: 'hmr', package: '@cordisjs/plugin-hmr' }],
+        resources: [{ kind: 'npm-cordis-config-entry', id: 'hmr', package: '@huiliyi37/cordis-plugin-hmr' }],
       }],
     },
     {
@@ -113,9 +113,9 @@ config:
         label: 'Local filesystem',
         default: true,
         resources: [
-          { kind: 'npm-cordis-config-entry', id: 'fs-local', package: '@deepseek-ai/dsh-fs-local' },
-          { kind: 'npm-cordis-config-entry', id: 'fs-policy', package: '@deepseek-ai/dsh-fs-policy' },
-          { kind: 'npm-cordis-config-entry', id: 'tool-fs', package: '@deepseek-ai/dsh-tool-fs' },
+          { kind: 'npm-cordis-config-entry', id: 'fs-local', package: '@huiliyi37/dsh-fs-local' },
+          { kind: 'npm-cordis-config-entry', id: 'fs-policy', package: '@huiliyi37/dsh-fs-policy' },
+          { kind: 'npm-cordis-config-entry', id: 'tool-fs', package: '@huiliyi37/dsh-tool-fs' },
         ],
       }],
     },
@@ -130,7 +130,7 @@ config:
         resources: [{
           kind: 'npm-cordis-config-entry',
           id: 'tool-todo',
-          package: '@deepseek-ai/dsh-tool-todo',
+          package: '@huiliyi37/dsh-tool-todo',
           config: { allowParallelInProgress: true } satisfies ToolTodoConfig,
         }],
       }],
@@ -144,9 +144,9 @@ config:
         label: 'Local skills and skill tool',
         default: true,
         resources: [
-          { kind: 'npm-cordis-config-entry', id: 'skill', package: '@deepseek-ai/dsh-skill' },
-          { kind: 'npm-cordis-config-entry', id: 'skill-local', package: '@deepseek-ai/dsh-skill-local' },
-          { kind: 'npm-cordis-config-entry', id: 'tool-skill', package: '@deepseek-ai/dsh-tool-skill' },
+          { kind: 'npm-cordis-config-entry', id: 'skill', package: '@huiliyi37/dsh-skill' },
+          { kind: 'npm-cordis-config-entry', id: 'skill-local', package: '@huiliyi37/dsh-skill-local' },
+          { kind: 'npm-cordis-config-entry', id: 'tool-skill', package: '@huiliyi37/dsh-tool-skill' },
         ],
       }],
     },
@@ -156,28 +156,28 @@ config:
       mode: 'exclusive',
       suggests: ['timeout-policy'],
       baseResources: [
-        { kind: 'npm-cordis-config-entry', id: 'web', package: '@deepseek-ai/dsh-web' },
-        { kind: 'npm-cordis-config-entry', id: 'web-fetch-local', package: '@deepseek-ai/dsh-web-fetch-local' },
+        { kind: 'npm-cordis-config-entry', id: 'web', package: '@huiliyi37/dsh-web' },
+        { kind: 'npm-cordis-config-entry', id: 'web-fetch-local', package: '@huiliyi37/dsh-web-fetch-local' },
       ],
       options: [
         {
           id: 'deepseek-official',
           label: 'DeepSeek search',
           default: true,
-          markers: [{ id: 'web-search-deepseek', name: '@deepseek-ai/dsh-web-search-deepseek' }],
+          markers: [{ id: 'web-search-deepseek', name: '@huiliyi37/dsh-web-search-deepseek' }],
           resources: [
-            { kind: 'npm-cordis-config-entry', id: 'web-search-deepseek', package: '@deepseek-ai/dsh-web-search-deepseek' },
-            { kind: 'npm-cordis-config-entry', id: 'tool-web', package: '@deepseek-ai/dsh-tool-web' },
+            { kind: 'npm-cordis-config-entry', id: 'web-search-deepseek', package: '@huiliyi37/dsh-web-search-deepseek' },
+            { kind: 'npm-cordis-config-entry', id: 'tool-web', package: '@huiliyi37/dsh-tool-web' },
           ],
         },
         {
           id: 'exa',
           label: 'Exa search',
           secrets: [{ id: 'apiKey', environment: 'EXA_API_KEY', message: 'Exa API key', required: true }],
-          markers: [{ id: 'web-search-exa', name: '@deepseek-ai/dsh-web-search-exa' }],
+          markers: [{ id: 'web-search-exa', name: '@huiliyi37/dsh-web-search-exa' }],
           resources: [
-            { kind: 'npm-cordis-config-entry', id: 'web-search-exa', package: '@deepseek-ai/dsh-web-search-exa' },
-            { kind: 'npm-cordis-config-entry', id: 'tool-web', package: '@deepseek-ai/dsh-tool-web' },
+            { kind: 'npm-cordis-config-entry', id: 'web-search-exa', package: '@huiliyi37/dsh-web-search-exa' },
+            { kind: 'npm-cordis-config-entry', id: 'tool-web', package: '@huiliyi37/dsh-tool-web' },
           ],
         },
         {
@@ -189,24 +189,24 @@ config:
             message: 'Perplexity API key',
             required: true,
           }],
-          markers: [{ id: 'web-search-perplexity', name: '@deepseek-ai/dsh-web-search-perplexity' }],
+          markers: [{ id: 'web-search-perplexity', name: '@huiliyi37/dsh-web-search-perplexity' }],
           resources: [
             {
               kind: 'npm-cordis-config-entry',
               id: 'web-search-perplexity',
-              package: '@deepseek-ai/dsh-web-search-perplexity',
+              package: '@huiliyi37/dsh-web-search-perplexity',
             },
-            { kind: 'npm-cordis-config-entry', id: 'tool-web', package: '@deepseek-ai/dsh-tool-web' },
+            { kind: 'npm-cordis-config-entry', id: 'tool-web', package: '@huiliyi37/dsh-tool-web' },
           ],
         },
         {
           id: 'fetch-only',
           label: 'Fetch only',
-          markers: [{ id: 'tool-web', name: '@deepseek-ai/dsh-tool-web', config: { search: false } }],
+          markers: [{ id: 'tool-web', name: '@huiliyi37/dsh-tool-web', config: { search: false } }],
           resources: [{
             kind: 'npm-cordis-config-entry',
             id: 'tool-web',
-            package: '@deepseek-ai/dsh-tool-web',
+            package: '@huiliyi37/dsh-tool-web',
             config: { search: false } satisfies ToolWebConfig,
           }],
         },
@@ -219,10 +219,10 @@ config:
       // In-process options select continuable background delegation; the
       // follow-up adapter remains an independently loadable global tool.
       baseResources: [
-        { kind: 'npm-cordis-config-entry', id: 'tasks', package: '@deepseek-ai/dsh-tasks-local' },
-        { kind: 'npm-cordis-config-entry', id: 'tool-tasks', package: '@deepseek-ai/dsh-tool-tasks' },
-        { kind: 'npm-cordis-config-entry', id: 'subagent', package: '@deepseek-ai/dsh-subagent' },
-        { kind: 'npm-cordis-config-entry', id: 'tool-subagent-control', package: '@deepseek-ai/dsh-tool-subagent-control' },
+        { kind: 'npm-cordis-config-entry', id: 'tasks', package: '@huiliyi37/dsh-tasks-local' },
+        { kind: 'npm-cordis-config-entry', id: 'tool-tasks', package: '@huiliyi37/dsh-tool-tasks' },
+        { kind: 'npm-cordis-config-entry', id: 'subagent', package: '@huiliyi37/dsh-subagent' },
+        { kind: 'npm-cordis-config-entry', id: 'tool-subagent-control', package: '@huiliyi37/dsh-tool-subagent-control' },
       ],
       options: [
         {
@@ -230,11 +230,11 @@ config:
           label: 'Fresh child agent',
           default: true,
           resources: [
-            { kind: 'npm-cordis-config-entry', id: 'subagent-spawn', package: '@deepseek-ai/dsh-subagent-spawn' },
+            { kind: 'npm-cordis-config-entry', id: 'subagent-spawn', package: '@huiliyi37/dsh-subagent-spawn' },
             {
               kind: 'npm-cordis-config-entry',
               id: 'tool-subagent',
-              package: '@deepseek-ai/dsh-tool-subagent',
+              package: '@huiliyi37/dsh-tool-subagent',
               config: { provider: 'spawn', backgroundMode: 'continuable' } satisfies ToolSubagentConfig,
             },
           ],
@@ -243,11 +243,11 @@ config:
           id: 'fork',
           label: 'Fork parent history',
           resources: [
-            { kind: 'npm-cordis-config-entry', id: 'subagent-fork', package: '@deepseek-ai/dsh-subagent-fork' },
+            { kind: 'npm-cordis-config-entry', id: 'subagent-fork', package: '@huiliyi37/dsh-subagent-fork' },
             {
               kind: 'npm-cordis-config-entry',
               id: 'tool-subagent-fork',
-              package: '@deepseek-ai/dsh-tool-subagent',
+              package: '@huiliyi37/dsh-tool-subagent',
               config: {
                 provider: 'fork',
                 toolName: 'subagent_fork',
@@ -271,9 +271,9 @@ config:
           {
             kind: 'npm-cordis-config-entry',
             id: 'workflow-workerthread',
-            package: '@deepseek-ai/dsh-workflow-workerthread',
+            package: '@huiliyi37/dsh-workflow-workerthread',
           },
-          { kind: 'npm-cordis-config-entry', id: 'tool-workflow', package: '@deepseek-ai/dsh-tool-workflow' },
+          { kind: 'npm-cordis-config-entry', id: 'tool-workflow', package: '@huiliyi37/dsh-tool-workflow' },
         ],
       }],
     },
@@ -289,12 +289,12 @@ config:
           {
             kind: 'npm-cordis-config-entry',
             id: 'token-meter',
-            package: '@deepseek-ai/dsh-token-meter',
+            package: '@huiliyi37/dsh-token-meter',
           },
           {
             kind: 'npm-cordis-config-entry',
             id: 'compact-basic',
-            package: '@deepseek-ai/dsh-compact-basic',
+            package: '@huiliyi37/dsh-compact-basic',
           },
         ],
       }],
@@ -313,7 +313,7 @@ config:
             {
               kind: 'npm-cordis-config-entry',
               id: 'hooks-claude',
-              package: '@deepseek-ai/dsh-hooks-claude',
+              package: '@huiliyi37/dsh-hooks-claude',
               config: { configPath: './hooks.json' } satisfies ClaudeHooksConfig,
             },
             { kind: 'owned-file', path: 'hooks.json', text: '{}' },
@@ -326,7 +326,7 @@ config:
             {
               kind: 'npm-cordis-config-entry',
               id: 'hooks-codex',
-              package: '@deepseek-ai/dsh-hooks-codex',
+              package: '@huiliyi37/dsh-hooks-codex',
               config: { configPath: './codex-hooks.json' } satisfies CodexHooksConfig,
             },
             { kind: 'owned-file', path: 'codex-hooks.json', text: '{}' },
@@ -345,7 +345,7 @@ config:
         resources: [{
           kind: 'npm-cordis-config-entry',
           id: 'repeat-tool-guard',
-          package: '@deepseek-ai/dsh-repeat-tool-guard',
+          package: '@huiliyi37/dsh-repeat-tool-guard',
         }],
       }],
     },
@@ -360,7 +360,7 @@ config:
         resources: [{
           kind: 'npm-cordis-config-entry',
           id: 'timeout-policy',
-          package: '@deepseek-ai/dsh-timeout-policy',
+          package: '@huiliyi37/dsh-timeout-policy',
         }],
       }],
     },

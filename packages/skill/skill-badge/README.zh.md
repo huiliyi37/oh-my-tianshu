@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-skill-badge
+# @huiliyi37/dsh-skill-badge
 
 [English](README.md) | 中文
 
@@ -10,7 +10,7 @@
 
 ## 模型体验
 
-通过 `@deepseek-ai/dsh-tool-skill` 间接影响模型；该包会渲染目录条目和所选 skill 的正文。
+通过 `@huiliyi37/dsh-tool-skill` 间接影响模型；该包会渲染目录条目和所选 skill 的正文。
 
 #### KV Cache 影响
 

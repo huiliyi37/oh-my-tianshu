@@ -7,9 +7,9 @@
  */
 import type {
   IApiClient, ModelCatalogFailure, ModelProviderGroup, ModelSelection, SessionId, SessionModels,
-} from '@deepseek-ai/dsh-client-connection/client'
-import type { SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+} from '@huiliyi37/dsh-client-connection/client'
+import type { SnapshotStore } from '@huiliyi37/dsh-client-runtime/client'
+import { createSnapshotStore } from '@huiliyi37/dsh-client-runtime/client'
 
 /** Directory snapshot both entries render from. */
 export interface ModelDirectoryState {

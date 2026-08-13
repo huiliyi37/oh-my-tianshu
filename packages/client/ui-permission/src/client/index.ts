@@ -13,13 +13,13 @@
  * The General-settings row separately writes the default preset for sessions
  * created later through the host Settings API.
  */
-import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
+import type { ConnectionHandle } from '@huiliyi37/dsh-client-connection/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
-import type {} from '@deepseek-ai/dsh-client-locale/client'
-import type { ClientContext, SessionFace } from '@deepseek-ai/dsh-client-runtime/client'
-import type { CommandServiceContract, SelectOption } from '@deepseek-ai/dsh-client-ui-command/client'
-import type { ClientSessionContext } from '@deepseek-ai/dsh-client-ui-slash/client'
-import type { PermissionSelect } from '@deepseek-ai/dsh-permission/client'
+import type {} from '@huiliyi37/dsh-client-locale/client'
+import type { ClientContext, SessionFace } from '@huiliyi37/dsh-client-runtime/client'
+import type { CommandServiceContract, SelectOption } from '@huiliyi37/dsh-client-ui-command/client'
+import type { ClientSessionContext } from '@huiliyi37/dsh-client-ui-slash/client'
+import type { PermissionSelect } from '@huiliyi37/dsh-permission/client'
 import { PermissionRow } from './PermissionRow.tsx'
 import type { PermissionRowInjected } from './PermissionRow.tsx'
 import {

@@ -4,12 +4,12 @@
  * 快照从 live store 派生：mock ctx.sessions.list() + ctx.agents.get() 注入，
  * 验证 list() 派生（id/status/messageCount）与 statusOf() 查询。
  *
- * @module @deepseek-ai/dsh-tui/tests/session-manager
+ * @module @huiliyi37/dsh-tui/tests/session-manager
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import type { Context } from 'cordis'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import type { Context } from '@huiliyi37/cordis'
+import { SessionId } from '@huiliyi37/dsh-session'
 import { SessionManager } from '../src/controllers/session-manager.js'
 
 /** 最小 live session 替身（events 长度可配）。 */

@@ -2,7 +2,7 @@
 
 [English](adding-a-vendored-package.md) | 中文
 
-当 harness 需要引入另一个上游 Cordis 包（如 `@cordisjs/plugin-http`）时，应将其作为固定版本的源码 **vendor** 到 `vendor/` 下，而非作为 NPM 依赖添加——原因见[vendoring 决策](../../.agents/notes/implemented/process/2026-06-11-vendor-cordis-as-source.md)。[vendor/README.md](../../vendor/README.md) 介绍如何*更新*已有的 vendored 包；本指南是添加**新** vendored 包的逐文件清单。（已对照现有 vendored 集合验证；如有偏差，请在此修正。）
+当 harness 需要引入另一个上游 Cordis 包（如 `@huiliyi37/cordis-plugin-http`）时，应将其作为固定版本的源码 **vendor** 到 `vendor/` 下，而非作为 NPM 依赖添加——原因见[vendoring 决策](../../.agents/notes/implemented/process/2026-06-11-vendor-cordis-as-source.md)。[vendor/README.md](../../vendor/README.md) 介绍如何*更新*已有的 vendored 包；本指南是添加**新** vendored 包的逐文件清单。（已对照现有 vendored 集合验证；如有偏差，请在此修正。）
 
 ## 1. 复制源码
 
@@ -29,7 +29,7 @@ vendor/<dir>/
 }
 ```
 
-`package.json` 的不变式：`"private": true`（vendored 包永不发布）；保留上游的 `name`/`version`/`exports`/`type`；声明元数据指向 `lib/types`；发布 `.d.ts` 与 `.d.ts.map` 声明输出；在 `peerDependencies` 中列出其 Cordis 依赖（与上游 manifest（元数据清单）一致）。传递性上游依赖本身也必须被 vendor 或已存在于仓库中——vendor 一个包往往意味着 vendor 其整条依赖树（如 `@cordisjs/plugin-http` 会拉入 `@cordisjs/fetch-file`）。
+`package.json` 的不变式：`"private": true`（vendored 包永不发布）；保留上游的 `name`/`version`/`exports`/`type`；声明元数据指向 `lib/types`；发布 `.d.ts` 与 `.d.ts.map` 声明输出；在 `peerDependencies` 中列出其 Cordis 依赖（与上游 manifest（元数据清单）一致）。传递性上游依赖本身也必须被 vendor 或已存在于仓库中——vendor 一个包往往意味着 vendor 其整条依赖树（如 `@huiliyi37/cordis-plugin-http` 会拉入 `@cordisjs/fetch-file`）。
 
 vendored TypeScript 源码中的本地相对导入/导出在复制后使用显式 `.ts` 后缀。这是仓库本地的构建形态与上游的差异：`rewriteRelativeImportExtensions` 输出 `.js` 运行时导入，而声明文件保留显式 `.ts` 后缀，使 NodeNext/Node16 的 TypeScript 消费方能够解析。
 

@@ -4,15 +4,15 @@
  * actor the `fs/*` events carry.
  *
  * The provider vocabulary (`FsTarget`, `FsVersion`, write/edit shapes) is
- * re-used from `@deepseek-ai/dsh-fs`; this package owns only the observed-state
+ * re-used from `@huiliyi37/dsh-fs`; this package owns only the observed-state
  * owner structure on top of it.
  *
- * @module @deepseek-ai/dsh-fs-policy/types
+ * @module @huiliyi37/dsh-fs-policy/types
  */
 
 /**
  * Minimal structural view of a tool execution the policy plugin needs to derive
- * an observed-state owner. `@deepseek-ai/dsh-tools`' `ToolExecution` satisfies
+ * an observed-state owner. `@huiliyi37/dsh-tools`' `ToolExecution` satisfies
  * this shape, so the tool passes its `exec` straight through as the opaque
  * `object` actor on the `fs/*` events; this plugin narrows that actor to this
  * shape without importing `dsh-tools`, `dsh-agent`, or `dsh-session`.

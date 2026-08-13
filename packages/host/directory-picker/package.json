@@ -1,8 +1,15 @@
 {
-  "name": "@deepseek-ai/dsh-host-directory-picker",
+  "name": "@huiliyi37/dsh-host-directory-picker",
   "description": "Abstract workspace-directory picking seam (ctx.directoryPicker) for the DeepSeek Harness web GUI host",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "directory": "packages/host/directory-picker"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -25,11 +32,11 @@
   ],
   "license": "BSD-3-Clause",
   "peerDependencies": {
-    "@deepseek-ai/dsh-invariants": "^0.0.1",
-    "cordis": "^4.0.0-rc.7"
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "cordis": "^4.0.0-rc.7"
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
   }
 }

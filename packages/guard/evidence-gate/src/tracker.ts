@@ -7,7 +7,7 @@
  *   → 返回 block + 最短动作消息；测试/scratch 路径豁免（写测试就是 RED）。
  * - 同一义务只拦一次（once latch）——模型坚持编辑（重发）则放行，不制造死锁。
  *
- * @module @deepseek-ai/dsh-evidence-gate/tracker
+ * @module @huiliyi37/dsh-evidence-gate/tracker
  */
 
 import {

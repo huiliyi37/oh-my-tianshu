@@ -4,7 +4,7 @@
  * rather than score normalization because BM25 and cosine scores live on
  * incomparable scales — RRF only needs the rank of each item in each list.
  *
- * @module @deepseek-ai/dsh-semantic-index/hybrid-search
+ * @module @huiliyi37/dsh-semantic-index/hybrid-search
  */
 
 export interface RankedItem {

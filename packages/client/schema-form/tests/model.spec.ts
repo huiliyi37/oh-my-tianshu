@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import Schema from 'schemastery'
+import Schema from '@huiliyi37/schemastery'
 import {
   deletePath, getPath, hasPath, nodeAtPath, rehydrateSchema, setPath, validateDraft,
 } from '../src/model.ts'

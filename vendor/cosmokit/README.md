@@ -14,7 +14,7 @@ npm install cosmokit
 ```
 
 ```ts
-import cosmokit from 'cosmokit'
+import cosmokit from '@huiliyi37/cosmokit'
 ``` 
 
 ### Deno

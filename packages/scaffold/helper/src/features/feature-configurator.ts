@@ -1,7 +1,7 @@
 /**
  * Shared option and secret question flow for create and config.
  *
- * @module @deepseek-ai/dsh-helper/features/feature-configurator
+ * @module @huiliyi37/dsh-helper/features/feature-configurator
  */
 
 import type { Feature } from './feature.ts'

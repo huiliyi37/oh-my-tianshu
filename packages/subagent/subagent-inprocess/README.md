@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-subagent-inprocess
+# @huiliyi37/dsh-subagent-inprocess
 
 English | [中文](README.zh.md)
 

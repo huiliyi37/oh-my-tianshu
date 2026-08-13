@@ -1,7 +1,7 @@
 /**
  * Source blueprints for local Cordis plugins generated under `plugins/*`.
  *
- * @module @deepseek-ai/dsh-helper/plugins/local-plugin-blueprint
+ * @module @huiliyi37/dsh-helper/plugins/local-plugin-blueprint
  */
 
 import { TextProjectFile } from '../documents/project-file.ts'
@@ -93,7 +93,7 @@ export class LocalPluginBlueprint {
       types: 'lib/index.d.ts',
       exports: { '.': { types: './lib/index.d.ts', default: './lib/index.js' } },
       peerDependencies: {
-        ...this.kind === 'tool' ? { '@deepseek-ai/dsh-tools': `^${releaseVersion}` } : {},
+        ...this.kind === 'tool' ? { '@huiliyi37/dsh-tools': `^${releaseVersion}` } : {},
         cordis: cordisSpec,
       },
       devDependencies: {

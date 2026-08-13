@@ -5,11 +5,11 @@
  * conversation wiring layer alone sees the full SessionInput. InputMachine
  * (machine.ts) is package-private and never exported.
  */
-import type { ClientContext, SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ClientContext, SnapshotStore } from '@huiliyi37/dsh-client-runtime/client'
 import type {
   ArbitrateKey, ArbitrateOutcome, CommandClaim, ConsumeTokenRequest, PickOutcome,
   ReferenceInsert, SubmitOutcome, TokenSpan,
-} from '@deepseek-ai/dsh-client-ui-slash/client'
+} from '@huiliyi37/dsh-client-ui-slash/client'
 import type { QueueRow } from '../contract/queue.ts'
 import type { InputSubmitMode } from '../contract/composer-submission.ts'
 

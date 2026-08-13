@@ -9,8 +9,8 @@ import {
   createAssistantMessage,
   createToolResultMessage,
   createUserMessage,
-} from '@deepseek-ai/dsh-llm/message'
-import { CallId } from '@deepseek-ai/dsh-llm/brand'
+} from '@huiliyi37/dsh-llm/message'
+import { CallId } from '@huiliyi37/dsh-llm/brand'
 import type {
   AssistantMessage,
   ContentBlock,
@@ -18,22 +18,22 @@ import type {
   TokenUsage,
   ToolResultMessage,
   UserMessage,
-} from '@deepseek-ai/dsh-llm'
+} from '@huiliyi37/dsh-llm'
 import type {
   SessionEvent,
   SessionId,
   TodoItem,
-} from '@deepseek-ai/dsh-session/types'
+} from '@huiliyi37/dsh-session/types'
 // Type-only: the brand constructor is host-side; the fixture casts at its
 // wire-fabrication boundary (the schema layer's one-cast-point posture).
-import type { CommandId } from '@deepseek-ai/dsh-commands/brand'
-import { deriveEventMessage, foldSurface } from '@deepseek-ai/dsh-session/surface'
+import type { CommandId } from '@huiliyi37/dsh-commands/brand'
+import { deriveEventMessage, foldSurface } from '@huiliyi37/dsh-session/surface'
 import type {
   ApiProxy, ClientRequest, ClientResponse, HistoryEntry, HostFrame, MuxFrame, RpcReceipt,
   ModelProviderGroup, ModelSelection, RpcRequest, RpcResponse, RpcResult, ServerRequest, ServerResponse, SessionSummary,
   ToolCallView, ToolEventView, ToolResultView, WorkspaceId, WorkspaceView,
 } from './api.ts'
-import type { RequestPayload, ResponseValue, RpcMethodMap } from '@deepseek-ai/dsh-host-apiproxy/api'
+import type { RequestPayload, ResponseValue, RpcMethodMap } from '@huiliyi37/dsh-host-apiproxy/api'
 import { AbstractApiClient, RpcId, SESSION_SEARCH_RESULT_LIMIT } from './api.ts'
 import { randomUuid } from './random-uuid.ts'
 import type { ClientConnectionRpc } from '../rpc.ts'

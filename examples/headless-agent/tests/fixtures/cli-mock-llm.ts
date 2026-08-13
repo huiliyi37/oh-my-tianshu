@@ -1,5 +1,5 @@
-import type { Context } from 'cordis'
-import { SUBAGENT_TASK_PREFIX } from '@deepseek-ai/dsh-agent-router'
+import type { Context } from '@huiliyi37/cordis'
+import { SUBAGENT_TASK_PREFIX } from '@huiliyi37/dsh-agent-router'
 import {
   CallId,
   LlmAdapter,
@@ -7,7 +7,7 @@ import {
   type GenerateOptions,
   type LlmResolvedModelInfo,
   type StreamChunk,
-} from '@deepseek-ai/dsh-llm'
+} from '@huiliyi37/dsh-llm'
 
 const HIGH = ReasoningEffortId('high')
 const OFF = ReasoningEffortId('off')

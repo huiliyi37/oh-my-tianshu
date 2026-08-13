@@ -1,21 +1,21 @@
 /**
  * Basic replay-aware compaction backend.
  *
- * @module @deepseek-ai/dsh-compact-basic
+ * @module @huiliyi37/dsh-compact-basic
  */
 
-import { Context } from 'cordis'
-import z from 'schemastery'
-import { CompactService, ManualCompactionError } from '@deepseek-ai/dsh-compact'
-import type { CompactionResult, CompactionTrigger } from '@deepseek-ai/dsh-compact'
-import type { TokenMeterService } from '@deepseek-ai/dsh-token-meter'
-import type { Session } from '@deepseek-ai/dsh-session'
-import { CONTEXT_WINDOW_EXCEEDED_CODE, assertNever } from '@deepseek-ai/dsh-llm'
-import type { LlmCallConfig } from '@deepseek-ai/dsh-llm'
-import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
-import type { CommandId } from '@deepseek-ai/dsh-commands/brand'
+import { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { CompactService, ManualCompactionError } from '@huiliyi37/dsh-compact'
+import type { CompactionResult, CompactionTrigger } from '@huiliyi37/dsh-compact'
+import type { TokenMeterService } from '@huiliyi37/dsh-token-meter'
+import type { Session } from '@huiliyi37/dsh-session'
+import { CONTEXT_WINDOW_EXCEEDED_CODE, assertNever } from '@huiliyi37/dsh-llm'
+import type { LlmCallConfig } from '@huiliyi37/dsh-llm'
+import type { Agent, PreStepDecision } from '@huiliyi37/dsh-agent'
+import type { CommandId } from '@huiliyi37/dsh-commands/brand'
 // Type-only: makes the optional sibling service available to `ctx.get()`.
-import type {} from '@deepseek-ai/dsh-compact-tool-result-prune'
+import type {} from '@huiliyi37/dsh-compact-tool-result-prune'
 import {
   resolveCompactSpec,
   resolveConfig,

@@ -11,7 +11,7 @@
  * 消费 listDescendants 快照与 sessionProjections 的 subagent/subagentTiming
  * 单元，行渲染进 live 区（接线由其他维度独占）。
  *
- * @module @deepseek-ai/dsh-tui/delegation-panel
+ * @module @huiliyi37/dsh-tui/delegation-panel
  */
 
 import { displayWidth } from './width.js'

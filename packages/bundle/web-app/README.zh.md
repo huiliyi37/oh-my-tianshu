@@ -1,8 +1,8 @@
-# `@deepseek-ai/dsh-web-app`
+# `@huiliyi37/dsh-web-app`
 
 [English](README.md) | 中文
 
-dsh 浏览器表层组合包。[`cordis.patch.yml`](cordis.patch.yml) 叠加在 [`dsh-base`](../base/README.md) 之上：设置 coding persona，插入 Web 宿主行（webserver、API 网关、workspace、投影缓存、存储）与浏览器插件名录，并挂载本包的 `web-runtime` 粘合插件（配置为 `{mode, printUrl, surfaceContext, lanAddresses}`）。该插件通过 `@deepseek-ai/dsh-frontend` 的 exports 解析已构建的前端 dist，挂载 [`frontend-static`](../../host/frontend-static/README.md) 回退席位所有者，在 `surfaceContext` 为 true 时注册 web 表层提示词段落和 bash 可见的 `DSH_WEB_URL`／`DSH_WEB_MODE` 运行时变量，并在 `printUrl` 为 true 时打印 `dsh web:` URL 行。`dsh web` 启动器别名把 `mode`／`lanAddresses` 与相应 flag 家族 patch 到这些行上。[`dsh-headless`](../headless/README.md) 是同一 base 之上的同级表层，不挂载本组合包。
+dsh 浏览器表层组合包。[`cordis.patch.yml`](cordis.patch.yml) 叠加在 [`dsh-base`](../base/README.md) 之上：设置 coding persona，插入 Web 宿主行（webserver、API 网关、workspace、投影缓存、存储）与浏览器插件名录，并挂载本包的 `web-runtime` 粘合插件（配置为 `{mode, printUrl, surfaceContext, lanAddresses}`）。该插件通过 `@huiliyi37/dsh-frontend` 的 exports 解析已构建的前端 dist，挂载 [`frontend-static`](../../host/frontend-static/README.md) 回退席位所有者，在 `surfaceContext` 为 true 时注册 web 表层提示词段落和 bash 可见的 `DSH_WEB_URL`／`DSH_WEB_MODE` 运行时变量，并在 `printUrl` 为 true 时打印 `dsh web:` URL 行。`dsh web` 启动器别名把 `mode`／`lanAddresses` 与相应 flag 家族 patch 到这些行上。[`dsh-headless`](../headless/README.md) 是同一 base 之上的同级表层，不挂载本组合包。
 
 ## 模型体验
 

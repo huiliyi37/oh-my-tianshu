@@ -11,24 +11,24 @@
  * residency while the Agent loop owns all turn ordering and execution. No
  * continuable path creates a Task or an intermediate result-bearing wrapper.
  *
- * @module @deepseek-ai/dsh-subagent
+ * @module @huiliyi37/dsh-subagent
  */
 
 import { randomUUID } from 'node:crypto'
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import type {
   Agent,
   AgentHandle,
   AgentOptions,
   AgentSetupCommit,
   CreateAgentOptions,
-} from '@deepseek-ai/dsh-agent'
-import { createUserMessage, errorChain } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock, MessageId, MessageSource } from '@deepseek-ai/dsh-llm'
-import { SessionId } from '@deepseek-ai/dsh-session'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
-import type { SessionPersistence } from '@deepseek-ai/dsh-session-persistence'
-import type { ToolRestriction } from '@deepseek-ai/dsh-tools'
+} from '@huiliyi37/dsh-agent'
+import { createUserMessage, errorChain } from '@huiliyi37/dsh-llm'
+import type { ContentBlock, MessageId, MessageSource } from '@huiliyi37/dsh-llm'
+import { SessionId } from '@huiliyi37/dsh-session'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
+import type { SessionPersistence } from '@huiliyi37/dsh-session-persistence'
+import type { ToolRestriction } from '@huiliyi37/dsh-tools'
 import { foldSubagentDescriptor, snapshotSubagentDescriptor } from './descriptor.ts'
 import type { SubagentDescriptorData } from './descriptor.ts'
 import {
@@ -62,7 +62,7 @@ export interface SubagentReportMessageSource {
   readonly senderSessionId: SessionId
 }
 
-declare module '@deepseek-ai/dsh-llm' {
+declare module '@huiliyi37/dsh-llm' {
   interface MessageSourceMap {
     coordinator: CoordinatorMessageSource
     'subagent-report': SubagentReportMessageSource

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { RpcResponse } from '@deepseek-ai/dsh-client-connection/client'
+import type { RpcResponse } from '@huiliyi37/dsh-client-connection/client'
 import { SettingsDocumentStore } from '../src/client/settings-document-store.ts'
 
 function response(hasDocument = false): RpcResponse<{

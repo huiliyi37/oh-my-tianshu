@@ -15,17 +15,17 @@
  * tears its scope down immediately unless it is the staged one, whose scope
  * survives frozen (read-only view) until the stage moves on.
  */
-import type { Context, Fiber } from 'cordis'
+import type { Context, Fiber } from '@huiliyi37/cordis'
 import type {
   IApiClient, RpcError, RpcResult, SessionId, SubagentAddress, WorkspaceId,
-} from '@deepseek-ai/dsh-client-connection/client'
+} from '@huiliyi37/dsh-client-connection/client'
 // Value import from the inline-safe wire layer (not the connection plugin):
 // plugin-to-plugin value imports are a bundle purity error.
-import { SESSION_SEARCH_RESULT_LIMIT } from '@deepseek-ai/dsh-host-apiproxy/api'
+import { SESSION_SEARCH_RESULT_LIMIT } from '@huiliyi37/dsh-host-apiproxy/api'
 import type {
   HostObservable, SessionMaybeProvideInfo, SessionProvideInfo,
-} from '@deepseek-ai/dsh-client-ui-slots'
-import type { SessionProjectionMap } from '@deepseek-ai/dsh-session-projection/types'
+} from '@huiliyi37/dsh-client-ui-slots'
+import type { SessionProjectionMap } from '@huiliyi37/dsh-session-projection/types'
 import type { SnapshotStore } from '../contract/store.ts'
 import { createSnapshotStore } from '../contract/store.ts'
 import type { SessionFace } from '../contract/session.ts'

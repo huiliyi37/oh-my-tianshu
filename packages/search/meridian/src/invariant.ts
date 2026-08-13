@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-meridian`.
- * @module @deepseek-ai/dsh-meridian/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-meridian`.
+ * @module @huiliyi37/dsh-meridian/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-meridian'
+const PACKAGE_NAME = '@huiliyi37/dsh-meridian'
 
 /** Cordis companion plugin name. */
 export const name = 'meridian-invariant'
@@ -20,7 +20,7 @@ export const inject = ['invariants']
  * inversion, GLOB-escaped path queries) is enforced by package unit tests on a
  * real temporary database; the runtime cross-package relationship (tool layer
  * feeding edits/reads into the index, pheromone signal wiring) is asserted by
- * the consuming plugin's invariant companion (`@deepseek-ai/dsh-tool-meridian`).
+ * the consuming plugin's invariant companion (`@huiliyi37/dsh-tool-meridian`).
  */
 const install: InvariantInstaller = () => {}
 

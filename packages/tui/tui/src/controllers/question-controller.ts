@@ -15,10 +15,10 @@
  * - 重叠 ask → reject UserInteractionError(ASK_CANCELLED)（一次只呈现一个问题）。
  * - cancel → reject UserInteractionError(ASK_CANCELLED)（取消必须 reject，非 resolve）。
  *
- * @module @deepseek-ai/dsh-tui/controllers/question-controller
+ * @module @huiliyi37/dsh-tui/controllers/question-controller
  */
 
-import { UserInteractionError } from '@deepseek-ai/dsh-user-interaction'
+import { UserInteractionError } from '@huiliyi37/dsh-user-interaction'
 import type { QuestionRequestInput } from '../question-panel.js'
 
 /** 挂起态快照（renderLive 消费；无挂起时 peek() 返回 null）。 */

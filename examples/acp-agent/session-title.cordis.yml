@@ -2,13 +2,13 @@
 # the ordinary DeepSeek route while the ACP app and every other capability stay
 # identical to the base example.
 - id: base
-  name: '@cordisjs/plugin-include'
+  name: '@huiliyi37/cordis-plugin-include'
   config:
     path: ./cordis.yml
     patches:
       - insert:
           - id: session-title-provider
-            name: '@deepseek-ai/dsh-session-title-first-message-llm'
+            name: '@huiliyi37/dsh-session-title-first-message-llm'
             config:
               targetWords: 5
               targetCjkCharacters: 10

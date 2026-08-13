@@ -8,57 +8,57 @@
 
 import { globSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
-import { Context } from 'cordis'
-import type { ToolSchema } from '@deepseek-ai/dsh-llm'
-import AgentRegistry from '@deepseek-ai/dsh-agent'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { createScope } from '@deepseek-ai/dsh-scope'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
-import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
-import SessionQuerySqlite from '@deepseek-ai/dsh-session-query-sqlite'
-import GoalService from '@deepseek-ai/dsh-goal'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry, { type Config as ToolsConfig } from '@deepseek-ai/dsh-tools'
-import LocalBashExecutor from '@deepseek-ai/dsh-bash-local'
-import * as BashEnvPlugin from '@deepseek-ai/dsh-bash-env'
-import { PwshLocalExecutor } from '@deepseek-ai/dsh-pwsh-local'
-import LocalSubprocessService from '@deepseek-ai/dsh-subprocess-local'
-import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
-import UserInteractionService from '@deepseek-ai/dsh-user-interaction'
-import PlanModeService from '@deepseek-ai/dsh-plan-mode'
-import WebService from '@deepseek-ai/dsh-web'
-import * as WebSearchExa from '@deepseek-ai/dsh-web-search-exa'
-import * as WebFetchLocal from '@deepseek-ai/dsh-web-fetch-local'
-import SubagentService from '@deepseek-ai/dsh-subagent'
-import type { SubagentProvider } from '@deepseek-ai/dsh-subagent'
-import * as ToolSubagentControl from '@deepseek-ai/dsh-tool-subagent-control'
-import * as ToolSubagentListAgents from '@deepseek-ai/dsh-tool-subagent-control/list-agents'
-import * as ToolSubagentReport from '@deepseek-ai/dsh-tool-subagent-report'
-import SkillService from '@deepseek-ai/dsh-skill'
-import * as SkillLocal from '@deepseek-ai/dsh-skill-local'
-import LocalTaskService from '@deepseek-ai/dsh-tasks-local'
-import * as ToolAskUser from '@deepseek-ai/dsh-tool-ask-user'
-import * as ToolBash from '@deepseek-ai/dsh-tool-bash'
-import * as ToolPwsh from '@deepseek-ai/dsh-tool-pwsh'
-import * as ToolBashPersistent from '@deepseek-ai/dsh-tool-bash-persistent'
-import * as ToolCordis from '@deepseek-ai/dsh-tool-cordis'
-import * as ToolFs from '@deepseek-ai/dsh-tool-fs'
-import * as ToolFsSearch from '@deepseek-ai/dsh-tool-fs-search'
-import * as ToolStrReplaceEditor from '@deepseek-ai/dsh-tool-str-replace-editor'
-import PtyService from '@deepseek-ai/dsh-pty'
-import * as ToolPty from '@deepseek-ai/dsh-tool-pty'
-import * as ToolGoal from '@deepseek-ai/dsh-tool-goal'
-import Lsp from '@deepseek-ai/dsh-lsp'
-import * as ToolLsp from '@deepseek-ai/dsh-tool-lsp'
-import * as ToolSkill from '@deepseek-ai/dsh-tool-skill'
-import * as ToolSessionQuery from '@deepseek-ai/dsh-tool-session-query'
-import * as ToolTasks from '@deepseek-ai/dsh-tool-tasks'
-import * as ToolTodo from '@deepseek-ai/dsh-tool-todo'
-import * as ToolSubagent from '@deepseek-ai/dsh-tool-subagent'
-import * as ToolWeb from '@deepseek-ai/dsh-tool-web'
-import VmWorkflowEngine from '@deepseek-ai/dsh-workflow-workerthread'
-import * as ToolRalph from '@deepseek-ai/dsh-tool-ralph'
-import * as ToolWorkflow from '@deepseek-ai/dsh-tool-workflow'
+import { Context } from '@huiliyi37/cordis'
+import type { ToolSchema } from '@huiliyi37/dsh-llm'
+import AgentRegistry from '@huiliyi37/dsh-agent'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { createScope } from '@huiliyi37/dsh-scope'
+import SessionStore, { SessionId } from '@huiliyi37/dsh-session'
+import SessionProjectionRegistry from '@huiliyi37/dsh-session-projection'
+import SessionQuerySqlite from '@huiliyi37/dsh-session-query-sqlite'
+import GoalService from '@huiliyi37/dsh-goal'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry, { type Config as ToolsConfig } from '@huiliyi37/dsh-tools'
+import LocalBashExecutor from '@huiliyi37/dsh-bash-local'
+import * as BashEnvPlugin from '@huiliyi37/dsh-bash-env'
+import { PwshLocalExecutor } from '@huiliyi37/dsh-pwsh-local'
+import LocalSubprocessService from '@huiliyi37/dsh-subprocess-local'
+import LocalFileSystem from '@huiliyi37/dsh-fs-local'
+import UserInteractionService from '@huiliyi37/dsh-user-interaction'
+import PlanModeService from '@huiliyi37/dsh-plan-mode'
+import WebService from '@huiliyi37/dsh-web'
+import * as WebSearchExa from '@huiliyi37/dsh-web-search-exa'
+import * as WebFetchLocal from '@huiliyi37/dsh-web-fetch-local'
+import SubagentService from '@huiliyi37/dsh-subagent'
+import type { SubagentProvider } from '@huiliyi37/dsh-subagent'
+import * as ToolSubagentControl from '@huiliyi37/dsh-tool-subagent-control'
+import * as ToolSubagentListAgents from '@huiliyi37/dsh-tool-subagent-control/list-agents'
+import * as ToolSubagentReport from '@huiliyi37/dsh-tool-subagent-report'
+import SkillService from '@huiliyi37/dsh-skill'
+import * as SkillLocal from '@huiliyi37/dsh-skill-local'
+import LocalTaskService from '@huiliyi37/dsh-tasks-local'
+import * as ToolAskUser from '@huiliyi37/dsh-tool-ask-user'
+import * as ToolBash from '@huiliyi37/dsh-tool-bash'
+import * as ToolPwsh from '@huiliyi37/dsh-tool-pwsh'
+import * as ToolBashPersistent from '@huiliyi37/dsh-tool-bash-persistent'
+import * as ToolCordis from '@huiliyi37/dsh-tool-cordis'
+import * as ToolFs from '@huiliyi37/dsh-tool-fs'
+import * as ToolFsSearch from '@huiliyi37/dsh-tool-fs-search'
+import * as ToolStrReplaceEditor from '@huiliyi37/dsh-tool-str-replace-editor'
+import PtyService from '@huiliyi37/dsh-pty'
+import * as ToolPty from '@huiliyi37/dsh-tool-pty'
+import * as ToolGoal from '@huiliyi37/dsh-tool-goal'
+import Lsp from '@huiliyi37/dsh-lsp'
+import * as ToolLsp from '@huiliyi37/dsh-tool-lsp'
+import * as ToolSkill from '@huiliyi37/dsh-tool-skill'
+import * as ToolSessionQuery from '@huiliyi37/dsh-tool-session-query'
+import * as ToolTasks from '@huiliyi37/dsh-tool-tasks'
+import * as ToolTodo from '@huiliyi37/dsh-tool-todo'
+import * as ToolSubagent from '@huiliyi37/dsh-tool-subagent'
+import * as ToolWeb from '@huiliyi37/dsh-tool-web'
+import VmWorkflowEngine from '@huiliyi37/dsh-workflow-workerthread'
+import * as ToolRalph from '@huiliyi37/dsh-tool-ralph'
+import * as ToolWorkflow from '@huiliyi37/dsh-tool-workflow'
 
 const root = resolve(import.meta.dirname, '..')
 const OUT = 'docs/tool-catalog.md'
@@ -152,7 +152,7 @@ interface ToolPackage {
  */
 const TOOL_PACKAGES: ToolPackage[] = [
   {
-    pkg: '@deepseek-ai/dsh-tool-ask-user',
+    pkg: '@huiliyi37/dsh-tool-ask-user',
     dir: 'tool-ask-user',
     source: 'packages/interaction/tool-ask-user/src/index.ts',
     requires: ['ctx.tools', 'ctx.userInteraction'],
@@ -165,7 +165,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'ask_user_question pauses the tool call until the active UI provider returns a human answer.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tools',
+    pkg: '@huiliyi37/dsh-tools',
     dir: 'tools',
     source: 'packages/core/tools/src/code-mode.ts',
     requires: ['ctx.tools', 'ctx.codeRuntime (execution time)', 'ctx.systemPrompt'],
@@ -179,7 +179,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'Owned by the tool registry as a reserved transport outside filterable capability layers under `mode: code` / `mode: both` (see the Code Mode Agent Note). Under `code` it is the registry\'s only wire contribution; the other visible capabilities are declared in a generated SDK section in the loaded runtime\'s language, and a program calls them through bindings scheduled under the native concurrency contract (submission-ordered starts and policy; concurrency-safe bodies overlap up to `maxParallelSubCalls`) that re-enter the complete guarded tool pipeline and link each nested execution to this outer result.',
   },
   {
-    pkg: '@deepseek-ai/dsh-plan-mode',
+    pkg: '@huiliyi37/dsh-plan-mode',
     dir: 'plan-mode',
     source: 'packages/plan/plan-mode/src/index.ts',
     requires: ['ctx.tools', 'ctx.systemPrompt', 'ctx.userInteraction (execution time, opportunistic)'],
@@ -191,7 +191,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-interaction seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-bash',
+    pkg: '@huiliyi37/dsh-tool-bash',
     dir: 'tool-bash',
     source: 'packages/bash/tool-bash/src/index.ts',
     requires: ['ctx.tools', 'ctx.bash', 'ctx.systemPrompt', 'ctx.bashEnv', 'ctx.tasks at call time for run_in_background'],
@@ -203,10 +203,10 @@ const TOOL_PACKAGES: ToolPackage[] = [
       await ctx.plugin(ToolBash)
     },
     note:
-      'The bash tool is the model-facing consumer of the bash executor seam. A `run_in_background` run registers with the generic `ctx.tasks` runtime and is collected/stopped through the `task_*` tools from `@deepseek-ai/dsh-tool-tasks`; the `enableRunInBackground` config (default true) removes the parameter entirely when disabled.',
+      'The bash tool is the model-facing consumer of the bash executor seam. A `run_in_background` run registers with the generic `ctx.tasks` runtime and is collected/stopped through the `task_*` tools from `@huiliyi37/dsh-tool-tasks`; the `enableRunInBackground` config (default true) removes the parameter entirely when disabled.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-pwsh',
+    pkg: '@huiliyi37/dsh-tool-pwsh',
     dir: 'tool-pwsh',
     source: 'packages/bash/tool-pwsh/src/index.ts',
     requires: ['ctx.tools', 'ctx.bash', 'ctx.systemPrompt', 'ctx.bashEnv', 'ctx.tasks at call time for run_in_background'],
@@ -221,10 +221,10 @@ const TOOL_PACKAGES: ToolPackage[] = [
       await ctx.plugin(ToolPwsh)
     },
     note:
-      'The pwsh tool is the PowerShell-dialect consumer of the bash executor seam for Windows compositions (a PowerShell executor such as `@deepseek-ai/dsh-pwsh-local` backs `ctx.bash`); it mirrors the bash tool call-for-call minus the sandbox surface — `run_in_background` runs register with the generic `ctx.tasks` runtime and are collected/stopped through the `task_*` tools, and the managed `DSH_*` environment comes from `@deepseek-ai/dsh-bash-env`. Each call runs in a fresh process (no persistent PTY session; ConPTY is roadmap work), with native `C:\\...` paths and `$env:NAME` variables.',
+      'The pwsh tool is the PowerShell-dialect consumer of the bash executor seam for Windows compositions (a PowerShell executor such as `@huiliyi37/dsh-pwsh-local` backs `ctx.bash`); it mirrors the bash tool call-for-call minus the sandbox surface — `run_in_background` runs register with the generic `ctx.tasks` runtime and are collected/stopped through the `task_*` tools, and the managed `DSH_*` environment comes from `@huiliyi37/dsh-bash-env`. Each call runs in a fresh process (no persistent PTY session; ConPTY is roadmap work), with native `C:\\...` paths and `$env:NAME` variables.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-cordis',
+    pkg: '@huiliyi37/dsh-tool-cordis',
     dir: 'tool-cordis',
     source: 'packages/self-modification/tool-cordis/src/index.ts',
     requires: ['ctx.tools'],
@@ -236,7 +236,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'Not in any shipped tree (a deliberate opt-in — temporary Plugin code reaches the real runtime, see .agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md). Plugins created by cordis_mount may register ADDITIONAL model-visible tools until unmounted or DSH restarts; a full changed request header logs those tool-set changes.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-bash-persistent',
+    pkg: '@huiliyi37/dsh-tool-bash-persistent',
     dir: 'tool-bash-persistent',
     source: 'packages/pty/tool-bash-persistent/src/index.ts',
     requires: ['ctx.tools', 'ctx.pty', 'an owning Agent at execution time'],
@@ -249,7 +249,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'One owner-isolated persistent bash tool; deployment composition supplies the PTY backend and may override the model-facing environment description.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-str-replace-editor',
+    pkg: '@huiliyi37/dsh-tool-str-replace-editor',
     dir: 'tool-str-replace-editor',
     source: 'packages/fs/tool-str-replace-editor/src/index.ts',
     requires: ['ctx.tools', 'ctx.fs'],
@@ -262,7 +262,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'Standalone view/create/unique literal replace/line insert tool over the filesystem seam; it composes with any shell or terminal surface.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-fs',
+    pkg: '@huiliyi37/dsh-tool-fs',
     dir: 'tool-fs',
     source: 'packages/fs/tool-fs/src/index.ts',
     requires: ['ctx.tools', 'ctx.fs', 'ctx.systemPrompt'],
@@ -274,10 +274,10 @@ const TOOL_PACKAGES: ToolPackage[] = [
       await ctx.plugin(ToolFs)
     },
     note:
-      'The read-before-write/edit policy is added by `@deepseek-ai/dsh-fs-policy` (an `fs/*` event-gate plugin, no schema change); a deployment that loads these tools is expected to also load it. The tool schemas above are identical with or without the policy plugin.',
+      'The read-before-write/edit policy is added by `@huiliyi37/dsh-fs-policy` (an `fs/*` event-gate plugin, no schema change); a deployment that loads these tools is expected to also load it. The tool schemas above are identical with or without the policy plugin.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-fs-search',
+    pkg: '@huiliyi37/dsh-tool-fs-search',
     dir: 'tool-fs-search',
     source: 'packages/fs/tool-fs-search/src/index.ts',
     requires: ['ctx.tools', 'ctx.subprocess', 'ctx.systemPrompt'],
@@ -295,7 +295,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'glob and grep are unconditional discovery tools that spawn the packaged ripgrep binary (`@vscode/ripgrep`) through ctx.subprocess as ordinary foreground calls (never background tasks) — no host `rg` install and no shell layer. The catalog uses `sampleOverCapGlobResults: true`; deployments must choose that behavior explicitly. Capped results save the complete formatted list through the optional ctx.spillStore backend; returned locators are follow-up-readable/searchable when the backend exposes local paths in co-located deployments.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-pty',
+    pkg: '@huiliyi37/dsh-tool-pty',
     dir: 'tool-pty',
     source: 'packages/pty/tool-pty/src/index.ts',
     requires: ['ctx.tools', 'ctx.pty', 'ctx.systemPrompt', 'ctx.tasks at call time for run_in_background'],
@@ -308,7 +308,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'The six terminal tools are opt-in and complement one-shot bash/filesystem tools. `terminal_send(run_in_background: true)` registers with `ctx.tasks`; TUI, named key sequences, BEL, resize, auto-start, and cross-agent sharing are absent from the schema.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-goal',
+    pkg: '@huiliyi37/dsh-tool-goal',
     dir: 'tool-goal',
     source: 'packages/goal/tool-goal/src/index.ts',
     requires: ['ctx.tools', 'ctx.agents', 'ctx.goals', 'ctx.systemPrompt', 'a calling Agent in an authorized open turn'],
@@ -322,7 +322,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'create, edit, pause, and resume require direct-human root authority; complete and blocked also accept the exact current goal round. The default blocked lower bound is three admitted rounds.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-lsp',
+    pkg: '@huiliyi37/dsh-tool-lsp',
     dir: 'tool-lsp',
     source: 'packages/lsp/tool-lsp/src/index.ts',
     requires: ['ctx.tools', 'ctx.lsp', 'ctx.systemPrompt'],
@@ -333,10 +333,10 @@ const TOOL_PACKAGES: ToolPackage[] = [
       await ctx.plugin(ToolLsp)
     },
     note:
-      'The lsp tool keeps provider selection and language-server subprocesses behind ctx.lsp, so its model-visible schema stays stable across providers. Requires a registered provider (e.g. `@deepseek-ai/dsh-lsp-local`) at runtime; without one, a query returns the structured `LSP_UNAVAILABLE` error rather than changing the schema.',
+      'The lsp tool keeps provider selection and language-server subprocesses behind ctx.lsp, so its model-visible schema stays stable across providers. Requires a registered provider (e.g. `@huiliyi37/dsh-lsp-local`) at runtime; without one, a query returns the structured `LSP_UNAVAILABLE` error rather than changing the schema.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-ralph',
+    pkg: '@huiliyi37/dsh-tool-ralph',
     dir: 'tool-ralph',
     source: 'packages/workflow/tool-ralph/src/index.ts',
     requires: ['ctx.tools', 'ctx.workflows', 'ctx.subagents', 'ctx.systemPrompt', 'a calling Agent (exec.agent parents every fresh round)'],
@@ -351,7 +351,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'A fixed foreground workflow starts one fresh structured child per round; the model selects only the immutable objective and an optional round cap.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-skill',
+    pkg: '@huiliyi37/dsh-tool-skill',
     dir: 'tool-skill',
     source: 'packages/skill/tool-skill/src/index.ts',
     requires: ['ctx.tools', 'ctx.agents', 'ctx.skills'],
@@ -367,7 +367,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-session-query',
+    pkg: '@huiliyi37/dsh-tool-session-query',
     dir: 'tool-session-query',
     source: 'packages/session-query/tool-session-query/src/index.ts',
     requires: ['ctx.tools', 'ctx.systemPrompt', 'ctx.sessionQuery', 'a calling Agent for workspace authority'],
@@ -381,7 +381,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'The five read-only tools hide provider cursors and authorize every result from the immutable calling agent session. The package is opt-in; compositions that need enforced deadlines or bounded inline output also mount the generic timeout or spill policies.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-subagent',
+    pkg: '@huiliyi37/dsh-tool-subagent',
     dir: 'tool-subagent',
     source: 'packages/subagent/tool-subagent/src/index.ts',
     requires: ['ctx.tools', 'ctx.subagents'],
@@ -396,7 +396,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'The registered tool name is the load-time `toolName` config (default `subagent`); the schema above is that default. The shipped example agents load this package once per subagent backend, so the model additionally sees `subagent_fork` (bound to the fork backend) with an identical schema — see `packages/bundle/base/cordis.patch.yml` and `examples/acp-agent/cordis.yml`.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-subagent-control',
+    pkg: '@huiliyi37/dsh-tool-subagent-control',
     dir: 'tool-subagent-control',
     source: {
       interrupt_agent: 'packages/subagent/tool-subagent-control/src/index.ts',
@@ -418,7 +418,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'The globally named control tools over continuable background subagents: provider-bound `tool-subagent` instances register distinct delegation tools, while this package registers `send_message` and `interrupt_agent` once, plus `list_agents` from its separately loaded `/list-agents` plugin (whose catalog rows use the sessionProjections and live Agent registries).',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-subagent-report',
+    pkg: '@huiliyi37/dsh-tool-subagent-report',
     dir: 'tool-subagent-report',
     source: 'packages/subagent/tool-subagent-report/src/index.ts',
     requires: ['ctx.subagents', 'a live continuable in-process child Agent'],
@@ -437,7 +437,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       + 'is installed independently.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-tasks',
+    pkg: '@huiliyi37/dsh-tool-tasks',
     dir: 'tool-tasks',
     source: 'packages/tasks/tool-tasks/src/index.ts',
     requires: ['ctx.tools', 'ctx.tasks', 'ctx.systemPrompt'],
@@ -450,7 +450,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'The kind-agnostic background-task control surface: background bash commands, PTY sends, and subagents are read, listed, and killed through the same three tools. Loading the plugin attaches the control surface that arms producers\' `ctx.tasks.start()`.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-todo',
+    pkg: '@huiliyi37/dsh-tool-todo',
     dir: 'tool-todo',
     source: 'packages/todo/tool-todo/src/index.ts',
     requires: ['ctx.tools', 'owning Agent session'],
@@ -462,7 +462,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task.',
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-workflow',
+    pkg: '@huiliyi37/dsh-tool-workflow',
     dir: 'tool-workflow',
     source: 'packages/workflow/tool-workflow/src/index.ts',
     requires: ['ctx.tools', 'ctx.workflows', 'ctx.systemPrompt', 'a calling Agent (exec.agent parents the script children)'],
@@ -478,7 +478,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
   },
   {
-    pkg: '@deepseek-ai/dsh-tool-web',
+    pkg: '@huiliyi37/dsh-tool-web',
     dir: 'tool-web',
     source: 'packages/web/tool-web/src/index.ts',
     requires: ['ctx.tools', 'ctx.web', 'ctx.systemPrompt'],

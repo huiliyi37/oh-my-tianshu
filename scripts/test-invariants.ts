@@ -6,9 +6,9 @@
  */
 
 import { expect } from 'vitest'
-import { FiberState, Inject, RegistryService } from 'cordis'
-import type { Context, Plugin } from 'cordis'
-import InvariantService from '@deepseek-ai/dsh-invariants'
+import { FiberState, Inject, RegistryService } from '@huiliyi37/cordis'
+import type { Context, Plugin } from '@huiliyi37/cordis'
+import InvariantService from '@huiliyi37/dsh-invariants'
 
 declare global {
   interface ImportMeta {

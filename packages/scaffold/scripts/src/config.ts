@@ -1,7 +1,7 @@
 /**
  * dsh-sdk config command composition.
  *
- * @module @deepseek-ai/dsh-scripts/config
+ * @module @huiliyi37/dsh-scripts/config
  */
 
 import {
@@ -9,7 +9,7 @@ import {
   SdkProject,
   createBuiltinRegistry,
   type PromptPort,
-} from '@deepseek-ai/dsh-helper'
+} from '@huiliyi37/dsh-helper'
 import { ConfigWorkflow, type ConfigWorkflowResult } from './config/config-workflow.ts'
 
 /** Process stream slice required by dsh-sdk config. */

@@ -1,8 +1,8 @@
 import { EventEmitter } from 'node:events'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 import type { WriteStream } from 'node:tty'
-import type { Session } from '@deepseek-ai/dsh-session'
+import type { Session } from '@huiliyi37/dsh-session'
 import { apply } from '../src/index.js'
 import { TuiApp } from '../src/ui/app.js'
 

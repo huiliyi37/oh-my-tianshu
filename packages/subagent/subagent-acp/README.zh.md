@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-subagent-acp
+# @huiliyi37/dsh-subagent-acp
 
 [English](README.md) | 中文
 
@@ -35,7 +35,7 @@ ACP 不声明任何启动时能力，因为当前进程无法强制执行远程�
 
 ```yaml
 - id: subagent-acp
-  name: '@deepseek-ai/dsh-subagent-acp'
+  name: '@huiliyi37/dsh-subagent-acp'
   config:
     providerName: acp
     command: node

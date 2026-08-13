@@ -1,7 +1,7 @@
 /**
  * Strict typed rendering for package-owned text templates.
  *
- * @module @deepseek-ai/dsh-helper/templates/text-template
+ * @module @huiliyi37/dsh-helper/templates/text-template
  */
 
 import { readFileSync } from 'node:fs'

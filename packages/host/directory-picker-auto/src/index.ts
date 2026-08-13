@@ -7,13 +7,13 @@
  * exactly as a config-row's would be, so the seam's one-row-swaps-both-faces
  * invariant holds for the resolved choice; pinning an interaction remains
  * composing that backend row directly instead of this one.
- * @module @deepseek-ai/dsh-host-directory-picker-auto
+ * @module @huiliyi37/dsh-host-directory-picker-auto
  */
 
-import type { Context } from 'cordis'
+import type { Context } from '@huiliyi37/cordis'
 // Empty type imports carry the `loader` and `httpServer` Context merges for the reads below.
-import type {} from '@cordisjs/plugin-loader'
-import type {} from '@deepseek-ai/dsh-host-webserver'
+import type {} from '@huiliyi37/cordis-plugin-loader'
+import type {} from '@huiliyi37/dsh-host-webserver'
 import { canExecute, hasLinuxChooserBinary } from './probe.ts'
 import type { DirectoryPickerBackendKind } from './resolve.ts'
 import { resolveDirectoryPickerBackend } from './resolve.ts'
@@ -34,8 +34,8 @@ export const inject = ['httpServer', 'loader']
  * app composing this chooser to declare both values as dependencies.
  */
 export const BACKEND_PACKAGES: Record<DirectoryPickerBackendKind, string> = {
-  native: '@deepseek-ai/dsh-host-directory-picker-native',
-  browse: '@deepseek-ai/dsh-host-directory-picker-browse',
+  native: '@huiliyi37/dsh-host-directory-picker-native',
+  browse: '@huiliyi37/dsh-host-directory-picker-browse',
 }
 
 /**

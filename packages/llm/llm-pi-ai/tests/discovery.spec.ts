@@ -1,9 +1,9 @@
 import { createServer } from 'node:http'
 import type { IncomingMessage, Server, ServerResponse } from 'node:http'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import LlmService, { userAgent } from '@deepseek-ai/dsh-llm'
-import * as LlmPiAi from '@deepseek-ai/dsh-llm-pi-ai'
+import { Context } from '@huiliyi37/cordis'
+import LlmService, { userAgent } from '@huiliyi37/dsh-llm'
+import * as LlmPiAi from '@huiliyi37/dsh-llm-pi-ai'
 import { getBuiltinModels } from '@earendil-works/pi-ai/providers/all'
 import { discoverModels } from '../src/discovery.ts'
 

@@ -1,5 +1,5 @@
-import { Context, Inject, Service } from 'cordis'
-import { defineProperty, isNullable, type Dict } from 'cosmokit'
+import { Context, Inject, Service } from '@huiliyi37/cordis'
+import { defineProperty, isNullable, type Dict } from '@huiliyi37/cosmokit'
 import { ModuleLoader } from './internal.ts'
 import { Entry, type EntryOptions } from './config/entry.ts'
 import isolate from './config/isolate.ts'
@@ -18,7 +18,7 @@ export * from './config/utils.ts'
 /** Re-export Node internal module loader compatibility types. */
 export * from './internal.ts'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Events {
     'exit'(signal: NodeJS.Signals): Promise<void>
     'loader/config-update'(): void

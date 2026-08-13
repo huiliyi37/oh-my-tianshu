@@ -8,33 +8,33 @@
  * composes and drives them directly, so this driver owns exactly one turn with
  * one result.
  *
- * @module @deepseek-ai/dsh-subagent-inprocess
+ * @module @huiliyi37/dsh-subagent-inprocess
  */
 
 import { randomUUID } from 'node:crypto'
-import type { Context } from 'cordis'
-import type { Agent, AgentHandle } from '@deepseek-ai/dsh-agent'
-import { findLastMessageTurnEnd, SessionId, type SessionEvent, type TurnEndReason } from '@deepseek-ai/dsh-session'
-import { createUserMessage, type ContentBlock } from '@deepseek-ai/dsh-llm'
+import type { Context } from '@huiliyi37/cordis'
+import type { Agent, AgentHandle } from '@huiliyi37/dsh-agent'
+import { findLastMessageTurnEnd, SessionId, type SessionEvent, type TurnEndReason } from '@huiliyi37/dsh-session'
+import { createUserMessage, type ContentBlock } from '@huiliyi37/dsh-llm'
 import {
   applyChildComposition,
   assertSubagentMaxDepth,
   childSessionMeta,
   resolveChildAgentOptions,
   resolveChildDepth,
-} from '@deepseek-ai/dsh-subagent'
+} from '@huiliyi37/dsh-subagent'
 import type {
   ResolvedSubagentStartRequest,
   SubagentDescriptorData,
   SubagentResult,
   SubagentRun,
   SubagentStopReason,
-} from '@deepseek-ai/dsh-subagent'
+} from '@huiliyi37/dsh-subagent'
 // Type-only: make `ctx.get('sandboxPolicy')` / `ctx.get('approval')` resolve
 // to the policy services when composed — the driver consumes both
 // opportunistically (the documented `ctx.get` pattern), never as a hard dep.
-import type {} from '@deepseek-ai/dsh-sandbox-policy'
-import type {} from '@deepseek-ai/dsh-user-approval'
+import type {} from '@huiliyi37/dsh-sandbox-policy'
+import type {} from '@huiliyi37/dsh-user-approval'
 import {
   attachStructuredRuntime,
   type StructuredAttachment,

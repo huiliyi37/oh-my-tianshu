@@ -1,4 +1,4 @@
-import { CommandId } from '@deepseek-ai/dsh-commands/brand'
+import { CommandId } from '@huiliyi37/dsh-commands/brand'
 import { describe, expect, it, vi } from 'vitest'
 import type { ApiProxy, HostFrame, MuxFrame } from '../src/api/index.ts'
 import type { ClientResponse, RpcMessage, RpcReceipt, RpcRequest } from '../src/api/rpc.ts'

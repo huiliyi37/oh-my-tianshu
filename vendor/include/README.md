@@ -1,4 +1,4 @@
-# @cordisjs/plugin-include
+# @huiliyi37/cordis-plugin-include
 
 File-backed loader tree for Cordis. The include plugin reads a YAML or JSON
 file, turns it into loader entries, and writes updates back when the file is
@@ -7,9 +7,9 @@ writable.
 ## Usage
 
 ```ts
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import Include from '@cordisjs/plugin-include'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import Include from '@huiliyi37/cordis-plugin-include'
 
 const root = new Context()
 await root.plugin(Loader, { baseUrl: import.meta.url })
@@ -24,7 +24,7 @@ Example `cordis.yml`:
 
 ```yaml
 - id: timer
-  name: '@cordisjs/plugin-timer'
+  name: '@huiliyi37/cordis-plugin-timer'
 - id: app
   name: ./plugins/app
   config:

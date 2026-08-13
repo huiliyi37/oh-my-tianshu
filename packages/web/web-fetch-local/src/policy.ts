@@ -3,10 +3,10 @@
  * provider — the pure, network-free half. The provider's `fetch()` composes
  * these with transport (redirect following, byte caps, decoding).
  *
- * @module @deepseek-ai/dsh-web-fetch-local/policy
+ * @module @huiliyi37/dsh-web-fetch-local/policy
  */
 
-import { WebError } from '@deepseek-ai/dsh-web'
+import { WebError } from '@huiliyi37/dsh-web'
 
 /** The body kinds this provider decodes. */
 export type FetchableKind = 'html' | 'text'

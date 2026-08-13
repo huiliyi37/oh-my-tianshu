@@ -14,9 +14,9 @@ import type {
   InboxTarget,
   PreStepDecision,
   RequestErrorAction,
-} from '@deepseek-ai/dsh-agent'
-import { Inbox, agentEvents, assembleContextFor } from '@deepseek-ai/dsh-agent'
-import type { GenerateOptions, LlmCallConfig, Message, PreparedLlmCall } from '@deepseek-ai/dsh-llm'
+} from '@huiliyi37/dsh-agent'
+import { Inbox, agentEvents, assembleContextFor } from '@huiliyi37/dsh-agent'
+import type { GenerateOptions, LlmCallConfig, Message, PreparedLlmCall } from '@huiliyi37/dsh-llm'
 import {
   BlockAssembler,
   LlmError,
@@ -24,14 +24,14 @@ import {
   deepFreeze,
   errorChain,
   markAgentLoopRequest,
-} from '@deepseek-ai/dsh-llm'
-import type { Scope } from '@deepseek-ai/dsh-scope'
-import { createScope } from '@deepseek-ai/dsh-scope'
-import type { EpochHeader, RequestContext, Session, SessionId, TurnEndReason, UserMessage } from '@deepseek-ai/dsh-session'
-import { canonicalHeader, headerEquals } from '@deepseek-ai/dsh-session'
-import { joinContextSections, renderContextSections, renderPrompt } from '@deepseek-ai/dsh-system-prompt'
-import type { PromptAssembly } from '@deepseek-ai/dsh-system-prompt'
-import type { Context } from 'cordis'
+} from '@huiliyi37/dsh-llm'
+import type { Scope } from '@huiliyi37/dsh-scope'
+import { createScope } from '@huiliyi37/dsh-scope'
+import type { EpochHeader, RequestContext, Session, SessionId, TurnEndReason, UserMessage } from '@huiliyi37/dsh-session'
+import { canonicalHeader, headerEquals } from '@huiliyi37/dsh-session'
+import { joinContextSections, renderContextSections, renderPrompt } from '@huiliyi37/dsh-system-prompt'
+import type { PromptAssembly } from '@huiliyi37/dsh-system-prompt'
+import type { Context } from '@huiliyi37/cordis'
 import { RuntimeContextProjection } from './runtime-context.ts'
 import { executeToolCalls } from './tool-calls.ts'
 

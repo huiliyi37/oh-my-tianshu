@@ -1,13 +1,13 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import { Session, SessionId } from '@deepseek-ai/dsh-session'
-import AgentRegistry, { Inbox } from '@deepseek-ai/dsh-agent'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import { TaskId } from '@deepseek-ai/dsh-tasks'
-import type { TaskHooks, TaskKind, TaskOutcome, TaskSnapshot, TaskStart } from '@deepseek-ai/dsh-tasks'
-import LocalTaskService from '@deepseek-ai/dsh-tasks-local'
+import { Context } from '@huiliyi37/cordis'
+import { Session, SessionId } from '@huiliyi37/dsh-session'
+import AgentRegistry, { Inbox } from '@huiliyi37/dsh-agent'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import { TaskId } from '@huiliyi37/dsh-tasks'
+import type { TaskHooks, TaskKind, TaskOutcome, TaskSnapshot, TaskStart } from '@huiliyi37/dsh-tasks'
+import LocalTaskService from '@huiliyi37/dsh-tasks-local'
 
-declare module '@deepseek-ai/dsh-tasks' {
+declare module '@huiliyi37/dsh-tasks' {
   interface TaskKindMap {
     workflow: 'workflow'
   }
@@ -93,7 +93,7 @@ describe('LocalTaskService.start', () => {
     const ctx = new Context()
     await ctx.plugin(LocalTaskService)
     expect(() => ctx.tasks.start(producer().spec))
-      .toThrow('background tasks unavailable: no control surface is attached (load @deepseek-ai/dsh-tool-tasks)')
+      .toThrow('background tasks unavailable: no control surface is attached (load @huiliyi37/dsh-tool-tasks)')
   })
 
   it('rejects an empty kind, empty label, and invalid output limit', async () => {

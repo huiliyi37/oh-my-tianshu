@@ -8,17 +8,17 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import SessionStore from '@deepseek-ai/dsh-session'
-import AgentRegistry from '@deepseek-ai/dsh-agent'
-import type { Agent, AgentHandle, CreateAgentOptions } from '@deepseek-ai/dsh-agent'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import SessionTitleService from '@deepseek-ai/dsh-session-title'
-import UserInteractionService from '@deepseek-ai/dsh-user-interaction'
-import type { Session, SessionId } from '@deepseek-ai/dsh-session'
-import type { RpcRequest } from '@deepseek-ai/dsh-host-apiproxy/api/rpc'
-import { RpcId } from '@deepseek-ai/dsh-host-apiproxy/api/rpc'
-import { createApiProxy } from '@deepseek-ai/dsh-host-apiproxy'
+import { Context } from '@huiliyi37/cordis'
+import SessionStore from '@huiliyi37/dsh-session'
+import AgentRegistry from '@huiliyi37/dsh-agent'
+import type { Agent, AgentHandle, CreateAgentOptions } from '@huiliyi37/dsh-agent'
+import { createUserMessage } from '@huiliyi37/dsh-llm'
+import SessionTitleService from '@huiliyi37/dsh-session-title'
+import UserInteractionService from '@huiliyi37/dsh-user-interaction'
+import type { Session, SessionId } from '@huiliyi37/dsh-session'
+import type { RpcRequest } from '@huiliyi37/dsh-host-apiproxy/api/rpc'
+import { RpcId } from '@huiliyi37/dsh-host-apiproxy/api/rpc'
+import { createApiProxy } from '@huiliyi37/dsh-host-apiproxy'
 
 const sid = (id: string): SessionId => id as SessionId
 

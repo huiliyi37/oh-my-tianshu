@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import AgentRegistry, { Inbox } from '@deepseek-ai/dsh-agent'
-import type { Agent, AgentStatus } from '@deepseek-ai/dsh-agent'
-import CommandService from '@deepseek-ai/dsh-commands'
-import SessionStore, { foldSurface, Session, SessionId } from '@deepseek-ai/dsh-session'
-import * as commandFeedback from '@deepseek-ai/dsh-command-feedback'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import AgentRegistry, { Inbox } from '@huiliyi37/dsh-agent'
+import type { Agent, AgentStatus } from '@huiliyi37/dsh-agent'
+import CommandService from '@huiliyi37/dsh-commands'
+import SessionStore, { foldSurface, Session, SessionId } from '@huiliyi37/dsh-session'
+import * as commandFeedback from '@huiliyi37/dsh-command-feedback'
 
 interface Harness {
   readonly ctx: Context
@@ -67,7 +67,7 @@ function feedbackTexts(session: Session): string[] {
     .map(event => event.data.text)
 }
 
-describe('@deepseek-ai/dsh-command-feedback registration', () => {
+describe('@huiliyi37/dsh-command-feedback registration', () => {
   it('registers one global command with Loader-safe exports and disposes it', async () => {
     const test = await harness()
     expect(commandFeedback.name).toBe('command-feedback')

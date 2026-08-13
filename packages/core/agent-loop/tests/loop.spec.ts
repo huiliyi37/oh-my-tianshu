@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import LlmService, { createUserMessage, CallId, LlmError, StreamChunk  } from '@deepseek-ai/dsh-llm'
-import SessionStore, { SessionId, TurnEndReason } from '@deepseek-ai/dsh-session'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry, { defineContentToolFixture } from '@deepseek-ai/dsh-tools'
-import AgentRegistry, { type Agent } from '@deepseek-ai/dsh-agent'
+import { Context } from '@huiliyi37/cordis'
+import LlmService, { createUserMessage, CallId, LlmError, StreamChunk  } from '@huiliyi37/dsh-llm'
+import SessionStore, { SessionId, TurnEndReason } from '@huiliyi37/dsh-session'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry, { defineContentToolFixture } from '@huiliyi37/dsh-tools'
+import AgentRegistry, { type Agent } from '@huiliyi37/dsh-agent'
 
-import AgentLoop from '@deepseek-ai/dsh-agent-loop'
+import AgentLoop from '@huiliyi37/dsh-agent-loop'
 import { MockAdapter, maxTokensResponse, textResponse, toolCallResponse } from './mock-adapter.ts'
 
 function driverDone(agent: Agent): Promise<void> {
@@ -369,7 +369,7 @@ describe('agent loop', () => {
     const contextEvents = () => agent.session.events.flatMap(event =>
       event.type === 'user/message'
         && event.data.source.kind === 'plugin'
-        && event.data.source.plugin === '@deepseek-ai/dsh-system-prompt'
+        && event.data.source.plugin === '@huiliyi37/dsh-system-prompt'
         ? [event]
         : [])
 
@@ -421,7 +421,7 @@ describe('agent loop', () => {
     const contextEvent = agent.session.events.find(event =>
       event.type === 'user/message'
       && event.data.source.kind === 'plugin'
-      && event.data.source.plugin === '@deepseek-ai/dsh-system-prompt')
+      && event.data.source.plugin === '@huiliyi37/dsh-system-prompt')
     if (contextEvent?.type !== 'user/message') throw new Error('first turn did not materialize runtime context')
     agent.session.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'compacted summary' }],
@@ -436,13 +436,13 @@ describe('agent loop', () => {
     const runtimeContexts = agent.session.events.flatMap(event =>
       event.type === 'user/message'
         && event.data.source.kind === 'plugin'
-        && event.data.source.plugin === '@deepseek-ai/dsh-system-prompt'
+        && event.data.source.plugin === '@huiliyi37/dsh-system-prompt'
         ? [event]
         : [])
     expect(runtimeContexts).toHaveLength(2)
     expect(adapter.requests[1]?.messages.some(message =>
       message.source.kind === 'plugin'
-      && message.source.plugin === '@deepseek-ai/dsh-system-prompt')).toBe(true)
+      && message.source.plugin === '@huiliyi37/dsh-system-prompt')).toBe(true)
   })
 
   it('clears compacted runtime context after the active set becomes empty', async () => {
@@ -456,7 +456,7 @@ describe('agent loop', () => {
     const contextEvent = agent.session.events.find(event =>
       event.type === 'user/message'
       && event.data.source.kind === 'plugin'
-      && event.data.source.plugin === '@deepseek-ai/dsh-system-prompt')
+      && event.data.source.plugin === '@huiliyi37/dsh-system-prompt')
     if (contextEvent?.type !== 'user/message') throw new Error('first turn did not materialize runtime context')
     agent.session.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'summary retaining old mode: read-only' }],
@@ -471,7 +471,7 @@ describe('agent loop', () => {
     await waitForIdle(ctx, agent)
     const clearing = adapter.requests[1]?.messages.find(message =>
       message.source.kind === 'plugin'
-      && message.source.plugin === '@deepseek-ai/dsh-system-prompt')
+      && message.source.plugin === '@huiliyi37/dsh-system-prompt')
     expect(clearing?.content).toEqual([{
       type: 'text',
       text: 'Current runtime context: none. Earlier runtime-context snapshots no longer apply.',
@@ -498,7 +498,7 @@ describe('agent loop', () => {
     await waitForIdle(ctx, agent)
     expect(adapter.requests[0]?.messages.some(message =>
       message.source.kind === 'plugin'
-      && message.source.plugin === '@deepseek-ai/dsh-system-prompt')).toBe(false)
+      && message.source.plugin === '@huiliyi37/dsh-system-prompt')).toBe(false)
   })
 
   it('replaces a malformed retained runtime-context message with the current complete snapshot', async () => {
@@ -508,7 +508,7 @@ describe('agent loop', () => {
     const agent = ctx.agentLoop.create(SessionId('a-runtime-context-malformed'), { provider: 'mock', model: 'mock' })
     agent.session.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'broken' }, { type: 'text', text: 'snapshot' }],
-      source: { kind: 'plugin', plugin: '@deepseek-ai/dsh-system-prompt' },
+      source: { kind: 'plugin', plugin: '@huiliyi37/dsh-system-prompt' },
     }), { surfaceOp: 'append' })
 
     send(agent, 'repair context')
@@ -516,7 +516,7 @@ describe('agent loop', () => {
     const runtimeContexts = agent.session.events.flatMap(event =>
       event.type === 'user/message'
         && event.data.source.kind === 'plugin'
-        && event.data.source.plugin === '@deepseek-ai/dsh-system-prompt'
+        && event.data.source.plugin === '@huiliyi37/dsh-system-prompt'
         ? [event]
         : [])
     expect(runtimeContexts).toHaveLength(2)

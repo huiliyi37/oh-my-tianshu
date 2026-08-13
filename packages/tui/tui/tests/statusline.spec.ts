@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
-import type { CallId } from '@deepseek-ai/dsh-llm'
-import type { Context } from 'cordis'
+import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
+import type { CallId } from '@huiliyi37/dsh-llm'
+import type { Context } from '@huiliyi37/cordis'
 import {
   emptyWorkflowView,
   applyWorkflowEvent,

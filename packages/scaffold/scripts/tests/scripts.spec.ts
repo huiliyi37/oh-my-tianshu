@@ -15,7 +15,7 @@ import {
   type NestedMultiSelectValue,
   type ProjectCreationRequest,
   type PromptPort,
-} from '@deepseek-ai/dsh-helper'
+} from '@huiliyi37/dsh-helper'
 import type {
   ConfirmPromptRequest,
   MultiSelectPromptRequest,
@@ -25,7 +25,7 @@ import type {
   SelectPromptRequest,
   TextPromptRequest,
 } from '../../helper/src/questions/prompt-port.ts'
-import { runSDK, startSDK } from '@deepseek-ai/dsh-scripts'
+import { runSDK, startSDK } from '@huiliyi37/dsh-scripts'
 import { parseDshSdkArgs, parseSdkBootArgs } from '../src/args.ts'
 import { PluginBuild, ProjectBuild, runProjectBuild } from '../src/build.ts'
 import { runDshSdkCommand, type DshSdkCommandContext } from '../src/command.ts'
@@ -323,7 +323,7 @@ describe('build profiles and invocation', () => {
     await writeFile(join(root, 'cordis.yml'), '[]\n')
     const byUrl = await startSDK(pathToFileURL(join(root, 'cordis.yml')))
     await byUrl.fiber.dispose()
-    const byRun: import('cordis').Context = await runSDK(undefined, { cwd: root }) as import('cordis').Context
+    const byRun: import('@huiliyi37/cordis').Context = await runSDK(undefined, { cwd: root }) as import('@huiliyi37/cordis').Context
     await byRun.fiber.dispose()
     const dev = await startSDK('./cordis.yml', { cwd: root, dev: true })
     await dev.fiber.dispose()
@@ -482,7 +482,7 @@ describe('ConfigWorkflow', () => {
   it('shows inconsistent features as diagnostic-only rows', async () => {
     const complete = await committedProject()
     await writeFile(join(complete.root, 'cordis.yml'), `${await readFile(join(complete.root, 'cordis.yml'), 'utf8')}- id: web-search-exa
-  name: '@deepseek-ai/dsh-web-search-exa'
+  name: '@huiliyi37/dsh-web-search-exa'
 `)
     const project = await SdkProject.open(complete.root)
     const port = new QueuePort([[]])
@@ -514,7 +514,7 @@ describe('ConfigWorkflow', () => {
     ]), outputBuffer().stream, async () => { installs += 1 })
     const result = await workflow.run(project, registry)
     expect(result.commit?.project.cordis.entry('session-persistence')).toMatchObject({
-      name: '@deepseek-ai/dsh-session-persistence-sqlite',
+      name: '@huiliyi37/dsh-session-persistence-sqlite',
       config: { path: './.sessions/sessions.sqlite' },
     })
     expect(installs).toBe(1)

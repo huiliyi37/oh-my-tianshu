@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import type { CallId } from '@deepseek-ai/dsh-llm'
+import type { CallId } from '@huiliyi37/dsh-llm'
 import {
   applyToolTimerEvent,
   emptyToolTimer,

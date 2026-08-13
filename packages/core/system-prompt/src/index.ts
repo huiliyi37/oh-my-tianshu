@@ -1,16 +1,16 @@
 /**
  * Registry for ordered system sections, dynamic context, tool schemas, and prompt variables.
  *
- * @module @deepseek-ai/dsh-system-prompt
+ * @module @huiliyi37/dsh-system-prompt
  */
 
-import { Context, Service } from 'cordis'
-import z from 'schemastery'
-import { AnonymousEntries, NamedEntries, ScopedLayers, scopeTarget } from '@deepseek-ai/dsh-scope'
-import type { ScopeKey, ScopeLayer, Scoped } from '@deepseek-ai/dsh-scope'
-import type { ContextSnapshotSection, ToolSchema } from '@deepseek-ai/dsh-llm'
+import { Context, Service } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { AnonymousEntries, NamedEntries, ScopedLayers, scopeTarget } from '@huiliyi37/dsh-scope'
+import type { ScopeKey, ScopeLayer, Scoped } from '@huiliyi37/dsh-scope'
+import type { ContextSnapshotSection, ToolSchema } from '@huiliyi37/dsh-llm'
 
-declare module 'cordis' {
+declare module '@huiliyi37/cordis' {
   interface Context {
     systemPrompt: SystemPrompt
   }
@@ -18,7 +18,7 @@ declare module 'cordis' {
   interface Events {
     /**
      * Expert waterfall over the assembled sections, contexts, tools, and variables.
-     * Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): scoped listeners
+     * Scope-filtered dispatch (`@huiliyi37/dsh-scope`): scoped listeners
      * receive only that scope's assemblies. The returned value is authoritative.
      * A supplied signal controls only this explicit assembly request and must not
      * be retained to control later turns.

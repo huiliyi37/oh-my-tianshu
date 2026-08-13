@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import { createUserMessage, CallId, createMessage, createToolResultMessage, MessageId, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import { Context } from '@huiliyi37/cordis'
+import { createUserMessage, CallId, createMessage, createToolResultMessage, MessageId, ReasoningEffortId } from '@huiliyi37/dsh-llm'
 import SessionStore, {
   adoptSessionEvent,
   SESSION_FORMAT_VERSION,
@@ -9,8 +9,8 @@ import SessionStore, {
   SessionId,
   findLastMessageTurnEnd,
   snapshotSessionEvent,
-} from '@deepseek-ai/dsh-session'
-import type { CreateSessionOptions, SessionEventType, SessionHeader, SessionSurface, TodoItem } from '@deepseek-ai/dsh-session'
+} from '@huiliyi37/dsh-session'
+import type { CreateSessionOptions, SessionEventType, SessionHeader, SessionSurface, TodoItem } from '@huiliyi37/dsh-session'
 
 describe('Session', () => {
   it('truncate 截断事件日志并重置派生状态（surface/requestHeader/后续 seq 连续）', () => {

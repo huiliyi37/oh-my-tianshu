@@ -1,7 +1,7 @@
 /**
  * Read-only aggregate for one generated or existing SDK project.
  *
- * @module @deepseek-ai/dsh-helper/project/sdk-project
+ * @module @huiliyi37/dsh-helper/project/sdk-project
  */
 
 import { access, readFile } from 'node:fs/promises'
@@ -44,22 +44,22 @@ function runInterface(entries: readonly CordisConfigEntry[]): RunInterface {
   // The TUI bundle (root or a subpath) runs on the embedded interface: the
   // interactive terminal surface mounts over the same embed tree as the
   // default headless composition.
-  if (entries.some(entry => entry.name === '@deepseek-ai/dsh-acp')) return 'acp'
+  if (entries.some(entry => entry.name === '@huiliyi37/dsh-acp')) return 'acp'
   return 'embed'
 }
 
 function runtimeModel(entries: readonly CordisConfigEntry[]): string {
-  const acp = entries.find(entry => entry.name === '@deepseek-ai/dsh-acp')
+  const acp = entries.find(entry => entry.name === '@huiliyi37/dsh-acp')
   if (typeof acp?.config?.model === 'string' && acp.config.model.length > 0) return acp.config.model
-  const provider = entries.find(entry => entry.name === '@deepseek-ai/dsh-llm-deepseek'
-    || entry.name === '@deepseek-ai/dsh-llm-pi-ai')
+  const provider = entries.find(entry => entry.name === '@huiliyi37/dsh-llm-deepseek'
+    || entry.name === '@huiliyi37/dsh-llm-pi-ai')
   const models = provider?.config?.models
   if (Array.isArray(models) && typeof models[0] === 'string') return models[0]
   return 'deepseek-v4-flash'
 }
 
 function releaseVersion(manifest: Readonly<PackageManifest>): string {
-  const spec = manifest.dependencies?.['@deepseek-ai/dsh-scripts']
+  const spec = manifest.dependencies?.['@huiliyi37/dsh-scripts']
   const match = spec && /(?:^|[^0-9])(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/.exec(spec)
   return match?.[1] ?? '0.0.1'
 }
@@ -96,7 +96,7 @@ async function detectPackageManager(root: string, manifest: Readonly<PackageMani
 }
 
 function linkedRepositoryRoot(root: string, manifest: Readonly<PackageManifest>): string | undefined {
-  const spec = manifest.dependencies?.['@deepseek-ai/dsh-scripts']
+  const spec = manifest.dependencies?.['@huiliyi37/dsh-scripts']
   const match = /^(?:file|link|portal):(.+)\/packages\/scaffold\/scripts\/?$/.exec(spec ?? '')
   return match?.[1] ? resolve(root, match[1]) : undefined
 }

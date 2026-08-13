@@ -1,8 +1,8 @@
-# `@deepseek-ai/create-sdk`
+# `@huiliyi37/create-sdk`
 
 English | [中文](README.zh.md)
 
-Interactive initializer for `npm create @deepseek-ai/sdk [directory]`. Directory/name/description have visible editable defaults. A tree picker selects features and configures finite options with Right/Left navigation; secret text follows only for selected options. Local plugin creation is one none/plugin/tool choice.
+Interactive initializer for `npm create @huiliyi37/sdk [directory]`. Directory/name/description have visible editable defaults. A tree picker selects features and configures finite options with Right/Left navigation; secret text follows only for selected options. Local plugin creation is one none/plugin/tool choice.
 
 The supported package surface is the `create-sdk` bin. The package root exports no symbols, and workflow, bin, source, and package-manifest subpaths are not exported.
 

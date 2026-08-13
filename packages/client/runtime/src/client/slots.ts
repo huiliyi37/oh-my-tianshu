@@ -14,15 +14,15 @@
  * holds this package's 'root' row in this compilation unit, but consumers
  * merge keys in; the rule fires on the narrow-map view, not on real
  * redundancy. */
-import { Service } from 'cordis'
-import type { Context } from 'cordis'
-import { SlotCore } from '@deepseek-ai/dsh-client-ui-slots'
+import { Service } from '@huiliyi37/cordis'
+import type { Context } from '@huiliyi37/cordis'
+import { SlotCore } from '@huiliyi37/dsh-client-ui-slots'
 import type {
   LocaleFace, OwnerOf, SlotEntryDef, SlotMap, SlotRenderer, SlotRendererHost,
   SlotScope, SlotSpec, StoreDecl, StoreFactory, StoredEntry, StoreInstanceLike,
-} from '@deepseek-ai/dsh-client-ui-slots'
+} from '@huiliyi37/dsh-client-ui-slots'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
+declare module '@huiliyi37/dsh-client-ui-slots' {
   interface SlotMap {
     /** The built-in render-tree root hole (seeded by SlotCore): rendered only by the shell, occupied by a layout entry. */
     'root': { kind: 'single'; scope: 'root'; owner: RootOwnerProps }

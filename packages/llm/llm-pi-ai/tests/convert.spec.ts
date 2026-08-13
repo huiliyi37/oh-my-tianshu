@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createUserMessage, CallId, CONTEXT_WINDOW_EXCEEDED_CODE, EMPTY_RESPONSE_CODE, LlmError , createMessage } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock, StreamChunk } from '@deepseek-ai/dsh-llm'
+import { createUserMessage, CallId, CONTEXT_WINDOW_EXCEEDED_CODE, EMPTY_RESPONSE_CODE, LlmError , createMessage } from '@huiliyi37/dsh-llm'
+import type { ContentBlock, StreamChunk } from '@huiliyi37/dsh-llm'
 import type { AssistantMessage, AssistantMessageEvent, Usage } from '@earendil-works/pi-ai'
 import { toPiContext } from '../src/context.ts'
 import { toPiReplayState } from '../src/replay.ts'

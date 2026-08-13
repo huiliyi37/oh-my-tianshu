@@ -7,7 +7,7 @@
 # The DeepSeek adapter. Shipped default: full thinking at max effort on every
 # request; exact-model resolution materializes request defaults before logging.
 - id: llm-deepseek
-  name: '@deepseek-ai/dsh-llm-deepseek'
+  name: '@huiliyi37/dsh-llm-deepseek'
   config:
     thinking: enabled
     reasoningEffort: max
@@ -22,25 +22,25 @@
 # outside the snapshot harness. The sandbox default + fallback root live on
 # ctx.sandboxPolicy; agent calls resolve both families against the session cwd.
 - id: sandbox
-  name: '@deepseek-ai/dsh-sandbox-local'
+  name: '@huiliyi37/dsh-sandbox-local'
 
 - id: sandbox-policy
-  name: '@deepseek-ai/dsh-sandbox-policy'
+  name: '@huiliyi37/dsh-sandbox-policy'
   config:
     mode: !!js "process.env.DSH_PERMISSION_MODE ?? (process.env.DSH_SNAPSHOT === undefined ? 'workspace-write' : 'danger-full-access')"
     workspaceRoot: !!js process.cwd()
 
 # Managed child-process groups for the bash executor (spawn/kill/output plumbing).
 - id: subprocess
-  name: '@deepseek-ai/dsh-subprocess-local'
+  name: '@huiliyi37/dsh-subprocess-local'
 
 - id: bash
-  name: '@deepseek-ai/dsh-bash-sandbox'
+  name: '@huiliyi37/dsh-bash-sandbox'
   config:
     timeoutMs: 60000
 
 - id: approval
-  name: '@deepseek-ai/dsh-user-approval'
+  name: '@huiliyi37/dsh-user-approval'
   config:
     policy: !!js "(process.env.DSH_PERMISSION_MODE ?? (process.env.DSH_SNAPSHOT === undefined ? 'workspace-write' : 'danger-full-access')) === 'danger-full-access' ? 'never' : 'ask'"
 
@@ -49,7 +49,7 @@
 # (so it can harvest / isolate the log), else ./.sessions for the demo.
 # Snapshot modes use raw JSONL fixtures; ordinary runs keep the compressed default.
 - id: acp-agent
-  name: '@deepseek-ai/dsh-acp-demo'
+  name: '@huiliyi37/dsh-acp-demo'
   config:
     provider: deepseek-official
     model: deepseek-v4-pro
@@ -66,12 +66,12 @@
 
 # Replay-aware request pressure; the routed adapter supplies model capacity.
 - id: token-meter
-  name: '@deepseek-ai/dsh-token-meter'
+  name: '@huiliyi37/dsh-token-meter'
 
 # Summarize an older range after measured pressure or a canonical provider overflow.
 # Ratios scale against the routed model's context window.
 - id: compact-basic
-  name: '@deepseek-ai/dsh-compact-basic'
+  name: '@huiliyi37/dsh-compact-basic'
   config:
     thresholdRatio: 0.8
     retainRatio: 0.08
@@ -82,21 +82,21 @@
 # its registered units; the catalog surfaces (`list_agents`, subagent listing)
 # fail loud without the capability.
 - id: session-projection
-  name: '@deepseek-ai/dsh-session-projection'
+  name: '@huiliyi37/dsh-session-projection'
 
 # Expose fresh-child `spawn` and completed-prefix `fork` through separate tool
 # names so multi-child scenarios exercise both transports. These leaves follow
 # the app because it provides `ctx.agents` and `ctx.tools`.
 - id: subagent
-  name: '@deepseek-ai/dsh-subagent'
+  name: '@huiliyi37/dsh-subagent'
 
 - id: subagent-spawn
-  name: '@deepseek-ai/dsh-subagent-spawn'
+  name: '@huiliyi37/dsh-subagent-spawn'
   config:
     providerName: spawn
 
 - id: subagent-fork
-  name: '@deepseek-ai/dsh-subagent-fork'
+  name: '@huiliyi37/dsh-subagent-fork'
   config:
     providerName: fork
 
@@ -105,16 +105,16 @@
 # list plugin registers `list_agents`, served through the sessionProjections
 # registry mounted above. `report` is installed only in continuable child scopes.
 - id: tool-subagent-control
-  name: '@deepseek-ai/dsh-tool-subagent-control'
+  name: '@huiliyi37/dsh-tool-subagent-control'
 
 - id: tool-subagent-list-agents
-  name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
+  name: '@huiliyi37/dsh-tool-subagent-control/list-agents'
 
 - id: tool-subagent-report
-  name: '@deepseek-ai/dsh-tool-subagent-report'
+  name: '@huiliyi37/dsh-tool-subagent-report'
 
 - id: tool-subagent
-  name: '@deepseek-ai/dsh-tool-subagent'
+  name: '@huiliyi37/dsh-tool-subagent'
   config:
     provider: spawn
     toolName: subagent
@@ -122,7 +122,7 @@
     maxDepth: 1
 
 - id: tool-subagent-fork
-  name: '@deepseek-ai/dsh-tool-subagent'
+  name: '@huiliyi37/dsh-tool-subagent'
   config:
     provider: fork
     toolName: subagent_fork
@@ -133,25 +133,25 @@
 # The worker-thread workflow engine fans a model-written JavaScript script's
 # `agent()` calls out through the spawn backend; the adjacent tool exposes it to the model.
 - id: workflow-workerthread
-  name: '@deepseek-ai/dsh-workflow-workerthread'
+  name: '@huiliyi37/dsh-workflow-workerthread'
   config:
     provider: spawn
 
 - id: tool-workflow
-  name: '@deepseek-ai/dsh-tool-workflow'
+  name: '@huiliyi37/dsh-tool-workflow'
 
 - id: tool-ralph
-  name: '@deepseek-ai/dsh-tool-ralph'
+  name: '@huiliyi37/dsh-tool-ralph'
 # `todo_write` replaces the logged whole list for later model requests.
 - id: tool-todo
-  name: '@deepseek-ai/dsh-tool-todo'
+  name: '@huiliyi37/dsh-tool-todo'
   config:
     allowParallelInProgress: true
 
 # Identical repeat calls trigger advisory context, never a block, at the default
 # thresholds [3, 5, 8]. Only the repeat-tool-guard snapshot scenario reaches them.
 - id: repeat-tool-guard
-  name: '@deepseek-ai/dsh-repeat-tool-guard'
+  name: '@huiliyi37/dsh-repeat-tool-guard'
 
 # The filesystem stack rides the SAME sandbox policy as bash: dsh-fs-sandbox
 # replaces dsh-fs-local behind ctx.fs and fences write/edit by the effective
@@ -159,15 +159,15 @@
 # roots, danger-full-access passes through), so read/write/edit are available
 # under every mode. fs-policy (read-before-edit) composes orthogonally on top.
 - id: fs-sandbox
-  name: '@deepseek-ai/dsh-fs-sandbox'
+  name: '@huiliyi37/dsh-fs-sandbox'
   config:
     cwd: !!js process.cwd()
 
 - id: fs-policy
-  name: '@deepseek-ai/dsh-fs-policy'
+  name: '@huiliyi37/dsh-fs-policy'
 
 - id: tool-fs
-  name: '@deepseek-ai/dsh-tool-fs'
+  name: '@huiliyi37/dsh-tool-fs'
 
 # `configPath` is read once at load and resolves from the server launch cwd, not
 # `session/new.cwd`; one `hooks.json` therefore applies to every session and a
@@ -175,7 +175,7 @@
 # commands still run in the session cwd. Warnings use `ctx.logger`, never stdout;
 # see packages/hooks/hooks-claude/README.md for the deferred per-session design.
 - id: hooks-claude
-  name: '@deepseek-ai/dsh-hooks-claude'
+  name: '@huiliyi37/dsh-hooks-claude'
   config:
     configPath: ./hooks.json
 
@@ -183,6 +183,6 @@
 # cannot share Claude's file. It has the same process-level, read-once, missing-is-no-op,
 # logger-only contract. Shipping both bridges lets a scenario seed and exercise either dialect.
 - id: hooks-codex
-  name: '@deepseek-ai/dsh-hooks-codex'
+  name: '@huiliyi37/dsh-hooks-codex'
   config:
     configPath: ./codex-hooks.json

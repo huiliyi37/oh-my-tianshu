@@ -6,7 +6,7 @@
  * optional vector (RRF-fused) retrieval paths; with no embedding provider
  * wired in, `searchHybrid` degrades to pure BM25.
  *
- * @module @deepseek-ai/dsh-semantic-index
+ * @module @huiliyi37/dsh-semantic-index
  */
 
 export * from './text-index.ts'

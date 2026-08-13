@@ -8,7 +8,7 @@
  * 连续 3 次成功 → tipping point 重置 → decide() 回 self。
  */
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import { apply as applyAgentRouter, type RouterService } from '../src/index.js'
 
 interface AgentsFacet {

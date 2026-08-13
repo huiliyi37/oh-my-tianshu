@@ -2,9 +2,9 @@ import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { AgentHandle } from '@deepseek-ai/dsh-agent'
-import { CallId, createUserMessage } from '@deepseek-ai/dsh-llm'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import type { AgentHandle } from '@huiliyi37/dsh-agent'
+import { CallId, createUserMessage } from '@huiliyi37/dsh-llm'
+import { SessionId } from '@huiliyi37/dsh-session'
 import { assertFixtureInventory, launchWebScaffold, type WebScaffold } from './scaffold.ts'
 
 const CORE_WEB_OVERLAY = fileURLToPath(new URL('../../cli/config/core-web.cordis.yml', import.meta.url))

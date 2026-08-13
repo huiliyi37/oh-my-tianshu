@@ -3,7 +3,7 @@
  * event around each dsh-sdk command. Best-effort — never affects the command's
  * outcome or exit code.
  *
- * @module @deepseek-ai/dsh-scripts/telemetry
+ * @module @huiliyi37/dsh-scripts/telemetry
  */
 
 import {
@@ -11,7 +11,7 @@ import {
   TelemetryReporter,
   buildTelemetryPayload,
   type ConsentDecision,
-} from '@deepseek-ai/dsh-telemetry'
+} from '@huiliyi37/dsh-telemetry'
 
 /** One command's telemetry lifecycle facts. */
 export interface CommandTelemetryEvent {

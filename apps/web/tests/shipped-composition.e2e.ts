@@ -5,14 +5,14 @@
 // surface itself.
 import { tmpdir } from 'node:os'
 import { afterEach, expect, it } from 'vitest'
-import { canonicalPath, writableRoots } from '@deepseek-ai/dsh-sandbox'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import { canonicalPath, writableRoots } from '@huiliyi37/dsh-sandbox'
+import { SessionId } from '@huiliyi37/dsh-session'
 // Empty type imports carry the tools/sandboxPolicy/approval Context merges.
-import type {} from '@deepseek-ai/dsh-tools'
-import type {} from '@deepseek-ai/dsh-sandbox-policy'
-import type {} from '@deepseek-ai/dsh-user-approval'
-import type {} from '@deepseek-ai/dsh-permission'
-import type {} from '@deepseek-ai/dsh-commands'
+import type {} from '@huiliyi37/dsh-tools'
+import type {} from '@huiliyi37/dsh-sandbox-policy'
+import type {} from '@huiliyi37/dsh-user-approval'
+import type {} from '@huiliyi37/dsh-permission'
+import type {} from '@huiliyi37/dsh-commands'
 import { launchWebScaffold, type WebScaffold } from './scaffold.ts'
 
 /**

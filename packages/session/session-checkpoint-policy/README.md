@@ -10,10 +10,10 @@ This zero-config function plugin consumes `ctx.sessions`, `ctx.llm`, `ctx.tools`
 
 ```yaml
 - id: session-persistence
-  name: '@deepseek-ai/dsh-session-persistence-jsonl'
+  name: '@huiliyi37/dsh-session-persistence-jsonl'
 
 - id: session-checkpoints
-  name: '@deepseek-ai/dsh-session-checkpoint-policy'
+  name: '@huiliyi37/dsh-session-checkpoint-policy'
 ```
 
 Persistence and checkpoint scheduling are intentionally separate Cordis plugins. A persistence backend starts bounded background batches for `session/event` appends and makes each requested `session/flush` an immediate quiescence barrier; this policy chooses the request, tool-dispatch, and next-step barriers. Loading a backend without this policy is valid, but a crash may lose events still inside the configured batching window or an outstanding write. First-party persisted apps and runtimes mount both plugins explicitly; a specialized deployment may deliberately omit or replace the policy.

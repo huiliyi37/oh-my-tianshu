@@ -1,8 +1,8 @@
-# @deepseek-ai/dsh-tool-subagent-report
+# @huiliyi37/dsh-tool-subagent-report
 
 [English](README.md) | 中文
 
-可选的子级作用域 `report` 工具是 `ctx.subagents.reportFrom()` 之上的轻量适配器。它为每个可继续的进程内子级提供一条返回通道，指向启动该子级的 Agent（智能体）。本包注册的是可继续子级设置贡献，而不是全局工具，因此 `report` 只存在于这些子级内部。根 Agent、一次性 subagent、远程 subagent 提供方、同级作用域以及不关联 Agent 的工具执行都不会提供或执行它。安装本包只授予这项子级作用域能力；父到子方向仍由独立的 [`@deepseek-ai/dsh-tool-subagent-control`](../tool-subagent-control/README.md) 负责，可继续模式不依赖这两个包中的任一个。
+可选的子级作用域 `report` 工具是 `ctx.subagents.reportFrom()` 之上的轻量适配器。它为每个可继续的进程内子级提供一条返回通道，指向启动该子级的 Agent（智能体）。本包注册的是可继续子级设置贡献，而不是全局工具，因此 `report` 只存在于这些子级内部。根 Agent、一次性 subagent、远程 subagent 提供方、同级作用域以及不关联 Agent 的工具执行都不会提供或执行它。安装本包只授予这项子级作用域能力；父到子方向仍由独立的 [`@huiliyi37/dsh-tool-subagent-control`](../tool-subagent-control/README.md) 负责，可继续模式不依赖这两个包中的任一个。
 
 子级可以在一个轮次中调用 `report` 零次或多次。调用成功既不会结束轮次或结算 Activation，也不会阻止父级后续消息；轮次结束也绝不会自动上报。该工具不接受接收方参数：`exec.agent` 是发送方确切在线的 Agent，也是权限凭据；服务根据该子级持久化的 `parentSession` 推导唯一接收方。成功时返回父级已接受消息的稳定 `MessageId`，不表示已读回执、inbox 中该次出现的 id、父级日志确认、轮次完成回执或持久化刷盘。父级解析由注册表中的存在性决定：父级不在注册表时，调用失败并返回 `direct parent is not live; report was not delivered`；已开始由宿主管理的 dispose（资源释放）但仍在注册表中的父级在其日志仍接受追加时仍会接受。服务不会执行注入、父级冷恢复或离线 mailbox 写入；持久化子级 transcript（文本记录）仍是恢复依据，且工具调用失败不能证明未送达（后续 `tools/post-execute` 否决可能让报告已被接受的调用以失败结束）。
 

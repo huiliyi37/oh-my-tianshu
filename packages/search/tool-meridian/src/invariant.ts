@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@deepseek-ai/dsh-tool-meridian`.
- * @module @deepseek-ai/dsh-tool-meridian/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-tool-meridian`.
+ * @module @huiliyi37/dsh-tool-meridian/invariant
  */
 
 /* jscpd:ignore-start */
-import type { Context } from 'cordis'
-import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
+import type { Context } from '@huiliyi37/cordis'
+import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@deepseek-ai/dsh-tool-meridian'
+const PACKAGE_NAME = '@huiliyi37/dsh-tool-meridian'
 
 /** Cordis companion plugin name. */
 export const name = 'tool-meridian-invariant'
@@ -17,7 +17,7 @@ export const inject = ['invariants']
 /**
  * No runtime invariant: the tool owns no independent durable state — the
  * MeridianIndexer instance is owned by the plugin's `apply` closure, and the
- * index's durable SQLite integrity is covered by `@deepseek-ai/dsh-meridian`
+ * index's durable SQLite integrity is covered by `@huiliyi37/dsh-meridian`
  * package tests. The tool→index assembly (defineTool wiring, backfill
  * scheduling, dynamic-context summary) is asserted behaviorally by package
  * tests.

@@ -6,19 +6,19 @@
  * signal is a local stream-control parameter, independent of the request (never on the wire).
  */
 
-import type { AskUserQuestionItem } from '@deepseek-ai/dsh-user-interaction/types'
-import type { ApprovalOutcome, ApprovalRequestId } from '@deepseek-ai/dsh-user-approval/types'
-import type { Message } from '@deepseek-ai/dsh-llm/types'
-import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
-import type { CallId } from '@deepseek-ai/dsh-llm/brand'
-import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session/types'
-import type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools/presentation'
+import type { AskUserQuestionItem } from '@huiliyi37/dsh-user-interaction/types'
+import type { ApprovalOutcome, ApprovalRequestId } from '@huiliyi37/dsh-user-approval/types'
+import type { Message } from '@huiliyi37/dsh-llm/types'
+import type { MessageId } from '@huiliyi37/dsh-llm/brand'
+import type { CallId } from '@huiliyi37/dsh-llm/brand'
+import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session/types'
+import type { ToolCallView, ToolResultView } from '@huiliyi37/dsh-tools/presentation'
 import type { RpcError, RpcId, RpcRequest } from './rpc.ts'
 import type { WorkspaceView } from './workspace.ts'
 
 // Client-side consumers take the render-intent vocabulary from the contract;
 // dsh-tools remains its owner.
-export type { ToolCallView, ToolResultView } from '@deepseek-ai/dsh-tools/presentation'
+export type { ToolCallView, ToolResultView } from '@huiliyi37/dsh-tools/presentation'
 
 /**
  * Host-computed render intent accompanying a `tool/call` or `tool/result`

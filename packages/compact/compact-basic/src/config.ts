@@ -1,11 +1,11 @@
 /**
  * Load-time validation and routed-model policy resolution for compact-basic.
  *
- * @module @deepseek-ai/dsh-compact-basic/config
+ * @module @huiliyi37/dsh-compact-basic/config
  */
 
-import { deepFreeze } from '@deepseek-ai/dsh-llm'
-import type { LlmCallConfig } from '@deepseek-ai/dsh-llm'
+import { deepFreeze } from '@huiliyi37/dsh-llm'
+import type { LlmCallConfig } from '@huiliyi37/dsh-llm'
 import type {
   BasicCompactConfig,
   CompactPolicyConfig,

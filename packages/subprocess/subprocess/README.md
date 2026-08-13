@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-subprocess
+# @huiliyi37/dsh-subprocess
 
 English | [中文](README.zh.md)
 

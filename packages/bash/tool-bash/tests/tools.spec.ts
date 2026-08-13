@@ -2,25 +2,25 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
-import { Context } from 'cordis'
-import { CallId } from '@deepseek-ai/dsh-llm'
-import { BashExecutor } from '@deepseek-ai/dsh-bash'
-import type { BashExecRequest, BashExecSpec, BashProcess, BashProcessRead, BashRunResult } from '@deepseek-ai/dsh-bash'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry, { TOOL_ABORTED, TOOL_ABORTED_BEFORE_DISPATCH } from '@deepseek-ai/dsh-tools'
-import AgentRegistry from '@deepseek-ai/dsh-agent'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
-import SessionPersistenceJsonl from '@deepseek-ai/dsh-session-persistence-jsonl'
-import LocalTaskService from '@deepseek-ai/dsh-tasks-local'
-import * as ToolTasks from '@deepseek-ai/dsh-tool-tasks'
-import ApprovalService from '@deepseek-ai/dsh-user-approval'
-import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval'
-import { LocalBashExecutor } from '@deepseek-ai/dsh-bash-local'
-import LocalSubprocessService from '@deepseek-ai/dsh-subprocess-local'
-import SandboxPolicyService from '@deepseek-ai/dsh-sandbox-policy'
-import * as ToolBash from '@deepseek-ai/dsh-tool-bash'
-import * as BashEnvPlugin from '@deepseek-ai/dsh-bash-env'
+import { Context } from '@huiliyi37/cordis'
+import { CallId } from '@huiliyi37/dsh-llm'
+import { BashExecutor } from '@huiliyi37/dsh-bash'
+import type { BashExecRequest, BashExecSpec, BashProcess, BashProcessRead, BashRunResult } from '@huiliyi37/dsh-bash'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry, { TOOL_ABORTED, TOOL_ABORTED_BEFORE_DISPATCH } from '@huiliyi37/dsh-tools'
+import AgentRegistry from '@huiliyi37/dsh-agent'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import SessionStore, { SessionId } from '@huiliyi37/dsh-session'
+import SessionPersistenceJsonl from '@huiliyi37/dsh-session-persistence-jsonl'
+import LocalTaskService from '@huiliyi37/dsh-tasks-local'
+import * as ToolTasks from '@huiliyi37/dsh-tool-tasks'
+import ApprovalService from '@huiliyi37/dsh-user-approval'
+import type { ApprovalOutcome } from '@huiliyi37/dsh-user-approval'
+import { LocalBashExecutor } from '@huiliyi37/dsh-bash-local'
+import LocalSubprocessService from '@huiliyi37/dsh-subprocess-local'
+import SandboxPolicyService from '@huiliyi37/dsh-sandbox-policy'
+import * as ToolBash from '@huiliyi37/dsh-tool-bash'
+import * as BashEnvPlugin from '@huiliyi37/dsh-bash-env'
 import { processOutcome } from '../src/background.ts'
 import { renderProcessRead, renderResult } from '../src/render.ts'
 
@@ -492,7 +492,7 @@ describe('background execution through the task runtime', () => {
     const ctx = await setup() // no LocalTaskService / ToolTasks
     const result = await call(ctx, 'bash', { command: 'sleep 60', description: 'test command', run_in_background: true })
     expect(result.isError).toBe(true)
-    expect(text(result)).toContain('background tasks unavailable: load @deepseek-ai/dsh-tasks and @deepseek-ai/dsh-tool-tasks')
+    expect(text(result)).toContain('background tasks unavailable: load @huiliyi37/dsh-tasks and @huiliyi37/dsh-tool-tasks')
   })
 
   it('a pre-aborted call is skipped before the process starts', async () => {

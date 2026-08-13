@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { ConsentResolver, DEFAULT_TELEMETRY_PLUGIN_NAME, type ConsentDecision } from '@deepseek-ai/dsh-telemetry'
+import { ConsentResolver, DEFAULT_TELEMETRY_PLUGIN_NAME, type ConsentDecision } from '@huiliyi37/dsh-telemetry'
 
 const dirs: Array<string> = []
 
@@ -75,7 +75,7 @@ describe('ConsentResolver cordis.yml state', () => {
       '- id: telemetry',
       `  name: '${DEFAULT_TELEMETRY_PLUGIN_NAME}'`,
       '- id: llm',
-      '  name: \'@deepseek-ai/dsh-llm-deepseek\'',
+      '  name: \'@huiliyi37/dsh-llm-deepseek\'',
       '  config:',
       '    apiKeyEnv: DEEPSEEK_API_KEY',
       '    model: !!js process.env.DEEPSEEK_MODEL',
@@ -86,13 +86,13 @@ describe('ConsentResolver cordis.yml state', () => {
   })
 
   it('reports (allows) when cordis.yml has no telemetry entry', async () => {
-    const yml = '- id: llm\n  name: \'@deepseek-ai/dsh-llm-deepseek\'\n'
+    const yml = '- id: llm\n  name: \'@huiliyi37/dsh-llm-deepseek\'\n'
     expect(await resolver.resolve(await projectDir(yml)))
       .toEqual<ConsentDecision>({ allowed: true, reason: 'absent' })
   })
 
   it('can be told to deny when the entry is absent', async () => {
-    const yml = '- id: llm\n  name: \'@deepseek-ai/dsh-llm-deepseek\'\n'
+    const yml = '- id: llm\n  name: \'@huiliyi37/dsh-llm-deepseek\'\n'
     const decision = await new ConsentResolver({ env: {}, allowWhenEntryAbsent: false }).resolve(await projectDir(yml))
     expect(decision).toEqual<ConsentDecision>({ allowed: false, reason: 'absent' })
   })

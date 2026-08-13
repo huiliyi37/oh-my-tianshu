@@ -8,7 +8,7 @@
  * - cooldown：同 kind+target 已冷却（uninformative ≥2）则跳过
  * 纯函数零 IO；宿主拿到候选后执行探针，结果经反馈更新假设与冷却。
  *
- * @module @deepseek-ai/dsh-evidence-gate/probe-candidates
+ * @module @huiliyi37/dsh-evidence-gate/probe-candidates
  */
 
 /** 探针类型。 */

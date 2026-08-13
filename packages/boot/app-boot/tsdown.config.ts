@@ -14,6 +14,6 @@ export default defineConfig({
   dts: false,
   clean: false,
   deps: {
-    alwaysBundle: ['@cordisjs/plugin-include'],
+    alwaysBundle: ['@huiliyi37/cordis-plugin-include'],
   },
 })

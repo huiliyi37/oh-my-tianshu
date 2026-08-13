@@ -20,10 +20,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { CredentialView, IApiClient, SettingsNamespaceView, SettingsPathOpView } from '@deepseek-ai/dsh-client-connection/client'
+import type { CredentialView, IApiClient, SettingsNamespaceView, SettingsPathOpView } from '@huiliyi37/dsh-client-connection/client'
 import {
   deletePath, getPath, hasPath, nodeAtPath, rehydrateSchema, setPath, validateDraft,
-} from '@deepseek-ai/dsh-client-schema-form'
+} from '@huiliyi37/dsh-client-schema-form'
 import {
   DeepSeekModelsEditor, modelDrafts, validateDeepSeekModels,
 } from './DeepSeekModelsEditor.tsx'

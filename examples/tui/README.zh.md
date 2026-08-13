@@ -3,7 +3,7 @@
 [English](README.md) | 中文
 
 交互式终端 UI 组合：与 [headless-agent](../headless-agent/) 共用同一 agent 主干——真实
-DeepSeek 适配器、预创建的一个 `main` agent，以及 `@deepseek-ai/dsh-tui` bundle 的
+DeepSeek 适配器、预创建的一个 `main` agent，以及 `@huiliyi37/dsh-tui` bundle 的
 `tui-runner` 插件。TUI 通过只读的 `adapter/transcript` 投影渲染会话日志；会话日志始终是
 权威事实源。
 
@@ -26,7 +26,7 @@ pnpm exec tsx ../headless-agent/tests/fixtures/headless-driver.ts ./cordis.yml "
 - `credentials` — 从进程环境解析 `DEEPSEEK_API_KEY`
 - `llm-deepseek` — DeepSeek 适配器（全思考、最大 effort）
 - `agent-spine` — 预创建一个 `main` agent
-- `tui-runner` — `@deepseek-ai/dsh-tui` bundle 的交互渲染核心
+- `tui-runner` — `@huiliyi37/dsh-tui` bundle 的交互渲染核心
 
 ## keyless 快照
 

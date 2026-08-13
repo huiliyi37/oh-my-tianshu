@@ -1,7 +1,7 @@
 /**
  * Internal dsh-sdk command composition used by the package bin.
  *
- * @module @deepseek-ai/dsh-scripts/command
+ * @module @huiliyi37/dsh-scripts/command
  */
 
 import { parseDshSdkArgs } from './args.ts'

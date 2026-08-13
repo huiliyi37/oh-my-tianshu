@@ -1,5 +1,5 @@
-import { createMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
+import { createMessage, createUserMessage } from '@huiliyi37/dsh-llm'
+import type { SessionEvent } from '@huiliyi37/dsh-session/types'
 import { describe, expect, it } from 'vitest'
 import { projectConversationHistory } from '../src/client/session-history/history-fold.ts'
 import { compactHistoryInspectionEntries } from '../src/client/sessions/history.ts'

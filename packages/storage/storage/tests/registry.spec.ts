@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
+import { Context } from '@huiliyi37/cordis'
 import Storage, { BackendRegistry, storageBackendServiceKey } from '../src/index.ts'
 import type { StorageBackend } from '../src/index.ts'
 

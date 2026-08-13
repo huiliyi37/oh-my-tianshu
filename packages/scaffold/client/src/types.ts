@@ -2,11 +2,11 @@
  * Types for the TypeScript SDK client: launch options, notification shapes,
  * and owned activity results.
  *
- * @module @deepseek-ai/dsh-sdk-client/types
+ * @module @huiliyi37/dsh-sdk-client/types
  */
 
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import type { ContentBlock } from '@huiliyi37/dsh-llm'
+import type { SessionEvent } from '@huiliyi37/dsh-session'
 
 /** One server-to-client notification as received off the wire. */
 export interface HarnessNotification {
@@ -30,7 +30,7 @@ export interface HarnessClientOptions {
   /**
    * The complete child environment. `undefined` inherits the parent env
    * verbatim; passing an object replaces it entirely, so callers own
-   * credential policy (see `scrubbedParentEnv` in `@deepseek-ai/dsh-subprocess`
+   * credential policy (see `scrubbedParentEnv` in `@huiliyi37/dsh-subprocess`
    * for the shared scrub-then-merge base).
    */
   env?: NodeJS.ProcessEnv

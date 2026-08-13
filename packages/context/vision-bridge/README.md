@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-vision-bridge
+# @huiliyi37/dsh-vision-bridge
 
 English | [中文](README.zh.md)
 
@@ -10,7 +10,7 @@ The TUI input box lets users paste images (data URLs enter the session as `image
 
 ```yaml
 - id: vision-bridge
-  name: '@deepseek-ai/dsh-vision-bridge'
+  name: '@huiliyi37/dsh-vision-bridge'
   config:
     provider: deepseek-official     # explicit vision model (omit when visionAutoBridge is on)
     model: deepseek-vl             # explicit vision model id (omit when visionAutoBridge is on)

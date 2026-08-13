@@ -17,7 +17,7 @@ const root = resolve(import.meta.dirname, '..')
 /** The closure manifest whose dependencies define the executable. */
 const DEPLOY_ROOT_PACKAGE = 'dsh-jsonrpc-agent-pkg'
 /** The app entry inside the deployed closure. */
-const ENTRY_BIN = 'node_modules/@deepseek-ai/dsh-jsonrpc-demo/lib/bin.js'
+const ENTRY_BIN = 'node_modules/@huiliyi37/dsh-jsonrpc-demo/lib/bin.js'
 const OUTPUT_BASENAME = 'dsh-jsonrpc-agent-pkg'
 /** Default Node major; SEA mode requires at least Node 22. */
 const DEFAULT_NODE_RANGE = 'node24'

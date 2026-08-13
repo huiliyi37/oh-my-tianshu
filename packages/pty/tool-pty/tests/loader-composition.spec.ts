@@ -3,22 +3,22 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import Include from '@cordisjs/plugin-include'
-import { CallId } from '@deepseek-ai/dsh-llm'
-import { Session, SessionId } from '@deepseek-ai/dsh-session'
-import AgentRegistry, { Inbox } from '@deepseek-ai/dsh-agent'
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import ToolRegistry from '@deepseek-ai/dsh-tools'
-import PtyService from '@deepseek-ai/dsh-pty'
-import SandboxProvider from '@deepseek-ai/dsh-sandbox'
-import type { ConfinedArgv, SandboxPolicy } from '@deepseek-ai/dsh-sandbox'
-import SandboxPolicyService from '@deepseek-ai/dsh-sandbox-policy'
-import LocalSubprocessService from '@deepseek-ai/dsh-subprocess-local'
-import * as PtyLocal from '@deepseek-ai/dsh-pty-local'
-import * as ToolPty from '@deepseek-ai/dsh-tool-pty'
+import { Context } from '@huiliyi37/cordis'
+import Loader from '@huiliyi37/cordis-plugin-loader'
+import Include from '@huiliyi37/cordis-plugin-include'
+import { CallId } from '@huiliyi37/dsh-llm'
+import { Session, SessionId } from '@huiliyi37/dsh-session'
+import AgentRegistry, { Inbox } from '@huiliyi37/dsh-agent'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import SystemPrompt from '@huiliyi37/dsh-system-prompt'
+import ToolRegistry from '@huiliyi37/dsh-tools'
+import PtyService from '@huiliyi37/dsh-pty'
+import SandboxProvider from '@huiliyi37/dsh-sandbox'
+import type { ConfinedArgv, SandboxPolicy } from '@huiliyi37/dsh-sandbox'
+import SandboxPolicyService from '@huiliyi37/dsh-sandbox-policy'
+import LocalSubprocessService from '@huiliyi37/dsh-subprocess-local'
+import * as PtyLocal from '@huiliyi37/dsh-pty-local'
+import * as ToolPty from '@huiliyi37/dsh-tool-pty'
 
 let root: string | undefined
 let context: Context | undefined
@@ -64,17 +64,17 @@ suite('terminal real Loader composition through cordis.yml', () => {
     root = await mkdtemp(join(tmpdir(), 'dsh-pty-loader-'))
     const configPath = join(root, 'cordis.yml')
     await writeFile(configPath, [
-      "- name: '@deepseek-ai/dsh-agent'",
-      "- name: '@deepseek-ai/dsh-system-prompt'",
-      "- name: '@deepseek-ai/dsh-tools'",
-      "- name: '@deepseek-ai/dsh-pty'",
-      "- name: '@deepseek-ai/dsh-test-sandbox'",
-      "- name: '@deepseek-ai/dsh-sandbox-policy'",
+      "- name: '@huiliyi37/dsh-agent'",
+      "- name: '@huiliyi37/dsh-system-prompt'",
+      "- name: '@huiliyi37/dsh-tools'",
+      "- name: '@huiliyi37/dsh-pty'",
+      "- name: '@huiliyi37/dsh-test-sandbox'",
+      "- name: '@huiliyi37/dsh-sandbox-policy'",
       '  config:',
       '    mode: danger-full-access',
       `    workspaceRoot: ${JSON.stringify(root)}`,
-      "- name: '@deepseek-ai/dsh-subprocess-local'",
-      "- name: '@deepseek-ai/dsh-pty-local'",
+      "- name: '@huiliyi37/dsh-subprocess-local'",
+      "- name: '@huiliyi37/dsh-pty-local'",
       '  config:',
       '    pollIntervalMs: 10',
       '    exactProbeAfterMs: 20',
@@ -82,7 +82,7 @@ suite('terminal real Loader composition through cordis.yml', () => {
       '    handoffGraceMs: 250',
       '    timeoutMs: 2000',
       '    disposeGraceMs: 500',
-      "- name: '@deepseek-ai/dsh-tool-pty'",
+      "- name: '@huiliyi37/dsh-tool-pty'",
       '',
     ].join('\n'))
 
@@ -91,15 +91,15 @@ suite('terminal real Loader composition through cordis.yml', () => {
     await context.plugin(Loader)
     context.loader.builtins.include = Include
     const modules = new Map<string, unknown>([
-      ['@deepseek-ai/dsh-agent', AgentRegistry],
-      ['@deepseek-ai/dsh-system-prompt', SystemPrompt],
-      ['@deepseek-ai/dsh-tools', ToolRegistry],
-      ['@deepseek-ai/dsh-pty', PtyService],
-      ['@deepseek-ai/dsh-test-sandbox', PassthroughSandbox],
-      ['@deepseek-ai/dsh-sandbox-policy', SandboxPolicyService],
-      ['@deepseek-ai/dsh-subprocess-local', LocalSubprocessService],
-      ['@deepseek-ai/dsh-pty-local', PtyLocal],
-      ['@deepseek-ai/dsh-tool-pty', ToolPty],
+      ['@huiliyi37/dsh-agent', AgentRegistry],
+      ['@huiliyi37/dsh-system-prompt', SystemPrompt],
+      ['@huiliyi37/dsh-tools', ToolRegistry],
+      ['@huiliyi37/dsh-pty', PtyService],
+      ['@huiliyi37/dsh-test-sandbox', PassthroughSandbox],
+      ['@huiliyi37/dsh-sandbox-policy', SandboxPolicyService],
+      ['@huiliyi37/dsh-subprocess-local', LocalSubprocessService],
+      ['@huiliyi37/dsh-pty-local', PtyLocal],
+      ['@huiliyi37/dsh-tool-pty', ToolPty],
     ])
     context.loader.internal = {
       version: 'v2',
