@@ -131,6 +131,7 @@
     { "path": "./packages/storage/storage-domain" },
     { "path": "./packages/workspace/workspace" },
     { "path": "./packages/tui/tui" },
+    { "path": "./packages/tui/vision-ask" },
     { "path": "./packages/fs/fs-snapshot" },
     { "path": "./packages/session/session-title" },
     { "path": "./packages/session/session-title-llm" },

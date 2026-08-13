@@ -54,3 +54,12 @@
 # /rewind 的 code/both 粒度依赖它。backupDir 默认 $TMPDIR/dsh-fs-snapshot。
 - id: fs-snapshot
   name: '@huiliyi37/dsh-fs-snapshot'
+
+# 视觉副驾（可选）：会话图片注册表 + ask_image 工具。模型必填——解开注释并
+# 指定一个 OpenAI 兼容的视觉模型后生效（API key 从环境变量读取，不落盘）。
+# - id: vision-ask
+#   name: '@huiliyi37/dsh-vision-ask'
+#   config:
+#     model: deepseek-vl-2
+#     baseUrl: https://api.deepseek.com
+#     apiKeyEnv: DEEPSEEK_API_KEY

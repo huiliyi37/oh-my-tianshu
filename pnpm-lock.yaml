@@ -6985,6 +6985,27 @@ importers:
         specifier: workspace:^
         version: link:../../interaction/user-interaction
 
+  packages/tui/vision-ask:
+    devDependencies:
+      '@huiliyi37/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@huiliyi37/dsh-agent':
+        specifier: workspace:^
+        version: link:../../core/agent
+      '@huiliyi37/dsh-llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
+      '@huiliyi37/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@huiliyi37/dsh-tools':
+        specifier: workspace:^
+        version: link:../../core/tools
+      '@huiliyi37/schemastery':
+        specifier: workspace:^
+        version: link:../../../vendor/schemastery
+
   packages/typert/generator:
     dependencies:
       '@jridgewell/gen-mapping':
