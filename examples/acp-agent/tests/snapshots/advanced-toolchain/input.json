@@ -1,0 +1,7 @@
+{
+  "steps": [
+    { "op": "initialize" },
+    { "op": "newSession" },
+    { "op": "prompt", "text": "Run this advanced flow exactly once: try a no-op temporary Cordis Plugin named snapshot-marker; use run_code to inspect the live temporary Plugins through tools.cordis_inspect; delegate once to a direct spawn child; run one workflow that delegates to another spawn child; stop dyn-1; then reply with exactly ADVANCED_ACP_OK." }
+  ]
+}

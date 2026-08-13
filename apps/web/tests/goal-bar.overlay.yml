@@ -1,0 +1,5 @@
+# The client-side FixtureApiClient intentionally rejects settings writes, so
+# this goal-only scenario omits the durable welcome step that would otherwise
+# cover the page. Onboarding owns separate assembled-browser coverage.
+- id: ui-settings-general
+  disabled: true

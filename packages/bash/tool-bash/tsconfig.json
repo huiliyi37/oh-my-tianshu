@@ -1,0 +1,54 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cosmokit"
+    },
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../core/tools"
+    },
+    {
+      "path": "../../core/agent"
+    },
+    {
+      "path": "../../bash/bash"
+    },
+    {
+      "path": "../../tasks/tasks"
+    },
+    {
+      "path": "../../core/system-prompt"
+    },
+    {
+      "path": "../../bash/bash-env"
+    },
+    {
+      "path": "../../interaction/user-approval"
+    },
+    {
+      "path": "../../sandbox/sandbox"
+    },
+    {
+      "path": "../../support/invariants"
+    },
+    {
+      "path": "../../sandbox/sandbox-policy"
+    }
+  ]
+}

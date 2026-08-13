@@ -1,0 +1,35 @@
+{
+  "name": "@cordisjs/plugin-logger-console",
+  "description": "Console logger exporter for cordis",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/shared.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/shared.d.ts",
+      "node": "./lib/index.js",
+      "default": "./lib/browser.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/browser.js",
+    "lib/types/**/*.d.ts",
+    "lib/types/**/*.d.ts.map",
+    "src"
+  ],
+  "author": "Shigma <shigma10826@gmail.com>",
+  "license": "MIT",
+  "peerDependencies": {
+    "cordis": "^4.0.0-rc.7"
+  },
+  "dependencies": {
+    "cosmokit": "^1.8.1",
+    "schemastery": "^3.18.0",
+    "supports-color": "^9.4.0"
+  }
+}

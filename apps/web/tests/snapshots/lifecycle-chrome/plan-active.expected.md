@@ -1,0 +1,39 @@
+- button "New session"
+- button "Collapse sidebar":
+  - img
+- button "New session":
+  - img
+  - text: New Session
+- text: Workspaces
+- button "Group by":
+  - img
+- button "Add workspace":
+  - img
+- button "Search sessions":
+  - img
+- textbox "Search name, keywords..."
+- tree "Sessions":
+  - treeitem "workspace 1 session" [expanded]:
+    - img
+    - text: workspace 1 session
+  - treeitem "New Session" [selected]
+- button "Settings":
+  - img
+  - text: Settings
+- text: Into the Unknown Preview
+- button "Choose workspace":
+  - img
+  - text: workspace
+  - img
+- textbox "Describe what you want to build"
+- button "Commands":
+  - img
+- 'button "Access mode, current: Workspace Write"': Workspace Write
+- button "Plan mode on, press to turn off": Plan
+- button "Select model, current DeepSeek-V4-Flash":
+  - text: DeepSeek-V4-Flash
+  - img
+- button "Send message" [disabled]
+- text: Details
+- button "Close details"
+- text: Click a tool row in the message flow to view its details

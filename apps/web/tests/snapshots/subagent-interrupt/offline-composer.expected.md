@@ -1,0 +1,23 @@
+- banner:
+  - navigation "Session hierarchy":
+    - button "Ask a research subagent to"
+    - text: /
+    - button "event-sourcing researcher" [disabled]
+  - tablist:
+    - tab "Chat" [selected]
+    - tab "Trajectory"
+- text: Explain event sourcing in one sentence. {{clock}}
+- button "Copy":
+  - img
+- button "Context injection @deepseek-ai/dsh-system-prompt":
+  - img
+  - img
+  - text: Context injection @deepseek-ai/dsh-system-prompt
+- paragraph: partial
+- status: Deep diving...
+- textbox "Parent session offline; sending is unavailable but you can still stop the run" [disabled]
+- button "Commands" [disabled]:
+  - img
+- 'button "Access mode, current: Workspace Write" [disabled]': Workspace Write
+- button "Stop generating"
+- button "Send message" [disabled]

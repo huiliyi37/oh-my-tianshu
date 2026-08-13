@@ -1,0 +1,57 @@
+{
+  "name": "@deepseek-ai/dsh-session-telemetry-otel",
+  "description": "OpenTelemetry backend for the DeepSeek Harness telemetry seam: hands captured session records to the OTel JS SDK's log pipeline",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/api-logs": "^0.220.0",
+    "@opentelemetry/exporter-logs-otlp-http": "^0.220.0",
+    "@opentelemetry/otlp-exporter-base": "^0.220.0",
+    "@opentelemetry/resources": "^2.9.0",
+    "@opentelemetry/sdk-logs": "^0.220.0",
+    "schemastery": "^3.18.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-command-feedback": "^0.0.1",
+    "@deepseek-ai/dsh-brand": "^0.0.1",
+    "@deepseek-ai/dsh-invariants": "^0.0.1",
+    "@deepseek-ai/dsh-llm": "^0.0.1",
+    "@deepseek-ai/dsh-paths": "^0.0.1",
+    "@deepseek-ai/dsh-session": "^0.0.1",
+    "@deepseek-ai/dsh-session-telemetry": "^0.0.1",
+    "cordis": "^4.0.0-rc.7"
+  },
+  "devDependencies": {
+    "@cordisjs/plugin-loader": "workspace:^",
+    "@deepseek-ai/dsh-command-feedback": "workspace:^",
+    "@deepseek-ai/dsh-brand": "workspace:^",
+    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "@deepseek-ai/dsh-llm": "workspace:^",
+    "@deepseek-ai/dsh-paths": "workspace:^",
+    "@deepseek-ai/dsh-session": "workspace:^",
+    "@deepseek-ai/dsh-session-telemetry": "workspace:^",
+    "cordis": "^4.0.0-rc.7"
+  }
+}

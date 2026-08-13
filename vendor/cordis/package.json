@@ -1,0 +1,43 @@
+{
+  "name": "cordis",
+  "description": "Meta-Framework for Modern JavaScript Applications",
+  "version": "4.0.0-rc.7",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "bin": "bin.js",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/types/**/*.d.ts",
+    "lib/types/**/*.d.ts.map",
+    "bin.js"
+  ],
+  "author": "Shigma <shigma10826@gmail.com>",
+  "license": "MIT",
+  "peerDependencies": {
+    "@cordisjs/plugin-include": "^1.0.4",
+    "@cordisjs/plugin-loader": "^1.0.0-rc.5"
+  },
+  "peerDependenciesMeta": {
+    "@cordisjs/plugin-include": {
+      "optional": true
+    },
+    "@cordisjs/plugin-loader": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.1.0",
+    "cosmokit": "^1.8.1"
+  }
+}

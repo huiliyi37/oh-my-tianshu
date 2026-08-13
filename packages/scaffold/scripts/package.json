@@ -1,0 +1,64 @@
+{
+  "name": "@deepseek-ai/dsh-scripts",
+  "description": "DeepSeek Harness SDK launcher for start, dev, build, and project configuration",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "bin": {
+    "dsh-sdk": "lib/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./dev/tsdown-config": {
+      "types": "./lib/types/dev/tsdown-config.d.ts",
+      "default": "./lib/dev/tsdown-config.js"
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/bin.js",
+    "lib/dev/tsdown-config.js",
+    "lib/local-plugin-loader-hooks.js",
+    "lib/assets",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "@deepseek-ai/dsh-helper": "workspace:^",
+    "@deepseek-ai/dsh-telemetry": "workspace:^",
+    "commander": "^15.0.0",
+    "node-addon-require-builtin": "^0.1.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-app-boot": "workspace:^",
+    "@deepseek-ai/dsh-invariants": "^0.0.1",
+    "cordis": "^4.0.0-rc.7",
+    "tsdown": "^0.22.2",
+    "tsx": "^4.22.4"
+  },
+  "peerDependenciesMeta": {
+    "tsdown": {
+      "optional": true
+    },
+    "tsx": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-app-boot": "workspace:^",
+    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "cordis": "^4.0.0-rc.7",
+    "tsdown": "^0.22.2",
+    "tsx": "^4.22.4"
+  }
+}

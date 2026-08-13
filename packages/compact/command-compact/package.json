@@ -1,0 +1,44 @@
+{
+  "name": "@deepseek-ai/dsh-command-compact",
+  "description": "Human-facing slash command for explicit session compaction",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "BSD-3-Clause",
+  "peerDependencies": {
+    "@deepseek-ai/dsh-commands": "^0.0.1",
+    "@deepseek-ai/dsh-compact": "^0.0.1",
+    "@deepseek-ai/dsh-invariants": "^0.0.1",
+    "cordis": "^4.0.0-rc.7"
+  },
+  "devDependencies": {
+    "@cordisjs/plugin-include": "workspace:^",
+    "@cordisjs/plugin-loader": "workspace:^",
+    "@deepseek-ai/dsh-agent": "workspace:^",
+    "@deepseek-ai/dsh-commands": "workspace:^",
+    "@deepseek-ai/dsh-compact": "workspace:^",
+    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "@deepseek-ai/dsh-llm": "workspace:^",
+    "@deepseek-ai/dsh-session": "workspace:^",
+    "cordis": "^4.0.0-rc.7"
+  }
+}

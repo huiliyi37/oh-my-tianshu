@@ -1,0 +1,44 @@
+/* Turn-tail produced-files row: a quiet label followed by wrapping file chips.
+   Sits between the assistant body and its IconActions footer, so it reads as
+   part of the answer rather than as another tool row. */
+
+.root {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 13px;
+  line-height: 22px;
+}
+
+.label {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* One produced file. A link by behavior (it opens the file), a chip by shape:
+   full paths are long and several may wrap onto one row. */
+.file {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.file:hover {
+  color: var(--dsw-alias-label-primary);
+  text-decoration: underline;
+}
+
+/* Overflow count: the row never silently drops files it did not show. */
+.more {
+  color: var(--dsw-alias-label-tertiary);
+}

@@ -1,0 +1,42 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cosmokit"
+    },
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../feedback/command-feedback"
+    },
+    {
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../session-telemetry"
+    },
+    {
+      "path": "../../util/brand"
+    },
+    {
+      "path": "../../util/paths"
+    },
+    {
+      "path": "../../support/invariants"
+    }
+  ]
+}

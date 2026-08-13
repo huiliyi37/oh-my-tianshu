@@ -1,0 +1,73 @@
+{
+  "name": "@deepseek-ai/dsh-repository-plugin",
+  "description": "Trusted repository package format and Cordis runtime for DeepSeek Harness",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "bin": {
+    "dsh-plugin-prepare": "./lib/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/bin.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "BSD-3-Clause",
+  "peerDependencies": {
+    "@cordisjs/plugin-loader": "^1.0.0-rc.5",
+    "@deepseek-ai/dsh-invariants": "^0.0.1",
+    "@deepseek-ai/dsh-mcp-client": "^0.0.1",
+    "@deepseek-ai/dsh-paths": "^0.0.1",
+    "@deepseek-ai/dsh-skill-local": "^0.0.1",
+    "cordis": "^4.0.0-rc.7"
+  },
+  "peerDependenciesMeta": {
+    "@cordisjs/plugin-loader": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-invariants": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-mcp-client": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-paths": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-skill-local": {
+      "optional": true
+    },
+    "cordis": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cordisjs/plugin-loader": "workspace:^",
+    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "@deepseek-ai/dsh-mcp-client": "workspace:^",
+    "@deepseek-ai/dsh-paths": "workspace:^",
+    "@deepseek-ai/dsh-skill": "workspace:^",
+    "@deepseek-ai/dsh-skill-local": "workspace:^",
+    "@deepseek-ai/dsh-system-prompt": "workspace:^",
+    "@deepseek-ai/dsh-tools": "workspace:^",
+    "cordis": "^4.0.0-rc.7"
+  }
+}

@@ -1,0 +1,163 @@
+/**
+ * meridian-backfill —— Meridian 后台全量索引（天枢 meridian-backfill.ts 移植）。
+ *
+ * 懒建（read_file 触发 indexFile）只覆盖 agent 读过的文件；本模块在显式
+ * 需要时（首次 repo_graph 工具 on-demand，或启动回填）把可索引范围内的
+ * 全项目文件逐步喂进同一 MeridianIndexer，让 repo_graph / impact 等
+ * DB 派生消费端受益。复用 indexFile()——hash 幂等（meridian-db needsParse）
+ * 使与懒建重叠、重复调度都零成本；同一实例进程内天然串行（SQLite 单写者）。
+ *
+ * 调度纪律：串行批循环，批间 setTimeout(0) 让出事件循环；总量上限默认
+ * 2000（maxFiles 可调）。进程退出即自然终止——半成品文件 hash 已落库，
+ * 下次接着建。
+ *
+ * 门控：由调用方（tool 层 Config）决策 allowed/maxFiles——核心库不依赖 env。
+ */
+import { execFileSync } from 'node:child_process'
+import { readdirSync, statSync, type Dirent } from 'node:fs'
+import { join } from 'node:path'
+import type { MeridianIndexer } from './indexer.ts'
+import { isMeridianIndexablePath } from './indexer.ts'
+
+/** 每批索引文件数——批间让出事件循环，不让 tree-sitter 解析卡住主循环。 */
+const BACKFILL_BATCH_SIZE = 20
+/** 默认全量索引上限（文件数）。 */
+export const DEFAULT_MERIDIAN_BACKFILL_MAX = 2000
+/** git ls-files 枚举硬超时。 */
+const GIT_LS_FILES_TIMEOUT_MS = 3000
+/** 非 git 目录 readdir 回退的目录跳过集（与 indexer IGNORE_PATTERNS 对齐）。 */
+const READDIR_SKIP_DIRS = new Set(['node_modules', 'dist', '.git', '.rivet'])
+/** readdir 回退的枚举总量上限——防止失控遍历巨型目录树。 */
+const READDIR_ENUM_CAP = 10_000
+
+/** 回填句柄：stop() 停止，done 在循环结束时 resolve。 */
+export interface MeridianBackfillHandle {
+  stop(): void
+  /** 索引循环结束（含被 stop 提前终止）时 resolve——测试与调用方可等待。 */
+  done: Promise<void>
+}
+
+/** 回填触发原因：startup / ondemand。 */
+export type MeridianBackfillReason = 'startup' | 'ondemand'
+
+/** 回填选项：原因、门控、上限与日志通道。 */
+export interface MeridianBackfillOptions {
+  /**
+   * `startup` — 仅调用方显式允许时运行。
+   * `ondemand` — 默认；调用方可关。
+   * 门控由调用方（tool 层 Config）决策，核心库不读 env。
+   */
+  reason?: MeridianBackfillReason
+  /** 门控开关（tool 层 Config backfillOnDemand/backfillOnStart 决策）。默认 true。 */
+  allowed?: boolean
+  /** 全量索引上限（tool 层 Config backfillMaxFiles 决策）。默认 2000。 */
+  maxFiles?: number
+  /** 可选日志通道（缺省静默）。 */
+  log?: (msg: string) => void
+}
+
+/** `git ls-files --cached --others --exclude-standard`（gitignore 感知）。
+ *  非 git 目录/命令失败/超时 → null，调用方回退 readdir。 */
+function enumerateViaGit(cwd: string): string[] | null {
+  try {
+    const output = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], {
+      cwd,
+      encoding: 'utf-8',
+      timeout: GIT_LS_FILES_TIMEOUT_MS,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true,
+    })
+    return output.split(/\r?\n/).map(s => s.trim()).filter(Boolean)
+  } catch {
+    return null
+  }
+}
+
+/** 非 git 回退：有界递归 readdir，跳过依赖/构建/运行时目录。 */
+function enumerateViaReaddir(cwd: string): string[] {
+  const out: string[] = []
+  const walk = (relDir: string): void => {
+    if (out.length >= READDIR_ENUM_CAP) return
+    let entries: Dirent[]
+    try {
+      entries = readdirSync(join(cwd, relDir || '.'), { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const entry of entries) {
+      if (out.length >= READDIR_ENUM_CAP) return
+      const rel = relDir ? `${relDir}/${entry.name}` : entry.name
+      if (entry.isDirectory()) {
+        if (!READDIR_SKIP_DIRS.has(entry.name)) walk(rel)
+      } else if (entry.isFile()) {
+        out.push(rel)
+      }
+    }
+  }
+  walk('')
+  return out
+}
+
+/** mtime 新→旧排序（最近改动的文件最可能被用到）；stat 失败的文件跳过。 */
+function sortByMtimeDesc(cwd: string, rels: string[]): string[] {
+  const withMtime: Array<{ rel: string; mtimeMs: number }> = []
+  for (const rel of rels) {
+    try {
+      withMtime.push({ rel, mtimeMs: statSync(join(cwd, rel)).mtimeMs })
+    } catch { /* 枚举后消失的文件跳过 */ }
+  }
+  withMtime.sort((a, b) => b.mtimeMs - a.mtimeMs)
+  return withMtime.map(e => e.rel)
+}
+
+/** 启动后台全量索引（每实例一次）；批间让出事件循环。
+ * @param indexer - 索引器。
+ * @param cwd - 工作区根。
+ * @param opts - 选项。
+ * @returns 控制句柄。 */
+export function scheduleMeridianBackfill(
+  indexer: MeridianIndexer,
+  cwd: string,
+  opts: MeridianBackfillOptions = {},
+): MeridianBackfillHandle {
+  let stopped = false
+  const stop = (): void => { stopped = true }
+  const isStopped = (): boolean => stopped
+  const reason = opts.reason ?? 'ondemand'
+  const log = opts.log ?? (() => {})
+
+  if (indexer.backfillScheduled) {
+    return { stop, done: Promise.resolve() }
+  }
+  indexer.backfillScheduled = true
+
+  if (opts.allowed === false) {
+    log(`[meridian-backfill] skipped (allowed=false, reason=${reason})`)
+    return { stop, done: Promise.resolve() }
+  }
+
+  const maxFiles = opts.maxFiles ?? DEFAULT_MERIDIAN_BACKFILL_MAX
+  const done = (async (): Promise<void> => {
+    const enumerated = enumerateViaGit(cwd) ?? enumerateViaReaddir(cwd)
+    // 与懒建完全同规则过滤（isMeridianIndexablePath 单一来源，防漂移）
+    const candidates = sortByMtimeDesc(cwd, enumerated.filter(isMeridianIndexablePath)).slice(0, maxFiles)
+    log(`[meridian-backfill] start: ${candidates.length} candidates (cwd=${cwd}, reason=${reason})`)
+    let indexed = 0
+    for (let i = 0; i < candidates.length && !isStopped(); i += BACKFILL_BATCH_SIZE) {
+      for (const rel of candidates.slice(i, i + BACKFILL_BATCH_SIZE)) {
+        if (isStopped()) break
+        try {
+          await indexer.indexFile(rel)
+          indexed++
+        } catch { /* 单文件失败不阻塞整体 */ }
+      }
+      // 批间让出事件循环
+      await new Promise<void>(resolve => setTimeout(resolve, 0))
+    }
+    log(`[meridian-backfill] done: indexed=${indexed}/${candidates.length}${isStopped() ? ' (stopped)' : ''}`)
+  })().catch((err: unknown) => {
+    log(`[meridian-backfill] failed: ${String(err)}`)
+  })
+
+  return { stop, done }
+}

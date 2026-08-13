@@ -1,0 +1,83 @@
+{
+  // Client-side typecheck aggregate: packages/client tests (.ts and .tsx).
+  // Split from the host aggregate because both sides merge cordis Context
+  // under the same keys (sessions, loader) with different services; shared
+  // leaves (session/llm/tools/apiproxy/...) build once and are referenced by
+  // both programs through each client package's own references.
+  "extends": "./tsconfig.base.client.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rewriteRelativeImportExtensions": false,
+    // Tests execute under vitest on node (e2e files spawn processes); browser
+    // purity of package src is each package's own tsconfig plus
+    // scripts/client-bundle-purity.spec.ts.
+    "types": ["node"]
+  },
+  "include": [
+    // Source-subpath test imports can arrive through workspace links whose
+    // realpath semantics vary by host. Load package CSS declarations directly.
+    "packages/client/*/src/css-modules.d.ts",
+    "packages/client/*/tests/**/*.ts",
+    "packages/client/*/tests/**/*.tsx",
+    "packages/host/directory-picker-browse/tests/**/*.ts",
+    "packages/host/directory-picker-browse/tests/**/*.tsx",
+    "packages/host/directory-picker-native/tests/**/*.ts",
+    "packages/host/directory-picker-native/tests/**/*.tsx",
+    "packages/client/tsdown.client.ts",
+    "scripts/client-bundle-css.spec.ts",
+    "scripts/client-bundle-purity.spec.ts"
+  ],
+  "references": [
+    // Shared leaf: web e2e boots the real host webserver (fixture + real-host
+    // smoke policy). webserver has zero workspace deps and no cordis merge,
+    // so it cannot drag host-side Context augmentation into this program.
+    { "path": "./packages/host/webserver" },
+    // Dual-face host leaf: the node half is the native picking backend, the
+    // browser half registers the picking flow into ui-workspace's slot —
+    // client-side Context merges keep it out of the host program.
+    { "path": "./packages/host/directory-picker-native" },
+    { "path": "./packages/host/directory-picker-browse" },
+    // Compaction seam: the client-runtime pin test value-imports the canonical
+    // checkpoint const from the cordis-free dsh-compact/checkpoint leaf and
+    // deliberately never loads the dsh-compact package root or the host-side
+    // Context merges reachable through it. The client package pins the same
+    // leaf through a type-only import in transcript-adapter.ts; composite
+    // rootDir rules make both paths depend on this runtime project reference.
+    { "path": "./packages/compact/compact" },
+    { "path": "./packages/client/ui-slots" },
+    { "path": "./packages/client/schema-form" },
+    { "path": "./packages/client/ui-primitives" },
+    { "path": "./packages/client/web-react" },
+    { "path": "./packages/client/modules" },
+    { "path": "./packages/client/hmr" },
+    { "path": "./packages/client/connection" },
+    { "path": "./packages/typert/registry" },
+    { "path": "./packages/api/gateway" },
+    { "path": "./packages/api/remotes/tsconfig.client.json" },
+    { "path": "./packages/client/runtime" },
+    { "path": "./packages/client/test-runtime" },
+    { "path": "./packages/client/ui-layout" },
+    { "path": "./packages/client/ui-sidebar" },
+    { "path": "./packages/client/ui-conversation" },
+    { "path": "./packages/client/ui-tool" },
+    { "path": "./packages/client/ui-deliverables" },
+    { "path": "./packages/client/ui-workspace" },
+    { "path": "./packages/client/ui-slash" },
+    { "path": "./packages/client/ui-command" },
+    { "path": "./packages/client/ui-skill" },
+    { "path": "./packages/client/ui-subagent" },
+    { "path": "./packages/client/ui-goal" },
+    { "path": "./packages/client/ui-model" },
+    { "path": "./packages/client/ui-permission" },
+    { "path": "./packages/client/ui-plan" },
+    { "path": "./packages/client/ui-question" },
+    { "path": "./packages/client/ui-trajectory" },
+    { "path": "./packages/client/ui-theme" },
+    { "path": "./packages/client/ui-settings" },
+    { "path": "./packages/client/ui-settings-general" },
+    { "path": "./packages/client/ui-models" },
+    { "path": "./packages/client/locale" },
+    { "path": "./packages/client/web" },
+    { "path": "./apps/web" }
+  ]
+}

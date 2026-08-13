@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/simplification/2026-07-31-one-route-to-add-a-workspace.md
+2026-07-31-one-route-to-add-a-workspace.md: 93f10493848a65aee9c9e67502abfd73fe1e6d1f
+2026-07-31-one-route-to-add-a-workspace.zh.md: 83d91abb9ada3c1431a1b4ef126ea42a8406d326

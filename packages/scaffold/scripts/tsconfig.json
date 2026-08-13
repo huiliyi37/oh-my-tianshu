@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../helper" },
+    { "path": "../telemetry" },
+    { "path": "../../boot/app-boot" },
+    { "path": "../../../vendor/cordis" },
+    { "path": "../../support/invariants" }
+  ]
+}

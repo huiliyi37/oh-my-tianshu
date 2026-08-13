@@ -1,0 +1,155 @@
+.page {
+  position: relative;
+  z-index: 1;
+  width: min(640px, calc(100vw - 64px));
+  max-height: 100vh;
+  padding: clamp(64px, 9vh, 104px) 0 40px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  color: var(--dsw-alias-label-primary);
+  --welcome-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  margin-bottom: 42px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.title {
+  margin: 0;
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  outline: none;
+}
+
+.opening,
+.reflection,
+.feedback,
+.error {
+  margin: 0;
+}
+
+.opening {
+  margin-top: 30px;
+}
+
+.reflection {
+  margin-top: 36px;
+  padding: 0;
+}
+
+.feedback {
+  margin-top: 30px;
+}
+
+.opening,
+.reflection,
+.feedback {
+  font-size: 16px;
+  line-height: 28px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.feedback strong {
+  color: inherit;
+  font-weight: 500;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 32px;
+}
+
+.error {
+  margin-top: 20px;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.primary {
+  min-width: 120px;
+  transition: transform 140ms var(--welcome-ease-out);
+}
+
+.primary:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.brand,
+.title,
+.opening,
+.reflection,
+.feedback,
+.footer {
+  animation: welcome-enter 280ms var(--welcome-ease-out) both;
+}
+
+.title { animation-delay: 40ms; }
+.opening { animation-delay: 80ms; }
+.reflection { animation-delay: 120ms; }
+.feedback { animation-delay: 160ms; }
+.footer { animation-delay: 200ms; }
+
+@keyframes welcome-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand,
+  .title,
+  .opening,
+  .reflection,
+  .feedback,
+  .footer {
+    animation: none;
+  }
+
+  .primary {
+    transition: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .page {
+    width: calc(100vw - 40px);
+    padding-top: 38px;
+  }
+
+  .brand {
+    margin-bottom: 30px;
+  }
+
+  .opening {
+    margin-top: 24px;
+  }
+
+  .reflection {
+    margin-top: 28px;
+  }
+
+  .feedback {
+    margin-top: 28px;
+  }
+
+  .footer {
+    margin-top: 30px;
+  }
+
+  .primary {
+    width: 100%;
+  }
+}

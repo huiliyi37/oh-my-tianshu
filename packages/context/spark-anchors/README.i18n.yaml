@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/context/spark-anchors/README.md
+README.md: 9d03e92bafa6e6bc1027eddabbdc16a8efe1bb54
+README.zh.md: 17fe72eec9960334db2e6da081136ff77c68bb53

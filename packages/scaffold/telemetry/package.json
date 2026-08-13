@@ -1,0 +1,42 @@
+{
+  "name": "@deepseek-ai/dsh-telemetry",
+  "description": "Launcher-side dsh-sdk telemetry: secret redaction, consent resolution, anonymous id, payload builder, and fire-and-forget reporter",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "yaml": "^2.9.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-brand": "^0.0.1",
+    "@deepseek-ai/dsh-invariants": "^0.0.1",
+    "@deepseek-ai/dsh-paths": "^0.0.1",
+    "cordis": "^4.0.0-rc.7"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-brand": "workspace:^",
+    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "@deepseek-ai/dsh-paths": "workspace:^",
+    "cordis": "^4.0.0-rc.7"
+  }
+}

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-07-29-persistent-bash-str-replace-editor.md
+2026-07-29-persistent-bash-str-replace-editor.md: c4750e30370bfd253064c39cb1adc0f5b2baa60d
+2026-07-29-persistent-bash-str-replace-editor.zh.md: 83159d9792fd9fadaaa342cc289300b35da34e4a

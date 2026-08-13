@@ -1,0 +1,114 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../vendor/cordis"
+    },
+    {
+      "path": "../../vendor/loader"
+    },
+    {
+      "path": "../../vendor/include"
+    },
+    {
+      "path": "../../packages/boot/app-boot"
+    },
+    {
+      "path": "../../packages/bundle/base"
+    },
+    {
+      "path": "../../packages/bundle/headless"
+    },
+    {
+      "path": "../../packages/bundle/web-app"
+    },
+    {
+      "path": "../../packages/host/apiproxy"
+    },
+    {
+      "path": "../../packages/host/webserver"
+    },
+    {
+      "path": "../../packages/host/frontend-static"
+    },
+    {
+      "path": "../../packages/core/session"
+    },
+    {
+      "path": "../../packages/core/system-prompt"
+    },
+    {
+      "path": "../../packages/core/tools"
+    },
+    {
+      "path": "../../packages/util/paths"
+    },
+    {
+      "path": "../../packages/mcp/mcp-client"
+    },
+    {
+      "path": "../../packages/support/loader-smoke"
+    },
+    {
+      "path": "../../packages/session-query/session-query-sqlite"
+    },
+    {
+      "path": "../../packages/bash/bash-env"
+    },
+    {
+      "path": "../../packages/bash/tool-bash"
+    },
+    {
+      "path": "../../packages/client/connection"
+    },
+    {
+      "path": "../../packages/client/hmr"
+    },
+    {
+      "path": "../../packages/client/runtime"
+    },
+    {
+      "path": "../../packages/client/ui-theme"
+    },
+    {
+      "path": "../../packages/client/ui-settings"
+    },
+    {
+      "path": "../../packages/client/ui-settings-general"
+    },
+    {
+      "path": "../../packages/client/ui-models"
+    },
+    {
+      "path": "../../packages/client/ui-permission"
+    },
+    {
+      "path": "../../packages/client/locale"
+    },
+    {
+      "path": "../../packages/client/ui-layout"
+    },
+    {
+      "path": "../../packages/client/ui-sidebar"
+    },
+    {
+      "path": "../../packages/client/ui-conversation"
+    },
+    {
+      "path": "../../packages/client/ui-plan"
+    },
+    {
+      "path": "../../packages/client/ui-trajectory"
+    },
+    {
+      "path": "../../packages/client/ui-question"
+    }
+  ]
+}

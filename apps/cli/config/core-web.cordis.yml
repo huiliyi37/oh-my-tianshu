@@ -1,0 +1,110 @@
+# Opt-in Web shell for the RL core agent contract. The model receives exactly
+# the configured persona plus the native `bash` and `str_replace_editor`
+# schemas; the Web host, browser shell, persistence, and permission stack stay.
+
+# Match the Claude SWE-compatible RL core prompt. Disabling the Web runtime's
+# surface context removes its GUI orientation, managed shell variables, and the
+# launcher's source-checkout section through one configuration contract.
+# Workspace instructions are model-visible user context rather than a system
+# section, but RL core disables them as part of the same prompt contract.
+- id: system-prompt
+  config:
+    includeHarnessIdentity: false
+    persona: !!js process.env.DSH_SYSTEM_PROMPT ?? 'You are a helpful software engineer assistant.'
+
+- id: web-runtime
+  config:
+    surfaceContext: false
+
+- id: workspace-context
+  disabled: true
+
+- id: tools
+  config:
+    mode: native
+
+# Disable every model-facing consumer in the base/Web tree. plan-mode owns the
+# always-registered exit_plan_mode tool even while the session is not planning.
+- id: tool-bash
+  disabled: true
+
+- id: tool-tasks
+  disabled: true
+
+- id: tool-fs
+  disabled: true
+
+- id: tool-fs-search
+  disabled: true
+
+- id: tool-web
+  disabled: true
+
+- id: tool-skill
+  disabled: true
+
+- id: plan-mode
+  disabled: true
+
+- id: tool-subagent-control
+  disabled: true
+
+- id: tool-subagent-list-agents
+  disabled: true
+
+- id: tool-subagent
+  disabled: true
+
+- id: tool-subagent-fork
+  disabled: true
+
+- id: tool-workflow
+  disabled: true
+
+- id: tool-todo
+  disabled: true
+
+# These consumers are shared defaults on the ordinary shipped surfaces, but
+# this opt-in profile keeps exactly its two named tools.
+- id: tool-goal
+  disabled: true
+
+- id: tool-ralph
+  disabled: true
+
+- id: tool-str-replace-editor
+  disabled: true
+
+# The matching browser controls must not offer host tools that this profile
+# omits. ui-question's host half owns the ask_user_question registration.
+- id: ui-plan
+  disabled: true
+
+- id: ui-question
+  disabled: true
+
+- insert:
+    - id: pty
+      name: '@deepseek-ai/dsh-pty'
+
+    # This backend consumes the existing Web sandbox and permission policy.
+    # It loads only on Linux/macOS; Windows and other platforms fail at boot.
+    # Its 300s send wait matches the persistent Bash command timeout instead of
+    # pty-local's 30s default. An open persistent shell fences permission-mode
+    # changes until it closes.
+    - id: pty-local
+      name: '@deepseek-ai/dsh-pty-local'
+      config:
+        timeoutMs: 300000
+
+    - id: persistent-bash
+      name: '@deepseek-ai/dsh-tool-bash-persistent'
+      config:
+        timeoutMs: 300000
+
+    # The editor consumes the Web fs-sandbox provider and therefore retains
+    # the selected session permission mode.
+    - id: str-replace-editor
+      name: '@deepseek-ai/dsh-tool-str-replace-editor'
+      config:
+        maxOutputChars: 16000

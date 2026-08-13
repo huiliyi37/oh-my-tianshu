@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling>=1.30.1"]
+build-backend = "hatchling.build"
+
+[project]
+name = "deepseek-harness"
+version = "0.0.0.dev0"
+description = "Python SDK for DeepSeek Harness"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "BSD-3-Clause" }
+dependencies = [
+  "pydantic>=2.12",
+  "deepseek-harness-runtime-bin==0.0.0.dev0",
+]
+
+[dependency-groups]
+test = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/deepseek_harness"]
+
+# Editable installs see runtime executables injected after installation instead
+# of freezing a wheel snapshot.
+[tool.uv.sources]
+deepseek-harness-runtime-bin = { path = "../sdk-runtime", editable = true }

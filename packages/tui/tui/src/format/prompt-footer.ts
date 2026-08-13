@@ -1,0 +1,93 @@
+/**
+ * 底部 footer（format/prompt-footer.ts）— 纯渲染（C4 概念稿 C 三行底部区）。
+ *
+ * 输入行下方的模式/快捷键提示行：mode 段（normal + [plan]/[plan…]/[auto]
+ * 徽标，与 statusline 徽标词汇一致）在前，快捷键提示在后。窄宽从后往前
+ * 丢段（ctrl+p 面板 → / 命令 → Enter 发送），mode 恒保留。
+ * 概念稿 B 布局：宽终端（≥ FOOTER_RIGHT_MERGE_MIN_WIDTH）时右侧状态段
+ * （token/模型/API 等）右对齐合并进同一行，放不下从后往前丢右段；
+ * 窄终端不合并（调用方纵排两行）。宽度守恒：任何输入下每行显示宽度 ≤ width。
+ */
+import { color } from '../engine/ansi.js'
+import type { RivetTheme } from '../theme.js'
+import { displayWidth } from '../width.js'
+
+/** 右侧状态段合并进 footer 行的最小宽度（B 布局：窄于此纵排两行）。 */
+export const FOOTER_RIGHT_MERGE_MIN_WIDTH = 80
+
+/** formatPromptFooter 的渲染输入。 */
+export interface FormatPromptFooterInput {
+  width: number
+  /** plan 模式已生效（mode 段渲染 [plan]）。 */
+  planActive?: boolean
+  /** plan 切换待请求边界落地（渲染 [plan…]，优先于 planActive）。 */
+  planPending?: boolean
+  /** always-approve 生效（mode 段渲染 [auto]）。 */
+  alwaysApprove?: boolean
+  /** 右侧状态段（B 布局：token/模型/API 等）；宽终端右对齐合并，放不下从后丢段。 */
+  rightSegments?: readonly string[]
+}
+
+/**
+ * 渲染底部 footer：mode 段 + 快捷键提示段，宽终端合并右侧状态段（右对齐）。
+ * @param input - 宽度、模式徽标与右侧状态段。
+ * @param theme - 当前主题（mode primary、快捷键 muted、右段 muted）。
+ * @returns 单行 ANSI；任何宽度下 ≤ width。
+ */
+export function formatPromptFooter(input: FormatPromptFooterInput, theme: RivetTheme): string[] {
+  const { width, planActive, planPending, alwaysApprove } = input
+  const badge = planPending === true ? ' [plan…]' : planActive === true ? ' [plan]' : ''
+  const auto = alwaysApprove === true ? ' [auto]' : ''
+  const mode = `normal${badge}${auto}`
+  const hints = ['Enter 发送', '/ 命令', 'ctrl+p 面板']
+  // 从后往前丢段直到放得下（mode 恒保留）。
+  let segs = hints
+  for (;;) {
+    const text = [mode, ...segs].join(' · ')
+    if (displayWidth(text) <= width) {
+      const parts = [color(mode, theme.primary)]
+      for (const s of segs) {
+        parts.push(color(s, theme.muted))
+      }
+      const leftAnsi = parts.join(' · ')
+      const right = input.rightSegments
+      if (right !== undefined && right.length > 0 && width >= FOOTER_RIGHT_MERGE_MIN_WIDTH) {
+        return mergeRightSegments(leftAnsi, text, right, width, theme)
+      }
+      return [leftAnsi]
+    }
+    if (segs.length === 0) break
+    segs = segs.slice(0, -1)
+  }
+  return [color(mode, theme.primary)]
+}
+
+/**
+ * 左侧 + 右侧状态段合并为一行（右对齐）；右段放不下时从后往前丢。
+ * @param leftAnsi - 已着色的左侧文本。
+ * @param leftPlain - 左侧纯文本（宽度度量用）。
+ * @param right - 右侧状态段（纯文本）。
+ * @param width - 目标行宽。
+ * @param theme - 当前主题（右段 muted）。
+ * @returns 合并后的单行 ANSI。
+ */
+function mergeRightSegments(
+  leftAnsi: string,
+  leftPlain: string,
+  right: readonly string[],
+  width: number,
+  theme: RivetTheme,
+): string[] {
+  let rightSegs = [...right]
+  for (;;) {
+    const rightPlain = rightSegs.join(' · ')
+    const pad = Math.max(0, width - displayWidth(leftPlain) - displayWidth(rightPlain))
+    if (pad > 0) {
+      const rightAnsi = rightSegs.map(s => color(s, theme.muted)).join(' · ')
+      return [`${leftAnsi}${' '.repeat(pad)}${rightAnsi}`]
+    }
+    /* v8 ignore next -- 不可达：width ≥ FOOTER_RIGHT_MERGE_MIN_WIDTH 且左侧 ≤ 43 字符时必能放下 1 个右段 */
+    if (rightSegs.length === 0) return [leftAnsi]
+    rightSegs = rightSegs.slice(0, -1)
+  }
+}

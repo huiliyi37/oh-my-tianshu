@@ -1,0 +1,57 @@
+CLAUDE.local.md
+.env
+node_modules/
+lib/
+*.tsbuildinfo
+pnpm-debug.log
+.pnpm-store/
+.cache/
+examples/*/*.jsonl
+.storages/
+.sessions/
+examples/*/.sessions/
+coverage/
+.doc-typecheck-*/
+.node-next-types-*/
+.oxlint-contract-*/
+.oxlintrc.contract-*.json
+oxlint-contract-*.ts
+.humanize/
+tmp/
+.claude/commands/
+.claude/settings.json
+.vscode/
+.DS_Store
+.idea
+mise.toml
+dist-exe/
+python/sdk-runtime/src/deepseek_harness_runtime/runtime/dsh-jsonrpc-agent-*
+python/sdk-runtime/src/deepseek_harness_runtime/runtime/node/
+python/**/__pycache__/
+python/**/.pytest_cache/
+apps/web/dist/
+.artifacts/
+.playwright-mcp/
+.orig
+.worktrees/
+worktrees/
+.agents/worktrees/
+.typert-*/
+
+# Harness runtime state (plans, knowledge, scratch, backups, artifacts).
+.rivet/
+
+# Local lefthook override for sandboxed serial pre-commit.
+lefthook-local.yml
+
+# Coverage-campaign scratch probes (cov-analyze.cjs, diag dumps).
+.zcode/
+
+# In-place tsc emissions (js + declaration + sourcemaps) that escaped into
+# packages/*/src/. Proper build output lives in lib/. Hand-written ambient
+# *.d.ts (css-modules.d.ts, env.d.ts) are already tracked and unaffected;
+# future ambient d.ts in src/ need `git add -f`.
+packages/**/src/*.js
+packages/**/src/*.js.map
+packages/**/src/*.d.ts
+packages/**/src/*.d.ts.map

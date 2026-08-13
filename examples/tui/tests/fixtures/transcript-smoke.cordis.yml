@@ -1,0 +1,35 @@
+# Keyless transcript smoke composition: the same agent spine as cordis.yml
+# minus the interactive tui-runner, so a headless subprocess can drive one
+# task and fold the canonical session events into the transcript projection.
+
+- id: settings
+  name: '@deepseek-ai/dsh-settings-local'
+
+- id: credentials
+  name: '@deepseek-ai/dsh-credentials-local'
+
+- id: llm-deepseek
+  name: '@deepseek-ai/dsh-llm-deepseek'
+  config:
+    thinking: enabled
+    reasoningEffort: max
+    models:
+      - id: deepseek-v4-pro
+        contextWindow: 128000
+      - id: deepseek-v4-flash
+        contextWindow: 128000
+
+- id: agent-spine
+  name: '@deepseek-ai/dsh-agent-spine-demo'
+  config:
+    agents:
+      - id: main
+        provider: deepseek-official
+        model: deepseek-v4-flash
+        cwd: !!js process.cwd()
+    workspaceContext:
+      maxBytes: 65536
+    persona: |
+      You are the tui smoke agent, powered by the {{model}} model.
+
+      Keep answers brief and factual.

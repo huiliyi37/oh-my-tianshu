@@ -1,0 +1,26 @@
+#!/bin/sh
+# dsh launcher: runs the apps/cli `dsh` bin FROM SOURCE through the tsx ESM
+# hook, so a symlink from anywhere (e.g. ~/.local/bin/dsh) always executes the
+# current working tree without a build step.
+set -eu
+
+# Resolve symlink chains without readlink -f (not on every macOS).
+script=$0
+while [ -L "$script" ]; do
+  target=$(readlink "$script")
+  case $target in
+    /*) script=$target ;;
+    *) script=$(dirname "$script")/$target ;;
+  esac
+done
+root=$(CDPATH='' cd -- "$(dirname -- "$script")/.." && pwd)
+
+# The ESM-only tsx hook transforms TypeScript and projects this checkout's
+# tsconfig paths into Node resolution (the CJS hook stays off: the graph is
+# ESM-only and the CJS resolver costs ~0.4s of startup). Absolute paths keep
+# both the hook and the tsconfig anchored to this checkout when the launcher
+# runs from any cwd, where bare `tsx/esm` would not resolve.
+NODE_USE_ENV_PROXY=1 \
+  TSX_TSCONFIG_PATH="$root/tsconfig.json" \
+  exec node --import "$root/node_modules/tsx/dist/esm/index.mjs" \
+  "$root/apps/cli/src/bin.ts" "$@"

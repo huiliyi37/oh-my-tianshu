@@ -1,0 +1,30 @@
+{
+  "name": "dsh-github-repository-plugin-e2e-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "lib",
+    "dsh-plugin.mjs",
+    "dsh-plugin-assets"
+  ],
+  "scripts": {
+    "prepack": "tsc --noEmit && tsdown src/plugin.ts src/mcp-server.ts --no-config --tsconfig tsconfig.json --out-dir lib --platform node --target es2024 --clean && dsh-plugin-prepare"
+  },
+  "dsh": {
+    "skills": [
+      "../skills"
+    ],
+    "mcpServers": "./.mcp.json",
+    "entry": "./lib/plugin.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-repository-plugin": "0.0.1",
+    "cordis": "4.0.0-rc.7",
+    "tsdown": "0.22.2",
+    "typescript": "6.0.3"
+  }
+}

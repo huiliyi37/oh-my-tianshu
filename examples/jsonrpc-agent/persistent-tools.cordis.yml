@@ -1,0 +1,59 @@
+# Minimal unattended composition for the persistent Bash and string-replace
+# editor. It is runnable through the JSON-RPC example runtime and intentionally
+# keeps the model-facing surface to exactly these two tools.
+
+- id: jsonrpc
+  name: '@deepseek-ai/dsh-jsonrpc'
+
+- id: llm-deepseek
+  name: '@deepseek-ai/dsh-llm-deepseek'
+  config:
+
+- id: sandbox
+  name: '@deepseek-ai/dsh-sandbox-local'
+
+- id: sandbox-policy
+  name: '@deepseek-ai/dsh-sandbox-policy'
+  config:
+    mode: danger-full-access
+    workspaceRoot: !!js process.env.DSH_CWD ?? process.cwd()
+
+- id: subprocess
+  name: '@deepseek-ai/dsh-subprocess-local'
+
+- id: pty
+  name: '@deepseek-ai/dsh-pty'
+
+- id: pty-local
+  name: '@deepseek-ai/dsh-pty-local'
+
+- id: fs-sandbox
+  name: '@deepseek-ai/dsh-fs-sandbox'
+  config:
+    cwd: !!js process.env.DSH_CWD ?? process.cwd()
+
+- id: fs-policy
+  name: '@deepseek-ai/dsh-fs-policy'
+
+- id: agent-spine
+  name: '@deepseek-ai/dsh-agent-spine-demo'
+  config:
+    includeHarnessIdentity: false
+    persona: 'You are a helpful software engineer assistant.'
+    workspaceContext: false
+    skills:
+      enabled: false
+    toolBash: false
+    toolTasks: false
+
+- id: persistent-bash
+  name: '@deepseek-ai/dsh-tool-bash-persistent'
+
+- id: str-replace-editor
+  name: '@deepseek-ai/dsh-tool-str-replace-editor'
+
+- id: sessions
+  name: '@deepseek-ai/dsh-session-persistence-jsonl'
+  config:
+    root: !!js process.env.DSH_SESSION_ROOT ?? './.sessions'
+    compression: none

@@ -1,0 +1,56 @@
+# examples/tui — the interactive terminal UI composition.
+#
+# This leaf rides the @deepseek-ai/dsh-tui bundle over the same agent spine
+# the headless-agent example uses: settings + credentials + the real
+# DeepSeek adapter + one pre-created `main` agent, then mounts the
+# `tui-runner` plugin that drives the terminal render core. Run it with the
+# repo root `.env` (DEEPSEEK_API_KEY) exported, or a gitignored root `.env`.
+
+# User-settings document (`$DSH_HOME/settings.yaml`, hot-reloaded).
+- id: settings
+  name: '@deepseek-ai/dsh-settings-local'
+
+# Credential store: resolves DEEPSEEK_API_KEY from the process environment
+# at each request — no key is inlined in this file.
+- id: credentials
+  name: '@deepseek-ai/dsh-credentials-local'
+
+# The DeepSeek adapter. Shipped default: full thinking at max effort.
+- id: llm-deepseek
+  name: '@deepseek-ai/dsh-llm-deepseek'
+  config:
+    thinking: enabled
+    reasoningEffort: max
+    models:
+      - id: deepseek-v4-pro
+        contextWindow: 128000
+      - id: deepseek-v4-flash
+        contextWindow: 128000
+
+# The example composition pre-creates one fresh `main` agent; the TUI runner
+# switches into it on attach.
+- id: agent-spine
+  name: '@deepseek-ai/dsh-agent-spine-demo'
+  config:
+    agents:
+      - id: main
+        provider: deepseek-official
+        model: deepseek-v4-flash
+        cwd: !!js process.cwd()
+    workspaceContext:
+      maxBytes: 65536
+    persona: |
+      You are the tui example agent, powered by the {{model}} model.
+
+      Keep answers brief and factual.
+
+# The interactive terminal UI runner: reads the session log through the
+# read-only adapter/transcript projection and renders it with the ported
+# render core. No new event vocabulary — the session log stays authoritative.
+- id: tui-runner
+  name: '@deepseek-ai/dsh-tui'
+
+# C3 项 3：文件快照（rewind 文件回退的底层）——写工具执行前全文件备份，
+# /rewind 的 code/both 粒度依赖它。backupDir 默认 $TMPDIR/dsh-fs-snapshot。
+- id: fs-snapshot
+  name: '@deepseek-ai/dsh-fs-snapshot'

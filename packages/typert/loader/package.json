@@ -1,0 +1,43 @@
+{
+  "name": "@deepseek-ai/dsh-typert-loader",
+  "description": "Loader integration for generated Typert package contributions",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "BSD-3-Clause",
+  "peerDependencies": {
+    "@cordisjs/plugin-loader": "^1.0.0-rc.5",
+    "@deepseek-ai/dsh-invariants": "^0.0.1",
+    "@deepseek-ai/dsh-typert-registry": "^0.0.1",
+    "cordis": "^4.0.0-rc.7"
+  },
+  "dependencies": {
+    "schemastery": "^3.18.0"
+  },
+  "devDependencies": {
+    "@cordisjs/plugin-loader": "workspace:^",
+    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "@deepseek-ai/dsh-typert-registry": "workspace:^",
+    "cordis": "^4.0.0-rc.7",
+    "zod": "^4.4.3"
+  }
+}

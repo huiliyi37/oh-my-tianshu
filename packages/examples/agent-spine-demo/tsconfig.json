@@ -1,0 +1,90 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/timer"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../../native/landlock-run/packages/entry"
+    },
+    {
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../session/session-title"
+    },
+    {
+      "path": "../../core/system-prompt"
+    },
+    {
+      "path": "../../core/tools"
+    },
+    {
+      "path": "../../skill/skill"
+    },
+    {
+      "path": "../../skill/skill-local"
+    },
+    {
+      "path": "../../skill/tool-skill"
+    },
+    {
+      "path": "../../core/agent"
+    },
+    {
+      "path": "../../goal/goal"
+    },
+    {
+      "path": "../../goal/tool-goal"
+    },
+    {
+      "path": "../../goal/goal-session"
+    },
+    {
+      "path": "../../context/workspace-context"
+    },
+    {
+      "path": "../../core/agent-loop"
+    },
+    {
+      "path": "../../llm/llm-retry"
+    },
+    {
+      "path": "../../support/invariants"
+    },
+    {
+      "path": "../../util/paths"
+    },
+    {
+      "path": "../../bash/bash-env"
+    },
+    {
+      "path": "../../bash/tool-bash"
+    },
+    {
+      "path": "../../tasks/tasks"
+    },
+    {
+      "path": "../../tasks/tasks-local"
+    },
+    {
+      "path": "../../tasks/tool-tasks"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "name": "@deepseek-ai/dsh-helper",
+  "description": "Domain model and infrastructure for creating and editing DeepSeek Harness SDK projects",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/assets",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "@clack/core": "^1.4.3",
+    "@clack/prompts": "^1.7.0",
+    "handlebars": "^4.7.9",
+    "jsonc-parser": "^3.3.1",
+    "yaml": "^2.9.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-brand": "^0.0.1",
+    "@deepseek-ai/dsh-invariants": "^0.0.1",
+    "@deepseek-ai/dsh-subprocess": "^0.0.1",
+    "cordis": "^4.0.0-rc.7"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-brand": "workspace:^",
+    "@deepseek-ai/dsh-hooks-claude": "workspace:^",
+    "@deepseek-ai/dsh-hooks-codex": "workspace:^",
+    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "@deepseek-ai/dsh-session-persistence-jsonl": "workspace:^",
+    "@deepseek-ai/dsh-session-persistence-sqlite": "workspace:^",
+    "@deepseek-ai/dsh-subprocess": "workspace:^",
+    "@deepseek-ai/dsh-tool-subagent": "workspace:^",
+    "@deepseek-ai/dsh-tool-todo": "workspace:^",
+    "@deepseek-ai/dsh-tool-web": "workspace:^",
+    "cordis": "^4.0.0-rc.7"
+  }
+}

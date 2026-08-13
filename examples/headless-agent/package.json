@@ -1,0 +1,13 @@
+{
+  "name": "headless-agent-example",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Runnable demo: one complete headless coding-agent turn",
+  "devDependencies": {
+    "@deepseek-ai/dsh-evidence-gate": "workspace:^",
+    "@deepseek-ai/dsh-tool-str-replace-editor": "workspace:^",
+    "@deepseek-ai/dsh-fs-local": "workspace:^",
+    "@deepseek-ai/dsh-agent-router": "workspace:^"
+  }
+}

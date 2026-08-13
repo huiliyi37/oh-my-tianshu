@@ -1,0 +1,194 @@
+# The dsh-web-app bundle patch: the browser surface over the dsh-base layer.
+# Applied after dsh-base's insert; rows here override base rows by id, with
+# the profile's own cordis.patch.yml and any --patch overlays still to come.
+#
+# A patch replaces the targeted row's whole `config`, so each row below
+# restates every key it owns. The `dsh web` launcher alias turns --host/--port/
+# --dev/--workspace-root/--trusted-host into further patches over these rows
+# (`--dev` inserts the dsh-client-hmr row).
+
+# ── surface-specific values the base deliberately omits ─────────────────────
+
+- id: system-prompt
+  config:
+    persona: >-
+      You are a coding agent powered by the {{model}} model. Your working directory is {{cwd}}.
+
+# TODO: Re-enable shared HMR for Web after its reload lifecycle is tested.
+- id: hmr
+  disabled: true
+
+# Web content search runs on an ephemeral in-memory index. The service
+# activates at boot, while first-search defers the node:sqlite import and
+# in-memory handle so Node 22 startup stays quiet until content search
+# actually uses SQLite. That search then reconciles this boot's sources.
+- id: session-query-sqlite
+  config:
+    path: ':memory:'
+    openAt: first-search
+
+- id: tools
+  config:
+    # TEMPORARY workaround: DSH_TOOLS_MODE (native|code|both) opts a whole dsh
+    # process into Code Mode while per-session tool-mode selection is being
+    # designed; unset keeps the schema default (native). Remove the env seam
+    # once the web UI owns the choice per session.
+    mode: !!js process.env.DSH_TOOLS_MODE
+
+# ── web-only host rows, the transport layer, and the browser roster ─────────
+
+# `dshClient` rows are the browser roster the modules node half scans into
+# window.__DSH_BOOT__; the modules row is simultaneously a host row.
+- insert:
+    - id: code-runtime
+      name: '@deepseek-ai/dsh-code-runtime-worker'
+
+    - id: storage
+      name: '@deepseek-ai/dsh-storage'
+
+    - id: storage-json
+      name: '@deepseek-ai/dsh-storage-json'
+      config:
+        root: !!js dshHomePath('storages')
+
+    - id: storage-domain
+      name: '@deepseek-ai/dsh-storage-domain'
+      config:
+        backend: json
+
+    - id: workspace
+      name: '@deepseek-ai/dsh-workspace'
+
+    - id: session-projection-cache
+      name: '@deepseek-ai/dsh-session-projection-cache'
+      config:
+        writeEveryEvents: 200
+        writeIntervalMs: 5000
+
+    # Resolve bind host, SSH launch, and display once at boot, then mount the
+    # matching dual-face directory picker. Mount -native or -browse directly in
+    # an overlay to pin the interaction.
+    - id: directory-picker
+      name: '@deepseek-ai/dsh-host-directory-picker-auto'
+
+    # The API gateway: the transport-agnostic dispatch face every client shape
+    # shares. The base layer's agent-default-model service owns the default model.
+    - id: api-gateway
+      name: '@deepseek-ai/dsh-host-apiproxy'
+
+    # ── layer 2: transport/service ──────────────────────────────────────────────
+
+    # Plain route-registration carrier; host and port arrive as `dsh web`
+    # flag patches over these defaults. The dist is served by the web-runtime
+    # row below through the fallback seat.
+    - id: webserver
+      name: '@deepseek-ai/dsh-host-webserver'
+      config:
+        host: 127.0.0.1
+        port: 3080
+
+    # Web glue owned by this bundle: resolves the built frontend dist (an
+    # assembly fact of dsh-web-app, never user config), mounts the
+    # frontend-static fallback owner, registers the web-surface prompt
+    # section and bash runtime variables, and prints the URL line. `dsh web`
+    # patches mode/lanAddresses over these defaults; complete-prompt overlays
+    # set surfaceContext false to suppress every model- and shell-visible Web
+    # runtime contribution.
+    - id: web-runtime
+      name: '@deepseek-ai/dsh-web-app'
+      config:
+        mode: production
+        printUrl: true
+        surfaceContext: true
+
+    # ── browser plugin roster (dshClient rows; node halves are layer-2 hosts) ──
+
+    # Dual-face: node half scans this very tree for dshClient rows, composes
+    # window.__DSH_BOOT__, serves /plugins/<id>/client.js; browser half is the
+    # module table the shell kernel constructs before cordis exists (§4.7 —
+    # adopted as a plugin entry by the kernel, never fetched).
+    - id: modules
+      name: '@deepseek-ai/dsh-client-modules'
+
+    # Owns both ends of the web transport: node half binds the gateway to the
+    # webserver under /api; browser half is the fetch/SSE client.
+    - id: connection
+      name: '@deepseek-ai/dsh-client-connection'
+
+    - id: api-remotes
+      name: '@deepseek-ai/dsh-api-remotes'
+
+    - id: client-runtime
+      name: '@deepseek-ai/dsh-client-runtime'
+
+    - id: ui-theme
+      name: '@deepseek-ai/dsh-client-ui-theme'
+
+    - id: locale
+      name: '@deepseek-ai/dsh-client-locale'
+
+    - id: ui-layout
+      name: '@deepseek-ai/dsh-client-ui-layout'
+
+    - id: ui-sidebar
+      name: '@deepseek-ai/dsh-client-ui-sidebar'
+
+    - id: ui-settings
+      name: '@deepseek-ai/dsh-client-ui-settings'
+
+    - id: ui-settings-general
+      name: '@deepseek-ai/dsh-client-ui-settings-general'
+
+    - id: ui-models
+      name: '@deepseek-ai/dsh-client-ui-models'
+
+    - id: ui-conversation
+      name: '@deepseek-ai/dsh-client-ui-conversation'
+
+    # Tool call tree, generic fallback, and keyed business Tool views.
+    - id: ui-tool
+      name: '@deepseek-ai/dsh-client-ui-tool'
+
+    # Turn tail: the produced-files row under each closing assistant message.
+    # Remove this entry to turn the surface off; the tail hole renders empty.
+    - id: ui-deliverables
+      name: '@deepseek-ai/dsh-client-ui-deliverables'
+
+
+    - id: ui-workspace
+      name: '@deepseek-ai/dsh-client-ui-workspace'
+
+    # Input triggers: the '/' | '@' pipeline (ui-slash), the command surface over
+    # it (ui-command), and the two reference sources (ui-skill / ui-subagent).
+    - id: ui-slash
+      name: '@deepseek-ai/dsh-client-ui-slash'
+
+    - id: ui-command
+      name: '@deepseek-ai/dsh-client-ui-command'
+
+    - id: ui-skill
+      name: '@deepseek-ai/dsh-client-ui-skill'
+
+    - id: ui-subagent
+      name: '@deepseek-ai/dsh-client-ui-subagent'
+
+    # Goal surface: GoalBar in the input dock over the goal session projection.
+    - id: ui-goal
+      name: '@deepseek-ai/dsh-client-ui-goal'
+
+    # Model selection: the /model popupSelect + composer seat over session.models.
+    - id: ui-model
+      name: '@deepseek-ai/dsh-client-ui-model'
+
+    - id: ui-permission
+      name: '@deepseek-ai/dsh-client-ui-permission'
+
+    # Plan control: the composer plan seat over the plan projection + /plan channel.
+    - id: ui-plan
+      name: '@deepseek-ai/dsh-client-ui-plan'
+
+    - id: ui-question
+      name: '@deepseek-ai/dsh-client-ui-question'
+
+    - id: ui-trajectory
+      name: '@deepseek-ai/dsh-client-ui-trajectory'

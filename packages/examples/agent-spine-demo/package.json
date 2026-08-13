@@ -1,0 +1,93 @@
+{
+  "name": "@deepseek-ai/dsh-agent-spine-demo",
+  "description": "The default executor-less/UI-less agent spine with fallback session titles, provider-routed retry, and optional persisted goals",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "BSD-3-Clause",
+  "peerDependencies": {
+    "@cordisjs/plugin-timer": "^1.1.2",
+    "@deepseek-ai/dsh-agent": "^0.0.1",
+    "@deepseek-ai/dsh-agent-loop": "^0.0.1",
+    "@deepseek-ai/dsh-goal": "^0.0.1",
+    "@deepseek-ai/dsh-goal-session": "^0.0.1",
+    "@deepseek-ai/dsh-invariants": "^0.0.1",
+    "@deepseek-ai/dsh-llm": "^0.0.1",
+    "@deepseek-ai/dsh-paths": "^0.0.1",
+    "@deepseek-ai/dsh-llm-retry": "^0.0.1",
+    "@deepseek-ai/dsh-scope": "^0.0.1",
+    "@deepseek-ai/dsh-session": "^0.0.1",
+    "@deepseek-ai/dsh-session-title": "^0.0.1",
+    "@deepseek-ai/dsh-skill": "^0.0.1",
+    "@deepseek-ai/dsh-skill-local": "^0.0.1",
+    "@deepseek-ai/dsh-system-prompt": "^0.0.1",
+    "@deepseek-ai/dsh-tasks-local": "^0.0.1",
+    "@deepseek-ai/dsh-bash-env": "^0.0.1",
+    "@deepseek-ai/dsh-tool-bash": "^0.0.1",
+    "@deepseek-ai/dsh-tool-goal": "^0.0.1",
+    "@deepseek-ai/dsh-tool-skill": "^0.0.1",
+    "@deepseek-ai/dsh-tool-tasks": "^0.0.1",
+    "@deepseek-ai/dsh-tools": "^0.0.1",
+    "@deepseek-ai/dsh-workspace-context": "^0.0.1",
+    "cordis": "^4.0.0-rc.7"
+  },
+  "devDependencies": {
+    "@cordisjs/plugin-timer": "workspace:^",
+    "@deepseek-ai/dsh-agent": "workspace:^",
+    "@deepseek-ai/dsh-agent-loop": "workspace:^",
+    "@deepseek-ai/dsh-bash-env": "workspace:^",
+    "@deepseek-ai/dsh-bash-local": "workspace:^",
+    "@deepseek-ai/dsh-bash-sandbox": "workspace:^",
+    "@deepseek-ai/dsh-fs-local": "workspace:^",
+    "@deepseek-ai/dsh-fs-policy": "workspace:^",
+    "@deepseek-ai/dsh-fs-sandbox": "workspace:^",
+    "@deepseek-ai/dsh-goal": "workspace:^",
+    "@deepseek-ai/dsh-goal-session": "workspace:^",
+    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "@deepseek-ai/dsh-llm": "workspace:^",
+    "@deepseek-ai/dsh-paths": "workspace:^",
+    "@deepseek-ai/dsh-llm-retry": "workspace:^",
+    "@deepseek-ai/dsh-subprocess-local": "workspace:^",
+    "@deepseek-ai/dsh-sandbox-local": "workspace:^",
+    "@deepseek-ai/dsh-sandbox-policy": "workspace:^",
+    "@deepseek-ai/dsh-scope": "workspace:^",
+    "@deepseek-ai/dsh-session": "workspace:^",
+    "@deepseek-ai/dsh-session-title": "workspace:^",
+    "@deepseek-ai/dsh-skill": "workspace:^",
+    "@deepseek-ai/dsh-skill-local": "workspace:^",
+    "@deepseek-ai/dsh-system-prompt": "workspace:^",
+    "@deepseek-ai/dsh-tasks": "workspace:^",
+    "@deepseek-ai/dsh-tasks-local": "workspace:^",
+    "@deepseek-ai/dsh-tool-bash": "workspace:^",
+    "@deepseek-ai/dsh-tool-fs": "workspace:^",
+    "@deepseek-ai/dsh-tool-goal": "workspace:^",
+    "@deepseek-ai/dsh-tool-skill": "workspace:^",
+    "@deepseek-ai/dsh-tool-tasks": "workspace:^",
+    "@deepseek-ai/dsh-tools": "workspace:^",
+    "@deepseek-ai/dsh-workspace-context": "workspace:^",
+    "@deepseek-ai/node-addon-landlock-run": "workspace:*",
+    "cordis": "^4.0.0-rc.7"
+  },
+  "dependencies": {
+    "schemastery": "^3.18.0"
+  }
+}

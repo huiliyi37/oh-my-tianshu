@@ -1,0 +1,6 @@
+- id: skill-local
+  config:
+    watch: false
+
+- id: telemetry-otel
+  disabled: true

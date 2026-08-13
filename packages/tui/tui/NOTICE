@@ -1,0 +1,22 @@
+@deepseek-ai/dsh-tui
+Copyright (c) 2025-2026 DeepSeek Harness contributors
+
+This package redistributes and adapts the terminal UI rendering engine of
+Tianshu (天枢, formerly codenamed Rivet; https://github.com/huiliyi37/Tianshu-Tui),
+an Apache-2.0 licensed terminal coding agent runtime:
+
+  Copyright 2025-2026 Tianshu Contributors
+  Licensed under the Apache License, Version 2.0 (the "License").
+
+The full text of the Apache License, Version 2.0 is included in the
+accompanying LICENSE file. The complete per-file source mapping (source path
+in the Tianshu repository -> target path in this package -> modified or not)
+is recorded in SOURCE-MAP.md.
+
+Modified files (per Apache License 2.0, section 4(b)) are enumerated in
+SOURCE-MAP.md with status `modified`; that table is the prominent, complete
+record of which files were changed from the upstream work.
+
+Files listed as `new` in SOURCE-MAP.md are original works of the DeepSeek
+Harness contributors, distributed under the same Apache License, Version 2.0
+as this package.

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "github_repository": {
+      "command": "node",
+      "args": [
+        "lib/mcp-server.mjs"
+      ]
+    }
+  }
+}

@@ -1,0 +1,7 @@
+# The dsh-tui bundle patch: mounts the interactive terminal UI runner over
+# dsh-base under the stable plugin id `tui-runner`. The runner hosts the
+# ported render core and the TuiApp assembly (see SOURCE-MAP.md and README.md).
+
+- insert:
+    - id: tui-runner
+      name: '@deepseek-ai/dsh-tui'
