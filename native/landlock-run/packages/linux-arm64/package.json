@@ -4,7 +4,7 @@
   "description": "Prebuilt landlock-run Landlock launcher binary for linux-arm64 (static musl) — resolved as a file path by @huiliyi37/node-addon-landlock-run, never imported",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/deepseek-harness/deepseek-harness.git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
     "directory": "native/landlock-run/packages/linux-arm64"
   },
   "os": [
@@ -24,7 +24,7 @@
   "engines": {
     "node": ">=20"
   },
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "publishConfig": {
     "access": "public"
   }

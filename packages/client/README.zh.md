@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-dsh web GUI 的浏览器侧：shell 启动、浏览器与宿主通信、共享 UI 服务和功能插件。编写规则见 [AGENTS.md](AGENTS.md)；宿主半侧是 [`host/`](../host/README.md)。除 `test-runtime` 外，均为命名成 `@huiliyi37/dsh-client-<name>` 的**产品**包。
+tianshu web GUI 的浏览器侧：shell 启动、浏览器与宿主通信、共享 UI 服务和功能插件。编写规则见 [AGENTS.md](AGENTS.md)；宿主半侧是 [`host/`](../host/README.md)。除 `test-runtime` 外，均为命名成 `@huiliyi37/dsh-client-<name>` 的**产品**包。
 
 | 包 | 目的 |
 |---|---|

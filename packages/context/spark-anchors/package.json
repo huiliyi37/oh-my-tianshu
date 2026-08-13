@@ -18,14 +18,19 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "lib/index.js",
+    "lib/invariant.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "dependencies": {
     "@huiliyi37/schemastery": "^3.18.0"
   },
@@ -41,7 +46,6 @@
   "devDependencies": {
     "@huiliyi37/dsh-agent": "workspace:^",
     "@huiliyi37/dsh-agent-default-model": "workspace:^",
-    "@huiliyi37/dsh-agent-loop": "workspace:^",
     "@huiliyi37/dsh-agent-loop-testkit": "workspace:^",
     "@huiliyi37/dsh-invariants": "workspace:^",
     "@huiliyi37/dsh-llm": "workspace:^",

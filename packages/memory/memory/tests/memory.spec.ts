@@ -82,11 +82,11 @@ describe('MarkdownMemoryStore', () => {
 
   it('search：朴素子串匹配（大小写不敏感），limit 生效', async () => {
     const store = await makeStore()
-    await store.save({ text: 'DeepSeek Harness SDK', scope: 'global', tags: [], source: 'user' })
+    await store.save({ text: 'Tianshu Harness SDK', scope: 'global', tags: [], source: 'user' })
     await store.save({ text: 'pnpm 包管理器', scope: 'global', tags: [], source: 'user' })
     const hits = await store.search('harness')
     expect(hits).toHaveLength(1)
-    expect(hits[0]?.text).toBe('DeepSeek Harness SDK')
+    expect(hits[0]?.text).toBe('Tianshu Harness SDK')
     const miss = await store.search('不存在的词')
     expect(miss).toHaveLength(0)
     const limited = await store.search('', { limit: 1 })

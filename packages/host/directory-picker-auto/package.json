@@ -1,6 +1,6 @@
 {
   "name": "@huiliyi37/dsh-host-directory-picker-auto",
-  "description": "Adaptive chooser of the directory-picker seam: resolves the host situation at boot and mounts the native or browse backend for the DeepSeek Harness web GUI host",
+  "description": "Adaptive chooser of the directory-picker seam: resolves the host situation at boot and mounts the native or browse backend for the Tianshu Harness web GUI host",
   "version": "0.2.0",
   "publishConfig": {
     "access": "public"
@@ -30,7 +30,7 @@
     "lib/invariant.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "peerDependencies": {
     "@huiliyi37/cordis-plugin-loader": "^1.0.0-rc.5",
     "@huiliyi37/dsh-host-directory-picker-browse": "^0.2.0",

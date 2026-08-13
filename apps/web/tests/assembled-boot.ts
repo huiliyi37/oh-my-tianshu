@@ -71,7 +71,7 @@ export function installAssembledBootEnv(): void {
   beforeEach(() => {
     localStorage.clear()
     localStorage.setItem('dsh.locale', 'en')
-    document.title = 'DeepSeek Harness'
+    document.title = 'Tianshu Harness'
     vi.stubGlobal('ResizeObserver', ResizeObserverStub)
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
       setTimeout(() => { callback(0) }, 0) as unknown as number)

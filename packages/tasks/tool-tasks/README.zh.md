@@ -55,7 +55,7 @@ Track every background task id you start. You are notified in-session when a tas
 
 #### 模型看到的内容
 
-该表层可见时，会看到生成的 [`task_output`、`task_list` 和 `task_kill` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-tasks)。
+该表层可见时，会看到生成的 [`task_output`、`task_list` 和 `task_kill` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-tasks)。
 
 #### Token 影响
 

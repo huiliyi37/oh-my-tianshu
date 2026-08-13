@@ -55,7 +55,7 @@ Prefix-stable while the plugin scope and guidance text are unchanged. Activation
 
 #### What the model sees
 
-The generated [`task_output`, `task_list`, and `task_kill` schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-tasks) while this surface is visible.
+The generated [`task_output`, `task_list`, and `task_kill` schemas](../../../docs/tool-catalog.md#huiliyi37dsh-tool-tasks) while this surface is visible.
 
 #### Token effect
 

@@ -461,7 +461,7 @@ describe('CreateWizard and scaffolder', () => {
   })
 
   it('reads the release batch from the initializer package', async () => {
-    await expect(readCreateSdkVersion()).resolves.toBe('0.0.1')
+    await expect(readCreateSdkVersion()).resolves.toBe('0.2.0')
   })
 })
 

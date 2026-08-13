@@ -8,28 +8,28 @@ export const WELCOME_NOTICE_ACK_FIELD = 'welcomeNoticeVersion'
  * Bump only when the notice changes materially and every user should see it
  * again. The acknowledgement is compared for exact equality.
  */
-export const WELCOME_NOTICE_VERSION = '2026-07-30.7'
+export const WELCOME_NOTICE_VERSION = '2026-08-13.1'
 
 /** The complete editable welcome notice in both supported GUI locales. */
 export const WELCOME_NOTICE_COPY = {
   zh: {
-    title: '内测声明',
+    title: '欢迎使用天枢',
     paragraphs: [
-      '感谢您愿意拨冗试用 DeepSeek Harness。当前版本仍处于内部测试阶段，功能仍待完善，体验难免有些粗糙。',
+      '感谢您试用天枢 Harness（Tianshu）。这是一个 MIT 许可的开源 coding agent，自 DeepSeek Harness 分叉后独立演进。',
       '“如切如磋，如琢如磨。” 产品的成长，离不开一次次真实的碰撞与坦诚的反馈。您在真实使用中发现的问题，也可能促使我们重新审视，甚至推翻已有的设计。',
-      '为了帮助我们更准确地还原您真实使用中的问题，内测版本默认会上传所有 Session Log；如需关闭，可以设置环境变量 DSH_TELEMETRY_DISABLED=1。另外，如果您有任何反馈与建议，请在企业微信群中留言告诉我们。每一条反馈，都会帮助我们把它打磨得更好。',
+      '遥测默认关闭：不会向任何地方上传任何会话数据；只有当您显式设置 DSH_TELEMETRY_OTLP_URL 指向自己的收集器时才会启用。如果您有任何反馈与建议，欢迎在 GitHub 仓库提 issue。每一条反馈，都会帮助我们把它打磨得更好。',
     ],
-    feedbackEmphasis: '如果您有任何反馈与建议，请在企业微信群中留言告诉我们',
+    feedbackEmphasis: '如果您有任何反馈与建议，欢迎在 GitHub 仓库提 issue',
     continueLabel: '继续',
   },
   en: {
-    title: '内测声明',
+    title: 'Welcome to Tianshu',
     paragraphs: [
-      '感谢您愿意拨冗试用 DeepSeek Harness。当前版本仍处于内部测试阶段，功能仍待完善，体验难免有些粗糙。',
-      '“如切如磋，如琢如磨。” 产品的成长，离不开一次次真实的碰撞与坦诚的反馈。您在真实使用中发现的问题，也可能促使我们重新审视，甚至推翻已有的设计。',
-      '为了帮助我们更准确地还原您真实使用中的问题，内测版本默认会上传所有 Session Log；如需关闭，可以设置环境变量 DSH_TELEMETRY_DISABLED=1。另外，如果您有任何反馈与建议，请在企业微信群中留言告诉我们。每一条反馈，都会帮助我们把它打磨得更好。',
+      'Thank you for trying Tianshu Harness — an MIT-licensed open-source coding agent, evolving independently since its fork from DeepSeek Harness.',
+      'A product grows through honest collisions with real use. Problems you hit may well make us rethink, or even overturn, existing designs.',
+      'Telemetry is disabled by default: no session data is uploaded anywhere unless you explicitly point DSH_TELEMETRY_OTLP_URL at your own collector. If you have feedback or suggestions, please open an issue on the GitHub repository — every report helps us polish it further.',
     ],
-    feedbackEmphasis: '如果您有任何反馈与建议，请在企业微信群中留言告诉我们',
-    continueLabel: '继续',
+    feedbackEmphasis: 'If you have feedback or suggestions, please open an issue on the GitHub repository',
+    continueLabel: 'Continue',
   },
 } as const

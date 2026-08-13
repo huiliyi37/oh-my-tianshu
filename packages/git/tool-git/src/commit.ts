@@ -10,7 +10,10 @@ import type {} from '@huiliyi37/dsh-system-prompt'
 import type {} from '@huiliyi37/dsh-git'
 import { resolveCwd } from './cwd.ts'
 
-/** 注册 git_commit。 */
+/**
+ * 注册 git_commit。
+ * @param ctx - 携带 tools/git/systemPrompt 服务的 Cordis context。
+ */
 export function applyGitCommitTool(ctx: Context): void {
   ctx.systemPrompt.section({
     name: 'tool:git-commit',

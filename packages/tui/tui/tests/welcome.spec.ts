@@ -39,7 +39,7 @@ describe('formatBrandWelcome（欢迎页品牌区）', () => {
     const [brand, sub] = plain(lines)
     expect(brand!.trim()).toBe('DSH')
     expect(brand!.indexOf('DSH')).toBeGreaterThan(0) // 居中（前导空格）
-    expect(sub!.trim()).toBe('DeepSeek Harness')
+    expect(sub!.trim()).toBe('Tianshu Harness')
     expect(lines[0]).toContain('\x1B[1m') // 主标 BOLD
     expect(displayWidth(lines[0]!)).toBeLessThanOrEqual(80)
     expect(displayWidth(lines[1]!)).toBeLessThanOrEqual(80)

@@ -2,7 +2,7 @@
 
 English | [中文](index.zh.md)
 
-DeepSeek Harness is a **plugin-based agent development framework** built on the [Cordis](https://github.com/cordiverse/cordis) microkernel. Its central idea is simple: **everything is a plugin**.
+Tianshu Harness is a **plugin-based agent development framework** built on the [Cordis](https://github.com/cordiverse/cordis) microkernel. Its central idea is simple: **everything is a plugin**.
 
 ## What it is
 

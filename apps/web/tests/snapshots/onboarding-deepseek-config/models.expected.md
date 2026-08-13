@@ -61,6 +61,10 @@
             - text: 添加模型
       - button "取消"
       - button "保存"
+    - listitem:
+      - text: DeepSeek Spark
+      - img "API 密钥已配置"
+      - button "编辑 DeepSeek Spark (deepseek-spark)": 编辑
   - button "添加提供方":
     - img
     - text: 添加提供方

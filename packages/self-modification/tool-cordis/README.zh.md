@@ -44,7 +44,7 @@ Namespace 插件：命名导出 `name`／`inject`／`Config`／`apply`，无默�
 
 #### 模型看到的内容
 
-该插件可见时，会话模型会看到生成的 [`cordis_inspect`、`cordis_mount` 和 `cordis_unmount` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-cordis)。
+该插件可见时，会话模型会看到生成的 [`cordis_inspect`、`cordis_mount` 和 `cordis_unmount` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-cordis)。
 
 #### Token 影响
 

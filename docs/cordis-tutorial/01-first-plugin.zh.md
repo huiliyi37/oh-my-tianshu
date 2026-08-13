@@ -92,4 +92,4 @@ export function apply(ctx: Context) {
 
 下一章：[生命周期与 effect](02-lifecycle-and-effects.md)：插件卸载时会发生什么。
 
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness-sdk)
+[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/huiliyi37/dsh-tianshu-tui)

@@ -1,8 +1,8 @@
-# DeepSeek Harness Python SDK
+# Tianshu Harness Python SDK
 
 [English](README.md) | 中文
 
-通过 JSON-RPC stdio 驱动 DeepSeek Harness 的 Python 子进程 SDK。运行时继承常规的 DeepSeek Harness 环境变量（如 `DEEPSEEK_BASE_URL` 与 `DEEPSEEK_API_KEY`），调用方可以直接用真实模型端点，也可以在跑基准测试时把它们指向本地代理。
+通过 JSON-RPC stdio 驱动 Tianshu Harness 的 Python 子进程 SDK。运行时继承常规的 Tianshu Harness 环境变量（如 `DEEPSEEK_BASE_URL` 与 `DEEPSEEK_API_KEY`），调用方可以直接用真实模型端点，也可以在跑基准测试时把它们指向本地代理。
 
 安装 `deepseek-harness` 会同时安装版本完全相同的 `deepseek-harness-runtime-bin` 平台 wheel 包。因此常规入口不需要传可执行文件参数：
 

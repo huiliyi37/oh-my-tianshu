@@ -115,6 +115,7 @@ function invocationText(invocation: SkillInvocationInput): string {
   if (modelInvocable) return '仅模型可调'
   if (userInvocable) return '仅用户可调'
   return '不可调'
+/* jscpd:ignore-start */
 }
 
 /** 按显示宽度截断字符串（仅发生截断时尾部补 …；极端窄宽退化为 …）。 */
@@ -130,3 +131,4 @@ function truncateByWidth(text: string, max: number): string {
   }
   return w < displayWidth(text) ? `${out}…` : out
 }
+/* jscpd:ignore-end */

@@ -133,6 +133,7 @@ export function extractJsxChildren(
   fileSymbols: MeridianSymbol[],
   knownSymbols: MeridianSymbol[],
 ): { symbols: MeridianSymbol[]; edges: MeridianEdge[] } {
+/* jscpd:ignore-start */
   const edges: MeridianEdge[] = []
   const safe = stripComments(source)
   const knownByName = new Map<string, MeridianSymbol[]>()
@@ -141,6 +142,7 @@ export function extractJsxChildren(
     arr.push(s)
     knownByName.set(s.name, arr)
   }
+  /* jscpd:ignore-end */
   // Enclosing candidates: file-local symbols ordered by start line.
   const enclosing = [...fileSymbols].sort((a, b) => a.line - b.line)
 

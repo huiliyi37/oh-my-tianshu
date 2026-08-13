@@ -242,6 +242,10 @@
           "limit": {
             "type": "number",
             "description": "Maximum number of lines to return. Defaults to 2000."
+          },
+          "focus": {
+            "type": "string",
+            "description": "Optional focus query: return only the relevant line ranges plus a structural skeleton instead of a full window."
           }
         },
         "required": [

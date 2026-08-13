@@ -12,7 +12,13 @@
       "path": "../../../vendor/cordis"
     },
     {
-      "path": "../../core/session"
+      "path": "../../../vendor/cosmokit"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../bash/bash"
     },
     {
       "path": "../../core/agent"
@@ -21,13 +27,19 @@
       "path": "../../core/agent-default-model"
     },
     {
+      "path": "../../core/scope"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
       "path": "../../core/tools"
     },
     {
-      "path": "../../llm/llm"
+      "path": "../../interaction/commands"
     },
     {
-      "path": "../../core/scope"
+      "path": "../../interaction/permission"
     },
     {
       "path": "../../interaction/user-approval"
@@ -36,34 +48,25 @@
       "path": "../../interaction/user-interaction"
     },
     {
-      "path": "../../../vendor/cosmokit"
-    },
-    {
-      "path": "../../../vendor/schemastery"
-    },
-    {
-      "path": "../../subagent/subagent"
-    },
-    {
-      "path": "../../workflow/workflow"
-    },
-    {
-      "path": "../../interaction/permission"
-    },
-    {
-      "path": "../../bash/bash"
-    },
-    {
-      "path": "../../subprocess/subprocess"
-    },
-    {
-      "path": "../../interaction/commands"
+      "path": "../../llm/llm"
     },
     {
       "path": "../../sandbox/sandbox"
     },
     {
       "path": "../../sandbox/sandbox-policy"
+    },
+    {
+      "path": "../../subagent/subagent"
+    },
+    {
+      "path": "../../subprocess/subprocess"
+    },
+    {
+      "path": "../../support/invariants"
+    },
+    {
+      "path": "../../workflow/workflow"
     }
   ]
 }

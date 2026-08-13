@@ -84,6 +84,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/client/web': { kind: 'none', reason: 'Browser-side UI plugin layer; registers no model surface.' },
   'packages/examples/agent-spine-demo': { kind: 'indirect', reason: 'The bundle only mounts model-facing child plugins.' },
   'packages/fs/fs': { kind: 'indirect', reason: 'The service interface delegates model rendering to dsh-tool-fs.' },
+  'packages/git/git': { kind: 'indirect', reason: 'The service interface delegates all model rendering to dsh-tool-git.' },
   'packages/fs/fs-snapshot': { kind: 'none', reason: 'The pre-write snapshot hook copies files aside and delegates to next() unchanged; it registers no model surface.' },
   'packages/guard/agent-router': { kind: 'indirect', reason: 'Dispatch injects the routed task as the delegate session\'s ordinary user message; the router registers no prompt or tool surface of its own.' },
   'packages/tui/tui': { kind: 'none', reason: 'Terminal-side presentation layer; renders logged session events and forwards ordinary user input; registers no model surface.' },

@@ -1,5 +1,5 @@
 /**
- * Public DeepSeek Harness SDK runtime entry points.
+ * Public Tianshu Harness SDK runtime entry points.
  *
  * FIXME: rename to `@huiliyi37/dsh-sdk-scripts` before the first tagged release —
  * the current name is indefensibly generic as a published name

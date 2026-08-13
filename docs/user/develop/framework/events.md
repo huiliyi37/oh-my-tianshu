@@ -85,7 +85,7 @@ A waterfall listener **must call `next()`**. Omitting it short-circuits the pipe
 Harness uses TypeScript declaration merging for type-safe events:
 
 ```ts
-import 'cordis'
+import '@huiliyi37/cordis'
 
 declare module '@huiliyi37/cordis' {
   interface Events {

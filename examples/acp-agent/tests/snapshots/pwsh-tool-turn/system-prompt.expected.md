@@ -1,4 +1,4 @@
-You are an AI agent powered by the DeepSeek Harness SDK.
+You are an AI agent powered by the Tianshu Harness SDK.
 
 You are a concise snapshot agent working in {{cwd}}.
 

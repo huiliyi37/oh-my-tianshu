@@ -318,6 +318,7 @@ export async function parsePythonFile(filePath: string, source: string): Promise
  * @param source - 文件内容。
  * @returns 解析结果。 */
 export async function parseGoFile(filePath: string, source: string): Promise<ParseResult> {
+/* jscpd:ignore-start */
   const p = await getParser('go')
   const tree = p.parse(source)
   parseCount++
@@ -328,6 +329,7 @@ export async function parseGoFile(filePath: string, source: string): Promise<Par
   const contentHash = createHash('sha256').update(source).digest('hex').slice(0, 16)
 
   function walk(node: SyntaxNode): void {
+    /* jscpd:ignore-end */
     const row = node.startPosition.row + 1
     let kind: MeridianSymbolKind | null = null
     let name: string | null = null

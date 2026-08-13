@@ -33,26 +33,28 @@ A text-only primary wire route cannot carry the co-pilot's description calls. Th
 - **Two answer paths** — a multimodal primary receives the original image back as an image content block and sees the pixels itself; a text-only primary gets a targeted description from the configured vision model. Repeated same-angle asks hit the per-image description cache (zero extra vision calls; the cache key normalizes the question text).
 - **Failures are visible, never fatal** — no retained image, unknown image id, missing vision route, and vision-model failures all surface as structured tool errors with actionable messages; the model sees the reason and can act on it.
 
-## Model Experience
-
-### What the model sees
-
-`ask_image(question, imageId?)` is available in every session that has sent at least one image. A multimodal primary gets `[text hint] + [original image block]`; a text-only primary gets the description text (with a `（缓存）` marker on cache hits). Sessions without images get a structured error telling the model to ask the user for an image first.
-
-### Token effect
-
-Each non-cached ask costs one auxiliary model call (`maxTokens` cap, default 1024); the description text enters the primary context as the tool result. Cache hits cost zero tokens.
-
-### KV Cache effect
-
-The description call is a separate one-shot request (`purpose` unset), independent of the primary session prefix; the tool result appends like any other tool result.
-
 ## Verification
 
 ```sh
 # behavior suite (runs against the workspace monorepo)
 vitest run packages/tui/vision-ask
 ```
+
+## Model Experience
+
+### The `ask_image` tool
+
+#### What the model sees
+
+`ask_image(question, imageId?)` is available in every session that has sent at least one image. A multimodal primary gets `[text hint] + [original image block]`; a text-only primary gets the description text (with a `（缓存）` marker on cache hits). Sessions without images get a structured error telling the model to ask the user for an image first.
+
+#### Token effect
+
+Each non-cached ask costs one auxiliary model call (`maxTokens` cap, default 1024); the description text enters the primary context as the tool result. Cache hits cost zero tokens.
+
+#### KV Cache effect
+
+The description call is a separate one-shot request (`purpose` unset), independent of the primary session prefix; the tool result appends like any other tool result.
 
 ## Known Limitations and Deferred Work
 

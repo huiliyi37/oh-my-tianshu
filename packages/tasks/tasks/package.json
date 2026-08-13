@@ -1,6 +1,6 @@
 {
   "name": "@huiliyi37/dsh-tasks",
-  "description": "Background task registry (ctx.tasks) for the DeepSeek Harness — shared ids, owner isolation, polling, cancellation, and completion listeners for long-running tool work",
+  "description": "Background task registry (ctx.tasks) for the Tianshu Harness — shared ids, owner isolation, polling, cancellation, and completion listeners for long-running tool work",
   "version": "0.2.0",
   "publishConfig": {
     "access": "public"
@@ -30,7 +30,7 @@
     "lib/invariant.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "peerDependencies": {
     "@huiliyi37/dsh-agent": "^0.2.0",
     "@huiliyi37/dsh-brand": "^0.2.0",

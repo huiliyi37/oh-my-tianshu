@@ -4,7 +4,7 @@ import { SessionId, type SessionId as SessionIdType } from '@huiliyi37/dsh-sessi
 import { SessionReferenceError } from './config.ts'
 import type { SessionReferenceInput } from './types.ts'
 
-/** URI scheme reserved for DeepSeek Harness session snapshots. */
+/** URI scheme reserved for Tianshu Harness session snapshots. */
 export const SESSION_REFERENCE_SCHEME = 'dsh-session:'
 
 /**

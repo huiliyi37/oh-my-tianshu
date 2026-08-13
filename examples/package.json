@@ -12,6 +12,7 @@
     "@huiliyi37/dsh-acp-demo": "workspace:*",
     "@huiliyi37/dsh-agent": "workspace:*",
     "@huiliyi37/dsh-agent-loop": "workspace:*",
+    "@huiliyi37/dsh-agent-router": "workspace:*",
     "@huiliyi37/dsh-agent-spine-demo": "workspace:*",
     "@huiliyi37/dsh-app-boot": "workspace:*",
     "@huiliyi37/dsh-bash": "workspace:*",
@@ -27,10 +28,12 @@
     "@huiliyi37/dsh-compact-tool-result-prune": "workspace:*",
     "@huiliyi37/dsh-credentials-local": "workspace:*",
     "@huiliyi37/dsh-e2b": "workspace:*",
-    "@huiliyi37/dsh-fs-local": "workspace:*",
+    "@huiliyi37/dsh-evidence-gate": "workspace:*",
     "@huiliyi37/dsh-fs-e2b": "workspace:*",
+    "@huiliyi37/dsh-fs-local": "workspace:*",
     "@huiliyi37/dsh-fs-policy": "workspace:*",
     "@huiliyi37/dsh-fs-sandbox": "workspace:^",
+    "@huiliyi37/dsh-fs-snapshot": "workspace:*",
     "@huiliyi37/dsh-goal": "workspace:*",
     "@huiliyi37/dsh-goal-session": "workspace:*",
     "@huiliyi37/dsh-hooks-claude": "workspace:*",
@@ -77,8 +80,8 @@
     "@huiliyi37/dsh-subagent-dsh-sdk": "workspace:*",
     "@huiliyi37/dsh-subagent-fork": "workspace:*",
     "@huiliyi37/dsh-subagent-spawn": "workspace:*",
-    "@huiliyi37/dsh-subprocess-local": "workspace:*",
     "@huiliyi37/dsh-subprocess-e2b": "workspace:*",
+    "@huiliyi37/dsh-subprocess-local": "workspace:*",
     "@huiliyi37/dsh-system-prompt": "workspace:*",
     "@huiliyi37/dsh-tasks-local": "workspace:*",
     "@huiliyi37/dsh-time-context": "workspace:*",
@@ -112,7 +115,6 @@
     "@huiliyi37/dsh-web": "workspace:*",
     "@huiliyi37/dsh-web-fetch-local": "workspace:*",
     "@huiliyi37/dsh-workflow-workerthread": "workspace:*",
-    "@huiliyi37/dsh-workspace-context": "workspace:*",
-    "@huiliyi37/dsh-fs-snapshot": "workspace:*"
+    "@huiliyi37/dsh-workspace-context": "workspace:*"
   }
 }

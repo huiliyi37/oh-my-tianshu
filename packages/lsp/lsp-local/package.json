@@ -1,6 +1,6 @@
 {
   "name": "@huiliyi37/dsh-lsp-local",
-  "description": "Generic stdio language-server provider for the DeepSeek Harness LSP capability seam (ctx.lsp) — spawns configured servers, translates JSON-RPC, and serves transient-open goToDefinition/findReferences/goToImplementation/hover queries in the host filesystem namespace",
+  "description": "Generic stdio language-server provider for the Tianshu Harness LSP capability seam (ctx.lsp) — spawns configured servers, translates JSON-RPC, and serves transient-open goToDefinition/findReferences/goToImplementation/hover queries in the host filesystem namespace",
   "version": "0.2.0",
   "publishConfig": {
     "access": "public"
@@ -30,7 +30,7 @@
     "lib/invariant.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "peerDependencies": {
     "@huiliyi37/dsh-brand": "^0.2.0",
     "@huiliyi37/dsh-fs": "^0.2.0",

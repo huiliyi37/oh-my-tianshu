@@ -19,17 +19,17 @@ export interface BaselineNpmDependencies {
 }
 
 const EXTERNAL_NPM_DEPENDENCY_SPECS: Readonly<Record<string, string>> = {
+  '@huiliyi37/cordis': '^4.0.0-rc.7',
   '@huiliyi37/cordis-plugin-hmr': '^1.0.15',
   '@huiliyi37/cordis-plugin-timer': '^1.1.2',
   '@types/node': '^22.20.0',
-  cordis: '^4.0.0-rc.7',
   tsdown: '0.22.2',
   tsx: '^4.22.4',
   typescript: '^6.0.3',
 }
 
 const BASELINE_NPM_DEPENDENCY_NAMES: Readonly<Record<NpmDependencySection, readonly string[]>> = {
-  dependencies: ['@huiliyi37/dsh-scripts', 'cordis'],
+  dependencies: ['@huiliyi37/dsh-scripts', '@huiliyi37/cordis'],
   devDependencies: ['@types/node', 'tsdown', 'tsx', 'typescript'],
 }
 

@@ -33,25 +33,27 @@ TUI 输入框允许用户粘贴图片（data URL 以 `image` ContentBlock 进入
 - **零干预透传**：无图消息、`enabled=false`、reject decision 一律原样透传。
 - **描述模式自动选择**：未显式配置 `prompt` 时，随图文本命中 UI/报错关键词（`报错`/`error`/`终端`/`日志`…）→ OCR 级精确转写；否则通用结构化描述。
 
-## Model Experience
-
-### What the model sees
-
-主控不识图时，含图用户消息被替换为一条 text 消息：`[图片描述]\n<描述文本>\n\n<原用户文本>`（或桥失败的降级提示）。主控识图时无感（图片直发）。无图会话完全无感。
-
-### Token effect
-
-每条描述按视觉模型输出计入一次 `purpose: 'vision-description'` 的辅助调用（`maxTokens` 封顶，缺省 1024）；描述文本随后作为 user message 进入主控上下文。桥失败时不产生描述 token（只有几行降级提示）。
-
-### KV Cache effect
-
-注入消息作为 user message 追加，行为与任何新消息一致。桥调用本身独立于主控会话缓存（`vision-description` purpose 不进入主控前缀）。
-
 ## Verification
 
 ```sh
 NO_COLOR=1 pnpm vitest run packages/context/vision-bridge/tests/
 ```
+
+## Model Experience
+
+### 桥接描述消息
+
+#### What the model sees
+
+主控不识图时，含图用户消息被替换为一条 text 消息：`[图片描述]\n<描述文本>\n\n<原用户文本>`（或桥失败的降级提示）。主控识图时无感（图片直发）。无图会话完全无感。
+
+#### Token effect
+
+每条描述按视觉模型输出计入一次 `purpose: 'vision-description'` 的辅助调用（`maxTokens` 封顶，缺省 1024）；描述文本随后作为 user message 进入主控上下文。桥失败时不产生描述 token（只有几行降级提示）。
+
+#### KV Cache effect
+
+注入消息作为 user message 追加，行为与任何新消息一致。桥调用本身独立于主控会话缓存（`vision-description` purpose 不进入主控前缀）。
 
 ## Known Limitations and Deferred Work
 

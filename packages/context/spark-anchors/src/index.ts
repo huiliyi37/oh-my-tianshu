@@ -67,7 +67,11 @@ export interface SparkPolicySource {
   truncateN: SparkTruncatePolicy
 }
 
-/** 从会话事件提取 assistant reasoning 文本（按事件序）。 */
+/**
+ * 从会话事件提取 assistant reasoning 文本（按事件序）。
+ * @param events - 权威会话事件流。
+ * @returns 每条 assistant 消息的完整 reasoning 文本（空文本跳过）。
+ */
 export function reasoningFromEvents(events: readonly SessionEvent[]): string[] {
   const out: string[] = []
   for (const event of events) {
@@ -85,6 +89,10 @@ export function reasoningFromEvents(events: readonly SessionEvent[]): string[] {
  * 从一条推理文本提取「截断丢失域」的排除路径锚点。
  * 与 wire 截断用同一 N 同一 tokenizer（truncateCutStart）：无截断
  * （N<=0 或 token 不足）→ 无丢失 → 无锚点。提取域 ∪ 保留尾段 = 原始推理。
+ * @param reasoning - 单条 assistant reasoning 全文。
+ * @param policy - 按模型档的截断 N 策略（与 wire 同源）。
+ * @param model - 当前模型 id；未知时用策略默认档。
+ * @returns 截断丢失域中的排除路径 claim 列表（无截断时为空）。
  */
 export function anchorsFromReasoning(
   reasoning: string,
@@ -101,6 +109,11 @@ export function anchorsFromReasoning(
 /**
  * 聚合锚点：按事件序收集 → 去重（保留首现序）→ cap（溢出淘汰最旧，
  * 保留最近 maxAnchors 条）。
+ * @param events - 权威会话事件流。
+ * @param policy - 按模型档的截断 N 策略（与 wire 同源）。
+ * @param model - 当前模型 id；未知时用策略默认档。
+ * @param maxAnchors - 锚点上限；溢出时淘汰最旧。
+ * @returns 去重后的锚点列表（最多 maxAnchors 条，事件序）。
  */
 export function collectAnchors(
   events: readonly SessionEvent[],
@@ -121,7 +134,11 @@ export function collectAnchors(
   return unique.slice(-maxAnchors)
 }
 
-/** 渲染锚点为模型可见的动态上下文文本。 */
+/**
+ * 渲染锚点为模型可见的动态上下文文本。
+ * @param anchors - 去重后的锚点列表。
+ * @returns 单块可注入文本（标题行 + `- ` 列表）。
+ */
 export function renderAnchors(anchors: readonly string[]): string {
   return 'Paths already ruled out (spark anchors):\n' + anchors.map(a => `- ${a}`).join('\n')
 }

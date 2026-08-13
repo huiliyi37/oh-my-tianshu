@@ -76,6 +76,16 @@ flowchart LR
   cfg --> plugin_dsh_base_tool_fs
   plugin_dsh_base_tool_fs_search["tool-fs-search<br/>@huiliyi37/dsh-tool-fs-search"]
   cfg --> plugin_dsh_base_tool_fs_search
+  plugin_dsh_base_git["git<br/>@huiliyi37/dsh-git"]
+  cfg --> plugin_dsh_base_git
+  plugin_dsh_base_tool_git["tool-git<br/>@huiliyi37/dsh-tool-git"]
+  cfg --> plugin_dsh_base_tool_git
+  plugin_dsh_base_tool_semantic_search["tool-semantic-search<br/>@huiliyi37/dsh-tool-semantic-search"]
+  cfg --> plugin_dsh_base_tool_semantic_search
+  plugin_dsh_base_tool_file_info["tool-file-info<br/>@huiliyi37/dsh-tool-file-info"]
+  cfg --> plugin_dsh_base_tool_file_info
+  plugin_dsh_base_tool_meridian["tool-meridian<br/>@huiliyi37/dsh-tool-meridian"]
+  cfg --> plugin_dsh_base_tool_meridian
   plugin_dsh_base_workspace_context["workspace-context<br/>@huiliyi37/dsh-workspace-context"]
   cfg --> plugin_dsh_base_workspace_context
   plugin_dsh_base_skill["skill<br/>@huiliyi37/dsh-skill"]
@@ -198,6 +208,11 @@ flowchart LR
 | `fs-policy` | `@huiliyi37/dsh-fs-policy` |
 | `tool-fs` | `@huiliyi37/dsh-tool-fs` |
 | `tool-fs-search` | `@huiliyi37/dsh-tool-fs-search` |
+| `git` | `@huiliyi37/dsh-git` |
+| `tool-git` | `@huiliyi37/dsh-tool-git` |
+| `tool-semantic-search` | `@huiliyi37/dsh-tool-semantic-search` |
+| `tool-file-info` | `@huiliyi37/dsh-tool-file-info` |
+| `tool-meridian` | `@huiliyi37/dsh-tool-meridian` |
 | `workspace-context` | `@huiliyi37/dsh-workspace-context` |
 | `skill` | `@huiliyi37/dsh-skill` |
 | `skill-local` | `@huiliyi37/dsh-skill-local` |

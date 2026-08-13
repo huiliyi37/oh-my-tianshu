@@ -145,7 +145,7 @@ Prefix-stable while visible definitions and their order are unchanged. Registrat
 
 #### What the model sees
 
-Code Mode exposes the generated [`run_code` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tools), the SDK instructions below, and the generated exact SDK block for the loaded runtime's language (the TypeScript `declare const tools` block, or the Python `tools` declaration). `both` exposes normal schemas and this Code Mode surface. The instructions and SDK block match the loaded runtime's language; the TypeScript flavor (via [`dsh-code-runtime-worker`](../../code-runtime/code-runtime-worker/README.md)) is shown below, and the Python flavor (for any runtime reporting `language: 'python'`) is the same shape with Python syntax (`await tools.name(args)`, subscript access for exotic names, `print(...)` and top-level `return`).
+Code Mode exposes the generated [`run_code` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tools), the SDK instructions below, and the generated exact SDK block for the loaded runtime's language (the TypeScript `declare const tools` block, or the Python `tools` declaration). `both` exposes normal schemas and this Code Mode surface. The instructions and SDK block match the loaded runtime's language; the TypeScript flavor (via [`dsh-code-runtime-worker`](../../code-runtime/code-runtime-worker/README.md)) is shown below, and the Python flavor (for any runtime reporting `language: 'python'`) is the same shape with Python syntax (`await tools.name(args)`, subscript access for exotic names, `print(...)` and top-level `return`).
 
 ##### Code Mode SDK instructions
 

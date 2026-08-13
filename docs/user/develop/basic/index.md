@@ -56,7 +56,7 @@ Create `scratch-plugin/cordis.yml` as a Web overlay that inserts the local plugi
 Start the Web UI with that overlay:
 
 ```sh
-pnpm run dsh web --patch ./scratch-plugin/cordis.yml
+pnpm run tianshu web --patch ./scratch-plugin/cordis.yml
 ```
 
 Open `http://127.0.0.1:3080`. The terminal prints `[hello-plugin] plugin loaded!` during startup.

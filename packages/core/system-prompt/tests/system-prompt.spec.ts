@@ -9,7 +9,7 @@ import SystemPrompt, { AssembleContext, PromptAssembly, renderContextSnapshot, r
  * their own sections; the built-ins' behavior is pinned by its own describe.
  */
 const BUILT_IN = ['harness:identity', 'deployment:persona']
-const IDENTITY = 'You are an AI agent powered by the DeepSeek Harness SDK.'
+const IDENTITY = 'You are an AI agent powered by the Tianshu Harness SDK.'
 function contributed(assembly: PromptAssembly): PromptAssembly['sections'] {
   return assembly.sections.filter(section => !BUILT_IN.includes(section.name))
 }
@@ -18,14 +18,14 @@ describe('SystemPrompt', () => {
   describe('built-in sections', () => {
     it('registers the harness identity and the configured deployment persona', async () => {
       const ctx = new Context()
-      await ctx.plugin(SystemPrompt, { persona: 'You are DeepSeek Harness SDK.' })
+      await ctx.plugin(SystemPrompt, { persona: 'You are Tianshu Harness SDK.' })
 
       const assembly = await ctx.systemPrompt.assemble()
       expect(assembly.sections.map(s => s.name)).toEqual([
         'harness:identity',
         'deployment:persona',
       ])
-      expect(renderPrompt(assembly)).toBe(`${IDENTITY}\n\nYou are DeepSeek Harness SDK.`)
+      expect(renderPrompt(assembly)).toBe(`${IDENTITY}\n\nYou are Tianshu Harness SDK.`)
       // The names are reserved by the plugin — one owner per section.
       expect(() => ctx.systemPrompt.section({ name: 'deployment:persona', order: 0, text: 'imposter' }))
         .toThrow('prompt section "deployment:persona" is already registered')
@@ -60,7 +60,7 @@ describe('SystemPrompt', () => {
 
   it('assembles sections in order with context-resolved text and collected tools', async () => {
     const ctx = new Context()
-    await ctx.plugin(SystemPrompt, { persona: 'You are DeepSeek Harness SDK.' })
+    await ctx.plugin(SystemPrompt, { persona: 'You are Tianshu Harness SDK.' })
 
     ctx.systemPrompt.section({ name: 'cwd', order: 20, text: () => 'cwd: /tmp' })
     ctx.systemPrompt.section({ name: 'rules', order: 10, text: 'Be precise.' })
@@ -70,14 +70,14 @@ describe('SystemPrompt', () => {
 
     const assembly = await ctx.systemPrompt.assemble()
     expect(assembly.sections.map(s => s.name)).toEqual(['harness:identity', 'deployment:persona', 'rules', 'cwd'])
-    expect(assembly.sections.map(s => s.text)).toEqual([IDENTITY, 'You are DeepSeek Harness SDK.', 'Be precise.', 'cwd: /tmp'])
+    expect(assembly.sections.map(s => s.text)).toEqual([IDENTITY, 'You are Tianshu Harness SDK.', 'Be precise.', 'cwd: /tmp'])
     expect(assembly.contexts).toEqual([
       { name: 'earlier', text: 'context 1' },
       { name: 'later', text: 'context 2' },
     ])
     expect(assembly.tools).toEqual([{ name: 'echo', description: 'echo back', parameters: {} }])
     expect(assembly.variables).toEqual({})
-    expect(renderPrompt(assembly)).toBe(`${IDENTITY}\n\nYou are DeepSeek Harness SDK.\n\nBe precise.\n\ncwd: /tmp`)
+    expect(renderPrompt(assembly)).toBe(`${IDENTITY}\n\nYou are Tianshu Harness SDK.\n\nBe precise.\n\ncwd: /tmp`)
     expect(renderContextSnapshot(assembly)).toBe('Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\ncontext 1\n\ncontext 2')
   })
 

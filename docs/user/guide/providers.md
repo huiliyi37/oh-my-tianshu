@@ -15,7 +15,7 @@ Adding a provider therefore rarely means editing `cordis.yml` — writing settin
 
 ## Configure from the web UI
 
-Start `pnpm run dsh web` and open **Settings → Models**.
+Start `pnpm run tianshu web` and open **Settings → Models**.
 
 ![The Models page: the DeepSeek card, with Add provider and Add a custom provider below it](providers-models-page.png)
 

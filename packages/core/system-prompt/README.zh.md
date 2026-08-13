@@ -8,7 +8,7 @@
 
 | 键 | 默认值 | 含义 |
 |---|---|---|
-| `includeHarnessIdentity` | `true` | 是否包含固定的 `You are an AI agent powered by the DeepSeek Harness SDK.`、顺序为 −100 的开场白。仅当兼容部署拥有完整系统提示词时设为 false。 |
+| `includeHarnessIdentity` | `true` | 是否包含固定的 `You are an AI agent powered by the Tianshu Harness SDK.`、顺序为 −100 的开场白。仅当兼容部署拥有完整系统提示词时设为 false。 |
 | `persona` | `''` | 全局部署 persona 默认值：唯一由配置创作的提示词片段，渲染为顺序为 0 的 `deployment:persona` 段，除非 agent 作用域的贡献将其遮蔽。它是模板，完整的 `{{…}}` 组会严格按已注册变量解释（随附循环注册 `{{model}}`/`{{cwd}}`），目前没有表达字面量花括号的转义语法。为空 ⇒ 渲染时删除该段。 |
 | `toolOrder` | 无 | 显式的面向模型工具顺序：一个 `ToolSchema.name` 列表，包含一个 `'<unlisted-tools>'` 其余项（`TOOL_ORDER_REST`）。已列工具占据列出的位置；未列工具按名称字典序落在其余项位置。缺席 ⇒ 直接按名称字典序排列。在 `system-prompt/assemble` waterfall（瀑布式事件）之前应用于已收集工具；与段的 `order` 排序一样，它会规范化注册表贡献的内容（注册顺序是插件加载产物），而修改列表的 waterfall 监听器拥有其输出的确定性。配置错误会明确失败：列表没有恰好一个其余项或存在重复项，会在加载时抛出；已列名称没有对应已注册工具，会使每次 `assemble()` 被拒绝；工具提供方返回保留的其余项名称也会被拒绝。在随附循环下，轮次会在任何模型请求前失败。为何采用中心列表而非每插件权重，见[显式面向模型工具顺序](../../../.agents/notes/implemented/feature/2026-07-06-explicit-tool-order.md)。 |
 
@@ -56,7 +56,7 @@
 ##### Harness 身份
 
 ```markdown
-You are an AI agent powered by the DeepSeek Harness SDK.
+You are an AI agent powered by the Tianshu Harness SDK.
 ```
 
 #### Token 影响

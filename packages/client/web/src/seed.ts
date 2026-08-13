@@ -30,7 +30,7 @@ export function getStaticModules(): Record<string, unknown> {
     'react/jsx-runtime': ReactJsxRuntime,
     'react-dom': ReactDom,
     'react-dom/client': ReactDomClient,
-    'cordis': Cordis,
+    '@huiliyi37/cordis': Cordis,
     '@huiliyi37/dsh-client-ui-slots': UiSlots,
     '@huiliyi37/dsh-client-web-react': WebReact,
     '@huiliyi37/dsh-client-ui-primitives': UiPrimitives,

@@ -47,7 +47,7 @@ export const INSTALL_ANCHOR = fileURLToPath(new URL('../package.json', import.me
 /** The session-telemetry row id the DSH_TELEMETRY_DISABLED switch targets. */
 const TELEMETRY_ROW_ID = 'telemetry-otel'
 
-/** The one-shot runner row a `dsh run` task requires and configures. */
+/** The one-shot runner row a `tianshu run` task requires and configures. */
 const HEADLESS_ROW_ID = 'headless-runner'
 
 /** The empty root entry list every profile tree patches over. */
@@ -160,7 +160,7 @@ export interface RunProfileOptions {
   patchFiles: readonly string[]
   /** Launcher hook turning the pre-flag composed rows into flag patches (the web alias's flag family). */
   deriveFlagPatches?: (rows: ProfileRows) => PatchOptions[]
-  /** `dsh run` task text; requires the composition to mount the headless runner row. */
+  /** `tianshu run` task text; requires the composition to mount the headless runner row. */
   task?: string
   /** Surface setup registered after Loader installation and before any config-tree entry mounts. */
   prepare?: (ctx: Context, rows: ProfileRows) => Promise<void> | void
@@ -190,7 +190,7 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
     // error naming no fix.
     throw new Error(
       `dsh: profile ${JSON.stringify(options.profile)} mounts the one-shot runner and needs a task: `
-      + `dsh run --profile ${options.profile} "<task>"`,
+      + `tianshu run --profile ${options.profile} "<task>"`,
     )
   }
 

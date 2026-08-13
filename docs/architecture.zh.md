@@ -1,8 +1,8 @@
-# DeepSeek Harness 架构
+# Tianshu Harness 架构
 
 [English](architecture.md) | 中文
 
-**DeepSeek Harness SDK** 使用 Cordis：**一切皆插件**，循环也不例外。
+**Tianshu Harness SDK** 使用 Cordis：**一切皆插件**，循环也不例外。
 
 ## 概览
 

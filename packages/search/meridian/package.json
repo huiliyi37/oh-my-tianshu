@@ -30,7 +30,7 @@
     "lib/invariant.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "dependencies": {
     "tree-sitter-wasms": "^0.1.13",
     "web-tree-sitter": "^0.24.7"

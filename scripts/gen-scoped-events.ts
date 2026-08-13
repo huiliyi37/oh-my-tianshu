@@ -316,7 +316,7 @@ function isCordisModuleInterface(node: ts.InterfaceDeclaration): boolean {
   return ts.isModuleBlock(block)
     && ts.isModuleDeclaration(declaration)
     && ts.isStringLiteral(declaration.name)
-    && declaration.name.text === 'cordis'
+    && declaration.name.text === '@huiliyi37/cordis'
 }
 
 /** Return whether a parameter is the explicit TypeScript this receiver. */

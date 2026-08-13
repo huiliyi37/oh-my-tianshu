@@ -1,7 +1,10 @@
 /** Git-blob operations owned by the bilingual pairing workflow. */
 
 import { spawnSync } from 'node:child_process'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
+import { rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 const SNAPSHOT_REF_PREFIX = 'refs/dsh/translation-pairing/snapshots'
 
@@ -81,11 +84,20 @@ export function readGitIndexBlob(root: string, path: string): GitIndexBlob | und
  */
 export function storeGitBlob(root: string, content: Buffer): string {
   const expected = gitBlobHash(content)
-  const stored = runGit(root, ['hash-object', '-w', '--stdin'], 'git hash-object -w --stdin', content)
-    .toString('utf8')
-    .trim()
+  // A temp file sidesteps rare stdin-pipe stalls observed with `--stdin`
+  // (the subprocess occasionally never saw EOF under spawnSync on macOS).
+  const tmp = join(tmpdir(), `dsh-pairing-blob-${String(process.pid)}-${randomUUID()}`)
+  writeFileSync(tmp, content)
+  let stored: string
+  try {
+    stored = runGit(root, ['hash-object', '-w', '--', tmp], 'git hash-object -w')
+      .toString('utf8')
+      .trim()
+  } finally {
+    rmSync(tmp, { force: true })
+  }
   if (stored !== expected) {
-    throw new Error(`git hash-object -w --stdin returned unexpected object ID ${JSON.stringify(stored)}; expected ${expected}`)
+    throw new Error(`git hash-object -w returned unexpected object ID ${JSON.stringify(stored)}; expected ${expected}`)
   }
   runGit(
     root,

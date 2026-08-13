@@ -36,7 +36,7 @@
     "platform": "web",
     "immediately": true
   },
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "peerDependencies": {
     "@huiliyi37/dsh-client-runtime": "^0.2.0",
     "@huiliyi37/dsh-client-ui-primitives": "^0.2.0",

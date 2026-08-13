@@ -90,7 +90,11 @@ interface WireUsage {
   prompt_tokens_details?: { cached_tokens?: number }
 }
 
-/** Map the wire finish_reason vocabulary to the harness FinishReason. */
+/**
+ * Map the wire finish_reason vocabulary to the harness FinishReason.
+ * @param reason - the wire finish_reason string.
+ * @returns the harness finish reason (unknown values become typed errors).
+ */
 export function mapFinishReason(reason: string): FinishReason {
   switch (reason) {
     case 'stop': return { kind: 'stop' }
@@ -107,7 +111,11 @@ export function mapFinishReason(reason: string): FinishReason {
   }
 }
 
-/** Map wire usage to disjoint harness counts (cache reads subtracted out). */
+/**
+ * Map wire usage to disjoint harness counts (cache reads subtracted out).
+ * @param usage - the wire usage payload.
+ * @returns disjoint input/output token counts with optional cache reads.
+ */
 export function mapUsage(usage: WireUsage): TokenUsage {
   const cacheRead = usage.prompt_tokens_details?.cached_tokens
   return {
@@ -117,7 +125,11 @@ export function mapUsage(usage: WireUsage): TokenUsage {
   }
 }
 
-/** Translate one parsed wire chunk into harness chunks (text block at index 0). */
+/**
+ * Translate one parsed wire chunk into harness chunks (text block at index 0).
+ * @param chunk - one parsed SSE wire chunk.
+ * @returns harness stream chunks derived from the wire chunk.
+ */
 export function* translateChunk(chunk: WireChunk): Generator<StreamChunk> {
   if (chunk.usage !== undefined) yield { type: 'usage', usage: mapUsage(chunk.usage) }
   const choice = chunk.choices?.[0]
@@ -280,7 +292,12 @@ export class VisionAdapter extends LlmAdapter {
   }
 }
 
-/** 组装一次视觉描述请求的消息（提示词 + 原图 data URL）。 */
+/**
+ * 组装一次视觉描述请求的消息（提示词 + 原图 data URL）。
+ * @param prompt - 面向视觉模型的问题/指令文本。
+ * @param dataUrls - 原图 data URL 列表（按序作为 image 块附加）。
+ * @returns 可直接交给 llm 请求的 plugin-source user message。
+ */
 export function buildVisionMessage(prompt: string, dataUrls: readonly string[]): Message {
   return createUserMessage({
     content: [

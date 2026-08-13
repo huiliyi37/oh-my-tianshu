@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Interactive terminal UI: the TUI layer for `dsh --profile`, riding on top of dsh-base through a bundle patch (stable plugin id `tui-runner`). The render core is ported from the Tianshu terminal engine (Apache-2.0, file-by-file provenance in [SOURCE-MAP.md](SOURCE-MAP.md)), and agent state always arrives through session events and the projection bus — the engine is a pure presentation layer with no agent logic.
+Interactive terminal UI: the TUI layer for `tianshu --profile`, riding on top of dsh-base through a bundle patch (stable plugin id `tui-runner`). The render core is ported from the Tianshu terminal engine (Apache-2.0, file-by-file provenance in [SOURCE-MAP.md](SOURCE-MAP.md)), and agent state always arrives through session events and the projection bus — the engine is a pure presentation layer with no agent logic.
 
 ## Assembly
 

@@ -40,6 +40,11 @@
 | `@huiliyi37/dsh-tool-todo` | `todo_write` | `ctx.tools`、`owning Agent session` | `tool/call`、`todo/write`、`tool/result` | - | todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。 |
 | `@huiliyi37/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflows`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
 | `@huiliyi37/dsh-tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
+| `@huiliyi37/dsh-tool-file-info` | `file_info` | `ctx.tools`、`ctx.fs` | `tool/call`、`tool/result` | - | file_info 通过 ctx.fs 报告元数据（大小、类型、修改时间），不会把文件内容读进模型上下文。 |
+| `@huiliyi37/dsh-tool-git` | `git` | `ctx.tools`、`ctx.git`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | git_status／git_diff／git_log／git_commit 消费有类型的 ctx.git seam（工具层不接触子进程）；git_commit 要求提供提交信息且独占运行（非并发安全），提交不会弹出审批卡——文件变更仍走 fs 审批面。 |
+| `@huiliyi37/dsh-tool-memory` | `memory_save`、`memory_search` | `ctx.tools`、`ctx.systemPrompt`、`ctx.memory (execution time)` | `tool/call`、`tool/result` | - | memory_save 与 memory_search 在执行时才惰性访问项目记忆存储，因此 schema 与记忆后端无关。 |
+| `@huiliyi37/dsh-tool-meridian` | `repo_graph` | `ctx.tools`、`ctx.systemPrompt`、`ctx.meridian (execution time)` | `tool/call`、`tool/result` | - | repo_graph 在执行时才惰性查询代码图索引（仓库地图、影响分析、流查询）；其系统提示词区段仅在索引存在时由 runtime-context 内容差异注入。 |
+| `@huiliyi37/dsh-tool-semantic-search` | `semantic_search` | `ctx.tools`、`ctx.systemPrompt`、`ctx.semanticIndex (execution time)` | `tool/call`、`tool/result` | - | semantic_search 在执行时才惰性执行工作区检索（定义对齐的 BM25，可选向量融合）；其系统提示词区段仅在索引存在时由 runtime-context 内容差异注入。 |
 
 ## `@huiliyi37/dsh-tool-ask-user`
 
@@ -479,6 +484,10 @@ pwsh 工具是 Windows 组合中 bash 执行器 seam 的 PowerShell 方言消费
     "limit": {
       "type": "number",
       "description": "Maximum number of lines to return. Defaults to 2000."
+    },
+    "focus": {
+      "type": "string",
+      "description": "Optional focus query: return only the relevant line ranges plus a structural skeleton instead of a full window."
     }
   },
   "required": [
@@ -1551,3 +1560,221 @@ todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为
 来源：[`packages/web/tool-web/src/index.ts`](../packages/web/tool-web/src/index.ts)
 
 web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。
+
+## `@huiliyi37/dsh-tool-file-info`
+
+### `file_info`
+
+查看单个文件的信息：大小、行数与结构骨架（顶层定义行预览），并附带该文件的信息素信号（fragile/entry-point 等，衰减强度）。适合先探明文件概况再决定是否 read_file 全量读取。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "工作区相对路径"
+    }
+  },
+  "required": [
+    "path"
+  ]
+}
+```
+
+来源：[`packages/fs/tool-file-info/src/index.ts`](../packages/fs/tool-file-info/src/index.ts)
+
+file_info 通过 ctx.fs 报告元数据（大小、类型、修改时间），不会把文件内容读进模型上下文。
+
+## `@huiliyi37/dsh-tool-git`
+
+### `git`
+
+在仓库中执行一项 git 操作：status（分支与脏状态）、diff（未提交变更，stat 或全文）、log（历史）、commit（全部暂存并用给定信息提交）。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "operation": {
+      "type": "string",
+      "description": "Which git operation to run: status | diff | log | commit.",
+      "enum": [
+        "status",
+        "diff",
+        "log",
+        "commit"
+      ]
+    },
+    "workdir": {
+      "type": "string",
+      "description": "Git repository directory; defaults to the session workspace."
+    },
+    "paths": {
+      "type": "array",
+      "description": "Restrict diff/log to these paths.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "stat": {
+      "type": "boolean",
+      "description": "diff only: output the --stat summary instead of the full diff."
+    },
+    "maxCount": {
+      "type": "number",
+      "description": "log only: number of commits to list (default 20, cap 100)."
+    },
+    "message": {
+      "type": "string",
+      "description": "commit only: commit message (required, non-empty)."
+    }
+  },
+  "required": [
+    "operation"
+  ]
+}
+```
+
+来源：[`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
+
+git_status／git_diff／git_log／git_commit 消费有类型的 ctx.git seam（工具层不接触子进程）；git_commit 要求提供提交信息且独占运行（非并发安全），提交不会弹出审批卡——文件变更仍走 fs 审批面。
+
+## `@huiliyi37/dsh-tool-memory`
+
+### `memory_save`
+
+保存一条项目级记忆（Markdown 文本）。在工作过程中将重要发现——项目结构、用户偏好、关键决策、已验证结论——写入记忆，供未来会话用 memory_search 检索。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "text": {
+      "type": "string",
+      "description": "记忆内容（建议一句话或短段落）"
+    },
+    "tags": {
+      "type": "array",
+      "description": "可选标签（如 tooling、architecture）",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scope": {
+      "type": "string",
+      "description": "作用域：'global'（缺省）或 'session:<id>'"
+    }
+  },
+  "required": [
+    "text"
+  ]
+}
+```
+
+来源：[`packages/memory/tool-memory/src/index.ts`](../packages/memory/tool-memory/src/index.ts)
+
+### `memory_search`
+
+在项目记忆中检索知识（关键词子串匹配，大小写不敏感；空 query 列出全部）。开始新任务、需要历史决策/项目约定/用户偏好时使用。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "搜索关键词（空串匹配全部）"
+    },
+    "limit": {
+      "type": "number",
+      "description": "返回条数上限（缺省 10）"
+    }
+  },
+  "required": [
+    "query"
+  ]
+}
+```
+
+来源：[`packages/memory/tool-memory/src/index.ts`](../packages/memory/tool-memory/src/index.ts)
+
+memory_save 与 memory_search 在执行时才惰性访问项目记忆存储，因此 schema 与记忆后端无关。
+
+## `@huiliyi37/dsh-tool-meridian`
+
+### `repo_graph`
+
+查询代码图，找出与给定文件存在结构关联的文件和符号（基于 SQLite 符号/边索引）。### 模式
+- **graph**（默认）：按调用/导入距离排序，返回带导出符号的相关文件排名。
+- **impact**：返回改动该文件的爆炸半径——哪些文件依赖它、需要跑哪些测试。
+- **flow**：从指定符号（symbol 参数）出发沿调用/导入边双向追踪，返回沿途的命名符号（路径最多穿过 1 个未命名桥）。
+### 何时使用
+- 读完文件后，查它依赖什么、什么依赖它
+- 编辑前评估爆炸半径（mode: "impact"）；编辑后确认需跑哪些测试
+- 沿结构连接在陌生代码中导航；追踪函数/类的数据流（mode: "flow"）
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "from_file": {
+      "type": "string",
+      "description": "要查关联代码的文件路径（相对项目根）"
+    },
+    "max_tokens": {
+      "type": "number",
+      "description": "响应的 token 预算（默认 2000）"
+    },
+    "mode": {
+      "type": "string",
+      "description": "查询模式（默认 graph）",
+      "enum": [
+        "graph",
+        "impact",
+        "flow"
+      ]
+    },
+    "symbol": {
+      "type": "string",
+      "description": "流查询的起点符号名（mode: \"flow\" 必填）"
+    }
+  },
+  "required": [
+    "from_file"
+  ]
+}
+```
+
+来源：[`packages/search/tool-meridian/src/index.ts`](../packages/search/tool-meridian/src/index.ts)
+
+repo_graph 在执行时才惰性查询代码图索引（仓库地图、影响分析、流查询）；其系统提示词区段仅在索引存在时由 runtime-context 内容差异注入。
+
+## `@huiliyi37/dsh-tool-semantic-search`
+
+### `semantic_search`
+
+按语义检索工作区代码：BM25 词项匹配（含中文 bigram）+ 路径注意力排序，返回相关文件与行段。适合"找与 X 相关的代码"型问题；精确文件名/路径请用 glob。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "检索词（中英文均可）"
+    },
+    "limit": {
+      "type": "number",
+      "description": "返回条数上限（默认 10，上限 50）"
+    }
+  },
+  "required": [
+    "query"
+  ]
+}
+```
+
+来源：[`packages/search/tool-semantic-search/src/index.ts`](../packages/search/tool-semantic-search/src/index.ts)
+
+semantic_search 在执行时才惰性执行工作区检索（定义对齐的 BM25，可选向量融合）；其系统提示词区段仅在索引存在时由 runtime-context 内容差异注入。

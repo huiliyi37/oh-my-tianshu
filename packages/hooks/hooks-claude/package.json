@@ -1,6 +1,6 @@
 {
   "name": "@huiliyi37/dsh-hooks-claude",
-  "description": "Bridge plugin: run a Claude Code hooks.json / settings hook config on the DeepSeek Harness interception seams",
+  "description": "Bridge plugin: run a Claude Code hooks.json / settings hook config on the Tianshu Harness interception seams",
   "version": "0.2.0",
   "publishConfig": {
     "access": "public"
@@ -30,7 +30,7 @@
     "lib/invariant.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "dependencies": {
     "@huiliyi37/schemastery": "^3.18.0"
   },

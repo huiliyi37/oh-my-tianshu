@@ -26,7 +26,7 @@ maybe('DeepSeekSearchProvider real API', () => {
       maxTokens: DEEPSEEK_DEFAULT_MAX_TOKENS,
       maxUses: DEEPSEEK_DEFAULT_MAX_USES,
     })
-    const result = await provider.search({ query: 'What is the DeepSeek Harness SDK?', maxResults: 5 })
+    const result = await provider.search({ query: 'What is the Tianshu Harness SDK?', maxResults: 5 })
     expect(result.sources.length).toBeGreaterThan(0)
     for (const source of result.sources) expect(source.url).toMatch(/^https?:\/\//)
   }, 60_000)

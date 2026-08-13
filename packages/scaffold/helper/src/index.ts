@@ -1,5 +1,5 @@
 /**
- * Shared domain and infrastructure for DeepSeek Harness SDK project tooling.
+ * Shared domain and infrastructure for Tianshu Harness SDK project tooling.
  *
  * FIXME: rename to `@huiliyi37/dsh-sdk-helper` before the first tagged release —
  * the current name is indefensibly generic as a published name

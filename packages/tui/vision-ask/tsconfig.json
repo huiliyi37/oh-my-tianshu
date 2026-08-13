@@ -15,13 +15,16 @@
       "path": "../../../vendor/schemastery"
     },
     {
-      "path": "../../llm/llm"
-    },
-    {
       "path": "../../core/session"
     },
     {
       "path": "../../core/tools"
+    },
+    {
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../support/invariants"
     }
   ]
 }

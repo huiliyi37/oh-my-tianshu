@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/guard/pheromone/README.md
-README.md: 2e515c8485183ed59cbd7123e4f6bb9974a77eb6
-README.zh.md: e6fb2c68e945e69838b2da4b2353ae6009b19d91
+README.md: 1b91bc812ed8bddc6762e58f2c988cab55d60c78
+README.zh.md: bedebd87018cb108eca36fd79a88ac0b3ba24609

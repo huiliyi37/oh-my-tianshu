@@ -83,7 +83,7 @@ export class LocalPluginBlueprint {
   documents(projectName: string, releaseVersion: string): TextProjectFile[] {
     const name = this.packageName(projectName)
     const toolName = this.name.replaceAll('-', '_')
-    const cordisSpec = resolveNpmDependency('cordis', 'devDependencies', releaseVersion).spec
+    const cordisSpec = resolveNpmDependency('@huiliyi37/cordis', 'devDependencies', releaseVersion).spec
     const manifest = {
       name,
       version: '0.0.0',
@@ -94,10 +94,10 @@ export class LocalPluginBlueprint {
       exports: { '.': { types: './lib/index.d.ts', default: './lib/index.js' } },
       peerDependencies: {
         ...this.kind === 'tool' ? { '@huiliyi37/dsh-tools': `^${releaseVersion}` } : {},
-        cordis: cordisSpec,
+        '@huiliyi37/cordis': cordisSpec,
       },
       devDependencies: {
-        cordis: cordisSpec,
+        '@huiliyi37/cordis': cordisSpec,
       },
     }
     const tsconfig = {

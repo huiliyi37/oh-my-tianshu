@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write native/landlock-run/README.md
-README.md: fcb8e8249e6728d925fd08c938a780b155d3d4ac
-README.zh.md: 6ae8d7d1d5ae4f2bda90cbf6aa74321a0dab3cb9
+README.md: 629535942249cc4bd9e3e906d74a358a3de9be10
+README.zh.md: 626908d08325c85225594e8fb963fef346feea11

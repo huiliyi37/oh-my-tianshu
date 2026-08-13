@@ -1,5 +1,5 @@
 /**
- * `dsh web` — the browser-surface alias over the profile boot: `--profile web`
+ * `tianshu web` — the browser-surface alias over the profile boot: `--profile web`
  * plus the Web flag family (`--host/--port/--dev/--workspace-root/
  * --trusted-host`), each flag becoming a patch over the composed profile
  * tree. All web runtime glue (dist serving, prompt section, URL line) lives
@@ -53,7 +53,7 @@ export function resolveLanTrust(
   return { lanAddresses, trustedHosts: [...lanAddresses, ...extra] }
 }
 
-/** The `dsh web` flag family, already parsed by the argument adapter. */
+/** The `tianshu web` flag family, already parsed by the argument adapter. */
 export interface WebFlags {
   patches: string[]
   host?: string
@@ -124,7 +124,7 @@ export function webSurfaceContextEnabled(rows: ProfileRows): boolean {
  * stand); `web-runtime.mode` and `lanAddresses` are launcher-derived on
  * every boot. The URL line is printed by the web-app bundle's runtime row
  * after Loader settlement.
- * @param flags - the parsed `dsh web` flag family.
+ * @param flags - the parsed `tianshu web` flag family.
  * @param environment - this run's frozen environment snapshot.
  */
 export async function runWeb(flags: WebFlags, environment: EnvironmentSnapshot): Promise<void> {

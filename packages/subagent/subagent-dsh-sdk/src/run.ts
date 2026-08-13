@@ -1,5 +1,5 @@
 /**
- * Fresh-process SDK subagent client. Drives one child DeepSeek Harness
+ * Fresh-process SDK subagent client. Drives one child Tianshu Harness
  * runtime over stdio JSON-RPC through `@huiliyi37/dsh-sdk-client` and owns
  * cancellation and quiescent disposal. Structure mirrors the ACP backend
  * (`@huiliyi37/dsh-subagent-acp`): publish after the child handshake,

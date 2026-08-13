@@ -30,17 +30,19 @@ Field names are snake_case, matching Claude Code and existing harness tool schem
 
 ## Model Experience
 
-### What the model sees
+### Tool schema
 
-One structured tool covering repository inspection and committing — working tree, uncommitted diffs, history, and commits — selected by `operation`, plus a prompt section telling it when each applies. Merging the four operations into one tool roughly halves the prompt footprint versus four separate tool definitions.
+#### What the model sees
 
-### Token effect
+The generated [`git` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-git): one structured tool covering repository inspection and committing — working tree, uncommitted diffs, history, and commits — selected by `operation`, plus a prompt section telling it when each applies. Merging the four operations into one tool roughly halves the prompt footprint versus four separate tool definitions.
 
-Tool outputs are the git command text (diff/log lines), bounded by `maxCount` for log; a `--stat` summary option keeps large diffs cheap to preview.
+#### Token effect
 
-### KV Cache effect
+Fixed schema cost while the tool is visible. Tool outputs are the git command text (diff/log lines), bounded by `maxCount` for log; a `--stat` summary option keeps large diffs cheap to preview.
 
-None beyond the normal tool-result append.
+#### KV Cache effect
+
+Prefix-stable while the definition is unchanged; results append like any other tool result.
 
 ## Known Limitations and Deferred Work
 

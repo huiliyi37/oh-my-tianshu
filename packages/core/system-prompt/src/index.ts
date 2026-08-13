@@ -164,7 +164,7 @@ function compareToolNames(a: ToolSchema, b: ToolSchema): number {
 
 /** Plugin config: the deployment-authored fragment of the system prompt (see {@link Config.persona} for its contract). */
 export interface Config {
-  /** Include the fixed DeepSeek Harness identity before the deployment persona (default true). */
+  /** Include the fixed Tianshu Harness identity before the deployment persona (default true). */
   includeHarnessIdentity?: boolean
   /**
    * Deployment-wide order-0 persona template. A scoped section named
@@ -333,7 +333,7 @@ export class SystemPrompt extends Service {
       this.section({
         name: 'harness:identity',
         order: -100,
-        text: 'You are an AI agent powered by the DeepSeek Harness SDK.',
+        text: 'You are an AI agent powered by the Tianshu Harness SDK.',
       })
     }
     this.section({

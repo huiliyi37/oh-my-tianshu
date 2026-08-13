@@ -40,7 +40,7 @@ export function apply(ctx: Context) {
 如果开发命令未在运行，请重新启动：
 
 ```sh
-pnpm run dsh web --patch ./scratch-plugin/cordis.yml
+pnpm run tianshu web --patch ./scratch-plugin/cordis.yml
 ```
 
 打开 `http://127.0.0.1:3080`，然后输入：`Use the greet tool to greet Ada.` 模型可以调用 `greet`，并收到 `Hello, Ada!` 这一工具结果。

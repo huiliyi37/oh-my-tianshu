@@ -40,6 +40,7 @@ export interface RegisteredImage {
   lastUsed: number
 }
 
+/** Retention budgets for the session-scoped image registry. */
 export interface ImageRegistryOptions {
   /** Max retained images. Oldest-touched evicted first. Default 8. */
   maxImages?: number
@@ -50,6 +51,11 @@ export interface ImageRegistryOptions {
 const DEFAULT_MAX_IMAGES = 8
 const DEFAULT_MAX_BYTES = 24 * 1024 * 1024
 
+/**
+ * Session-scoped image registry: retains user-attached images under short
+ * `img_<n>` ids with LRU + byte-budget eviction, and caches vision-model
+ * descriptions per (image, question) key so re-asks never re-bill.
+ */
 export class ImageRegistry {
   private readonly images = new Map<string, RegisteredImage>()
   private readonly maxImages: number
@@ -91,8 +97,9 @@ export class ImageRegistry {
 
   /**
    * Fetch a retained image by id, or the most-recently-registered when id is
-   * omitted. Touches LRU. Returns undefined when nothing matches.
+   * omitted. Touches LRU.
    * @param id - optional `img_<n>` id; omission selects the most recent image.
+   * @returns the retained image, or undefined when nothing matches.
    */
   get(id?: string): RegisteredImage | undefined {
     const img = id ? this.images.get(id) : this.mostRecent()
@@ -104,6 +111,7 @@ export class ImageRegistry {
    * Cached description for (id, key), if present. Touches LRU on hit.
    * @param id - the registered image id.
    * @param key - the normalized question/mode cache key.
+   * @returns the cached answer text, or undefined without a hit.
    */
   getCachedDescription(id: string, key: string): string | undefined {
     const img = this.images.get(id)
@@ -123,7 +131,10 @@ export class ImageRegistry {
     this.images.get(id)?.descriptions.set(key, text)
   }
 
-  /** Registered images, newest first (for UI / tool hints). */
+  /**
+   * Registered images, newest first (for UI / tool hints).
+   * @returns retained images sorted by most-recent touch.
+   */
   list(): RegisteredImage[] {
     return [...this.images.values()].sort((a, b) => b.lastUsed - a.lastUsed)
   }
@@ -133,6 +144,7 @@ export class ImageRegistry {
     return this.images.size
   }
 
+  /** Drop every retained image and cached description. */
   clear(): void {
     this.images.clear()
   }

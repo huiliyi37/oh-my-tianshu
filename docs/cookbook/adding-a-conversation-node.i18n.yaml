@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cookbook/adding-a-conversation-node.md
-adding-a-conversation-node.md: ea4ec73eb109af6b0e4c7cf50fc8692942c75dd4
-adding-a-conversation-node.zh.md: 4b9a8049e2f1d060ec4bc3334036559b989ea562
+adding-a-conversation-node.md: 46d641525055d30055c5f2235485e4f6b0f62c30
+adding-a-conversation-node.zh.md: 13bd7a7ba82e20152362407290592a30268565f9

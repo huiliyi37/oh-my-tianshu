@@ -10,10 +10,10 @@ This directory owns the replay and real-model test composition for a headless co
 # repo root .env (gitignored) or exported env:
 #   DEEPSEEK_API_KEY=sk-…
 #   DEEPSEEK_BASE_URL=https://…   # optional; defaults to the public API
-pnpm run dsh run "fix the failing test in this workspace"
+pnpm run tianshu run "fix the failing test in this workspace"
 ```
 
-The product command is [`dsh run`](../../apps/cli/README.md): it accepts one nonblank task, creates and persists a fresh session, prints the final assistant text, and exits. The root `demo:headless` script is only an alias of that command.
+The product command is [`tianshu run`](../../apps/cli/README.md): it accepts one nonblank task, creates and persists a fresh session, prints the final assistant text, and exits. The root `demo:headless` script is only an alias of that command.
 
 Snapshot suites run this directory's configuration through [`tests/fixtures/headless-driver.ts`](tests/fixtures/headless-driver.ts), an unexported test-only process that emits canonical session events as JSONL before its result record. That stream is test infrastructure, not a supported CLI output format. Child sessions surface only through parent tool events and results.
 

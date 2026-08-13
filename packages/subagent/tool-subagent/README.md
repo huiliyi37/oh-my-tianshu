@@ -37,7 +37,7 @@ Foreground and background calls are exclusive. Children may share the parent's w
 
 #### What the model sees
 
-The generated default [`subagent` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-subagent) under this instance's configured name while its provider exists. Provider context inheritance changes the tool and prompt descriptions; enabled background mode adds `run_in_background`, and continuable mode describes starting a background subagent that keeps its conversation and returns its subagent id, while one-shot mode describes a background task id collected with `task_output` and stopped with `task_kill`.
+The generated default [`subagent` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-subagent) under this instance's configured name while its provider exists. Provider context inheritance changes the tool and prompt descriptions; enabled background mode adds `run_in_background`, and continuable mode describes starting a background subagent that keeps its conversation and returns its subagent id, while one-shot mode describes a background task id collected with `task_output` and stopped with `task_kill`.
 
 #### Token effect
 

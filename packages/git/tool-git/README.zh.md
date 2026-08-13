@@ -30,17 +30,19 @@
 
 ## Model Experience
 
-### What the model sees
+### Tool schema
 
-一个结构化工具覆盖仓库检查与提交——工作树、未提交 diff、历史、提交——经 `operation` 选择，外加说明各自适用时机的 prompt 引导段。四操作合一约省一半提示词占用（对比四个独立工具定义）。
+#### What the model sees
 
-### Token effect
+生成的 [`git` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-git)：一个结构化工具覆盖仓库检查与提交——工作树、未提交 diff、历史、提交——经 `operation` 选择，外加说明各自适用时机的 prompt 引导段。四操作合一约省一半提示词占用（对比四个独立工具定义）。
 
-工具输出即 git 命令文本（diff/log 行），log 由 `maxCount` 限界；`--stat` 摘要选项让大 diff 预览便宜。
+#### Token effect
 
-### KV Cache effect
+工具可见期间为固定 schema 成本。工具输出即 git 命令文本（diff/log 行），log 由 `maxCount` 限界；`--stat` 摘要选项让大 diff 预览便宜。
 
-无（仅常规 tool-result 追加）。
+#### KV Cache effect
+
+定义不变则前缀稳定；结果与其他 tool-result 一样追加。
 
 ## Known Limitations and Deferred Work
 

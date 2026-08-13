@@ -505,7 +505,7 @@ describe('SdkProject and ProjectEditSession', () => {
     internals.applyResource(transient, undefined)
     internals.removeResource(transient)
     internals.replaceContribution(
-      new ProjectContribution([{ kind: 'npm-dependency', key: resourceKey('shared'), name: 'cordis', section: 'dependencies' }]),
+      new ProjectContribution([{ kind: 'npm-dependency', key: resourceKey('shared'), name: '@huiliyi37/cordis', section: 'dependencies' }]),
       new ProjectContribution([{
         kind: 'cordis-config-entry', key: resourceKey('shared'), entry: { id: 'new', name: 'new' }, ownedConfigKeys: [],
       }]),

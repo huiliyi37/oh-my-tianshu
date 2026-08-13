@@ -4039,18 +4039,25 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
   })
 
   it('B 布局：输入框完整框体渲染 + 宽屏 footer 右侧合并 metrics/API 段', async () => {
-    const { stdout, app } = boot()
-    await app.attach()
-    app.handleSubmit('hi')
-    await new Promise(resolve => setImmediate(resolve))
-    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    // 完整框体：顶框 ╭─╮ 在输入行上方、底框 ╰─╯ 在下方
-    expect(written).toMatch(/╭─+/)
-    expect(written).toMatch(/╰─+/)
-    // 宽屏（mock 100 列 ≥ 80）合并路径：API 状态段进 footer 右侧
-    // （测试环境无 DEEPSEEK_API_KEY → ✗；区别于欢迎页的「API Key」环境检查行）
-    expect(written).toContain('API ✗')
-    await app.dispose()
+    // 开发机 shell 可能带着真实 key——本用例断言的是「无 key → ✗」路径，先摘掉。
+    const savedKey = process.env.DEEPSEEK_API_KEY
+    Reflect.deleteProperty(process.env, 'DEEPSEEK_API_KEY')
+    try {
+      const { stdout, app } = boot()
+      await app.attach()
+      app.handleSubmit('hi')
+      await new Promise(resolve => setImmediate(resolve))
+      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      // 完整框体：顶框 ╭─╮ 在输入行上方、底框 ╰─╯ 在下方
+      expect(written).toMatch(/╭─+/)
+      expect(written).toMatch(/╰─+/)
+      // 宽屏（mock 100 列 ≥ 80）合并路径：API 状态段进 footer 右侧
+      // （无 DEEPSEEK_API_KEY → ✗；区别于欢迎页的「API Key」环境检查行）
+      expect(written).toContain('API ✗')
+      await app.dispose()
+    } finally {
+      if (savedKey !== undefined) process.env.DEEPSEEK_API_KEY = savedKey
+    }
   })
 
   it('B 布局：窄屏（<80 列）footer 不合并，metrics 独立行、API 段不出现', async () => {

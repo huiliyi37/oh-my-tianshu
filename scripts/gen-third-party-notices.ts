@@ -688,7 +688,7 @@ export function render(): string {
 
 # Third-Party Notices
 
-DeepSeek Harness is licensed under [BSD 3-Clause](LICENSE). It depends on the third-party software listed below. Each project remains under its own license; nothing in this file changes those terms.
+Tianshu Harness (dsh-tianshu) is licensed under [MIT](LICENSE); it contains code derived from DeepSeek Harness (MIT, Copyright (c) 2026 DeepSeek — see [NOTICE](NOTICE)). It depends on the third-party software listed below. Each project remains under its own license; nothing in this file changes those terms.
 
 This file lists **direct** dependencies declared by the workspace and the explicitly disclosed official Claude platform payload closure. It is generated from the workspace manifests by \`scripts/gen-third-party-notices.ts\`: a pre-commit hook regenerates it whenever a staged file changes one of its inputs, and \`scripts/gen-third-party-notices.spec.ts\` asserts in the test lane that the committed bytes match. Deleting a manifest runs no hook, so that case is caught by the assertion instead. Run \`pnpm run verify-third-party-notices\` for the standalone check.
 
@@ -736,7 +736,7 @@ ${BUILD_TIME_TOOLS.map(tool => `| [\`${tool.name}\`](${tool.repo}) | ${tool.lice
 
 ## First-party native packages
 
-\`@huiliyi37/node-addon-landlock-run\` (and its platform packages) is built and released from this repository under BSD 3-Clause. It is listed here for completeness; it is first-party, not third-party.
+\`@huiliyi37/node-addon-landlock-run\` (and its platform packages) is built and released from this repository under MIT. It is listed here for completeness; it is first-party, not third-party.
 `
 }
 

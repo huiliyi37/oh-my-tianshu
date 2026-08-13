@@ -1,8 +1,8 @@
-# DeepSeek Harness Python SDK
+# Tianshu Harness Python SDK
 
 English | [中文](README.zh.md)
 
-Python packages for driving DeepSeek Harness as a subprocess. The client SDK communicates with the bundled runtime over newline-delimited JSON-RPC on stdio.
+Python packages for driving Tianshu Harness as a subprocess. The client SDK communicates with the bundled runtime over newline-delimited JSON-RPC on stdio.
 
 ## Packages
 

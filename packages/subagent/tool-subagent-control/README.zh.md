@@ -16,7 +16,7 @@
 
 #### 模型看到的内容
 
-已生成的 [schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-subagent-control)：`send_message` 包含 `subagent_id` 和 `message`，说明消息会成为子 agent 的下一个轮次、本次调用不会返回子 agent 的回答，以及失败即表示消息未送达；`interrupt_agent` 包含 `agent_id`，说明只有当前轮次会停止、已排队消息保持暂停、后代继续运行，以及接受先于实际停止；`list_agents` 包含可选的 `scope` 枚举。
+已生成的 [schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-subagent-control)：`send_message` 包含 `subagent_id` 和 `message`，说明消息会成为子 agent 的下一个轮次、本次调用不会返回子 agent 的回答，以及失败即表示消息未送达；`interrupt_agent` 包含 `agent_id`，说明只有当前轮次会停止、已排队消息保持暂停、后代继续运行，以及接受先于实际停止；`list_agents` 包含可选的 `scope` 枚举。
 
 #### Token 影响
 

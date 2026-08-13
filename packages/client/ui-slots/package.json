@@ -25,7 +25,7 @@
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "devDependencies": {
     "@huiliyi37/dsh-invariants": "workspace:^",
     "@types/react": "~18.3.1",

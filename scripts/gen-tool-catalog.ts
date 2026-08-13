@@ -44,6 +44,12 @@ import * as ToolBashPersistent from '@huiliyi37/dsh-tool-bash-persistent'
 import * as ToolCordis from '@huiliyi37/dsh-tool-cordis'
 import * as ToolFs from '@huiliyi37/dsh-tool-fs'
 import * as ToolFsSearch from '@huiliyi37/dsh-tool-fs-search'
+import * as ToolFileInfo from '@huiliyi37/dsh-tool-file-info'
+import GitLocal from '@huiliyi37/dsh-git'
+import * as ToolGit from '@huiliyi37/dsh-tool-git'
+import * as ToolMemory from '@huiliyi37/dsh-tool-memory'
+import * as ToolMeridian from '@huiliyi37/dsh-tool-meridian'
+import * as ToolSemanticSearch from '@huiliyi37/dsh-tool-semantic-search'
 import * as ToolStrReplaceEditor from '@huiliyi37/dsh-tool-str-replace-editor'
 import PtyService from '@huiliyi37/dsh-pty'
 import * as ToolPty from '@huiliyi37/dsh-tool-pty'
@@ -493,6 +499,72 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps.',
+  },
+  {
+    pkg: '@huiliyi37/dsh-tool-file-info',
+    dir: 'tool-file-info',
+    source: 'packages/fs/tool-file-info/src/index.ts',
+    requires: ['ctx.tools', 'ctx.fs'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      // The tool injects `fs`; the bare local provider is sufficient because
+      // the schema does not depend on policy or backend identity.
+      await ctx.plugin(LocalFileSystem)
+      await ctx.plugin(ToolFileInfo)
+    },
+    note:
+      'file_info reports metadata (size, kind, mtime) through ctx.fs without reading file contents into model context.',
+  },
+  {
+    pkg: '@huiliyi37/dsh-tool-git',
+    dir: 'tool-git',
+    source: 'packages/git/tool-git/src/index.ts',
+    requires: ['ctx.tools', 'ctx.git', 'ctx.systemPrompt'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      // The tools inject `git`; the CLI-backed provider registers the service
+      // seam. Registration never spawns git, so the real provider is inert.
+      await ctx.plugin(GitLocal)
+      await ctx.plugin(ToolGit)
+    },
+    note:
+      'git_status / git_diff / git_log / git_commit consume the typed ctx.git seam (no subprocess contact in the tool layer); git_commit requires a message and runs exclusively (not concurrency-safe), and commits do not raise an approval card — file mutations still go through the fs approval surface.',
+  },
+  {
+    pkg: '@huiliyi37/dsh-tool-memory',
+    dir: 'tool-memory',
+    source: 'packages/memory/tool-memory/src/index.ts',
+    requires: ['ctx.tools', 'ctx.systemPrompt', 'ctx.memory (execution time)'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(ToolMemory)
+    },
+    note:
+      'memory_save and memory_search reach the project-memory store lazily at execution time, so the schemas are independent of the memory backend.',
+  },
+  {
+    pkg: '@huiliyi37/dsh-tool-meridian',
+    dir: 'tool-meridian',
+    source: 'packages/search/tool-meridian/src/index.ts',
+    requires: ['ctx.tools', 'ctx.systemPrompt', 'ctx.meridian (execution time)'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(ToolMeridian)
+    },
+    note:
+      'repo_graph queries the code-graph index (repo map, impact analysis, flow queries) lazily at execution time; its system-prompt section is injected by the runtime-context content-diff only when the index is present.',
+  },
+  {
+    pkg: '@huiliyi37/dsh-tool-semantic-search',
+    dir: 'tool-semantic-search',
+    source: 'packages/search/tool-semantic-search/src/index.ts',
+    requires: ['ctx.tools', 'ctx.systemPrompt', 'ctx.semanticIndex (execution time)'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(ToolSemanticSearch)
+    },
+    note:
+      'semantic_search runs workspace retrieval (definition-aligned BM25 with optional vector fusion) lazily at execution time; its system-prompt section is injected by the runtime-context content-diff only when the index is present.',
   },
 ]
 

@@ -1,7 +1,7 @@
 ---
 layout: home
 hero:
-  name: DeepSeek Harness
+  name: Tianshu Harness
   text: Plugin-based agent development framework
   tagline: Built on the Cordis microkernel; everything is a plugin
   actions:
@@ -20,6 +20,6 @@ features:
     details: Includes LLM calls, file access, Bash execution, subagent delegation, and the rest of the core toolchain. Copy a template to get started.
 ---
 
-# DeepSeek Harness
+# Tianshu Harness
 
 English | [中文](index.zh.md)

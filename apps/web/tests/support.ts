@@ -39,7 +39,7 @@ export function requireDist(): void {
   }
 }
 
-/** OS-assigned free port, released before use (the spawned `dsh web` needs a concrete --port). */
+/** OS-assigned free port, released before use (the spawned `tianshu web` needs a concrete --port). */
 export function probeFreePort(): Promise<number> {
   return new Promise((resolvePort, reject) => {
     const probe = createServer()

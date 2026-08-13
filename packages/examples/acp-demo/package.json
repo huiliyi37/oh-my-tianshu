@@ -38,7 +38,7 @@
     "lib/bin.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "peerDependencies": {
     "@huiliyi37/cordis-plugin-include": "^1.0.4",
     "@huiliyi37/cordis-plugin-loader": "^1.0.0-rc.5",

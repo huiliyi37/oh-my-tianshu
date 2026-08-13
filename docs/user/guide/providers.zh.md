@@ -15,7 +15,7 @@ Harness 出厂自带 DeepSeek，同时预装了一个通用的多提供方适配
 
 ## 在 Web 界面里配置
 
-启动 `pnpm run dsh web`，打开**设置 → 模型**。
+启动 `pnpm run tianshu web`，打开**设置 → 模型**。
 
 ![模型页：DeepSeek 卡片，以及添加提供方与添加自定义提供方两个入口](providers-models-page.zh.png)
 

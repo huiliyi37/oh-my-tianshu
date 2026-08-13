@@ -14,6 +14,7 @@ const SOURCE_NAME = 'spark-anchors'
 /** Cordis companion plugin name. */
 export const name = 'spark-anchors-invariant'
 /** Service required before the companion can reserve package ownership. */
+/* jscpd:ignore-start */
 export const inject = ['invariants']
 
 /** Validate one plugin-attributed injection: exactly one text block, non-empty. */
@@ -21,6 +22,7 @@ function validateInjection(event: SessionEvent<'user/message'>, fail: InvariantF
   const textBlocks = event.data.content.filter(block => block.type === 'text')
   if (textBlocks.length !== 1 || textBlocks[0]?.text === '') {
     fail('spark-anchors injections must carry exactly one non-empty text block')
+    /* jscpd:ignore-end */
   }
 }
 

@@ -1,7 +1,7 @@
 ---
 layout: home
 hero:
-  name: DeepSeek Harness
+  name: Tianshu Harness
   text: 插件化 agent（智能体）开发框架
   tagline: 基于 Cordis 微内核，一切皆插件
   actions:
@@ -20,6 +20,6 @@ features:
     details: 内置 LLM（大语言模型）调用、文件读写、Bash 执行、subagent 委派等完整工具链，复制模板即可运行。
 ---
 
-# DeepSeek Harness
+# Tianshu Harness
 
 [English](index.md) | 中文

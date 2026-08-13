@@ -30,17 +30,11 @@
 
 ## Model Experience
 
-### What the model sees
+间接——经 `dsh-tool-git` 的 `git` 工具；接缝本身不注册 prompt 或 schema。
 
-模型不会直接看到本包——`dsh-tool-git` 把四个操作暴露为工具。本包是这些工具调用的接缝。
+#### KV Cache effect
 
-### Token effect
-
-无（接缝本身不面向模型）。
-
-### KV Cache effect
-
-无。
+无（接缝不面向模型；tool-result 渲染归 `dsh-tool-git`）。
 
 ## Known Limitations and Deferred Work
 

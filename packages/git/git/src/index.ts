@@ -26,6 +26,7 @@ export type GitErrorCode = 'NOT_A_REPOSITORY' | 'EXEC_FAILED'
 
 /** git 失败的稳定错误；`code` 供工具层路由（如 NOT_A_REPOSITORY → 提示初始化）。 */
 export class GitError extends Error {
+  /** 类型化错误码，供调用方分支处理（不解析 message 文本）。 */
   readonly code: GitErrorCode
   constructor(code: GitErrorCode, message: string, options?: { cause?: unknown }) {
     super(message, options)
@@ -78,27 +79,60 @@ export abstract class Git extends Service {
     super(ctx, 'git')
   }
 
-  /** 工作区状态：分支 + 是否有未提交变更。 */
+  /**
+   * 工作区状态：分支 + 是否有未提交变更。
+   * @param cwd - 目标仓库工作目录（调用方从 session header 取）。
+   * @param opts - `untracked` 是否把未跟踪文件计入 dirty。
+   * @param signal - 取消信号，透传到子进程。
+   * @returns 分支名与 dirty 标志。
+   */
   abstract status(cwd: string, opts?: { untracked?: boolean }, signal?: AbortSignal): Promise<GitStatusResult>
 
-  /** 工作区 diff（未暂存）；paths 限定文件，stat 输出 --stat 摘要。 */
+  /**
+   * 工作区 diff（未暂存）；paths 限定文件，stat 输出 --stat 摘要。
+   * @param cwd - 目标仓库工作目录。
+   * @param opts - `paths` 限定文件集；`stat` 输出 --stat 摘要而非完整 diff。
+   * @param signal - 取消信号，透传到子进程。
+   * @returns 原始 diff（或 --stat 摘要）文本。
+   */
   abstract diff(cwd: string, opts?: { paths?: readonly string[]; stat?: boolean }, signal?: AbortSignal): Promise<GitDiffResult>
 
-  /** 提交历史（oneline）；maxCount 默认 20，paths 限定文件。 */
+  /**
+   * 提交历史（oneline）；maxCount 默认 20，paths 限定文件。
+   * @param cwd - 目标仓库工作目录。
+   * @param opts - `maxCount` 条数上限（默认 20）；`paths` 限定文件集。
+   * @param signal - 取消信号，透传到子进程。
+   * @returns 解析后的提交列表（短 hash + 主题行）。
+   */
   abstract log(cwd: string, opts?: { maxCount?: number; paths?: readonly string[] }, signal?: AbortSignal): Promise<GitLogResult>
 
-  /** 暂存全部变更并提交。 */
+  /**
+   * 暂存全部变更并提交。
+   * @param cwd - 目标仓库工作目录。
+   * @param opts - `message` 提交信息（必填）。
+   * @param signal - 取消信号，透传到子进程。
+   * @returns 完整 HEAD hash 与最新提交的 oneline 摘要。
+   */
   abstract commit(cwd: string, opts: { message: string }, signal?: AbortSignal): Promise<GitCommitResult>
+}
+
+/** GitLocal provider 配置。 */
+export interface GitLocalConfig {
+  /** git 可执行文件（默认 `git`；测试可注入）。 */
+  gitBin?: string
 }
 
 /** 本地 git CLI provider：execFile 子进程执行，失败映射为 typed GitError。 */
 export class GitLocal extends Git {
+  private readonly gitBin: string
+
   /**
    * @param ctx - cordis context（服务注册）。
-   * @param gitBin - git 可执行文件（默认 `git`；测试可注入）。
+   * @param config - provider 配置（gitBin 缺省 `git`）。
    */
-  constructor(ctx: Context, private readonly gitBin = 'git') {
+  constructor(ctx: Context, config: GitLocalConfig = {}) {
     super(ctx)
+    this.gitBin = config.gitBin ?? 'git'
   }
 
   override async status(cwd: string, opts: { untracked?: boolean } = {}, signal?: AbortSignal): Promise<GitStatusResult> {

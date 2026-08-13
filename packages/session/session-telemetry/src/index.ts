@@ -1,5 +1,5 @@
 /**
- * Telemetry Service Definition for the DeepSeek Harness.
+ * Telemetry Service Definition for the Tianshu Harness.
  *
  * This package owns the CAPTURE side of session-event reporting — which records
  * exist (the chunk projection), what they carry (the logical record), when

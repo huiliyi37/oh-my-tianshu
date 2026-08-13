@@ -96,11 +96,11 @@ function checkManifest(
     addViolation(violations, owner.manifestPath, 'files must publish lib/invariant.js')
   }
   if (owner.packageName === '@huiliyi37/dsh-invariants') return
-  if (manifest.peerDependencies?.['@huiliyi37/dsh-invariants'] !== '^0.0.1') {
+  if (manifest.peerDependencies?.['@huiliyi37/dsh-invariants'] !== '^0.2.0') {
     addViolation(
       violations,
       owner.manifestPath,
-      '@huiliyi37/dsh-invariants must be a ^0.0.1 peerDependency',
+      '@huiliyi37/dsh-invariants must be a ^0.2.0 peerDependency',
     )
   }
   if (manifest.devDependencies?.['@huiliyi37/dsh-invariants'] !== 'workspace:^') {

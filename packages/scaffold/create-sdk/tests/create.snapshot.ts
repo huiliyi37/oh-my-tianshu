@@ -160,7 +160,7 @@ describe.skipIf(process.platform === 'win32')('create-sdk terminal contract', ()
             "message": "Package name",
           },
           {
-            "defaultValue": "A DeepSeek Harness agent named my-agent",
+            "defaultValue": "A Tianshu Harness agent named my-agent",
             "initialValue": undefined,
             "kind": "text",
             "message": "Project description",

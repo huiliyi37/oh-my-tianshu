@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/postmortem/0001-acp-default-export-drops-inject.md
-0001-acp-default-export-drops-inject.md: 2d36f24fa54814e39345d7fe68792023c2cf0194
-0001-acp-default-export-drops-inject.zh.md: 6ae7d45f58e09f205a5653f7c6d306014d4d393e
+0001-acp-default-export-drops-inject.md: 6df5ee1e7df3568e50462a28490fd3ad82f9f912
+0001-acp-default-export-drops-inject.zh.md: bf733d733791a130be14b7e6d1db3562dcacbcf6

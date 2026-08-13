@@ -133,8 +133,8 @@ const PROJECT_QUESTION_STEPS: ReadonlyArray<WizardStep<ProjectAnswerState>> = [
       return new TextQuestion({
         id: 'description',
         message: 'Project description',
-        placeholder: `A DeepSeek Harness agent named ${state.name}`,
-        defaultValue: `A DeepSeek Harness agent named ${state.name}`,
+        placeholder: `A Tianshu Harness agent named ${state.name}`,
+        defaultValue: `A Tianshu Harness agent named ${state.name}`,
         validate: nonEmpty,
       })
     },

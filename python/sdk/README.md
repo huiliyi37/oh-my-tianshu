@@ -1,9 +1,9 @@
-# DeepSeek Harness Python SDK
+# Tianshu Harness Python SDK
 
 English | [中文](README.zh.md)
 
-Python subprocess SDK for driving DeepSeek Harness over JSON-RPC stdio. The
-runtime inherits normal DeepSeek Harness environment variables such as
+Python subprocess SDK for driving Tianshu Harness over JSON-RPC stdio. The
+runtime inherits normal Tianshu Harness environment variables such as
 `DEEPSEEK_BASE_URL` and `DEEPSEEK_API_KEY`, so callers can use real model
 endpoints directly or point those variables at a local proxy during
 benchmark runs.

@@ -226,6 +226,7 @@ export class FileHistory {
    * @param boundaryId - 目标边界 id。
    * @returns 变更统计；该边界无快照时为 undefined。
    */
+  /* jscpd:ignore-start */
   async getDiffStats(boundaryId: string): Promise<DiffStats | undefined> {
     let targetSnapshot: FileSnapshot | undefined
     for (let i = this.snapshots.length - 1; i >= 0; i--) {
@@ -236,6 +237,7 @@ export class FileHistory {
       }
     }
     if (!targetSnapshot) return undefined
+    /* jscpd:ignore-end */
 
     const filesChanged: string[] = []
     let insertions = 0

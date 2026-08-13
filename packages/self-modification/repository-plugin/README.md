@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Trusted repository package format for DeepSeek Harness. A `.dsh-plugin` npm package may contribute a compiled Cordis/DSH Plugin entry, skill roots, and a common `.mcp.json`; its ordinary `prepack` lifecycle owns dependency installation and source compilation before the DSH prepare helper validates the outputs and emits the Loader wrapper. Static contributions compose [`dsh-skill-local`](../../skill/skill-local/README.md) and [`dsh-mcp-client`](../../mcp/mcp-client/README.md). Design rationale: [trusted repository package code](../../../.agents/notes/implemented/architecture/2026-08-08-trusted-repository-package-code.md) and the [static contribution subformat](../../../.agents/notes/implemented/architecture/2026-07-30-static-repository-plugin-format.md).
+Trusted repository package format for Tianshu Harness. A `.dsh-plugin` npm package may contribute a compiled Cordis/DSH Plugin entry, skill roots, and a common `.mcp.json`; its ordinary `prepack` lifecycle owns dependency installation and source compilation before the DSH prepare helper validates the outputs and emits the Loader wrapper. Static contributions compose [`dsh-skill-local`](../../skill/skill-local/README.md) and [`dsh-mcp-client`](../../mcp/mcp-client/README.md). Design rationale: [trusted repository package code](../../../.agents/notes/implemented/architecture/2026-08-08-trusted-repository-package-code.md) and the [static contribution subformat](../../../.agents/notes/implemented/architecture/2026-07-30-static-repository-plugin-format.md).
 
 ## Authoring format
 
@@ -82,7 +82,7 @@ Namespace Plugin: named exports `name` / `inject` / `apply`, preparation constan
 
 #### What the model sees
 
-Indirectly through `dsh-tool-skill`: prepared, model-invocable skills join its logged catalog and selected instruction-body surface under their declared names and descriptions. The exact consumer schema is in the generated [`skill` tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-tool-skill).
+Indirectly through `dsh-tool-skill`: prepared, model-invocable skills join its logged catalog and selected instruction-body surface under their declared names and descriptions. The exact consumer schema is in the generated [`skill` tool catalog](../../../docs/tool-catalog.md#huiliyi37dsh-tool-skill).
 
 #### Token effect
 

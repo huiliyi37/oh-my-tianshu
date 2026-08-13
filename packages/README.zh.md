@@ -36,7 +36,7 @@
 | [`todo/`](todo/README.md) | 面向模型的 `todo_write` 工具 | 产品：稳定接口 |
 | [`plan/`](plan/README.md) | Plan 协作状态，提供直接进入命令与经评审的退出 | 产品：稳定接口 |
 | [`guard/`](guard/README.md) | 循环卫生守卫：建议性重复调用提醒 + `tools/execute` 截止时间强制执行器 | 产品：稳定接口 |
-| [`bundle/`](bundle/README.md) | 可安装的 `dsh --profile` 补丁层 | 产品：稳定接口 |
+| [`bundle/`](bundle/README.md) | 可安装的 `tianshu --profile` 补丁层 | 产品：稳定接口 |
 | [`self-modification/`](self-modification/README.md) | agent 修改自身运行时：检查实时运行时的插件与服务，挂载／卸载模型所写插件（[设计](../.agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md)），以及受限仓库插件加载 | 产品：稳定接口 |
 | [`hooks/`](hooks/README.md) | 钩子桥接 + 共享 Claude Code／Codex 协议格式库 | 产品：稳定接口 |
 | [`session/`](session/README.md) | 持久会话数据平面：持久化 seam + JSONL/SQLite 后端、投影 seam、日志支持的标题、会话上报 | 产品：稳定接口 |

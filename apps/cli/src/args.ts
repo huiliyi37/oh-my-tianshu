@@ -38,7 +38,7 @@ interface DumpConfigInvocation {
 }
 
 /**
- * Browser UI: `dsh web` (alias of `--profile web`). Host and port remain
+ * Browser UI: `tianshu web` (alias of `--profile web`). Host and port remain
  * unvalidated pass-throughs to the webserver schema; absent values leave the
  * shipped web bundle values intact.
  */
@@ -62,7 +62,7 @@ interface PluginInvocation {
 }
 
 /**
- * Terminal UI: `dsh tui` (alias of `--profile tui`). Boots the tui profile
+ * Terminal UI: `tianshu tui` (alias of `--profile tui`). Boots the tui profile
  * with optional patch overlays.
  */
 interface TuiInvocation {
@@ -108,17 +108,17 @@ const collect = (value: string, previous: string[] = []): string[] => [...previo
 export function parseDshArgs(argv: readonly string[], version: string): DshInvocation {
   let resolved: DshInvocation | undefined
   const program = new Command()
-    .name('dsh')
+    .name('tianshu')
     .version(version, '-V, --version', 'output the version number')
-    .description('dsh: boot a DeepSeek Harness profile — an ordered stack of plugin-bundle patch layers under your own overrides.')
+    .description('tianshu: boot a Tianshu Harness profile — an ordered stack of plugin-bundle patch layers under your own overrides.')
     .addHelpText('after', `
 Examples:
-  dsh --profile web                          boot the web profile (same as: dsh web)
-  dsh run "run the tests"                    answer one task, print the result, and exit
-  dsh run --profile custom "run the tests"   run one task through a custom one-shot profile
-  dsh --profile tui --patch ./extra.yml      boot a custom profile with one extra overlay
-  dsh plugin --profile tui add <package>     install a plugin into the tui profile
-  dsh web --port 8080                        the web alias with its flag family
+  tianshu --profile web                          boot the web profile (same as: tianshu web)
+  tianshu run "run the tests"                    answer one task, print the result, and exit
+  tianshu run --profile custom "run the tests"   run one task through a custom one-shot profile
+  tianshu --profile tui --patch ./extra.yml      boot a custom profile with one extra overlay
+  tianshu plugin --profile tui add <package>     install a plugin into the tui profile
+  tianshu web --port 8080                        the web alias with its flag family
 `)
     .exitOverride()
     .enablePositionalOptions()
@@ -254,6 +254,6 @@ Examples:
     return process.exit(error instanceof CommanderError ? error.exitCode : 1)
   }
   /* v8 ignore next -- an action resolves or Commander throws */
-  if (resolved === undefined) { throw new Error('dsh: no invocation resolved') }
+  if (resolved === undefined) { throw new Error('tianshu: no invocation resolved') }
   return resolved
 }

@@ -1,6 +1,6 @@
 {
   "name": "@huiliyi37/dsh-web-fetch-local",
-  "description": "Anonymous public HTTP(S) fetch provider for the DeepSeek Harness web capability seam (ctx.web)",
+  "description": "Anonymous public HTTP(S) fetch provider for the Tianshu Harness web capability seam (ctx.web)",
   "version": "0.2.0",
   "publishConfig": {
     "access": "public"
@@ -30,7 +30,7 @@
     "lib/invariant.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "peerDependencies": {
     "@huiliyi37/dsh-invariants": "^0.2.0",
     "@huiliyi37/dsh-timeout": "^0.2.0",

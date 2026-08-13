@@ -35,7 +35,7 @@
     "lib/client.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "dependencies": {
     "@huiliyi37/dsh-host-directory-picker": "workspace:^",
     "clsx": "^2.0.0",

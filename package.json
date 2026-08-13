@@ -132,6 +132,12 @@
   },
   "devDependencies": {
     "@agentclientprotocol/sdk": "0.25.1",
+    "@huiliyi37/dsh-git": "workspace:^",
+    "@huiliyi37/dsh-tool-file-info": "workspace:^",
+    "@huiliyi37/dsh-tool-git": "workspace:^",
+    "@huiliyi37/dsh-tool-memory": "workspace:^",
+    "@huiliyi37/dsh-tool-meridian": "workspace:^",
+    "@huiliyi37/dsh-tool-semantic-search": "workspace:^",
     "@huiliyi37/dsh-tool-session-query": "workspace:^",
     "@stylistic/eslint-plugin": "^5.10.0",
     "@testing-library/dom": "^10.4.1",

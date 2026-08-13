@@ -42,7 +42,7 @@
 
 #### 模型看到的内容
 
-模型会看到生成的 [`todo_write` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-todo)。
+模型会看到生成的 [`todo_write` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-todo)。
 
 #### Token 影响
 

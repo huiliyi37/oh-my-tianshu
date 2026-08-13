@@ -46,7 +46,12 @@ export interface Config {
   /** 主控模型是否原生支持识图（缺省 false；true 时本插件不干预，图片直发）。 */
   primarySupportsVision?: boolean
   /** 备用视觉模型（主视觉模型 error/aborted 时兜底重试一次；缺省不启用）。 */
-  fallback?: { provider: string; model: string }
+  fallback?: {
+    /** 备用视觉模型的已注册 llm provider 路由。 */
+    provider: string
+    /** 备用视觉模型 id。 */
+    model: string
+  }
   /** 未显式配置 provider/model 时，自动选第一个声明 supportsVision 的已注册模型。 */
   visionAutoBridge?: boolean
 }

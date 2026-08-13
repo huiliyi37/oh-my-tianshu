@@ -79,7 +79,7 @@ Prefix-stable while enabled tools, scope, and guidance text are unchanged. Confi
 
 #### What the model sees
 
-The model sees the generated [`web_search` and `web_fetch` schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-web). Result-count and timeout budgets are deployment settings, not model arguments.
+The model sees the generated [`web_search` and `web_fetch` schemas](../../../docs/tool-catalog.md#huiliyi37dsh-tool-web). Result-count and timeout budgets are deployment settings, not model arguments.
 
 #### Token effect
 

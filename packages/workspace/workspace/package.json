@@ -1,6 +1,6 @@
 {
   "name": "@huiliyi37/dsh-workspace",
-  "description": "Workspace entity registry (ctx.workspace): durable workspace records with validated session attachment over the domain data form for the DeepSeek Harness",
+  "description": "Workspace entity registry (ctx.workspace): durable workspace records with validated session attachment over the domain data form for the Tianshu Harness",
   "version": "0.2.0",
   "publishConfig": {
     "access": "public"
@@ -35,7 +35,7 @@
     "lib/types/**/*.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "peerDependencies": {
     "@huiliyi37/dsh-brand": "^0.2.0",
     "@huiliyi37/dsh-storage-domain": "^0.2.0",

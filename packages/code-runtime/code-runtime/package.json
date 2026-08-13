@@ -1,6 +1,6 @@
 {
   "name": "@huiliyi37/dsh-code-runtime",
-  "description": "Abstract code-execution seam (ctx.codeRuntime) for the DeepSeek Harness",
+  "description": "Abstract code-execution seam (ctx.codeRuntime) for the Tianshu Harness",
   "version": "0.2.0",
   "publishConfig": {
     "access": "public"
@@ -30,7 +30,7 @@
     "lib/invariant.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "peerDependencies": {
     "@huiliyi37/dsh-invariants": "^0.2.0",
     "@huiliyi37/cordis": "^4.0.0-rc.7"

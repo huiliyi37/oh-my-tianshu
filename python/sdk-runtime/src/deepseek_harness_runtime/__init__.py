@@ -1,4 +1,4 @@
-"""Locate the bundled DeepSeek Harness SDK runtime shipped with this package.
+"""Locate the bundled Tianshu Harness SDK runtime shipped with this package.
 
 Two runtime carriers coexist under ``runtime/``, both injected by the repo's
 ``scripts/build-exe-for-python-sdk.ts`` build (neither is checked into git):
@@ -111,7 +111,7 @@ def resolve_bundled_launch_args(mode: str | None = None) -> tuple[str, ...]:
     if selected == "node":
         return _node_launch_args()
     raise ValueError(
-        f"unsupported DeepSeek Harness runtime mode {selected!r}: expected 'exe' or 'node' "
+        f"unsupported Tianshu Harness runtime mode {selected!r}: expected 'exe' or 'node' "
         f"(explicit argument or ${RUNTIME_MODE_ENV_VAR})"
     )
 

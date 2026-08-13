@@ -105,12 +105,13 @@ describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup
     const settings = page.getByRole('dialog', { name: '设置' })
     await settings.waitFor({ timeout: 10_000 })
     expect(await page.locator('#root').evaluate(root => (root as HTMLElement).inert)).toBe(false)
-    const keyInput = settings.getByLabel('API 密钥', { exact: true })
+    const officialRow = settings.getByRole('listitem').filter({ hasText: 'deepseek-official' })
+    const keyInput = officialRow.getByLabel('API 密钥', { exact: true })
     await keyInput.waitFor({ timeout: 10_000 })
 
     const secret = `dsh_onboarding_${randomBytes(12).toString('hex')}`
     await keyInput.fill(secret)
-    await settings.getByRole('button', { name: '保存', exact: true }).click()
+    await officialRow.getByRole('button', { name: '保存', exact: true }).click()
     await keyInput.waitFor({ state: 'detached', timeout: 15_000 })
 
     const stored = await readFile(join(scaffold.harnessHome, '.credentials.yaml'), 'utf8')
@@ -124,7 +125,9 @@ describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup
     const deepSeekRow = settings.getByText('DeepSeek', { exact: true }).first()
     await deepSeekRow.waitFor({ timeout: 10_000 })
     await deepSeekRow.locator('xpath=ancestor::li').getByRole('button', { name: '编辑' }).click()
-    const configuredInput = settings.getByLabel('API 密钥', { exact: true })
+    const configuredInput = settings.getByRole('listitem')
+      .filter({ hasText: 'deepseek-official' })
+      .getByLabel('API 密钥', { exact: true })
     await configuredInput.waitFor({ timeout: 10_000 })
     await expect.poll(
       () => configuredInput.getAttribute('placeholder'),
@@ -258,7 +261,11 @@ describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup
     await modelTrigger.click()
     await page.getByRole('menuitem', { name: /模型/ }).click()
     expect(await page.getByText('deepseek-v4-flash', { exact: true }).count()).toBe(0)
-    await page.getByRole('menuitemradio', { name: 'Private Preview' }).waitFor({ timeout: 10_000 })
+    // The spark provider mirrors the official model catalog, so the custom
+    // entry renders once per provider group; scope to the official one.
+    await page.getByLabel('DeepSeek', { exact: true })
+      .getByRole('menuitemradio', { name: 'Private Preview' })
+      .waitFor({ timeout: 10_000 })
     expect(tripwire.warnings).toEqual([])
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)

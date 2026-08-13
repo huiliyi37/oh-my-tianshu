@@ -158,7 +158,7 @@ describe('cordis-walk scan reach', () => {
       '    first: FirstService',
       '  }',
       '}',
-      'declare module "cordis" {',
+      'declare module "@huiliyi37/cordis" {',
       '  interface Events {',
       "    'second/changed'(): void",
       '  }',

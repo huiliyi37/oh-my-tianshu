@@ -42,7 +42,7 @@
     "bundle": "tsdown",
     "watch": "tsdown --watch"
   },
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "peerDependencies": {
     "@huiliyi37/dsh-client-locale": "^0.2.0",
     "@huiliyi37/dsh-api-remotes": "^0.2.0",

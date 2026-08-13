@@ -85,7 +85,7 @@ waterfall 监听器**必须调用 `next()`**。不调用 `next` 会短路整个�
 Harness 使用 TypeScript 声明合并来为事件提供类型安全：
 
 ```ts
-import 'cordis'
+import '@huiliyi37/cordis'
 
 declare module '@huiliyi37/cordis' {
   interface Events {

@@ -9,7 +9,10 @@ import type {} from '@huiliyi37/dsh-system-prompt'
 import type {} from '@huiliyi37/dsh-git'
 import { resolveCwd } from './cwd.ts'
 
-/** 注册 git_status。 */
+/**
+ * 注册 git_status。
+ * @param ctx - 携带 tools/git/systemPrompt 服务的 Cordis context。
+ */
 export function applyGitStatusTool(ctx: Context): void {
   ctx.systemPrompt.section({
     name: 'tool:git-status',

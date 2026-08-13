@@ -6,49 +6,49 @@
 
 ## Profile 启动
 
-`dsh --profile <name>` 启动位于 `$DSH_HOME/profiles/<name>` 的 profile。生效配置树在空根节点之上按以下顺序逐层组合：profile manifest（元数据清单）的 `dsh.profile.bundles` 列表所列的各个组合包 patch、profile 自身的 `cordis.patch.yml`、home 级的 `$DSH_HOME/cordis.patch.yml`（各 profile 共享的机器本地偏好，因此优先级高于逐 profile 的层）、按 argv 顺序的各个 `--patch <path>` overlay，以及启动器 flag patch。后应用的层按行胜出；patch 替换目标行完整的 `config` 值，而不是深度合并各键，并且可以插入新行。配置解析、schema 校验、模块解析或插件启动失败会得到报告并以非零状态退出。收到 SIGINT 或 SIGTERM 时，挂载的根节点会先 dispose（资源释放）再退出。
+`tianshu --profile <name>` 启动位于 `$DSH_HOME/profiles/<name>` 的 profile。生效配置树在空根节点之上按以下顺序逐层组合：profile manifest（元数据清单）的 `dsh.profile.bundles` 列表所列的各个组合包 patch、profile 自身的 `cordis.patch.yml`、home 级的 `$DSH_HOME/cordis.patch.yml`（各 profile 共享的机器本地偏好，因此优先级高于逐 profile 的层）、按 argv 顺序的各个 `--patch <path>` overlay，以及启动器 flag patch。后应用的层按行胜出；patch 替换目标行完整的 `config` 值，而不是深度合并各键，并且可以插入新行。配置解析、schema 校验、模块解析或插件启动失败会得到报告并以非零状态退出。收到 SIGINT 或 SIGTERM 时，挂载的根节点会先 dispose（资源释放）再退出。
 
 组合包名称先从 dsh 安装解析，再从 profile 目录解析。因此内置组合包（`@huiliyi37/dsh-base`、`@huiliyi37/dsh-web-app`、`@huiliyi37/dsh-headless`）总是来自与正在运行的 `dsh` 相同的安装；树外组合包来自 profile 由 pnpm 管理的 `node_modules`。任何 patch 行中的裸插件 `name` 通过 profile 目录的 Node 父目录逐级查找解析，该查找可达到持续维护的安装后备目录 `$DSH_HOME/profiles/node_modules`（安装的应用和组合包所依赖的每个包对应一个符号链接，每次启动时修复）。
 
-`web` 和 `headless` profile 首次使用时会从随附模板自动初始化（`web`：base + web-app；`headless`：base + headless）。加载时，与安装所管理的 headless 元组（base + web-app + headless）完全一致的列表会规范化为随附模板；包含额外项、缺少项或调整过顺序的组合包列表由用户拥有，保持不变。其他缺失的 profile 会显式报错，并提示运行 `dsh plugin --profile <name> add <package>`。
+`web` 和 `headless` profile 首次使用时会从随附模板自动初始化（`web`：base + web-app；`headless`：base + headless）。加载时，与安装所管理的 headless 元组（base + web-app + headless）完全一致的列表会规范化为随附模板；包含额外项、缺少项或调整过顺序的组合包列表由用户拥有，保持不变。其他缺失的 profile 会显式报错，并提示运行 `tianshu plugin --profile <name> add <package>`。
 
-Profile 启动不接受位置参数任务。因此，挂载了一次性运行器行（`headless-runner`）的 profile 会显式报错，并提示规范命令 `dsh run --profile <name> "<task>"`，而不会触发该行原始的必填字段错误。
+Profile 启动不接受位置参数任务。因此，挂载了一次性运行器行（`headless-runner`）的 profile 会显式报错，并提示规范命令 `tianshu run --profile <name> "<task>"`，而不会触发该行原始的必填字段错误。
 
 可在不启动的情况下检查组合出的配置树：
 
 ```sh
-dsh --profile web --dump-default-config
-dsh --profile web --patch ./extra.yml --dump-config
+tianshu --profile web --dump-default-config
+tianshu --profile web --patch ./extra.yml --dump-config
 ```
 
 `--dump-default-config` 只打印组合包各层；`--dump-config` 额外加上 profile 的 `cordis.patch.yml`、home 级的 `$DSH_HOME/cordis.patch.yml` 和 `--patch` overlay。两者都会打印注释，标明每行由哪个文件提供，以及哪些 overlay 修改过它；`!!js` 表达式保持未求值，找不到目标的 patch 会报告到 stderr。
 
 ## 一次性运行
 
-`dsh run [--profile <name>] [--patch <path>...] <task...>` 会用空格拼接任务参数，拒绝缺失或空白任务，并让 `--profile` 默认为 `headless`。可重复使用的 `--patch` overlay 与 profile 启动的 overlay 位于同一层。所选的自定义 profile 必须挂载 `headless-runner`；否则启动器会在启动前失败，并在诊断中指明缺少该行。
+`tianshu run [--profile <name>] [--patch <path>...] <task...>` 会用空格拼接任务参数，拒绝缺失或空白任务，并让 `--profile` 默认为 `headless`。可重复使用的 `--patch` overlay 与 profile 启动的 overlay 位于同一层。所选的自定义 profile 必须挂载 `headless-runner`；否则启动器会在启动前失败，并在诊断中指明缺少该行。
 
 启动器把任务文本 patch 进运行器行。Loader 结算后，运行器读取共享的 `ctx.agentDefaultModel` 默认值，通过 `ctx.agents` 创建一个全新的持久化 Agent（智能体），提交任务、等待完全停稳并对 Session 执行 flush，再从其持久化事件区间中推导最后一个非空 assistant 文本与最终 `turn/end` 原因。它在 stdout 打印文本，并在原因为 `completed` 时以 0 退出，否则以 1 退出。随附 headless profile 不挂载 ApiProxy、Host、HTTP 服务器、Web 运行时或浏览器客户端；成功运行不会向 stderr 写入任何内容，也不会打开监听端口。
 
 ## 插件管理
 
-`dsh plugin --profile <name> <args...>` 在 profile 缺失时先初始化它（有随附模板的用模板，其他名称只装 `@huiliyi37/dsh-base`），然后以 profile 目录为工作目录，把 `<args...>` 转发给 `pnpm`：`add`、`remove`、`why`、`update` 及其他所有 pnpm 子命令都照常可用；pnpm 必须在 PATH 上。相对路径 spec（`.`、`../plugin` 及其 `file:`/`link:` 形式）会先锚定到调用目录，因此在插件 checkout 中执行 `add .` 安装的是该 checkout，而不是 profile。每次成功运行后，`dsh.profile.bundles` 都会与已安装状态对齐：每个解析到 manifest 中声明了 `"dsh": { "bundle": { "patch": "./cordis.patch.yml" } }` 的包的依赖加入层栈（因此让包获得该声明的 `update` 会将其激活），没有组合包声明的依赖保持为普通依赖并给出一次性警告，已移除的依赖则退出层栈。
+`tianshu plugin --profile <name> <args...>` 在 profile 缺失时先初始化它（有随附模板的用模板，其他名称只装 `@huiliyi37/dsh-base`），然后以 profile 目录为工作目录，把 `<args...>` 转发给 `pnpm`：`add`、`remove`、`why`、`update` 及其他所有 pnpm 子命令都照常可用；pnpm 必须在 PATH 上。相对路径 spec（`.`、`../plugin` 及其 `file:`/`link:` 形式）会先锚定到调用目录，因此在插件 checkout 中执行 `add .` 安装的是该 checkout，而不是 profile。每次成功运行后，`dsh.profile.bundles` 都会与已安装状态对齐：每个解析到 manifest 中声明了 `"dsh": { "bundle": { "patch": "./cordis.patch.yml" } }` 的包的依赖加入层栈（因此让包获得该声明的 `update` 会将其激活），没有组合包声明的依赖保持为普通依赖并给出一次性警告，已移除的依赖则退出层栈。
 
 ```sh
-dsh plugin --profile tui add github:deepseek-harness/turtle-ui
-dsh plugin --profile tui remove turtle-ui
-dsh --profile tui
+tianshu plugin --profile tui add github:<owner>/<plugin-repo>
+tianshu plugin --profile tui remove <plugin-repo>
+tianshu --profile tui
 ```
 
 Git 托管、随附源码的插件在安装期间通过其 `prepare` 脚本构建，而 pnpm ≥10 在消费方允许之前会阻止该脚本：首次 `add` 会失败并给出 pnpm 的 `allowBuilds` 提示（以及 dsh 指向该 profile 的 `pnpm-workspace.yaml` 的指引）；把打印出的键复制到那里并重新运行即可。安装已构建的 tarball 或本地 checkout 不需要任何允许。
 
 ## Web 别名
 
-`dsh web` 是 `--profile web` 的硬编码别名，并额外接受 Web flag 系列。`--host`、`--port`、`--workspace-root` 和可重复的 `--trusted-host` 值会成为作用在组合行之上的 patch；负责这些值的插件 schema 会在启动时验证它们。`--dev` 把 web-runtime 行切换到开发模式并插入客户端插件 HMR（热模块替换）接收器；若要无刷新更新客户端 bundle，还需单独运行 `pnpm run dev:web` watcher。
+`tianshu web` 是 `--profile web` 的硬编码别名，并额外接受 Web flag 系列。`--host`、`--port`、`--workspace-root` 和可重复的 `--trusted-host` 值会成为作用在组合行之上的 patch；负责这些值的插件 schema 会在启动时验证它们。`--dev` 把 web-runtime 行切换到开发模式并插入客户端插件 HMR（热模块替换）接收器；若要无刷新更新客户端 bundle，还需单独运行 `pnpm run dev:web` watcher。
 
 ```sh
-dsh web
-dsh web --patch ./extra.cordis.yml
-dsh web --dump-config
+tianshu web
+tianshu web --patch ./extra.cordis.yml
+tianshu web --dump-config
 ```
 
 生产 Web 运行器需要已构建的包和前端产物（`pnpm run build`）。默认服务地址是 `http://127.0.0.1:3080`。绑定所有接口时，还会信任机器自动发现的 LAN IP 字面量；`--trusted-host` 可添加 `/api` 浏览器信任围栏接受的具名 authority。

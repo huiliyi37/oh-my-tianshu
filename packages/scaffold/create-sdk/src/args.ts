@@ -44,7 +44,7 @@ interface CommanderCreateOptions {
 function createProgram(): Command {
   return new Command()
     .name('create-sdk')
-    .description('Create a DeepSeek Harness SDK project')
+    .description('Create a Tianshu Harness SDK project')
     .helpOption(false)
     .showHelpAfterError(false)
     .exitOverride()

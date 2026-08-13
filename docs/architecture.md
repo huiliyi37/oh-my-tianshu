@@ -1,8 +1,8 @@
-# DeepSeek Harness Architecture
+# Tianshu Harness Architecture
 
 English | [中文](architecture.zh.md)
 
-**DeepSeek Harness SDK** uses Cordis: **everything is a plugin**, including the loop.
+**Tianshu Harness SDK** uses Cordis: **everything is a plugin**, including the loop.
 
 ## Overview
 

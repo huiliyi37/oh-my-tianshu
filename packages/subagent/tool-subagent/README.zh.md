@@ -37,7 +37,7 @@
 
 #### 模型看到的内容
 
-当提供方存在时，以当前实例配置的名称公开已生成的默认 [`subagent` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-subagent)。提供方是否继承上下文会改变工具描述和提示词描述；启用后台模式会添加 `run_in_background`，可继续模式描述为启动一个保留其对话并返回子 agent id 的后台子 agent，而一次性模式描述为返回一个用 `task_output` 收集、用 `task_kill` 停止的后台任务 id。
+当提供方存在时，以当前实例配置的名称公开已生成的默认 [`subagent` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-subagent)。提供方是否继承上下文会改变工具描述和提示词描述；启用后台模式会添加 `run_in_background`，可继续模式描述为启动一个保留其对话并返回子 agent id 的后台子 agent，而一次性模式描述为返回一个用 `task_output` 收集、用 `task_kill` 停止的后台任务 id。
 
 #### Token 影响
 

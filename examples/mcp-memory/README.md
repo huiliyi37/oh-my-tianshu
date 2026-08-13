@@ -25,7 +25,7 @@ The stdio bridge deliberately removes ambient credential-shaped and `DSH_*` vari
 Pass one overlay to DSH:
 
 ```sh
-dsh web --patch "$PWD/examples/mcp-memory/memorix.cordis.yml"
+tianshu web --patch "$PWD/examples/mcp-memory/memorix.cordis.yml"
 ```
 
 Replace the filename with `mcp-reference-memory.cordis.yml` or `engram.cordis.yml`. The path may point to a copied file anywhere on disk. No memory server is present in the shipped composition, so omitting `--patch` keeps all three disabled.
@@ -36,8 +36,8 @@ Without a repository checkout, download the selected overlay directly:
 mkdir -p "${DSH_HOME:-$HOME/.dsh}"
 curl --fail --location \
   --output "${DSH_HOME:-$HOME/.dsh}/memory.cordis.yml" \
-  https://raw.githubusercontent.com/deepseek-ai/deepseek-harness-sdk/master/examples/mcp-memory/memorix.cordis.yml
-dsh web --patch "${DSH_HOME:-$HOME/.dsh}/memory.cordis.yml"
+  https://raw.githubusercontent.com/huiliyi37/dsh-tianshu-tui/master/examples/mcp-memory/memorix.cordis.yml
+tianshu web --patch "${DSH_HOME:-$HOME/.dsh}/memory.cordis.yml"
 ```
 
 Replace `memorix.cordis.yml` in the URL with either of the other filenames to select it. Review a downloaded overlay before running it: Cordis configuration can contain executable `!!js` expressions.
@@ -50,7 +50,7 @@ To keep the selection across runs, merge the chosen file's single `insert` patch
 
 ```sh
 npm install --global memorix@1.3.0
-dsh web --patch "$PWD/examples/mcp-memory/memorix.cordis.yml"
+tianshu web --patch "$PWD/examples/mcp-memory/memorix.cordis.yml"
 ```
 
 Memorix works in local heuristic mode without an LLM or embedding service. Configure optional providers in Memorix's own `~/.memorix/config.toml` or project `memorix.toml`. The example keeps Memorix's Git-project identity from the DSH working directory and uses Memorix's own `~/.memorix/data` default. Set `MEMORIX_DATA_DIR` before starting DSH to override it.
@@ -59,7 +59,7 @@ Memorix works in local heuristic mode without an LLM or embedding service. Confi
 
 ```sh
 npm install --global @modelcontextprotocol/server-memory@2026.7.4
-dsh web --patch "$PWD/examples/mcp-memory/mcp-reference-memory.cordis.yml"
+tianshu web --patch "$PWD/examples/mcp-memory/mcp-reference-memory.cordis.yml"
 ```
 
 This reference server stores a local knowledge graph and exposes entity, relation, observation, read, search, and open tools. It needs no model or embedding service. The example stores its JSONL at `$HOME/.dsh-mcp-reference-memory.jsonl` instead of the installed npm package directory. Set `MEMORY_FILE_PATH` before starting DSH to override it.
@@ -70,7 +70,7 @@ Search is case-insensitive substring matching over entity names, types, and obse
 
 ```sh
 go install github.com/Gentleman-Programming/engram/cmd/engram@v1.20.0
-dsh web --patch "$PWD/examples/mcp-memory/engram.cordis.yml"
+tianshu web --patch "$PWD/examples/mcp-memory/engram.cordis.yml"
 ```
 
 Engram owns storage and project selection: it uses `~/.engram` by default, detects the Git project from the DSH working directory, and accepts `ENGRAM_DATA_DIR` or `ENGRAM_PROJECT` as ambient overrides.

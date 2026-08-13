@@ -379,6 +379,28 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'git',
+    summary: 'Git 能力接缝的服务定义。方法全部显式收 cwd（调用方从 session header 取）， `signal` 透传取消。',
+    methods: [
+      {
+        signature: 'abstract status(cwd: string, opts?: { untracked?: boolean }, signal?: AbortSignal): Promise<GitStatusResult>',
+        jsDoc: '/**\n * 工作区状态：分支 + 是否有未提交变更。\n * @param cwd - 目标仓库工作目录（调用方从 session header 取）。\n * @param opts - `untracked` 是否把未跟踪文件计入 dirty。\n * @param signal - 取消信号，透传到子进程。\n * @returns 分支名与 dirty 标志。\n */',
+      },
+      {
+        signature: 'abstract diff(cwd: string, opts?: { paths?: readonly string[]; stat?: boolean }, signal?: AbortSignal): Promise<GitDiffResult>',
+        jsDoc: '/**\n * 工作区 diff（未暂存）；paths 限定文件，stat 输出 --stat 摘要。\n * @param cwd - 目标仓库工作目录。\n * @param opts - `paths` 限定文件集；`stat` 输出 --stat 摘要而非完整 diff。\n * @param signal - 取消信号，透传到子进程。\n * @returns 原始 diff（或 --stat 摘要）文本。\n */',
+      },
+      {
+        signature: 'abstract log(cwd: string, opts?: { maxCount?: number; paths?: readonly string[] }, signal?: AbortSignal): Promise<GitLogResult>',
+        jsDoc: '/**\n * 提交历史（oneline）；maxCount 默认 20，paths 限定文件。\n * @param cwd - 目标仓库工作目录。\n * @param opts - `maxCount` 条数上限（默认 20）；`paths` 限定文件集。\n * @param signal - 取消信号，透传到子进程。\n * @returns 解析后的提交列表（短 hash + 主题行）。\n */',
+      },
+      {
+        signature: 'abstract commit(cwd: string, opts: { message: string }, signal?: AbortSignal): Promise<GitCommitResult>',
+        jsDoc: '/**\n * 暂存全部变更并提交。\n * @param cwd - 目标仓库工作目录。\n * @param opts - `message` 提交信息（必填）。\n * @param signal - 取消信号，透传到子进程。\n * @returns 完整 HEAD hash 与最新提交的 oneline 摘要。\n */',
+      },
+    ],
+  },
+  {
     key: 'goals',
     summary: 'Goal service (`ctx.goals`) backed exclusively by the owning session log.',
     methods: [
@@ -1518,13 +1540,6 @@ export const EVENT_API: readonly EventApiEntry[] = [
     summary: 'A published child settled.',
   },
   {
-    name: 'subagent/end',
-    mode: 'emit',
-    signature: '\'subagent/end\'(this: unknown, info: { parentId: string; id: string }): void',
-    jsDoc: '/**\n * 子代理委派结束（与 subagent/start 按 id 配对）；属主 dsh-subagent。\n * @param info - 运行标识 wire 子集：父会话 id 与子运行 id。\n * @mode emit\n */',
-    summary: '子代理委派结束（与 subagent/start 按 id 配对）；属主 dsh-subagent。',
-  },
-  {
     name: 'subagent/provider-added',
     mode: 'emit',
     signature: '\'subagent/provider-added\'(provider: SubagentProvider): void',
@@ -1544,13 +1559,6 @@ export const EVENT_API: readonly EventApiEntry[] = [
     signature: '\'subagent/start\'(this: Scoped<SubagentService>, info: SubagentRunInfo): void',
     jsDoc: '/**\n * A provider established a published child. For in-process providers,\n * `ctx.agents.get(info.id)` resolves during this notification.\n * Scope-filtered dispatch keys the carrier by the delegating parent, so a\n * parent-scoped listener observes only its own delegations. Paired with\n * `subagent/end`.\n * @param info - the provider and published child identity.\n * @dshScopeScan unsupported\n * @mode emit\n */',
     summary: 'A provider established a published child.',
-  },
-  {
-    name: 'subagent/start',
-    mode: 'emit',
-    signature: '\'subagent/start\'(this: unknown, info: { parentId: string; id: string }): void',
-    jsDoc: '/**\n * 子代理委派开始（T2.1 委派树刷新触发器）；属主 dsh-subagent。\n * @param info - 运行标识 wire 子集：父会话 id 与子运行 id。\n * @mode emit\n */',
-    summary: '子代理委派开始（T2.1 委派树刷新触发器）；属主 dsh-subagent。',
   },
   {
     name: 'system-prompt/assemble',
@@ -1618,13 +1626,6 @@ export const EVENT_API: readonly EventApiEntry[] = [
   {
     name: 'workflow/agent-end',
     mode: 'emit',
-    signature: '\'workflow/agent-end\'(this: unknown, info: WorkflowRunInfoWire, agent: WorkflowAgentEndWire): void',
-    jsDoc: '/**\n * workflow 内一次 agent() 调用结算（按 seq 与 agent-start 配对）；属主 dsh-workflow。\n * @param info - 运行标识 wire 子集（id）。\n * @param agent - 调用标识加结算 outcome 的 wire 子集。\n * @mode emit\n */',
-    summary: 'workflow 内一次 agent() 调用结算（按 seq 与 agent-start 配对）；属主 dsh-workflow。',
-  },
-  {
-    name: 'workflow/agent-end',
-    mode: 'emit',
     signature: '\'workflow/agent-end\'(info: WorkflowRunInfo, agent: WorkflowAgentEndInfo): void',
     jsDoc: '/**\n * One `agent()` call settled (clean result, child failure, or run\n * cancellation). Paired with {@link Events[\'workflow/agent-start\']} by\n * `agent.seq`, exactly once per started call on every stop path — on an\n * engine termination path (a worker killed past its grace) the end is\n * engine-synthesized with outcome `\'cancelled\'`.\n * @param info - the run\'s identity snapshot.\n * @param agent - the call identity plus its outcome.\n * @mode emit\n */',
     summary: 'One `agent()` call settled (clean result, child failure, or run cancellation).',
@@ -1632,23 +1633,9 @@ export const EVENT_API: readonly EventApiEntry[] = [
   {
     name: 'workflow/agent-start',
     mode: 'emit',
-    signature: '\'workflow/agent-start\'(this: unknown, info: WorkflowRunInfoWire, agent: WorkflowAgentWire): void',
-    jsDoc: '/**\n * workflow 内一次 agent() 调用建立；TUI 向该运行追加 agent 行。属主 dsh-workflow。\n * @param info - 运行标识 wire 子集（id）。\n * @param agent - 调用的序号/标签/所属阶段 wire 子集。\n * @mode emit\n */',
-    summary: 'workflow 内一次 agent() 调用建立；TUI 向该运行追加 agent 行。属主 dsh-workflow。',
-  },
-  {
-    name: 'workflow/agent-start',
-    mode: 'emit',
     signature: '\'workflow/agent-start\'(info: WorkflowRunInfo, agent: WorkflowAgentInfo): void',
     jsDoc: '/**\n * One `agent()` call established a published child run. Paired with\n * {@link Events[\'workflow/agent-end\']} by `agent.seq`. A call that never\n * receives a published run from the provider emits neither\n * event in this pair.\n * @param info - the run\'s identity snapshot.\n * @param agent - the call\'s sequence number, label, phase, and child id.\n * @mode emit\n */',
     summary: 'One `agent()` call established a published child run.',
-  },
-  {
-    name: 'workflow/end',
-    mode: 'emit',
-    signature: '\'workflow/end\'(this: unknown, info: WorkflowRunInfoWire, result: WorkflowResultWire): void',
-    jsDoc: '/**\n * workflow 运行结束；TUI 移入已结算缓存并按上限淘汰。属主 dsh-workflow。\n * @param info - 运行标识 wire 子集（id）。\n * @param result - 结算原因与可选错误的 wire 子集。\n * @mode emit\n */',
-    summary: 'workflow 运行结束；TUI 移入已结算缓存并按上限淘汰。属主 dsh-workflow。',
   },
   {
     name: 'workflow/end',
@@ -1667,23 +1654,9 @@ export const EVENT_API: readonly EventApiEntry[] = [
   {
     name: 'workflow/phase',
     mode: 'emit',
-    signature: '\'workflow/phase\'(this: unknown, info: WorkflowRunInfoWire, title: string): void',
-    jsDoc: '/**\n * workflow 进入新阶段；TUI 更新该运行的当前阶段标题。属主 dsh-workflow。\n * @param info - 运行标识 wire 子集（id）。\n * @param title - 阶段标题原文（属主第二参为裸 string，非对象）。\n * @mode emit\n */',
-    summary: 'workflow 进入新阶段；TUI 更新该运行的当前阶段标题。属主 dsh-workflow。',
-  },
-  {
-    name: 'workflow/phase',
-    mode: 'emit',
     signature: '\'workflow/phase\'(info: WorkflowRunInfo, title: string): void',
     jsDoc: '/**\n * The script entered a phase (a `phase(title)` call) — progress grouping\n * for observers; no execution semantics.\n * @param info - the run\'s identity snapshot.\n * @param title - the phase title, verbatim.\n * @mode emit\n */',
     summary: 'The script entered a phase (a `phase(title)` call) — progress grouping for observers; no execution semantics.',
-  },
-  {
-    name: 'workflow/start',
-    mode: 'emit',
-    signature: '\'workflow/start\'(this: unknown, info: WorkflowRunInfoWire): void',
-    jsDoc: '/**\n * workflow 运行开始（T2.2 运行态缓存建项）；属主 dsh-workflow。\n * @param info - 运行标识 wire 子集（id）。\n * @mode emit\n */',
-    summary: 'workflow 运行开始（T2.2 运行态缓存建项）；属主 dsh-workflow。',
   },
   {
     name: 'workflow/start',
@@ -1926,7 +1899,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ContentBlockMap',
-    declaration: 'export interface ContentBlockMap {\n    \'text\': TextBlock;\n    \'reasoning\': ReasoningBlock;\n    \'tool-call\': ToolCallBlock;\n    \'tool-result\': ToolResultBlock;\n}',
+    declaration: 'export interface ContentBlockMap {\n    \'text\': TextBlock;\n    \'image\': ImageBlock;\n    \'reasoning\': ReasoningBlock;\n    \'tool-call\': ToolCallBlock;\n    \'tool-result\': ToolResultBlock;\n}',
   },
   {
     name: 'ContentBlockType',
@@ -2126,7 +2099,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'GenerateOptions',
-    declaration: 'export interface GenerateOptions {\n    provider: string;\n    model: string;\n    reasoningEffort?: ReasoningEffortId;\n    messages: Message[];\n    system?: string;\n    tools?: ToolSchema[];\n    temperature?: number;\n    maxTokens?: number;\n    stop?: string[];\n    signal?: AbortSignal;\n    sessionId?: Branded<\'SessionId\'>;\n    purpose?: \'compaction\' | \'session-title\';\n}',
+    declaration: 'export interface GenerateOptions {\n    provider: string;\n    model: string;\n    reasoningEffort?: ReasoningEffortId;\n    messages: Message[];\n    system?: string;\n    tools?: ToolSchema[];\n    temperature?: number;\n    maxTokens?: number;\n    stop?: string[];\n    signal?: AbortSignal;\n    sessionId?: Branded<\'SessionId\'>;\n    purpose?: \'compaction\' | \'session-title\' | \'vision-description\';\n}',
   },
   {
     name: 'GenericCallView',
@@ -2135,6 +2108,26 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'GenericResultView',
     declaration: 'export interface GenericResultView {\n    card: \'generic\';\n    title?: string;\n    content?: ContentBlock[];\n}',
+  },
+  {
+    name: 'GitCommitResult',
+    declaration: 'export interface GitCommitResult {\n    hash: string;\n    summary: string;\n}',
+  },
+  {
+    name: 'GitDiffResult',
+    declaration: 'export interface GitDiffResult {\n    diff: string;\n}',
+  },
+  {
+    name: 'GitLogEntry',
+    declaration: 'export interface GitLogEntry {\n    hash: string;\n    subject: string;\n}',
+  },
+  {
+    name: 'GitLogResult',
+    declaration: 'export interface GitLogResult {\n    commits: readonly GitLogEntry[];\n}',
+  },
+  {
+    name: 'GitStatusResult',
+    declaration: 'export interface GitStatusResult {\n    branch: string;\n    dirty: boolean;\n}',
   },
   {
     name: 'GoalActivation',
@@ -2159,6 +2152,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'GoalView',
     declaration: 'export interface GoalView extends GoalSnapshot {\n    readonly roundsStarted: number;\n    readonly createdAt: number;\n    readonly updatedAt: number;\n    readonly activation: GoalActivation;\n}',
+  },
+  {
+    name: 'ImageBlock',
+    declaration: 'export interface ImageBlock {\n    type: \'image\';\n    dataUrl: string;\n    mime?: string;\n}',
   },
   {
     name: 'Inbox',
@@ -2258,7 +2255,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'LlmModelInfo',
-    declaration: 'export interface LlmModelInfo {\n    provider: string;\n    id: string;\n    name: string;\n    description?: string;\n}',
+    declaration: 'export interface LlmModelInfo {\n    provider: string;\n    id: string;\n    name: string;\n    description?: string;\n    supportsVision?: boolean;\n}',
   },
   {
     name: 'LlmModelReasoningInfo',

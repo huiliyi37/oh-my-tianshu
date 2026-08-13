@@ -1,5 +1,5 @@
 /**
- * OpenTelemetry Service provider for the DeepSeek Harness telemetry capability.
+ * OpenTelemetry Service provider for the Tianshu Harness telemetry capability.
  *
  * Composes the OTel JS SDK as-is — a `LoggerProvider` with a
  * `BatchLogRecordProcessor` and an OTLP/HTTP log exporter — and maps each

@@ -8,12 +8,12 @@ The `dsh` command is the product launcher for profiles: ordered stacks of plugin
 
 | Command | Purpose |
 |---|---|
-| `dsh --profile <name>` | Boot the named profile under `$DSH_HOME/profiles/<name>`. |
-| `dsh run [--profile <name>] [--patch <path>...] "task"` | Run one fresh persisted session directly over core, print the final answer, and exit; the profile defaults to `headless` and mounts no Web server. |
-| `dsh web` | Alias of `--profile web` with the Web flag family (`--host`, `--port`, `--dev`, ...). |
-| `dsh plugin --profile <name> <pnpm args>` | Manage a profile's plugins by forwarding to pnpm in the profile directory. |
+| `tianshu --profile <name>` | Boot the named profile under `$DSH_HOME/profiles/<name>`. |
+| `tianshu run [--profile <name>] [--patch <path>...] "task"` | Run one fresh persisted session directly over core, print the final answer, and exit; the profile defaults to `headless` and mounts no Web server. |
+| `tianshu web` | Alias of `--profile web` with the Web flag family (`--host`, `--port`, `--dev`, ...). |
+| `tianshu plugin --profile <name> <pnpm args>` | Manage a profile's plugins by forwarding to pnpm in the profile directory. |
 
-The invoking directory is the default workspace root. `dsh run` requires non-blank task text and the selected profile must mount the `headless-runner` row; `--profile` preserves custom one-shot profiles. The `web` and `headless` profiles auto-initialize on first use from shipped templates; any other profile must be created through `dsh plugin`.
+The invoking directory is the default workspace root. `tianshu run` requires non-blank task text and the selected profile must mount the `headless-runner` row; `--profile` preserves custom one-shot profiles. The `web` and `headless` profiles auto-initialize on first use from shipped templates; any other profile must be created through `tianshu plugin`.
 
 ## Profiles
 

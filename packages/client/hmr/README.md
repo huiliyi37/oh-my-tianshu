@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Hot reload for script-loaded client plugins. A static-arrival entry composed only into `--dev` graphs (`dsh web --dev`); production graphs omit the row, so the shell-bundled code stays inert.
+Hot reload for script-loaded client plugins. A static-arrival entry composed only into `--dev` graphs (`tianshu web --dev`); production graphs omit the row, so the shell-bundled code stays inert.
 
 The browser half subscribes to the system SSE channel (`GET /plugins/events`) and reloads one plugin per `rebuilt` frame through a serialized queue. The sequence per frame — `invalidate`, `prefetch` (load and register the new bundle while the old fiber still serves), `registry.delete` (before the fiber: a bare fiber dispose trips the vendored Loader's self-dispose branch, which would mark the entry disabled), drain the old fiber, delete `entry.fiber`, remove owned `<style data-plugin>` tags, `entry.refresh()` re-imports and remounts, `fiber.await()` rethrows startup failures loud. Dependents reload through cordis itself: a fiber's activation epoch strings its service providers' uids, so replacing a provider's fiber cascades every dependent with zero client-side graph analysis. The node half detects rebuilds with one interval that stat-polls each graph bundle from a synchronous baseline, immediately re-hashes after adding a row, retains missing rows as dirty, and broadcasts only real rev changes; any tsdown watch process producing the bundle therefore triggers HMR with no builder→host channel.
 

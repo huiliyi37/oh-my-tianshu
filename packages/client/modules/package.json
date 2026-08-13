@@ -38,7 +38,7 @@
     "bundle": "tsdown",
     "watch": "tsdown --watch"
   },
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "devDependencies": {
     "@huiliyi37/cordis-plugin-loader": "workspace:^",
     "@huiliyi37/dsh-host-webserver": "workspace:^",

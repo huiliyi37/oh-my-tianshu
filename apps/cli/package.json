@@ -18,7 +18,7 @@
     "lib/*.js",
     "config"
   ],
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "dependencies": {
     "@huiliyi37/cordis-plugin-hmr": "workspace:*",
     "@huiliyi37/cordis-plugin-include": "workspace:*",

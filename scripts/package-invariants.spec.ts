@@ -49,7 +49,7 @@ function fixture(options: {
     },
     files: ['lib/index.js', 'lib/invariant.js'],
     peerDependencies: options.invariantDependency === false ? {} : {
-      '@huiliyi37/dsh-invariants': '^0.0.1',
+      '@huiliyi37/dsh-invariants': '^0.2.0',
     },
     devDependencies: options.invariantDependency === false ? {} : {
       '@huiliyi37/dsh-invariants': 'workspace:^',

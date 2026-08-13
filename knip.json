@@ -747,8 +747,12 @@
     },
     "packages/bundle/base": {
       "ignoreDependencies": [
-        "@huiliyi37/.+",
-        "@cordisjs/.+"
+        "@huiliyi37/.+"
+      ]
+    },
+    "packages/search/meridian": {
+      "ignoreDependencies": [
+        "tree-sitter-wasms"
       ]
     },
     "packages/bundle/headless": {

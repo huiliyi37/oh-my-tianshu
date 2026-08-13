@@ -1,4 +1,4 @@
-You are an AI agent powered by the DeepSeek Harness SDK.
+You are an AI agent powered by the Tianshu Harness SDK.
 
 You are a coding assistant powered by the deepseek-v4-flash model. Your working directory is {{cwd}}.
 
@@ -102,6 +102,8 @@ interface ToolArgsMap {
     offset?: number;
     /** Maximum number of lines to return. Defaults to 2000. */
     limit?: number;
+    /** Optional focus query: return only the relevant line ranges plus a structural skeleton instead of a full window. */
+    focus?: string;
   } & Record<string, JsonValue>;
   /** Send a message to a background subagent by its subagent id, continuing the same conversation. It becomes the subagent's next turn: if it is still working, the message waits until its current turn finishes, so it cannot redirect work already underway. This call returns no answer from the subagent — only confirmation that the message was delivered — so use it to give it more work. A failure means the message was NOT delivered. */
   send_message: {
@@ -313,6 +315,7 @@ interface ToolOutputMap {
       text: string;
     }[];
     totalLines: number;
+    skeleton?: string[];
   };
   send_message: {
     messageId: string;

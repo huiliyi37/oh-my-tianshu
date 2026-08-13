@@ -109,16 +109,20 @@ export function resolveExampleLaunch(options: ExampleLaunchOptions): ExampleLaun
   const configArgs = options.configArgs ?? []
   const env: NodeJS.ProcessEnv = { ...options.env }
 
+  // Node 24.0–24.2 still tags type stripping and node:sqlite experimental;
+  // the warnings would pollute smoke assertions that expect a clean stderr.
+  const quietWarnings = '--disable-warning=ExperimentalWarning'
+
   if (mode === 'src') {
     if (options.tsconfigPath === undefined) {
       throw new Error("resolveExampleLaunch: 'src' mode needs tsconfigPath for the workspace paths map.")
     }
     const tsxLoader = import.meta.resolve('tsx')
     env.TSX_TSCONFIG_PATH = options.tsconfigPath
-    return { command: process.execPath, args: ['--import', tsxLoader, options.srcBin, ...configArgs], env }
+    return { command: process.execPath, args: [quietWarnings, '--import', tsxLoader, options.srcBin, ...configArgs], env }
   }
 
-  return { command: process.execPath, args: [options.libBin ?? toLibBin(options.srcBin), ...configArgs], env }
+  return { command: process.execPath, args: [quietWarnings, options.libBin ?? toLibBin(options.srcBin), ...configArgs], env }
 }
 
 /** Inputs that vary between real-Loader example smokes. */

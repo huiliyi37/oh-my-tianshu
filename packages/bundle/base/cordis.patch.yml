@@ -121,33 +121,34 @@
     - id: session-projection
       name: '@huiliyi37/dsh-session-projection'
 
-    # Session telemetry, on for every dsh mode: mirrors every session-log
-    # event (assistant/chunk projected to first-of-step) plus ops markers onto
-    # OTLP/HTTP log records, streaming on the batch processor's cadence
-    # (10s/batch here) — not at exit; a crash loses at most the last unexported
-    # interval. No telemetry/record redaction rule is mounted yet, so exports
-    # are the raw captured copy; the deployment stance, env seams, and
-    # follow-ups are pinned in the web-telemetry-default-mount Agent Note.
-    # DSH_TELEMETRY_OTLP_URL overrides the production endpoint, and a non-empty
-    # DSH_TELEMETRY_DISABLED — any value, including '0'/'false' — opts the
-    # process out (the launchers patch the row disabled; config cannot disable
-    # a row). Exports carry the harness home's anonymous user id ($DSH_HOME/.userid,
-    # random UUID; delete the file to reset the identity) as the Resource's
-    # user.id. The exporter/processor values normally bound the shutdown drain
-    # to ~1s against an unreachable collector: exporter.timeoutMillis is both
-    # the per-attempt socket timeout and the retry deadline (1s effectively
-    # disables the SDK's 5-try backoff), while maxExportBatchSize == maxQueueSize
-    # (both explicit) makes the drain a single batch. The SDK awaits
-    # exporter.forceFlush() outside exportTimeoutMillis, so the backend's 3s
-    # shutdownTimeoutMillis is the load-bearing outer bound when a transport
-    # promise never settles. Every CLI exit path drains it by disposing the root
-    # on SIGINT/SIGTERM.
+    # Session telemetry — DISABLED by default in this public distribution:
+    # nothing is uploaded anywhere unless you opt in by pointing
+    # DSH_TELEMETRY_OTLP_URL at your own OTLP/HTTP logs collector (e.g.
+    # `https://collector.example.com/v1/logs`), which switches the mode to
+    # FULL. When enabled it mirrors every session-log event (assistant/chunk
+    # projected to first-of-step) plus ops markers onto OTLP/HTTP log records,
+    # streaming on the batch processor's cadence (10s/batch here) — not at
+    # exit; a crash loses at most the last unexported interval. No
+    # telemetry/record redaction rule is mounted, so exports are the raw
+    # captured copy. A non-empty DSH_TELEMETRY_DISABLED — any value, including
+    # '0'/'false' — force-opts the process out. Exports carry the harness
+    # home's anonymous user id ($DSH_HOME/.userid, random UUID; delete the
+    # file to reset the identity) as the Resource's user.id. The
+    # exporter/processor values bound the shutdown drain to ~1s against an
+    # unreachable collector: exporter.timeoutMillis is both the per-attempt
+    # socket timeout and the retry deadline (1s effectively disables the SDK's
+    # 5-try backoff), while maxExportBatchSize == maxQueueSize (both explicit)
+    # makes the drain a single batch. The SDK awaits exporter.forceFlush()
+    # outside exportTimeoutMillis, so the backend's 3s shutdownTimeoutMillis
+    # is the load-bearing outer bound when a transport promise never settles.
+    # Every CLI exit path drains it by disposing the root on SIGINT/SIGTERM.
     - id: telemetry-otel
       name: '@huiliyi37/dsh-session-telemetry-otel'
       config:
+        mode: !!js "process.env.DSH_TELEMETRY_OTLP_URL ? 'FULL' : 'DISABLED'"
         shutdownTimeoutMillis: 3000
         exporter:
-          url: !!js process.env.DSH_TELEMETRY_OTLP_URL ?? 'https://harness-telemetry.deepseeksvc.com/v1/logs'
+          url: !!js "process.env.DSH_TELEMETRY_OTLP_URL ?? ''"
           compression: gzip
           timeoutMillis: 1000
         processor:

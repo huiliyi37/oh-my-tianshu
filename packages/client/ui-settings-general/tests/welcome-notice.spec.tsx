@@ -53,8 +53,11 @@ function mount(version?: string, mutateImpl: () => Promise<unknown> = () => Prom
 }
 
 describe('WelcomeNotice', () => {
-  it('uses the same Chinese owner copy in both GUI locales', () => {
-    expect(WELCOME_NOTICE_COPY.en).toEqual(WELCOME_NOTICE_COPY.zh)
+  it('keeps the owner copy structurally aligned across GUI locales', () => {
+    expect(Object.keys(WELCOME_NOTICE_COPY.en)).toEqual(Object.keys(WELCOME_NOTICE_COPY.zh))
+    expect(WELCOME_NOTICE_COPY.en.paragraphs).toHaveLength(WELCOME_NOTICE_COPY.zh.paragraphs.length)
+    expect(WELCOME_NOTICE_COPY.zh.paragraphs[0]).toContain('自 DeepSeek Harness 分叉后独立演进')
+    expect(WELCOME_NOTICE_COPY.en.paragraphs[0]).toContain('fork from DeepSeek Harness')
   })
 
   it('renders the owner copy with one primary action and no dismissal control', async () => {
@@ -62,7 +65,7 @@ describe('WelcomeNotice', () => {
     const page = await screen.findByRole('region', { name: WELCOME_NOTICE_COPY.zh.title })
     expect(screen.getByText(WELCOME_NOTICE_COPY.zh.title)).toBeTruthy()
     for (const text of WELCOME_NOTICE_COPY.zh.paragraphs) expect(page.textContent).toContain(text)
-    expect(page.textContent?.match(/感谢您愿意拨冗试用 DeepSeek Harness/g) ?? []).toHaveLength(1)
+    expect(page.textContent?.match(/感谢您试用天枢 Harness/g) ?? []).toHaveLength(1)
     const buttons = page.querySelectorAll('button')
     expect(buttons).toHaveLength(1)
     expect(screen.getByRole('button', { name: WELCOME_NOTICE_COPY.zh.continueLabel })).toBeTruthy()

@@ -279,7 +279,7 @@ describe('package manager strategies', () => {
     expect(inferPackageManagerName(undefined, 'unknown/1')).toBeUndefined()
     expect(inferPackageManagerName('yarn', undefined)).toBe('yarn')
     expect(() => createPackageManager('npm', 'invalid')).toThrow('invalid package manager version')
-    expect(resolveNpmDependency('cordis', 'devDependencies', '0.0.1')).toEqual({
+    expect(resolveNpmDependency('@huiliyi37/cordis', 'devDependencies', '0.0.1')).toEqual({
       section: 'devDependencies', spec: '^4.0.0-rc.7',
     })
     expect(resolveNpmDependency('@huiliyi37/cordis-plugin-hmr', 'dependencies', '0.0.1').spec).toBe('^1.0.15')
@@ -353,22 +353,22 @@ describe('package manager strategies', () => {
     await mkdir(join(root, 'vendor', 'cordis'), { recursive: true })
     await mkdir(join(root, 'packages', 'sdk', 'scripts'), { recursive: true })
     await mkdir(join(root, 'packages', 'sdk', 'helper'), { recursive: true })
-    await writeFile(join(root, 'vendor', 'cordis', 'package.json'), JSON.stringify({ name: 'cordis' }))
+    await writeFile(join(root, 'vendor', 'cordis', 'package.json'), JSON.stringify({ name: '@huiliyi37/cordis' }))
     await writeFile(join(root, 'packages', 'sdk', 'helper', 'package.json'), JSON.stringify({ name: '@huiliyi37/dsh-helper' }))
     await writeFile(join(root, 'packages', 'sdk', 'scripts', 'package.json'), JSON.stringify({
-      name: '@huiliyi37/dsh-scripts', dependencies: { '@huiliyi37/dsh-helper': '^0.0.1' }, peerDependencies: { cordis: '^4' },
+      name: '@huiliyi37/dsh-scripts', dependencies: { '@huiliyi37/dsh-helper': '^0.0.1' }, peerDependencies: { '@huiliyi37/cordis': '^4' },
     }))
     const workspace = await LinkWorkspace.open(root)
     expect(workspace.closure(['@huiliyi37/dsh-scripts'])).toEqual([
-      '@huiliyi37/dsh-helper', '@huiliyi37/dsh-scripts', 'cordis',
+      '@huiliyi37/cordis', '@huiliyi37/dsh-helper', '@huiliyi37/dsh-scripts',
     ])
     const manifest = PackageJsonFile.create('{"name":"consumer","description":"test"}')
     manifest.setNpmDependency('dependencies', '@huiliyi37/dsh-scripts', '^0.0.1')
     const pnpmWorkspace = PnpmWorkspaceFile.create()
     workspace.apply(join(root, 'consumer'), manifest, new PnpmPackageManager('10.0.0'), [pnpmWorkspace])
-    expect(manifest.npmDependency('cordis')?.spec).toMatch(/^link:/)
+    expect(manifest.npmDependency('@huiliyi37/cordis')?.spec).toMatch(/^link:/)
     expect(pnpmWorkspace.serialize()).toContain('autoInstallPeers: false')
-    expect(workspace.packageDirectory('cordis')).toBe(join(root, 'vendor', 'cordis'))
+    expect(workspace.packageDirectory('@huiliyi37/cordis')).toBe(join(root, 'vendor', 'cordis'))
     expect(await readFile(join(root, 'vendor', 'cordis', 'package.json'), 'utf8')).toContain('cordis')
     expect(workspace.packageDirectory('missing')).toBeUndefined()
     const yarnManifest = PackageJsonFile.create('{"name":"consumer"}')
@@ -386,7 +386,7 @@ describe('package manager strategies', () => {
     temporary.push(missing)
     await mkdir(join(missing, 'vendor'), { recursive: true })
     await mkdir(join(missing, 'packages'), { recursive: true })
-    await expect(LinkWorkspace.open(missing)).rejects.toThrow('not a DeepSeek Harness repository root')
+    await expect(LinkWorkspace.open(missing)).rejects.toThrow('not a Tianshu Harness repository root')
     const unreadable = await mkdtemp(join(tmpdir(), 'dsh-link-unreadable-'))
     temporary.push(unreadable)
     await mkdir(join(unreadable, 'vendor', 'bad'), { recursive: true })
@@ -397,7 +397,7 @@ describe('package manager strategies', () => {
     await mkdir(join(unnamed, 'vendor', 'unnamed'), { recursive: true })
     await mkdir(join(unnamed, 'packages'), { recursive: true })
     await writeFile(join(unnamed, 'vendor', 'unnamed', 'package.json'), '{}')
-    await expect(LinkWorkspace.open(unnamed)).rejects.toThrow('not a DeepSeek Harness repository root')
+    await expect(LinkWorkspace.open(unnamed)).rejects.toThrow('not a Tianshu Harness repository root')
     const duplicate = await mkdtemp(join(tmpdir(), 'dsh-link-duplicate-'))
     temporary.push(duplicate)
     await mkdir(join(duplicate, 'vendor', 'one'), { recursive: true })

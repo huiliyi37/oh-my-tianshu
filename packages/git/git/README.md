@@ -30,17 +30,11 @@ Errors are typed: `GitError` with `code: 'NOT_A_REPOSITORY' | 'EXEC_FAILED'`. Th
 
 ## Model Experience
 
-### What the model sees
+Indirectly, through the `git` tool in `dsh-tool-git`; the seam itself registers no prompt or schema.
 
-The model never sees this package directly — `dsh-tool-git` exposes the four operations as tools. This package is the seam those tools call.
+#### KV Cache effect
 
-### Token effect
-
-None (the seam itself is not model-facing).
-
-### KV Cache effect
-
-None.
+None (the seam is not model-facing; tool-result rendering belongs to `dsh-tool-git`).
 
 ## Known Limitations and Deferred Work
 

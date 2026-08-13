@@ -1,4 +1,4 @@
-// DeepSeek Harness brand wordmark (figma 356:14644, exact extract): whale +
+// Tianshu Harness brand wordmark (figma 356:14644, exact extract): whale +
 // "deepseek-official" letterforms + HARNESS badge plate in one svg. Native 182x24.
 // Ink rides currentColor; the badge text is knocked out in the inverted
 // label color so the plate stays legible in both themes.

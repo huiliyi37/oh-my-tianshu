@@ -14,14 +14,14 @@ text-only 的主控 wire route 载不动视觉副驾的描述调用。本插件�
 - id: vision-ask
   name: '@huiliyi37/dsh-vision-ask'
   config:
-    model: deepseek-vl           # 视觉模型 id（必填）
-    provider: vision-ask         # 本插件注册的 provider route（默认）
-    baseUrl: https://api.deepseek.com  # 可选；OpenAI 兼容端点
-    apiKeyEnv: DEEPSEEK_API_KEY   # 可选；存 API key 的环境变量
-    maxTokens: 1024              # 可选；描述输出上限（默认 1024）
-    primarySupportsVision: false # 可选；强制直发 / 强制描述
-    registryMaxImages: 8         # 可选；每会话保留图片数
-    registryMaxBytes: 25165824   # 可选；每会话字节上限（24 MiB）
+    model: deepseek-vl           # vision model id (required)
+    provider: vision-ask         # provider route this plugin registers (default)
+    baseUrl: https://api.deepseek.com  # optional; OpenAI-compatible endpoint
+    apiKeyEnv: DEEPSEEK_API_KEY   # optional; env var holding the API key
+    maxTokens: 1024              # optional; description output cap (default 1024)
+    primarySupportsVision: false # optional; force forwarding / describing
+    registryMaxImages: 8         # optional; images kept per session
+    registryMaxBytes: 25165824   # optional; total byte cap per session (24 MiB)
 ```
 
 `model` 必填（装配即 fail loud）。`primarySupportsVision` 可选：省略时工具经模型目录的 `supportsVision` 声明动态判定调用 agent 的模型能力；设置时覆盖动态判定（true=始终把原图附给主控，false=始终走视觉描述）。
@@ -33,26 +33,28 @@ text-only 的主控 wire route 载不动视觉副驾的描述调用。本插件�
 - **双应答路径** — 多模态主控收到原图 image block，直接看像素；text-only 主控拿到配置视觉模型的定向描述。同图同角度重复提问命中 per-image 描述缓存（零额外调用；缓存键归一化问题文本）。
 - **失败可见、绝不致命** — 无图、图 id 未知、无视觉路由、视觉模型失败均以结构化工具错误上抛（带可行动文案），模型看到原因并可据此行动。
 
-## Model Experience
-
-### 模型看到什么
-
-有图会话里 `ask_image(question, imageId?)` 可用。多模态主控收到「文本提示 + 原图 image block」；text-only 主控收到描述文本（缓存命中带 `（缓存）` 标记）。无图会话收到结构化错误，提示模型先请用户发图。
-
-### Token 效应
-
-每次未命中缓存的提问消耗一次辅助模型调用（`maxTokens` 上限，默认 1024）；描述文本以工具结果进入主控上下文。缓存命中零 token。
-
-### KV 缓存效应
-
-描述调用是独立 one-shot 请求（不设 purpose），与主控会话前缀无关；工具结果与普通工具结果一样追加。
-
 ## 验证
 
 ```sh
-# 行为套件（在 monorepo 工作区跑）
+# behavior suite (runs against the workspace monorepo)
 vitest run packages/tui/vision-ask
 ```
+
+## Model Experience
+
+### `ask_image` 工具
+
+#### 模型看到什么
+
+有图会话里 `ask_image(question, imageId?)` 可用。多模态主控收到「文本提示 + 原图 image block」；text-only 主控收到描述文本（缓存命中带 `（缓存）` 标记）。无图会话收到结构化错误，提示模型先请用户发图。
+
+#### Token 效应
+
+每次未命中缓存的提问消耗一次辅助模型调用（`maxTokens` 上限，默认 1024）；描述文本以工具结果进入主控上下文。缓存命中零 token。
+
+#### KV 缓存效应
+
+描述调用是独立 one-shot 请求（不设 purpose），与主控会话前缀无关；工具结果与普通工具结果一样追加。
 
 ## 已知限制与后续
 

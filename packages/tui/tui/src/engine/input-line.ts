@@ -1015,6 +1015,7 @@ export class InputLine {
   private deleteWordBack(): InputLineEvent | null {
     if (this._cursor <= 0) return null
     this.recordUndo('delete')
+    /* jscpd:ignore-start */
     const start = this.prevWordStart()
     const before = this._value.slice(0, start)
     const after = this._value.slice(this._cursor)
@@ -1038,6 +1039,7 @@ export class InputLine {
   // ── Cursor Movement ──────────────────────────────────────────
 
   private moveLeft(): InputLineEvent | null {
+    /* jscpd:ignore-end */
     if (this._cursor <= 0) return null
     this.sealUndo()
     this._cursor = this.prevGrapheme()

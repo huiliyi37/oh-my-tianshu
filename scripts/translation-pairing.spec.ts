@@ -66,7 +66,7 @@ describe('translation pairing snapshots', () => {
   it('fails before a sidecar can reference an unavailable object', () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-translation-pairing-'))
     try {
-      expect(() => storeGitBlob(root, Buffer.from('snapshot'))).toThrow('git hash-object -w --stdin failed')
+      expect(() => storeGitBlob(root, Buffer.from('snapshot'))).toThrow('git hash-object -w failed')
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
@@ -76,7 +76,7 @@ describe('translation pairing snapshots', () => {
     const previousPath = process.env.PATH
     try {
       process.env.PATH = ''
-      expect(() => { return storeGitBlob('.', Buffer.from('snapshot')) }).toThrow('git hash-object -w --stdin failed')
+      expect(() => { return storeGitBlob('.', Buffer.from('snapshot')) }).toThrow('git hash-object -w failed')
     } finally {
       process.env.PATH = previousPath
     }

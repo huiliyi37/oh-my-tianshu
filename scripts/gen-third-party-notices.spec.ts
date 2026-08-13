@@ -134,7 +134,7 @@ describe('parseVendoredRows', () => {
     const rows = parseVendoredRows(readFileSync(resolve(root, 'vendor/README.md'), 'utf8'))
 
     expect(rows.length).toBeGreaterThan(0)
-    expect(rows).toContainEqual({ npmName: 'cordis', upstream: 'https://github.com/cordiverse/cordis' })
+    expect(rows).toContainEqual({ npmName: '@huiliyi37/cordis', upstream: 'https://github.com/cordiverse/cordis' })
     // The upstream column carries a trailing package path for some rows; it is not part of the URL.
     expect(rows.every(row => /^https:\/\/\S+$/.test(row.upstream))).toBe(true)
   })

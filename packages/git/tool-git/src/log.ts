@@ -14,7 +14,10 @@ const DEFAULT_MAX_COUNT = 20
 /** log 条数上限（防刷屏）。 */
 const MAX_MAX_COUNT = 100
 
-/** 注册 git_log。 */
+/**
+ * 注册 git_log。
+ * @param ctx - 携带 tools/git/systemPrompt 服务的 Cordis context。
+ */
 export function applyGitLogTool(ctx: Context): void {
   ctx.systemPrompt.section({
     name: 'tool:git-log',

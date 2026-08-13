@@ -15,13 +15,16 @@
       "path": "../../../vendor/schemastery"
     },
     {
-      "path": "../../core/tools"
-    },
-    {
       "path": "../../core/system-prompt"
     },
     {
+      "path": "../../core/tools"
+    },
+    {
       "path": "../../memory/memory"
+    },
+    {
+      "path": "../../support/invariants"
     }
   ]
 }

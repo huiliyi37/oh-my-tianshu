@@ -18,7 +18,7 @@ The contribution body is exported as `installReportTool(childCtx, ctx, delivery)
 
 #### What the model sees
 
-The generated [`report` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-subagent-report): one required `output` string. Its description states that reporting is explicit and repeatable, reaches only the Agent that started the child, and does not end the turn. It carries no recipient or delivery-mode parameter.
+The generated [`report` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-subagent-report): one required `output` string. Its description states that reporting is explicit and repeatable, reaches only the Agent that started the child, and does not end the turn. It carries no recipient or delivery-mode parameter.
 
 #### Token effect
 

@@ -1,6 +1,6 @@
 {
   "name": "@huiliyi37/dsh-frontend",
-  "description": "Web application entry: vite build over the @huiliyi37/dsh-client-web shell library; dist/ served by apps/cli's dsh web",
+  "description": "Web application entry: vite build over the @huiliyi37/dsh-client-web shell library; dist/ served by apps/cli's tianshu web",
   "version": "0.2.0",
   "publishConfig": {
     "access": "public"
@@ -23,7 +23,7 @@
     "dev": "vite",
     "watch": "vite build --watch"
   },
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "dependencies": {
     "@huiliyi37/dsh-client-web": "workspace:^",
     "react": "^18.2.0",

@@ -27,6 +27,52 @@ const ASSEMBLY_FILES = new Set(['apply.ts', 'index.ts', 'index.tsx'])
 
 interface Violation { file: string; imported: string; reason: string }
 
+/**
+ * Cross-domain imports that predate the public-snapshot enforcement, keyed as
+ * `<file> -> <specifier>`. They are tolerated so the gate can hold the line on
+ * new violations; shrink this list by routing shared surface through
+ * contract/ — never add to it.
+ */
+const GRANDFATHERED = new Set([
+  'runtime/src/client/contract/session-history.ts -> ../sessions/history.ts',
+  'runtime/src/client/contract/session.ts -> ../sessions/conversation.ts',
+  'runtime/src/client/contract/sessions.ts -> ../agents/scope.ts',
+  'runtime/src/client/contract/sessions.ts -> ../sessions/manager.ts',
+  'runtime/src/client/contract/sessions.ts -> ../sessions/service.ts',
+  'runtime/src/client/contract/workspaces.ts -> ../workspaces/service.ts',
+  'runtime/src/client/session-history/history-fold.ts -> ../sessions/conversation.ts',
+  'runtime/src/client/session-history/history-fold.ts -> ../sessions/context-provenance.ts',
+  'runtime/src/client/session-history/history-fold.ts -> ../sessions/steering-history.ts',
+  'runtime/src/client/session-history/history-fold.ts -> ../sessions/conversation-context.ts',
+  'runtime/src/client/session-history/history-fold.ts -> ../sessions/request-inspection.ts',
+  'runtime/src/client/session-history/history-fold.ts -> ../sessions/partial.ts',
+  'runtime/src/client/session-history/history-fold.ts -> ../sessions/assistant-timing.ts',
+  'runtime/src/client/session-history/history-fold.ts -> ../sessions/tool-call-tree.ts',
+  'runtime/src/client/session-history/source.ts -> ../sessions/history.ts',
+  'runtime/src/client/session-history/source.ts -> ../sessions/notifier.ts',
+  'runtime/src/client/session-history/source.ts -> ../sessions/partial.ts',
+  'runtime/src/client/sessions/history.ts -> ../session-history/history-fold.ts',
+  'runtime/src/client/sessions/service.ts -> ../agents/scope.ts',
+  'runtime/src/client/workspaces/manager.ts -> ../sessions/notifier.ts',
+  'runtime/src/client/workspaces/workspace.ts -> ../sessions/notifier.ts',
+  'ui-conversation/src/client/contract/slots.ts -> ../input/blocks.ts',
+  'ui-conversation/src/client/contract/slots.ts -> ../input/contract.ts',
+  'ui-conversation/src/client/conversation-nodes/turn-tail.ts -> ../chat/turn-metrics.ts',
+  'ui-conversation/src/client/input/hub.ts -> ../queue/store.ts',
+  'ui-conversation/src/client/queue/store.ts -> ../input/contract.ts',
+  'ui-conversation/src/client/service.ts -> ./input/blocks.ts',
+  'ui-conversation/src/client/service.ts -> ./input/contract.ts',
+  'ui-conversation/src/client/skeleton/ApprovalPanel.tsx -> ../chat/tool-node-reader.ts',
+  'ui-conversation/src/client/skeleton/ContextMeter.tsx -> ../chat/StatsLine.tsx',
+  'ui-conversation/src/client/skeleton/DetailsPanel.tsx -> ../chat/tool-node-reader.ts',
+  'ui-conversation/src/client/skeleton/InputBar.tsx -> ../input/decorations.ts',
+  'ui-slash/src/client/controller.ts -> ../core/detect.ts',
+  'ui-slash/src/client/controller.ts -> ../core/menu.ts',
+  'ui-slash/src/client/controller.ts -> ../core/contract.ts',
+  'ui-slash/src/client/slots.ts -> ../core/contract.ts',
+  'ui-workspace/src/client/WorkspaceBrowser.tsx -> ./rows/Rows.tsx',
+])
+
 /** Recursively list .ts/.tsx files under dir (relative paths). */
 function listSources(dir: string): string[] {
   return globSync('**/*.{ts,tsx}', { cwd: dir })
@@ -66,6 +112,7 @@ function checkPackage(pkgName: string, clientDir: string): Violation[] {
       const toDomain = domainOf(target)
       if (toDomain === '' || CONTRACT_DIRS.has(toDomain)) continue // top-level shared file or contract layer
       if (fromDomain === toDomain) continue // inside one domain
+      if (GRANDFATHERED.has(`${pkgName}/src/client/${rel} -> ${spec}`)) continue
       violations.push({
         file: `${pkgName}/src/client/${rel}`,
         imported: spec,

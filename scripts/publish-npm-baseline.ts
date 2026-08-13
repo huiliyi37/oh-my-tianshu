@@ -20,7 +20,7 @@ import { pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
 import { hasTypeRTRemoteNavigation, validateTarballPayload } from './publication-payload.ts'
 
-const DEFAULT_REGISTRY = 'https://registry.npm.harnessment.com'
+const DEFAULT_REGISTRY = 'https://registry.npmjs.org'
 const DEFAULT_OUTPUT_DIRECTORY = '.artifacts/npm-baseline'
 const PACKAGE_PATTERNS = [
   'vendor/*/package.json',
@@ -62,7 +62,7 @@ while time.monotonic() < deadline:
             output.extend(chunk)
 
     snapshot = bytes(output)
-    if not termination_sent and b"dsh web: http://127.0.0.1:" in snapshot:
+    if not termination_sent and b"tianshu web: http://127.0.0.1:" in snapshot:
         ready_seen = True
         os.kill(pid, signal.SIGTERM)
         termination_sent = True
@@ -77,11 +77,11 @@ if status is None:
     _, status = os.waitpid(pid, 0)
 sys.stdout.buffer.write(output)
 if not ready_seen:
-    sys.stderr.write("installed dsh web did not reach its ready URL\n")
+    sys.stderr.write("installed tianshu web did not reach its ready URL\n")
     sys.exit(124)
 actual_exit = os.waitstatus_to_exitcode(status)
 if actual_exit != 0:
-    sys.stderr.write(f"installed dsh web exited {actual_exit}, expected 0\n")
+    sys.stderr.write(f"installed tianshu web exited {actual_exit}, expected 0\n")
     sys.exit(125)
 `
 
@@ -120,6 +120,8 @@ interface PackOptions {
   ref: string
   registry: string
   outputDirectory: string
+  /** Publish the workspace base version under `latest` instead of a timestamped dev baseline. */
+  stable: boolean
 }
 
 /** Fixes the identity of one pack attempt before any expensive work begins. */
@@ -521,8 +523,8 @@ class BaselinePackager {
     )
     const baseVersion = expectString(rootManifest, 'version', `${commit}:package.json`)
     validateBaseVersion(baseVersion, `${commit}:package.json`)
-    const version = `${baseVersion}-${timestamp}-${shortCommit}`
-    const distTag = `dev-${baseVersion}`
+    const version = options.stable ? baseVersion : `${baseVersion}-${timestamp}-${shortCommit}`
+    const distTag = options.stable ? LATEST_DIST_TAG : `dev-${baseVersion}`
     validateDistTag(distTag)
     const artifactDirectory = resolve(options.outputDirectory, version)
     if (existsSync(artifactDirectory)) {
@@ -1015,6 +1017,7 @@ Pack/release options:
   --ref <git-ref>       Git commit to stage (default: HEAD)
   --registry <url>      npm registry (default: ${DEFAULT_REGISTRY})
   --output-dir <path>   Artifact root (default: ${DEFAULT_OUTPUT_DIRECTORY})
+  --stable              publish the workspace base version under the latest tag
   --yes                 pack/release without waiting for Enter`)
 }
 
@@ -1038,6 +1041,7 @@ async function main(): Promise<void> {
         ref: { type: 'string', default: 'HEAD' },
         registry: { type: 'string', default: DEFAULT_REGISTRY },
         'output-dir': { type: 'string', default: resolve(repositoryRoot, DEFAULT_OUTPUT_DIRECTORY) },
+        stable: { type: 'boolean', default: false },
         yes: { type: 'boolean', default: false },
       },
       strict: true,
@@ -1047,6 +1051,7 @@ async function main(): Promise<void> {
       ref: values.ref,
       registry: values.registry,
       outputDirectory: resolve(values['output-dir']),
+      stable: values.stable,
     })
     await plan.confirm(values.yes)
     const bundle = packager.pack(plan)

@@ -19,7 +19,7 @@ Model-facing `bash(command)` backed by one owner-scoped `ctx.pty` shell. The pac
 
 #### What the model sees
 
-The generated [`bash` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-bash-persistent), including the configured `description`. The plugin contributes no standalone system-prompt section; the deployment owns persona and environment guidance.
+The generated [`bash` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-bash-persistent), including the configured `description`. The plugin contributes no standalone system-prompt section; the deployment owns persona and environment guidance.
 
 #### Token effect
 

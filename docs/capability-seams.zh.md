@@ -138,6 +138,9 @@ flowchart LR
   pkg_code_runtime["code-runtime"]
   svc_codeRuntime["ctx.codeRuntime<br/>Code-execution seam"]
   pkg_code_runtime_worker["code-runtime-worker"]
+  pkg_git["git"]
+  svc_git["ctx.git<br/>Git provider seam"]
+  pkg_tool_git["tool-git"]
   pkg_fs["fs"]
   svc_fs["ctx.fs<br/>Filesystem provider seam"]
   pkg_fs_local["fs-local"]
@@ -205,6 +208,7 @@ flowchart LR
   pkg_fs_e2b --> svc_fs
   pkg_fs_local --> svc_fs
   pkg_fs_sandbox --> svc_fs
+  pkg_git --> svc_git
   pkg_goal --> svc_goals
   pkg_invariants --> svc_invariants
   pkg_llm --> svc_llm
@@ -295,6 +299,7 @@ flowchart LR
   svc_e2b --> pkg_fs_e2b
   svc_e2b --> pkg_subprocess_e2b
   svc_fs --> pkg_tool_fs
+  svc_git --> pkg_tool_git
   svc_httpServer --> pkg_connection
   svc_httpServer --> pkg_hmr
   svc_httpServer --> pkg_modules
@@ -418,6 +423,7 @@ flowchart LR
 | `ctx.approval` | `seam` | `approval` | [`acp`](../packages/acp/acp) | [`tools`](../packages/core/tools)、[`tool-bash`](../packages/bash/tool-bash) | - | 一次性权限决策通过 `approval/request` waterfall（瀑布式事件）分派；回答方是监听器（即 ACP 为自身 agent 提供的桥接），没有回答方时以 `unavailable` 关闭失败。 |
 | `ctx.permission` | `core` | [`permission`](../packages/interaction/permission) | - | - | - | 面向用户的预设表（`workspace-write`／`danger-full-access`），将沙箱模式与审批策略选项组合在一起；一次切换会写入一个 `permission/preset` 事件，并贯通到两个选项事件。 |
 | `ctx.codeRuntime` | `seam` | [`code-runtime`](../packages/code-runtime/code-runtime) | [`code-runtime-worker`](../packages/code-runtime/code-runtime-worker) | [`tools`](../packages/core/tools) | - | 使用 Host 提供的异步绑定运行一段由模型编写的程序；各后端采用不同的基础环境和语言（工具注册表在 Code Mode 下消费该服务）。 |
+| `ctx.git` | `seam` | [`git`](../packages/git/git) | [`git`](../packages/git/git) | [`tool-git`](../packages/git/tool-git) | - | tool-git 通过 ctx.git 执行 status／diff／log／commit；GitLocal（同包）是 CLI 支撑的 provider。 |
 | `ctx.fs` | `seam` | [`fs`](../packages/fs/fs) | [`fs-local`](../packages/fs/fs-local)、[`fs-sandbox`](../packages/fs/fs-sandbox)、[`fs-e2b`](../packages/e2b/fs-e2b) | [`tool-fs`](../packages/fs/tool-fs) | [`fs-policy`](../packages/fs/fs-policy) | tool-fs 通过 ctx.fs 执行读取／写入／编辑；fs-sandbox 按共享沙箱模式限制变更；fs-policy 通过 fs/* 事件门禁贡献基于观测状态的检查。 |
 | `ctx.compact` | `seam` | [`compact`](../packages/compact/compact) | [`compact-basic`](../packages/compact/compact-basic) | [`compact-basic`](../packages/compact/compact-basic) | - | 基础后端消费步骤后的压力事件和请求错误恢复事件；面向模型的压缩工具仍处于暂缓状态。 |
 | `ctx.subagents` | `seam` | [`subagent`](../packages/subagent/subagent) | [`subagent-spawn`](../packages/subagent/subagent-spawn)、[`subagent-fork`](../packages/subagent/subagent-fork)、[`subagent-acp`](../packages/subagent/subagent-acp)、[`subagent-codex`](../packages/subagent/subagent-codex)、[`subagent-claude-code`](../packages/subagent/subagent-claude-code)、[`subagent-dsh-sdk`](../packages/subagent/subagent-dsh-sdk) | [`tool-subagent`](../packages/subagent/tool-subagent)、[`tool-subagent-control`](../packages/subagent/tool-subagent-control)、[`tool-ralph`](../packages/workflow/tool-ralph) | - | 提供方实现传输；该服务还负责可选的、基于 Activation 的延续编排，tool-subagent 选择一次性或可延续委派，tool-subagent-control 传递后续消息，而 tool-ralph 要求一条全新的结构化输出路由。 |

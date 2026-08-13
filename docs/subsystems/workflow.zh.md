@@ -165,24 +165,6 @@ Source: [`packages/workflow/workflow/src/index.ts:159`](../../packages/workflow/
 
 #### `workflow/agent-end` — emit
 
-workflow 内一次 agent() 调用结算（按 seq 与 agent-start 配对）；属主 dsh-workflow。
-
-```ts cordis-catalog
-/**
- * workflow 内一次 agent() 调用结算（按 seq 与 agent-start 配对）；属主 dsh-workflow。
- * @param info - 运行标识 wire 子集（id）。
- * @param agent - 调用标识加结算 outcome 的 wire 子集。
- * @mode emit
- */
-'workflow/agent-end'(this: unknown, info: WorkflowRunInfoWire, agent: WorkflowAgentEndWire): void
-```
-
-Source: [`packages/tui/tui/src/ui/app.ts:217`](../../packages/tui/tui/src/ui/app.ts)
-
-<a id="workflowagent-end--emit"></a>
-
-#### `workflow/agent-end` — emit
-
 One `agent()` call settled (clean result, child failure, or run cancellation). Paired with Events['workflow/agent-start'] by `agent.seq`, exactly once per started call on every stop path — on an engine termination path (a worker killed past its grace) the end is engine-synthesized with outcome `'cancelled'`.
 
 ```ts cordis-catalog
@@ -205,24 +187,6 @@ Source: [`packages/workflow/workflow/src/index.ts:81`](../../packages/workflow/w
 
 #### `workflow/agent-start` — emit
 
-workflow 内一次 agent() 调用建立；TUI 向该运行追加 agent 行。属主 dsh-workflow。
-
-```ts cordis-catalog
-/**
- * workflow 内一次 agent() 调用建立；TUI 向该运行追加 agent 行。属主 dsh-workflow。
- * @param info - 运行标识 wire 子集（id）。
- * @param agent - 调用的序号/标签/所属阶段 wire 子集。
- * @mode emit
- */
-'workflow/agent-start'(this: unknown, info: WorkflowRunInfoWire, agent: WorkflowAgentWire): void
-```
-
-Source: [`packages/tui/tui/src/ui/app.ts:210`](../../packages/tui/tui/src/ui/app.ts)
-
-<a id="workflowagent-start--emit"></a>
-
-#### `workflow/agent-start` — emit
-
 One `agent()` call established a published child run. Paired with Events['workflow/agent-end'] by `agent.seq`. A call that never receives a published run from the provider emits neither event in this pair.
 
 ```ts cordis-catalog
@@ -239,24 +203,6 @@ One `agent()` call established a published child run. Paired with Events['workfl
 ```
 
 Source: [`packages/workflow/workflow/src/index.ts:70`](../../packages/workflow/workflow/src/index.ts)
-
-<a id="workflowend--emit"></a>
-
-#### `workflow/end` — emit
-
-workflow 运行结束；TUI 移入已结算缓存并按上限淘汰。属主 dsh-workflow。
-
-```ts cordis-catalog
-/**
- * workflow 运行结束；TUI 移入已结算缓存并按上限淘汰。属主 dsh-workflow。
- * @param info - 运行标识 wire 子集（id）。
- * @param result - 结算原因与可选错误的 wire 子集。
- * @mode emit
- */
-'workflow/end'(this: unknown, info: WorkflowRunInfoWire, result: WorkflowResultWire): void
-```
-
-Source: [`packages/tui/tui/src/ui/app.ts:224`](../../packages/tui/tui/src/ui/app.ts)
 
 <a id="workflowend--emit"></a>
 
@@ -301,24 +247,6 @@ Source: [`packages/workflow/workflow/src/index.ts:60`](../../packages/workflow/w
 
 #### `workflow/phase` — emit
 
-workflow 进入新阶段；TUI 更新该运行的当前阶段标题。属主 dsh-workflow。
-
-```ts cordis-catalog
-/**
- * workflow 进入新阶段；TUI 更新该运行的当前阶段标题。属主 dsh-workflow。
- * @param info - 运行标识 wire 子集（id）。
- * @param title - 阶段标题原文（属主第二参为裸 string，非对象）。
- * @mode emit
- */
-'workflow/phase'(this: unknown, info: WorkflowRunInfoWire, title: string): void
-```
-
-Source: [`packages/tui/tui/src/ui/app.ts:203`](../../packages/tui/tui/src/ui/app.ts)
-
-<a id="workflowphase--emit"></a>
-
-#### `workflow/phase` — emit
-
 The script entered a phase (a `phase(title)` call) — progress grouping for observers; no execution semantics.
 
 ```ts cordis-catalog
@@ -333,23 +261,6 @@ The script entered a phase (a `phase(title)` call) — progress grouping for obs
 ```
 
 Source: [`packages/workflow/workflow/src/index.ts:53`](../../packages/workflow/workflow/src/index.ts)
-
-<a id="workflowstart--emit"></a>
-
-#### `workflow/start` — emit
-
-workflow 运行开始（T2.2 运行态缓存建项）；属主 dsh-workflow。
-
-```ts cordis-catalog
-/**
- * workflow 运行开始（T2.2 运行态缓存建项）；属主 dsh-workflow。
- * @param info - 运行标识 wire 子集（id）。
- * @mode emit
- */
-'workflow/start'(this: unknown, info: WorkflowRunInfoWire): void
-```
-
-Source: [`packages/tui/tui/src/ui/app.ts:196`](../../packages/tui/tui/src/ui/app.ts)
 
 <a id="workflowstart--emit"></a>
 

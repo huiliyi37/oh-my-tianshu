@@ -643,23 +643,6 @@ Types: [Scoped](scope.md)
 
 Source: [`packages/subagent/subagent/src/index.ts:162`](../../packages/subagent/subagent/src/index.ts)
 
-<a id="subagentend--emit"></a>
-
-#### `subagent/end` — emit
-
-子代理委派结束（与 subagent/start 按 id 配对）；属主 dsh-subagent。
-
-```ts cordis-catalog
-/**
- * 子代理委派结束（与 subagent/start 按 id 配对）；属主 dsh-subagent。
- * @param info - 运行标识 wire 子集：父会话 id 与子运行 id。
- * @mode emit
- */
-'subagent/end'(this: unknown, info: { parentId: string; id: string }): void
-```
-
-Source: [`packages/tui/tui/src/ui/app.ts:190`](../../packages/tui/tui/src/ui/app.ts)
-
 <a id="subagentprovider-added--emit"></a>
 
 #### `subagent/provider-added` — emit
@@ -717,21 +700,4 @@ A provider established a published child. For in-process providers, `ctx.agents.
 Types: [Scoped](scope.md)
 
 Source: [`packages/subagent/subagent/src/index.ts:153`](../../packages/subagent/subagent/src/index.ts)
-
-<a id="subagentstart--emit"></a>
-
-#### `subagent/start` — emit
-
-子代理委派开始（T2.1 委派树刷新触发器）；属主 dsh-subagent。
-
-```ts cordis-catalog
-/**
- * 子代理委派开始（T2.1 委派树刷新触发器）；属主 dsh-subagent。
- * @param info - 运行标识 wire 子集：父会话 id 与子运行 id。
- * @mode emit
- */
-'subagent/start'(this: unknown, info: { parentId: string; id: string }): void
-```
-
-Source: [`packages/tui/tui/src/ui/app.ts:184`](../../packages/tui/tui/src/ui/app.ts)
 <!-- END GENERATED cordis-surface -->

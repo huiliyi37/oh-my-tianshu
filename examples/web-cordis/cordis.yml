@@ -2,7 +2,7 @@
 # Temporary Plugin code can reach every injected live capability; treat this
 # deployment like shell access, not as a security boundary.
 # This file is a PATCH OVERLAY over the web profile (dsh-base + dsh-web-app
-# bundle layers), not a tree: `dsh web --patch` applies it as one more sibling
+# bundle layers), not a tree: `tianshu web --patch` applies it as one more sibling
 # patch list at the same include level, so these patches reach every bundle
 # row. A patch replaces the targeted row's whole `config`.
 

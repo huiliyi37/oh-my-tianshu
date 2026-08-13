@@ -2,7 +2,7 @@
 
 {{description}}
 
-Built with the DeepSeek Harness SDK using the {{model}} model.
+Built with the Tianshu Harness SDK using the {{model}} model.
 
 {{#if isAcp}}
 ## Run as an ACP automation server

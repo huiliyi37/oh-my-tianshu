@@ -18,10 +18,13 @@
       "path": "../../../vendor/schemastery"
     },
     {
+      "path": "../../core/system-prompt"
+    },
+    {
       "path": "../../core/tools"
     },
     {
-      "path": "../../core/system-prompt"
+      "path": "../../support/invariants"
     },
     {
       "path": "../git"

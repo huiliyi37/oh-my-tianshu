@@ -53,7 +53,7 @@ export interface Config {
   toolOrder?: string[]
   /** Tool-registry config — its presentation `mode` (forwarded through agent-spine-demo; see dsh-tools). */
   tools?: ToolsConfig
-  /** DeepSeek Harness home directory exposed to bash and used for local skill discovery. */
+  /** Tianshu Harness home directory exposed to bash and used for local skill discovery. */
   dshHome?: string
   /** Fallback session-title limits forwarded through agent-spine-demo. */
   sessionTitle?: NonNullable<agentCore.Config['sessionTitle']>
@@ -76,7 +76,7 @@ export interface Config {
 }
 ```
 
-Depends on: [`agentCore`](../packages/examples/agent-spine-demo/src/index.ts) · [`JsonlCompression`](../packages/session/session-persistence-jsonl/src/index.ts) · [`ToolsConfig`](#deepseek-aidsh-tools)
+Depends on: [`agentCore`](../packages/examples/agent-spine-demo/src/index.ts) · [`JsonlCompression`](../packages/session/session-persistence-jsonl/src/index.ts) · [`ToolsConfig`](#huiliyi37dsh-tools)
 
 Source: [`packages/examples/acp-demo/src/index.ts:39`](../packages/examples/acp-demo/src/index.ts)
 
@@ -138,7 +138,7 @@ export interface AgentRouterConfig {
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:54`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:56`](../packages/guard/agent-router/src/index.ts)
 
 ## `@huiliyi37/dsh-agent-spine-demo`
 
@@ -177,7 +177,7 @@ export interface Config {
   toolOrder?: SystemPromptConfig['toolOrder']
   /** The tool registry's config — its presentation `mode` (see dsh-tools' `Config`). */
   tools?: ToolsConfig
-  /** DeepSeek Harness home directory shared by shell context and local skill discovery. */
+  /** Tianshu Harness home directory shared by shell context and local skill discovery. */
   dshHome?: string
   /** Deterministic fallback and accepted-title limits; omission uses the bundle's example policy. */
   sessionTitle?: SessionTitleConfig
@@ -220,7 +220,7 @@ export interface GoalConfig {
 }
 ```
 
-Depends on: [`AgentLoopConfig`](#deepseek-aidsh-agent-loop) · [`GoalDomainConfig`](#deepseek-aidsh-goal) · [`InvariantConfig`](#deepseek-aidsh-invariants) · [`SessionTitleConfig`](#deepseek-aidsh-session-title) · [`SkillLocal`](../packages/skill/skill-local/src/index.ts) · [`SkillRegistryConfig`](#deepseek-aidsh-skill) · [`SystemPromptConfig`](#deepseek-aidsh-system-prompt) · [`toolBash`](../packages/bash/tool-bash/src/index.ts) · [`toolGoal`](../packages/goal/tool-goal/src/index.ts) · [`ToolsConfig`](#deepseek-aidsh-tools) · [`toolSkill`](../packages/skill/tool-skill/src/index.ts) · [`toolTasks`](../packages/tasks/tool-tasks/src/index.ts) · [`workspaceContext`](../packages/context/workspace-context/src/index.ts)
+Depends on: [`AgentLoopConfig`](#huiliyi37dsh-agent-loop) · [`GoalDomainConfig`](#huiliyi37dsh-goal) · [`InvariantConfig`](#huiliyi37dsh-invariants) · [`SessionTitleConfig`](#huiliyi37dsh-session-title) · [`SkillLocal`](../packages/skill/skill-local/src/index.ts) · [`SkillRegistryConfig`](#huiliyi37dsh-skill) · [`SystemPromptConfig`](#huiliyi37dsh-system-prompt) · [`toolBash`](../packages/bash/tool-bash/src/index.ts) · [`toolGoal`](../packages/goal/tool-goal/src/index.ts) · [`ToolsConfig`](#huiliyi37dsh-tools) · [`toolSkill`](../packages/skill/tool-skill/src/index.ts) · [`toolTasks`](../packages/tasks/tool-tasks/src/index.ts) · [`workspaceContext`](../packages/context/workspace-context/src/index.ts)
 
 Source: [`packages/examples/agent-spine-demo/src/index.ts:90`](../packages/examples/agent-spine-demo/src/index.ts)
 
@@ -229,7 +229,7 @@ Source: [`packages/examples/agent-spine-demo/src/index.ts:90`](../packages/examp
 ```ts config-catalog
 /** Plugin config (all optional — the built-in facts resolve without defaults). */
 export interface Config {
-  /** DeepSeek Harness home directory exposed as `DSH_HOME`; defaults to `$DSH_HOME` or `~/.dsh`. */
+  /** Tianshu Harness home directory exposed as `DSH_HOME`; defaults to `$DSH_HOME` or `~/.dsh`. */
   dshHome?: string
 }
 ```
@@ -275,7 +275,7 @@ Requires: `subprocess` · `sandbox` · `sandboxPolicy`
 export type Config = LocalConfig
 ```
 
-Depends on: [`LocalConfig`](#deepseek-aidsh-bash-local)
+Depends on: [`LocalConfig`](#huiliyi37dsh-bash-local)
 
 Source: [`packages/bash/bash-sandbox/src/index.ts:35`](../packages/bash/bash-sandbox/src/index.ts)
 
@@ -504,9 +504,21 @@ Requires: `sandboxPolicy`
 export type Config = LocalConfig
 ```
 
-Depends on: [`LocalConfig`](#deepseek-aidsh-fs-local)
+Depends on: [`LocalConfig`](#huiliyi37dsh-fs-local)
 
 Source: [`packages/fs/fs-sandbox/src/index.ts:49`](../packages/fs/fs-sandbox/src/index.ts)
+
+## `@huiliyi37/dsh-git`
+
+```ts config-catalog
+/** GitLocal provider 配置。 */
+export interface GitLocalConfig {
+  /** git 可执行文件（默认 `git`；测试可注入）。 */
+  gitBin?: string
+}
+```
+
+Source: [`packages/git/git/src/index.ts:120`](../packages/git/git/src/index.ts)
 
 ## `@huiliyi37/dsh-goal`
 
@@ -707,6 +719,12 @@ export interface Config {
   streamIdleTimeoutMs?: number
   /** Provider-owned model-request retry policy; omission uses normal defaults. */
   retryPolicy?: RetryPolicyConfig
+  /**
+   * spark 推理尾部截断（内部能力，公开前决策去留）。enabled 时仅
+   * {@link SPARK_PROVIDER} route 生效；truncateN 按模型档取 N（flash 300 /
+   * pro 0 = 需显式开启）。缺省 = 不启用，非 spark 路径 wire 字节不变。
+   */
+  spark?: SparkRequestPolicy
 }
 
 /** One optional model entry advertised by the direct-fetch adapter. */
@@ -721,12 +739,30 @@ export interface DeepSeekCatalogModel {
   contextWindow?: number
   /** Per-request output cap for this model; omission falls back to the profile's {@link DeepSeekConnectionOptions.maxTokens}. */
   maxTokens?: number
+  /** Adapter-declared image-input capability; absent = text-only. */
+  supportsVision?: boolean
+}
+
+/** spark 请求策略：enabled 开启后仅 SPARK_PROVIDER route 生效。 */
+export interface SparkRequestPolicy {
+  /** 总开关；false（缺省）时任何 route 都不截断。 */
+  enabled: boolean
+  /** 按模型档的截断 N（flash 300 / pro 0）。 */
+  truncateN: SparkTruncatePolicy
+}
+
+/** spark 截断档位：按模型档取 N（flash 300 / pro 0 = 需显式开启）。 */
+export interface SparkTruncatePolicy {
+  /** flash 档保留的尾部 token 数（默认 300）。 */
+  flash: number
+  /** pro 档保留的尾部 token 数（默认 0 = 不截断，需显式开启）。 */
+  pro: number
 }
 ```
 
 Depends on: [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
 
-Source: [`packages/llm/llm-deepseek/src/index.ts:61`](../packages/llm/llm-deepseek/src/index.ts)
+Source: [`packages/llm/llm-deepseek/src/index.ts:73`](../packages/llm/llm-deepseek/src/index.ts)
 
 ## `@huiliyi37/dsh-llm-pi-ai`
 
@@ -1563,7 +1599,7 @@ export interface Config {
   providerName?: string
   /** Whether project and user roots are included around custom roots. */
   includeDefaultRoots?: boolean
-  /** DeepSeek Harness config root. Defaults to `$DSH_HOME` or `~/.dsh`. */
+  /** Tianshu Harness config root. Defaults to `$DSH_HOME` or `~/.dsh`. */
   dshHome?: string
   /** Shared agent config root. Defaults to `$DSH_AGENTS_HOME` or `~/.agents`. */
   agentsHome?: string
@@ -1587,6 +1623,22 @@ export interface Config {
 ```
 
 Source: [`packages/skill/skill-local/src/index.ts:49`](../packages/skill/skill-local/src/index.ts)
+
+## `@huiliyi37/dsh-spark-anchors`
+
+Requires: `agents`
+
+```ts config-catalog
+/** 锚点聚合上限与总开关。 */
+export interface Config {
+  /** 总开关；false 时不注册监听（缺省 true）。 */
+  enabled?: boolean
+  /** 去重后锚点条数上限；溢出淘汰最旧（缺省 20）。 */
+  maxAnchors?: number
+}
+```
+
+Source: [`packages/context/spark-anchors/src/index.ts:44`](../packages/context/spark-anchors/src/index.ts)
 
 ## `@huiliyi37/dsh-spill-local`
 
@@ -1887,7 +1939,7 @@ Source: [`packages/e2b/subprocess-e2b/src/index.ts:25`](../packages/e2b/subproce
 ```ts config-catalog
 /** Plugin config: the deployment-authored fragment of the system prompt (see {@link Config.persona} for its contract). */
 export interface Config {
-  /** Include the fixed DeepSeek Harness identity before the deployment persona (default true). */
+  /** Include the fixed Tianshu Harness identity before the deployment persona (default true). */
   includeHarnessIdentity?: boolean
   /**
    * Deployment-wide order-0 persona template. A scoped section named
@@ -1996,6 +2048,22 @@ export interface Config {
 
 Source: [`packages/self-modification/tool-cordis/src/index.ts:25`](../packages/self-modification/tool-cordis/src/index.ts)
 
+## `@huiliyi37/dsh-tool-file-info`
+
+Requires: `tools` · `fs`
+
+```ts config-catalog
+/** Plugin config; the workspace root defaults to the deployment workdir. */
+export interface Config {
+  /** Workspace root (must exist — fails loud at load). */
+  root?: string
+  /** Cooperative tool-call timeout budget (ms). */
+  timeoutMs?: number
+}
+```
+
+Source: [`packages/fs/tool-file-info/src/index.ts:40`](../packages/fs/tool-file-info/src/index.ts)
+
 ## `@huiliyi37/dsh-tool-fs`
 
 Requires: `tools` · `fs` · `systemPrompt`
@@ -2046,6 +2114,20 @@ export interface Config {
 
 Source: [`packages/fs/tool-fs-search/src/index.ts:73`](../packages/fs/tool-fs-search/src/index.ts)
 
+## `@huiliyi37/dsh-tool-git`
+
+Requires: `tools` · `git` · `systemPrompt`
+
+```ts config-catalog
+/** 工具配置：无部署可变项（单工具无 tunables）。 */
+export interface Config {
+  /** 是否启用工具；false 时不注册（默认 true）。 */
+  enabled?: boolean
+}
+```
+
+Source: [`packages/git/tool-git/src/index.ts:21`](../packages/git/tool-git/src/index.ts)
+
 ## `@huiliyi37/dsh-tool-goal`
 
 Requires: `agents` · `goals` · `tools` · `systemPrompt`
@@ -2077,6 +2159,40 @@ export interface Config {
 ```
 
 Source: [`packages/lsp/tool-lsp/src/index.ts:58`](../packages/lsp/tool-lsp/src/index.ts)
+
+## `@huiliyi37/dsh-tool-memory`
+
+Requires: `tools` · `systemPrompt`
+
+```ts config-catalog
+/** 插件配置。 */
+export interface ToolMemoryConfig {
+  /** 摘要注入开关（缺省 true）。 */
+  digest?: boolean
+}
+```
+
+Source: [`packages/memory/tool-memory/src/index.ts:60`](../packages/memory/tool-memory/src/index.ts)
+
+## `@huiliyi37/dsh-tool-meridian`
+
+Requires: `tools` · `systemPrompt`
+
+```ts config-catalog
+/** Plugin config; the index root defaults to the deployment workdir. */
+export interface Config {
+  /** Workspace root the index scans (must exist — fails loud at load). */
+  root?: string
+  /** 首次 repo_graph 调用是否触发后台全量索引（默认 true）。 */
+  backfillOnDemand?: boolean
+  /** 后台全量索引文件数上限（默认 2000）。 */
+  backfillMaxFiles?: number
+  /** 启动即回填（默认 false，对应天枢 RIVET_MERIDIAN_BACKFILL=1）。 */
+  backfillOnStart?: boolean
+}
+```
+
+Source: [`packages/search/tool-meridian/src/index.ts:38`](../packages/search/tool-meridian/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-pty`
 
@@ -2127,6 +2243,26 @@ export interface Config {
 ```
 
 Source: [`packages/workflow/tool-ralph/src/index.ts:23`](../packages/workflow/tool-ralph/src/index.ts)
+
+## `@huiliyi37/dsh-tool-semantic-search`
+
+Requires: `tools` · `systemPrompt`
+
+```ts config-catalog
+/** Plugin config; the index root defaults to the deployment workdir. */
+export interface Config {
+  /** Workspace root the index scans (must exist — fails loud at load). */
+  root?: string
+  /** Max source files indexed in one pass. */
+  maxFiles?: number
+  /** `isStale()` verdict cache window (ms). */
+  staleTtlMs?: number
+  /** Cooperative tool-call timeout budget (ms). */
+  timeoutMs?: number
+}
+```
+
+Source: [`packages/search/tool-semantic-search/src/index.ts:32`](../packages/search/tool-semantic-search/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-session-query`
 
@@ -2373,14 +2509,24 @@ export interface TuiRunnerConfig {
   stdout?: WriteStream
   /** 启动即切入的会话 id；缺省新建会话。 */
   initialSessionId?: SessionId
-  /** 外部编辑器触发键（Phase 6.4）；缺省 ctrl_o。 */
+  /** 外部编辑器触发键（Phase 6.4）；缺省 ctrl_e（ctrl+o 已恢复为推理展开）。 */
   editorKey?: KeyName
   /** 是否启用 Vim 键位（Phase 6.5）；缺省 false。 */
   vimEnabled?: boolean
+  /** 主控模型的识图能力与视觉桥状态（图片附件气泡提示数据源）。 */
+  vision?: {
+    /** 主控模型是否原生支持识图（图片直发）。 */
+    supportsVision?: boolean
+    /** 是否配置了独立识图桥模型（主控不识图时经桥转文字描述）。 */
+    bridgeEnabled?: boolean
+    /** 识图桥来源（configured=显式配置 / auto=自动选用）。 */
+    bridgeSource?: 'configured' | 'auto' | 'none'
+  }
   /** 已结算 workflow run 缓存条数上限（/workflow 面板历史），超限 drop-oldest；正整数，缺省 50。 */
   workflowHistoryLimit?: number
 }
 
+/** 可识别的按键语义名称；未映射的可打印字符与无法识别的序列为 'unknown'。 */
 export type KeyName =
   | 'return'
   | 'escape'
@@ -2413,6 +2559,7 @@ export type KeyName =
   | 'ctrl_o'
   | 'ctrl_p'
   | 'ctrl_r'
+  | 'ctrl_s'
   | 'ctrl_t'
   | 'ctrl_v'
   | 'ctrl_b'
@@ -2422,6 +2569,7 @@ export type KeyName =
   | 'ctrl_minus'
   | 'ctrl_.'
   | 'ctrl_y'
+  | 'ctrl_q'
   | 'shift_tab'
   | 'unknown'
 ```
@@ -2474,6 +2622,78 @@ export type ApprovalPolicy = 'ask' | 'never'
 
 Source: [`packages/interaction/user-approval/src/index.ts:178`](../packages/interaction/user-approval/src/index.ts)
 
+## `@huiliyi37/dsh-vision-ask`
+
+Requires: `llm` · `tools`
+
+```ts config-catalog
+/** Vision co-pilot configuration. */
+export interface Config {
+  /** Master switch; false disables registration, tool, and listener (default true). */
+  enabled?: boolean
+  /**
+   * Provider route the plugin registers for vision calls (default 'vision-ask').
+   * Independent of the primary model's provider — the adapter serializes
+   * image blocks that the text-only baseline route cannot carry.
+   */
+  provider?: string
+  /** Vision model id sent on the wire (required). */
+  model: string
+  /** OpenAI-compatible endpoint base (default https://api.deepseek.com). */
+  baseUrl?: string
+  /** Environment variable holding the API key (default DEEPSEEK_API_KEY). */
+  apiKeyEnv?: string
+  /** Description output token cap (default 1024). */
+  maxTokens?: number
+  /**
+   * Primary-model vision capability override. Omitted: resolved dynamically
+   * from the calling agent's model via inputModalities. true: always forward
+   * the original image to the primary. false: always describe via the vision
+   * adapter.
+   */
+  primarySupportsVision?: boolean
+  /** Registry image-count cap per session (default 8). */
+  registryMaxImages?: number
+  /** Registry total-byte cap per session (default 24 MiB). */
+  registryMaxBytes?: number
+}
+```
+
+Source: [`packages/tui/vision-ask/src/index.ts:33`](../packages/tui/vision-ask/src/index.ts)
+
+## `@huiliyi37/dsh-vision-bridge`
+
+Requires: `llm`
+
+```ts config-catalog
+/** 视觉桥配置：描述模型路由（显式或自动）+ 主控能力声明。 */
+export interface Config {
+  /** 总开关；false 时不注册监听（缺省 true）。 */
+  enabled?: boolean
+  /** 显式视觉模型的 provider route；缺省时配合 visionAutoBridge 自动选择。 */
+  provider?: string
+  /** 显式视觉模型名；缺省时配合 visionAutoBridge 自动选择。 */
+  model?: string
+  /** 自定义描述 prompt；缺省按随图文本自动选通用/精确转写模式。 */
+  prompt?: string
+  /** 描述输出 token 上限（缺省 1024）。 */
+  maxTokens?: number
+  /** 主控模型是否原生支持识图（缺省 false；true 时本插件不干预，图片直发）。 */
+  primarySupportsVision?: boolean
+  /** 备用视觉模型（主视觉模型 error/aborted 时兜底重试一次；缺省不启用）。 */
+  fallback?: {
+    /** 备用视觉模型的已注册 llm provider 路由。 */
+    provider: string
+    /** 备用视觉模型 id。 */
+    model: string
+  }
+  /** 未显式配置 provider/model 时，自动选第一个声明 supportsVision 的已注册模型。 */
+  visionAutoBridge?: boolean
+}
+```
+
+Source: [`packages/context/vision-bridge/src/index.ts:35`](../packages/context/vision-bridge/src/index.ts)
+
 ## `@huiliyi37/dsh-web`
 
 ```ts config-catalog
@@ -2500,7 +2720,7 @@ Requires: `httpServer`
 ```ts config-catalog
 /** Plugin config: the surface facts the launcher patches over this bundle's defaults. */
 export interface Config {
-  /** Whether this process mounted the client-plugin HMR receiver (`dsh web --dev`). */
+  /** Whether this process mounted the client-plugin HMR receiver (`tianshu web --dev`). */
   mode: WebMode
   /** Print the URL line on activation; a headless layer over this bundle turns it off. */
   printUrl: boolean
@@ -2776,13 +2996,16 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
 - `@huiliyi37/dsh-llm-mock-server` ([`packages/support/llm-mock-server/src/index.ts`](../packages/support/llm-mock-server/src/index.ts))
 - `@huiliyi37/dsh-loader-smoke` ([`packages/support/loader-smoke/src/index.ts`](../packages/support/loader-smoke/src/index.ts))
 - `@huiliyi37/dsh-memory` ([`packages/memory/memory/src/index.ts`](../packages/memory/memory/src/index.ts))
+- `@huiliyi37/dsh-meridian` ([`packages/search/meridian/src/index.ts`](../packages/search/meridian/src/index.ts))
 - `@huiliyi37/dsh-native-command` ([`packages/util/native-command/src/index.ts`](../packages/util/native-command/src/index.ts))
 - `@huiliyi37/dsh-paths` ([`packages/util/paths/src/index.ts`](../packages/util/paths/src/index.ts))
+- `@huiliyi37/dsh-pheromone` ([`packages/guard/pheromone/src/index.ts`](../packages/guard/pheromone/src/index.ts))
 - `@huiliyi37/dsh-retention` ([`packages/util/retention/src/index.ts`](../packages/util/retention/src/index.ts))
 - `@huiliyi37/dsh-scope` ([`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.ts))
 - `@huiliyi37/dsh-scripts` ([`packages/scaffold/scripts/src/index.ts`](../packages/scaffold/scripts/src/index.ts))
 - `@huiliyi37/dsh-sdk-client` ([`packages/scaffold/client/src/index.ts`](../packages/scaffold/client/src/index.ts))
 - `@huiliyi37/dsh-sdk-protocol` ([`packages/scaffold/protocol/src/index.ts`](../packages/scaffold/protocol/src/index.ts))
+- `@huiliyi37/dsh-semantic-index` ([`packages/search/semantic-index/src/index.ts`](../packages/search/semantic-index/src/index.ts))
 - `@huiliyi37/dsh-session-telemetry` ([`packages/session/session-telemetry/src/index.ts`](../packages/session/session-telemetry/src/index.ts))
 - `@huiliyi37/dsh-session-title-llm` ([`packages/session/session-title-llm/src/index.ts`](../packages/session/session-title-llm/src/index.ts))
 - `@huiliyi37/dsh-subagent-inprocess` ([`packages/subagent/subagent-inprocess/src/index.ts`](../packages/subagent/subagent-inprocess/src/index.ts))

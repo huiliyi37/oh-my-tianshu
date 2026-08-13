@@ -25,15 +25,17 @@
 
 ## Model Experience
 
-### What the model sees
+### 已排除路径锚点上下文消息
+
+#### What the model sees
 
 在 spark 会话中（`deepseek-spark` route 且 `llm-deepseek` settings 的 `spark.enabled: true`），每步请求前会看到一条 `user` 消息，列出「已排除路径」锚点（如 `- A不是最优解`）。锚点集合变化才注入新快照；不变则不重复。非 spark 会话或 spark 未启用时完全无感（零注入）。
 
-### Token effect
+#### Token effect
 
 锚点文本按条注入，每条为原始推理中一个短排除句；cap 20 条上限防止膨胀。被截断的推理头部不再随每轮回传（节省面在 wire 层）。
 
-### KV Cache effect
+#### KV Cache effect
 
 注入消息作为新的 user message 追加——锚点集合不变时消息历史稳定，前缀可复用；锚点变化（新排除句出现）时从变化点重建缓存，与任何新消息追加行为一致。
 

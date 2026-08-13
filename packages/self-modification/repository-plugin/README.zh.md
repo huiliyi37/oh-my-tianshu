@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-这是 DeepSeek Harness 的受信任 repository 包格式。`.dsh-plugin` NPM 包可以贡献已编译的 Cordis／DSH 插件入口、skill（技能）根和通用 `.mcp.json`；其常规 `prepack` 生命周期负责安装依赖并编译源码，随后 DSH 准备辅助程序校验输出并生成 Loader 包装层。静态贡献由 [`dsh-skill-local`](../../skill/skill-local/README.md) 与 [`dsh-mcp-client`](../../mcp/mcp-client/README.md) 组合。设计依据见[受信任 repository 包代码](../../../.agents/notes/implemented/architecture/2026-08-08-trusted-repository-package-code.md)和[静态贡献子格式](../../../.agents/notes/implemented/architecture/2026-07-30-static-repository-plugin-format.md)。
+这是 Tianshu Harness 的受信任 repository 包格式。`.dsh-plugin` NPM 包可以贡献已编译的 Cordis／DSH 插件入口、skill（技能）根和通用 `.mcp.json`；其常规 `prepack` 生命周期负责安装依赖并编译源码，随后 DSH 准备辅助程序校验输出并生成 Loader 包装层。静态贡献由 [`dsh-skill-local`](../../skill/skill-local/README.md) 与 [`dsh-mcp-client`](../../mcp/mcp-client/README.md) 组合。设计依据见[受信任 repository 包代码](../../../.agents/notes/implemented/architecture/2026-08-08-trusted-repository-package-code.md)和[静态贡献子格式](../../../.agents/notes/implemented/architecture/2026-07-30-static-repository-plugin-format.md)。
 
 ## 创作格式
 
@@ -82,7 +82,7 @@ Namespace 插件：具名导出 `name`／`inject`／`apply`、准备阶段常量
 
 #### 模型看到什么
 
-通过 `dsh-tool-skill` 间接呈现：已准备且允许模型调用的 skill 会按其声明的名称和描述进入该消费方记录到日志的目录及所选指令正文表面。消费方的确切 schema 见生成的 [`skill` 工具目录](../../../docs/tool-catalog.md#deepseek-aidsh-tool-skill)。
+通过 `dsh-tool-skill` 间接呈现：已准备且允许模型调用的 skill 会按其声明的名称和描述进入该消费方记录到日志的目录及所选指令正文表面。消费方的确切 schema 见生成的 [`skill` 工具目录](../../../docs/tool-catalog.md#huiliyi37dsh-tool-skill)。
 
 #### Token 影响
 

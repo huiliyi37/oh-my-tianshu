@@ -1,5 +1,5 @@
 /**
- * Config-dump entry for `dsh --profile <name> --dump-config`: compose the
+ * Config-dump entry for `tianshu --profile <name> --dump-config`: compose the
  * profile's patch layers through the include plugin's patch algorithm without
  * booting or evaluating `!!js`, with one source layer per bundle, the
  * profile's own patch file, and each `--patch` overlay.

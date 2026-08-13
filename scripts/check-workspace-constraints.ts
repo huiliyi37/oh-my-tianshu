@@ -21,9 +21,9 @@ const workspaceGlobs = [
   { dir: 'apps', depth: 1 },
 ] as const
 const vendoredPackages = new Set([
-  'cordis',
-  'cosmokit',
-  'schemastery',
+  '@huiliyi37/cordis',
+  '@huiliyi37/cosmokit',
+  '@huiliyi37/schemastery',
   '@huiliyi37/cordis-plugin-loader',
   '@huiliyi37/cordis-plugin-include',
   '@huiliyi37/cordis-plugin-group',
@@ -40,7 +40,7 @@ const publicLandlockPackages = new Set([
 const publicationSourceAllowlist: Readonly<Record<string, readonly string[]>> = {
   '@huiliyi37/node-addon-landlock-run': ['src/main.c'],
 }
-const repositoryUrl = 'git+https://github.com/deepseek-harness/deepseek-harness.git'
+const repositoryUrl = 'git+https://github.com/huiliyi37/dsh-tianshu-tui.git'
 
 const localArtifactDirs = new Set(['node_modules'])
 const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
@@ -231,8 +231,11 @@ function checkWorkspace({ dir, manifest }: WorkspaceManifest): string[] {
       || manifest.repository.directory !== expectedDirectory) {
       errors.push(`${label}: published Landlock package repository must use ${repositoryUrl} with directory ${expectedDirectory} for trusted publishing`)
     }
-  } else if (manifest.private !== true) {
-    errors.push(`${label}: package.json must set "private": true`)
+  } else if (manifest.private !== true && manifest.publishConfig?.access !== 'public') {
+    // Public monorepo: every publishable package must opt into public access
+    // (scoped packages default to restricted on npm); container/example
+    // packages stay `private: true` instead.
+    errors.push(`${label}: published package must set publishConfig.access to "public" (or be "private": true)`)
   }
 
   if (manifest.name && vendoredPackages.has(manifest.name)) {
@@ -268,13 +271,13 @@ function checkWorkspace({ dir, manifest }: WorkspaceManifest): string[] {
   }
 
   if (dir.startsWith('packages/') && manifest.name?.startsWith('@huiliyi37/dsh-')) {
-    const peer = manifest.peerDependencies?.cordis
-    const dev = manifest.devDependencies?.cordis
+    const peer = manifest.peerDependencies?.['@huiliyi37/cordis']
+    const dev = manifest.devDependencies?.['@huiliyi37/cordis']
 
-    if (!peer) errors.push(`${label}: cordis must be a peerDependency`)
-    if (!dev) errors.push(`${label}: cordis must also be a devDependency`)
+    if (!peer) errors.push(`${label}: @huiliyi37/cordis must be a peerDependency`)
+    if (!dev) errors.push(`${label}: @huiliyi37/cordis must also be a devDependency`)
     if (peer && dev && peer !== dev) {
-      errors.push(`${label}: cordis peer (${peer}) and dev (${dev}) ranges must match`)
+      errors.push(`${label}: @huiliyi37/cordis peer (${peer}) and dev (${dev}) ranges must match`)
     }
     if (manifest.version !== repositoryVersion) {
       errors.push(`${label}: package.json version must match root version ${repositoryVersion ?? '(missing)'}`)

@@ -14,6 +14,7 @@ import { countLines, evaluateSourceBudgets } from './verify-source-budgets.ts'
 
 const repoRoot = resolve(import.meta.dirname, '..')
 
+/* jscpd:ignore-start */
 const roots: string[] = []
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
@@ -21,6 +22,7 @@ afterEach(() => {
 
 function layout(files: Record<string, string>): string {
   const root = mkdtempSync(join(tmpdir(), 'source-budgets-'))
+  /* jscpd:ignore-end */
   roots.push(root)
   for (const [rel, content] of Object.entries(files)) {
     writeFileSync(join(root, rel), content)

@@ -30,7 +30,7 @@ export interface FormatBrandWelcomeInput {
   width: number
   /** 品牌名（缺省 'DSH'）。 */
   brand?: string
-  /** 副标题（缺省 'DeepSeek Harness'）。 */
+  /** 副标题（缺省 'Tianshu Harness'）。 */
   subtitle?: string
 }
 
@@ -44,7 +44,7 @@ export interface FormatBrandWelcomeInput {
 export function formatBrandWelcome(input: FormatBrandWelcomeInput, theme: RivetTheme): string[] {
   if (input.width <= 0) return []
   const brand = truncateTo(input.brand ?? 'DSH', input.width)
-  const subtitle = truncateTo(input.subtitle ?? 'DeepSeek Harness', input.width)
+  const subtitle = truncateTo(input.subtitle ?? 'Tianshu Harness', input.width)
   return [
     center(color(brand, theme.brandColor, { bold: true }), input.width),
     center(color(subtitle, theme.muted), input.width),

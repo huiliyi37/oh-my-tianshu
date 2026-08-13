@@ -30,7 +30,7 @@ export type WebMode = 'production' | 'development'
 
 /** Plugin config: the surface facts the launcher patches over this bundle's defaults. */
 export interface Config {
-  /** Whether this process mounted the client-plugin HMR receiver (`dsh web --dev`). */
+  /** Whether this process mounted the client-plugin HMR receiver (`tianshu web --dev`). */
   mode: WebMode
   /** Print the URL line on activation; a headless layer over this bundle turns it off. */
   printUrl: boolean
@@ -66,20 +66,20 @@ const DSH_WEB_MODE = 'DSH_WEB_MODE' as const
 // local URL always prints. Not a source of truth — the schema is.
 const LOOPBACK_HOST = '127.0.0.1'
 
-/** Model-visible orientation and acceptance boundary for sessions created through `dsh web`. */
+/** Model-visible orientation and acceptance boundary for sessions created through `tianshu web`. */
 function webSurfacePrompt(webUrl: string, mode: WebMode): string {
   const updateContract = mode === 'development'
-    ? 'This Web process was launched with `dsh web --dev`, so its client-plugin HMR receiver is active. '
+    ? 'This Web process was launched with `tianshu web --dev`, so its client-plugin HMR receiver is active. '
       + 'No-refresh updates occur only when `pnpm run dev:web` is also running from this same checkout to rebuild client-plugin bundles; verify that watcher before promising automatic updates. '
       + 'Client-plugin changes then reload automatically, while apps/web shell and other plain-package changes still require a rebuild and page refresh. '
     : 'This Web process was launched without `--dev`, so HMR is inactive: rebuild the affected Web artifacts and verify this existing URL after a page refresh. '
-      + 'If the user wants no-refresh client-plugin updates, explain that this GUI must be restarted with `dsh web --dev` and `pnpm run dev:web` must also run from this same checkout; do not present either command alone as sufficient. '
-  return `You are interacting with the user through the DeepSeek Harness Web GUI at ${webUrl}. `
+      + 'If the user wants no-refresh client-plugin updates, explain that this GUI must be restarted with `tianshu web --dev` and `pnpm run dev:web` must also run from this same checkout; do not present either command alone as sufficient. '
+  return `You are interacting with the user through the Tianshu Harness Web GUI at ${webUrl}. `
     + 'When the user refers to "this page", "this GUI", or "this app" without naming another target, they mean this GUI. '
     + 'The browser provides no implicit DOM, route, or screenshot context. '
     + updateContract
     + 'Starting another server does not update this GUI. '
-    + 'The apps/web Vite entry builds the shell but is not a standalone application because only dsh web injects window.__DSH_BOOT__. '
+    + 'The apps/web Vite entry builds the shell but is not a standalone application because only tianshu web injects window.__DSH_BOOT__. '
     + 'Do not start a replacement server unless the user asks; if one is needed, use a managed background task and verify its exact URL.'
 }
 
@@ -124,7 +124,7 @@ export function apply(ctx: Context, config: Config): void {
       runtimeCtx.bashEnv.register({
         name: 'web-runtime',
         variables: {
-          [DSH_WEB_URL]: { description: 'Canonical local URL of the DeepSeek Harness Web GUI serving this session.' },
+          [DSH_WEB_URL]: { description: 'Canonical local URL of the Tianshu Harness Web GUI serving this session.' },
           [DSH_WEB_MODE]: { description: 'Web runtime mode: production, or development when the client-plugin HMR receiver is active.' },
         },
         resolve: () => ({ [DSH_WEB_URL]: localWebUrl(runtimeCtx), [DSH_WEB_MODE]: config.mode }),
@@ -141,7 +141,7 @@ export function apply(ctx: Context, config: Config): void {
       // LAN URL must name an address the /api trust fence was configured with.
       const lanCandidate = config.lanAddresses[0]
       const port = ctx.httpServer.port
-      console.log(`dsh web: ${localWebUrl(ctx)}${lanCandidate === undefined ? '' : ` (LAN: http://${lanCandidate}:${String(port)})`}`)
+      console.log(`tianshu web: ${localWebUrl(ctx)}${lanCandidate === undefined ? '' : ` (LAN: http://${lanCandidate}:${String(port)})`}`)
     }
     const loader = ctx.get('loader')
     if (loader === undefined) printUrl()

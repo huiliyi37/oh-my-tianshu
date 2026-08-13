@@ -1,7 +1,7 @@
 #!/bin/sh
 # dsh one-line installer.
 #
-#   curl -fsSL https://raw.githubusercontent.com/deepseek-ai/deepseek-harness-sdk/master/scripts/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/huiliyi37/dsh-tianshu-tui/master/scripts/install.sh | sh
 #
 # It clones the harness under ~/.dsh/source (the master clone at
 # ~/.dsh/source/master), adds a per-install staging worktree at
@@ -50,7 +50,7 @@
 set -eu
 
 DSH_REF=${DSH_REF:-master}
-DSH_REPO=${DSH_REPO:-https://github.com/deepseek-ai/deepseek-harness-sdk.git}
+DSH_REPO=${DSH_REPO:-https://github.com/huiliyi37/dsh-tianshu-tui.git}
 # DSH_SOURCE is the staging-worktree container and the default home of `current`.
 # DSH_MASTER names the main clone: clone mode defaults it inside DSH_SOURCE,
 # while adoption discovers an existing clone anywhere on disk. Remember whether
@@ -172,7 +172,7 @@ confirm() {
   case "$_r" in [yY]|[yY][eE][sS]) return 0 ;; *) return 1 ;; esac
 }
 
-printf '%s\n' "${B}DeepSeek Harness — dsh installer${RST}"
+printf '%s\n' "${B}Tianshu Harness — dsh installer${RST}"
 if [ "$IN_REPO" = 1 ]; then
   printf '%scheckout %s%s\n' "$DIM" "$DSH_CHECKOUT" "$RST"
 else
@@ -414,7 +414,7 @@ fi
 # --- 6. build and launch the Web interface -------------------------------------
 step "Done"
 if [ "$HAS_TTY" = 1 ]; then
-  step "Building DeepSeek Harness for Web UI"
+  step "Building Tianshu Harness for Web UI"
   ( cd "$DSH_STAGING" && pnpm run build )
   info "launching Web UI — run 'dsh web' anytime to start again"
   exec "$DSH_BIN_DIR/dsh" web </dev/tty

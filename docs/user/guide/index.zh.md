@@ -2,7 +2,7 @@
 
 [English](index.md) | 中文
 
-DeepSeek Harness 是一个**插件化的 agent（智能体）开发框架**，基于 [Cordis](https://github.com/cordiverse/cordis) 微内核构建。它的核心理念是：**一切皆插件**。
+Tianshu Harness 是一个**插件化的 agent（智能体）开发框架**，基于 [Cordis](https://github.com/cordiverse/cordis) 微内核构建。它的核心理念是：**一切皆插件**。
 
 ## 它是什么
 

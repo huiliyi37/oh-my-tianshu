@@ -18,7 +18,10 @@ const MAX_MAX_COUNT = 100
 /** 合法 operation 集合。 */
 const OPERATIONS = ['status', 'diff', 'log', 'commit'] as const
 
-/** 注册 git 单工具。 */
+/**
+ * 注册 git 单工具。
+ * @param ctx - 携带 tools/git/systemPrompt 服务的 Cordis context。
+ */
 export function applyGitTool(ctx: Context): void {
   ctx.systemPrompt.section({
     name: 'tool:git',

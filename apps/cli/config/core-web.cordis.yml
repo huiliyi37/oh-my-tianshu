@@ -37,6 +37,18 @@
 - id: tool-fs-search
   disabled: true
 
+- id: tool-git
+  disabled: true
+
+- id: tool-file-info
+  disabled: true
+
+- id: tool-meridian
+  disabled: true
+
+- id: tool-semantic-search
+  disabled: true
+
 - id: tool-web
   disabled: true
 

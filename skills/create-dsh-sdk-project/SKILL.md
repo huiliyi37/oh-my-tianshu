@@ -1,9 +1,9 @@
 ---
 name: create-dsh-sdk-project
-description: Create a DeepSeek Harness SDK project non-interactively (headless), driven by an agent instead of the interactive wizard. Use when asked to scaffold a new DSH SDK project without a terminal.
+description: Create a Tianshu Harness SDK project non-interactively (headless), driven by an agent instead of the interactive wizard. Use when asked to scaffold a new DSH SDK project without a terminal.
 ---
 
-# Create a DeepSeek Harness SDK project headlessly
+# Create a Tianshu Harness SDK project headlessly
 
 The `create-sdk` initializer normally runs an interactive wizard. To create a project
 **without a terminal**, pass a structured spec and ask for machine-readable events:
@@ -26,7 +26,7 @@ block.
 ```json
 {
   "directory": "my-agent",
-  "description": "A DeepSeek Harness agent",
+  "description": "A Tianshu Harness agent",
   "provider": "deepseek-official",
   "apiKey": "<key>",
   "model": "deepseek-v4-flash",

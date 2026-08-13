@@ -34,7 +34,7 @@
     "platform": "web",
     "immediately": true
   },
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "dependencies": {
     "@huiliyi37/dsh-host-apiproxy": "workspace:^",
     "@huiliyi37/dsh-commands": "workspace:^",

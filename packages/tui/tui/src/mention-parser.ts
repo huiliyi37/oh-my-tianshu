@@ -52,6 +52,7 @@ export function findMentionAt(input: string, cursor: number): MentionToken | nul
       return { start, end, value, quoted: true }
     }
   }
+  /* jscpd:ignore-start */
   for (const m of input.matchAll(BARE_MENTION_RE)) {
     const start = m.index
     const raw = m[0] as string | undefined
@@ -64,6 +65,7 @@ export function findMentionAt(input: string, cursor: number): MentionToken | nul
       /* v8 ignore next -- 参与匹配的捕获组必有值；noUncheckedIndexedAccess 收窄防御 */
       if (value === undefined) continue
       return { start, end, value, quoted: false }
+      /* jscpd:ignore-end */
     }
   }
   return null

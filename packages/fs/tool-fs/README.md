@@ -94,7 +94,7 @@ Prefix-stable while the plugin scope and guidance text are unchanged. Tool restr
 
 #### What the model sees
 
-The model sees the generated [`read`, `write`, and `edit` schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-fs), with snake_case arguments. Scoped tool restrictions can remove any definition for one agent.
+The model sees the generated [`read`, `write`, and `edit` schemas](../../../docs/tool-catalog.md#huiliyi37dsh-tool-fs), with snake_case arguments. Scoped tool restrictions can remove any definition for one agent.
 
 #### Token effect
 

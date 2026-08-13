@@ -14,6 +14,24 @@ importers:
       '@agentclientprotocol/sdk':
         specifier: 0.25.1
         version: 0.25.1(zod@4.4.3)
+      '@huiliyi37/dsh-git':
+        specifier: workspace:^
+        version: link:packages/git/git
+      '@huiliyi37/dsh-tool-file-info':
+        specifier: workspace:^
+        version: link:packages/fs/tool-file-info
+      '@huiliyi37/dsh-tool-git':
+        specifier: workspace:^
+        version: link:packages/git/tool-git
+      '@huiliyi37/dsh-tool-memory':
+        specifier: workspace:^
+        version: link:packages/memory/tool-memory
+      '@huiliyi37/dsh-tool-meridian':
+        specifier: workspace:^
+        version: link:packages/search/tool-meridian
+      '@huiliyi37/dsh-tool-semantic-search':
+        specifier: workspace:^
+        version: link:packages/search/tool-semantic-search
       '@huiliyi37/dsh-tool-session-query':
         specifier: workspace:^
         version: link:packages/session-query/tool-session-query
@@ -301,6 +319,9 @@ importers:
       '@huiliyi37/dsh-agent-loop':
         specifier: workspace:*
         version: link:../packages/core/agent-loop
+      '@huiliyi37/dsh-agent-router':
+        specifier: workspace:*
+        version: link:../packages/guard/agent-router
       '@huiliyi37/dsh-agent-spine-demo':
         specifier: workspace:*
         version: link:../packages/examples/agent-spine-demo
@@ -346,6 +367,9 @@ importers:
       '@huiliyi37/dsh-e2b':
         specifier: workspace:*
         version: link:../packages/e2b/e2b
+      '@huiliyi37/dsh-evidence-gate':
+        specifier: workspace:*
+        version: link:../packages/guard/evidence-gate
       '@huiliyi37/dsh-fs-e2b':
         specifier: workspace:*
         version: link:../packages/e2b/fs-e2b
@@ -2872,9 +2896,6 @@ importers:
       '@huiliyi37/dsh-agent-default-model':
         specifier: workspace:^
         version: link:../../core/agent-default-model
-      '@huiliyi37/dsh-agent-loop':
-        specifier: workspace:^
-        version: link:../../core/agent-loop
       '@huiliyi37/dsh-agent-loop-testkit':
         specifier: workspace:^
         version: link:../../support/agent-loop-testkit
@@ -2974,12 +2995,6 @@ importers:
       '@huiliyi37/dsh-agent':
         specifier: workspace:^
         version: link:../../core/agent
-      '@huiliyi37/dsh-agent-default-model':
-        specifier: workspace:^
-        version: link:../../core/agent-default-model
-      '@huiliyi37/dsh-agent-loop':
-        specifier: workspace:^
-        version: link:../../core/agent-loop
       '@huiliyi37/dsh-invariants':
         specifier: workspace:^
         version: link:../../support/invariants
@@ -3789,6 +3804,9 @@ importers:
       '@huiliyi37/cordis':
         specifier: ^4.0.0-rc.7
         version: link:../../../vendor/cordis
+      '@huiliyi37/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../support/invariants
 
   packages/git/tool-git:
     dependencies:
@@ -3802,6 +3820,9 @@ importers:
       '@huiliyi37/dsh-git':
         specifier: workspace:^
         version: link:../git
+      '@huiliyi37/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../support/invariants
       '@huiliyi37/dsh-system-prompt':
         specifier: workspace:^
         version: link:../../core/system-prompt
@@ -4843,6 +4864,9 @@ importers:
       '@huiliyi37/cordis':
         specifier: ^4.0.0-rc.7
         version: link:../../../vendor/cordis
+      '@huiliyi37/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../support/invariants
       '@huiliyi37/schemastery':
         specifier: ^3.0.0-rc.3
         version: link:../../../vendor/schemastery
@@ -4852,6 +4876,9 @@ importers:
       '@huiliyi37/cordis':
         specifier: ^4.0.0-rc.7
         version: link:../../../vendor/cordis
+      '@huiliyi37/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../support/invariants
       '@huiliyi37/dsh-memory':
         specifier: workspace:^
         version: link:../memory
@@ -6969,6 +6996,9 @@ importers:
       '@huiliyi37/dsh-agent-default-model':
         specifier: workspace:^
         version: link:../../core/agent-default-model
+      '@huiliyi37/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../support/invariants
       '@huiliyi37/dsh-llm':
         specifier: workspace:^
         version: link:../../llm/llm
@@ -6988,11 +7018,14 @@ importers:
   packages/tui/vision-ask:
     devDependencies:
       '@huiliyi37/cordis':
-        specifier: workspace:^
+        specifier: ^4.0.0-rc.7
         version: link:../../../vendor/cordis
       '@huiliyi37/dsh-agent':
         specifier: workspace:^
         version: link:../../core/agent
+      '@huiliyi37/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../support/invariants
       '@huiliyi37/dsh-llm':
         specifier: workspace:^
         version: link:../../llm/llm

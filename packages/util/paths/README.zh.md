@@ -2,11 +2,11 @@
 
 [English](README.md) | 中文
 
-DeepSeek Harness 用户数据的共享文件系统路径辅助工具。
+Tianshu Harness 用户数据的共享文件系统路径辅助工具。
 
 ## DSH 主目录
 
-`resolveDshHome()` 解析 DeepSeek Harness 的单根主目录。优先级从高到低为：显式配置的路径、`$DSH_HOME`、`~/.dsh`。harness 将所有用户数据保存在同一根目录下。
+`resolveDshHome()` 解析 Tianshu Harness 的单根主目录。优先级从高到低为：显式配置的路径、`$DSH_HOME`、`~/.dsh`。harness 将所有用户数据保存在同一根目录下。
 
 `dshHomePath(...segments)` 使用 Node 的平台路径规则，将子路径段拼接到解析后的主目录下。不传入任何路径段时，返回主目录本身。
 
@@ -14,7 +14,7 @@ DeepSeek Harness 用户数据的共享文件系统路径辅助工具。
 
 `DSH_HOME_DIR_NAME` 定义默认用户数据目录名：`.dsh`。
 
-`defaultDshHome()` 使用 Node 的平台路径规则，将操作系统主目录与 `.dsh` 拼接，并返回默认 DeepSeek Harness 主目录。
+`defaultDshHome()` 使用 Node 的平台路径规则，将操作系统主目录与 `.dsh` 拼接，并返回默认 Tianshu Harness 主目录。
 
 `expandHomePath()` 使用操作系统主目录展开 `~`、`~/...` 和 Windows 风格的 `~\...` 前缀。它会保留非波浪号路径和 `~user/...` 原样不变。
 

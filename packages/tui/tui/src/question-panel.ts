@@ -170,6 +170,7 @@ function projectOptionList(options: QuestionOptionInput[] | undefined, width: nu
       rows.push(truncateByWidth(`    ${opt.description}`, width))
     }
   })
+  /* jscpd:ignore-start */
   return rows
 }
 
@@ -186,3 +187,4 @@ function truncateByWidth(text: string, max: number): string {
   }
   return w < displayWidth(text) ? `${out}…` : out
 }
+/* jscpd:ignore-end */

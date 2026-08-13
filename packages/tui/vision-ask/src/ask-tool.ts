@@ -19,7 +19,7 @@
 import type { Context } from '@huiliyi37/cordis'
 import { BlockAssembler, HarnessError, LlmError } from '@huiliyi37/dsh-llm'
 import { defineTool } from '@huiliyi37/dsh-tools'
-import type { ToolRunContext } from '@huiliyi37/dsh-tools'
+import type { ToolDefinition, ToolRunContext } from '@huiliyi37/dsh-tools'
 import type { ImageRegistry, RegisteredImage } from './registry.ts'
 import { visionCacheKey } from './registry.ts'
 import { buildVisionMessage } from './vision-adapter.ts'
@@ -188,7 +188,7 @@ async function describeImage(
  * @param deps - 注册表与视觉路由（由插件 apply 组装）。
  * @returns ask_image 的 ToolDefinition。
  */
-export function askToolDefinition(ctx: Context, deps: AskImageDeps) {
+export function askToolDefinition(ctx: Context, deps: AskImageDeps): ToolDefinition {
   return defineTool({
     name: 'ask_image',
     description: ASK_IMAGE_DESCRIPTION,

@@ -286,7 +286,7 @@ describe('dsh-jsonrpc plugin apply', () => {
       const error = await harness.waitForFrame(frame => frame.id === 'probe-1', 'error response for unknown method')
       expect(error.error).toMatchObject({
         code: -32603,
-        message: 'unknown DeepSeek Harness SDK runtime method: nope/unknown',
+        message: 'unknown Tianshu Harness SDK runtime method: nope/unknown',
       })
 
       await harness.fiber.dispose()

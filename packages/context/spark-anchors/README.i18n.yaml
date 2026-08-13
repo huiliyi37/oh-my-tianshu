@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/context/spark-anchors/README.md
-README.md: 9d03e92bafa6e6bc1027eddabbdc16a8efe1bb54
-README.zh.md: 17fe72eec9960334db2e6da081136ff77c68bb53
+README.md: 318c91f8b13680980e55fc41f694f089f81ade38
+README.zh.md: 8f383eb53d0fb9caf46d183f5d84a4dc9494d74c

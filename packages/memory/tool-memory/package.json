@@ -18,24 +18,31 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "lib/index.js",
+    "lib/invariant.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "peerDependencies": {
     "@huiliyi37/cordis": "^4.0.0-rc.7",
-    "@huiliyi37/dsh-tools": "^0.2.0",
-    "@huiliyi37/dsh-system-prompt": "^0.2.0"
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/dsh-system-prompt": "^0.2.0",
+    "@huiliyi37/dsh-tools": "^0.2.0"
   },
   "devDependencies": {
     "@huiliyi37/cordis": "^4.0.0-rc.7",
-    "@huiliyi37/schemastery": "^3.0.0-rc.3",
-    "@huiliyi37/dsh-tools": "workspace:^",
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/dsh-memory": "workspace:^",
     "@huiliyi37/dsh-system-prompt": "workspace:^",
-    "@huiliyi37/dsh-memory": "workspace:^"
+    "@huiliyi37/dsh-tools": "workspace:^",
+    "@huiliyi37/schemastery": "^3.0.0-rc.3"
   }
 }

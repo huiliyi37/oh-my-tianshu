@@ -145,7 +145,7 @@ agent loop 将连续的 `parallel` 调用归入有界滚动池，并把每个 `e
 
 #### 模型看到的内容
 
-Code Mode 会公开生成的 [`run_code` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tools)、下方 SDK 说明，以及按所加载运行时语言生成的精确 SDK 块（TypeScript 的 `declare const tools` 块，或 Python 的 `tools` 声明）。`both` 会同时公开普通 schema 与此 Code Mode 接口。说明与 SDK 块随所加载运行时的语言切换；下方展示 TypeScript 风格（经 [`dsh-code-runtime-worker`](../../code-runtime/code-runtime-worker/README.md)），Python 风格（用于任何报告 `language: 'python'` 的运行时）形状相同，只是换成 Python 语法（`await tools.name(args)`、特殊名称用下标访问、`print(...)` 与顶层 `return`）。
+Code Mode 会公开生成的 [`run_code` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tools)、下方 SDK 说明，以及按所加载运行时语言生成的精确 SDK 块（TypeScript 的 `declare const tools` 块，或 Python 的 `tools` 声明）。`both` 会同时公开普通 schema 与此 Code Mode 接口。说明与 SDK 块随所加载运行时的语言切换；下方展示 TypeScript 风格（经 [`dsh-code-runtime-worker`](../../code-runtime/code-runtime-worker/README.md)），Python 风格（用于任何报告 `language: 'python'` 的运行时）形状相同，只是换成 Python 语法（`await tools.name(args)`、特殊名称用下标访问、`print(...)` 与顶层 `return`）。
 
 ##### Code Mode SDK 说明
 

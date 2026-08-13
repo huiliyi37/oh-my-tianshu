@@ -79,7 +79,7 @@ Use the web_fetch tool to retrieve the content of a specific HTTP(S) URL (for ex
 
 #### 模型看到的内容
 
-模型会看到生成的 [`web_search` 与 `web_fetch` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-web)。结果数量与超时预算属于部署设置，不是模型参数。
+模型会看到生成的 [`web_search` 与 `web_fetch` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-web)。结果数量与超时预算属于部署设置，不是模型参数。
 
 #### Token 影响
 

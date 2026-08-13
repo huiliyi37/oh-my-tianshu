@@ -57,6 +57,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   directoryPicker: 'workspace.md',
   e2b: 'subprocess.md',
   fs: 'filesystem.md',
+  git: 'git.md',
   goals: 'goal.md',
   httpServer: 'http-server.md',
   invariants: 'invariants.md',
@@ -492,6 +493,10 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   WorkflowAgentWire: 'TUI-local wire subset of the owner payload is owned by packages/tui/tui/src/ui/app.ts',
   WorkflowResultWire: 'TUI-local wire subset of the owner payload is owned by packages/tui/tui/src/ui/app.ts',
   WorkflowRunInfoWire: 'TUI-local wire subset of the owner payload is owned by packages/tui/tui/src/ui/app.ts',
+  GitStatusResult: 'service-local result shape is owned by packages/git/git/src/index.ts',
+  GitDiffResult: 'service-local result shape is owned by packages/git/git/src/index.ts',
+  GitLogResult: 'service-local result shape is owned by packages/git/git/src/index.ts',
+  GitCommitResult: 'service-local result shape is owned by packages/git/git/src/index.ts',
 }
 
 /** Repository data policy consumed by the Cordis catalog projector. */

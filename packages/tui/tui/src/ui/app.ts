@@ -912,7 +912,7 @@ export class TuiApp {
     // 品牌区（居中主标 + 副标；副标含主题名，muted）。
     for (const line of formatBrandWelcome({
       width: cols,
-      subtitle: `DeepSeek Harness · ${getActiveThemeName()}`,
+      subtitle: `Tianshu Harness · ${getActiveThemeName()}`,
     }, this.theme)) {
       this.commitToScrollback({ text: line, trailingNewline: true })
     }

@@ -21,7 +21,7 @@ describe('APP_IDENTITY', () => {
     expect(APP_IDENTITY).toEqual({
       product: 'deepseek-harness',
       version: manifest.version,
-      url: 'https://github.com/deepseek-ai/deepseek-harness-sdk',
+      url: 'https://github.com/huiliyi37/dsh-tianshu-tui',
     })
   })
 })
@@ -29,7 +29,7 @@ describe('APP_IDENTITY', () => {
 describe('userAgent', () => {
   it('renders product/version with the +url comment', () => {
     expect(userAgent()).toBe(
-      `deepseek-harness/${manifest.version} (+https://github.com/deepseek-ai/deepseek-harness-sdk)`,
+      `deepseek-harness/${manifest.version} (+https://github.com/huiliyi37/dsh-tianshu-tui)`,
     )
   })
 

@@ -38,6 +38,11 @@ This table connects model-visible tool names to the plugin package and service s
 | `@huiliyi37/dsh-tool-todo` | `todo_write` | `ctx.tools`, `owning Agent session` | `tool/call`, `todo/write`, `tool/result` | - | todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task. |
 | `@huiliyi37/dsh-tool-workflow` | `workflow` | `ctx.tools`, `ctx.workflows`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents the script children)` | `tool/call`, `tool/result` | - | - |
 | `@huiliyi37/dsh-tool-web` | `web_fetch`, `web_search` | `ctx.tools`, `ctx.web`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps. |
+| `@huiliyi37/dsh-tool-file-info` | `file_info` | `ctx.tools`, `ctx.fs` | `tool/call`, `tool/result` | - | file_info reports metadata (size, kind, mtime) through ctx.fs without reading file contents into model context. |
+| `@huiliyi37/dsh-tool-git` | `git` | `ctx.tools`, `ctx.git`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | git_status / git_diff / git_log / git_commit consume the typed ctx.git seam (no subprocess contact in the tool layer); git_commit requires a message and runs exclusively (not concurrency-safe), and commits do not raise an approval card — file mutations still go through the fs approval surface. |
+| `@huiliyi37/dsh-tool-memory` | `memory_save`, `memory_search` | `ctx.tools`, `ctx.systemPrompt`, `ctx.memory (execution time)` | `tool/call`, `tool/result` | - | memory_save and memory_search reach the project-memory store lazily at execution time, so the schemas are independent of the memory backend. |
+| `@huiliyi37/dsh-tool-meridian` | `repo_graph` | `ctx.tools`, `ctx.systemPrompt`, `ctx.meridian (execution time)` | `tool/call`, `tool/result` | - | repo_graph queries the code-graph index (repo map, impact analysis, flow queries) lazily at execution time; its system-prompt section is injected by the runtime-context content-diff only when the index is present. |
+| `@huiliyi37/dsh-tool-semantic-search` | `semantic_search` | `ctx.tools`, `ctx.systemPrompt`, `ctx.semanticIndex (execution time)` | `tool/call`, `tool/result` | - | semantic_search runs workspace retrieval (definition-aligned BM25 with optional vector fusion) lazily at execution time; its system-prompt section is injected by the runtime-context content-diff only when the index is present. |
 
 ## `@huiliyi37/dsh-tool-ask-user`
 
@@ -475,6 +480,10 @@ Read a UTF-8 text file and return line-numbered content.
     "limit": {
       "type": "number",
       "description": "Maximum number of lines to return. Defaults to 2000."
+    },
+    "focus": {
+      "type": "string",
+      "description": "Optional focus query: return only the relevant line ranges plus a structural skeleton instead of a full window."
     }
   },
   "required": [
@@ -1546,3 +1555,221 @@ Search the web for current information. Returns an optional summary answer and a
 Source: [`packages/web/tool-web/src/index.ts`](../packages/web/tool-web/src/index.ts)
 
 web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps.
+
+## `@huiliyi37/dsh-tool-file-info`
+
+### `file_info`
+
+查看单个文件的信息：大小、行数与结构骨架（顶层定义行预览），并附带该文件的信息素信号（fragile/entry-point 等，衰减强度）。适合先探明文件概况再决定是否 read_file 全量读取。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "工作区相对路径"
+    }
+  },
+  "required": [
+    "path"
+  ]
+}
+```
+
+Source: [`packages/fs/tool-file-info/src/index.ts`](../packages/fs/tool-file-info/src/index.ts)
+
+file_info reports metadata (size, kind, mtime) through ctx.fs without reading file contents into model context.
+
+## `@huiliyi37/dsh-tool-git`
+
+### `git`
+
+Run a git operation in the repository: status (branch + dirty), diff (uncommitted changes, stat or full), log (history), commit (stage all + commit with message).
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "operation": {
+      "type": "string",
+      "description": "Which git operation to run: status | diff | log | commit.",
+      "enum": [
+        "status",
+        "diff",
+        "log",
+        "commit"
+      ]
+    },
+    "workdir": {
+      "type": "string",
+      "description": "Git repository directory; defaults to the session workspace."
+    },
+    "paths": {
+      "type": "array",
+      "description": "Restrict diff/log to these paths.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "stat": {
+      "type": "boolean",
+      "description": "diff only: output the --stat summary instead of the full diff."
+    },
+    "maxCount": {
+      "type": "number",
+      "description": "log only: number of commits to list (default 20, cap 100)."
+    },
+    "message": {
+      "type": "string",
+      "description": "commit only: commit message (required, non-empty)."
+    }
+  },
+  "required": [
+    "operation"
+  ]
+}
+```
+
+Source: [`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
+
+git_status / git_diff / git_log / git_commit consume the typed ctx.git seam (no subprocess contact in the tool layer); git_commit requires a message and runs exclusively (not concurrency-safe), and commits do not raise an approval card — file mutations still go through the fs approval surface.
+
+## `@huiliyi37/dsh-tool-memory`
+
+### `memory_save`
+
+保存一条项目级记忆（Markdown 文本）。在工作过程中将重要发现——项目结构、用户偏好、关键决策、已验证结论——写入记忆，供未来会话用 memory_search 检索。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "text": {
+      "type": "string",
+      "description": "记忆内容（建议一句话或短段落）"
+    },
+    "tags": {
+      "type": "array",
+      "description": "可选标签（如 tooling、architecture）",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scope": {
+      "type": "string",
+      "description": "作用域：'global'（缺省）或 'session:<id>'"
+    }
+  },
+  "required": [
+    "text"
+  ]
+}
+```
+
+Source: [`packages/memory/tool-memory/src/index.ts`](../packages/memory/tool-memory/src/index.ts)
+
+### `memory_search`
+
+在项目记忆中检索知识（关键词子串匹配，大小写不敏感；空 query 列出全部）。开始新任务、需要历史决策/项目约定/用户偏好时使用。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "搜索关键词（空串匹配全部）"
+    },
+    "limit": {
+      "type": "number",
+      "description": "返回条数上限（缺省 10）"
+    }
+  },
+  "required": [
+    "query"
+  ]
+}
+```
+
+Source: [`packages/memory/tool-memory/src/index.ts`](../packages/memory/tool-memory/src/index.ts)
+
+memory_save and memory_search reach the project-memory store lazily at execution time, so the schemas are independent of the memory backend.
+
+## `@huiliyi37/dsh-tool-meridian`
+
+### `repo_graph`
+
+查询代码图，找出与给定文件存在结构关联的文件和符号（基于 SQLite 符号/边索引）。### 模式
+- **graph**（默认）：按调用/导入距离排序，返回带导出符号的相关文件排名。
+- **impact**：返回改动该文件的爆炸半径——哪些文件依赖它、需要跑哪些测试。
+- **flow**：从指定符号（symbol 参数）出发沿调用/导入边双向追踪，返回沿途的命名符号（路径最多穿过 1 个未命名桥）。
+### 何时使用
+- 读完文件后，查它依赖什么、什么依赖它
+- 编辑前评估爆炸半径（mode: "impact"）；编辑后确认需跑哪些测试
+- 沿结构连接在陌生代码中导航；追踪函数/类的数据流（mode: "flow"）
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "from_file": {
+      "type": "string",
+      "description": "要查关联代码的文件路径（相对项目根）"
+    },
+    "max_tokens": {
+      "type": "number",
+      "description": "响应的 token 预算（默认 2000）"
+    },
+    "mode": {
+      "type": "string",
+      "description": "查询模式（默认 graph）",
+      "enum": [
+        "graph",
+        "impact",
+        "flow"
+      ]
+    },
+    "symbol": {
+      "type": "string",
+      "description": "流查询的起点符号名（mode: \"flow\" 必填）"
+    }
+  },
+  "required": [
+    "from_file"
+  ]
+}
+```
+
+Source: [`packages/search/tool-meridian/src/index.ts`](../packages/search/tool-meridian/src/index.ts)
+
+repo_graph queries the code-graph index (repo map, impact analysis, flow queries) lazily at execution time; its system-prompt section is injected by the runtime-context content-diff only when the index is present.
+
+## `@huiliyi37/dsh-tool-semantic-search`
+
+### `semantic_search`
+
+按语义检索工作区代码：BM25 词项匹配（含中文 bigram）+ 路径注意力排序，返回相关文件与行段。适合"找与 X 相关的代码"型问题；精确文件名/路径请用 glob。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "检索词（中英文均可）"
+    },
+    "limit": {
+      "type": "number",
+      "description": "返回条数上限（默认 10，上限 50）"
+    }
+  },
+  "required": [
+    "query"
+  ]
+}
+```
+
+Source: [`packages/search/tool-semantic-search/src/index.ts`](../packages/search/tool-semantic-search/src/index.ts)
+
+semantic_search runs workspace retrieval (definition-aligned BM25 with optional vector fusion) lazily at execution time; its system-prompt section is injected by the runtime-context content-diff only when the index is present.

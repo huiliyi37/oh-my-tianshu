@@ -1,4 +1,4 @@
-# DeepSeek Harness Runtime Wheel
+# Tianshu Harness Runtime Wheel
 
 English | [中文](README.zh.md)
 

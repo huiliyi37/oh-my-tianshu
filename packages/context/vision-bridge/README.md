@@ -33,25 +33,27 @@ The TUI input box lets users paste images (data URLs enter the session as `image
 - **Zero intervention passthrough**: image-free messages, `enabled=false`, and reject decisions pass through untouched.
 - **Automatic description mode**: without an explicit `prompt`, the accompanying text hitting UI/error keywords (`报错`/`error`/`终端`/`日志`…) selects OCR-level verbatim transcription; otherwise the generic structured description.
 
-## Model Experience
-
-### What the model sees
-
-When the primary cannot see images, an image-carrying user message is replaced by one text message: `[图片描述]\n<description>\n\n<original text>` (or the bridge-failure fallback). A vision-capable primary sees nothing extra (images pass through). Image-free sessions are completely unaffected.
-
-### Token effect
-
-Each description costs one auxiliary call with `purpose: 'vision-description'` (capped by `maxTokens`, default 1024); the description text then enters the primary context as a user message. Bridge failure produces no description tokens (only a few fallback lines).
-
-### KV Cache effect
-
-The injected message appends like any new user message. The bridge call itself is independent of the primary session cache (`vision-description` never joins the primary prefix).
-
 ## Verification
 
 ```sh
 NO_COLOR=1 pnpm vitest run packages/context/vision-bridge/tests/
 ```
+
+## Model Experience
+
+### Bridged description message
+
+#### What the model sees
+
+When the primary cannot see images, an image-carrying user message is replaced by one text message: `[图片描述]\n<description>\n\n<original text>` (or the bridge-failure fallback). A vision-capable primary sees nothing extra (images pass through). Image-free sessions are completely unaffected.
+
+#### Token effect
+
+Each description costs one auxiliary call with `purpose: 'vision-description'` (capped by `maxTokens`, default 1024); the description text then enters the primary context as a user message. Bridge failure produces no description tokens (only a few fallback lines).
+
+#### KV Cache effect
+
+The injected message appends like any new user message. The bridge call itself is independent of the primary session cache (`vision-description` never joins the primary prefix).
 
 ## Known Limitations and Deferred Work
 

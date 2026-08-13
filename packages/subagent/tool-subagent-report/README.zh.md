@@ -18,7 +18,7 @@
 
 #### 模型看到的内容
 
-已生成的 [`report` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-subagent-report)：包含一个必填 `output` 字符串。其描述说明上报需要显式调用且可以重复，只会到达启动该子级的 Agent，并且不会结束轮次。它不包含接收方或投递模式参数。
+已生成的 [`report` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-subagent-report)：包含一个必填 `output` 字符串。其描述说明上报需要显式调用且可以重复，只会到达启动该子级的 Agent，并且不会结束轮次。它不包含接收方或投递模式参数。
 
 #### Token 影响
 

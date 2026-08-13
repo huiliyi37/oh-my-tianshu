@@ -123,7 +123,7 @@ describe.skipIf(!requiredArtifacts)('Goal Remote built LIB chain', () => {
         const handoff = handoffs.get(id)
         if (handoff === undefined) throw new Error('missing Client bundle handoff ' + id)
         return handoff.factory(specifier => {
-          if (specifier === 'cordis') return cordis
+          if (specifier === '@huiliyi37/cordis') return cordis
           throw new Error('unexpected Client external ' + specifier)
         })
       }

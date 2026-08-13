@@ -42,7 +42,7 @@
 
 #### 模型看到的内容
 
-基线是生成的 [`dsh-tool-bash` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-bash)。通过公布表明启用隔离的 `sandboxMode` 能力，此后端会为 `bash` 增加 `sandbox_permissions`，其 enum 为 `workspace-write` | `danger-full-access`，并增加 `justification`。策略归属方会另行贡献当前且不区分具体能力的 `sandbox:policy` 上下文。
+基线是生成的 [`dsh-tool-bash` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-bash)。通过公布表明启用隔离的 `sandboxMode` 能力，此后端会为 `bash` 增加 `sandbox_permissions`，其 enum 为 `workspace-write` | `danger-full-access`，并增加 `justification`。策略归属方会另行贡献当前且不区分具体能力的 `sandbox:policy` 上下文。
 
 #### Token 影响
 

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/guard/evidence-gate/README.md
-README.md: 04b64743527828d67fd1430c84ba48875129376b
-README.zh.md: 5c604eeba8e9856225785eaafb1f8ebb8f95989f
+README.md: f85b83ae4c0675c9c91306042cf4efeefbdb9f9c
+README.zh.md: f53cd2b979295441b68e78b329801d3f8510e9af

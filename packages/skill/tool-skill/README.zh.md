@@ -65,7 +65,7 @@ A user may also invoke a skill directly; its <skill_content> block then appears 
 
 #### 模型看到的内容
 
-模型会看到生成的 [`skill` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-skill)。
+模型会看到生成的 [`skill` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-skill)。
 
 #### Token 影响
 

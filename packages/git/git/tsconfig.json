@@ -13,6 +13,9 @@
     },
     {
       "path": "../../../vendor/cosmokit"
+    },
+    {
+      "path": "../../support/invariants"
     }
   ]
 }

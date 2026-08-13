@@ -46,6 +46,10 @@ export interface SparkRequestPolicy {
  * 保留推理文本尾部 N token；N<=0 返回空串（全截）；token 数不足 N 返回原文。
  * 输出 = 原文的连续子串（从第 len-N 个 token 的起点切到结尾）——不重组 token，
  * 保证任何 tokenizer 下字节稳定。
+ * @param reasoning - 完整推理文本。
+ * @param nTokens - 保留的尾部 token 数；<=0 全截。
+ * @param tokenize - 分词器（wire 与锚点两侧必须同源）。
+ * @returns 截断后的尾段（原文连续子串）。
  */
 export function truncateReasoningTail(
   reasoning: string,
@@ -65,6 +69,8 @@ export function truncateReasoningTail(
  * 确定性退化分词：CJK 单字 / 连续拉丁·数字·下划线串 / 空白 / 其余单码点。
  * 纯正则无状态——同一输入恒同输出（字节稳定）。u flag 使 `.` 按码点匹配，
  * 代理对（emoji 等 astral 字符）不再被切成两个半符。
+ * @param s - 待分词文本。
+ * @returns 有序 token 跨度列表（start/end 偏移）。
  */
 export function defaultTokenizer(s: string): TokenSpan[] {
   const spans: TokenSpan[] = []
@@ -79,6 +85,9 @@ export function defaultTokenizer(s: string): TokenSpan[] {
  * 截断切点（内置退化分词）：token 数 ≤ N 时无截断（返回 -1），否则返回丢失前段的
  * 结束偏移。锚点插件用它判定「丢失域」，与 truncateReasoningTail 同一分词同一 N——
  * 两者精确互补：锚点只描述模型看不到的那段推理。
+ * @param reasoning - 完整推理文本。
+ * @param n - wire 截断保留的尾部 token 数。
+ * @returns 丢失前段的结束偏移；无截断返回 -1，n<=0 返回 0。
  */
 export function truncateCutStart(reasoning: string, n: number): number {
   if (n <= 0) return 0
@@ -93,6 +102,9 @@ export function truncateCutStart(reasoning: string, n: number): number {
  * N 档解析：pro 判定用分段词匹配（deepseek-v4-pro → ['deepseek','v4','pro']），
  * 避免 'provider' / 'prophet' 类子串误命中（includes('pro') 的已知缺陷）。
  * 模型名缺失时回落 flash 档。
+ * @param model - 模型 id；undefined 走 flash 档。
+ * @param policy - flash/pro 两档 N 值。
+ * @returns 该模型生效的截断 N。
  */
 export function resolveTruncateN(model: string | undefined, policy: SparkTruncatePolicy): number {
   const isPro = (model ?? '').toLowerCase().split(/[-_./:]/).includes('pro')
@@ -113,6 +125,8 @@ const EN_EXCLUDE_RE =
  * 排除路径锚点提取（移植自桌面端 anchor.ts）：从推理文本提取「已排除的路径/假设」，
  * 作为被截断段落的自足替代物。保守策略：只提取显式否定句，宁缺毋滥（误提会把
  * 未排除项当已排除，更伤）。
+ * @param reasoning - 待提取的推理文本（通常为截断丢失段）。
+ * @returns 排除路径 claim 列表（中英句式，超短匹配已过滤）。
  */
 export function extractExcludedClaims(reasoning: string): string[] {
   if (!reasoning) return []

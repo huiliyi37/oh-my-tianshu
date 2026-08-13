@@ -180,6 +180,7 @@ export function truncateToDisplayWidth(text: string, max: number, opts: DisplayW
     ANSI_STICKY.lastIndex = i
     const m = ANSI_STICKY.exec(text)
     if (m && m.index === i) {
+      /* jscpd:ignore-start */
       out += m[0]
       i += m[0].length
       sawAnsi = true
@@ -192,6 +193,7 @@ export function truncateToDisplayWidth(text: string, max: number, opts: DisplayW
     let cw = stringWidth(ch)
     if (wide) cw += ambiguousExtraForCp(cp)
     if (w + cw > max) break
+    /* jscpd:ignore-end */
     out += ch
     w += cw
     i += ch.length

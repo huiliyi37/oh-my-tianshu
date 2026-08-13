@@ -1704,6 +1704,31 @@
       "doc": "docs/subsystems/core.md",
       "symbol": "AgentOptions",
       "source": "packages/core/agent/src/runtime-types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitErrorCode",
+      "source": "packages/git/git/src/index.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitStatusResult",
+      "source": "packages/git/git/src/index.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitDiffResult",
+      "source": "packages/git/git/src/index.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitLogEntry",
+      "source": "packages/git/git/src/index.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitCommitResult",
+      "source": "packages/git/git/src/index.ts"
     }
   ]
 }

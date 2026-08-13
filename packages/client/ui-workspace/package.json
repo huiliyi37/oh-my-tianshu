@@ -42,7 +42,7 @@
     "bundle": "tsdown",
     "watch": "tsdown --watch"
   },
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "dependencies": {
     "clsx": "^2.0.0"
   },

@@ -5,7 +5,12 @@
 
 import type { ToolRunContext } from '@huiliyi37/dsh-tools'
 
-/** 解析工具执行目录（参数 > session header > 进程 cwd）。 */
+/**
+ * 解析工具执行目录（参数 > session header > 进程 cwd）。
+ * @param exec - 工具执行上下文（携带 agent session）。
+ * @param workdir - 调用方显式传入的目录；空串视为未传。
+ * @returns 生效的仓库工作目录。
+ */
 export function resolveCwd(exec: ToolRunContext, workdir: string | undefined): string {
   if (workdir !== undefined && workdir !== '') return workdir
   const sessionCwd = exec.agent?.session.header.cwd

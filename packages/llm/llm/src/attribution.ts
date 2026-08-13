@@ -41,7 +41,7 @@ export const APP_IDENTITY: AppIdentity = {
   product: 'deepseek-harness',
   version,
   // TODO(public-home): Ensure this public source repository exists before release.
-  url: 'https://github.com/deepseek-ai/deepseek-harness-sdk',
+  url: 'https://github.com/huiliyi37/dsh-tianshu-tui',
 }
 
 /**

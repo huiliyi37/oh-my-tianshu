@@ -44,7 +44,7 @@ Namespace plugin: named exports `name` / `inject` / `Config` / `apply`, no defau
 
 #### What the model sees
 
-The conversation model sees the generated [`cordis_inspect`, `cordis_mount`, and `cordis_unmount` schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-cordis) whenever this plugin is visible.
+The conversation model sees the generated [`cordis_inspect`, `cordis_mount`, and `cordis_unmount` schemas](../../../docs/tool-catalog.md#huiliyi37dsh-tool-cordis) whenever this plugin is visible.
 
 #### Token effect
 

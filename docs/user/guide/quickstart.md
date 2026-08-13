@@ -19,8 +19,8 @@ pnpm -v
 ## Step 1: install and configure the API key
 
 ```sh
-git clone https://github.com/deepseek-ai/deepseek-harness-sdk.git
-cd deepseek-harness
+git clone https://github.com/huiliyi37/dsh-tianshu-tui.git
+cd dsh-tianshu-tui
 pnpm install
 pnpm run build
 ```
@@ -36,24 +36,24 @@ DEEPSEEK_API_KEY=sk-your-key-here
 Run a non-interactive task and print its final answer:
 
 ```sh
-pnpm run dsh run "summarize the architecture of this workspace"
+pnpm run tianshu run "summarize the architecture of this workspace"
 ```
 
-`dsh run` creates and persists a fresh session, prints the final assistant answer, and exits. It starts no Web server or listening port, and a successful run leaves stderr empty.
+`tianshu run` creates and persists a fresh session, prints the final assistant answer, and exits. It starts no Web server or listening port, and a successful run leaves stderr empty.
 
 ## Step 3: use the Web UI
 
 Start the browser interface:
 
 ```sh
-pnpm run dsh web
+pnpm run tianshu web
 ```
 
 Open `http://127.0.0.1:3080`. The agent can read and write files, run commands, delegate subtasks, and track a plan. Try: `Create hello.js in the current directory, print "Hello from Harness!", and run it`.
 
 ## What happened
 
-`dsh run` boots the `headless` profile: [`dsh-base`](../../../packages/bundle/base/cordis.patch.yml) and [`dsh-headless`](../../../packages/bundle/headless/cordis.patch.yml) compose over an empty root, then the runner drives the core Agent and Session services directly. `dsh web` instead composes `dsh-base` with [`dsh-web-app`](../../../packages/bundle/web-app/cordis.patch.yml), which owns the Host, HTTP, and browser layers. Both read the same default DeepSeek model route from `dsh-base`.
+`tianshu run` boots the `headless` profile: [`dsh-base`](../../../packages/bundle/base/cordis.patch.yml) and [`dsh-headless`](../../../packages/bundle/headless/cordis.patch.yml) compose over an empty root, then the runner drives the core Agent and Session services directly. `tianshu web` instead composes `dsh-base` with [`dsh-web-app`](../../../packages/bundle/web-app/cordis.patch.yml), which owns the Host, HTTP, and browser layers. Both read the same default DeepSeek model route from `dsh-base`.
 
 ## Next steps
 

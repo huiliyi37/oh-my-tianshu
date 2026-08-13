@@ -16,7 +16,7 @@ maybe('PerplexitySearchProvider real API', () => {
       model: process.env.PERPLEXITY_MODEL ?? PERPLEXITY_DEFAULT_MODEL,
       maxTokens: PERPLEXITY_DEFAULT_MAX_TOKENS,
     })
-    const result = await provider.search({ query: 'What is the DeepSeek Harness SDK?', maxResults: 5 })
+    const result = await provider.search({ query: 'What is the Tianshu Harness SDK?', maxResults: 5 })
     expect(result.content ?? '').not.toBe('')
     for (const source of result.sources) expect(source.url).toMatch(/^https?:\/\//)
   }, 30_000)

@@ -418,6 +418,15 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Runs one model-written program against host-provided async bindings; backends differ by substrate and language (the tool registry consumes it for Code Mode).',
   },
   {
+    key: 'git',
+    pkg: 'git',
+    title: 'Git provider seam',
+    mode: 'seam',
+    implementations: ['git'],
+    consumers: ['tool-git'],
+    note: 'tool-git executes status/diff/log/commit through ctx.git; GitLocal (same package) is the CLI-backed provider.',
+  },
+  {
     key: 'fs',
     pkg: 'fs',
     title: 'Filesystem provider seam',

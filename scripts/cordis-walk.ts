@@ -11,7 +11,7 @@ import ts from 'typescript'
 
 /** Cheap textual prefilter for a cordis module merge, quote-style agnostic
  * (the AST match below reads `stmt.name.text` and never sees the quotes). */
-const MERGE_HEAD = /declare module ['"](?:cordis|\.\/context\.ts)['"]/
+const MERGE_HEAD = /declare module ['"](?:@huiliyi37\/cordis|\.\/context\.ts)['"]/
 
 /**
  * Parse every file matching `patterns` (repo-relative, sorted, `/`-normalized)
@@ -46,7 +46,7 @@ function cordisModuleBodies(sf: ts.SourceFile): ts.ModuleBlock[] {
   const bodies: ts.ModuleBlock[] = []
   for (const stmt of sf.statements) {
     if (!ts.isModuleDeclaration(stmt) || !ts.isStringLiteral(stmt.name)) continue
-    if (stmt.name.text !== 'cordis' && stmt.name.text !== './context.ts') continue
+    if (stmt.name.text !== '@huiliyi37/cordis' && stmt.name.text !== './context.ts') continue
     if (stmt.body && ts.isModuleBlock(stmt.body)) bodies.push(stmt.body)
   }
   return bodies
