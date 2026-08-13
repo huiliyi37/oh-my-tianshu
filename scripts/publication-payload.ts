@@ -35,6 +35,11 @@ export function isForbiddenPublicationFile(
       || normalized === 'lib/typert.remote-client.d.ts.map')) {
     return false
   }
+  // Audited C launcher sources ship on purpose: the native launcher entry
+  // package publishes its single-file source next to the prebuilt binaries so
+  // consumers can audit what the platform packages were compiled from. The
+  // policy targets TypeScript sources and declaration-map intermediates.
+  if (normalized.startsWith('src/') && /\.(c|h)$/.test(normalized)) return false
   return normalized === 'src'
     || normalized.startsWith('src/')
     || normalized.endsWith('.d.ts.map')
