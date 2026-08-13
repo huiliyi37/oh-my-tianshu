@@ -107,6 +107,8 @@ interface PackedPackage {
   sha256: string
   integrity: string
   origin: PackageOrigin
+  /** Manifest declares `os`/`cpu` limits (platform-specific prebuilt payload). */
+  platformRestricted?: boolean
 }
 
 interface ReleaseManifest {
@@ -337,7 +339,9 @@ class ReleaseBundle {
           throw new Error(`${tarball} still contains a workspace: dependency`)
         }
         validateInternalDependencyPins(artifact.manifest, internalNames, version, tarball)
-        return packedPackage(artifact.name, resolve(directory, tarball), expected.origin)
+        const platformRestricted = artifact.manifest.os !== undefined
+          || artifact.manifest.cpu !== undefined
+        return packedPackage(artifact.name, resolve(directory, tarball), expected.origin, platformRestricted)
       })
       .sort((left, right) => left.name.localeCompare(right.name))
 
@@ -397,7 +401,7 @@ class ReleaseBundle {
         throw new Error(`invalid tarball path for ${pkg.name}: ${pkg.tarball}`)
       }
       const path = resolve(this.directory, pkg.tarball)
-      const actual = packedPackage(pkg.name, path, pkg.origin)
+      const actual = packedPackage(pkg.name, path, pkg.origin, pkg.platformRestricted === true)
       if (actual.sha256 !== pkg.sha256 || actual.integrity !== pkg.integrity) {
         throw new Error(`tarball checksum mismatch: ${pkg.tarball}`)
       }
@@ -438,15 +442,23 @@ class InstalledBundleSmoke {
   run(): void {
     const consumerRoot = mkdtempSync(join(tmpdir(), 'dsh-npm-consumer-'))
     try {
-      const dependencies = Object.fromEntries(this.bundle.manifest.packages.map(pkg => [
+      const entry = (pkg: PackedPackage) => [
         pkg.name,
         pathToFileURL(this.bundle.tarballPath(pkg)).href,
-      ]))
+      ] as const
+      // Platform-restricted prebuilt packages go into optionalDependencies:
+      // a direct dependency whose os/cpu does not match this host would fail
+      // the whole install with EBADPLATFORM, while an optional one is skipped.
+      const dependencies = Object.fromEntries(this.bundle.manifest.packages
+        .filter(pkg => pkg.platformRestricted !== true).map(entry))
+      const optionalDependencies = Object.fromEntries(this.bundle.manifest.packages
+        .filter(pkg => pkg.platformRestricted === true).map(entry))
       writeFileSync(resolve(consumerRoot, 'package.json'), `${JSON.stringify({
         name: 'dsh-npm-baseline-consumer',
         version: '0.0.0',
         private: true,
         dependencies,
+        optionalDependencies,
       }, null, 2)}\n`)
 
       console.log(
@@ -815,7 +827,12 @@ function inspectTarball(path: string, runner: CommandRunner): InspectedTarball {
   }
 }
 
-function packedPackage(name: string, path: string, origin: PackageOrigin): PackedPackage {
+function packedPackage(
+  name: string,
+  path: string,
+  origin: PackageOrigin,
+  platformRestricted: boolean,
+): PackedPackage {
   const bytes = readFileSync(path)
   return {
     name,
@@ -823,6 +840,7 @@ function packedPackage(name: string, path: string, origin: PackageOrigin): Packe
     sha256: createHash('sha256').update(bytes).digest('hex'),
     integrity: `sha512-${createHash('sha512').update(bytes).digest('base64')}`,
     origin,
+    ...platformRestricted ? { platformRestricted: true } : {},
   }
 }
 
@@ -837,12 +855,16 @@ function parsePackedPackage(value: unknown, index: number): PackedPackage {
   if (origin === 'harness' && (!name.startsWith('@huiliyi37/') || name === '@huiliyi37/dsh-tianshu-root')) {
     throw new Error(`invalid package name in release manifest: ${name}`)
   }
+  if (value.platformRestricted !== undefined && typeof value.platformRestricted !== 'boolean') {
+    throw new Error(`invalid platformRestricted flag in ${context}`)
+  }
   return {
     name,
     tarball: expectString(value, 'tarball', context),
     sha256: expectString(value, 'sha256', context),
     integrity: expectString(value, 'integrity', context),
     origin,
+    ...value.platformRestricted === true ? { platformRestricted: true } : {},
   }
 }
 
