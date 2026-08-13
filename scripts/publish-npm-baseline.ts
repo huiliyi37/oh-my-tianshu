@@ -26,6 +26,7 @@ const PACKAGE_PATTERNS = [
   'vendor/*/package.json',
   'packages/*/*/package.json',
   'apps/*/package.json',
+  'native/landlock-run/packages/*/package.json',
 ] as const
 const DEPENDENCY_SECTIONS = [
   'dependencies',
@@ -246,7 +247,7 @@ class WorkspacePackageSet {
   static discover(root: string): WorkspacePackageSet {
     const manifestPaths = globSync(PACKAGE_PATTERNS, { cwd: root }).sort()
     if (manifestPaths.length === 0) {
-      throw new Error('no package manifests found under vendor/, packages/, or apps/')
+      throw new Error('no package manifests found under vendor/, packages/, apps/, or native/')
     }
 
     const packages: PackageTarget[] = []
@@ -575,6 +576,7 @@ class BaselinePackager {
         '--filter', './vendor/**',
         '--filter', './packages/**',
         '--filter', './apps/**',
+        '--filter', './native/landlock-run/packages/**',
         '--recursive',
         'pack',
         '--pack-destination', artifactDirectory,
