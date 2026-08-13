@@ -3,6 +3,7 @@
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import {
+  cpSync,
   existsSync,
   globSync,
   mkdirSync,
@@ -560,6 +561,7 @@ class BaselinePackager {
       }
 
       console.log(`publish-npm-baseline: installing detached worktree ${plan.shortCommit}`)
+      this.stageNativePrebuilds(worktree.path)
       this.runner.run('pnpm', ['install', '--frozen-lockfile'], worktree.path)
       this.runner.run('pnpm', ['run', 'constraints'], worktree.path)
       packageSet.stage(worktree.path, plan.version)
@@ -614,6 +616,27 @@ class BaselinePackager {
       if (createdArtifactDirectory) {
         rmSync(artifactDirectory, { recursive: true, force: true })
       }
+    }
+  }
+
+  /**
+   * Copy locally assembled native launcher binaries into the detached
+   * worktree. `native/landlock-run/packages/<platform>/bin/` is git-ignored
+   * (binaries are build artifacts, not sources), so a bare checkout cannot
+   * satisfy the platform packages' prepack gate; the caller assembles the
+   * binaries beforehand (CI matrix runners or `zig cc` cross builds) and this
+   * step stages them for packing. Missing binaries stay missing here and are
+   * reported by the prepack gate with build instructions.
+   */
+  private stageNativePrebuilds(worktreePath: string): void {
+    const packagesRoot = resolve(this.repositoryRoot, 'native/landlock-run/packages')
+    if (!existsSync(packagesRoot)) return
+    for (const name of readdirSync(packagesRoot).sort()) {
+      const binDir = resolve(packagesRoot, name, 'bin')
+      if (!existsSync(binDir)) continue
+      const target = resolve(worktreePath, 'native/landlock-run/packages', name, 'bin')
+      cpSync(binDir, target, { recursive: true })
+      console.log(`publish-npm-baseline: staged native prebuilds for ${name}`)
     }
   }
 }
