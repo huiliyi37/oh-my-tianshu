@@ -671,12 +671,29 @@ class RegistryPublication {
     for (const pkg of this.bundle.manifest.packages) {
       const existingIntegrity = this.remoteIntegrity(pkg.name)
       if (existingIntegrity === undefined) {
-        this.runner.run('npm', [
+        const result = this.runner.result('npm', [
           'publish',
           this.bundle.tarballPath(pkg),
           `--registry=${this.bundle.manifest.registry}`,
           `--tag=${this.bundle.manifest.distTag}`,
         ], this.npmWorkingDirectory, this.npmEnvironment)
+        if (result.status === 0) {
+          console.log(`publish-npm-baseline: published ${pkg.name}@${this.bundle.manifest.version}`)
+        } else if (result.stderr.includes('cannot publish over the previously published versions')) {
+          // The registry's read replicas lag fresh writes by a few minutes, so
+          // a resumed run can see "missing" from the metadata endpoint while
+          // the write path already has the version. The final verify pass
+          // still checks integrity once replication catches up.
+          console.log(
+            `publish-npm-baseline: already published ${pkg.name}@${this.bundle.manifest.version} (registry read lag)`,
+          )
+        } else {
+          process.stderr.write(result.stderr)
+          throw commandFailure('npm', ['publish', pkg.tarball], result)
+        }
+        // `npm publish --tag` already set the dist-tag; skip the read-back
+        // here because the registry's read replicas lag fresh writes and the
+        // retrying verify pass below re-checks every tag anyway.
       } else {
         if (existingIntegrity !== pkg.integrity) {
           throw new Error(
@@ -686,11 +703,11 @@ class RegistryPublication {
         console.log(
           `publish-npm-baseline: already published ${pkg.name}@${this.bundle.manifest.version}`,
         )
+        this.ensureDistTag(pkg.name, this.bundle.manifest.distTag)
       }
-      this.ensureDistTag(pkg.name, this.bundle.manifest.distTag)
     }
-    this.ensureDistTag(RELEASE_ENTRY_PACKAGE, LATEST_DIST_TAG)
     this.verifyRemote()
+    this.ensureDistTag(RELEASE_ENTRY_PACKAGE, LATEST_DIST_TAG)
     this.verifyReleaseEntryDistTag()
   }
 
@@ -701,27 +718,52 @@ class RegistryPublication {
   }
 
   private verifyRemote(): void {
-    for (const pkg of this.bundle.manifest.packages) {
-      const integrity = this.remoteIntegrity(pkg.name)
-      if (integrity === undefined) {
-        throw new Error(`package is missing: ${pkg.name}@${this.bundle.manifest.version}`)
+    // Fresh writes take a few minutes to reach the registry's read replicas,
+    // so treat "not visible yet" as retryable within a bounded window and
+    // only fail fast on real mismatches.
+    const deadline = Date.now() + 15 * 60_000
+    let pending = [...this.bundle.manifest.packages]
+    while (true) {
+      const notVisible: PackedPackage[] = []
+      for (const pkg of pending) {
+        if (!this.verifyRemotePackage(pkg)) notVisible.push(pkg)
       }
-      if (integrity !== pkg.integrity) {
-        throw new Error(`integrity mismatch: ${pkg.name}@${this.bundle.manifest.version}`)
-      }
-      const tagVersion = this.remoteDistTag(pkg.name, this.bundle.manifest.distTag)
-      if (tagVersion !== this.bundle.manifest.version) {
+      if (notVisible.length === 0) break
+      if (Date.now() >= deadline) {
         throw new Error(
-          `${pkg.name}@${this.bundle.manifest.distTag} points to ${tagVersion ?? '<missing>'}; `
-          + `expected ${this.bundle.manifest.version}`,
+          'packages still not visible on the registry after the replication window: '
+          + notVisible.map(pkg => pkg.name).join(', '),
         )
       }
-      console.log(`publish-npm-baseline: verified ${pkg.name}@${this.bundle.manifest.version}`)
+      console.log(
+        `publish-npm-baseline: waiting for registry replication of ${String(notVisible.length)} package(s)`,
+      )
+      sleepMilliseconds(30_000)
+      pending = notVisible
     }
     console.log(
       `publish-npm-baseline: verified ${this.bundle.manifest.packages.length} packages and `
       + `dist-tag ${this.bundle.manifest.distTag}`,
     )
+  }
+
+  /** Verify one package; false when the registry has not replicated it yet. */
+  private verifyRemotePackage(pkg: PackedPackage): boolean {
+    const integrity = this.remoteIntegrity(pkg.name)
+    if (integrity === undefined) return false
+    if (integrity !== pkg.integrity) {
+      throw new Error(`integrity mismatch: ${pkg.name}@${this.bundle.manifest.version}`)
+    }
+    const tagVersion = this.remoteDistTag(pkg.name, this.bundle.manifest.distTag)
+    if (tagVersion === undefined) return false
+    if (tagVersion !== this.bundle.manifest.version) {
+      throw new Error(
+        `${pkg.name}@${this.bundle.manifest.distTag} points to ${tagVersion}; `
+        + `expected ${this.bundle.manifest.version}`,
+      )
+    }
+    console.log(`publish-npm-baseline: verified ${pkg.name}@${this.bundle.manifest.version}`)
+    return true
   }
 
   private verifyReleaseEntryDistTag(): void {
@@ -784,13 +826,19 @@ class RegistryPublication {
 
   private remoteDistTag(name: string, distTag: string): string | undefined {
     const { registry } = this.bundle.manifest
-    const raw = this.runner.capture(
+    const result = this.runner.result(
       'npm',
       ['dist-tag', 'ls', name, `--registry=${registry}`],
       this.npmWorkingDirectory,
       this.npmEnvironment,
     )
-    return parseDistTagListing(raw, name).get(distTag)
+    if (result.status !== 0) {
+      // A package the read replicas have not seen yet lists as 404: report
+      // "no tag" so retrying callers wait instead of aborting.
+      if (/E404|NOT_FOUND|404 Not Found/.test(`${result.stdout}\n${result.stderr}`)) return undefined
+      throw commandFailure('npm', ['dist-tag', 'ls', name], result)
+    }
+    return parseDistTagListing(result.stdout.trim(), name).get(distTag)
   }
 
   private ensureDistTag(name: string, distTag: string): void {
@@ -1029,6 +1077,12 @@ async function confirmEnter(
 function formatUtcTimestamp(value: Date): string {
   if (!Number.isFinite(value.getTime())) throw new Error('pack timestamp must be a valid date')
   return value.toISOString().replaceAll(/[-:TZ.]/g, '').slice(0, 14)
+}
+
+/** Blocking sleep for registry-replication backoff in this synchronous CLI. */
+function sleepMilliseconds(duration: number): void {
+  const shared = new SharedArrayBuffer(4)
+  Atomics.wait(new Int32Array(shared), 0, 0, duration)
 }
 
 function commandFailure(command: string, args: string[], result: CommandResult): Error {
