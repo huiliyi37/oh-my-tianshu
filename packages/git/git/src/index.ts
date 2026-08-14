@@ -198,7 +198,7 @@ export class GitLocal extends Git {
           resolve(stdout)
           return
         }
-        const detail = String(stderr || error.message)
+        const detail = stderr || error.message
         // git 报错随系统本地化变化（实测 2.50 中文环境输出「不是 git 仓库」）；
         // 英文与中文模式都匹配，避免依赖单一语言。
         if (/not a git repository|不是 git 仓库/i.test(detail)) {

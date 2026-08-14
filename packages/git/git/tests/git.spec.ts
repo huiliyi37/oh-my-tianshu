@@ -92,7 +92,7 @@ async function initRepo(): Promise<string> {
 function runGit(cwd: string, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
     execFile('git', args, { cwd }, (error, stdout, stderr) => {
-      if (error) reject(new Error(`git ${args.join(' ')}: ${String(stderr || error.message)}`))
+      if (error) reject(new Error(`git ${args.join(' ')}: ${stderr || error.message}`))
       else resolve(stdout)
     })
   })

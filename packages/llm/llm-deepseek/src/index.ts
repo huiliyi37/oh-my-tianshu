@@ -210,14 +210,19 @@ export function resolveAdapterOptions(config: Config, environment?: EnvironmentS
       `llm-deepseek: streamIdleTimeoutMs must be a positive finite number no greater than ${MAX_TIMER_DELAY_MS}`,
     )
   }
-  // spark 档位校验（fail loud at load / 首个坏 settings 快照；schemastery 已
-  // 校验 yml 面，此处兜底程序化构造绕过归一化的路径）。
-  if (config.spark !== undefined) {
-    const truncateN = config.spark.truncateN ?? { flash: 300, pro: 0 }
-    if (!Number.isInteger(truncateN.flash) || truncateN.flash < 0) {
+  // spark 档位归一化 + 校验（fail loud at load / 首个坏 settings 快照）。
+  // as Partial：schemastery 已归一化 yml 面（字段必填），但程序化构造可绕过
+  // 归一化传入缺字段的策略——显式承认类型外输入后统一补缺省再校验。
+  const sparkSource = config.spark as Partial<SparkRequestPolicy> | undefined
+  const spark = sparkSource === undefined ? undefined : {
+    enabled: sparkSource.enabled ?? false,
+    truncateN: sparkSource.truncateN ?? { flash: 300, pro: 0 },
+  }
+  if (spark !== undefined) {
+    if (!Number.isInteger(spark.truncateN.flash) || spark.truncateN.flash < 0) {
       throw new Error('llm-deepseek: spark.truncateN.flash must be a non-negative integer')
     }
-    if (!Number.isInteger(truncateN.pro) || truncateN.pro < 0) {
+    if (!Number.isInteger(spark.truncateN.pro) || spark.truncateN.pro < 0) {
       throw new Error('llm-deepseek: spark.truncateN.pro must be a non-negative integer')
     }
   }
@@ -229,12 +234,7 @@ export function resolveAdapterOptions(config: Config, environment?: EnvironmentS
     defaults: {
       thinking: config.thinking,
       reasoningEffort: config.reasoningEffort,
-      ...config.spark === undefined ? {} : {
-        spark: {
-          enabled: config.spark.enabled ?? false,
-          truncateN: config.spark.truncateN ?? { flash: 300, pro: 0 },
-        },
-      },
+      ...spark === undefined ? {} : { spark },
     },
     maxTokens: config.maxTokens ?? DEFAULT_MAX_TOKENS,
     defaultContextWindow: config.defaultContextWindow ?? DEFAULT_CONTEXT_WINDOW,

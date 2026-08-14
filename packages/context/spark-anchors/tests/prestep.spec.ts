@@ -106,7 +106,7 @@ async function mount(options: { spark?: { enabled: boolean; truncateN?: { flash:
   return {
     ctx,
     fiber,
-    async dispose() {
+    dispose: async () => {
       await fiber.dispose()
       await rm(root, { recursive: true, force: true })
     },

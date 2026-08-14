@@ -141,7 +141,9 @@ describe('VisionAdapter.stream', () => {
     const body = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string) as { messages: Array<{ content: unknown[] }> }
     const parts = body.messages[0]?.content
     expect(parts).toHaveLength(2)
-    expect(parts?.[1]).toMatchObject({ type: 'image_url', image_url: { url: expect.stringContaining('data:image/png;base64,') } })
+    const imagePart = parts?.[1] as { type: string; image_url: { url: string } }
+    expect(imagePart.type).toBe('image_url')
+    expect(imagePart.image_url.url).toContain('data:image/png;base64,')
   })
 
   it('stop 但无文本 → EMPTY_RESPONSE finish', async () => {

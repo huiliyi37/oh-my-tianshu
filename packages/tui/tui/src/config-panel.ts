@@ -162,9 +162,8 @@ function formatValue(value: unknown): string {
       // 数据违约兜底：JSON-shaped 契约下不可达，显示类型名防渲染崩溃。
       return typeof value
     default:
-      // 只剩 object/array。TS lib 签名 string | undefined，oxlint 类型模型
-      // string——断言对齐两方，JSON-shaped 契约保证运行时非 undefined。
-      // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- JSON-shaped object 值恒可序列化；断言对齐 TS/oxlint 的类型模型差异
+      // 只剩 object/array。TS lib 签名 string | undefined；JSON-shaped 契约
+      // 保证运行时非 undefined，断言收窄。
       return JSON.stringify(value) as string
   }
 }

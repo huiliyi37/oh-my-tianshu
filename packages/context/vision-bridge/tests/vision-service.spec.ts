@@ -43,9 +43,9 @@ describe('Config（provider/model 显式 或 visionAutoBridge）', () => {
     const resolved = Config({})
     expect(resolved).toMatchObject({ enabled: true, visionAutoBridge: false })
     // 缺显式路由且未开自动桥 → apply 装配抛错
-    expect(() => apply(new Context(), { enabled: true })).toThrow(/未配置视觉模型/)
-    expect(() => apply(new Context(), { enabled: true, provider: 'p', model: 'm' })).not.toThrow()
-    expect(() => apply(new Context(), { enabled: true, visionAutoBridge: true })).not.toThrow()
+    expect(() => { apply(new Context(), { enabled: true }) }).toThrow(/未配置视觉模型/)
+    expect(() => { apply(new Context(), { enabled: true, provider: 'p', model: 'm' }) }).not.toThrow()
+    expect(() => { apply(new Context(), { enabled: true, visionAutoBridge: true }) }).not.toThrow()
   })
 
   it('provider/model 齐全 → 通过并补缺省', () => {

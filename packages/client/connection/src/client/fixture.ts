@@ -855,7 +855,6 @@ function estimateFixtureContent(blocks: readonly ContentBlock[]): number {
     // ContentBlockMap is merge-extensible: this client graph sees only the
     // base four members, but fixture turns do carry extended blocks at
     // runtime, so the structural JSON fallback below is live code.
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- the type collapses without the out-of-graph merges (see above).
     if (block.type === 'tool-result') {
       return tokens + estimateFixtureContent(block.content) + BLOCK_OVERHEAD
     }

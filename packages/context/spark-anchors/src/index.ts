@@ -195,18 +195,21 @@ export function apply(ctx: Context, config: Config): void {
     if (decision.kind === 'reject' || signal.aborted) return decision
     // route 判定：request/header 折叠（provider）优先；首个请求前（无 header）
     // 经 agentDefaultModel 兜底。非 spark route 零注入。
+    // as：ctx.get(string) 无类型（服务面靠声明合并在属性访问侧），此处是
+    // 可选依赖的正规获取途径，按 currentSelection 的真实返回面收窄。
+    const defaultModel = ctx.get('agentDefaultModel') as
+      { currentSelection(): { provider: string; model: string } } | undefined
+    const selection = defaultModel?.currentSelection()
     const header = agent.session.requestHeader()
-    const provider = header?.config.provider
-      ?? ctx.get('agentDefaultModel')?.currentSelection().provider
+    const provider = header?.config.provider ?? selection?.provider
     if (provider !== SPARK_PROVIDER) return decision
-    const model = header?.config.model
-      ?? ctx.get('agentDefaultModel')?.currentSelection().model
+    const model = header?.config.model ?? selection?.model
     // enabled 门控与 wire 截断同源（llm-deepseek settings 的 spark.enabled）：
     // wire 不截断时（enabled=false 或缺省），锚点注入会破坏「与截断精确互补」
     // 承诺——模型看到完整推理外加冗余排除句列表，前缀缓存每步变化。因此
-    // enabled !== true 一律不注入（fail-closed）。
+    // 未显式开启一律不注入（fail-closed）。
     const policy = readSparkPolicy(ctx)
-    if (policy.enabled !== true) return decision
+    if (!policy.enabled) return decision
     const anchors = collectAnchors(agent.session.events, policy.truncateN, model, maxAnchors)
     if (anchors.length === 0) return decision
     const text = renderAnchors(anchors)

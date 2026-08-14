@@ -95,7 +95,7 @@ async function mount(config: Partial<visionBridge.Config> = {}, scene: 'ok' | 'e
   return {
     ctx,
     fiber,
-    async dispose() { await fiber.dispose() },
+    dispose: async () => { await fiber.dispose() },
   }
 }
 

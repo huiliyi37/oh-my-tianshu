@@ -18,8 +18,8 @@ export const inject = ['invariants']
 
 /** Validate one git_commit result render: the summary must carry a hash. */
 function validateCommitRender(event: SessionEvent<'tool/result'>, fail: InvariantFailure): void {
-  // tool/result 的 message.content 是 ToolResultBlock 元组；渲染文本在其子块。
-  const blocks = event.data.message.content.flatMap(block => block.type === 'tool-result' ? block.content : [])
+  // tool/result 的 message.content 类型上就是 ToolResultBlock 元组；渲染文本在其子块。
+  const blocks = event.data.message.content.flatMap(block => block.content)
   const text = blocks
     .filter((block): block is { type: 'text'; text: string } => block.type === 'text')
     .map(block => block.text)

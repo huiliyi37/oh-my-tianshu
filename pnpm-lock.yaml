@@ -493,6 +493,9 @@ importers:
       '@huiliyi37/dsh-skill-local':
         specifier: workspace:*
         version: link:../packages/skill/skill-local
+      '@huiliyi37/dsh-spark-anchors':
+        specifier: workspace:*
+        version: link:../packages/context/spark-anchors
       '@huiliyi37/dsh-spill-local':
         specifier: workspace:*
         version: link:../packages/spill/spill-local
@@ -6816,6 +6819,9 @@ importers:
       '@huiliyi37/dsh-permission':
         specifier: workspace:^
         version: link:../../interaction/permission
+      '@huiliyi37/dsh-spark-anchors':
+        specifier: workspace:^
+        version: link:../../context/spark-anchors
       chalk:
         specifier: ^6.0.0
         version: 6.0.0
