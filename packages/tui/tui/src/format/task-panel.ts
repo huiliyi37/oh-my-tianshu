@@ -6,7 +6,7 @@
  * 空数组 = 已清空（渲染占位）。TuiApp 消费注册表的任务单元，/tasks 命令
  * 切换显隐，行渲染进 live 区。
  *
- * @module @huiliyi37/dsh-tianshu-tui/format/task-panel
+ * @module @huiliyi37/dsh-tui/format/task-panel
  */
 
 import { displayWidth } from '../width.js'

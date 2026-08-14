@@ -20,7 +20,7 @@
  * - loading 时 Esc：取消并销毁 btw agent（无答案可写）。
  * 重叠保护：ask 期间再次 ask 静默忽略（一次只跑一个侧问）。
  *
- * @module @huiliyi37/dsh-tianshu-tui/controllers/btw-controller
+ * @module @huiliyi37/dsh-tui/controllers/btw-controller
  */
 
 import { randomUUID } from 'node:crypto'

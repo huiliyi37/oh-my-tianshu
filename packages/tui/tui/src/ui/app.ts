@@ -15,7 +15,7 @@
  * 反目标（不做）：设置/权限审批/主题定制/插件管理、slash 命令全集、
  * worker/星域面板。本装配只覆盖目标 1-6。
  *
- * @module @huiliyi37/dsh-tianshu-tui/ui
+ * @module @huiliyi37/dsh-tui/ui
  */
 
 import { randomUUID } from 'node:crypto'

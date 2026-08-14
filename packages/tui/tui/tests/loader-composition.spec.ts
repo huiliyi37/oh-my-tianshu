@@ -153,7 +153,7 @@ async function boot(): Promise<Booted> {
     '    persona: |',
     '      You are the tui composition-test agent, powered by the {{model}} model.',
     '- id: tui-runner',
-    "  name: '@huiliyi37/dsh-tianshu-tui'",
+    "  name: '@huiliyi37/dsh-tui'",
     '',
   ].join('\n'))
 
@@ -175,7 +175,7 @@ async function boot(): Promise<Booted> {
     ['@huiliyi37/dsh-agent-default-model', AgentDefaultModel],
     ['@huiliyi37/dsh-subagent', Subagent],
     ['@huiliyi37/dsh-agent-spine-demo', AgentSpine],
-    ['@huiliyi37/dsh-tianshu-tui', wrappedTui],
+    ['@huiliyi37/dsh-tui', wrappedTui],
   ])
 
   const ctx = new Context()

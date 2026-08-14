@@ -1,6 +1,6 @@
 /**
  * /export 导出纯函数测试：session events → Markdown 文本（确定性、截断、结构）。
- * @module @huiliyi37/dsh-tianshu-tui/tests/export
+ * @module @huiliyi37/dsh-tui/tests/export
  */
 
 import { describe, expect, it } from 'vitest'

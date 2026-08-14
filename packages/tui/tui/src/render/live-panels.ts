@@ -13,7 +13,7 @@
  * format/glance-bar），本模块只做「snapshot → 既有面板函数输入」的适配与
  * 顺序编排，不重复实现渲染逻辑。依赖方向保持 app.ts → render/ 单向。
  *
- * @module @huiliyi37/dsh-tianshu-tui/render/live-panels
+ * @module @huiliyi37/dsh-tui/render/live-panels
  */
 
 import type { LiveSnapshot } from './live-snapshot.js'

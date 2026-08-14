@@ -15,7 +15,7 @@
  * - 重叠 ask → reject UserInteractionError(ASK_CANCELLED)（一次只呈现一个问题）。
  * - cancel → reject UserInteractionError(ASK_CANCELLED)（取消必须 reject，非 resolve）。
  *
- * @module @huiliyi37/dsh-tianshu-tui/controllers/question-controller
+ * @module @huiliyi37/dsh-tui/controllers/question-controller
  */
 
 import { UserInteractionError } from '@huiliyi37/dsh-user-interaction'

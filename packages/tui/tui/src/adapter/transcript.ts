@@ -10,7 +10,7 @@
  * (`createTranscript`) that replays the session's existing log and then folds
  * every `session/event` publication for that session.
  *
- * @module @huiliyi37/dsh-tianshu-tui/adapter/transcript
+ * @module @huiliyi37/dsh-tui/adapter/transcript
  */
 
 import type { Context } from '@huiliyi37/cordis'

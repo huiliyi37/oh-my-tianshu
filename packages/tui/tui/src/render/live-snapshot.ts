@@ -10,7 +10,7 @@
  * + 后台任务区 + 完成通知）、status（goal/todos/plan）、delegation（委派树）、
  * workflow（运行中 + 已结算 run 视图）、config、skills。
  *
- * @module @huiliyi37/dsh-tianshu-tui/render/live-snapshot
+ * @module @huiliyi37/dsh-tui/render/live-snapshot
  */
 
 import type { TaskItem } from '../format/task-panel.js'

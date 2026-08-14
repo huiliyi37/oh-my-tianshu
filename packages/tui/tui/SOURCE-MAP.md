@@ -1,4 +1,4 @@
-# dsh-tianshu-tui source map
+# dsh-tui source map
 
 本包渲染核心移植自天枢（Tianshu，曾用代号 Rivet）终端 UI 引擎，Apache License 2.0：
 

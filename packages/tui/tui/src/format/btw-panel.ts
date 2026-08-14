@@ -7,7 +7,7 @@
  * （spinner 是静态 glyph，不随 tick 变化——面板在 120ms ticker 下已自动刷新）。
  * 着色由组合器（renderLive）按状态决定，本模块只产纯文本行。
  *
- * @module @huiliyi37/dsh-tianshu-tui/format/btw-panel
+ * @module @huiliyi37/dsh-tui/format/btw-panel
  */
 
 import { truncateToDisplayWidth } from '../width.js'

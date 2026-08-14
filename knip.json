@@ -724,6 +724,11 @@
       "ignoreDependencies": [
         "@huiliyi37/.+"
       ]
+    },
+    "packages/tui/tui": {
+      "ignoreDependencies": [
+        "@huiliyi37/dsh-spark-anchors"
+      ]
     }
   }
 }

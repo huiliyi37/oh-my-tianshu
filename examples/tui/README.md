@@ -31,6 +31,8 @@ render core takes over stdin/stdout.
 - `credentials` — resolves `DEEPSEEK_API_KEY` from the process environment
 - `llm-deepseek` — the DeepSeek adapter (full thinking at max effort)
 - `agent-spine` — pre-creates one `main` agent
+- `fs-snapshot` — pre-write file snapshots backing `/rewind` file rollback
+- `spark-anchors` — excluded-path anchor re-injection paired with the `deepseek-spark` wire truncation
 - `tui-runner` — the `@huiliyi37/dsh-tui` bundle's interactive render core
 
 ## Keyless snapshot

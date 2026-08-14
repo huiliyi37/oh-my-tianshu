@@ -12,7 +12,7 @@
  *   窗口外 refresh 同步重算。重收集成本被节流封顶，状态行/错误行新鲜度 ≤ 一帧。
  * - 数据实际变化时经 onChange 推送（未变化不推送，避免重绘风暴）。
  *
- * @module @huiliyi37/dsh-tianshu-tui/engine/metrics-glance-controller
+ * @module @huiliyi37/dsh-tui/engine/metrics-glance-controller
  */
 
 import type { LiveAgentState } from '../adapter/live.js'

@@ -8,7 +8,7 @@
  * 数据面形状结构兼容 workflow 包 types.ts（WorkflowRunInfo 字段名 id；WorkflowAgentEndInfo
  * 追加 outcome；WorkflowResultInfo 无 value），纯函数层不跨包依赖、无 I/O。
  *
- * @module @huiliyi37/dsh-tianshu-tui/workflow-panel
+ * @module @huiliyi37/dsh-tui/workflow-panel
  */
 
 import { displayWidth } from './width.js'

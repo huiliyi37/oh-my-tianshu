@@ -1,5 +1,5 @@
 /**
- * Runtime invariant companion for @huiliyi37/dsh-tianshu-tui.
+ * Runtime invariant companion for @huiliyi37/dsh-tui.
  *
  * The TUI is a terminal presentation layer: every stream it renders
  * (session/event, approval/request, subagent/*, workflow/*) is owned and
@@ -8,13 +8,13 @@
  * state asserted behaviorally by package tests and the real-composition
  * suite. No cross-plugin event/data relation is owned here.
  *
- * @module @huiliyi37/dsh-tianshu-tui/invariant
+ * @module @huiliyi37/dsh-tui/invariant
  */
 /* jscpd:ignore-start */
 import type { Context } from '@huiliyi37/cordis'
 import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@huiliyi37/dsh-tianshu-tui'
+const PACKAGE_NAME = '@huiliyi37/dsh-tui'
 
 /** Cordis companion plugin name. */
 export const name = 'tui-invariant'

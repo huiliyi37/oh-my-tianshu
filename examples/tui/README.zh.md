@@ -26,6 +26,8 @@ pnpm exec tsx ../headless-agent/tests/fixtures/headless-driver.ts ./cordis.yml "
 - `credentials` — 从进程环境解析 `DEEPSEEK_API_KEY`
 - `llm-deepseek` — DeepSeek 适配器（全思考、最大 effort）
 - `agent-spine` — 预创建一个 `main` agent
+- `fs-snapshot` — 写前文件快照，支撑 `/rewind` 的文件回退
+- `spark-anchors` — 与 `deepseek-spark` wire 截断成对的排除路径锚点回注
 - `tui-runner` — `@huiliyi37/dsh-tui` bundle 的交互渲染核心
 
 ## keyless 快照

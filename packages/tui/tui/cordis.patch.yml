@@ -5,3 +5,9 @@
 - insert:
     - id: tui-runner
       name: '@huiliyi37/dsh-tui'
+
+    # spark 锚点补偿，与 llm-deepseek 的 spark wire 截断成对（README "DeepSeek
+    # Spark mode"）：/model spark-flash|spark-pro 切到 deepseek-spark route 后，
+    # 把截断丢失域的排除路径随 agent/pre-step 注入。非 spark 会话零注入。
+    - id: spark-anchors
+      name: '@huiliyi37/dsh-spark-anchors'

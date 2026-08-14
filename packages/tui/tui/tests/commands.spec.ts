@@ -403,7 +403,7 @@ describe('内置命令 — /model', () => {
     expect(echo).toHaveBeenCalledWith(expect.stringContaining('deepseek/v4-max'))
   })
 
-  it('spark-flash 别名 → deepseek-official/deepseek-v4-flash 一键切换', async () => {
+  it('spark-flash 别名 → deepseek-spark/deepseek-v4-flash 一键切换', async () => {
     const { cmd } = commandByName('model')
     const saveSelection = vi.fn(async () => {})
     const ctx = makeCtx({
@@ -414,11 +414,11 @@ describe('内置命令 — /model', () => {
     })
     const { args, echo } = makeArgs({ text: 'spark-flash', ctx })
     await cmd.run(args)
-    expect(saveSelection).toHaveBeenCalledWith({ provider: 'deepseek-official', model: 'deepseek-v4-flash' })
-    expect(echo).toHaveBeenCalledWith(expect.stringContaining('deepseek-official/deepseek-v4-flash'))
+    expect(saveSelection).toHaveBeenCalledWith({ provider: 'deepseek-spark', model: 'deepseek-v4-flash' })
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('deepseek-spark/deepseek-v4-flash'))
   })
 
-  it('spark-pro 别名 → deepseek-official/deepseek-v4-pro 一键切换', async () => {
+  it('spark-pro 别名 → deepseek-spark/deepseek-v4-pro 一键切换', async () => {
     const { cmd } = commandByName('model')
     const saveSelection = vi.fn(async () => {})
     const ctx = makeCtx({
@@ -429,8 +429,8 @@ describe('内置命令 — /model', () => {
     })
     const { args, echo } = makeArgs({ text: 'spark-pro', ctx })
     await cmd.run(args)
-    expect(saveSelection).toHaveBeenCalledWith({ provider: 'deepseek-official', model: 'deepseek-v4-pro' })
-    expect(echo).toHaveBeenCalledWith(expect.stringContaining('deepseek-official/deepseek-v4-pro'))
+    expect(saveSelection).toHaveBeenCalledWith({ provider: 'deepseek-spark', model: 'deepseek-v4-pro' })
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('deepseek-spark/deepseek-v4-pro'))
   })
 
   it('effort 参数：/model p/m high → saveSelection 带 reasoningEffort', async () => {
@@ -459,7 +459,7 @@ describe('内置命令 — /model', () => {
     })
     const { args } = makeArgs({ text: 'spark-flash max', ctx })
     await cmd.run(args)
-    expect(saveSelection).toHaveBeenCalledWith({ provider: 'deepseek-official', model: 'deepseek-v4-flash', reasoningEffort: 'max' })
+    expect(saveSelection).toHaveBeenCalledWith({ provider: 'deepseek-spark', model: 'deepseek-v4-flash', reasoningEffort: 'max' })
   })
 
   it('不带 effort 参数：saveSelection 不含 reasoningEffort（清除语义，回 provider 默认）', async () => {

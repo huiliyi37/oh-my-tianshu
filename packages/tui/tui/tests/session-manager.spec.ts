@@ -4,7 +4,7 @@
  * 快照从 live store 派生：mock ctx.sessions.list() + ctx.agents.get() 注入，
  * 验证 list() 派生（id/status/messageCount）与 statusOf() 查询。
  *
- * @module @huiliyi37/dsh-tianshu-tui/tests/session-manager
+ * @module @huiliyi37/dsh-tui/tests/session-manager
  */
 
 import { describe, expect, it, vi } from 'vitest'

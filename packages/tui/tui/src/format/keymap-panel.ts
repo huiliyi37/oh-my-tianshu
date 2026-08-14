@@ -6,7 +6,7 @@
  * 窄宽降级为单列紧凑行、超宽截断不破版。TuiApp 把它注册为 overlay
  * 渲染器，Ctrl+. 触发进出。
  *
- * @module @huiliyi37/dsh-tianshu-tui/format/keymap-panel
+ * @module @huiliyi37/dsh-tui/format/keymap-panel
  */
 
 import { displayWidth } from '../width.js'

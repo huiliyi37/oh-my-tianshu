@@ -12,7 +12,7 @@
  * dsh 纪律：命令执行只改 UI 状态（主题/滚动区/会话切换）或调用既有服务，不写回 session
  * log、不发明事件类型。命令文本经 `/` 前缀在输入层分流，未知命令回显提示而非提交给 agent。
  *
- * @module @huiliyi37/dsh-tianshu-tui/commands
+ * @module @huiliyi37/dsh-tui/commands
  */
 
 import type { Context } from '@huiliyi37/cordis'
@@ -121,13 +121,14 @@ interface MemoryFacet {
 export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'tasks', 'density', 'goal', 'status', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'export'] as const
 
 /**
- * /model 一键切换别名（TUI 便捷层）：展开为已注册的 deepseek-official
- * 路由 + 官方 wire 模型 id。官方 API 没有 spark 模型名，也没有
- * deepseek-spark provider；别名只是 flash/pro 的快捷写法。
+ * /model 一键切换别名（TUI 便捷层）：展开为 deepseek-spark route 的
+ * provider/model，免去手输完整路由。spark 截断由 llm-deepseek 的
+ * settings spark.enabled 门控（别名本身不改变门控状态）；锚点补偿由
+ * dsh-spark-anchors 在 pre-step 注入（route 判定与截断同源）。
  */
 const SPARK_ALIASES: Readonly<Record<string, { provider: string; model: string }>> = {
-  'spark-flash': { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
-  'spark-pro': { provider: 'deepseek-official', model: 'deepseek-v4-pro' },
+  'spark-flash': { provider: 'deepseek-spark', model: 'deepseek-v4-flash' },
+  'spark-pro': { provider: 'deepseek-spark', model: 'deepseek-v4-pro' },
 }
 
 /**
@@ -350,7 +351,7 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
     },
     {
       name: 'model',
-      description: '查看或切换模型（默认 + 当前会话热切；spark-flash / spark-pro 映射到官方 flash / pro）',
+      description: '查看或切换模型（默认 + 当前会话热切；spark-flash / spark-pro 别名一键切 spark）',
       argsHint: '[provider/model | spark-flash | spark-pro]',
       run: async ({ text, echo, ctx }) => {
         // as unknown as：Context 声明合并的 agentDefaultModel 是完整服务面，
@@ -376,8 +377,8 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
           echo(`⚠ 不支持的 effort: ${effortRaw}（可用: off / high / max）`)
           return
         }
-        // spark 一键切换别名：展开为 deepseek-official + 官方 wire 模型 id。
-        // 非别名输入原样解析。
+        // spark 一键切换别名（TUI 便捷层）：展开为 deepseek-spark route 的
+        // provider/model，无需手输完整路由。非别名输入原样解析。
         const aliased = SPARK_ALIASES[target]
         const input = aliased === undefined ? target : `${aliased.provider}/${aliased.model}`
         const parts = input.split('/')

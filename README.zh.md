@@ -174,7 +174,7 @@ llm-deepseek:
     enabled: true
 ```
 
-然后用 `/model spark-flash` 或 `/model spark-pro` 切换(`deepseek-spark/deepseek-v4-flash` / `deepseek-spark/deepseek-v4-pro` 的别名)。Spark 与 DeepSeek 共用同一 API key——零额外配置。
+然后用 `/model spark-flash` 或 `/model spark-pro` 切换(`deepseek-spark/deepseek-v4-flash` / `deepseek-spark/deepseek-v4-pro` 的别名)。Spark 与 DeepSeek 共用同一 API key——零额外配置。`dsh-spark-anchors` 随 `tui` 组合包装配,切到 `deepseek-spark` route 后锚点补偿即生效;自装配 profile 需显式添加(见[包 README](packages/context/spark-anchors/README.md))。
 
 ### Headless
 

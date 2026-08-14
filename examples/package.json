@@ -70,6 +70,7 @@
     "@huiliyi37/dsh-settings-local": "workspace:*",
     "@huiliyi37/dsh-skill": "workspace:*",
     "@huiliyi37/dsh-skill-local": "workspace:*",
+    "@huiliyi37/dsh-spark-anchors": "workspace:*",
     "@huiliyi37/dsh-spill-local": "workspace:*",
     "@huiliyi37/dsh-spill-policy": "workspace:*",
     "@huiliyi37/dsh-subagent": "workspace:*",

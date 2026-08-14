@@ -4,7 +4,7 @@
  * module only READS logs and the live store; it never appends events and never
  * disposes agents (a handle's teardown belongs to its holder).
  *
- * @module @huiliyi37/dsh-tianshu-tui/adapter/sessions
+ * @module @huiliyi37/dsh-tui/adapter/sessions
  */
 
 import type { Context } from '@huiliyi37/cordis'

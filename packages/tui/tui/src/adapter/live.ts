@@ -7,7 +7,7 @@
  * Two layers mirror the transcript module: a pure fold (`emptyLiveState` /
  * `applyLiveEvent`) and a live subscription wrapper (`trackAgent`).
  *
- * @module @huiliyi37/dsh-tianshu-tui/adapter/live
+ * @module @huiliyi37/dsh-tui/adapter/live
  */
 
 import type { Context } from '@huiliyi37/cordis'

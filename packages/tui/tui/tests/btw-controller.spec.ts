@@ -5,7 +5,7 @@
  * 事件流手动触发：捕获 ctx.on('session/event') 的 handler，按 btw session id
  * 注入 assistant/chunk + turn/end，验证状态机与收尾（dispose/折叠回调）。
  *
- * @module @huiliyi37/dsh-tianshu-tui/tests/btw-controller
+ * @module @huiliyi37/dsh-tui/tests/btw-controller
  */
 
 import { describe, expect, it, vi } from 'vitest'
