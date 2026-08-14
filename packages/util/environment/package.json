@@ -1,13 +1,13 @@
 {
   "name": "@huiliyi37/dsh-environment",
   "description": "Immutable Tianshu Harness launch environment that records which layer supplied each value",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-build.git",
     "directory": "packages/util/environment"
   },
   "type": "module",

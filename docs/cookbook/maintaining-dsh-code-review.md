@@ -41,7 +41,7 @@ When a run produces a candidate, a macOS notification arrives with a `dsh-code-r
    - **Promote.** From a clean `master` checkout of the repo, run the promote helper. It refreshes `master`, verifies that the current skill matches the recorded source blob, applies the saved diff, and opens a draft PR whose body lists the source feedback URLs or IDs, landed commit range, originating run, checks, and operator edits. It stops on skill drift rather than overwriting newer guidance; the operator still reviews the PR on GitHub and either merges it or closes it.
 
      ```sh
-     cd ~/path/to/deepseek-harness   # clean master
+     cd ~/path/to/dsh-tianshu-tui   # clean master
      dsh-code-review-promote 2026-07-16T02-00-00Z
      ```
 

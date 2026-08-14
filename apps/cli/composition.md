@@ -12,8 +12,6 @@ flowchart LR
   cfg --> plugin_dsh_base_timer
   plugin_dsh_base_hmr["hmr<br/>@huiliyi37/cordis-plugin-hmr"]
   cfg --> plugin_dsh_base_hmr
-  plugin_dsh_base_repository_plugins["repository-plugins<br/>@huiliyi37/dsh-repository-plugin"]
-  cfg --> plugin_dsh_base_repository_plugins
   plugin_dsh_base_llm["llm<br/>@huiliyi37/dsh-llm"]
   cfg --> plugin_dsh_base_llm
   plugin_dsh_base_session["session<br/>@huiliyi37/dsh-session"]
@@ -176,7 +174,6 @@ flowchart LR
 | --- | --- |
 | `timer` | `@huiliyi37/cordis-plugin-timer` |
 | `hmr` | `@huiliyi37/cordis-plugin-hmr` |
-| `repository-plugins` | `@huiliyi37/dsh-repository-plugin` |
 | `llm` | `@huiliyi37/dsh-llm` |
 | `session` | `@huiliyi37/dsh-session` |
 | `typert` | `@huiliyi37/dsh-typert-registry` |

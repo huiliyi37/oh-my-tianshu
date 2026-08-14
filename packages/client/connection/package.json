@@ -1,13 +1,13 @@
 {
   "name": "@huiliyi37/dsh-client-connection",
   "description": "Wire consumer layer: HTTP-up/WebSocket-down client, ConnectionController dual streams with reconnect, and fixture api",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-build.git",
     "directory": "packages/client/connection"
   },
   "type": "module",

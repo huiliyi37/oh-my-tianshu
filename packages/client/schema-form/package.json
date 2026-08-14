@@ -1,13 +1,13 @@
 {
   "name": "@huiliyi37/dsh-client-schema-form",
   "description": "Schema/draft model layer for settings editors: rehydrates a serialized schemastery schema, validates drafts, and edits them immutably by path",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-build.git",
     "directory": "packages/client/schema-form"
   },
   "type": "module",

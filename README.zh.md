@@ -23,15 +23,15 @@ npm i -g @huiliyi37/dsh-tianshu
 tianshu tui
 ```
 
-如需开发(或修改 harness 本体),克隆仓库后运行安装器:
+如需开发(或修改 harness 本体),从仓库检出直接运行——要求系统已安装 `git`、Node `^22.19 || >=24` 与 `pnpm`:
 
 ```sh
-git clone https://github.com/huiliyi37/dsh-tianshu-tui.git
-cd dsh-tianshu-tui
-scripts/install.sh
+git clone https://github.com/huiliyi37/dsh-tianshu-build.git
+cd dsh-tianshu-build
+pnpm install
+pnpm run build
+pnpm tianshu web
 ```
-
-安装器要求系统已安装 `git` 和 Node `^22.19 || >=24`,缺少 `pnpm` 时可代为安装,并会提示输入 DeepSeek API 密钥,然后构建所需的仓库产物并启动 Web UI。默认生效的检出位于 `~/.dsh/source/current`,启动器链接到 `~/.local/bin`。再次运行安装器即可更新。其他位置、更新机制和恢复选项由 [`scripts/install.sh`](scripts/install.sh) 负责。
 
 ## 完全体新增什么
 
@@ -56,14 +56,14 @@ scripts/install.sh
 
 ### Web UI
 
-推荐在本地使用 Web UI;安装结束时,选择 Web UI 即可。以后需要启动时,或更新当前生效的检出后,请构建仓库并运行:
+推荐在本地使用 Web UI;可从 npm 安装直接启动(`tianshu web`),或从构建好的检出启动:
 
 ```sh
-(cd ~/.dsh/source/current && pnpm run build)
-tianshu web
+pnpm run build
+pnpm tianshu web
 ```
 
-上述路径是安装器的默认位置。如果你设置过 `DSH_SOURCE` 或 `DSH_CURRENT`,或者复用了已有检出,请把 `~/.dsh/source/current` 换成该检出路径;详情见 [`scripts/install.sh`](scripts/install.sh)。Web UI 默认通过 `http://127.0.0.1:3080` 提供服务。
+Web UI 默认通过 `http://127.0.0.1:3080` 提供服务。
 
 ### Profile
 

@@ -1,13 +1,13 @@
 {
   "name": "@huiliyi37/dsh-base",
   "description": "The shared dsh core as a profile bundle: every profile's first patch layer, inserting the base plugin rows over the empty profile root",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-build.git",
     "directory": "packages/bundle/base"
   },
   "type": "module",
@@ -65,7 +65,6 @@
     "@huiliyi37/dsh-permission": "workspace:^",
     "@huiliyi37/dsh-plan-mode": "workspace:^",
     "@huiliyi37/dsh-repeat-tool-guard": "workspace:^",
-    "@huiliyi37/dsh-repository-plugin": "workspace:^",
     "@huiliyi37/dsh-sandbox-local": "workspace:^",
     "@huiliyi37/dsh-sandbox-policy": "workspace:^",
     "@huiliyi37/dsh-session": "workspace:^",

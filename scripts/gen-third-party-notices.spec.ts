@@ -226,8 +226,8 @@ describe('parsePyprojectRequirements', () => {
 describe('collectPythonDependencies', () => {
   it('excludes normalized local project names without exempting a third-party prefix', () => {
     const pyprojects = [
-      '[project]\nname = "deepseek-harness-runtime-bin"\ndependencies = ["pydantic"]\n',
-      '[project]\nname = "deepseek-harness"\ndependencies = ["DeepSeek.Harness_Runtime-Bin", "deepseek-unrelated"]\n',
+      '[project]\nname = "tianshu-harness-runtime-bin"\ndependencies = ["pydantic"]\n',
+      '[project]\nname = "tianshu-harness"\ndependencies = ["TianShu.Harness_Runtime-Bin", "deepseek-unrelated"]\n',
     ]
     expect(() => collectPythonDependencies(pyprojects)).toThrow(
       'python dependency deepseek-unrelated is missing from PYTHON_METADATA',

@@ -24,7 +24,6 @@
   "exclude": [
     "tests/scaffold.ts",
     "tests/scaffold-hermetic.e2e.ts",
-    "tests/core-web-profile.snapshot.ts",
     "tests/live-interactions.e2e.ts",
     "tests/question-composer.e2e.ts",
     "tests/approval-composer.e2e.ts",

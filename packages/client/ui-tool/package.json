@@ -1,13 +1,13 @@
 {
   "name": "@huiliyi37/dsh-client-ui-tool",
   "description": "Client Tool call-tree renderer and keyed per-tool presentation slot",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-build.git",
     "directory": "packages/client/ui-tool"
   },
   "type": "module",

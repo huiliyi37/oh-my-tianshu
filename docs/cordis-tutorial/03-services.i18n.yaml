@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cordis-tutorial/03-services.md
-03-services.md: ce63c0dd190949464b3e5560f1c7265aa73fb9bf
-03-services.zh.md: 9252dd21843855a7c865fc94a02fb852775c995a
+03-services.md: ffa5a41b16192e03493cd4169392f3c990b1aaf1
+03-services.zh.md: da2095ca4655dec64844fda0f8868c10677aa373

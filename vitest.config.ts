@@ -32,8 +32,6 @@ const windowsUnsupportedPackages = process.platform === 'win32'
       'packages/subprocess/*',
       'packages/pty/pty-local',
       'packages/sandbox/sandbox-local',
-      'packages/scaffold/create-sdk',
-      'packages/scaffold/helper',
     ]
   : []
 

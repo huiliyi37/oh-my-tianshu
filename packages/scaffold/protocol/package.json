@@ -1,13 +1,13 @@
 {
   "name": "@huiliyi37/dsh-sdk-protocol",
   "description": "Shared wire protocol for the Tianshu Harness SDK runtime: the newline-delimited JSON-RPC stdio transport and the named request, result, and notification types spoken between the runtime server and SDK clients",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-build.git",
     "directory": "packages/scaffold/protocol"
   },
   "type": "module",

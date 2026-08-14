@@ -1,13 +1,13 @@
 {
   "name": "@huiliyi37/dsh-tool-cordis",
   "description": "Self-referential cordis toolset: inspect the live runtime, mount and dispose model-written plugins",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-build.git",
     "directory": "packages/self-modification/tool-cordis"
   },
   "type": "module",

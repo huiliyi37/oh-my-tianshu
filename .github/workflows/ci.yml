@@ -175,8 +175,6 @@ jobs:
       DSH_NODE_COMPAT_SKIP_TYPECHECK: '1'
       DSH_OXLINT_THREADS: '8'
       DSH_PUBLINT_CONCURRENCY: '8'
-      DSH_GITHUB_REPOSITORY_PLUGIN_SOURCE: >-
-        github:${{ github.event.pull_request.head.repo.full_name }}#${{ github.event.pull_request.head.sha }}&path:/apps/cli/tests/fixtures/github-repository-plugin/.dsh-plugin
       # Failover halves snapshot concurrency for the shared 64-core VM.
       DSH_SNAPSHOT_MAX_CONCURRENCY: ${{ vars.DSH_CI_FAILOVER == 'selfhosted' && github.event.pull_request.user.login != 'dependabot[bot]' && '12' || '32' }}
     steps:

@@ -1,13 +1,13 @@
 {
   "name": "@huiliyi37/dsh-user-approval",
   "description": "User-approval seam (ctx.approval) for the Tianshu Harness: one-shot permission decisions dispatched to composed answerers over the approval/request waterfall, fail-closed by default",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-build.git",
     "directory": "packages/interaction/user-approval"
   },
   "type": "module",

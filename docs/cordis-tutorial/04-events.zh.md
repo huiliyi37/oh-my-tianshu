@@ -141,4 +141,4 @@ harness 使用 waterfall 处理协作插件可以包装或回答的决策：[`ag
 
 下一章：[配置](05-config.md)：来自 `cordis.yml` 的插件选项。
 
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/huiliyi37/dsh-tianshu-tui)
+[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/huiliyi37/dsh-tianshu-build)

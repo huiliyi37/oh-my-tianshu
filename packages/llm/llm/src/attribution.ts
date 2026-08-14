@@ -38,10 +38,9 @@ export interface AppIdentity {
  * can suppress attribution entirely.
  */
 export const APP_IDENTITY: AppIdentity = {
-  product: 'deepseek-harness',
+  product: 'tianshu-harness',
   version,
-  // TODO(public-home): Ensure this public source repository exists before release.
-  url: 'https://github.com/huiliyi37/dsh-tianshu-tui',
+  url: 'https://github.com/huiliyi37/dsh-tianshu-build',
 }
 
 /**

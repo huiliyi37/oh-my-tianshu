@@ -1,13 +1,13 @@
 {
   "name": "@huiliyi37/dsh-git",
   "description": "Git capability seam: the Git service definition + the local CLI provider in one package (thin wrapper over git subprocess)",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-build.git",
     "directory": "packages/git/git"
   },
   "type": "module",

@@ -104,4 +104,4 @@ logger 会先触发：`tools/result` 在结果物化过程中发出，发生在 
 - [子系统页面](../subsystems/core.md)上生成的 `cordis-surface` 区块：可以注入和监听的所有内容，各在其所属页面上。
 - [架构](../architecture.md)：这些插件所处的系统地图。
 
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/huiliyi37/dsh-tianshu-tui)
+[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/huiliyi37/dsh-tianshu-build)

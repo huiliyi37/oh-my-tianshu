@@ -13,9 +13,6 @@
 - id: str-replace-editor
   name: '@huiliyi37/dsh-tool-str-replace-editor'
 
-- id: repository-plugin-fixture
-  name: './repository-plugin/load.mjs'
-
 - id: base
   name: '@huiliyi37/cordis-plugin-include'
   config:

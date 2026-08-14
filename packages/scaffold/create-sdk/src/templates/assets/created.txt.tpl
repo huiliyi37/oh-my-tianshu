@@ -1,1 +1,0 @@
-Created {{name}} in {{directory}}

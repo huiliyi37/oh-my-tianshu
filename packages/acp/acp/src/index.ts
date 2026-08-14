@@ -225,7 +225,7 @@ export function apply(ctx: Context, config: AcpConfig): void {
         // the latest supported" both resolve to this server's one version.
         return Promise.resolve({
           protocolVersion: PROTOCOL_VERSION,
-          agentInfo: { name: 'deepseek-harness-acp', version: '0.0.1' },
+          agentInfo: { name: 'tianshu-harness-acp', version: '0.0.1' },
           agentCapabilities: {
             promptCapabilities: { image: false, audio: false, embeddedContext: false },
           },

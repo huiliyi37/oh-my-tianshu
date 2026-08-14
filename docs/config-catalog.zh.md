@@ -1244,22 +1244,6 @@ export interface Config {
 
 来源：[`packages/guard/repeat-tool-guard/src/index.ts:28`](../packages/guard/repeat-tool-guard/src/index.ts)
 
-## `@huiliyi37/dsh-repository-plugin`
-
-需要：`loader`
-
-```ts config-catalog
-/** Repository Plugin runtime and source-list configuration. */
-export interface Config {
-  /** GitHub repository sources with explicit refs and optional `.dsh-plugin` subpaths. */
-  repositories?: string[]
-  /** Persistent generation cache; defaults to `$DSH_HOME/cache/repository-plugins`. */
-  cacheDir?: string
-}
-```
-
-来源：[`packages/self-modification/repository-plugin/src/index.ts:44`](../packages/self-modification/repository-plugin/src/index.ts)
-
 ## `@huiliyi37/dsh-sandbox-local`
 
 ```ts config-catalog
@@ -2975,7 +2959,6 @@ export interface Config {
 
 由其他包作为库导入；`cordis.yml` 无法加载它们。
 
-- `@huiliyi37/create-sdk`（[`packages/scaffold/create-sdk/src/index.ts`](../packages/scaffold/create-sdk/src/index.ts)）
 - `@huiliyi37/dsh-acp-snapshot`（[`packages/support/acp-snapshot/src/index.ts`](../packages/support/acp-snapshot/src/index.ts)）
 - `@huiliyi37/dsh-agent-loop-testkit`（[`packages/support/agent-loop-testkit/src/index.ts`](../packages/support/agent-loop-testkit/src/index.ts)）
 - `@huiliyi37/dsh-app-boot`（[`packages/boot/app-boot/src/index.ts`](../packages/boot/app-boot/src/index.ts)）
@@ -2990,7 +2973,6 @@ export interface Config {
 - `@huiliyi37/dsh-client-web-react`（[`packages/client/web-react/src/index.ts`](../packages/client/web-react/src/index.ts)）
 - `@huiliyi37/dsh-environment`（[`packages/util/environment/src/index.ts`](../packages/util/environment/src/index.ts)）
 - `@huiliyi37/dsh-fs-snapshot`（[`packages/fs/fs-snapshot/src/index.ts`](../packages/fs/fs-snapshot/src/index.ts)）
-- `@huiliyi37/dsh-helper`（[`packages/scaffold/helper/src/index.ts`](../packages/scaffold/helper/src/index.ts)）
 - `@huiliyi37/dsh-hook-protocol`（[`packages/hooks/hook-protocol/src/index.ts`](../packages/hooks/hook-protocol/src/index.ts)）
 - `@huiliyi37/dsh-jsonrpc-demo`（[`packages/examples/jsonrpc-demo/src/index.ts`](../packages/examples/jsonrpc-demo/src/index.ts)）
 - `@huiliyi37/dsh-llm-mock-server`（[`packages/support/llm-mock-server/src/index.ts`](../packages/support/llm-mock-server/src/index.ts)）
@@ -3002,14 +2984,12 @@ export interface Config {
 - `@huiliyi37/dsh-pheromone`（[`packages/guard/pheromone/src/index.ts`](../packages/guard/pheromone/src/index.ts)）
 - `@huiliyi37/dsh-retention`（[`packages/util/retention/src/index.ts`](../packages/util/retention/src/index.ts)）
 - `@huiliyi37/dsh-scope`（[`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.ts)）
-- `@huiliyi37/dsh-scripts`（[`packages/scaffold/scripts/src/index.ts`](../packages/scaffold/scripts/src/index.ts)）
 - `@huiliyi37/dsh-sdk-client`（[`packages/scaffold/client/src/index.ts`](../packages/scaffold/client/src/index.ts)）
 - `@huiliyi37/dsh-sdk-protocol`（[`packages/scaffold/protocol/src/index.ts`](../packages/scaffold/protocol/src/index.ts)）
 - `@huiliyi37/dsh-semantic-index`（[`packages/search/semantic-index/src/index.ts`](../packages/search/semantic-index/src/index.ts)）
 - `@huiliyi37/dsh-session-telemetry`（[`packages/session/session-telemetry/src/index.ts`](../packages/session/session-telemetry/src/index.ts)）
 - `@huiliyi37/dsh-session-title-llm`（[`packages/session/session-title-llm/src/index.ts`](../packages/session/session-title-llm/src/index.ts)）
 - `@huiliyi37/dsh-subagent-inprocess`（[`packages/subagent/subagent-inprocess/src/index.ts`](../packages/subagent/subagent-inprocess/src/index.ts)）
-- `@huiliyi37/dsh-telemetry`（[`packages/scaffold/telemetry/src/index.ts`](../packages/scaffold/telemetry/src/index.ts)）
 - `@huiliyi37/dsh-timeout`（[`packages/util/timeout/src/index.ts`](../packages/util/timeout/src/index.ts)）
 - `@huiliyi37/dsh-type-meta`（[`packages/typert/type-meta/src/index.ts`](../packages/typert/type-meta/src/index.ts)）
 - `@huiliyi37/dsh-typert-generator`（[`packages/typert/generator/src/index.ts`](../packages/typert/generator/src/index.ts)）

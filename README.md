@@ -23,15 +23,15 @@ npm i -g @huiliyi37/dsh-tianshu
 tianshu tui
 ```
 
-For development (or to hack on the harness itself), clone and run the installer:
+For development (or to hack on the harness itself), run from a repository checkout — requires `git`, Node `^22.19 || >=24`, and `pnpm`:
 
 ```sh
-git clone https://github.com/huiliyi37/dsh-tianshu-tui.git
-cd dsh-tianshu-tui
-scripts/install.sh
+git clone https://github.com/huiliyi37/dsh-tianshu-build.git
+cd dsh-tianshu-build
+pnpm install
+pnpm run build
+pnpm tianshu web
 ```
-
-The installer requires `git` and Node `^22.19 || >=24`, offers to install `pnpm` when it is missing, prompts for a DeepSeek API key, builds the required repository artifacts, and launches the Web UI. The default active checkout is `~/.dsh/source/current`, and the launcher is linked into `~/.local/bin`. Re-run the installer to update. [`scripts/install.sh`](scripts/install.sh) owns alternate locations, update mechanics, and recovery options.
 
 ## What the full build adds
 
@@ -56,14 +56,14 @@ Beyond the upstream baseline (files, shell/PTY, skills, tasks/goals/plans, subag
 
 ### Web UI
 
-For the recommended local interface, choose Web UI when the installer finishes. To start it later, or after updating the active checkout, build the repository and run:
+For the recommended local interface, start the Web UI from the npm install (`tianshu web`) or from a built checkout:
 
 ```sh
-(cd ~/.dsh/source/current && pnpm run build)
-tianshu web
+pnpm run build
+pnpm tianshu web
 ```
 
-The path above is the installer's default. If you set `DSH_SOURCE` or `DSH_CURRENT`, or reused an existing checkout, replace `~/.dsh/source/current` with that checkout path; see [`scripts/install.sh`](scripts/install.sh) for details. The Web UI is served at `http://127.0.0.1:3080` by default.
+The Web UI is served at `http://127.0.0.1:3080` by default.
 
 ### Profiles
 

@@ -132,7 +132,7 @@ export class CodexAppServerWire {
   async initialize(signal: AbortSignal): Promise<void> {
     object(await this.guarded(this.transport.request('initialize', {
       clientInfo: {
-        name: 'deepseek-harness',
+        name: 'tianshu-harness',
         title: 'Tianshu Harness',
         version: '0.0.1',
       },

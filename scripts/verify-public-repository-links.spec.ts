@@ -10,7 +10,7 @@ describe('public repository link policy', () => {
     const jsonEscapedRepository = internalRepository.replace('/', '\\/')
     const unicodeEscapedRepository = internalRepository.replace('/', String.raw`\u002f`)
     const source = [
-      'https://github.com/huiliyi37/dsh-tianshu-tui',
+      'https://github.com/huiliyi37/dsh-tianshu-build',
       `https://github.com/${internalOwner}/cordis`,
       `https://github.com/${internalRepository.toUpperCase()}/issues/1`,
       `https://github.com/${encodedRepository}/issues/2`,

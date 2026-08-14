@@ -32,7 +32,7 @@
 | `maxBodyChars` | `100_000` | 解码主体最大字符数。 |
 | `timeoutMs` | `30_000` | Node 定时器范围内的抓取超时：直接 `ctx.web.fetch()` 调用方的资源兜底，而非面向模型的工具调用预算（后者属于 `dsh-timeout-policy`）。 |
 | `maxRedirects` | `5` | 同源重定向最大跳数（`0` 表示完全不跟随）。 |
-| `userAgent` | `deepseek-harness/…` | `User-Agent` 标头。 |
+| `userAgent` | `tianshu-harness/…` | `User-Agent` 标头。 |
 
 数值限制会在插件构造时验证：除 `maxRedirects` 外，每个上限都必须是正的有限数；`maxRedirects` 必须是非负整数。无效值会抛出异常，不会静默构造限制荒谬的提供方。
 

@@ -537,32 +537,6 @@
         "src/**/*.ts"
       ]
     },
-    "packages/scaffold/create-sdk": {
-      "entry": [
-        "src/bin.ts",
-        "tests/**/*.spec.ts",
-        "tests/**/*.e2e.ts",
-        "tests/**/*.snapshot.ts"
-      ],
-      "project": [
-        "src/**/*.ts",
-        "tests/**/*.ts"
-      ]
-    },
-    "packages/scaffold/scripts": {
-      "entry": [
-        "src/bin.ts",
-        "tests/**/*.spec.ts",
-        "tests/**/*.snapshot.ts"
-      ],
-      "project": [
-        "src/**/*.ts",
-        "tests/**/*.ts"
-      ],
-      "ignoreDependencies": [
-        "node-addon-require-builtin"
-      ]
-    },
     "packages/subagent/subagent-spawn": {
       "entry": [
         "tests/**/*.spec.ts",
@@ -701,20 +675,6 @@
       ],
       "ignoreDependencies": [
         "@huiliyi37/.+"
-      ]
-    },
-    "apps/cli/tests/fixtures/github-repository-plugin/.dsh-plugin": {
-      "entry": [
-        "src/*.ts"
-      ],
-      "project": [
-        "src/**/*.ts"
-      ],
-      "ignoreDependencies": [
-        "@huiliyi37/dsh-repository-plugin"
-      ],
-      "ignoreBinaries": [
-        "dsh-plugin-prepare"
       ]
     },
     "packages/client/modules": {

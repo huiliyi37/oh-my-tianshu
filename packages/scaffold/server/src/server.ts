@@ -121,7 +121,7 @@ export class HarnessSdkServer {
       if (this.provider !== 'deepseek-official') throw new Error(`no adapter registered for provider "${this.provider}"`)
       this.llmFiber = await this.ctx.plugin(LlmDeepSeek, {})
     }
-    return { serverInfo: { name: 'deepseek-harness-sdk-runtime', version: '0.0.1' } }
+    return { serverInfo: { name: 'tianshu-harness-sdk-runtime', version: '0.0.1' } }
   }
 
   /**

@@ -27,8 +27,8 @@ const ALL_KINDS = ['dependencies', 'devDependencies', 'optionalDependencies', 'p
  * root manifest), test infrastructure, the documentation site, the runnable
  * demo leaves, and the native launcher's build workspace. A runtime
  * declaration by anything outside these areas is a disclosure-relevant
- * runtime dependency, because `scripts/install.sh` installs the repository
- * itself and any plugin package can be mounted from a user's `cordis.yml`.
+ * runtime dependency, because source execution runs the repository itself
+ * and any plugin package can be mounted from a user's `cordis.yml`.
  */
 const DEV_ONLY_AREAS = [
   'package.json',
@@ -83,7 +83,7 @@ const OVERRIDES: Record<string, { license?: string; repo?: string }> = {
  * the generator fails when a manifest names a package this map misses.
  */
 const PYTHON_METADATA: Record<string, { license: string; repo: string; role: string }> = {
-  pydantic: { license: 'MIT', repo: 'https://github.com/pydantic/pydantic', role: 'runtime dependency of `deepseek-harness`' },
+  pydantic: { license: 'MIT', repo: 'https://github.com/pydantic/pydantic', role: 'runtime dependency of `tianshu-harness`' },
   hatchling: { license: 'MIT', repo: 'https://github.com/pypa/hatch', role: 'build backend' },
   pytest: { license: 'MIT', repo: 'https://github.com/pytest-dev/pytest', role: 'test-only' },
 }
@@ -704,7 +704,7 @@ ${vendored.map(row => `| \`${row.npmName}\` | [${row.upstream.replace('https://'
 
 ## Runtime npm dependencies
 
-External packages that a workspace package resolves at runtime. \`scripts/install.sh\` installs this repository itself, so the tier covers every plugin a user can mount from \`cordis.yml\` — not only what the \`dsh\` CLI, Web UI, and Python SDK runtime load by default.
+External packages that a workspace package resolves at runtime. Source execution runs this repository itself, so the tier covers every plugin a user can mount from \`cordis.yml\` — not only what the \`dsh\` CLI, Web UI, and Python SDK runtime load by default.
 
 ${renderNpmTable(runtimeDeps)}
 

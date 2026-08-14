@@ -273,17 +273,15 @@ export class DeepSeekAdapter extends LlmAdapter {
     // Prepared outside the try so the TRANSPORT label below covers exactly the
     // transport boundary, never a serialization failure.
     const payload = JSON.stringify(body)
+    // Only the standard attribution User-Agent goes out. The upstream
+    // harness also sent `x-deepseek-harness-session-id` / `-compact` hint
+    // headers (a private contract with its own backend); this fork drops
+    // them so no per-session identifier ever reaches the provider.
     const headers = {
       'authorization': `Bearer ${apiKey}`,
       'content-type': 'application/json',
       'accept': 'text/event-stream',
       ...attributionHeaders(),
-      ...options.sessionId !== undefined
-        ? { 'x-deepseek-harness-session-id': String(options.sessionId) }
-        : {},
-      ...options.purpose === 'compaction'
-        ? { 'x-deepseek-harness-compact': '1' }
-        : {},
     }
 
     // TODO(http): adopt the Cordis HTTP service when shared transport configuration

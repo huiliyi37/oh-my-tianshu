@@ -40,7 +40,7 @@ const publicLandlockPackages = new Set([
 const publicationSourceAllowlist: Readonly<Record<string, readonly string[]>> = {
   '@huiliyi37/node-addon-landlock-run': ['src/main.c'],
 }
-const repositoryUrl = 'git+https://github.com/huiliyi37/dsh-tianshu-tui.git'
+const repositoryUrl = 'git+https://github.com/huiliyi37/dsh-tianshu-build.git'
 
 const localArtifactDirs = new Set(['node_modules'])
 const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
@@ -125,14 +125,8 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   '@huiliyi37/dsh-headless': ['cordis.patch.yml'],
   '@huiliyi37/dsh-tui': ['cordis.patch.yml'],
   '@huiliyi37/dsh-client-ui-theme': ['lib/styles'],
-  '@huiliyi37/dsh-helper': ['lib/assets'],
   '@huiliyi37/dsh-skill-badge': ['assets'],
   '@huiliyi37/dsh-subprocess-local': ['scripts/ensure-spawn-helper.mjs'],
-  '@huiliyi37/dsh-scripts': [
-    'lib/dev/tsdown-config.js',
-    'lib/local-plugin-loader-hooks.js',
-    'lib/assets',
-  ],
 }
 
 function sameStringList(actual: readonly string[] | undefined, expected: readonly string[]): boolean {

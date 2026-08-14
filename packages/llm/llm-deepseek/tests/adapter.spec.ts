@@ -72,7 +72,7 @@ describe('DeepSeekAdapter against a mock server', () => {
     expect(server.headers[0]).not.toHaveProperty('http-referer')
     expect(server.headers[0]).not.toHaveProperty('x-openrouter-title')
     expect(server.headers[0]).not.toHaveProperty('x-openrouter-categories')
-    expect(server.headers[0]).not.toHaveProperty('x-deepseek-harness-compact')
+    expect(server.headers[0]).not.toHaveProperty('x-tianshu-harness-compact')
   })
 
   it('streams raw chunks through ctx.llm.stream', async () => {
@@ -93,7 +93,12 @@ describe('DeepSeekAdapter against a mock server', () => {
     expect(kinds).toEqual(['block-start', 'text-delta', 'block-end', 'usage', 'finish'])
   })
 
-  it('forwards the harness session id for host-side trajectory routing', async () => {
+  it('never leaks session or purpose fingerprint headers to the provider', async () => {
+    // The upstream harness attached `x-deepseek-harness-session-id` /
+    // `x-deepseek-harness-compact` hint headers (a private contract with its
+    // own backend). This fork guarantees no per-session identifier reaches
+    // the provider: only standard transport headers plus the public
+    // User-Agent attribution may go out.
     const server = await mockServer([{ kind: 'sse', events: textEvents }])
     const ctx = await harness(server.url)
 
@@ -104,25 +109,13 @@ describe('DeepSeekAdapter against a mock server', () => {
         source: { kind: 'plugin', plugin: 'test' },
       })],
       sessionId: SessionId('child-session'),
-    })
-
-    expect(server.headers[0]?.['x-deepseek-harness-session-id']).toBe('child-session')
-  })
-
-  it('marks the auxiliary compaction call on the wire', async () => {
-    const server = await mockServer([{ kind: 'sse', events: textEvents }])
-    const ctx = await harness(server.url)
-
-    await assemble(ctx, {
-      model: 'deepseek-v4-flash',
-      messages: [createUserMessage({
-        content: [{ type: 'text', text: 'hi' }],
-        source: { kind: 'plugin', plugin: 'test' },
-      })],
       purpose: 'compaction',
     })
 
-    expect(server.headers[0]?.['x-deepseek-harness-compact']).toBe('1')
+    const sent = server.headers[0] ?? {}
+    const custom = Object.keys(sent).filter(name => /session|compact|harness/i.test(name))
+    expect(custom).toEqual([])
+    expect(sent['user-agent']).toMatch(/^tianshu-harness\//)
   })
 
   it('switches dynamically from the configured high default through off to max', async () => {

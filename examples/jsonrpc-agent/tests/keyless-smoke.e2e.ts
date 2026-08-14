@@ -111,7 +111,7 @@ describe('jsonrpc-agent keyless smoke', () => {
       expect(initialized).toMatchObject({
         jsonrpc: '2.0',
         id: 1,
-        result: { serverInfo: { name: 'deepseek-harness-sdk-runtime' } },
+        result: { serverInfo: { name: 'tianshu-harness-sdk-runtime' } },
       })
 
       child.stdin.write(`${JSON.stringify({

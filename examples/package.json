@@ -1,7 +1,7 @@
 {
   "name": "dsh-examples",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "description": "Workspace umbrella for runnable demos and example-owned test compositions: declares their cordis.yml packages so plain Node resolves real exports→lib. Not a build target.",
   "dependencies": {
@@ -53,7 +53,6 @@
     "@huiliyi37/dsh-pty-local": "workspace:*",
     "@huiliyi37/dsh-pwsh-local": "workspace:*",
     "@huiliyi37/dsh-repeat-tool-guard": "workspace:*",
-    "@huiliyi37/dsh-repository-plugin": "workspace:*",
     "@huiliyi37/dsh-sandbox": "workspace:*",
     "@huiliyi37/dsh-sandbox-local": "workspace:*",
     "@huiliyi37/dsh-sandbox-policy": "workspace:^",

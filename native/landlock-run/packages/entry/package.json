@@ -1,11 +1,11 @@
 {
   "name": "@huiliyi37/node-addon-landlock-run",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "description": "Landlock self-restrict-then-exec launcher for sandboxing subprocesses on Linux: per-platform prebuilt static binaries plus the JS seam that resolves, probes, and speaks their CLI contract",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-build.git",
     "directory": "native/landlock-run/packages/entry"
   },
   "main": "lib/index.js",

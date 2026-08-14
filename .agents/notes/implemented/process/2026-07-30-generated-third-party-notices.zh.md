@@ -22,7 +22,7 @@ Status: implemented
 
 **分层依据是声明方所在区域，而非 manifest 字段名。** 只要 `DEV_ONLY_AREAS` 之外的任一 manifest——即根 manifest、`packages/support/`、`packages/client/test-runtime/`、`website/`、`examples/`、`native/` 之外——在 `dependencies` 或 `optionalDependencies` 里点名某个包，它就是运行时依赖。单看字段名在两个方向上都会出错：测试支撑包把 `vitest` 写在 `dependencies` 里却并不交付它；而 `bin/dsh` 启动器通过 `tsx` 执行，根本没有任何 manifest 把它声明为运行时依赖，只能由生成器显式标记。
 
-运行时层刻意覆盖**所有可挂载的插件**，而不止 CLI、Web UI 与 Python 运行时默认加载的那些。`scripts/install.sh` 安装的就是仓库本身，用户的 `cordis.yml` 可以挂载任何插件包；`@modelcontextprotocol/sdk` 与 OpenTelemetry 系列即使没有任何默认装配引入，也会触达真实用户。对法务披露而言，披露不足才是代价更高的那个方向。
+运行时层刻意覆盖**所有可挂载的插件**，而不止 CLI、Web UI 与 Python 运行时默认加载的那些。源码运行可以从用户的 `cordis.yml` 挂载任何插件包；`@modelcontextprotocol/sdk` 与 OpenTelemetry 系列即使没有任何默认装配引入，也会触达真实用户。对法务披露而言，披露不足才是代价更高的那个方向。
 
 manifest 集合由根 `pnpm-workspace.yaml` 声明的 `packages:` 成员派生，其中包括 Landlock 工作区及其公开包，因此新增成员区域在声明当天就会被读取，而不必等谁想起来去补一份列表。许可证与仓库地址取自根工作区已安装的 pnpm store 和包本地链接场；某个包两处都解析不到时直接失败，而不是留下空单元格。`OVERRIDES` 收录已发布 manifest 答不上来的包：用 Rust 构建、发布时省略 `license` 字段的 npm 可执行包，以及 `modelcontextprotocol/servers` 系列——该仓库正处在 MIT 向 Apache-2.0 的重新许可过程中，实际条款按贡献逐条而定。运行时依赖的许可证若不在宽松清单内即为硬失败：交付 copyleft 是一项分发决策，不该被一次重新生成悄悄吸收。被源码收编的包会与 `vendor/README.md` 交叉核对，出现非 MIT 即报错；`pnpm-workspace.yaml` 的 `patchedDependencies` 列入运行时表格，因为 pnpm 在安装期就会打上这些补丁——交付产物携带的是改动过的 `@earendil-works/pi-tui` 与 `node-pty`，补丁文件本身就是改动的完整记录。
 

@@ -18,7 +18,7 @@ Status: implemented
 
 两个插件都进入 Python runtime 闭包。持久 Bash 的闭包还包含 PTY 服务／本地后端，以及该后端要求的沙箱服务。由于 `node-pty` 在 macOS 上会执行原生 `spawn-helper`，每个打包后的 macOS 运行时可执行文件都会携带一个 `-spawn-helper` 伴随文件；Linux 直接使用 `forkpty`。固定版本的 `node-pty` 补丁会先检查 `DSH_NODE_PTY_SPAWN_HELPER`，因此对当前提供非伴随 helper 的外部消费方而言，该变量仍是真正的覆盖项。未设置该覆盖时，补丁会在打包可执行文件的伴随文件存在时解析它，否则在普通 Node 运行中保留上游查找方式。若 helper 缺失或不可执行，macOS 构建器会在发布前失败。
 
-已交付的 [`core-web.cordis.yml`](../../../../apps/cli/config/core-web.cordis.yml) overlay 会在常规 Web 界面之上组合这两个插件，以满足与 Claude SWE 兼容的 RL 约定。它固定使用原生工具模式；完整的系统提示词在设置 `DSH_SYSTEM_PROMPT` 时采用其值，否则采用 `You are a helpful software engineer assistant.`，且不包含 harness 身份、源码 checkout 提示词段、Web 界面定位、Workspace 指令或工具模式指引。它会禁用其他所有面向模型的消费方，使模型恰好只收到持久 `bash` 和 `str_replace_editor` 两个 schema，同时保留 Web 宿主、浏览器、Workspace、持久化、沙箱与权限栈。本地 PTY 后端会在创建 shell 时解析会话的有效沙箱模式。只要该所有者仍有打开的 shell 或仍在进行中的 spawn，另一种权限模式就会在对应的会话事件提交前遭到拒绝；编辑器则继续经由 Web 文件系统沙箱运行。
+自定义 profile overlay 可以在常规 Web 界面之上组合这两个插件：固定使用原生工具模式、固定完整的系统提示词，并禁用其他所有面向模型的消费方，使模型恰好只收到持久 `bash` 和 `str_replace_editor` 两个 schema，同时保留 Web 宿主、浏览器、Workspace、持久化、沙箱与权限栈。本地 PTY 后端会在创建 shell 时解析会话的有效沙箱模式。只要该所有者仍有打开的 shell 或仍在进行中的 spawn，另一种权限模式就会在对应的会话事件提交前遭到拒绝；编辑器则继续经由 Web 文件系统沙箱运行。
 
 ## 考虑过的替代方案
 

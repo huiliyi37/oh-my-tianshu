@@ -1,13 +1,13 @@
 {
   "name": "@huiliyi37/dsh-hooks-claude",
   "description": "Bridge plugin: run a Claude Code hooks.json / settings hook config on the Tianshu Harness interception seams",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-build.git",
     "directory": "packages/hooks/hooks-claude"
   },
   "type": "module",

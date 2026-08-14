@@ -52,7 +52,6 @@
 | [`host/`](host/README.md) | web GUI 宿主半侧：API 网关 + HTTP 路由服务器 | 产品：稳定接口 |
 | [`client/`](client/README.md) | web GUI 浏览器半侧：shell、协议层、对象服务、slot、`ui-*` 插件 | 产品：稳定接口 |
 | [`tui/`](tui/README.md) | 交互式终端 UI：profile bundle + 移植渲染核心 | 产品：趋稳 |
-| [`experimental/`](experimental/README.md) | 原型和内部插件 | 未发布 |
 | [`examples/`](examples/README.md) | 演示组合包（agent-spine + CLI/ACP/JSON-RPC bin），由叶节点加载 | 支持：示例基础设施 |
 | [`support/`](support/README.md) | 支持基础设施（testkit、不变式、回放、Loader 冒烟测试） | 支持：兼容性预期较低 |
 | [`util/`](util/README.md) | 组间共享的低层零依赖工具（`Branded<B>`、Harness home／路径辅助函数、超时、保留策略） | 支持：小型、稳定、无 harness 依赖 |

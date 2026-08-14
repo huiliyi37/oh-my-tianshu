@@ -1,13 +1,13 @@
 {
   "name": "@huiliyi37/dsh-subagent-spawn",
   "description": "In-process spawn subagent backend: runs a fresh child agent on ctx.agents",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-build.git",
     "directory": "packages/subagent/subagent-spawn"
   },
   "type": "module",

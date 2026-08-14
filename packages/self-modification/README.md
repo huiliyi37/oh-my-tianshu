@@ -7,4 +7,3 @@ Model-facing tools over the live cordis runtime the agent itself runs inside: in
 | Package | Role | ctx key |
 |---|---|---|
 | [`tool-cordis/`](tool-cordis/README.md) | Model-facing runtime inspection and temporary-plugin tools | registers on `ctx.tools` |
-| [`repository-plugin/`](repository-plugin/README.md) | Repository skill and MCP composition | registers a Loader builtin |

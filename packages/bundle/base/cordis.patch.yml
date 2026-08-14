@@ -21,13 +21,6 @@
       config:
         root: ['.']
 
-    # The profile's cordis.patch.yml replaces this row's config to select exact GitHub
-    # repository Plugin generations. The app registers the DSH-owned runtime even
-    # when the list is empty so a later personal-config edit can load
-    # transactionally; one-shot headless runs consume the startup value only.
-    - id: repository-plugins
-      name: '@huiliyi37/dsh-repository-plugin'
-
     - id: llm
       name: '@huiliyi37/dsh-llm'
 

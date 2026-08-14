@@ -36,7 +36,7 @@ Without a repository checkout, download the selected overlay directly:
 mkdir -p "${DSH_HOME:-$HOME/.dsh}"
 curl --fail --location \
   --output "${DSH_HOME:-$HOME/.dsh}/memory.cordis.yml" \
-  https://raw.githubusercontent.com/huiliyi37/dsh-tianshu-tui/master/examples/mcp-memory/memorix.cordis.yml
+  https://raw.githubusercontent.com/huiliyi37/dsh-tianshu-build/master/examples/mcp-memory/memorix.cordis.yml
 tianshu web --patch "${DSH_HOME:-$HOME/.dsh}/memory.cordis.yml"
 ```
 

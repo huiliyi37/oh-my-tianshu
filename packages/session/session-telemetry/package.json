@@ -1,13 +1,13 @@
 {
   "name": "@huiliyi37/dsh-session-telemetry",
   "description": "Telemetry seam for the Tianshu Harness: session-event capture, projection, redaction, and handoff to a reporting backend",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-build.git",
     "directory": "packages/session/session-telemetry"
   },
   "type": "module",

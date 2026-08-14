@@ -1,13 +1,13 @@
 {
   "name": "@huiliyi37/dsh-client-ui-goal",
   "description": "Session goal surface: GoalBar docked above the composer, read from the goal session projection",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huiliyi37/dsh-tianshu-tui.git",
+    "url": "git+https://github.com/huiliyi37/dsh-tianshu-build.git",
     "directory": "packages/client/ui-goal"
   },
   "type": "module",

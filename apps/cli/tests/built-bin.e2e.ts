@@ -9,7 +9,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 /** Published-entry acceptance for argument errors, profile lifecycle, and boot-free config dumps. */
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url))
 const dshBin = join(repoRoot, 'apps/cli/lib/bin.js')
-const coreWebOverlay = fileURLToPath(new URL('../config/core-web.cordis.yml', import.meta.url))
 const invalidProvider = fileURLToPath(new URL('./fixtures/invalid-provider.cordis.yml', import.meta.url))
 
 async function runBuiltBin(
@@ -521,17 +520,6 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
       // Both layers patched the row; the comment lists them in application order.
       expect(stdout).toContain(`patched by ${profilePatch}, ${overlay}`)
       expect(stderr).toContain('patch: entry "absent-row" not found')
-    }, 30_000)
-
-    it('shows the RL Web patch disabling runtime surface context', async () => {
-      const { stdout, code, stderr } = await runBuiltBin(
-        ['web', '--patch', coreWebOverlay, '--dump-config'],
-        { DSH_HOME: home },
-      )
-      expect(code).toBe(0)
-      expect(stderr).toBe('')
-      expect(stdout).toContain("name: '@huiliyi37/dsh-web-app'")
-      expect(stdout).toContain('surfaceContext: false')
     }, 30_000)
   })
 })

@@ -125,7 +125,7 @@ describe('HarnessSdkServer', () => {
         model: 'dsagent-model',
         maxTokens: 321,
       }) as { serverInfo: { name: string } }
-      expect(init.serverInfo.name).toBe('deepseek-harness-sdk-runtime')
+      expect(init.serverInfo.name).toBe('tianshu-harness-sdk-runtime')
 
       const receipt = await server.handleRequest('session/prompt', {
         sessionId: 'main',
