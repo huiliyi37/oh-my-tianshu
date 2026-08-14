@@ -4,13 +4,13 @@
 
 天枢 Harness(`tianshu`)是一款完全体开源 coding agent:在 agent harness 之上带视觉、跨会话记忆、验证门、agent 路由、语义 + 图谱代码检索、文件回滚和全屏终端 UI——全部以插件组合。
 
-它是 [DeepSeek Harness](https://github.com/deepseek-ai)(`dsh`)的友好 MIT fork,分叉点为 2026-08 基线;本线独立演进,不追踪上游。完整署名见 [NOTICE](NOTICE)。
+它是 [DeepSeek Harness](https://github.com/deepseek-ai)(`dsh`,MIT)的友好 fork,以 **Apache License 2.0** 发布;分叉点为 2026-08 基线;本线独立演进,不追踪上游。完整署名见 [NOTICE](NOTICE)。
 
 它保留了上游**一切皆插件**的架构。
 
 ## 安装
 
-发布到 npm 后,一条命令直接运行:
+已发布到 npm,一条命令直接运行:
 
 ```sh
 npx @huiliyi37/dsh-tianshu tui

@@ -4,13 +4,13 @@ English | [中文](README.zh.md)
 
 Tianshu Harness (`tianshu`) is a full-capability open-source coding agent: an agent harness with vision, cross-session memory, verification gates, agent routing, semantic + graph code retrieval, file rewind, and a full-screen terminal UI — all composed as plugins.
 
-It is a friendly MIT fork of [DeepSeek Harness](https://github.com/deepseek-ai) (`dsh`). The fork point is the 2026-08 baseline; this line evolves independently and does not track upstream. See [NOTICE](NOTICE) for the full attribution.
+It is a friendly fork of [DeepSeek Harness](https://github.com/deepseek-ai) (`dsh`, MIT) released under the **Apache License 2.0**. The fork point is the 2026-08 baseline; this line evolves independently and does not track upstream. See [NOTICE](NOTICE) for the full attribution.
 
 It keeps the upstream architecture where **everything is a plugin**.
 
 ## Install
 
-Once published, run it straight from npm:
+Run it straight from npm:
 
 ```sh
 npx @huiliyi37/dsh-tianshu tui
