@@ -32,7 +32,6 @@
       "@huiliyi37/cosmokit": ["./vendor/cosmokit/src"],
       "@huiliyi37/schemastery": ["./vendor/schemastery/src"],
       "@huiliyi37/cordis-plugin-loader": ["./vendor/loader/src"],
-      "@huiliyi37/cordis-plugin-loader/repository": ["./vendor/loader/src/repository.ts"],
       "@huiliyi37/cordis-plugin-include": ["./vendor/include/src"],
       "@huiliyi37/cordis-plugin-group": ["./vendor/group/src"],
       "@huiliyi37/cordis-plugin-timer": ["./vendor/timer/src"],
