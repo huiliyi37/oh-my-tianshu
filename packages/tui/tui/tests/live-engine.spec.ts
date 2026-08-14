@@ -1,12 +1,21 @@
 /**
- * padDynamicRegion — 溢出裁剪契约测试。
+ * padDynamicRegion / nextDynamicBudget / liveMaxRowsFor — 定高视口契约。
  *
- * 动态段超过 budget 时从顶裁；短于 budget 不垫空行（不填视口）。
- * budget ≤ 0 原样返回。
+ * 动态段垫高或截断到恰好 budget display rows：
+ * - 不足 → 内容与 chrome 之间垫空行（内容贴上、输入框贴下）
+ * - 超出 → 从顶部丢掉最旧行
+ * - budget ≤ 0 → 原样返回（欢迎首帧不垫）
+ * 高水位只涨不缩，避免 live region 回缩留下输入框重影与屏底黑洞。
  */
 
 import { describe, expect, it } from 'vitest'
-import { padDynamicRegion, type LiveRegionLine } from '../src/engine/live-engine.js'
+import {
+  liveMaxRowsFor,
+  nextDynamicBudget,
+  padDynamicRegion,
+  LIVE_TOOL_CARD_MAX,
+  type LiveRegionLine,
+} from '../src/engine/live-engine.js'
 
 function L(...texts: string[]): LiveRegionLine[] {
   return texts.map(text => ({ text }))
@@ -19,17 +28,17 @@ describe('padDynamicRegion', () => {
     expect(padDynamicRegion(lines, 2, -1).lines).toEqual(lines)
   })
 
-  it('动态段短于 budget：不垫空行，chrome 贴尾', () => {
+  it('动态段短于 budget：在内容与 chrome 之间垫空行到恰好 budget', () => {
     const { lines, chromeStart } = padDynamicRegion(L('think', '❯', 'foot'), 1, 4)
-    expect(lines.map(l => l.text)).toEqual(['think', '❯', 'foot'])
-    expect(chromeStart).toBe(1)
+    expect(lines.map(l => l.text)).toEqual(['think', '', '', '', '❯', 'foot'])
+    expect(chromeStart).toBe(4)
     expect(lines.slice(chromeStart).map(l => l.text)).toEqual(['❯', 'foot'])
   })
 
-  it('动态段空：不垫，chrome 原样', () => {
+  it('动态段空：全部垫空行到 budget，chrome 贴尾', () => {
     const { lines, chromeStart } = padDynamicRegion(L('❯', 'foot'), 0, 3)
-    expect(lines.map(l => l.text)).toEqual(['❯', 'foot'])
-    expect(chromeStart).toBe(0)
+    expect(lines.map(l => l.text)).toEqual(['', '', '', '❯', 'foot'])
+    expect(chromeStart).toBe(3)
   })
 
   it('动态段超过 budget：从顶部丢掉最旧行', () => {
@@ -42,14 +51,13 @@ describe('padDynamicRegion', () => {
     expect(chromeStart).toBe(2)
   })
 
-  it('短于 budget：内容紧贴 chrome，前方无空行', () => {
-    const { lines, chromeStart } = padDynamicRegion(L('think', 'tool', '❯'), 2, 5)
+  it('恰好等于 budget：原样保留，无垫行无截断', () => {
+    const { lines, chromeStart } = padDynamicRegion(L('think', 'tool', '❯'), 2, 2)
     expect(lines.map(l => l.text)).toEqual(['think', 'tool', '❯'])
-    expect(lines[chromeStart - 1]?.text).toBe('tool')
-    expect(lines[chromeStart]?.text).toBe('❯')
+    expect(chromeStart).toBe(2)
   })
 
-  it('wrapping-aware：budget 按 display rows 计，短则不垫', () => {
+  it('wrapping-aware：budget 按 display rows 计，短则垫齐', () => {
     const rowsForLine = (text: string) => (text === 'wide' ? 3 : 1)
     const { lines, chromeStart } = padDynamicRegion(
       L('wide', '❯'),
@@ -57,20 +65,68 @@ describe('padDynamicRegion', () => {
       5,
       rowsForLine,
     )
-    // wide 占 3 < budget 5 → 不垫
-    expect(lines.map(l => l.text)).toEqual(['wide', '❯'])
-    expect(chromeStart).toBe(1)
+    expect(lines.map(l => l.text)).toEqual(['wide', '', '', '❯'])
+    expect(chromeStart).toBe(3)
+    const dynamicRows = lines.slice(0, chromeStart).reduce((n, l) => n + rowsForLine(l.text), 0)
+    expect(dynamicRows).toBe(5)
   })
 
-  it('超预算裁掉多 display-row 行后不垫齐', () => {
+  it('超预算裁掉多 display-row 行后垫齐到恰好 budget', () => {
     const rowsForLine = (text: string) => (text === 'wide' ? 3 : 1)
-    const { lines } = padDynamicRegion(
+    const { lines, chromeStart } = padDynamicRegion(
       L('wide', 'keep', '❯'),
       2,
       2,
       rowsForLine,
     )
-    // drop wide (3 rows) → keep=1，不垫空行补到 2
-    expect(lines.map(l => l.text)).toEqual(['keep', '❯'])
+    // drop wide (3 rows) → keep=1，垫 1 空行补到 2
+    expect(lines.map(l => l.text)).toEqual(['keep', '', '❯'])
+    expect(chromeStart).toBe(2)
+  })
+})
+
+describe('nextDynamicBudget', () => {
+  it('skipPad：预算 0，高水位保持', () => {
+    expect(nextDynamicBudget(4, 2, 10, true)).toEqual({ budget: 0, highWater: 4 })
+  })
+
+  it('ceiling ≤ 0：预算与高水位归零', () => {
+    expect(nextDynamicBudget(8, 3, 0, false)).toEqual({ budget: 0, highWater: 0 })
+  })
+
+  it('只涨不缩：内容回落时保持高水位', () => {
+    const grown = nextDynamicBudget(0, 6, 20, false)
+    expect(grown).toEqual({ budget: 6, highWater: 6 })
+    expect(nextDynamicBudget(grown.highWater, 1, 20, false)).toEqual({ budget: 6, highWater: 6 })
+  })
+
+  it('不超过 ceiling（含 resize 收缩）', () => {
+    expect(nextDynamicBudget(12, 12, 8, false)).toEqual({ budget: 8, highWater: 8 })
+  })
+
+  it('freezeHighWater：本帧可加高，高水位不跟涨', () => {
+    expect(nextDynamicBudget(6, 20, 28, false, true)).toEqual({ budget: 20, highWater: 6 })
+  })
+
+  it('freezeHighWater：ceiling 仍收缩高水位', () => {
+    expect(nextDynamicBudget(12, 20, 8, false, true)).toEqual({ budget: 8, highWater: 8 })
+  })
+})
+
+describe('liveMaxRowsFor', () => {
+  it('高终端封顶 28，小终端 rows-1，下限 4，缺失回退 24-1', () => {
+    expect(liveMaxRowsFor(50)).toBe(28)
+    expect(liveMaxRowsFor(29)).toBe(28)
+    expect(liveMaxRowsFor(20)).toBe(19)
+    expect(liveMaxRowsFor(10)).toBe(9)
+    expect(liveMaxRowsFor(4)).toBe(4)
+    expect(liveMaxRowsFor(2)).toBe(4)
+    expect(liveMaxRowsFor(0)).toBe(23)
+  })
+})
+
+describe('LIVE_TOOL_CARD_MAX', () => {
+  it('live 区最多同时展开 3 张进行中工具卡', () => {
+    expect(LIVE_TOOL_CARD_MAX).toBe(3)
   })
 })

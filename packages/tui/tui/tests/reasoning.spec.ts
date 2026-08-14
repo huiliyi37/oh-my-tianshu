@@ -2,7 +2,7 @@
  * format/reasoning — think 推理渲染契约测试。
  *
  * - formatReasoningLive：shimmer 头行（✻ 思考中…）+ 尾 N 行暗色推理，
- *   超宽截断、compact 仅头行、<1s 不显示耗时、expanded 渲染全文。
+ *   wrap 显示行封顶、compact 仅头行、<1s 不显示耗时、expanded 渲染全文。
  * - formatReasoningBlock：静态头行（✻ 思考 (Ns) · N 行），默认折叠
  *   （仅头行，对标竞品）；expanded 渲染全文；compact 仅头行。
  *
@@ -14,6 +14,7 @@ import type { RivetTheme } from '../src/theme.js'
 import {
   formatReasoningBlock,
   formatReasoningLive,
+  reasoningTailBudget,
   REASONING_TAIL_LINES,
 } from '../src/format/reasoning.js'
 import { pinTuiEnvBaseline } from './env-baseline.js'
@@ -63,12 +64,19 @@ describe('formatReasoningLive', () => {
     expect(fresh[0]).not.toContain('(')
   })
 
-  it('超宽行按列截断 + 省略号', () => {
-    const long = 'x'.repeat(200)
-    const lines = plain(formatReasoningLive({ text: long, tick: 0, columns: 40 }, fakeTheme()))
-    const tail = lines[1] ?? ''
-    expect(tail).toContain('…')
-    expect(tail.length).toBeLessThan(50)
+  it('超宽逻辑行先 wrap 再取尾，显示行不超过 maxRows', () => {
+    const long = 'x'.repeat(80)
+    const lines = plain(formatReasoningLive({
+      text: `old\n${long}`,
+      tick: 0,
+      columns: 20,
+      maxRows: 3,
+    }, fakeTheme()))
+    const body = lines.slice(1).map(l => l.trim())
+    expect(body.join('\n')).not.toContain('old')
+    expect(body).toHaveLength(3)
+    expect(body.join('').replace(/x/g, '').length).toBe(0)
+    expect(body.join('').length).toBeLessThan(80)
   })
 
   it('compact → 仅头行', () => {
@@ -86,6 +94,25 @@ describe('formatReasoningLive', () => {
 
   it('空文本 → 仅头行', () => {
     expect(formatReasoningLive({ text: '', tick: 0, columns: 80 }, fakeTheme())).toHaveLength(1)
+  })
+
+  it('maxRows 覆盖默认尾巴行数', () => {
+    const text = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].join('\n')
+    const lines = plain(formatReasoningLive({ text, tick: 0, columns: 80, maxRows: 6 }, fakeTheme()))
+    expect(lines).toHaveLength(1 + 6)
+    expect(lines.join('\n')).not.toContain('a')
+    expect(lines.join('\n')).toContain('b')
+    expect(lines.join('\n')).toContain('g')
+  })
+})
+
+describe('reasoningTailBudget', () => {
+  it('随终端高度在 3–6 之间缩放', () => {
+    expect(reasoningTailBudget(50)).toBe(6)
+    expect(reasoningTailBudget(40)).toBe(6)
+    expect(reasoningTailBudget(24)).toBe(4)
+    expect(reasoningTailBudget(18)).toBe(3)
+    expect(reasoningTailBudget(0)).toBe(4)
   })
 })
 

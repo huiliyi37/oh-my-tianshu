@@ -20,6 +20,16 @@ vi.mock('../src/engine/clipboard-image.js', () => ({
   FOCUS_DEBOUNCE_MS: 1_000,
 }))
 
+/** 输入轨顶框前连续空行数（定高垫行 vs 欢迎帧不垫的装配断言）。 */
+function blankLinesBeforeRail(written: string): number {
+  const plain = written.replace(/\x1B\[[0-9;?]*[ -/]*[@-~]/g, '')
+  const idx = plain.lastIndexOf('╭')
+  if (idx < 0) return 0
+  const m = plain.slice(0, idx).match(/(?:\n[ \t]*)+$/)
+  if (m === null) return 0
+  return m[0].split('\n').length - 1
+}
+
 /** 最小可渲染 stdout 替身：宽/高/写入记录，以及 ResizeHandler 需要的 on/removeListener。 */
 function makeStdout(): WriteStream & { write: ReturnType<typeof vi.fn> } {
   return {
@@ -3352,6 +3362,35 @@ describe('TuiApp 会话事件流防御分支', () => {
     expect(written).toContain('Search')
     await app.dispose()
   })
+
+  it('进行中工具超过 LIVE_TOOL_CARD_MAX：只展开最新一张，溢出一行', async () => {
+    const { app, stdout, owner, fire } = await bootEventApp()
+    stdout.rows = 40
+    const tools = [
+      { callId: 't1', name: 'bash' },
+      { callId: 't2', name: 'grep' },
+      { callId: 't3', name: 'read_file' },
+      { callId: 't4', name: 'web_fetch' },
+    ]
+    for (const [i, tool] of tools.entries()) {
+      fire('session/event', owner, {
+        type: 'tool/call',
+        seq: i,
+        time: i + 1,
+        data: { callId: tool.callId, name: tool.name, arguments: '{}', turn: 1, step: i },
+      })
+    }
+    app.handleSubmit('刷新渲染')
+    await new Promise(resolve => setTimeout(resolve, 30))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('…(+1) 个工具进行中')
+    expect(written).toContain('Search')
+    expect(written).toContain('Read')
+    expect(written).toContain('Fetch')
+    const plain = written.replace(/\x1B\[[0-9;?]*[ -/]*[@-~]/g, '')
+    expect((plain.match(/⎿  …/g) ?? []).length).toBe(1)
+    await app.dispose()
+  })
 })
 
 describe('TuiApp 结算卡与推理通道', () => {
@@ -4281,15 +4320,6 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
     return { ctx, agent, handle, stdin, stdout, app }
   }
 
-  function blankLinesBeforeRail(written: string): number {
-    const plain = written.replace(/\x1B\[[0-9;?]*[ -/]*[@-~]/g, '')
-    const idx = plain.lastIndexOf('╭')
-    if (idx < 0) return 0
-    const m = plain.slice(0, idx).match(/(?:\n[ \t]*)+$/)
-    if (m === null) return 0
-    return m[0].split('\n').length - 1
-  }
-
   it('ctrl_n（0x0e）→ newSession：agents.create 再次被调用（保留旧会话）', async () => {
     const { ctx, app, stdin } = boot()
     await app.attach()
@@ -4384,7 +4414,7 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
     }
   })
 
-  it('B 布局：窄屏（<80 列）footer 不合并，metrics 独立行、API 段不出现', async () => {
+  it('B 布局：窄屏 footer 仍单行合并，不纵排 theme.primary 第二行', async () => {
     const { stdout, app } = boot()
     stdout.columns = 70
     await app.attach()
@@ -4394,8 +4424,9 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
     expect(written).toContain('❯')
     expect(written).toMatch(/╭─+/)
     expect(written).not.toMatch(/│ ❯/)
-    // 无合并 → API 状态段不渲染（欢迎页「API Key」环境检查行不受影响）
+    // 70 列从右丢段，API 末段先丢；metrics 不得再以 primary 色独立成行
     expect(written).not.toContain('API ✗')
+    expect(written).toContain('\x1B[38;2;170;178;194m')
     await app.dispose()
   })
 
@@ -4422,6 +4453,45 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
     expect(after).toMatch(/╭─+/)
     expect(after).toMatch(/╰─+/)
     expect(blankLinesBeforeRail(after)).toBeLessThanOrEqual(2)
+    await app.dispose()
+  })
+})
+
+describe('TuiApp live 区高水位钉住输入轨', () => {
+  it('流式推理撑高后，段结束 live 区不回缩', async () => {
+    const { app, stdout, owner, fire } = await bootEventApp()
+    stdout.rows = 40
+    fire('session/event', owner, {
+      type: 'user/message',
+      seq: 0,
+      time: 1,
+      data: { content: [{ type: 'text', text: '开始' }] },
+    })
+    const chunk = Array.from({ length: 20 }, (_, i) => `思路步骤${i}`).join('\n')
+    fire('session/event', owner, {
+      type: 'assistant/chunk',
+      seq: 1,
+      time: Date.now(),
+      data: { turn: 1, step: 0, chunk: { type: 'reasoning-delta', text: chunk } },
+    })
+    await new Promise(resolve => setTimeout(resolve, 30))
+    const streaming = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    const blanksDuring = blankLinesBeforeRail(streaming)
+
+    stdout.write.mockClear()
+    fire('session/event', owner, {
+      type: 'assistant/chunk',
+      seq: 2,
+      time: Date.now(),
+      data: { turn: 1, step: 0, chunk: { type: 'text-delta', text: '结论。' } },
+    })
+    await new Promise(resolve => setTimeout(resolve, 300))
+    const settled = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    const blanksAfter = blankLinesBeforeRail(settled)
+    expect(blanksDuring).toBeGreaterThanOrEqual(0)
+    expect(blanksAfter).toBeGreaterThan(2)
+    expect(blanksAfter).toBeGreaterThanOrEqual(blanksDuring)
+    expect(settled).toMatch(/╭─+/)
     await app.dispose()
   })
 })
