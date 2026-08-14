@@ -20,7 +20,7 @@
  * - loading 时 Esc：取消并销毁 btw agent（无答案可写）。
  * 重叠保护：ask 期间再次 ask 静默忽略（一次只跑一个侧问）。
  *
- * @module @huiliyi37/dsh-tui/controllers/btw-controller
+ * @module @huiliyi37/dsh-tianshu-tui/controllers/btw-controller
  */
 
 import { randomUUID } from 'node:crypto'
@@ -127,9 +127,16 @@ export class BtwController {
     const btwId = SessionId(`session-btw-${randomUUID()}`)
     const seed = completedTurnSeed(session.events)
     const selection = this.ctx.agentDefaultModel.currentSelection()
+    // 与 SessionStore.fork 同构：继承父会话 cwd（无则回退启动目录），并记下血缘。
+    // 缺 cwd 的 btw 会话同样会掉进 `_no-cwd/`，Web 列表不可见（issue #5）。
     const handle = await this.ctx.agents.create({
       sessionId: btwId,
       seed,
+      meta: {
+        cwd: session.header.cwd ?? process.cwd(),
+        parentSession: activeId,
+        seedLength: seed.length,
+      },
       agentOptions: { provider: selection.provider, model: selection.model },
     })
     // 答案流订阅：text-delta 收集进 buffer，turn/end 定稿（与主会话 streamFeed

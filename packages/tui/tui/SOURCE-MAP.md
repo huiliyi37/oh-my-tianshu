@@ -1,4 +1,4 @@
-# dsh-tui source map
+# dsh-tianshu-tui source map
 
 本包渲染核心移植自天枢（Tianshu，曾用代号 Rivet）终端 UI 引擎，Apache License 2.0：
 
@@ -40,8 +40,8 @@
 | src/engine/ansi.ts | engine/ansi.ts | modified |
 | src/engine/clipboard-image.ts | engine/clipboard-image.ts | modified（移除未声明的 @mariozechner/clipboard native 路径，保留 shell 链 + 注入点） |
 | src/engine/commit-engine.ts | engine/commit-engine.ts | modified |
-| src/engine/image-attach.ts | engine/image-attach.ts | modified |
-| src/engine/image-tool.ts | engine/image-tool.ts | ported |
+| src/engine/image-attach.ts | engine/image-attach.ts | modified（三级自适应压缩：1568px 保透明 PNG / JPEG 0.82 → JPEG 0.55 → 1024px+0.55，语义对齐上游 desktop 子树 image-compress.ts 的 compressImageSafe；probeImageSize 头部解析为 dsh 新增） |
+| src/engine/image-tool.ts | engine/image-tool.ts | modified（新增 resizeJpegCandidates——长边缩放 + JPEG 质量候选链，win32 脚本含 EncoderParameter 质量参数；语义对齐上游 desktop 子树 image-compress.ts） |
 | src/engine/input-controller.ts | engine/input-controller.ts | modified（类型内联；`tabComplete` Tab 补全状态机驱动） |
 | src/engine/input-handler.ts | engine/input-handler.ts | modified |
 | src/engine/input-line.ts | engine/input-line.ts | modified |
@@ -57,7 +57,9 @@
 | src/external-editor.ts | external-editor.ts | modified |
 | src/fluency-hook.ts | fluency-hook.ts | modified |
 | src/format/activity-labels.ts | format/activity-labels.ts | modified |
+| src/format/approval-card.ts | — | new（审批卡：圆角轨 + diff 体 + y/n/a/esc 键位，纯渲染） |
 | src/format/btw-panel.ts | — | new |
+| src/format/chrome-colors.ts | — | new（输入轨/footer 雾蓝 chrome token，对齐 dsh-cc-tui Gentle Mist Blue） |
 | src/format/collapsed-bash.ts | format/collapsed-bash.ts | modified |
 | src/format/diff.ts | format/diff.ts | modified |
 | src/format/doctor-report.ts | — | new |
@@ -66,7 +68,7 @@
 | src/format/glance-bar.ts | format/glance-bar.ts | modified |
 | src/format/hidden-lines.ts | format/hidden-lines.ts | ported |
 | src/format/history-search-overlay.ts | — | new |
-| src/format/input-frame.ts | — | new（输入框完整框体：╭─╮ 顶框 + │ 侧边 + ╰─╯ 底框，几何复用 box-chars，纯渲染） |
+| src/format/input-frame.ts | — | new（输入轨：上下圆角横线 ╭─╮/╰─╯，左右不封，纯渲染） |
 | src/format/keymap-panel.ts | — | new |
 | src/format/markdown.ts | format/markdown.ts | modified |
 | src/format/memory-overlay.ts | — | new |
@@ -90,6 +92,7 @@
 | src/format/turn-status.ts | — | new（C4 概念稿 turn_status：spinner/◆ + 阶段文本，纯渲染） |
 | src/format/user-message.ts | format/user-message.ts | modified |
 | src/format/welcome.ts | format/welcome.ts | modified |
+| src/format/whale.ts | — | new（欢迎页鲸鱼品牌像素画：半块字符双色渲染，品牌固定色 + 色深/宽度档降级，纯渲染） |
 | src/gutter.ts | gutter.ts | ported |
 | src/index.ts | — | new |
 | src/invariant.ts | — | new |

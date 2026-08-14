@@ -5,7 +5,7 @@
  * 删除（x → onDelete + refetch 刷新）、分页（Ctrl+N/P → fetchPage）、空态/无匹配渲染。
  * 渲染是纯函数（同一状态恒同行序列）；theme 注入固定实例避免环境探测。
  *
- * @module @huiliyi37/dsh-tui/tests/memory-overlay
+ * @module @huiliyi37/dsh-tianshu-tui/tests/memory-overlay
  */
 
 import { describe, expect, it, vi } from 'vitest'

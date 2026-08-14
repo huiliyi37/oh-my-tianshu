@@ -15,7 +15,7 @@
  * 反目标（不做）：设置/权限审批/主题定制/插件管理、slash 命令全集、
  * worker/星域面板。本装配只覆盖目标 1-6。
  *
- * @module @huiliyi37/dsh-tui/ui
+ * @module @huiliyi37/dsh-tianshu-tui/ui
  */
 
 import { randomUUID } from 'node:crypto'
@@ -31,7 +31,7 @@ import { installModelSelection, type AgentHandle, type ModelSelection, type Mode
 import type {} from '@huiliyi37/dsh-agent-default-model'
 import { CommitEngine } from '../engine/commit-engine.js'
 import { ANSI, color, imageProtocol, osc52Clipboard } from '../engine/ansi.js'
-import { LiveEngine, type LiveRegionLine } from '../engine/live-engine.js'
+import { LiveEngine, padDynamicRegion, type LiveRegionLine } from '../engine/live-engine.js'
 import { WriteBatcher } from '../engine/write-batcher.js'
 import { InputHandler, type KeyPress, type KeyName } from '../engine/input-handler.js'
 import { InputLine } from '../engine/input-line.js'
@@ -53,7 +53,8 @@ import { resolveToolViews, type ToolPresenterSource } from '../adapter/tool-view
 import { trackAgent, type LiveAgent } from '../adapter/live.js'
 import { controlsFromHandle, controlsFromRegistry, type AgentControls } from '../adapter/send.js'
 import { listSessions, flushAll, getSession, type SessionSummary } from '../adapter/sessions.js'
-import { getTheme, getActiveThemeBackground, getActiveThemeName, setTheme, type RivetTheme } from '../theme.js'
+import { getTheme, getActiveThemeName, setTheme, type RivetTheme } from '../theme.js'
+import { displayWidth, ambiguousWideEnabled } from '../width.js'
 import { detectTerminalBackground, autoThemeFor } from '../theme-detect.js'
 import { formatUserMessage } from '../format/user-message.js'
 import { formatSteerMessage } from '../format/steer-message.js'
@@ -174,6 +175,7 @@ import { OverlayController } from '../engine/overlay-controller.js'
 import { MetricsGlanceController } from '../engine/metrics-glance-controller.js'
 import type { FormatGlanceBarInput } from '../format/glance-bar.js'
 import { formatPermissionDiff } from '../format/permission-diff.js'
+import { formatApprovalCard } from '../format/approval-card.js'
 import { HistorySearchOverlay } from '../format/history-search-overlay.js'
 import { RewindOverlay, type RewindMode, type RewindResult } from '../format/rewind-overlay.js'
 import { openInEditor } from '../external-editor.js'
@@ -200,12 +202,12 @@ import { QuestionController } from '../controllers/question-controller.js'
 import { BtwController } from '../controllers/btw-controller.js'
 import { SessionManager } from '../controllers/session-manager.js'
 import { renderBtwPanel } from '../format/btw-panel.js'
-import { formatWelcomeMenu, formatBrandWelcome, formatEnvCheckLine, type WelcomeEnvCheck, type WelcomeMenuItem } from '../format/welcome.js'
+import { CHROME_GUTTER, formatWelcomeHero, type WelcomeEnvCheck, type WelcomeTipItem } from '../format/welcome.js'
+import { formatWhaleLogo, WHALE_MIN_ROWS } from '../format/whale.js'
 import { formatTopBar } from '../format/top-bar.js'
 import { formatTurnStatus } from '../format/turn-status.js'
 import { formatPromptFooter, FOOTER_RIGHT_MERGE_MIN_WIDTH } from '../format/prompt-footer.js'
 import { formatInputFrame } from '../format/input-frame.js'
-import { boxInnerWidth } from '../box-chars.js'
 import { formatSlashMenu, SLASH_MENU_MAX_ROWS } from '../format/slash-menu.js'
 import { formatSubagentRunning, formatSubagentDone } from '../format/subagent-line.js'
 import { formatGlanceBar, glanceBarSegments } from '../format/glance-bar.js'
@@ -233,6 +235,16 @@ interface MemoryServiceFacet {
     scope: string
   }>>
   delete(id: string): Promise<void>
+}
+
+/** credentials.describe 最小面（不引入 dsh-credentials peer；ref 为 POSIX 标识符）。 */
+interface CredentialsDescribeFacet {
+  describe(ref: string): Promise<{ configured: boolean; source?: string; writable?: boolean }>
+}
+
+/** llm.resolveModelInfo 最小面（识图能力取 inputModalities，不引入 dsh-llm peer）。 */
+interface LlmModelInfoFacet {
+  resolveModelInfo(provider: string, model: string): Promise<{ inputModalities?: readonly string[] }>
 }
 
 /** TuiApp 构造选项。 */
@@ -266,8 +278,8 @@ export interface TuiAppOptions {
   }
 }
 
-/** live 区行数上限（输入行 + 状态行 + 流式尾巴）。 */
-const LIVE_RESERVED_ROWS = 3
+/** live 区预留行（顶轨 + 输入 + 底轨 + footer）。 */
+const LIVE_RESERVED_ROWS = 4
 
 /** C3 项 3：写工具名判定（与 fs-snapshot 的 trackEdit 钩子同一集合）。 */
 function isWriteToolCall(name: string): boolean {
@@ -355,8 +367,8 @@ export class TuiApp {
   private readonly slash: SlashCommandRegistry
   /** Ctrl+P 命令面板（overlay 渲染经 OverlayController 进出 alt screen）。 */
   private palette: CommandPalette | null = null
-  /** API key 就绪标志（footer 右侧段；构造时读一次，进程内不变）。 */
-  private readonly apiKeyReady = Boolean(process.env.DEEPSEEK_API_KEY)
+  /** API key 就绪标志（footer 右侧段；attach 时经 credentials.describe 刷新）。 */
+  private apiKeyReady = Boolean(process.env.DEEPSEEK_API_KEY)
   private overlay: OverlayController | null = null
   /** C3 项 3：rewind overlay（/rewind 双阶段回退面板）。 */
   private rewindOverlay: RewindOverlay | null = null
@@ -504,11 +516,10 @@ export class TuiApp {
     this.live = new LiveEngine({
       stdout: options.stdout,
       reservedRows: LIVE_RESERVED_ROWS,
-      maxRows: Math.max(8, options.stdout.rows - 4),
+      maxRows: Math.max(8, options.stdout.rows - 1),
     })
     this.input = new InputHandler({ stdin: options.stdin, mode: 'input' })
     this.inputLine = new InputLine({
-      placeholder: '询问任何事，或 Ctrl+C 取消',
       history: this.history,
       vimEnabled: this.vimEnabled,
       onSubmit: (text, images) => { this.handleSubmit(text, images) },
@@ -594,9 +605,9 @@ export class TuiApp {
     this.slash.register({
       name: 'config',
       description: '切换设置面板（settings/permission/credentials）',
-      run: () => {
+      run: async () => {
         this.configPanelVisible = !this.configPanelVisible
-        if (this.configPanelVisible) this.refreshConfigProjection()
+        if (this.configPanelVisible) await this.refreshConfigProjection()
         this.renderBatcher.schedule()
       },
     })
@@ -699,7 +710,10 @@ export class TuiApp {
     // （当前会话除外；无其他可恢复会话时静默）。live 标注取 live store。
     await this.renderRestorableSessions()
 
-    this.resize.onResize(() => { this.flushLiveRender() })
+    this.resize.onResize(() => {
+      this.live.setMaxRows(Math.max(8, this.stdout.rows - 1))
+      this.flushLiveRender()
+    })
     this.input.onAnyKey((key) => { this.handleKey(key) })
     // Phase 8：审批 answerer——waterfall 必须 next() 委托（非当前会话的
     // 请求交给链上其他 answerer；当前会话的请求挂起等用户 y/N。重复
@@ -863,25 +877,83 @@ export class TuiApp {
   }
 
   /**
+   * 查 DEEPSEEK_API_KEY 是否已配置：优先 credentials.describe（含 file / .env 层），
+   * 服务缺失或抛错时回退 process.env。欢迎页与 footer 共用，避免只看环境变量的误报。
+   */
+  private async refreshApiKeyReady(): Promise<void> {
+    const credentials = this.ctx.reflect.get('credentials', false) as CredentialsDescribeFacet | undefined
+    if (credentials !== undefined) {
+      try {
+        const info = await credentials.describe('DEEPSEEK_API_KEY')
+        this.apiKeyReady = info.configured
+        return
+      } catch {
+        // 服务面不匹配时回退 env
+      }
+    }
+    this.apiKeyReady = Boolean(process.env.DEEPSEEK_API_KEY)
+  }
+
+  /**
+   * 按当前主控模型刷新识图标志。llm 服务缺失或查询失败时保持原值；
+   * inputModalities 含 image 才直发图片，否则走桥或「未发送」。
+   */
+  private refreshVisionForSelection(selection: { provider: string; model: string }): void {
+    const llm = this.ctx.reflect.get('llm', false) as LlmModelInfoFacet | undefined
+    if (llm === undefined) return
+    void llm.resolveModelInfo(selection.provider, selection.model).then((info) => {
+      if (this.disposed) return
+      const modalities = info.inputModalities
+      this.supportsVision = modalities !== undefined && modalities.includes('image')
+    }).catch(() => {
+      // 目录查询失败时保持启动时的识图标志
+    })
+  }
+
+  /** 当前会话工作区：header.cwd 优先，缺省回退启动目录。 */
+  private sessionCwd(): string {
+    if (this.activeSessionId === null) return process.cwd()
+    const cwd = getSession(this.ctx, this.activeSessionId)?.header.cwd
+    return cwd === undefined || cwd === '' ? process.cwd() : cwd
+  }
+
+  /**
+   * Ctrl+S / 欢迎「恢复」：切到 listSessions 里最近的非当前会话（含 persistence）。
+   * live store 没有时走 switchSession → resume。
+   */
+  private async restoreRecentOtherSession(): Promise<void> {
+    const others = (await listSessions(this.ctx)).filter(s => s.id !== this.activeSessionId)
+    const target = others[0]?.id
+    if (target !== undefined) await this.switchSession(target)
+  }
+
+  /**
    * Phase 9b：把可恢复会话列表写进 scrollback（启动时）。
    * 排除当前活跃会话；无其他可恢复会话时静默（不占位）。
    * live 标注取 live store（listSessions 的 header 无 live 字段，
    * 经 ctx.sessions.list() 的 id 集合判定）。
    */
   private async renderRestorableSessions(): Promise<void> {
+    await this.refreshApiKeyReady()
     const cols = this.stdout.columns
+    const gutter = cols >= CHROME_GUTTER * 2 + 8 ? CHROME_GUTTER : 0
+    const commitLine = (text: string): void => {
+      // 不加 trailingNewline：CommitEngine 会把 true 理解成「再垫一个空行」，
+      // 欢迎每行变成双倍高度，40 行屏上 tips 会被顶出视口。
+      this.commitToScrollback({ text })
+    }
     // C4 概念稿 A：顶部栏（format/top-bar.ts 纯渲染）——cwd + 模型 + git 分支，
     // 最顶一行（对齐 grok top_bar）；分支经 gitBranch() 一次读取（静默）。
     const current = this.ctx.agentDefaultModel.currentSelection()
     const branch = gitBranch()
     for (const line of formatTopBar({
-      width: cols,
-      cwd: process.cwd(),
+      width: cols - gutter,
+      cwd: this.sessionCwd(),
       modelName: `${current.provider}/${current.model}`,
       // exactOptionalPropertyTypes：branch 不可显式传 undefined，条件展开
       ...(branch === undefined ? {} : { branch }),
     }, this.theme)) {
-      this.commitToScrollback({ text: line, trailingNewline: true })
+      commitLine(gutter > 0 ? `${' '.repeat(gutter)}${line}` : line)
     }
 
     const active = this.activeSessionId
@@ -889,53 +961,38 @@ export class TuiApp {
     const others = summaries.filter(s => s.id !== active)
 
     // 环境检查结果：唯一来源（首启与有会话统一一行，不重复渲染）。
-    // background 读激活主题明暗（attach 已在 'auto' 时探测并 setTheme）。
     const env: WelcomeEnvCheck = {
-      hasApiKey: Boolean(process.env.DEEPSEEK_API_KEY),
+      hasApiKey: this.apiKeyReady,
       isGitRepo: isGitRepo(),
-      background: getActiveThemeBackground(),
+      themeName: getActiveThemeName(),
       cols,
-      rows: this.stdout.rows,
     }
-    // 最近可恢复会话摘要（并入「恢复会话」菜单项，不单独占屏）。
+    // 最近可恢复会话摘要（并入 tips「恢复」项，不单独占屏）。
     const recent = others[0]
+    const resumeAvailable = others.length > 0
     const resumeLabel = recent === undefined
       ? '恢复会话'
-      : `恢复会话 · ${formatSessionAge(recent.createdAt, Date.now())}`
+      : `恢复 · ${formatSessionAge(recent.createdAt, Date.now())}`
 
-    // grok 式垂直留白：品牌区不贴顶栏，按屏高下沉（/8 近似垂直居中）。
-    const topPad = Math.max(2, Math.floor(this.stdout.rows / 8))
-    for (let i = 0; i < topPad; i++) {
-      this.commitToScrollback({ text: '', trailingNewline: true })
-    }
+    // 品牌鲸鱼像素画（窄屏/矮屏/低色深/legacy conhost 时降级为纯文字品牌区）。
+    const whale = formatWhaleLogo({ width: cols, rows: this.stdout.rows })
 
-    // 品牌区（居中主标 + 副标；副标含主题名，muted）。
-    for (const line of formatBrandWelcome({
-      width: cols,
-      subtitle: `Tianshu Harness · ${getActiveThemeName()}`,
-    }, this.theme)) {
-      this.commitToScrollback({ text: line, trailingNewline: true })
-    }
-    this.commitToScrollback({ text: '', trailingNewline: true })
+    // 顶栏与欢迎之间留 1 行。live overlay 不再填剩余视口。
+    commitLine('')
 
-    // 欢迎页菜单入口（grok menu.rs 形态，居中）——「恢复会话」携带最近摘要，
-    // 无可恢复目标时 muted 降级（available=false）。
-    const menuItems: WelcomeMenuItem[] = [
-      { id: 'new', label: '新会话', keyHint: 'ctrl+n' },
-      { id: 'resume', label: resumeLabel, keyHint: 'ctrl+s', available: others.length > 0 },
-      { id: 'quit', label: '退出', keyHint: 'ctrl+q' },
+    const tips: WelcomeTipItem[] = [
+      { keyHint: 'ctrl+n', label: '新会话' },
+      { keyHint: 'ctrl+s', label: resumeLabel, available: resumeAvailable },
+      { keyHint: 'ctrl+p', label: '命令面板' },
+      { keyHint: '/', label: 'slash 命令' },
+      { keyHint: 'ctrl+o', label: '展开推理' },
+      { keyHint: 'shift+tab', label: '模式循环' },
     ]
-    for (const line of formatWelcomeMenu({ width: cols, items: menuItems }, this.theme)) {
-      this.commitToScrollback({ text: line, trailingNewline: true })
-    }
-    this.commitToScrollback({ text: '', trailingNewline: true })
-
-    // 环境检查紧凑行（常驻，欢迎页唯一环境检查来源）。
-    for (const line of formatEnvCheckLine(env, this.theme)) {
-      this.commitToScrollback({ text: line, trailingNewline: true })
+    for (const line of formatWelcomeHero({ width: cols, whale, env, tips }, this.theme)) {
+      commitLine(line)
     }
     // 空行收尾：命令回显（如「模型已切换」）与欢迎页在视觉上自然分离。
-    this.commitToScrollback({ text: '', trailingNewline: true })
+    commitLine('')
   }
 
   /**
@@ -959,8 +1016,11 @@ export class TuiApp {
     // 下一次 agent 步进的 prompt assembly 自动生效）。
     this.modelRef = { current: selection, assembled: undefined }
     const ref = this.modelRef
+    // header.cwd 是 Web 会话列表与 workspace 挂载的门槛：缺省会被持久化进
+    // `_no-cwd/` 并从 web API 可见列表过滤掉（issue #5）。TUI 工作区 = 启动目录。
     const handle = await this.ctx.agents.create({
       sessionId: id,
+      meta: { cwd: process.cwd() },
       agentOptions: { provider: selection.provider, model: selection.model },
       setup: (agentCtx) => {
         installModelSelection(agentCtx, ref)
@@ -983,6 +1043,9 @@ export class TuiApp {
   switchLiveModel(selection: ModelSelection): boolean {
     if (this.modelRef === null) return false
     this.modelRef.current = selection
+    this.glanceModelName = selection.model
+    this.glanceEffort = selection.reasoningEffort ?? null
+    this.refreshVisionForSelection(selection)
     return true
   }
 
@@ -1225,6 +1288,10 @@ export class TuiApp {
       this.glanceModelName = selection.model
       this.glanceEffort = selection.reasoningEffort ?? null
     }
+    const visionSelection = headerConfig !== undefined
+      ? { provider: headerConfig.provider, model: headerConfig.model }
+      : this.ctx.agentDefaultModel.currentSelection()
+    this.refreshVisionForSelection(visionSelection)
     // 上下文窗口：路由元数据折叠（request/context 只在路由变化时记录；热切换经
     // request/context 事件更新，见 handleStreamEvent）。
     this.contextWindow = session.requestContext()?.contextWindow ?? null
@@ -1429,13 +1496,12 @@ export class TuiApp {
   }
 
   /** T3.2：刷新 /config 面板投影（settings describe + permission + credentials；服务缺失降级）。 */
-  private refreshConfigProjection(): void {
+  private async refreshConfigProjection(): Promise<void> {
     const settings = this.ctx.reflect.get('settings', false) as
       | { describe(options?: { redactSecrets?: boolean }): unknown[] } | undefined
     const permission = this.ctx.reflect.get('permission', false) as
       | { names: readonly string[]; current(events: readonly unknown[]): string } | undefined
-    const credentials = this.ctx.reflect.get('credentials', false) as
-      | { describe(ref: { id: string }): Promise<{ configured: boolean; source?: string; writable: boolean }> } | undefined
+    const credentials = this.ctx.reflect.get('credentials', false) as CredentialsDescribeFacet | undefined
     if (settings === undefined && permission === undefined && credentials === undefined) {
       this.configProjection = null
       return
@@ -1445,15 +1511,31 @@ export class TuiApp {
       options: permission.names.map(n => ({ value: n, name: n })),
       currentValue: permission.current([]),
     }
-    const credentialsList: ConfigPanelProjection['credentials'] = []
-    if (credentials !== undefined) {
-      // 凭据 ref 未知（无枚举面）——T3.2 渲染空凭据段（服务存在但无 ref 列表时占位）。
-      void credentials.describe({ id: '' }).catch(() => {})
-    }
     this.configProjection = {
       settings: settingsDescriptors as ConfigPanelProjection['settings'],
       permission: permissionView,
-      credentials: credentialsList,
+      credentials: [],
+    }
+    if (credentials !== undefined) await this.fillCredentials(credentials)
+  }
+
+  /** 把 DEEPSEEK_API_KEY 的 describe 结果填进 /config 凭据段（与欢迎页同源）。 */
+  private async fillCredentials(credentials: CredentialsDescribeFacet): Promise<void> {
+    try {
+      const info = await credentials.describe('DEEPSEEK_API_KEY')
+      if (this.disposed || !this.configPanelVisible || this.configProjection === null) return
+      this.configProjection = {
+        ...this.configProjection,
+        credentials: [{
+          ref: 'DEEPSEEK_API_KEY',
+          configured: info.configured,
+          writable: info.writable !== false,
+          ...(info.source === undefined ? {} : { source: info.source }),
+        }],
+      }
+      this.renderBatcher.schedule()
+    } catch {
+      // 面不匹配时保持空凭据段
     }
   }
 
@@ -1524,7 +1606,7 @@ export class TuiApp {
     }
     // Phase 9a：@mention 用户侧摘要展开（cwd 边界/截断/降级见 mention-expand）。
     // 展开后的文本进用户消息与 followup——agent 看到的是摘要而非裸路径。
-    const expanded = expandMentions(trimmed, process.cwd())
+    const expanded = expandMentions(trimmed, this.sessionCwd())
     this.history = [trimmed, ...this.history.filter(h => h !== trimmed)].slice(0, 100)
     this.inputLine.setHistory(this.history)
     // 用户气泡：正文 + 📎 附件行 + 识图能力提示；有图且终端支持图形协议时
@@ -1748,7 +1830,7 @@ export class TuiApp {
     const result = this.inputController.tabComplete(
       this.inputLine.value,
       this.inputLine.cursor,
-      process.cwd(),
+      this.sessionCwd(),
     )
     if (result === null) return false
     this.inputLine.setValue(result.text, result.cursor)
@@ -1862,11 +1944,7 @@ export class TuiApp {
       return
     }
     if (key.name === 'ctrl_s') {
-      // 恢复会话：切换到最近创建的非当前活动会话（sessions.list() 按创建序，
-      // 末元素 = 最近创建；无其他会话时 no-op）。
-      const others = this.ctx.sessions.list().filter(s => s.id !== this.activeSessionId)
-      const target = others[others.length - 1]?.id
-      if (target !== undefined) void this.switchSession(target)
+      void this.restoreRecentOtherSession()
       return
     }
     if (key.name === 'ctrl_q') {
@@ -2019,6 +2097,12 @@ export class TuiApp {
         this.settleApproval('allowed-once')
       } else if (key.char === 'n' || key.char === 'N') {
         this.settleApproval('rejected')
+      } else if (key.char === 'a' || key.char === 'A') {
+        // 本会话放行：先开 always-approve，再结算当前请求（与 Shift+Tab 进 auto 不同——
+        // 挂起中的这一张也立刻通过，而不是只影响后续请求）。
+        this.approval.setAlwaysApprove(true)
+        this.statusLine?.setAlwaysApprove(true)
+        this.settleApproval('allowed-once')
       } else if (key.name === 'ctrl_c' || key.name === 'escape') {
         this.settleApproval('cancelled')
       }
@@ -2195,8 +2279,9 @@ export class TuiApp {
         break
       }
       case 'request/header':
-        // effort 随实际请求更新（header 记录 adapterDefaults 折叠后的生效值）。
+        // effort / 模型名随实际请求更新（header 记录 adapterDefaults 折叠后的生效值）。
         this.glanceEffort = event.data.header.config.reasoningEffort ?? null
+        this.glanceModelName = event.data.header.config.model
         break
       case 'request/context':
         this.contextWindow = event.data.contextWindow ?? null
@@ -2330,6 +2415,15 @@ export class TuiApp {
     this.streamRenderer.finalize()
   }
 
+  /** wrapping-aware display rows（空行计 1）。 */
+  private displayRowsFor(text: string): number {
+    const cols = this.stdout.columns
+    if (cols <= 0) return 1
+    const dw = displayWidth(text, { ambiguousAsWide: ambiguousWideEnabled() })
+    if (dw === 0) return 1
+    return Math.ceil(dw / cols)
+  }
+
   /** critical 路径同步穿透：用户交互（提交/审批/按键）不等 16ms 帧边界。 */
   private flushLiveRender(): void {
     this.renderBatcher.flushNow()
@@ -2340,7 +2434,11 @@ export class TuiApp {
     if (this.disposed) return
     const renderStart = performance.now()
     const theme = this.theme
-    const cols = this.stdout.columns
+    const termCols = this.stdout.columns
+    const gutter = termCols >= CHROME_GUTTER * 2 + 8 ? CHROME_GUTTER : 0
+    const cols = Math.max(1, termCols - gutter * 2)
+    const tightViewport = this.stdout.rows < WHALE_MIN_ROWS
+    const compactLive = this.compactMode || tightViewport
     const lines: LiveRegionLine[] = []
 
     // ── 组装 LiveSnapshot（Wave 2）：renderLive 读取字段子集（控制面/面板
@@ -2427,17 +2525,6 @@ export class TuiApp {
     // T3.3：/skills 技能浏览面板。
     for (const line of renderSkillsPanel(snapshot)) lines.push({ text: line })
 
-    // T3.1：结构化提问挂起提示——选项面板/plan-review 决策卡渲染（live 区）。
-    const questionPeek = this.question.peek()
-    if (questionPeek !== null) {
-      for (const line of projectQuestionPanel(questionPeek.request, { width: cols })) {
-        lines.push({ text: line })
-      }
-      if (questionPeek.feedbackMode) {
-        lines.push({ text: color('📝 反馈输入中（Enter 提交 / Esc / Ctrl+C 返回选项）', theme.muted) })
-      }
-    }
-
     // P1：/btw 侧问面板——live 区顶部浮动段（glance 之后；不抢占输入焦点）。
     // loading 用 secondary 色、error 用 warning 色、done 不着色（答案原样）。
     const btwPeek = this.btw.peek()
@@ -2455,33 +2542,6 @@ export class TuiApp {
     if (snapshot.taskNotice !== null) {
       lines.push({ text: color(snapshot.taskNotice, theme.muted) })
       this.taskNotice = null
-    }
-
-    // Phase 8：审批挂起提示——内联确认（"允许执行 X？[y/N]"），不阻断渲染流
-    const approvalPeek = this.approval.peek()
-    if (approvalPeek !== null) {
-      const tool = approvalPeek.req.toolName
-      const reason = approvalPeek.req.reason
-      // C2 项 1：审批 diff 预览（内联在 y/N 上方）。callId → transcript 查找
-      // 工具调用 → 原始参数 → 生成 diff。反 grok 之道：盲批是信任断点。
-      // A2 降级提示：diff 不可见（callId 缺失 / findLast 未命中 /
-      // formatPermissionDiff 返回 null）时，把「diff 不可见」合并进 y/N 行
-      // ——盲批仍被告知看不到差异（净零行，不新增渲染行）。
-      const callId = approvalPeek.req.callId
-      const toolCall = callId === undefined
-        ? undefined
-        : this.transcript?.view.tools.findLast(t => t.callId === callId)
-      let diffShown = false
-      if (toolCall !== undefined) {
-        const diff = formatPermissionDiff({ toolName: toolCall.name, arguments: toolCall.arguments }, this.theme)
-        if (diff !== null) {
-          for (const line of diff) lines.push({ text: line })
-          diffShown = true
-        }
-      }
-      const why = reason === undefined ? '' : `（${reason}）`
-      const blindHint = diffShown ? '' : '（diff 不可见）'
-      lines.push({ text: color(`⚠ 允许执行 ${tool}？${why} [y/N]${blindHint}`, theme.warning) })
     }
 
     // Phase 9d 流利度：长静默/高负载的策略提示（stale 档：等待太久时给出
@@ -2530,14 +2590,14 @@ export class TuiApp {
         ...(this.reasoningStartedAt === null ? {} : { elapsedMs: Math.max(0, Date.now() - this.reasoningStartedAt) }),
         tick: this.tick,
         columns: cols,
-        compact: this.compactMode,
+        compact: compactLive,
       }, theme)
       for (const line of reasoningLines) lines.push({ text: line })
     }
 
     // 流式尾巴：StreamRenderer pending + blockWriter 未吐缓冲（原始文本防围栏闪烁）。
     // 已 commit 的稳定块在 scrollback，不进 live 区——避免同段文字上下双份。
-    for (const line of this.streamRenderer.getLiveTailLines(6, this.blockWriter.peek())) {
+    for (const line of this.streamRenderer.getLiveTailLines(tightViewport ? 2 : 6, this.blockWriter.peek())) {
       lines.push({ text: line })
     }
 
@@ -2552,9 +2612,9 @@ export class TuiApp {
         ...(args === undefined ? {} : { toolInput: args }),
         ...(titleOverride === undefined ? {} : { title: titleOverride }),
         columns: cols,
-        tailLines: 2,
+        tailLines: tightViewport ? 1 : 2,
         tick: this.tick,
-        compact: this.compactMode,
+        compact: compactLive,
       }, theme)
       for (const line of rows) lines.push({ text: line })
     }
@@ -2566,6 +2626,40 @@ export class TuiApp {
         width: cols,
         label: run.label,
         tick: this.tick,
+      }, theme)) {
+        lines.push({ text: line })
+      }
+    }
+
+    // chrome 起点：提问/审批贴输入轨（列入 chrome，小窗口也不会被从顶裁掉），
+    // 其后是 slash / vim / 图片 / 输入轨 / footer。溢出裁剪只作用在动态段。
+    const chromeStart = lines.length
+
+    // 提问 / 审批紧挨输入轨。
+    const questionPeek = this.question.peek()
+    if (questionPeek !== null) {
+      for (const line of projectQuestionPanel(questionPeek.request, { width: cols })) {
+        lines.push({ text: line })
+      }
+      if (questionPeek.feedbackMode) {
+        lines.push({ text: color('📝 反馈输入中（Enter 提交 / Esc / Ctrl+C 返回选项）', theme.muted) })
+      }
+    }
+    const approvalPeek = this.approval.peek()
+    if (approvalPeek !== null) {
+      const callId = approvalPeek.req.callId
+      const toolCall = callId === undefined
+        ? undefined
+        : this.transcript?.view.tools.findLast(t => t.callId === callId)
+      const diff = toolCall === undefined
+        ? null
+        : formatPermissionDiff({ toolName: toolCall.name, arguments: toolCall.arguments }, this.theme)
+      for (const line of formatApprovalCard({
+        columns: cols,
+        toolName: approvalPeek.req.toolName,
+        ...(approvalPeek.req.reason === undefined ? {} : { reason: approvalPeek.req.reason }),
+        diffLines: diff,
+        compact: compactLive,
       }, theme)) {
         lines.push({ text: line })
       }
@@ -2600,14 +2694,22 @@ export class TuiApp {
     }
     // 阶段 2：slash 菜单选中命令 → 输入行 ghost 预览（补全剩余/参数占位）。
     this.inputLine.setGhost(this.slashGhostText())
-    // 输入行 + 软件光标坐标：把硬件光标驻停在 █ 处（caretCol），让终端 IME
-    // 候选窗锚定在输入框内。输入行先按框内内容区宽度软换行（boxInnerWidth），
-    // 再由 formatInputFrame 加完整框体并修正 caret 坐标（顶框 +1 行、左边线 +2 列）。
+    // CC PromptInput marginTop={1}：轨前 1 行呼吸，不填视口。
+    lines.push({ text: '' })
+    // 输入轨（Claude Code 形态）：上下圆角横线、左右不封。轨线色
+    // normal 雾蓝 / plan warning / auto error。caret 行 +1、列不修正。
     const planProj = this.projectionCache?.plan as PlanProjectionWire | undefined
-    const inputView = this.inputLine.displayLinesWithCaret({ maxWidth: boxInnerWidth(cols) })
+    const modeColor = planProj?.pending === true || planProj?.active === true
+      ? theme.warning
+      : this.approval.alwaysApprove ? theme.error : theme.secondary
+    const promptColor = this.liveAgent?.state.status === 'running' ? theme.dim : modeColor
+    const inputView = this.inputLine.displayLinesWithCaret({ maxWidth: cols })
+    const framedLines = inputView.lines.map(line => (
+      line.startsWith('❯ ') ? `${color('❯', promptColor)}${line.slice(1)}` : line
+    ))
     const frame = formatInputFrame({
       columns: cols,
-      lines: inputView.lines,
+      lines: framedLines,
       caretLine: inputView.caret.line,
       caretCol: inputView.caret.col,
       planActive: planProj?.active === true,
@@ -2622,7 +2724,7 @@ export class TuiApp {
     // 右对齐合并进同一行；窄终端 metrics 独立一行纵排）。metrics 段复用
     // glance-bar 段组装（formatGlanceBar 已着色，组合器不重复包装）。
     const bottomMetrics = this.glanceMetrics()
-    const mergeRight = bottomMetrics !== null && cols >= FOOTER_RIGHT_MERGE_MIN_WIDTH
+    const mergeRight = bottomMetrics !== null && termCols >= FOOTER_RIGHT_MERGE_MIN_WIDTH
     const rightSegments = mergeRight
       ? [...glanceBarSegments({ ...bottomMetrics, width: cols }), `API ${this.apiKeyReady ? '✓' : '✗'}`]
       : undefined
@@ -2631,6 +2733,7 @@ export class TuiApp {
       planActive: planProj?.active === true,
       planPending: planProj?.pending === true,
       alwaysApprove: this.approval.alwaysApprove,
+      approvalPending: this.approval.isPending,
       ...(rightSegments !== undefined ? { rightSegments } : {}),
     }, theme)
     for (const line of footerLines) lines.push({ text: line })
@@ -2640,7 +2743,26 @@ export class TuiApp {
       }
     }
 
-    this.live.render(lines)
+    if (gutter > 0) {
+      const pad = ' '.repeat(gutter)
+      for (const line of lines) {
+        line.text = `${pad}${line.text}`
+        if (line.caretCol !== undefined) line.caretCol += gutter
+      }
+    }
+
+    const rowsForLine = (text: string): number => this.displayRowsFor(text)
+    let chromeRows = 0
+    for (let i = chromeStart; i < lines.length; i++) {
+      const row = lines[i]
+      if (row === undefined) continue
+      chromeRows += rowsForLine(row.text)
+    }
+    // 溢出裁剪：动态段超过剩余视口才从顶裁；短则不垫，避免空 overlay 盖住转录。
+    const maxDynamic = Math.max(0, this.stdout.rows - chromeRows - 1)
+    const padded = padDynamicRegion(lines, chromeStart, maxDynamic, rowsForLine)
+    const chromeTail = padded.lines.length - padded.chromeStart
+    this.live.render(padded.lines, chromeTail > 0 ? { reservedTail: chromeTail } : undefined)
     this.perfMonitor.record('renderLive', performance.now() - renderStart)
   }
 

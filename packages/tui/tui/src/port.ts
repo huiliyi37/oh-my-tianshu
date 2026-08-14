@@ -4,7 +4,7 @@
  * 源出 .rivet/tui-source/tui/engine/app.ts 中 TuiApp 与 agent 层的耦合面
  * （Apache-2.0 来源），本包以接口形式重建接缝，供未来 app 层对接。
  *
- * @module @huiliyi37/dsh-tui
+ * @module @huiliyi37/dsh-tianshu-tui
  */
 
 /** 会话运行状态（纯展示视图，不含 agent 内部模型）。 */

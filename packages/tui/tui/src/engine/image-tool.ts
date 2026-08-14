@@ -133,6 +133,64 @@ export function resizeCandidates(
   ]
 }
 
+/**
+ * 「等比缩放到长边 ≤ maxEdge 并以 JPEG 质量 quality 输出」候选命令（首个成功即采用）。
+ * 用于发送管线的降级压缩链（image-attach）：PNG 源第一级保透明输出 PNG，
+ * 其余格式及降级档一律转 JPEG——同时完成「provider 支持格式」转码
+ * （BMP/TIFF 等不在 provider 白名单内）。`>` 修饰符 / sips -Z 保证只缩不放。
+ * @param inPath - 输入图片路径
+ * @param outPath - JPEG 输出路径
+ * @param maxEdge - 长边像素上限（仅超限时缩小，保持宽高比）
+ * @param quality - JPEG 质量 0-100（sips formatOptions / magick -quality）
+ * @param platform - 目标平台（默认 process.platform，可注入用于测试）
+ * @returns 按优先级排列的候选命令列表
+ */
+export function resizeJpegCandidates(
+  inPath: string,
+  outPath: string,
+  maxEdge: number,
+  quality: number,
+  platform: NodeJS.Platform = process.platform,
+): ImageToolCommand[] {
+  if (platform === 'win32') {
+    const script = [
+      // 'Stop'：non-terminating error 转为终止性，保证失败时 exit code 非 0
+      "$ErrorActionPreference='Stop'",
+      'Add-Type -AssemblyName System.Drawing',
+      '$img=$null;$bmp=$null;$g=$null',
+      'try {',
+      `$img=[System.Drawing.Image]::FromFile(${psQuote(inPath)})`,
+      // 仅当长边超限时缩小（scale 封顶 1），保持宽高比
+      `$scale=[Math]::Min(1.0,${maxEdge}/[Math]::Max($img.Width,$img.Height))`,
+      '$w=[int][Math]::Max(1,[Math]::Round($img.Width*$scale))',
+      '$h=[int][Math]::Max(1,[Math]::Round($img.Height*$scale))',
+      '$bmp=New-Object System.Drawing.Bitmap($w,$h)',
+      '$g=[System.Drawing.Graphics]::FromImage($bmp)',
+      '$g.DrawImage($img,0,0,$w,$h)',
+      // JPEG 质量经 EncoderParameter 显式传入（默认 75 不够可控）
+      '$codec=[System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq \'image/jpeg\' }',
+      '$params=New-Object System.Drawing.Imaging.EncoderParameters(1)',
+      `$params.Param[0]=New-Object System.Drawing.Imaging.EncoderParameter([System.Drawing.Imaging.Encoder]::Quality,${quality})`,
+      `$bmp.Save(${psQuote(outPath)},$codec,$params)`,
+      '} finally {',
+      // 逆序释放；空值检查防止部分初始化失败时 finally 二次抛错掩盖原始异常
+      'if ($g) { $g.Dispose() }',
+      'if ($bmp) { $bmp.Dispose() }',
+      'if ($img) { $img.Dispose() }',
+      '}',
+    ].join(';')
+    return [
+      { bin: 'magick', args: [inPath, '-resize', `${maxEdge}x${maxEdge}>`, '-quality', String(quality), `jpg:${outPath}`] },
+      powershellCommand(script),
+    ]
+  }
+  return [
+    { bin: 'sips', args: ['-s', 'format', 'jpeg', '-s', 'formatOptions', String(quality), '-Z', String(maxEdge), inPath, '--out', outPath] },
+    { bin: 'magick', args: [inPath, '-resize', `${maxEdge}x${maxEdge}>`, '-quality', String(quality), `jpg:${outPath}`] },
+    { bin: 'convert', args: [inPath, '-resize', `${maxEdge}x${maxEdge}>`, '-quality', String(quality), `jpg:${outPath}`] },
+  ]
+}
+
 /** PNG 文件签名（magic bytes）。 */
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
 /** 完整 IEND chunk：length 0 + 'IEND' + CRC（内容固定）。 */

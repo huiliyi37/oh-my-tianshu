@@ -12,7 +12,7 @@
  *   窗口外 refresh 同步重算。重收集成本被节流封顶，状态行/错误行新鲜度 ≤ 一帧。
  * - 数据实际变化时经 onChange 推送（未变化不推送，避免重绘风暴）。
  *
- * @module @huiliyi37/dsh-tui/engine/metrics-glance-controller
+ * @module @huiliyi37/dsh-tianshu-tui/engine/metrics-glance-controller
  */
 
 import type { LiveAgentState } from '../adapter/live.js'
@@ -21,8 +21,11 @@ import { useAsciiGlyphs } from '../term-caps.js'
 
 /** 底部 glance 一行数据（纯文本，无 ANSI——着色留在装配层）。 */
 export interface GlanceLine {
-  /** 状态行文本：WorkflowStatusLine.current 优先，否则 agent 状态派生。 */
-  status: string
+  /**
+   * 状态行文本：WorkflowStatusLine.current 优先，否则 agent 状态派生；
+   * 空闲态 null（不占位——grok minimal 布局：空闲不渲染状态行，屏占让给内容）。
+   */
+  status: string | null
   /** 错误行文本（glyph + 截断首行）；无错误 null。 */
   error: string | null
 }
@@ -43,14 +46,16 @@ export interface MetricsGlanceControllerOptions {
 
 /**
  * 状态行派生：工作流投影优先，否则 agent 状态回退（复刻 TuiApp 旧装配）。
+ * 空闲态返回 null（不渲染不占位）：空闲提示已由 footer 承载，状态行只在
+ * 「有事发生」（运行中/已停止/投影文本）时出现。
  * @param statusText - WorkflowStatusLine.current；null = 无投影。
  * @param live - live agent 状态；undefined = 未挂载。
- * @returns 状态行纯文本。
+ * @returns 状态行纯文本；空闲 null。
  */
-export function deriveGlanceStatus(statusText: string | null, live: LiveAgentState | undefined): string {
+export function deriveGlanceStatus(statusText: string | null, live: LiveAgentState | undefined): string | null {
   if (statusText !== null) return statusText
   if (live === undefined || live.live) {
-    return live?.status === 'running' ? '● 运行中' : '○ 空闲'
+    return live?.status === 'running' ? '● 运行中' : null
   }
   return '✗ 已停止'
 }

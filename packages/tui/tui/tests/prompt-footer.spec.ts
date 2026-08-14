@@ -49,9 +49,12 @@ describe('formatPromptFooter', () => {
     expect(line).not.toContain('[plan] ·')
   })
 
-  it('alwaysApprove：mode 段含 [auto]', () => {
-    const [line = ''] = plain(formatPromptFooter(base({ alwaysApprove: true }), fakeTheme()))
-    expect(line).toContain('[auto]')
+  it('approvalPending：快捷键换成 y/n/a/esc', () => {
+    const [line = ''] = plain(formatPromptFooter(base({ approvalPending: true }), fakeTheme()))
+    expect(line).toContain('y 允许')
+    expect(line).toContain('n 拒绝')
+    expect(line).toContain('a 放行')
+    expect(line).not.toContain('Enter 发送')
   })
 
   it('宽度守恒：任意宽度下每行显示宽度 ≤ width', () => {
@@ -123,5 +126,12 @@ describe('formatPromptFooter', () => {
     const [line = ''] = plain(formatPromptFooter(base({ width: 100, rightSegments: [] }), fakeTheme()))
     expect(line).toContain('normal')
     expect(line).toContain('Enter 发送')
+  })
+
+  it('雾蓝 chrome：mode 用 inactiveShimmer，提示用 subtle', () => {
+    const [line = ''] = formatPromptFooter(base(), fakeTheme())
+    expect(line).toContain('\x1B[38;2;170;178;194m')
+    expect(line).toContain('\x1B[38;2;94;102;115m')
+    expect(line).not.toContain('\x1B[38;2;17;17;17m')
   })
 })

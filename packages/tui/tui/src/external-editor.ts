@@ -9,7 +9,7 @@
  * 差异：源引用的 ../platform.js getDefaultEditor 未随移植源落地，此处内联
  * （VISUAL/EDITOR 优先，缺省 vi / notepad@win32）。
  *
- * @module @huiliyi37/dsh-tui/external-editor
+ * @module @huiliyi37/dsh-tianshu-tui/external-editor
  */
 
 import { writeFileSync, readFileSync, unlinkSync, mkdtempSync } from 'node:fs'

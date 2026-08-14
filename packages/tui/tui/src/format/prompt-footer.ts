@@ -9,6 +9,7 @@
  * 窄终端不合并（调用方纵排两行）。宽度守恒：任何输入下每行显示宽度 ≤ width。
  */
 import { color } from '../engine/ansi.js'
+import { CHROME_INACTIVE_SHIMMER, CHROME_SUBTLE } from './chrome-colors.js'
 import type { RivetTheme } from '../theme.js'
 import { displayWidth } from '../width.js'
 
@@ -24,6 +25,8 @@ export interface FormatPromptFooterInput {
   planPending?: boolean
   /** always-approve 生效（mode 段渲染 [auto]）。 */
   alwaysApprove?: boolean
+  /** 审批挂起：快捷键换成 y/n/a/esc，避免仍提示「Enter 发送」。 */
+  approvalPending?: boolean
   /** 右侧状态段（B 布局：token/模型/API 等）；宽终端右对齐合并，放不下从后丢段。 */
   rightSegments?: readonly string[]
 }
@@ -31,7 +34,7 @@ export interface FormatPromptFooterInput {
 /**
  * 渲染底部 footer：mode 段 + 快捷键提示段，宽终端合并右侧状态段（右对齐）。
  * @param input - 宽度、模式徽标与右侧状态段。
- * @param theme - 当前主题（mode primary、快捷键 muted、右段 muted）。
+ * @param theme - 当前主题（plan/auto 徽标走 warning/error；其余用雾蓝 chrome）。
  * @returns 单行 ANSI；任何宽度下 ≤ width。
  */
 export function formatPromptFooter(input: FormatPromptFooterInput, theme: RivetTheme): string[] {
@@ -39,27 +42,32 @@ export function formatPromptFooter(input: FormatPromptFooterInput, theme: RivetT
   const badge = planPending === true ? ' [plan…]' : planActive === true ? ' [plan]' : ''
   const auto = alwaysApprove === true ? ' [auto]' : ''
   const mode = `normal${badge}${auto}`
-  const hints = ['Enter 发送', '/ 命令', 'ctrl+p 面板']
+  const modeColor = planPending === true || planActive === true
+    ? theme.warning
+    : alwaysApprove === true ? theme.error : CHROME_INACTIVE_SHIMMER
+  const hints = input.approvalPending === true
+    ? ['y 允许', 'n 拒绝', 'a 放行', 'esc 取消']
+    : ['Enter 发送', '/ 命令', 'ctrl+p 面板']
   // 从后往前丢段直到放得下（mode 恒保留）。
   let segs = hints
   for (;;) {
     const text = [mode, ...segs].join(' · ')
     if (displayWidth(text) <= width) {
-      const parts = [color(mode, theme.primary)]
+      const parts = [color(mode, modeColor)]
       for (const s of segs) {
-        parts.push(color(s, theme.muted))
+        parts.push(color(s, CHROME_SUBTLE))
       }
       const leftAnsi = parts.join(' · ')
       const right = input.rightSegments
       if (right !== undefined && right.length > 0 && width >= FOOTER_RIGHT_MERGE_MIN_WIDTH) {
-        return mergeRightSegments(leftAnsi, text, right, width, theme)
+        return mergeRightSegments(leftAnsi, text, right, width)
       }
       return [leftAnsi]
     }
     if (segs.length === 0) break
     segs = segs.slice(0, -1)
   }
-  return [color(mode, theme.primary)]
+  return [color(mode, modeColor)]
 }
 
 /**
@@ -68,7 +76,6 @@ export function formatPromptFooter(input: FormatPromptFooterInput, theme: RivetT
  * @param leftPlain - 左侧纯文本（宽度度量用）。
  * @param right - 右侧状态段（纯文本）。
  * @param width - 目标行宽。
- * @param theme - 当前主题（右段 muted）。
  * @returns 合并后的单行 ANSI。
  */
 function mergeRightSegments(
@@ -76,14 +83,13 @@ function mergeRightSegments(
   leftPlain: string,
   right: readonly string[],
   width: number,
-  theme: RivetTheme,
 ): string[] {
   let rightSegs = [...right]
   for (;;) {
     const rightPlain = rightSegs.join(' · ')
     const pad = Math.max(0, width - displayWidth(leftPlain) - displayWidth(rightPlain))
     if (pad > 0) {
-      const rightAnsi = rightSegs.map(s => color(s, theme.muted)).join(' · ')
+      const rightAnsi = rightSegs.map(s => color(s, CHROME_INACTIVE_SHIMMER)).join(' · ')
       return [`${leftAnsi}${' '.repeat(pad)}${rightAnsi}`]
     }
     /* v8 ignore next -- 不可达：width ≥ FOOTER_RIGHT_MERGE_MIN_WIDTH 且左侧 ≤ 43 字符时必能放下 1 个右段 */

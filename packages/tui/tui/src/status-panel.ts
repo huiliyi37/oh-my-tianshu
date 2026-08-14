@@ -8,7 +8,7 @@
  * sessionProjections 的 goal/todos/plan 单元，/status 命令切换显隐，行
  * 渲染进 live 区（接线在 ui/app.ts 与 registry.ts，由其他维度独占）。
  *
- * @module @huiliyi37/dsh-tui/status-panel
+ * @module @huiliyi37/dsh-tianshu-tui/status-panel
  */
 
 import { displayWidth } from './width.js'

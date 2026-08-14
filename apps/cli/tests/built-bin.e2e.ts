@@ -20,7 +20,8 @@ async function runBuiltBin(
     Object.entries({ ...process.env, ...env })
       .filter((entry): entry is [string, string] => entry[1] !== undefined),
   )
-  const result = await execa(process.execPath, [dshBin, ...args], {
+  // Node 24 emits ExperimentalWarning for node:sqlite; keep stderr assertions strict.
+  const result = await execa(process.execPath, ['--disable-warning=ExperimentalWarning', dshBin, ...args], {
     input: '',
     timeout: 25_000,
     killSignal: 'SIGKILL',
@@ -180,11 +181,12 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
     expect(bare.stderr).toContain('--profile <name> is required')
     const help = await runBuiltBin(['--help'])
     expect(help.code).toBe(0)
-    expect(help.stdout).toContain('dsh --profile web')
-    expect(help.stdout).toContain('dsh run "run the tests"')
-    expect(help.stdout).toContain('dsh plugin --profile')
-    expect(help.stdout).not.toMatch(/^\s+(?:tui|meta|upgrade)\b/mu)
-    for (const removed of [['tui'], ['--config', 'x.yml'], ['-p', 'task'], ['--profile', 'headless', 'task']]) {
+    expect(help.stdout).toContain('tianshu --profile web')
+    expect(help.stdout).toContain('tianshu run "run the tests"')
+    expect(help.stdout).toContain('tianshu plugin --profile')
+    expect(help.stdout).not.toMatch(/^\s+(?:meta|upgrade)\b/mu)
+    // `tui` graduated to a real command; only truly removed shapes stay rejected.
+    for (const removed of [['--config', 'x.yml'], ['-p', 'task'], ['--profile', 'headless', 'task']]) {
       const result = await runBuiltBin(removed)
       expect(result.code).toBe(1)
     }
@@ -197,7 +199,7 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
       const result = await runBuiltBin(['run', '--help'], { DSH_HOME: home })
       expect(result.code).toBe(0)
       expect(result.stderr).toBe('')
-      expect(result.stdout).toContain('Usage: dsh run [options] <task...>')
+      expect(result.stdout).toContain('Usage: tianshu run [options] <task...>')
       expect(existsSync(home)).toBe(false)
     } finally {
       rmSync(parent, { recursive: true, force: true })
@@ -236,7 +238,7 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
     writeFileSync(join(project, '.env'), 'PATH=/project-only-path\n')
     try {
       const result = await runBuiltBin(['--version'], {}, project)
-      expect(result).toEqual({ code: 0, stdout: '0.0.1', stderr: '' })
+      expect(result).toEqual({ code: 0, stdout: '0.2.1', stderr: '' })
     } finally {
       rmSync(project, { recursive: true, force: true })
     }

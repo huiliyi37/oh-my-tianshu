@@ -1,18 +1,13 @@
 /**
- * 输入框完整框体（format/input-frame.ts）— 纯渲染契约测试。
+ * 输入轨（format/input-frame.ts）— 纯渲染契约测试。
  *
- * - 完整圆角框：顶框 ╭─╮ + 两侧边线 │ │ + 底框 ╰─╯
- * - 外宽 = boxOuterWidth(columns) ≤ columns
- * - caret 坐标修正：caretLine +1（顶框）、caretCol +2（左边线 `│ `）
- * - 色随模式：normal secondary / plan warning / auto error
- * - columns 过窄（<4）降级：原样返回不加框
+ * rails-only：顶 ╭─╮、底 ╰─╯，输入行无左右 │；caret 行 +1、列不修正。
  */
 
 import { describe, expect, it } from 'vitest'
 import type { RivetTheme } from '../src/theme.js'
 import { displayWidth } from '../src/width.js'
-import { boxOuterWidth } from '../src/box-chars.js'
-import { formatInputFrame, type FormatInputFrameInput } from '../src/format/input-frame.js'
+import { formatInputFrame } from '../src/format/input-frame.js'
 
 function fakeTheme(): RivetTheme {
   return {
@@ -28,74 +23,79 @@ function plain(lines: readonly string[]): string[] {
   return lines.map(l => l.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''))
 }
 
-function base(over: Partial<FormatInputFrameInput> = {}): FormatInputFrameInput {
-  return { columns: 100, lines: ['❯ █placeholder'], caretLine: 0, caretCol: 2, ...over }
-}
-
-describe('formatInputFrame', () => {
-  it('完整框体：顶框 + 两侧边线内容行 + 底框，外宽 = boxOuterWidth', () => {
-    const cols = 100
-    const frame = formatInputFrame(base({ columns: cols }), fakeTheme())
-    const rows = plain(frame.lines)
-    // noUncheckedIndexedAccess：destructuring 元素可能 undefined，空串回退无害
-    const top = rows[0] ?? ''
-    const mid = rows[1] ?? ''
-    const bottom = rows[2] ?? ''
-    expect(frame.lines.length).toBe(3)
-    expect(top).toMatch(/^╭─+╮$/)
-    expect(mid.startsWith('│ ')).toBe(true)
-    expect(mid).toContain('❯ █placeholder')
-    expect(mid.endsWith(' │')).toBe(true)
-    expect(bottom).toMatch(/^╰─+╯$/)
-    for (const line of frame.lines) {
-      expect(displayWidth(line)).toBe(boxOuterWidth(cols))
-    }
+describe('formatInputFrame（rails-only）', () => {
+  it('顶底圆角横线，输入行无左右竖线', () => {
+    const out = formatInputFrame({
+      columns: 40,
+      lines: ['❯ hello'],
+      caretLine: 0,
+      caretCol: 2,
+    }, fakeTheme())
+    const rows = plain(out.lines)
+    expect(rows).toHaveLength(3)
+    expect(rows[0]).toMatch(/^╭─+╮$/)
+    expect(rows[1]).toBe('❯ hello')
+    expect(rows[1]).not.toMatch(/│/)
+    expect(rows[2]).toMatch(/^╰─+╯$/)
+    expect(displayWidth(rows[0]!)).toBe(40)
+    expect(displayWidth(rows[2]!)).toBe(40)
   })
 
-  it('caret 坐标修正：caretLine +1（顶框行）、caretCol +2（左边线 `│ `）', () => {
-    const frame = formatInputFrame(base({ caretLine: 1, caretCol: 5 }), fakeTheme())
-    expect(frame.caretLine).toBe(2)
-    expect(frame.caretCol).toBe(7)
+  it('caret 行 +1、列不修正', () => {
+    const out = formatInputFrame({
+      columns: 40,
+      lines: ['❯ hello'],
+      caretLine: 0,
+      caretCol: 2,
+    }, fakeTheme())
+    expect(out.caretLine).toBe(1)
+    expect(out.caretCol).toBe(2)
   })
 
-  it('normal：secondary 边框色', () => {
-    expect(formatInputFrame(base(), fakeTheme()).lines[0]).toContain('\x1B[38;2;34;34;34m')
+  it('plan 轨线用 warning 色', () => {
+    const out = formatInputFrame({
+      columns: 20,
+      lines: ['❯ '],
+      caretLine: 0,
+      caretCol: 2,
+      planActive: true,
+    }, fakeTheme())
+    expect(out.lines[0]).toContain('\x1B[38;2;68;68;68m')
   })
 
-  it('planActive / planPending：warning 边框色', () => {
-    expect(formatInputFrame(base({ planActive: true }), fakeTheme()).lines[0]).toContain('\x1B[38;2;68;68;68m')
-    expect(formatInputFrame(base({ planActive: true, planPending: true }), fakeTheme()).lines[0]).toContain('\x1B[38;2;68;68;68m')
+  it('normal 轨线用雾蓝 promptBorder', () => {
+    const out = formatInputFrame({
+      columns: 20,
+      lines: ['❯ '],
+      caretLine: 0,
+      caretCol: 2,
+    }, fakeTheme())
+    expect(out.lines[0]).toContain('\x1B[38;2;85;96;111m')
+    expect(out.lines[0]).not.toContain('\x1B[38;2;34;34;34m')
   })
 
-  it('alwaysApprove：error 边框色', () => {
-    expect(formatInputFrame(base({ alwaysApprove: true }), fakeTheme()).lines[0]).toContain('\x1B[38;2;85;85;85m')
+  it('columns < 4：不加轨，caret 不修正', () => {
+    const out = formatInputFrame({
+      columns: 3,
+      lines: ['❯ '],
+      caretLine: 0,
+      caretCol: 2,
+    }, fakeTheme())
+    expect(out.lines).toEqual(['❯ '])
+    expect(out.caretLine).toBe(0)
+    expect(out.caretCol).toBe(2)
   })
 
-  it('separator=thick：粗框字符（┏ ┓ ┗ ┛）', () => {
-    const frame = formatInputFrame(base({ separator: 'thick' }), fakeTheme())
-    const rows = plain(frame.lines)
-    // noUncheckedIndexedAccess：destructuring 元素可能 undefined，空串回退无害
-    const top = rows[0] ?? ''
-    const bottom = rows[2] ?? ''
-    expect(top.startsWith('┏')).toBe(true)
-    expect(top.endsWith('┓')).toBe(true)
-    expect(bottom.startsWith('┗')).toBe(true)
-    expect(bottom.endsWith('┛')).toBe(true)
-  })
-
-  it('columns 过窄（<4）降级：原样返回输入行、不加框、不修正 caret', () => {
-    const frame = formatInputFrame(base({ columns: 3 }), fakeTheme())
-    expect(frame.lines).toEqual(['❯ █placeholder'])
-    expect(frame.caretLine).toBe(0)
-    expect(frame.caretCol).toBe(2)
-  })
-
-  it('多行输入：每行两侧边线，框体行数 = 输入行数 + 2，宽度守恒', () => {
-    const lines = ['❯ █first line', '  second line', '  third line']
-    const frame = formatInputFrame(base({ lines }), fakeTheme())
-    expect(frame.lines.length).toBe(lines.length + 2)
-    for (const line of frame.lines) {
-      expect(displayWidth(line)).toBeLessThanOrEqual(100)
-    }
+  it('多行输入：轨包住全部内容行', () => {
+    const out = formatInputFrame({
+      columns: 20,
+      lines: ['❯ one', '  two'],
+      caretLine: 1,
+      caretCol: 4,
+    }, fakeTheme())
+    expect(out.lines).toHaveLength(4)
+    expect(plain(out.lines)[1]).toBe('❯ one')
+    expect(plain(out.lines)[2]).toBe('  two')
+    expect(out.caretLine).toBe(2)
   })
 })

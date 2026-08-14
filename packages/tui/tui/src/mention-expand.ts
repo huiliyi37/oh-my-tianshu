@@ -9,7 +9,7 @@
  * 文件读取在 file 边界做存在性与大小验证（AGENTS.md 边界验证纪律）：
  * 先 resolve + 前缀校验（防越界），再 stat 存在性/类型，读取后截断。
  *
- * @module @huiliyi37/dsh-tui/mention-expand
+ * @module @huiliyi37/dsh-tianshu-tui/mention-expand
  */
 
 import { readFileSync } from 'node:fs'

@@ -52,6 +52,7 @@ function makeAgent(name: string): Agent {
     id: `agent-${name}`,
     session: {
       id: `session-${name}` as SessionId,
+      header: { id: `session-${name}` as SessionId, version: 0, createdAt: 1 },
       events: [],
       requestHeader: vi.fn(() => undefined),
       requestContext: vi.fn(() => undefined),

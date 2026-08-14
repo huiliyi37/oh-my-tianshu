@@ -4,7 +4,7 @@
  * module only READS logs and the live store; it never appends events and never
  * disposes agents (a handle's teardown belongs to its holder).
  *
- * @module @huiliyi37/dsh-tui/adapter/sessions
+ * @module @huiliyi37/dsh-tianshu-tui/adapter/sessions
  */
 
 import type { Context } from '@huiliyi37/cordis'
@@ -55,7 +55,7 @@ function toSummary(header: Session['header']): SessionSummary {
  * @returns one summary per known session, ordered by `createdAt` descending.
  */
 export async function listSessions(ctx: Context): Promise<SessionSummary[]> {
-  const persistence = ctx.get('sessionPersistence') as SessionPersistenceFacet | undefined
+  const persistence = ctx.reflect.get('sessionPersistence', false) as SessionPersistenceFacet | undefined
   const headers: readonly SessionHeader[] = persistence !== undefined
     ? await persistence.list()
     : ctx.sessions.list().map(session => session.header)

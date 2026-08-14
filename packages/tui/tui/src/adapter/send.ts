@@ -7,7 +7,7 @@
  * writes no session events directly: `followup`/`steer`/`inject` submit inbox
  * input that the agent loop logs through its own durable channels.
  *
- * @module @huiliyi37/dsh-tui/adapter/send
+ * @module @huiliyi37/dsh-tianshu-tui/adapter/send
  */
 
 import type { Context } from '@huiliyi37/cordis'

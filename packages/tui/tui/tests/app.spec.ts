@@ -251,6 +251,22 @@ describe('TuiApp agent-ensure 三分支', () => {
     expect(handle.dispose).toHaveBeenCalledTimes(1)
   })
 
+  it('newSession 把 process.cwd() 写入 create meta.cwd（Web 会话列表可见）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('cwd-1')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+    await app.newSession()
+
+    expect(ctx.agents.create).toHaveBeenCalledWith(expect.objectContaining({
+      meta: { cwd: process.cwd() },
+    }))
+    await app.dispose()
+  })
+
   it('switchSession 旧会话无 agent → resume，controls 来自 handle', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('old-1')
@@ -839,8 +855,8 @@ describe('TuiApp Phase 9b 欢迎页会话恢复入口', () => {
     await app.attach()
 
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    // 摘要并入「恢复会话」菜单项（不单独列表）：携带相对时间。
-    expect(written).toContain('恢复会话')
+    // 摘要并入 Tips「恢复」行（不单独列表）：携带相对时间。
+    expect(written).toContain('恢复 ·')
     expect(written).toContain('小时前')
     // 裸 UUID 不再出现（摘要不含 id）
     expect(written).not.toContain('session-old-2')
@@ -881,7 +897,7 @@ describe('TuiApp 输入行 IME 硬件光标锚定（caretCol 接线）', () => {
     await app.attach()
 
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    // 空输入行 caret.col = `❯ ` 前缀宽 2，经 formatInputFrame 左边线 `│ ` 修正 +2
+    // 空输入行 caret.col = `❯ ` 前缀宽 2，再加 CHROME_GUTTER=2 → 4
     // → 驻停列 = col+1 = 5（CHA `\x1B[5G`）。未接线时 caretCol 恒缺，LiveEngine
     // 不驻停，stdout 里不会出现任何 CHA 序列。
     expect(written).toContain('\x1B[5G')
@@ -917,11 +933,42 @@ describe('TuiApp Phase 8 审批 answerer', () => {
     // 挂起提示上屏
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('允许执行 bash')
-    expect(written).toContain('[y/N]')
+    expect(written).toContain('[y] 允许')
+    expect(written).toContain('[a] 本会话放行')
+    expect(written).toContain('╭─ 审批 · bash')
 
     // y 放行
     stdin.emit('data', 'y')
     await expect(outcome).resolves.toBe('allowed-once')
+    await app.dispose()
+  })
+
+  it('审批挂起按 a → 本会话放行（always-approve + 当前请求 allowed-once）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('approval-a')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    const handler = ctx.on.mock.calls.find(call => call[0] === 'approval/request')?.[1] as
+      | ((req: unknown, next: () => Promise<string>) => Promise<string>)
+      | undefined
+    if (handler === undefined) throw new Error('approval/request handler not registered')
+    const owner = { id: app.sessionId ?? SessionId('approval-a') }
+    const outcome = handler(
+      { agent: { session: { id: owner.id } }, toolName: 'bash' },
+      () => Promise.resolve('unavailable'),
+    )
+    stdin.emit('data', 'a')
+    await expect(outcome).resolves.toBe('allowed-once')
+    const next = handler(
+      { agent: { session: { id: owner.id } }, toolName: 'bash' },
+      () => Promise.resolve('unavailable'),
+    )
+    await expect(next).resolves.toBe('allowed-once')
     await app.dispose()
   })
 
@@ -968,10 +1015,55 @@ describe('TuiApp Phase 8 审批 answerer', () => {
     )
 
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    // diff 块（内联在 y/N 上方）；行前缀与结算卡共享 renderFileDiff（`+ ` 带空格）
+    // diff 块在审批卡内；行前缀与结算卡共享 renderFileDiff（`+ ` 带空格）
     expect(written).toContain('- const x = 1')
     expect(written).toContain('+ const x = 2')
     expect(written).toContain('允许执行 str_replace_editor')
+    await app.dispose()
+  })
+
+  it('矮屏审批卡 compact：有 diff 也不展开体，键位仍在', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('approval-tight')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const events = agent.session.events as unknown as unknown[]
+    events.push({
+      type: 'tool/call',
+      seq: 1,
+      time: 1,
+      data: {
+        turn: 1,
+        step: 1,
+        callId: 'call-tight-1',
+        name: 'str_replace_editor',
+        arguments: JSON.stringify({
+          command: 'str_replace',
+          path: '/repo/a.ts',
+          old_str: 'const x = 1',
+          new_str: 'const x = 2',
+        }),
+      },
+    })
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    stdout.rows = 16
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    const handler = ctx.on.mock.calls.find(call => call[0] === 'approval/request')?.[1] as
+      | ((req: unknown, next: () => Promise<string>) => Promise<string>)
+      | undefined
+    if (handler === undefined) throw new Error('approval/request handler not registered')
+    const owner = { id: app.sessionId ?? SessionId('approval-tight') }
+    void handler(
+      { agent: { session: { id: owner.id } }, toolName: 'str_replace_editor', callId: 'call-tight-1' },
+      () => Promise.resolve('unavailable'),
+    )
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('允许执行 str_replace_editor')
+    expect(written).toContain('[y] 允许')
+    expect(written).not.toContain('- const x = 1')
     await app.dispose()
   })
 
@@ -1397,7 +1489,7 @@ describe('TuiApp Phase 9d 流利度装配', () => {
     // 装配路径无异常即通过（策略内部折叠不直接渲染；渲染断言见下例）
   })
 
-  it('长静默 tool 阶段 → stale 提示上屏（action 档）', async () => {
+  it('长静默 tool 阶段 → stale 提示上屏（action 档）', { timeout: 20_000 }, async () => {
     const ctx = makeCtx()
     const handlers = new Map<string, ((...args: unknown[]) => void)[]>()
     Object.assign(ctx, {
@@ -1504,7 +1596,8 @@ describe('TuiApp Phase 6.1 slash 命令系统', () => {
     ctx.agents.create.mockResolvedValue(handle)
     ctx.sessions.get.mockReturnValue(agent.session)
     // 塞一条用户消息事件（权威形状：data 即 UserMessage）。
-    // Agent 接口声明 events 为 readonly，测试替身 cast 注入（同 approval-diff 用例）。
+    // Agent 接口声明 events 为 readonly；tsc 需要 cast，oxlint 视 mock 推断为可变——按 tsc 写并豁免。
+    // oxlint-disable-next-line no-unnecessary-type-assertion
     ;(agent.session.events as unknown as unknown[]).push({
       type: 'user/message',
       seq: 0,
@@ -2164,6 +2257,224 @@ describe('TuiApp T6 启动 context bar（C4 概念稿 A 顶部栏）', () => {
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain(process.cwd())
     expect(written).toContain('mock/mock') // currentSelection 的 provider/model
+    await app.dispose()
+  })
+})
+
+describe('TuiApp API key 就绪（credentials 分层，非仅 env）', () => {
+  const previousKey = process.env.DEEPSEEK_API_KEY
+
+  afterEach(() => {
+    if (previousKey === undefined) delete process.env.DEEPSEEK_API_KEY
+    else process.env.DEEPSEEK_API_KEY = previousKey
+  })
+
+  function boot(opts: {
+    credentials?: { configured: boolean; source?: string }
+    credentialsError?: boolean
+    envKey?: string
+  } = {}): {
+    app: TuiApp
+    stdout: WriteStream & { write: ReturnType<typeof vi.fn> }
+    describe: ReturnType<typeof vi.fn>
+  } {
+    if (opts.envKey === undefined) delete process.env.DEEPSEEK_API_KEY
+    else process.env.DEEPSEEK_API_KEY = opts.envKey
+
+    const ctx = makeCtx()
+    const agent = makeAgent('key-1')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const describe = vi.fn(async () => {
+      if (opts.credentialsError === true) throw new Error('bad facet')
+      return {
+        writable: true,
+        configured: opts.credentials?.configured ?? false,
+        ...(opts.credentials?.source === undefined ? {} : { source: opts.credentials.source }),
+      }
+    })
+    if (opts.credentials !== undefined || opts.credentialsError === true) {
+      const fallback = ctx.reflect.get.getMockImplementation() as (name: string) => unknown
+      ctx.reflect.get.mockImplementation((name: string) => {
+        if (name === 'credentials') return { describe }
+        return fallback(name)
+      })
+    }
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    return { app, stdout, describe }
+  }
+
+  it('credentials 报 file 已配置、env 未设 → 欢迎页 API Key ✓、footer API ✓', async () => {
+    const { app, stdout, describe } = boot({ credentials: { configured: true, source: 'file' } })
+    await app.attach()
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('API Key ✓')
+    expect(written).not.toContain('API Key ✗')
+    expect(written).toMatch(/API ✓/)
+    expect(describe).toHaveBeenCalledWith('DEEPSEEK_API_KEY')
+    await app.dispose()
+  })
+
+  it('credentials 未配置且 env 未设 → 欢迎页 API Key ✗', async () => {
+    const { app, stdout } = boot({ credentials: { configured: false } })
+    await app.attach()
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('API Key ✗（设 DEEPSEEK_API_KEY）')
+    await app.dispose()
+  })
+
+  it('无 credentials 服务、env 已设 → 欢迎页 API Key ✓（env 兜底）', async () => {
+    const { app, stdout, describe } = boot({ envKey: 'sk-test' })
+    await app.attach()
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('API Key ✓')
+    expect(written).not.toContain('API Key ✗')
+    expect(describe).not.toHaveBeenCalled()
+    await app.dispose()
+  })
+
+  it('credentials.describe 抛错、env 已设 → 回退 env，欢迎页 API Key ✓', async () => {
+    const { app, stdout, describe } = boot({ credentialsError: true, envKey: 'sk-test' })
+    await app.attach()
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('API Key ✓')
+    expect(written).not.toContain('API Key ✗')
+    expect(describe).toHaveBeenCalledWith('DEEPSEEK_API_KEY')
+    await app.dispose()
+  })
+})
+
+describe('TuiApp 会话交互 UX 对齐（显示层 = 实际能力）', () => {
+  const PNG_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+
+  it('/config：credentials.describe(DEEPSEEK_API_KEY) 报 file → 凭据段显示已配置', async () => {
+    const ctx = makeCtx()
+    const describe = vi.fn(async (ref: string) => {
+      expect(ref).toBe('DEEPSEEK_API_KEY')
+      return { configured: true, source: 'file', writable: true }
+    })
+    const fallback = ctx.reflect.get.getMockImplementation() as (name: string) => unknown
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'credentials') return { describe }
+      return fallback(name)
+    })
+    const agent = makeAgent('cfg-key')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.attach()
+    app.handleSubmit('/config')
+    await new Promise(resolve => setTimeout(resolve, 40))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('DEEPSEEK_API_KEY')
+    expect(written).toContain('已配置')
+    expect(written).toContain('file')
+    expect(written).not.toContain('（无凭据）')
+    expect(describe).toHaveBeenCalledWith('DEEPSEEK_API_KEY')
+    await app.dispose()
+  })
+
+  it('/model 热切后 footer 显示新模型名（不再停在挂载时的旧名）', async () => {
+    const ctx = makeCtx()
+    Object.assign(ctx.agentDefaultModel, {
+      currentSelection: vi.fn(() => ({ provider: 'deepseek', model: 'v4-flash' })),
+      saveSelection: vi.fn(async () => { }),
+    })
+    const agent = makeAgent('mdl-footer')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.attach()
+    app.handleSubmit('/model deepseek/v4-turbo')
+    await new Promise(resolve => setTimeout(resolve, 40))
+    expect((app as unknown as { glanceModelName: string | null }).glanceModelName).toBe('v4-turbo')
+    await app.dispose()
+  })
+
+  it('切到无 image 模态的模型后，发图走「图片未发送」（不沿用启动时的识图标志）', async () => {
+    const ctx = makeCtx()
+    const resolveModelInfo = vi.fn(async () => ({ inputModalities: ['text'] as const }))
+    const fallback = ctx.reflect.get.getMockImplementation() as (name: string) => unknown
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'llm') return { resolveModelInfo }
+      return fallback(name)
+    })
+    const agent = makeAgent('vision-hot')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+    const app = new TuiApp({
+      ctx, stdout, stdin: makeStdin(),
+      vision: { supportsVision: true, bridgeEnabled: false },
+    })
+    await app.newSession()
+    expect(app.switchLiveModel({ provider: 'deepseek', model: 'text-only' })).toBe(true)
+    await new Promise(resolve => setTimeout(resolve, 40))
+    app.handleSubmit('hi', [PNG_DATA_URL])
+    await new Promise(resolve => setTimeout(resolve, 40))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('图片未发送')
+    const msg = agent.followup.mock.calls[0]?.[0] as { content?: unknown[] } | undefined
+    expect(msg?.content).toEqual([{ type: 'text', text: 'hi' }])
+    expect(resolveModelInfo).toHaveBeenCalledWith('deepseek', 'text-only')
+    await app.dispose()
+  })
+
+  it('ctrl_s：persistence 有磁盘会话、live 只有当前 → resume 该磁盘会话', async () => {
+    const ctx = makeCtx()
+    const live = makeAgent('live-now')
+    ctx.agents.create.mockResolvedValue(makeHandle(live))
+    ctx.sessions.get.mockReturnValue(live.session)
+    ctx.sessions.list.mockReturnValue([])
+    const diskId = SessionId('session-disk-1')
+    const diskHeader = {
+      id: diskId, version: 0, createdAt: Date.now() - 1_000,
+      cwd: '/tmp/disk-ws', parentSession: undefined,
+    }
+    const fallback = ctx.reflect.get.getMockImplementation() as (name: string) => unknown
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'sessionPersistence') {
+        return { list: vi.fn(async () => [diskHeader]) }
+      }
+      return fallback(name)
+    })
+    ctx.agents.get.mockReturnValue(undefined)
+    const disk = makeAgent('disk-1')
+    Object.assign(disk.session, { id: diskId, header: { ...disk.session.header, id: diskId, cwd: '/tmp/disk-ws' } })
+    ctx.agents.resume.mockResolvedValue(makeHandle(disk))
+    const stdin = makeStdin()
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin })
+    await app.attach()
+    expect(app.sessionId).not.toBe(diskId)
+    stdin.emit('data', '\x13')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(ctx.agents.resume).toHaveBeenCalledWith(expect.objectContaining({ resumeSessionId: diskId }))
+    expect(app.sessionId).toBe(diskId)
+    await app.dispose()
+  })
+
+  it('顶栏与 @mention 使用会话 header.cwd，不是启动进程 cwd', async () => {
+    const ws = mkdtempSync(join(tmpdir(), 'session-cwd-'))
+    writeFileSync(join(ws, 'notes.md'), '会话工作区笔记')
+    const ctx = makeCtx()
+    const id = SessionId('session-cwd-1')
+    const agent = makeAgent('cwd-1')
+    Object.assign(agent.session, { id, header: { ...agent.session.header, id, cwd: ws } })
+    ctx.sessions.list.mockReturnValue([{ id, header: agent.session.header, events: [] }])
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.agents.get.mockReturnValue(agent)
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.attach()
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain(ws)
+    app.handleSubmit('看 @notes.md')
+    await new Promise(resolve => setTimeout(resolve, 40))
+    expect(firstCallText(agent.followup)).toContain('会话工作区笔记')
     await app.dispose()
   })
 })
@@ -3790,18 +4101,20 @@ describe('TuiApp /config 服务组合分支', () => {
     const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
     await app.attach()
     app.handleSubmit('/config')
-    await new Promise(resolve => setImmediate(resolve))
+    await new Promise(resolve => setTimeout(resolve, 40))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     return { app, written }
   }
 
-  it('仅 credentials 服务存在 → 渲染空凭据段', async () => {
+  it('仅 credentials 服务存在 → 查询 DEEPSEEK_API_KEY，未配置则显示未配置行', async () => {
+    const describe = vi.fn(async () => ({ configured: false, writable: true }))
     const { app, written } = await bootWithReflect((name: string) => {
-      if (name === 'credentials') return { describe: vi.fn(async () => ({ configured: false })) }
+      if (name === 'credentials') return { describe }
       return undefined
     })
-    // /config 面板切换后渲染无崩溃（credentials 无枚举面，投影空凭据段）
-    expect(written.length).toBeGreaterThan(0)
+    expect(written).toContain('DEEPSEEK_API_KEY')
+    expect(written).toContain('未配置')
+    expect(describe).toHaveBeenCalledWith('DEEPSEEK_API_KEY')
     await app.dispose()
   })
 
@@ -3968,6 +4281,15 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
     return { ctx, agent, handle, stdin, stdout, app }
   }
 
+  function blankLinesBeforeRail(written: string): number {
+    const plain = written.replace(/\x1B\[[0-9;?]*[ -/]*[@-~]/g, '')
+    const idx = plain.lastIndexOf('╭')
+    if (idx < 0) return 0
+    const m = plain.slice(0, idx).match(/(?:\n[ \t]*)+$/)
+    if (m === null) return 0
+    return m[0].split('\n').length - 1
+  }
+
   it('ctrl_n（0x0e）→ newSession：agents.create 再次被调用（保留旧会话）', async () => {
     const { ctx, app, stdin } = boot()
     await app.attach()
@@ -4038,7 +4360,7 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
     await app.dispose()
   })
 
-  it('B 布局：输入框完整框体渲染 + 宽屏 footer 右侧合并 metrics/API 段', async () => {
+  it('B 布局：输入轨（╭─╮/╰─╯ 无左右竖线）+ 宽屏 footer 右侧合并 metrics/API 段', async () => {
     // 开发机 shell 可能带着真实 key——本用例断言的是「无 key → ✗」路径，先摘掉。
     const savedKey = process.env.DEEPSEEK_API_KEY
     Reflect.deleteProperty(process.env, 'DEEPSEEK_API_KEY')
@@ -4048,9 +4370,11 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
       app.handleSubmit('hi')
       await new Promise(resolve => setImmediate(resolve))
       const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-      // 完整框体：顶框 ╭─╮ 在输入行上方、底框 ╰─╯ 在下方
+      expect(written).toContain('❯')
+      // 完整框体：顶框 ╭─╮ 在输入行上方、底框 ╰─╯ 在下方，无左右竖线
       expect(written).toMatch(/╭─+/)
       expect(written).toMatch(/╰─+/)
+      expect(written).not.toMatch(/│ ❯/)
       // 宽屏（mock 100 列 ≥ 80）合并路径：API 状态段进 footer 右侧
       // （无 DEEPSEEK_API_KEY → ✗；区别于欢迎页的「API Key」环境检查行）
       expect(written).toContain('API ✗')
@@ -4067,11 +4391,37 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
     app.handleSubmit('hi')
     await new Promise(resolve => setImmediate(resolve))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    // 完整框体不随宽度消失（框体独立于合并阈值）
+    expect(written).toContain('❯')
     expect(written).toMatch(/╭─+/)
-    expect(written).toMatch(/╰─+/)
+    expect(written).not.toMatch(/│ ❯/)
     // 无合并 → API 状态段不渲染（欢迎页「API Key」环境检查行不受影响）
     expect(written).not.toContain('API ✗')
+    await app.dispose()
+  })
+
+  it('idle live 区不按剩余视口垫空行', async () => {
+    const { stdout, app } = boot()
+    stdout.rows = 40
+    await app.attach()
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    const idx = written.lastIndexOf('╭')
+    expect(idx).toBeGreaterThan(0)
+    expect(written).toContain('Tips')
+    expect(written.slice(idx)).toMatch(/╰─+/)
+    expect(blankLinesBeforeRail(written)).toBeLessThanOrEqual(2)
+    await app.dispose()
+  })
+
+  it('提交后输入轨仍在，轨前无整屏连续空行', async () => {
+    const { stdout, app } = boot()
+    stdout.rows = 40
+    await app.attach()
+    app.handleSubmit('hi')
+    await new Promise(resolve => setImmediate(resolve))
+    const after = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(after).toMatch(/╭─+/)
+    expect(after).toMatch(/╰─+/)
+    expect(blankLinesBeforeRail(after)).toBeLessThanOrEqual(2)
     await app.dispose()
   })
 })
@@ -4146,7 +4496,8 @@ describe('slash 命令菜单接线（grok slash_dropdown 移植）', () => {
     expect(written).not.toContain('切换主题')
     // 输入行清空（对齐正常提交路径；菜单提交不清空会残留 /theme）
     expect(written).not.toContain('❯ /theme')
-    expect(written).toContain('询问任何事，或 Ctrl+C 取消')
+    expect(written.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '')).toContain('❯ █')
+    expect(written).not.toContain('询问任何事')
     await app.dispose()
   })
 
@@ -4221,7 +4572,8 @@ describe('slash 菜单阶段 2 接线（ghost 预览 / 参数模式 / MRU）', (
     stdin.emit('data', '\r')
     const after = await writtenOf(stdout)
     // 提交后输入行清空（命令执行走 /theme 切换）
-    expect(after).toContain('询问任何事，或 Ctrl+C 取消')
+    expect(after.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '')).toContain('❯ █')
+    expect(after).not.toContain('询问任何事')
     await app.dispose()
   })
 
@@ -4502,9 +4854,9 @@ describe('TuiApp 剪贴板图片与复制（opencode 接线移植）', () => {
     const { agent, app } = boot({ supportsVision: true })
     await app.attach()
     app.handleSubmit('看图', [PNG_DATA_URL])
-    const msg = agent.followup.mock.calls[0]?.[0]
+    const msg = agent.followup.mock.calls[0]?.[0] as { content: unknown[] } | undefined
     expect(msg).toBeDefined()
-    expect(msg.content).toEqual([
+    expect(msg?.content).toEqual([
       { type: 'text', text: '看图' },
       { type: 'image', dataUrl: PNG_DATA_URL },
     ])
@@ -4515,7 +4867,7 @@ describe('TuiApp 剪贴板图片与复制（opencode 接线移植）', () => {
     const { agent, app } = boot({ supportsVision: true })
     await app.attach()
     app.handleSubmit('', [PNG_DATA_URL])
-    const msg = agent.followup.mock.calls[0]?.[0]
+    const msg = agent.followup.mock.calls[0]?.[0] as { content: unknown[] } | undefined
     expect(msg?.content[0]).toMatchObject({ type: 'text', text: '📎 图片消息' })
     await app.dispose()
   })
@@ -4528,7 +4880,7 @@ describe('TuiApp 剪贴板图片与复制（opencode 接线移植）', () => {
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('图片未发送')
     // 图片不可达时不发送：followup 只含 text block，无 image block。
-    const msg = agent.followup.mock.calls[0]?.[0]
+    const msg = agent.followup.mock.calls[0]?.[0] as { content: unknown[] } | undefined
     expect(msg?.content).toEqual([{ type: 'text', text: 'hi' }])
     await app.dispose()
   })
@@ -4552,7 +4904,7 @@ describe('TuiApp 剪贴板图片与复制（opencode 接线移植）', () => {
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('经识图桥')
     // 有桥时图片照发（经 agent/pre-step 视觉桥转描述）。
-    const msg = agent.followup.mock.calls[0]?.[0]
+    const msg = agent.followup.mock.calls[0]?.[0] as { content: unknown[] } | undefined
     expect(msg?.content).toEqual([
       { type: 'text', text: 'hi' },
       { type: 'image', dataUrl: PNG_DATA_URL },
@@ -4568,7 +4920,7 @@ describe('TuiApp 剪贴板图片与复制（opencode 接线移植）', () => {
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).not.toContain('识图')
     // 识图主控直发：图片照发。
-    const msg = agent.followup.mock.calls[0]?.[0]
+    const msg = agent.followup.mock.calls[0]?.[0] as { content: unknown[] } | undefined
     expect(msg?.content).toEqual([
       { type: 'text', text: 'hi' },
       { type: 'image', dataUrl: PNG_DATA_URL },

@@ -16,7 +16,7 @@
  * 不负责超时判定）：挂起超过 timeoutMs 无人应答 → fail-closed 自动结算
  * cancelled，卡片不会无限挂起。
  *
- * @module @huiliyi37/dsh-tui/controllers/approval-controller
+ * @module @huiliyi37/dsh-tianshu-tui/controllers/approval-controller
  */
 
 import type { SessionId } from '@huiliyi37/dsh-session'

@@ -17,7 +17,7 @@
  * 极端窄宽退化为 … 不抛错）。TuiApp 消费 user-interaction 提供方的
  * request 快照（接线由其他维度独占）。
  *
- * @module @huiliyi37/dsh-tui/question-panel
+ * @module @huiliyi37/dsh-tianshu-tui/question-panel
  */
 
 import { displayWidth } from './width.js'

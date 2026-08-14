@@ -13,7 +13,7 @@
  * format/glance-bar），本模块只做「snapshot → 既有面板函数输入」的适配与
  * 顺序编排，不重复实现渲染逻辑。依赖方向保持 app.ts → render/ 单向。
  *
- * @module @huiliyi37/dsh-tui/render/live-panels
+ * @module @huiliyi37/dsh-tianshu-tui/render/live-panels
  */
 
 import type { LiveSnapshot } from './live-snapshot.js'
@@ -48,13 +48,13 @@ export function renderGlancePanel(snapshot: LiveSnapshot): string[] {
 
 /**
  * 渲染会话 tab 栏（P3 side conversation）：状态栏上方单行，全部 live 会话
- * 的缩略 tab。活跃会话 ▸ 前缀；运行中会话 ⏳ 后缀。单会话也渲染（提供
- * 当前上下文）。空列表（未 attach）返回空。
+ * 的缩略 tab。活跃会话 ▸ 前缀；运行中会话 ⏳ 后缀。单会话不渲染——tab 只在
+ * 有多个目标可切换时才有信息量，单会话的随机短 id 白占一行（chrome 瘦身）。
  * @param snapshot - 当前帧快照。
  * @returns tab 栏行（0 或 1 行；纯文本，着色由组合器按整行处理）。
  */
 export function renderSessionTabs(snapshot: LiveSnapshot): string[] {
-  if (snapshot.sessionTabs.length === 0) return []
+  if (snapshot.sessionTabs.length <= 1) return []
   const tabs = snapshot.sessionTabs.map((tab) => {
     // 缩略 id：session-<uuid> 取 uuid 前 12 位；其他形状取前 16 位。
     const short = tab.id.startsWith('session-') ? tab.id.slice(8, 20) : tab.id.slice(0, 16)

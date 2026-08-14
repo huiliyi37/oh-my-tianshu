@@ -10,7 +10,7 @@
  * 无 overlay 注册时零输出，不改变主屏行为——只是把未来 overlay 的生命周期
  * 与 CPR 协调收敛到单一装配点。
  *
- * @module @huiliyi37/dsh-tui/engine/overlay-controller
+ * @module @huiliyi37/dsh-tianshu-tui/engine/overlay-controller
  */
 
 import type { WriteStream } from 'node:tty'

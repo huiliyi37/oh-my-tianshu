@@ -13,6 +13,7 @@
     "apps/web/tests/declared-reasoning.e2e.ts",
     "apps/web/tests/support.ts",
     "apps/web/tests/scaffold-hermetic.e2e.ts",
+    "apps/web/tests/core-web-profile.snapshot.ts",
     "apps/web/tests/live-interactions.e2e.ts",
     "apps/web/tests/question-composer.e2e.ts",
     "apps/web/tests/approval-composer.e2e.ts",

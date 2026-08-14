@@ -2,7 +2,8 @@
  * MetricsGlanceController — 底部 glance 数据收集与刷新节流契约测试（RED→GREEN）。
  *
  * - deriveGlanceStatus：WorkflowStatusLine.current 优先，否则 agent 状态回退
- *   （running「● 运行中」/ 空闲「○ 空闲」/ 已停止「✗ 已停止」）。
+ *   （running「● 运行中」/ 已停止「✗ 已停止」/ 空闲 null——不渲染不占位，
+ *   空闲提示由 footer 承载）。
  * - deriveGlanceError：lastError 无 → null；有 → glyph（ascii 降级）+ 首行
  *   截断至 cols-2。
  * - 控制器节流：首次 refresh 恒同步；窗口内重复 refresh 合并到窗口末重算；
@@ -49,16 +50,16 @@ describe('deriveGlanceStatus（状态行回退派生）', () => {
     expect(deriveGlanceStatus('实施 · bash', liveState({ status: 'running' }))).toBe('实施 · bash')
   })
 
-  it('无投影且未挂载（undefined）→ 空闲', () => {
-    expect(deriveGlanceStatus(null, undefined)).toBe('○ 空闲')
+  it('无投影且未挂载（undefined）→ null（空闲不占位）', () => {
+    expect(deriveGlanceStatus(null, undefined)).toBeNull()
   })
 
   it('running → ● 运行中', () => {
     expect(deriveGlanceStatus(null, liveState({ status: 'running' }))).toBe('● 运行中')
   })
 
-  it('idle → ○ 空闲', () => {
-    expect(deriveGlanceStatus(null, liveState({ status: 'idle' }))).toBe('○ 空闲')
+  it('idle → null（空闲不渲染状态行）', () => {
+    expect(deriveGlanceStatus(null, liveState({ status: 'idle' }))).toBeNull()
   })
 
   it('已停止（live=false）→ ✗ 已停止', () => {
@@ -108,7 +109,7 @@ describe('MetricsGlanceController 刷新节流', () => {
       getColumns: () => 80,
       onChange,
     })
-    expect(ctrl.current()).toEqual({ status: '○ 空闲', error: null }) // 构造安全默认
+    expect(ctrl.current()).toEqual({ status: null, error: null }) // 构造安全默认（空闲不占位）
     ctrl.refresh()
     expect(ctrl.current().status).toBe('● 运行中')
     expect(onChange).toHaveBeenCalledTimes(1)
@@ -137,7 +138,7 @@ describe('MetricsGlanceController 刷新节流', () => {
       // 状态变化 + 窗口内 refresh：合并到窗口末，期间 current() 仍为缓存旧值
       state.status = 'running'
       ctrl.refresh()
-      expect(ctrl.current().status).toBe('○ 空闲')
+      expect(ctrl.current().status).toBeNull()
       expect(onChange).toHaveBeenCalledTimes(1)
       vi.advanceTimersByTime(100)
       expect(ctrl.current().status).toBe('● 运行中')
