@@ -4415,19 +4415,49 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
   })
 
   it('B 布局：窄屏 footer 仍单行合并，不纵排 theme.primary 第二行', async () => {
-    const { stdout, app } = boot()
-    stdout.columns = 70
-    await app.attach()
-    app.handleSubmit('hi')
-    await new Promise(resolve => setImmediate(resolve))
-    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('❯')
-    expect(written).toMatch(/╭─+/)
-    expect(written).not.toMatch(/│ ❯/)
-    // 70 列从右丢段，API 末段先丢；metrics 不得再以 primary 色独立成行
-    expect(written).not.toContain('API ✗')
-    expect(written).toContain('\x1B[38;2;170;178;194m')
-    await app.dispose()
+    const savedKey = process.env.DEEPSEEK_API_KEY
+    Reflect.deleteProperty(process.env, 'DEEPSEEK_API_KEY')
+    try {
+      const { stdout, app } = boot()
+      stdout.columns = 70
+      await app.attach()
+      stdout.write.mockClear()
+      app.handleSubmit('hi')
+      await new Promise(resolve => setImmediate(resolve))
+      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('❯')
+      expect(written).toMatch(/╭─+/)
+      expect(written).not.toMatch(/│ ❯/)
+      // 70 列放得下 left + mock + API ✗，应留在同一行雾蓝 chrome；不得另起 primary 行。
+      expect(written).toContain('API ✗')
+      expect(written).toContain('\x1B[38;2;170;178;194m')
+      await app.dispose()
+    } finally {
+      if (savedKey !== undefined) process.env.DEEPSEEK_API_KEY = savedKey
+    }
+  })
+
+  it('B 布局：更窄时从右丢 API 段，仍单行雾蓝', async () => {
+    const savedKey = process.env.DEEPSEEK_API_KEY
+    Reflect.deleteProperty(process.env, 'DEEPSEEK_API_KEY')
+    try {
+      const { stdout, app } = boot()
+      stdout.columns = 50
+      await app.attach()
+      stdout.write.mockClear()
+      app.handleSubmit('hi')
+      await new Promise(resolve => setImmediate(resolve))
+      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('❯')
+      expect(written).toMatch(/╭─+/)
+      expect(written).toContain('normal')
+      expect(written).toContain('mock')
+      expect(written).not.toContain('API ✗')
+      expect(written).toContain('\x1B[38;2;170;178;194m')
+      await app.dispose()
+    } finally {
+      if (savedKey !== undefined) process.env.DEEPSEEK_API_KEY = savedKey
+    }
   })
 
   it('idle live 区不按剩余视口垫空行', async () => {
