@@ -40,7 +40,7 @@
     "bundle": "tsdown",
     "watch": "tsdown --watch"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "files": [
     "lib/index.js",
     "lib/invariant.js",

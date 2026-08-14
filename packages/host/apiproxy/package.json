@@ -43,7 +43,7 @@
     "lib/types/**/*.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "@huiliyi37/dsh-agent": "workspace:^",
     "@huiliyi37/dsh-agent-default-model": "workspace:^",

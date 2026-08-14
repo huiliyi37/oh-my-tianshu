@@ -1,11 +1,21 @@
 Tianshu Harness (dsh-tianshu)
 Copyright (c) 2026 huiliyi37 (Tianshu Harness contributors)
 
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this product except in compliance with the License. You may obtain a copy
+of the License at http://www.apache.org/licenses/LICENSE-2.0. Unless required
+by applicable law or agreed to in writing, software distributed under the
+License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+OF ANY KIND, either express or implied. See the License for the specific
+language governing permissions and limitations under the License.
+
 This product contains code derived from DeepSeek Harness
 (https://www.npmjs.com/package/@deepseek-ai/dsh), licensed under the MIT
 License, Copyright (c) 2026 DeepSeek. This repository is an independent fork
 based on a snapshot of that codebase; it is neither affiliated with nor
-endorsed by DeepSeek, and does not track upstream development.
+endorsed by DeepSeek, and does not track upstream development. The MIT
+copyright and permission notices of that upstream code are preserved below
+and in the corresponding per-file headers.
 
 The terminal UI render core under packages/tui/tui and the vision co-pilot
 under packages/tui/vision-ask contain code ported from Apache-2.0 licensed

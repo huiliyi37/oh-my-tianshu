@@ -30,7 +30,7 @@
     "lib/invariant.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "MIT",
+  "license": "Apache-2.0",
   "peerDependencies": {
     "@huiliyi37/dsh-agent": "^0.2.0",
     "@huiliyi37/dsh-compact": "^0.2.0",

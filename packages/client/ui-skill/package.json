@@ -42,7 +42,7 @@
     "bundle": "tsdown",
     "watch": "tsdown --watch"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "peerDependencies": {
     "@huiliyi37/dsh-client-connection": "^0.2.0",
     "@huiliyi37/dsh-client-locale": "^0.2.0",

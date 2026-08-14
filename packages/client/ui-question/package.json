@@ -40,7 +40,7 @@
     "bundle": "tsdown",
     "watch": "tsdown --watch"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "@huiliyi37/dsh-client-connection": "workspace:^",
     "@huiliyi37/dsh-client-runtime": "workspace:^",

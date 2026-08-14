@@ -37,7 +37,7 @@
     "platform": "web",
     "immediately": true
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "@huiliyi37/dsh-agent": "workspace:^",
     "@huiliyi37/dsh-client-connection": "workspace:^",

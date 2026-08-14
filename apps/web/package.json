@@ -23,7 +23,7 @@
     "dev": "vite",
     "watch": "vite build --watch"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "@huiliyi37/dsh-client-web": "workspace:^",
     "react": "^18.2.0",

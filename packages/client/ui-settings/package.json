@@ -40,7 +40,7 @@
     "bundle": "tsdown",
     "watch": "tsdown --watch"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "clsx": "^2.0.0"
   },

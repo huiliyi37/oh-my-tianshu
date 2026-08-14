@@ -34,7 +34,7 @@
     "lib/worker.cjs",
     "lib/types/**/*.d.ts"
   ],
-  "license": "MIT",
+  "license": "Apache-2.0",
   "peerDependencies": {
     "@huiliyi37/dsh-code-runtime": "^0.2.0",
     "@huiliyi37/dsh-invariants": "^0.2.0",

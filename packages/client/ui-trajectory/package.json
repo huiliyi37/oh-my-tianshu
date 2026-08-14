@@ -40,7 +40,7 @@
     "bundle": "tsdown",
     "watch": "tsdown --watch"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "@tanstack/react-virtual": "^3.14.9",
     "diff": "^9.0.0"

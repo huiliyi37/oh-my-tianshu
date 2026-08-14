@@ -207,7 +207,7 @@ pnpm run demo:acp
 
 ## 与上游 `dsh` 的关系
 
-本项目于 2026-08 基线从 DeepSeek Harness(MIT)分叉,独立演进——不追踪上游发布;包发布在 `@huiliyi37/*` npm scope 下(CLI:`@huiliyi37/dsh-tianshu`,bin 名 `tianshu`),两条线永不相撞。上游署名保留在 [NOTICE](NOTICE);TUI 包额外携带自己的 Apache-2.0 来源链([LICENSE](packages/tui/tui/LICENSE) / [NOTICE](packages/tui/tui/NOTICE) / [SOURCE-MAP](packages/tui/tui/SOURCE-MAP.md))。纯插件形态的发行(`dsh-tianshu-tui` 作为上游 `dsh` 的插件)暂缓;本完全体 monorepo 是持续维护的主线。
+本项目于 2026-08 基线从 DeepSeek Harness(MIT)分叉,独立演进——不追踪上游发布;包发布在 `@huiliyi37/*` npm scope 下(CLI:`@huiliyi37/dsh-tianshu`,bin 名 `tianshu`),两条线永不相撞。本仓库以 Apache License 2.0 发布;上游署名保留在 [NOTICE](NOTICE),TUI 包携带自己的 Apache-2.0 来源链([LICENSE](packages/tui/tui/LICENSE) / [NOTICE](packages/tui/tui/NOTICE) / [SOURCE-MAP](packages/tui/tui/SOURCE-MAP.md))。纯插件形态的发行(`dsh-tianshu-tui` 作为上游 `dsh` 的插件)暂缓;本完全体 monorepo 是持续维护的主线。
 
 ## 开发
 
@@ -217,4 +217,4 @@ pnpm run demo:acp
 
 ## 许可证
 
-[MIT](LICENSE)。上游与第三方署名:[NOTICE](NOTICE) 与 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+[Apache-2.0](LICENSE)。上游与第三方署名:[NOTICE](NOTICE) 与 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

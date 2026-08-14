@@ -30,7 +30,7 @@
     "lib/invariant.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "@agentclientprotocol/sdk": "0.25.1",
     "@huiliyi37/dsh-loader-smoke": "workspace:*",

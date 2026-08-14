@@ -207,7 +207,7 @@ Disabled by default — nothing is uploaded anywhere. To stream session telemetr
 
 ## Relationship with upstream `dsh`
 
-This project forked from DeepSeek Harness (MIT) at the 2026-08 baseline and evolves independently — it does not track upstream releases, and its packages live under the `@huiliyi37/*` npm scope (CLI: `@huiliyi37/dsh-tianshu`, bin `tianshu`) so the two lines never collide. Upstream attribution is preserved in [NOTICE](NOTICE); the TUI package additionally carries its own Apache-2.0 provenance chain ([LICENSE](packages/tui/tui/LICENSE) / [NOTICE](packages/tui/tui/NOTICE) / [SOURCE-MAP](packages/tui/tui/SOURCE-MAP.md)). The plugin-only distribution (`dsh-tianshu-tui` as an upstream-`dsh` plugin) is paused for now; this full monorepo is the maintained line.
+This project forked from DeepSeek Harness (MIT) at the 2026-08 baseline and evolves independently — it does not track upstream releases, and its packages live under the `@huiliyi37/*` npm scope (CLI: `@huiliyi37/dsh-tianshu`, bin `tianshu`) so the two lines never collide. The repository is licensed under the Apache License 2.0; upstream attribution is preserved in [NOTICE](NOTICE), and the TUI package carries its own Apache-2.0 provenance chain ([LICENSE](packages/tui/tui/LICENSE) / [NOTICE](packages/tui/tui/NOTICE) / [SOURCE-MAP](packages/tui/tui/SOURCE-MAP.md)). The plugin-only distribution (`dsh-tianshu-tui` as an upstream-`dsh` plugin) is paused for now; this full monorepo is the maintained line.
 
 ## Development
 
@@ -217,4 +217,4 @@ For agents, follow [AGENTS.md](AGENTS.md).
 
 ## License
 
-[MIT](LICENSE). Upstream and third-party attributions: [NOTICE](NOTICE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[Apache-2.0](LICENSE). Upstream and third-party attributions: [NOTICE](NOTICE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -34,7 +34,7 @@
     "platform": "web",
     "immediately": true
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "@huiliyi37/schemastery": "^3.18.0"
   },

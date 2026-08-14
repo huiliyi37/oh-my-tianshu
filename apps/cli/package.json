@@ -18,7 +18,7 @@
     "lib/*.js",
     "config"
   ],
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "@huiliyi37/cordis-plugin-hmr": "workspace:*",
     "@huiliyi37/cordis-plugin-include": "workspace:*",

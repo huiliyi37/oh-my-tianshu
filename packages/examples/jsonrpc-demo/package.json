@@ -38,7 +38,7 @@
     "lib/bin.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "@huiliyi37/dsh-app-boot": "workspace:^"
   },
