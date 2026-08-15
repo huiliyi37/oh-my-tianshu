@@ -4,10 +4,10 @@
  * 覆盖：首行/后续行导轨制式、空行只保留导轨、长正文按宽度折叠（ASCII/CJK）、
  * 窄宽（导轨占满）不破版、formatUserMessage 的 ascii/truecolor marker 双轨。
  */
-import { afterEach, describe, expect, it } from 'vitest'
-import chalk from 'chalk'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { formatRailedMessage, formatUserMessage, formatTimestamp } from '../src/format/user-message.js'
-import { wrapToDisplayWidth } from '../src/width.js'
+import { resetTermCapsCache } from '../src/term-caps.js'
+import { resetWidthModeCache, wrapToDisplayWidth } from '../src/width.js'
 import type { RivetTheme } from '../src/theme.js'
 
 /** 最小主题替身（导轨/正文着色可断言）。 */
@@ -167,19 +167,44 @@ describe('formatRailedMessage 时间戳投影（/timestamps）', () => {
 })
 
 describe('formatUserMessage 直接入口', () => {
-  const savedLevel = chalk.level
-  afterEach(() => { chalk.level = savedLevel })
-
-  it('ascii 轨（chalk.level<3）：marker 用 ❯', () => {
-    chalk.level = 0
-    const lines = formatUserMessage({ content: 'hello', width: 80 }, fakeTheme)
-    expect(plain(lines)[0]).toBe('❯ hello')
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    resetTermCapsCache()
   })
 
-  it('truecolor 轨（chalk.level=3）：marker 用 ▌', () => {
-    chalk.level = 3
+  it('现代终端（RIVET_ASCII_UI=0）：marker 用 ▌', () => {
+    vi.stubEnv('RIVET_ASCII_UI', '0')
+    resetTermCapsCache()
     const lines = formatUserMessage({ content: 'hello', width: 80 }, fakeTheme)
     expect(plain(lines)[0]).toBe('▌ hello')
+  })
+
+  it('legacy 降级（RIVET_ASCII_UI=1）：marker 无条件 ASCII', () => {
+    vi.stubEnv('RIVET_ASCII_UI', '1')
+    resetTermCapsCache()
+    const lines = formatUserMessage({ content: 'hello', width: 80 }, fakeTheme)
+    expect(plain(lines)[0]).toBe('> hello')
+  })
+
+  it('full 档（legacy CJK）：折叠按 2 列度量，与 LiveEngine 行数口径一致', () => {
+    const before = process.env.RIVET_AMBIGUOUS_WIDTH
+    process.env.RIVET_AMBIGUOUS_WIDTH = 'full'
+    resetWidthModeCache()
+    try {
+      // ▌(2) + 空格(1) → 正文预算 3；◐ 在 full 档计 2 列，每行只能容纳 1 个
+      // → 8 行。修复前按 narrow 度量（▌=1、◐=1）会折成 2 行，与行数估算错位。
+      const lines = formatRailedMessage({
+        content: '◐◐◐◐◐◐◐◐',
+        width: 6,
+        marker: '▌',
+        markerColor: fakeTheme.userColor,
+      }, fakeTheme)
+      expect(plain(lines)).toHaveLength(8)
+    } finally {
+      if (before === undefined) delete process.env.RIVET_AMBIGUOUS_WIDTH
+      else process.env.RIVET_AMBIGUOUS_WIDTH = before
+      resetWidthModeCache()
+    }
   })
 })
 

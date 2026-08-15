@@ -26,11 +26,12 @@ import stringWidth from 'string-width'
 import { eastAsianWidthType } from 'get-east-asian-width'
 import { isLegacyCjkConsole } from './term-caps.js'
 
-// CSI（\x1B[…m 等）+ OSC（\x1B]…BEL / …ST，含 OSC 8 超链接）。OSC 的 payload
-// 是可打印 ASCII（URL），若只剥 CSI 会把 URL 当可见字符计宽 → 截断/padding 错位。
-const ANSI_RE = /\x1B(?:\[[0-9;]*[a-zA-Z]|\][^\x07\x1B]*(?:\x07|\x1B\\))/g
+// CSI（\x1B[…m 等，中间字符含 ? 的 DEC private mode 如 \x1B[?25h 亦计入）
+// + OSC（\x1B]…BEL / …ST，含 OSC 8 超链接）。OSC 的 payload 是可打印 ASCII
+// （URL），若只剥 CSI 会把 URL 当可见字符计宽 → 截断/padding 错位。
+const ANSI_RE = /\x1B(?:\[[0-9;?]*[a-zA-Z]|\][^\x07\x1B]*(?:\x07|\x1B\\))/g
 /** 黏附匹配（按位置）用于截断时识别转义序列。 */
-const ANSI_STICKY = /\x1B(?:\[[0-9;]*[a-zA-Z]|\][^\x07\x1B]*(?:\x07|\x1B\\))/y
+const ANSI_STICKY = /\x1B(?:\[[0-9;?]*[a-zA-Z]|\][^\x07\x1B]*(?:\x07|\x1B\\))/y
 const RESET = '\x1B[0m'
 const OSC8_OPEN_RE = /\x1B\]8;[^\x07\x1B]*(?:\x07|\x1B\\)/g
 const OSC8_CLOSE = '\x1B]8;;\x07'
@@ -95,7 +96,9 @@ export function resetWidthModeCache(): void {
 
 /** 宽度度量选项（displayWidth / wrapToDisplayWidth / truncateToDisplayWidth 共用）。 */
 export interface DisplayWidthOptions {
-  /** 把非 box/block 的 ambiguous 符号按 2 列计。默认 false（= string-width 行为）。 */
+  /** 把非 box/block 的 ambiguous 符号按 2 列计。缺省跟随全局档位
+   *  ambiguousWideEnabled()——与 LiveEngine.rowsForLine 的度量口径一致，
+   *  避免折叠点与行数估算错位。 */
   ambiguousAsWide?: boolean
 }
 
@@ -110,7 +113,7 @@ export interface DisplayWidthOptions {
  */
 export function wrapToDisplayWidth(text: string, max: number, opts: DisplayWidthOptions = {}): string[] {
   if (max <= 0) return []
-  const wide = !!opts.ambiguousAsWide
+  const wide = opts.ambiguousAsWide ?? ambiguousWideEnabled()
   const lines: string[] = []
   let current = ''
   let w = 0
@@ -156,7 +159,7 @@ export function wrapToDisplayWidth(text: string, max: number, opts: DisplayWidth
 export function displayWidth(text: string, opts: DisplayWidthOptions = {}): number {
   const plain = text.replace(ANSI_RE, '')
   const base = stringWidth(plain)
-  if (!opts.ambiguousAsWide) return base
+  if (!(opts.ambiguousAsWide ?? ambiguousWideEnabled())) return base
   return base + ambiguousExtra(plain)
 }
 
@@ -171,7 +174,7 @@ export function displayWidth(text: string, opts: DisplayWidthOptions = {}): numb
 export function truncateToDisplayWidth(text: string, max: number, opts: DisplayWidthOptions = {}): string {
   if (max <= 0) return ''
   if (displayWidth(text, opts) <= max) return text
-  const wide = !!opts.ambiguousAsWide
+  const wide = opts.ambiguousAsWide ?? ambiguousWideEnabled()
   let out = ''
   let w = 0
   let i = 0

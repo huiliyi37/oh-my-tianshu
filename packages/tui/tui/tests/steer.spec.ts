@@ -6,10 +6,11 @@
  * - formatSteerMessage（format/steer-message.ts）：前缀/颜色区分 user 消息
  */
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getTheme } from '../src/theme.js'
 import { formatUserMessage } from '../src/format/user-message.js'
 import { formatSteerMessage } from '../src/format/steer-message.js'
+import { resetTermCapsCache } from '../src/term-caps.js'
 import { parseSlashCommand } from '../src/ui/app.js'
 
 describe('parseSlashCommand — /steer 最小前缀解析', () => {
@@ -52,7 +53,14 @@ describe('parseSlashCommand — /steer 最小前缀解析', () => {
 })
 
 describe('formatSteerMessage — 转向消息差异化渲染', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    resetTermCapsCache()
+  })
+
   it('单行：marker 前缀 + 正文', () => {
+    vi.stubEnv('RIVET_ASCII_UI', '0')
+    resetTermCapsCache()
     const theme = getTheme()
     const lines = formatSteerMessage({ content: '收敛到最小方案', width: 80 }, theme)
     expect(lines).toHaveLength(1)
@@ -61,11 +69,13 @@ describe('formatSteerMessage — 转向消息差异化渲染', () => {
   })
 
   it('marker 与 user 消息前缀不同（区分说话人）', () => {
+    vi.stubEnv('RIVET_ASCII_UI', '0')
+    resetTermCapsCache()
     const theme = getTheme()
     const steer = formatSteerMessage({ content: 'x', width: 80 }, theme).join('\n')
     const user = formatUserMessage({ content: 'x', width: 80 }, theme).join('\n')
     const steerMarker = steer.match(/>>|➤/)?.[0]
-    const userMarker = user.match(/❯|▌/)?.[0]
+    const userMarker = user.match(/❯|▌|>/)?.[0]
     expect(steerMarker).toBeDefined()
     expect(userMarker).toBeDefined()
     expect(steerMarker).not.toBe(userMarker)
