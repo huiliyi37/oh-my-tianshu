@@ -12,7 +12,7 @@ Status: implemented
 
 把审查批次移植进 `packages/tui/tui`，并在插件侧闭环视觉桥：
 
-- **视觉桥探测**：`TuiApp.resolveVisionBridge` 在未注入 `vision` 配置时按 `visionBridge` 服务存在性判定桥可用；`packages/context/vision-bridge` 在 `apply` 时 provide 该服务（随卸载释放；`enabled: false` 不提供）。装配方仍可显式注入 `vision.bridgeEnabled`——探测是无配置兜底。
+- **视觉桥探测**：`TuiApp.resolveVisionBridge` 在未注入 `vision` 配置时按 `visionBridge` 服务存在性判定桥可用；`packages/context/vision-bridge` 在 `apply` 时 provide 该服务（随卸载释放；`enabled: false` 不提供）。装配方仍可显式注入 `vision.bridgeEnabled`——探测是无配置兜底。`dsh-tui` 的 bundle patch 默认以 `visionAutoBridge: true` 装配该桥——标准 tui profile 无需任何 overlay 即带视觉桥。
 - **可选服务**：`goals`/`subagents` 移出必选 inject；读取一律走 `reflect.get`，服务缺失按命令 fails loud，不再让整个 TUI 静默失活。
 - **降级 fails-loud**：面板与 plan 模式循环在 backing 服务缺失时经 `TuiApp.echoWarn` 回显 `⚠` 警告；平台层降级同样上屏（剪贴板读图工具链缺失、外部编辑器 spawn 失败、终端不支持 OSC52）。
 - **chrome 修复**：`/clear` 真清屏（2J + 3J + 光标回顶 + live 区全量重绘）；键位表补全到 20 条，并修复窄宽截断绑定宽度时整行超 1 列的 off-by-one（spec 改按显示宽度断言）。

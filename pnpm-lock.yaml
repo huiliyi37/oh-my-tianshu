@@ -6822,6 +6822,9 @@ importers:
       '@huiliyi37/dsh-spark-anchors':
         specifier: workspace:^
         version: link:../../context/spark-anchors
+      '@huiliyi37/dsh-vision-bridge':
+        specifier: workspace:^
+        version: link:../../context/vision-bridge
       chalk:
         specifier: ^6.0.0
         version: 6.0.0

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-15-tui-audit-hardening-batch.md
-2026-08-15-tui-audit-hardening-batch.md: 76febae47b0fdd65526d4be56b8b82e7fe55fe64
-2026-08-15-tui-audit-hardening-batch.zh.md: 393527a8cf54c362f96e00749bd941c2b65cd2a6
+2026-08-15-tui-audit-hardening-batch.md: 5502efa777e90c5f71fe09d5d101f975483452b5
+2026-08-15-tui-audit-hardening-batch.zh.md: 79aeab70ed947da9dfe459d48eaf38d1b4957a7c

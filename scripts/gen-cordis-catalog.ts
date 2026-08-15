@@ -116,6 +116,7 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
   headlessIo: 'not a service: launcher-provided root accessor value (HeadlessIo | undefined) for the headless bundle runner — packages/bundle/headless/README.md owns the launcher contract',
   launcherEnvironment: 'not a service: launcher-provided root accessor value (EnvironmentSnapshot | undefined) — packages/util/environment/README.md owns the launcher contract',
   lsp: 'interface-typed (LspService); implementing class Lsp is not the declared type name — packages/lsp/lsp/README.md owns the surface',
+  visionBridge: 'not a class service: marker probe record provided by the vision-bridge plugin at apply (presence = bridge assembled) — packages/context/vision-bridge/README.md owns the surface',
   apiProxy: 'interface-typed (ApiProxy) with the class in api-proxy.ts, not index.ts — packages/host/apiproxy/README.md owns the surface',
   appShell: 'client-side interface-typed browser service — packages/client/web/README.md owns the surface',
   connection: 'client-side interface-typed browser service — packages/client/connection/README.md owns the surface',

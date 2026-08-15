@@ -32,6 +32,7 @@ TUI 输入框允许用户粘贴图片（data URL 以 `image` ContentBlock 进入
 - **桥失败不炸轮**：视觉模型超时/报错/返回空描述，都降级为可见的桥接提示文本（`[图片桥接失败]` / `[图片桥接提示]`），让主控知道「有图但没读到」，绝不静默吞图或整轮 failed。
 - **零干预透传**：无图消息、`enabled=false`、reject decision 一律原样透传。
 - **描述模式自动选择**：未显式配置 `prompt` 时，随图文本命中 UI/报错关键词（`报错`/`error`/`终端`/`日志`…）→ OCR 级精确转写；否则通用结构化描述。
+- **面向展示层的探测服务**：`apply` 时 provide `visionBridge`（`{ providedBy: 'vision-bridge' }`），随卸载释放、`enabled: false` 时不提供——展示层（TUI）经 `reflect.get('visionBridge', false)` 判定桥可用性，无需装配方派生配置。
 
 ## Verification
 

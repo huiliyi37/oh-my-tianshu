@@ -11,3 +11,11 @@
     # 把截断丢失域的排除路径随 agent/pre-step 注入。非 spark 会话零注入。
     - id: spark-anchors
       name: '@huiliyi37/dsh-spark-anchors'
+
+    # 视觉桥与 TUI 绑定装配：text-only 主控的图片经视觉模型转描述
+    # （agent/pre-step 注入）；visionAutoBridge 在调用时自动选首个识图模型。
+    # TUI 经本插件 provide 的 visionBridge 服务自动探测桥可用性。
+    - id: vision-bridge
+      name: '@huiliyi37/dsh-vision-bridge'
+      config:
+        visionAutoBridge: true

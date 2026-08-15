@@ -32,6 +32,7 @@ The TUI input box lets users paste images (data URLs enter the session as `image
 - **Bridge failure never fails the turn**: vision-model timeout/error/empty output degrades to a visible bridge note (`[图片桥接失败]` / `[图片桥接提示]`) so the primary knows "there was an image but it was not read" — never a silent swallow or a whole failed turn.
 - **Zero intervention passthrough**: image-free messages, `enabled=false`, and reject decisions pass through untouched.
 - **Automatic description mode**: without an explicit `prompt`, the accompanying text hitting UI/error keywords (`报错`/`error`/`终端`/`日志`…) selects OCR-level verbatim transcription; otherwise the generic structured description.
+- **Probe service for UIs**: at `apply` the plugin provides `visionBridge` (`{ providedBy: 'vision-bridge' }`), released on unload and absent when `enabled: false` — presentation layers (the TUI) detect bridge availability via `reflect.get('visionBridge', false)` instead of assembler-derived config.
 
 ## Verification
 
