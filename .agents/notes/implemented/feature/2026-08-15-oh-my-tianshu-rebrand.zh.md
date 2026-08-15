@@ -19,7 +19,7 @@ omp 对标的第一波（仅身份层），外加仓库改名：
 
 第二波（同批落地）：段式状态栏嵌进输入框顶边（`format/top-status-bar.ts`——左身份段 primary、右 metrics 段 muted、secondary 横线填充、窄宽从右丢段、ascii 降级）；`formatInputFrame` 接受预渲染 `topLine` 并与状态栏共用 `promptBorderColor`，整条顶边随模式变色（plan warning / always-approve error / normal 雾蓝）；footer 只留模式徽标 + 快捷键提示（metrics 上移）。
 
-消息面（同批落地）：主题系统新增可选 `SurfaceSet`（仅 truecolor 轨）——`userMsgBg` 与 `toolPendingBg`/`toolSuccessBg`/`toolErrorBg`——omp 与 graphite 调色板已定义，自定义主题继承；16 色 fallback 轨不产生这些 token，渲染面降级为既有导轨/无底色样式。新 `format/bg-block.ts`（`withBgFill`/`withBgFillLines`）把行垫底色补到整宽；主题带 `userMsgBg` 时用户消息渲染为整宽暖底气泡（否则保持 ▌ 导轨），工具卡正文按状态垫底色（terminal/generic 结算卡与 live 进行中 tail；diff 卡按 omp 惯例保持自绘红绿），`width` 经 `renderTranscript` options 从 app 侧接入各卡渲染器。
+消息面（同批落地）：主题系统新增可选 `SurfaceSet`（仅 truecolor 轨）——`userMsgBg` 与 `toolPendingBg`/`toolSuccessBg`/`toolErrorBg`——omp 与 graphite 调色板已定义，自定义主题继承；16 色 fallback 轨不产生这些 token，渲染面降级为既有导轨/无底色样式。新 `format/bg-block.ts`（`withBgFill`/`withBgFillLines`）把行垫底色补到整宽；主题带 `userMsgBg` 时用户消息渲染为整宽暖底气泡（否则保持 ▌ 导轨），工具卡正文按状态垫底色（terminal/generic 结算卡与 live 进行中 tail；diff 卡按 omp 惯例保持自绘红绿），`width` 经 `renderTranscript` options 从 app 侧接入各卡渲染器。第五个 token `chromeBg` 把输入框顶边状态栏整行着为铬区色带（每个 SGR reset 后重挂底色），在终端自身背景之上锚定底部铬区；表面色调按「抬升面板」观感重新调校，避免在常见深色终端上读作黑洞。
 
 记录在案的延期及理由：渐变扫光 intro 需要把欢迎卡扣在 live 区播动画，但欢迎页启动即提交只增 scrollback——侵入性与收益不成比例。
 

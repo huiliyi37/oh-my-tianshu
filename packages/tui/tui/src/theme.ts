@@ -50,6 +50,8 @@ export interface RivetTheme {
   toolPendingBg?: string
   toolSuccessBg?: string
   toolErrorBg?: string
+  /** 铬区底色（顶边状态栏整行着底；hex，仅 truecolor 轨）。 */
+  chromeBg?: string
 }
 
 /** 内置主题名列表（非空元组，供 /theme 补全与 config schema 枚举）。 */

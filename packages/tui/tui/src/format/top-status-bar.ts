@@ -8,10 +8,17 @@
  *
  * @module @huiliyi37/dsh-tui/format/top-status-bar
  */
-import { color } from '../engine/ansi.js'
+import { ANSI, bg, color } from '../engine/ansi.js'
 import { useAsciiGlyphs } from '../term-caps.js'
 import type { RivetTheme } from '../theme.js'
 import { displayWidth, truncateToDisplayWidth } from '../width.js'
+
+/** 整行着铬区底：每个 RESET 后重挂底色，保证全行（含各着色段间隙）连续成带。 */
+function onChrome(line: string, chromeBg: string | undefined): string {
+  if (chromeBg === undefined) return line
+  const bgSeq = bg(chromeBg)
+  return bgSeq + line.split(ANSI.RESET).join(ANSI.RESET + bgSeq) + ANSI.RESET
+}
 
 /** formatTopStatusBar 的渲染输入。 */
 export interface TopStatusBarInput {
@@ -34,7 +41,7 @@ export interface TopStatusBarInput {
 export function formatTopStatusBar(input: TopStatusBarInput, theme: RivetTheme): string {
   const { width } = input
   const border = (s: string): string => color(s, input.borderColor)
-  const plainRail = (): string => border(`╭${'─'.repeat(Math.max(0, width - 2))}╮`)
+  const plainRail = (): string => onChrome(border(`╭${'─'.repeat(Math.max(0, width - 2))}╮`), theme.chromeBg)
   if (width < 12) return plainRail()
   const ascii = useAsciiGlyphs()
   const sepL = ascii ? '>' : '›'
@@ -56,7 +63,7 @@ export function formatTopStatusBar(input: TopStatusBarInput, theme: RivetTheme):
       const leftAnsi = left.map(s => color(s, theme.primary)).join(color(` ${sepL} `, theme.dim))
       const rightAnsi = rightDropped.map(s => color(s, theme.muted)).join(color(` ${sepR} `, theme.dim))
       const gap = color('─'.repeat(fill), theme.secondary)
-      return `${border('╭─')}${leftAnsi}${gap}${rightAnsi}${border('─╮')}`
+      return onChrome(`${border('╭─')}${leftAnsi}${gap}${rightAnsi}${border('─╮')}`, theme.chromeBg)
     }
     if (rightDropped.length > 0) {
       // 从尾部丢右段（最次要先行）
@@ -67,6 +74,6 @@ export function formatTopStatusBar(input: TopStatusBarInput, theme: RivetTheme):
     const budget = width - 4
     if (budget <= 0 || left.length === 0) return plainRail()
     const leftAnsi = color(truncateToDisplayWidth(left.join(` ${sepL} `), budget), theme.primary)
-    return `${border('╭─')}${leftAnsi}${border('─╮')}`
+    return onChrome(`${border('╭─')}${leftAnsi}${border('─╮')}`, theme.chromeBg)
   }
 }

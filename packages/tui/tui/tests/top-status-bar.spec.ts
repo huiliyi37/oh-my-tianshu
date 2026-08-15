@@ -62,4 +62,18 @@ describe('formatTopStatusBar', () => {
       expect(displayWidth(line)).toBeLessThanOrEqual(w)
     }
   })
+
+  it('主题带 chromeBg：整行着铬区底（RESET 后重挂底色成带）；缺省不着底', () => {
+    const chromeTheme = { ...fakeTheme(), chromeBg: '#171920' } as RivetTheme
+    const line = formatTopStatusBar({
+      width: 40, left: ['mock'], right: ['API ✓'], borderColor: '#556677',
+    }, chromeTheme)
+    expect(line.startsWith('\x1B[48;2;23;25;32m')).toBe(true)
+    // 每个 RESET 后都重挂底色（段间隙不断带）
+    expect(line.split('48;2;23;25;32').length).toBeGreaterThan(3)
+    const plain_ = formatTopStatusBar({
+      width: 40, left: ['mock'], right: ['API ✓'], borderColor: '#556677',
+    }, fakeTheme())
+    expect(plain_.includes('48;2;')).toBe(false)
+  })
 })

@@ -55,6 +55,8 @@ export interface SurfaceSet {
   toolPendingBg?: string
   toolSuccessBg?: string
   toolErrorBg?: string
+  /** 铬区底色（顶边状态栏整行着底，锚定底部 chrome；如 omp statusLineBg #121212）。 */
+  chromeBg?: string
 }
 
 /** 一套主题的完整定义：truecolor/fallback 双轨 ColorSet、双轨 overrides、背景朝向与 picker 描述。 */
@@ -420,7 +422,7 @@ const GRAPHITE: ThemePaletteDef = {
   // userColor 暖金琥珀 / assistantColor 中性灰：靠 ▌贯穿导轨 + 专属亮彩与灰度区分说话人
   overrides: { userColor: '#e0aa53', assistantColor: '#c8cdd6', muted: '#9aa4b0', systemColor: '#8b95a1' },
   // 消息面底色：暖灰气泡（贴琥珀用户色）+ 冷灰蓝工具三态
-  surfaces: { userMsgBg: '#26221c', toolPendingBg: '#1c2129', toolSuccessBg: '#171d1a', toolErrorBg: '#241d20' },
+  surfaces: { userMsgBg: '#2a251d', toolPendingBg: '#222933', toolSuccessBg: '#1d2422', toolErrorBg: '#2a2226', chromeBg: '#191d24' },
   fallback: {
     primary: 'cyan', secondary: 'blue', success: 'green', warning: 'yellow',
     error: 'red', dim: 'gray', pulseQuiet: 'gray', pulseActive: 'cyan', pulseAlert: 'red',
@@ -452,7 +454,7 @@ const OMP: ThemePaletteDef = {
   // userColor 与主色同族（暖金）/assistantColor 中性灰：对标 omp 用户消息暖底对比
   overrides: { userColor: '#febc38', assistantColor: '#c8cdd6', muted: '#5f6673', systemColor: '#777d88' },
   // omp 消息面底色：暖黑用户气泡 + 工具三态浅底
-  surfaces: { userMsgBg: '#221d1a', toolPendingBg: '#1d2129', toolSuccessBg: '#161a1f', toolErrorBg: '#291d1d' },
+  surfaces: { userMsgBg: '#262019', toolPendingBg: '#242a33', toolSuccessBg: '#1e2521', toolErrorBg: '#2e2226', chromeBg: '#171920' },
   fallback: {
     primary: 'yellow', secondary: 'blue', success: 'green', warning: 'yellow',
     error: 'red', dim: 'gray', pulseQuiet: 'gray', pulseActive: 'yellow', pulseAlert: 'red',
