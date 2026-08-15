@@ -407,6 +407,10 @@ export class InputLine {
   /** 折叠粘贴原文旁路：标记序号 → 原文。提交时展开还原（expandPastes）。 */
   private _pastes = new Map<number, string>()
   private _pasteSeq = 0
+  /** 非 bracketed paste 终端的粘贴流累积：内联 return 的行内容（不含换行），
+   *  流结束（普通 return）时按 \n 合并为一次提交。bracketed paste 整段经
+   *  onPaste 到达、不触发累积；Vim normal 的 return 同样走合并（一致性）。 */
+  private _inlinePasteLines: string[] = []
 
   // ── 键盘选区（S1）──
   /** 选区锚点（shift+方向键设定）；null = 无选区。选区 = [min(anchor,cursor), max)。 */
@@ -734,9 +738,11 @@ export class InputLine {
    * @param ctrl - Ctrl 是否按下
    * @param meta - Alt/Meta 是否按下
    * @param shift - Shift 是否按下
+   * @param inline - 该 return 后同一输入缓冲还有后续字节（非 bracketed paste
+   *   终端的粘贴流行分隔；见 InputHandler KeyPress.inline）。
    * @returns 产生的事件（change/submit/tab/history）；按键未引起变化时为 null
    */
-  handleKey(name: string, char: string, ctrl: boolean, meta: boolean, shift = false): InputLineEvent | null {
+  handleKey(name: string, char: string, ctrl: boolean, meta: boolean, shift = false, inline = false): InputLineEvent | null {
     // ── 全局键 ─────────────────────────────────────────────────
     if (name === 'return' && (shift || meta)) {
       return this.insertChar('\n')
@@ -758,6 +764,19 @@ export class InputLine {
       const submittedImages = [...this._images]
       this.clearAfterSubmit()
       this.onImagesChangeCallback?.([])
+      if (inline) {
+        // 粘贴流行分隔（非 bracketed paste 终端）：累积本行不提交，流结束后
+        // 一次合并提交——粘贴的换行不再逐行触发 Enter 发送。
+        this._inlinePasteLines.push(submitted)
+        return { type: 'change', value: '', cursor: 0 }
+      }
+      if (this._inlinePasteLines.length > 0) {
+        // 粘贴流结束（缓冲已空）：合并累积行 + 当前行为一次多行提交。
+        const merged = [...this._inlinePasteLines, submitted].join('\n')
+        this._inlinePasteLines = []
+        this.onSubmitCallback?.(merged, submittedImages)
+        return { type: 'submit', value: merged, images: submittedImages }
+      }
       this.onSubmitCallback?.(submitted, submittedImages)
       return { type: 'submit', value: submitted, images: submittedImages }
     }
@@ -1207,6 +1226,13 @@ export class InputLine {
         const submittedImages = [...this._images]
         this.clearAfterSubmit()
         this.onImagesChangeCallback?.([])
+        // 与 insert 模式一致：粘贴流累积行 + 当前行合并为一次提交。
+        if (this._inlinePasteLines.length > 0) {
+          const merged = [...this._inlinePasteLines, submitted].join('\n')
+          this._inlinePasteLines = []
+          this.onSubmitCallback?.(merged, submittedImages)
+          return { type: 'submit', value: merged, images: submittedImages }
+        }
         this.onSubmitCallback?.(submitted, submittedImages)
         return { type: 'submit', value: submitted, images: submittedImages }
       }

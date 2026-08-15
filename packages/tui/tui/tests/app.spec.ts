@@ -5001,6 +5001,19 @@ describe('bracketed paste 接线（多行/长文本粘贴不逐行提交）', ()
     expect(written).toContain('\x1b[?2004l') // DECSET 2004 off
   })
 
+  it('非 bracketed paste 终端粘贴多行（\\r 逐行裸入）→ 合并为一次发送', async () => {
+    const { agent, stdin, app } = boot()
+    await app.attach()
+    // 模拟不支持 DECSET 2004 的终端：粘贴文本逐行裸入（行尾 CR 无包裹）
+    stdin.emit('data', '第一行\r第二行\r第三行\r')
+    await new Promise(resolve => setTimeout(resolve, 120))
+    // 三行合并为一次 followup（多行文本），而非逐行三次发送
+    expect(agent.followup).toHaveBeenCalledTimes(1)
+    const sent = agent.followup.mock.calls[0]?.[0] as { content: Array<{ type: string; text: string }> }
+    expect(sent?.content?.[0]?.text).toBe('第一行\n第二行\n第三行')
+    await app.dispose()
+  })
+
   it('多行粘贴整段进入输入行（不逐行提交）', async () => {
     const { stdin, stdout, app } = boot()
     await app.attach()

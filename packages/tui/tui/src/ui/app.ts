@@ -2337,7 +2337,7 @@ export class TuiApp {
           this.question.setFeedbackMode(false)
           this.flushLiveRender()
         } else {
-          this.inputLine.handleKey(key.name, key.char, key.ctrl, key.meta, key.shift)
+          this.inputLine.handleKey(key.name, key.char, key.ctrl, key.meta, key.shift, key.inline === true)
           this.flushLiveRender()
         }
       } else if (key.name === 'escape' || key.name === 'ctrl_c') {
@@ -2449,11 +2449,11 @@ export class TuiApp {
     }
     if (key.name === 'up' || key.name === 'down') {
       // 交给 InputLine 的历史导航（InputLineEvent 'history' 不消费即已处理）
-      this.inputLine.handleKey(key.name, key.char, key.ctrl, key.meta, key.shift)
+      this.inputLine.handleKey(key.name, key.char, key.ctrl, key.meta, key.shift, key.inline === true)
       this.flushLiveRender()
       return
     }
-    const event = this.inputLine.handleKey(key.name, key.char, key.ctrl, key.meta, key.shift)
+    const event = this.inputLine.handleKey(key.name, key.char, key.ctrl, key.meta, key.shift, key.inline === true)
     // 选区剪切/复制的 OSC52 drain：Ctrl+K 剪切 / Alt+W 复制写系统剪贴板
     // （终端支持 OSC52 时生效，不支持者无害忽略）。vim yank（p/P、Alt+Y）走
     // 内部剪贴板，不经此通道。
