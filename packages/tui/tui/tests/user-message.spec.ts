@@ -7,7 +7,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { formatRailedMessage, formatUserMessage, formatTimestamp } from '../src/format/user-message.js'
 import { resetTermCapsCache } from '../src/term-caps.js'
-import { resetWidthModeCache, wrapToDisplayWidth } from '../src/width.js'
+import { displayWidth, resetWidthModeCache, wrapToDisplayWidth } from '../src/width.js'
 import type { RivetTheme } from '../src/theme.js'
 
 /** 最小主题替身（导轨/正文着色可断言）。 */
@@ -212,5 +212,31 @@ describe('formatTimestamp', () => {
   it('本地时区 HH:MM，补零', () => {
     const ts = new Date(2026, 7, 10, 14, 32).getTime()
     expect(formatTimestamp(ts)).toBe('[14:32]')
+  })
+})
+
+describe('用户消息整宽暖底气泡（主题带 userMsgBg，omp 风格）', () => {
+  const bgTheme = {
+    userColor: '#user',
+    assistantColor: '#assistant',
+    warning: '#warn',
+    secondary: '#secondary',
+    userMsgBg: '#221d1a',
+  } as unknown as RivetTheme
+
+  it('整行垫底色补到整宽，无导轨 marker', () => {
+    const lines = formatUserMessage({ content: '你好', width: 30 }, bgTheme)
+    expect(lines.length).toBeGreaterThan(0)
+    for (const line of lines) {
+      expect(line).toContain('48;2;34;29;26')
+      expect(displayWidth(line)).toBe(30)
+    }
+    expect(plain(lines).some(l => l.includes('▌') || l.includes('❯'))).toBe(false)
+    expect(plain(lines).some(l => l.includes('你好'))).toBe(true)
+  })
+
+  it('主题缺 userMsgBg → 保持导轨样式（16 色轨降级）', () => {
+    const lines = formatUserMessage({ content: '你好', width: 30 }, fakeTheme)
+    expect(lines.every(l => !l.includes('48;2;'))).toBe(true)
   })
 })

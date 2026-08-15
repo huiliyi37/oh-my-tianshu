@@ -18,6 +18,7 @@ import { color } from '../engine/ansi.js'
 import type { RivetTheme } from '../theme.js'
 import { useAsciiGlyphs } from '../term-caps.js'
 import { displayWidth, wrapToDisplayWidth } from '../width.js'
+import { withBgFill } from './bg-block.js'
 
 /** formatUserMessage 的渲染输入。 */
 export interface FormatUserMessageInput {
@@ -99,14 +100,42 @@ export function formatRailedMessage(input: FormatRailedMessageInput, theme: Rive
 }
 
 /**
- * 渲染用户消息为 scrollback 行：userColor `❯`/`▌` 导轨 + 中性正文。
+ * 渲染用户消息为 scrollback 行：主题带 userMsgBg（truecolor 轨）时走 omp 风格
+ * 整宽暖底气泡（底色即身份）；否则 userColor `❯`/`▌` 导轨 + 中性正文。
  * @param input - 用户消息文本与宽度。
- * @param theme - 当前主题（marker 用 userColor）。
- * @returns 渲染行数组（每行含导轨前缀）。
+ * @param theme - 当前主题。
+ * @returns 渲染行数组。
  */
 export function formatUserMessage(input: FormatUserMessageInput, theme: RivetTheme): string[] {
+  if (theme.userMsgBg !== undefined) return formatBgUserMessage(input, theme, theme.userMsgBg)
   // marker 由 useAsciiGlyphs 统一裁决：legacy conhost 与低色深终端（chalk.level<3）
   // 走 ASCII 轨（❯ 在 GBK 点阵下 tofu，见 term-caps 模块头注释）；现代真彩终端用 ▌。
   const marker = useAsciiGlyphs() ? '>' : '▌'
   return formatRailedMessage({ ...input, marker, markerColor: theme.userColor }, theme)
+}
+
+/**
+ * 整宽暖底气泡（omp 风格消息面）：每行内容垫 userMsgBg 并补到整宽，
+ * 左右各留 1 列呼吸；时间戳附首行（宽度足够时）。无导轨——底色承担说话人识别。
+ * @param input - 用户消息文本与宽度。
+ * @param theme - 当前主题。
+ * @param bgHex - 气泡底色（theme.userMsgBg，调用点已判非空）。
+ * @returns 渲染行数组（每行 displayWidth ≤ width）。
+ */
+function formatBgUserMessage(input: FormatUserMessageInput, theme: RivetTheme, bgHex: string): string[] {
+  const bodyWidth = Math.max(1, input.width - 2)
+  const stampText = input.timestamp !== undefined && bodyWidth >= 12
+    ? ` ${color(formatTimestamp(input.timestamp), theme.secondary)}`
+    : ''
+  const stampWidth = displayWidth(stampText)
+  const lines: string[] = []
+  for (const [index, contentLine] of input.content.split('\n').entries()) {
+    const firstBudget = index === 0 ? Math.max(1, bodyWidth - stampWidth) : bodyWidth
+    const chunks = contentLine === '' ? [''] : wrapToDisplayWidth(contentLine, firstBudget)
+    for (const [chunkIndex, chunk] of chunks.entries()) {
+      const stamp = index === 0 && chunkIndex === 0 ? stampText : ''
+      lines.push(withBgFill(` ${color(chunk, theme.assistantColor)}${stamp}`, input.width, bgHex))
+    }
+  }
+  return lines
 }

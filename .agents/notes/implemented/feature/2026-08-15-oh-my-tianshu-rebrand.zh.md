@@ -19,7 +19,9 @@ omp 对标的第一波（仅身份层），外加仓库改名：
 
 第二波（同批落地）：段式状态栏嵌进输入框顶边（`format/top-status-bar.ts`——左身份段 primary、右 metrics 段 muted、secondary 横线填充、窄宽从右丢段、ascii 降级）；`formatInputFrame` 接受预渲染 `topLine` 并与状态栏共用 `promptBorderColor`，整条顶边随模式变色（plan warning / always-approve error / normal 雾蓝）；footer 只留模式徽标 + 快捷键提示（metrics 上移）。
 
-记录在案的延期及理由：omp 式消息面（用户消息整宽暖底、工具块状态色浅底）需要 `RivetTheme` 没有的背景色 token——加 bg token 要动主题 schema 与全部调色板，属第三波量级；渐变扫光 intro 需要把欢迎卡扣在 live 区播动画，但欢迎页启动即提交只增 scrollback——侵入性与收益不成比例。
+消息面（同批落地）：主题系统新增可选 `SurfaceSet`（仅 truecolor 轨）——`userMsgBg` 与 `toolPendingBg`/`toolSuccessBg`/`toolErrorBg`——omp 与 graphite 调色板已定义，自定义主题继承；16 色 fallback 轨不产生这些 token，渲染面降级为既有导轨/无底色样式。新 `format/bg-block.ts`（`withBgFill`/`withBgFillLines`）把行垫底色补到整宽；主题带 `userMsgBg` 时用户消息渲染为整宽暖底气泡（否则保持 ▌ 导轨），工具卡正文按状态垫底色（terminal/generic 结算卡与 live 进行中 tail；diff 卡按 omp 惯例保持自绘红绿），`width` 经 `renderTranscript` options 从 app 侧接入各卡渲染器。
+
+记录在案的延期及理由：渐变扫光 intro 需要把欢迎卡扣在 live 区播动画，但欢迎页启动即提交只增 scrollback——侵入性与收益不成比例。
 
 ## Alternatives considered
 
@@ -35,7 +37,7 @@ omp 对标的第一波（仅身份层），外加仓库改名：
 ## Testing
 
 - `pnpm exec tsc -b packages/tui/tui`：0 错误。
-- `pnpm vitest run packages/tui/tui/tests`：1638 通过（91 文件），含新增 `formatWelcomeCard` / `pickWelcomeTip` / 鲸鱼渐变 / `top-status-bar` spec 与更新后的品牌/默认主题/footer 布局断言。
+- `pnpm vitest run packages/tui/tui/tests`：1648 通过（92 文件），含新增 `formatWelcomeCard` / `pickWelcomeTip` / 鲸鱼渐变 / `top-status-bar` / `bg-block` / 消息面底色 spec 与更新后的品牌/默认主题/footer 布局断言。
 - `verify-source-budgets`、`verify-doc-refs`、`verify-public-repository-links`、`verify-package-paths`、`verify-md-links`、`verify-md-wrap`、`check-workspace-constraints`：改名清扫后全过。
 
 ## Related

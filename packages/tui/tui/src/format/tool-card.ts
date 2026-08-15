@@ -16,6 +16,7 @@
  */
 
 import { color } from '../engine/ansi.js'
+import { withBgFillLines } from './bg-block.js'
 import type { RivetTheme } from '../theme.js'
 import { brailleSpinnerFrame } from '../braille-spinner.js'
 import { displayWidth, truncateToDisplayWidth } from '../width.js'
@@ -50,6 +51,8 @@ export interface FormatToolCardInput {
   streaming?: boolean
   /** 工具输入参数（用于标题参数摘要） */
   toolInput?: Record<string, unknown>
+  /** 终端列数（提供且主题带表面底色时，正文按状态垫底色补到整宽）。 */
+  width?: number
   /** 完整展开（ctrl+o），不截断 */
   expanded?: boolean
 }
@@ -184,6 +187,9 @@ export function formatToolCard(input: FormatToolCardInput, theme: RivetTheme): s
   const family = getToolFamily(toolName)
   const indent = depth > 0 ? '  '.repeat(depth) : ''
   const isQuestion = toolName === 'ask_user_question'
+  // omp 风格工具块状态底色（主题带表面底色且给定宽度时生效；diff 分支自绘红绿不垫）。
+  const statusBg = isError ? theme.toolErrorBg : theme.toolSuccessBg
+  const tint = (bodyLines: string[]): string[] => withBgFillLines(bodyLines, input.width ?? 0, statusBg)
 
   const header = formatToolCardHeader({
     toolName,
@@ -198,7 +204,7 @@ export function formatToolCard(input: FormatToolCardInput, theme: RivetTheme): s
 
   const trimmed = content.replace(/\n+$/, '')
   if (!trimmed) {
-    lines.push(`${indent}${color(BODY_FIRST_PREFIX, theme.dim)}${color('(无输出)', theme.muted)}`)
+    lines.push(...tint([`${indent}${color(BODY_FIRST_PREFIX, theme.dim)}${color('(无输出)', theme.muted)}`]))
     return lines
   }
 
@@ -228,10 +234,10 @@ export function formatToolCard(input: FormatToolCardInput, theme: RivetTheme): s
 
   // ask_user_question 必须完整展示问题和所有选项，禁止截断。
   if (expanded || isQuestion || totalLines <= maxLines) {
-    lines.push(...indentToolBody(contentLines.map(renderLine), indent, theme))
+    lines.push(...tint(indentToolBody(contentLines.map(renderLine), indent, theme)))
     if (rawPath && !expanded) {
       /* v8 ignore next -- split('/') 恒返回非空数组，pop() 恒有值；noUncheckedIndexedAccess 收窄防御 */
-      lines.push(`${indent}${BODY_CONT_PREFIX}${color(`raw: ${rawPath.split('/').pop() ?? rawPath}`, theme.muted)}`)
+      lines.push(...tint([`${indent}${BODY_CONT_PREFIX}${color(`raw: ${rawPath.split('/').pop() ?? rawPath}`, theme.muted)}`]))
     }
     return lines
   }
@@ -246,7 +252,7 @@ export function formatToolCard(input: FormatToolCardInput, theme: RivetTheme): s
       color(truncationHint(omitted), theme.secondary),
       ...tail.map(renderLine),
     ]
-    lines.push(...indentToolBody(body, indent, theme))
+    lines.push(...tint(indentToolBody(body, indent, theme)))
     return lines
   }
 
@@ -256,7 +262,7 @@ export function formatToolCard(input: FormatToolCardInput, theme: RivetTheme): s
     ...head.map(renderLine),
     color(truncationHint(omitted), theme.secondary),
   ]
-  lines.push(...indentToolBody(body, indent, theme))
+  lines.push(...tint(indentToolBody(body, indent, theme)))
   return lines
 }
 
@@ -354,7 +360,8 @@ export function formatToolCardLive(input: FormatToolCardLiveInput, theme: RivetT
     tailLines.unshift(BODY_CONT_PREFIX)
   }
 
-  lines.push(...tailLines)
+  // omp 风格：进行中工具块垫 pending 状态底色（主题带表面底色时；16 色轨不着底）。
+  lines.push(...withBgFillLines(tailLines, input.columns, theme.toolPendingBg))
   return lines
 }
 

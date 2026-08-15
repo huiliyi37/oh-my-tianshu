@@ -43,6 +43,8 @@ export interface RenderTranscriptOptions {
   compact?: boolean
   /** 完整展开工具卡（不折叠/不截断）。 */
   expanded?: boolean
+  /** 终端列数（renderTranscript 按 columns 注入）：工具卡正文按状态垫底色的目标宽度。 */
+  width?: number
   /**
    * presenter 意图解析器（adapter/tool-view 桥的闭包）；缺省不解析——
    * 全部工具卡走文本折叠回落。纯查询：对同一 tool 幂等（presenter 为
@@ -131,6 +133,7 @@ export function renderToolRows(
       ...(args === undefined ? {} : { toolInput: args }),
       streaming: true,
       ...(options.expanded === undefined ? {} : { expanded: options.expanded }),
+      ...(options.width === undefined ? {} : { width: options.width }),
     }, theme)
     return rows.map(ansi => ({ ansi, kind: 'tool' as const }))
   }
@@ -148,6 +151,7 @@ export function renderToolRows(
     /* jscpd:ignore-end */
     ...(options.expanded === undefined ? {} : { expanded: options.expanded }),
     ...(options.compact === undefined ? {} : { compact: options.compact }),
+    ...(options.width === undefined ? {} : { width: options.width }),
   }, theme)
   return rows.map(ansi => ({ ansi, kind: 'tool' as const }))
 }
@@ -183,7 +187,7 @@ export function renderTranscript(
       rows.push(...renderMessageRows(message, theme, columns, options))
       mi++
     } else {
-      rows.push(...renderToolRows(tool, theme, options))
+      rows.push(...renderToolRows(tool, theme, { ...options, width: columns }))
       ti++
     }
   }

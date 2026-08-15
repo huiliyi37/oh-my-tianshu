@@ -19,7 +19,9 @@ Wave one of the omp alignment (identity layer only), plus the repository rename:
 
 Wave two (shipped in the same push): the segmented status bar now lives in the composer's top border (`format/top-status-bar.ts` — left identity segments in primary, right metrics in muted, secondary dash fill, drop-from-right on narrow widths, ascii fallback); `formatInputFrame` accepts a pre-rendered `topLine` and shares `promptBorderColor` with it, so the whole top edge carries the mode-reactive border color (plan warning / always-approve error / normal fog blue); the footer keeps mode badge + key hints only (metrics moved up).
 
-Deferred with reasons: omp-style message-surface treatment (full-width user-bubble tint, status-tinted tool blocks) needs background tokens that `RivetTheme` does not have — adding bg tokens touches the theme schema and every palette, a wave-three-scale change; the gradient-sweep logo intro needs the welcome card held in the live region for the animation window, but the welcome commits to append-only scrollback at startup — the intrusiveness is not justified by the polish.
+Message surfaces (shipped in the same push): the theme system gained an optional `SurfaceSet` (truecolor track only) — `userMsgBg` plus `toolPendingBg`/`toolSuccessBg`/`toolErrorBg` — defined for the `omp` and `graphite` palettes and inherited by custom themes; the 16-color fallback track never emits them, so renderers degrade to the pre-existing rail/no-tint styles. `format/bg-block.ts` (`withBgFill`/`withBgFillLines`) pads lines to full width under a surface color; the user message renders as a full-width warm bubble when `userMsgBg` exists (rail marker otherwise), tool-card bodies tint by status (terminal/generic settled cards and the live pending tail; diff cards stay self-colored per omp), and `width` threads from the app through `renderTranscript` options into the card renderers.
+
+Deferred with reasons: the gradient-sweep logo intro needs the welcome card held in the live region for the animation window, but the welcome commits to append-only scrollback at startup — the intrusiveness is not justified by the polish.
 
 ## Alternatives considered
 
@@ -35,7 +37,7 @@ The first screen now reads as Oh My Tianshu at a glance (amber accent, bordered 
 ## Testing
 
 - `pnpm exec tsc -b packages/tui/tui`: 0 errors.
-- `pnpm vitest run packages/tui/tui/tests`: 1638 passed (91 files), including new `formatWelcomeCard` / `pickWelcomeTip` / whale-gradient / `top-status-bar` specs and the updated brand/default-theme/footer-layout assertions.
+- `pnpm vitest run packages/tui/tui/tests`: 1648 passed (92 files), including new `formatWelcomeCard` / `pickWelcomeTip` / whale-gradient / `top-status-bar` / `bg-block` / message-surface-tint specs and the updated brand/default-theme/footer-layout assertions.
 - `verify-source-budgets`, `verify-doc-refs`, `verify-public-repository-links`, `verify-package-paths`, `verify-md-links`, `verify-md-wrap`, `check-workspace-constraints`: all pass after the rename sweep.
 
 ## Related

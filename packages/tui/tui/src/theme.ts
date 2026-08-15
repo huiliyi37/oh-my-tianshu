@@ -20,9 +20,10 @@ import {
   type ThemeName,
   type ThemeOverrides,
   type ThemePaletteDef,
+  type SurfaceSet,
 } from './theme-palettes.js'
 
-export type { ThemeName, ColorSet, ThemeOverrides }
+export type { ThemeName, ColorSet, ThemeOverrides, SurfaceSet }
 
 /** 解析后的主题：语义色 token（hex 或 chalk 命名色，随色深轨而定）+ 两个派生色函数。 */
 export interface RivetTheme {
@@ -43,6 +44,12 @@ export interface RivetTheme {
   brandColor: string
   toolColor: (toolName: string) => string
   contextColor: (pct: number) => string
+  /** 用户消息整宽气泡底色（hex，仅 truecolor 轨；缺省走 ▌ 导轨样式）。 */
+  userMsgBg?: string
+  /** 工具块状态底色（hex，仅 truecolor 轨；缺省不着底）。 */
+  toolPendingBg?: string
+  toolSuccessBg?: string
+  toolErrorBg?: string
 }
 
 /** 内置主题名列表（非空元组，供 /theme 补全与 config schema 枚举）。 */
@@ -78,6 +85,7 @@ function buildTheme(
   colors: ColorSet,
   overrides?: ThemeOverrides,
   auxiliaryDefault = '#9aa2b1',
+  surfaces?: SurfaceSet,
 ): RivetTheme {
   return {
     ...colors,
@@ -88,6 +96,9 @@ function buildTheme(
     brandColor: overrides?.brandColor ?? colors.primary,
     toolColor: makeToolColor(colors),
     contextColor: makeContextColor(colors),
+    // 表面底色仅 truecolor 轨定义（hex）；16 色 fallback 轨不传 surfaces，
+    // 渲染面遇到缺省 token 走无底色样式（导轨/纯文本），不重发 38;2/48;2 序列。
+    ...(surfaces ?? {}),
   }
 }
 
@@ -103,7 +114,7 @@ export interface ThemeEntry {
 
 function buildEntry(def: ThemePaletteDef): ThemeEntry {
   return {
-    truecolor: buildTheme(def.truecolor, def.overrides),
+    truecolor: buildTheme(def.truecolor, def.overrides, undefined, def.surfaces),
     // fallback 轨必须保持纯 ANSI 命名色。复用 truecolor 的 hex 默认值会让
     // level 0/1 终端重新收到 38;2 序列，等于悄悄绕过能力降级。
     fallback: buildTheme(def.fallback, def.fallbackOverrides, def.fallback.dim),
@@ -126,6 +137,8 @@ export interface CustomThemeInput {
   colors?: Partial<ColorSet>
   /** userColor/assistantColor/muted/systemColor 覆盖（hex）。 */
   overrides?: ThemeOverrides
+  /** 表面底色局部覆盖（truecolor 轨；hex）。缺省继承 base。 */
+  surfaces?: SurfaceSet
   /** 继承的内置主题。缺省按 background 选 cobalt（dark）/ paper（light）。 */
   base?: ThemeName
   background?: 'dark' | 'light'
@@ -147,8 +160,9 @@ export function registerCustomTheme(name: string, input: CustomThemeInput): void
   const baseDef = THEME_PALETTES[baseName]
   const colors: ColorSet = { ...baseDef.truecolor, ...input.colors }
   const overrides: ThemeOverrides = { ...baseDef.overrides, ...input.overrides }
+  const surfaces: SurfaceSet = { ...baseDef.surfaces, ...input.surfaces }
   customThemes.set(name, {
-    truecolor: buildTheme(colors, overrides),
+    truecolor: buildTheme(colors, overrides, undefined, surfaces),
     // 16 色轨没有 hex 可映射，继承 base 的 fallback（自定义 hex 只在 truecolor 生效）。
     // 第三个参数锁死辅助色默认值 = base fallback 的命名色，避免 muted/systemColor
     // 落回 truecolor 轨的 hex 默认值，让 level 0/1 终端收到 38;2 序列。

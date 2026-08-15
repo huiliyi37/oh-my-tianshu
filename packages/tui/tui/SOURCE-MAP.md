@@ -59,6 +59,7 @@
 | src/format/activity-labels.ts | format/activity-labels.ts | modified |
 | src/format/approval-card.ts | — | new（审批卡：圆角轨 + diff 体 + y/n/a/esc 键位，纯渲染） |
 | src/format/btw-panel.ts | — | new |
+| src/format/bg-block.ts | — | new（omp 风格表面底色块：单行/多行垫底色补到整宽，纯渲染） |
 | src/format/chrome-colors.ts | — | new（输入轨/footer 雾蓝 chrome token，对齐 dsh-cc-tui Gentle Mist Blue） |
 | src/format/collapsed-bash.ts | format/collapsed-bash.ts | modified |
 | src/format/diff.ts | format/diff.ts | modified |

@@ -15,6 +15,7 @@
 import { structuredPatch } from 'diff'
 import type { FileDiff, ToolCallView, ToolResultView } from '@huiliyi37/dsh-tools'
 import { color } from '../engine/ansi.js'
+import { withBgFillLines } from './bg-block.js'
 import type { RivetTheme } from '../theme.js'
 import { truncationHint } from '../truncation-marker.js'
 import { hiddenLinesMarker } from './hidden-lines.js'
@@ -148,6 +149,8 @@ export interface FormatToolViewCardInput {
   expanded?: boolean
   /** 紧凑模式（/density）：diff 卡仅标题 + 统计行，terminal 卡仅标题。 */
   compact?: boolean
+  /** 终端列数（提供且主题带表面底色时，非自绘卡正文按状态垫底色补到整宽）。 */
+  width?: number
 }
 
 /** 超长截断（显示语义同 toolArgSummary）。 */
@@ -232,7 +235,11 @@ function terminalCard(
       body.push(color(truncationHint(rows.length - maxLines), theme.secondary))
     }
   }
-  lines.push(...indentToolBody(body, '', theme))
+  // omp 风格：terminal 卡正文垫状态底色（非 0 退出/信号/isError → error 底，否则 success 底）。
+  const statusBg = input.isError || view.signal !== undefined || (view.exitCode !== undefined && view.exitCode !== 0)
+    ? theme.toolErrorBg
+    : theme.toolSuccessBg
+  lines.push(...withBgFillLines(indentToolBody(body, '', theme), input.width ?? 0, statusBg))
   return lines
 }
 
@@ -269,5 +276,6 @@ export function formatToolViewCard(input: FormatToolViewCardInput, theme: RivetT
     ...(toolInput === undefined ? {} : { toolInput }),
     ...(input.elapsedMs === undefined ? {} : { elapsedMs: input.elapsedMs }),
     ...(input.expanded === undefined ? {} : { expanded: input.expanded }),
+    ...(input.width === undefined ? {} : { width: input.width }),
   }, theme)
 }

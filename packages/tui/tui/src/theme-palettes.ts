@@ -44,6 +44,19 @@ export interface ThemeOverrides {
   brandColor?: string
 }
 
+/**
+ * 表面底色集（hex，仅 truecolor 轨；16 色轨不表达——渲染面遇到缺省 token
+ * 必须降级为无底色样式）。omp 风格消息面：用户气泡整宽暖底 + 工具块状态底色。
+ */
+export interface SurfaceSet {
+  /** 用户消息整宽底气泡底色（如 omp 暖黑 #221d1a）。 */
+  userMsgBg?: string
+  /** 工具块状态底色：进行中 / 成功 / 失败（如 omp #1d2129 / #161a1f / #291d1d）。 */
+  toolPendingBg?: string
+  toolSuccessBg?: string
+  toolErrorBg?: string
+}
+
 /** 一套主题的完整定义：truecolor/fallback 双轨 ColorSet、双轨 overrides、背景朝向与 picker 描述。 */
 export interface ThemePaletteDef {
   truecolor: ColorSet
@@ -52,6 +65,8 @@ export interface ThemePaletteDef {
   overrides?: ThemeOverrides
   /** fallback 轨的 overrides */
   fallbackOverrides?: ThemeOverrides
+  /** truecolor 轨的表面底色（缺省=无底色渲染面全部走降级样式）。 */
+  surfaces?: SurfaceSet
   /** 面向的终端背景。auto 检测后按此选择默认主题。 */
   background: 'dark' | 'light'
   /** /theme picker 描述文案。 */
@@ -404,6 +419,8 @@ const GRAPHITE: ThemePaletteDef = {
   },
   // userColor 暖金琥珀 / assistantColor 中性灰：靠 ▌贯穿导轨 + 专属亮彩与灰度区分说话人
   overrides: { userColor: '#e0aa53', assistantColor: '#c8cdd6', muted: '#9aa4b0', systemColor: '#8b95a1' },
+  // 消息面底色：暖灰气泡（贴琥珀用户色）+ 冷灰蓝工具三态
+  surfaces: { userMsgBg: '#26221c', toolPendingBg: '#1c2129', toolSuccessBg: '#171d1a', toolErrorBg: '#241d20' },
   fallback: {
     primary: 'cyan', secondary: 'blue', success: 'green', warning: 'yellow',
     error: 'red', dim: 'gray', pulseQuiet: 'gray', pulseActive: 'cyan', pulseAlert: 'red',
@@ -434,6 +451,8 @@ const OMP: ThemePaletteDef = {
   },
   // userColor 与主色同族（暖金）/assistantColor 中性灰：对标 omp 用户消息暖底对比
   overrides: { userColor: '#febc38', assistantColor: '#c8cdd6', muted: '#5f6673', systemColor: '#777d88' },
+  // omp 消息面底色：暖黑用户气泡 + 工具三态浅底
+  surfaces: { userMsgBg: '#221d1a', toolPendingBg: '#1d2129', toolSuccessBg: '#161a1f', toolErrorBg: '#291d1d' },
   fallback: {
     primary: 'yellow', secondary: 'blue', success: 'green', warning: 'yellow',
     error: 'red', dim: 'gray', pulseQuiet: 'gray', pulseActive: 'yellow', pulseAlert: 'red',

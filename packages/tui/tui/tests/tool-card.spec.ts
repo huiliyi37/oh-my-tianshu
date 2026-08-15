@@ -329,3 +329,34 @@ describe('isDelegationPreviewActive', () => {
     expect(isDelegationPreviewActive('delegate_task')).toBe(false)
   })
 })
+
+describe('工具块状态底色（主题带表面底色 + width，omp 风格）', () => {
+  const surfaceTheme = {
+    ...fakeTheme(),
+    userMsgBg: '#221d1a',
+    toolPendingBg: '#1d2129',
+    toolSuccessBg: '#161a1f',
+    toolErrorBg: '#291d1d',
+  } as RivetTheme
+
+  it('成功结果正文垫 success 底；错误结果垫 error 底；标题行不垫', () => {
+    const ok = formatToolCard({ toolName: 'bash', content: 'done', width: 40 }, surfaceTheme)
+    expect(ok[0]).not.toContain('48;2;22;26;31')
+    expect(ok.slice(1).every(l => l.includes('48;2;22;26;31'))).toBe(true)
+    const err = formatToolCard({ toolName: 'bash', content: 'boom', isError: true, width: 40 }, surfaceTheme)
+    expect(err.slice(1).every(l => l.includes('48;2;41;29;29'))).toBe(true)
+  })
+
+  it('主题无表面底色 token → 不垫（16 色轨降级）；无 width → 不垫', () => {
+    const out = formatToolCard({ toolName: 'bash', content: 'done', width: 40 }, fakeTheme())
+    expect(out.every(l => !l.includes('48;2;'))).toBe(true)
+    const noWidth = formatToolCard({ toolName: 'bash', content: 'done' }, surfaceTheme)
+    expect(noWidth.every(l => !l.includes('48;2;'))).toBe(true)
+  })
+
+  it('live 进行中卡 tail 垫 pending 底', () => {
+    const lines = formatToolCardLive({ toolName: 'bash', outputTail: 'line1\nline2', columns: 40, tailLines: 2 }, surfaceTheme)
+    expect(lines.length).toBeGreaterThan(1)
+    expect(lines.slice(1).every(l => l.includes('48;2;29;33;41'))).toBe(true)
+  })
+})

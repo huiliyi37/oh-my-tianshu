@@ -2500,6 +2500,7 @@ export class TuiApp {
       ...(views.result === undefined ? {} : { resultView: views.result }),
       elapsedMs: Math.max(0, event.time - tool.time),
       compact: this.compactMode,
+      width: this.stdout.columns,
     }, this.theme)
     // 串行链：先吐尽本 step 的流式文本（flushStream 幂等），卡片紧随其后
     // ——live 区进行中卡的消失与 scrollback 结算卡的出现衔接为一次提交。
