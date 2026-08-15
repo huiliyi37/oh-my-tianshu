@@ -214,7 +214,8 @@ import { formatWhaleLogo, WHALE_MIN_ROWS } from '../format/whale.js'
 import { formatTopBar } from '../format/top-bar.js'
 import { formatTurnStatus } from '../format/turn-status.js'
 import { formatPromptFooter } from '../format/prompt-footer.js'
-import { formatInputFrame } from '../format/input-frame.js'
+import { formatInputFrame, promptBorderColor } from '../format/input-frame.js'
+import { formatTopStatusBar } from '../format/top-status-bar.js'
 import { formatSlashMenu, SLASH_MENU_MAX_ROWS } from '../format/slash-menu.js'
 import { formatSubagentRunning, formatSubagentDone } from '../format/subagent-line.js'
 import { glanceBarSegments } from '../format/glance-bar.js'
@@ -2865,43 +2866,54 @@ export class TuiApp {
     this.inputLine.setGhost(this.slashGhostText())
     // CC PromptInput marginTop={1}：轨前 1 行呼吸，不填视口。
     lines.push({ text: '' })
-    // 输入轨（Claude Code 形态）：上下圆角横线、左右不封。轨线色
-    // normal 雾蓝 / plan warning / auto error。caret 行 +1、列不修正。
+    // 输入轨（Claude Code 形态）：上下圆角横线、左右不封。顶轨嵌 omp 风格
+    // 段式状态栏（左模型/effort、右 metrics），边框色随模式（plan warning /
+    // auto error / normal 雾蓝）。caret 行 +1、列不修正。
     const planProj = this.projectionCache?.plan as PlanProjectionWire | undefined
-    const modeColor = planProj?.pending === true || planProj?.active === true
+    const modeFlags = {
+      planActive: planProj?.active === true,
+      planPending: planProj?.pending === true,
+      alwaysApprove: this.approval.alwaysApprove,
+    }
+    const modeColor = modeFlags.planPending || modeFlags.planActive
       ? theme.warning
-      : this.approval.alwaysApprove ? theme.error : theme.secondary
+      : modeFlags.alwaysApprove ? theme.error : theme.secondary
     const promptColor = this.liveAgent?.state.status === 'running' ? theme.dim : modeColor
     const inputView = this.inputLine.displayLinesWithCaret({ maxWidth: cols })
     const framedLines = inputView.lines.map(line => (
       line.startsWith('❯ ') ? `${color('❯', promptColor)}${line.slice(1)}` : line
     ))
+    // 状态栏段：左身份（model/effort）、右 metrics（缓存/上下文/token/API）——
+    // 复用 glanceBarSegments 的顺序（model、effort 在前），按段数切分。
+    const bottomMetrics = this.glanceMetrics()
+    const allSegs = bottomMetrics === null ? [] : glanceBarSegments({ ...bottomMetrics, width: cols })
+    const leftCount = Math.min(
+      (bottomMetrics?.modelName !== undefined ? 1 : 0) + (bottomMetrics?.effort != null ? 1 : 0),
+      allSegs.length,
+    )
+    const topLine = formatTopStatusBar({
+      width: cols,
+      left: allSegs.slice(0, leftCount),
+      right: [...allSegs.slice(leftCount), `API ${this.apiKeyReady ? '✓' : '✗'}`],
+      borderColor: promptBorderColor(modeFlags, theme),
+    }, theme)
     const frame = formatInputFrame({
       columns: cols,
       lines: framedLines,
       caretLine: inputView.caret.line,
       caretCol: inputView.caret.col,
-      planActive: planProj?.active === true,
-      planPending: planProj?.pending === true,
-      alwaysApprove: this.approval.alwaysApprove,
+      topLine,
+      ...modeFlags,
     }, theme)
     for (const [i, line] of frame.lines.entries()) {
       lines.push(i === frame.caretLine ? { text: line, caretCol: frame.caretCol } : { text: line })
     }
 
-    // C4：footer 一行——左模式/快捷键、右 token/模型/API。任意宽度右对齐合并，
-    // 放不下从右丢段；不再纵排 theme.primary 的第二行 metrics（窄屏折行变蓝）。
-    const bottomMetrics = this.glanceMetrics()
-    const rightSegments = bottomMetrics === null
-      ? undefined
-      : [...glanceBarSegments({ ...bottomMetrics, width: cols }), `API ${this.apiKeyReady ? '✓' : '✗'}`]
+    // C4：footer 一行——左模式/快捷键（metrics 已上移输入框顶边状态栏，不再右挂）。
     const footerLines = formatPromptFooter({
       width: cols,
-      planActive: planProj?.active === true,
-      planPending: planProj?.pending === true,
-      alwaysApprove: this.approval.alwaysApprove,
+      ...modeFlags,
       approvalPending: this.approval.isPending,
-      ...(rightSegments !== undefined ? { rightSegments } : {}),
     }, theme)
     for (const line of footerLines) lines.push({ text: line })
 

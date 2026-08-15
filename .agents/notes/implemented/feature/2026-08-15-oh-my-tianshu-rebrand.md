@@ -17,7 +17,9 @@ Wave one of the omp alignment (identity layer only), plus the repository rename:
 - **Welcome card**: `formatWelcomeCard` wraps the existing responsive hero in a rounded box with the brand embedded in the left of the top border (`╭─ Oh My Tianshu ───╮`); the whale gains an opt-in diagonal body gradient (`bodyGradient`, truecolor track only — belly/eye/blush keep their brand colors, the 16-color track is unchanged); a random italic dim `Tip:` line (`WELCOME_TIPS` / `pickWelcomeTip`) lands below the card. The hero itself is untouched, so existing hero specs keep their meaning.
 - **Rename**: GitHub repo `huiliyi37/dsh-tianshu-build` → `huiliyi37/oh-my-tianshu`; every tracked hardcoded URL swept (`git grep dsh-tianshu-build` = 0), including `repository.url` fields, doc links, and the doc-site/verification scripts that assert the canonical identity.
 
-Deferred to wave two (recorded, not built): the powerline-thin status bar embedded in the composer top border, mode-reactive composer border colors, omp-style message-surface treatment (full-width user bubble tint, status-tinted tool blocks), and the 3-second gradient-sweep logo intro.
+Wave two (shipped in the same push): the segmented status bar now lives in the composer's top border (`format/top-status-bar.ts` — left identity segments in primary, right metrics in muted, secondary dash fill, drop-from-right on narrow widths, ascii fallback); `formatInputFrame` accepts a pre-rendered `topLine` and shares `promptBorderColor` with it, so the whole top edge carries the mode-reactive border color (plan warning / always-approve error / normal fog blue); the footer keeps mode badge + key hints only (metrics moved up).
+
+Deferred with reasons: omp-style message-surface treatment (full-width user-bubble tint, status-tinted tool blocks) needs background tokens that `RivetTheme` does not have — adding bg tokens touches the theme schema and every palette, a wave-three-scale change; the gradient-sweep logo intro needs the welcome card held in the live region for the animation window, but the welcome commits to append-only scrollback at startup — the intrusiveness is not justified by the polish.
 
 ## Alternatives considered
 
@@ -33,7 +35,7 @@ The first screen now reads as Oh My Tianshu at a glance (amber accent, bordered 
 ## Testing
 
 - `pnpm exec tsc -b packages/tui/tui`: 0 errors.
-- `pnpm vitest run packages/tui/tui/tests`: 1633 passed (90 files), including new `formatWelcomeCard` / `pickWelcomeTip` / whale-gradient specs and the updated brand/default-theme assertions.
+- `pnpm vitest run packages/tui/tui/tests`: 1638 passed (91 files), including new `formatWelcomeCard` / `pickWelcomeTip` / whale-gradient / `top-status-bar` specs and the updated brand/default-theme/footer-layout assertions.
 - `verify-source-budgets`, `verify-doc-refs`, `verify-public-repository-links`, `verify-package-paths`, `verify-md-links`, `verify-md-wrap`, `check-workspace-constraints`: all pass after the rename sweep.
 
 ## Related

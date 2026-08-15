@@ -4,7 +4,9 @@
  * Claude Code PromptInput 形态：`borderStyle=round` + `borderLeft/Right=false`。
  * 只画上下两条圆角横线（╭─╮ / ╰─╯），输入行本身不包左右 `│`。
  * 轨线色随模式：normal 雾蓝 promptBorder / plan warning / auto error。
- * ascii 降级由 boxCharsFor 走 +---+。columns < 4 时不加轨，原样返回输入行。
+ * 顶轨可被预渲染的 `topLine` 覆盖——omp 风格顶边状态栏（format/top-status-bar.ts）
+ * 由此嵌入，边框色与轨线同一模式色。ascii 降级由 boxCharsFor 走 +---+。
+ * columns < 4 时不加轨，原样返回输入行。
  */
 import { color } from '../engine/ansi.js'
 import { boxCharsFor } from '../box-chars.js'
@@ -30,6 +32,8 @@ export interface FormatInputFrameInput {
   planPending?: boolean
   /** always-approve 生效（渲染 auto 色）。 */
   alwaysApprove?: boolean
+  /** 预渲染的顶轨（omp 风格顶边状态栏，format/top-status-bar.ts 产出）；缺省纯横线轨。 */
+  topLine?: string
 }
 
 /** formatInputFrame 的渲染结果（轨线 + 输入行 + 修正后的硬件光标行）。 */
@@ -37,6 +41,16 @@ export interface FormatInputFrameOutput {
   lines: string[]
   caretLine: number
   caretCol: number
+}
+
+/** 输入轨线色：plan warning / auto error / normal 雾蓝（顶边状态栏与框体共用同一色）。 */
+export function promptBorderColor(
+  input: { planActive?: boolean; planPending?: boolean; alwaysApprove?: boolean },
+  theme: RivetTheme,
+): string {
+  return input.planPending === true || input.planActive === true
+    ? theme.warning
+    : input.alwaysApprove === true ? theme.error : CHROME_PROMPT_BORDER
 }
 
 /**
@@ -51,11 +65,9 @@ export function formatInputFrame(input: FormatInputFrameInput, theme: RivetTheme
     return { lines: [...input.lines], caretLine: input.caretLine, caretCol: input.caretCol }
   }
   const chars = boxCharsFor(input.separator ?? 'thin')
-  const borderColor = input.planPending === true || input.planActive === true
-    ? theme.warning
-    : input.alwaysApprove === true ? theme.error : CHROME_PROMPT_BORDER
+  const borderColor = promptBorderColor(input, theme)
   const inner = Math.max(0, columns - 2)
-  const top = color(`${chars.tl}${chars.h.repeat(inner)}${chars.tr}`, borderColor)
+  const top = input.topLine ?? color(`${chars.tl}${chars.h.repeat(inner)}${chars.tr}`, borderColor)
   const bottom = color(`${chars.bl}${chars.h.repeat(inner)}${chars.br}`, borderColor)
   const content = input.lines.map(line => truncateToDisplayWidth(line, columns))
   return {

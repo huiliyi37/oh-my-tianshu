@@ -88,6 +88,7 @@
 | src/format/tool-group.ts | — | new |
 | src/format/tool-view-card.ts | — | new（presenter 结算卡：diff/terminal 结构化渲染 + generic 回落；renderFileDiff 与审批预览共用） |
 | src/format/tool-meta.ts | — | new |
+| src/format/top-status-bar.ts | — | new（omp 风格顶边段式状态栏：嵌入输入框顶轨，纯渲染） |
 | src/format/turn-summary.ts | turn-summary.ts | modified（上游单文件拆为模型+渲染，此为渲染半；模型半见 src/turn-summary.ts） |
 | src/format/turn-status.ts | — | new（C4 概念稿 turn_status：spinner/◆ + 阶段文本，纯渲染） |
 | src/format/user-message.ts | format/user-message.ts | modified |

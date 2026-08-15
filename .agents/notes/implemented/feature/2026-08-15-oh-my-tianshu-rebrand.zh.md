@@ -17,7 +17,9 @@ omp 对标的第一波（仅身份层），外加仓库改名：
 - **欢迎卡**：`formatWelcomeCard` 把既有响应式 hero 包进圆角盒，品牌嵌在顶边左侧（`╭─ Oh My Tianshu ───╮`）；鲸鱼新增可选对角身体渐变（`bodyGradient`，仅 truecolor 轨——白肚/眼/腮红保持品牌色，16 色轨不变）；卡下落一条斜体 dim 随机 `Tip:`（`WELCOME_TIPS` / `pickWelcomeTip`）。hero 本体不动，既有 hero spec 语义保持。
 - **改名**：GitHub 仓 `huiliyi37/dsh-tianshu-build` → `huiliyi37/oh-my-tianshu`；全仓被跟踪的硬编码 URL 清零（`git grep dsh-tianshu-build` = 0），含各包 `repository.url`、文档链接与断言仓身份的检查脚本。
 
-第二波（已记录、未实施）：嵌入输入框顶边的 powerline-thin 段式状态栏、随模式变色的输入框边框、omp 式消息面（用户消息整宽暖底、工具块状态色浅底）、启动 3 秒渐变扫光 intro。
+第二波（同批落地）：段式状态栏嵌进输入框顶边（`format/top-status-bar.ts`——左身份段 primary、右 metrics 段 muted、secondary 横线填充、窄宽从右丢段、ascii 降级）；`formatInputFrame` 接受预渲染 `topLine` 并与状态栏共用 `promptBorderColor`，整条顶边随模式变色（plan warning / always-approve error / normal 雾蓝）；footer 只留模式徽标 + 快捷键提示（metrics 上移）。
+
+记录在案的延期及理由：omp 式消息面（用户消息整宽暖底、工具块状态色浅底）需要 `RivetTheme` 没有的背景色 token——加 bg token 要动主题 schema 与全部调色板，属第三波量级；渐变扫光 intro 需要把欢迎卡扣在 live 区播动画，但欢迎页启动即提交只增 scrollback——侵入性与收益不成比例。
 
 ## Alternatives considered
 
@@ -33,7 +35,7 @@ omp 对标的第一波（仅身份层），外加仓库改名：
 ## Testing
 
 - `pnpm exec tsc -b packages/tui/tui`：0 错误。
-- `pnpm vitest run packages/tui/tui/tests`：1633 通过（90 文件），含新增 `formatWelcomeCard` / `pickWelcomeTip` / 鲸鱼渐变 spec 与更新后的品牌/默认主题断言。
+- `pnpm vitest run packages/tui/tui/tests`：1638 通过（91 文件），含新增 `formatWelcomeCard` / `pickWelcomeTip` / 鲸鱼渐变 / `top-status-bar` spec 与更新后的品牌/默认主题/footer 布局断言。
 - `verify-source-budgets`、`verify-doc-refs`、`verify-public-repository-links`、`verify-package-paths`、`verify-md-links`、`verify-md-wrap`、`check-workspace-constraints`：改名清扫后全过。
 
 ## Related

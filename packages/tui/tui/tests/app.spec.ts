@@ -4563,7 +4563,7 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
     }
   })
 
-  it('B 布局：更窄时从右丢 API 段，仍单行雾蓝', async () => {
+  it('B 布局：metrics 上移输入框顶边状态栏（50 列容得下模型 + API 段）', async () => {
     const savedKey = process.env.DEEPSEEK_API_KEY
     Reflect.deleteProperty(process.env, 'DEEPSEEK_API_KEY')
     try {
@@ -4578,8 +4578,29 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
       expect(written).toMatch(/╭─+/)
       expect(written).toContain('normal')
       expect(written).toContain('mock')
-      expect(written).not.toContain('API ✗')
+      // 顶边状态栏：mock（左）与 API ✗（右）同嵌输入框顶轨
+      expect(written).toContain('API ✗')
       expect(written).toContain('\x1B[38;2;170;178;194m')
+      await app.dispose()
+    } finally {
+      if (savedKey !== undefined) process.env.DEEPSEEK_API_KEY = savedKey
+    }
+  })
+
+  it('顶边状态栏：极窄时从右丢 API 段，模型段保留', async () => {
+    const savedKey = process.env.DEEPSEEK_API_KEY
+    Reflect.deleteProperty(process.env, 'DEEPSEEK_API_KEY')
+    try {
+      const { stdout, app } = boot()
+      // termCols 18 → gutter 2、有效 14 列：左 mock(4) + 右 API ✗(5) 超出即丢右段
+      stdout.columns = 18
+      await app.attach()
+      stdout.write.mockClear()
+      app.handleSubmit('hi')
+      await new Promise(resolve => setImmediate(resolve))
+      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('mock')
+      expect(written).not.toContain('API ✗')
       await app.dispose()
     } finally {
       if (savedKey !== undefined) process.env.DEEPSEEK_API_KEY = savedKey
