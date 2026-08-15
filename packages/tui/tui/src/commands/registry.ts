@@ -17,9 +17,21 @@
 
 import type { Context } from '@huiliyi37/cordis'
 import type { SessionId } from '@huiliyi37/dsh-session'
+import type { Agent } from '@huiliyi37/dsh-agent'
 import { getActiveThemeName, setTheme, THEME_NAMES } from '../theme.js'
-import { listSessions } from '../adapter/sessions.js'
+import { listSessions, loadHistory } from '../adapter/sessions.js'
+import { sessionTitleFor } from '../adapter/session-title.js'
 import { collectDoctorReport, getDoctorFixGuidance } from '../format/doctor-report.js'
+
+// agent-preset/selected 事件由 host 的 dsh-agent-presets 声明扩展（官方同款
+// declare module）；插件本地声明同型合并——host 包进入依赖后 interface 合并
+// 且属性类型一致（{ agentPreset: string }），无冲突。此扩展使
+// Session.append('agent-preset/selected', ...) 获得完整类型检查。
+declare module '@huiliyi37/dsh-session/types' {
+  interface SessionEventMap {
+    'agent-preset/selected': { agentPreset: string }
+  }
+}
 
 /**
  * Slash 命令执行上下文——TuiApp 在分发时注入。
@@ -70,6 +82,16 @@ interface ModelFacet {
   saveSelection(next: { provider: string; model: string; reasoningEffort?: string }): Promise<void>
 }
 
+/** /preset 所需的最小 agent-presets 服务面（不引入 dsh-agent-presets 依赖）。 */
+interface PresetFacet {
+  /** 当前配置根提供的全部预设（first-root-wins per id）。 */
+  list(): Promise<Array<{ id: string; name?: string; description?: string }>>
+  /** 一个 live agent 当前运行的预设 id（作用域链读取；未加入任何预设返回 undefined）。 */
+  composedPreset?(agentCtx: Context): string | undefined
+  /** 把 agent 重绑到另一预设的 standing 组成；调用方负责 blank-session 检查。 */
+  recompose(agentCtx: Context, id: string): Promise<{ id: string; name?: string }>
+}
+
 /** /model 的 effort 白名单（llm 三档：off / high / max）。 */
 const EFFORT_LEVELS = ['off', 'high', 'max'] as const
 
@@ -118,7 +140,7 @@ interface MemoryFacet {
  * /subagents、/workflow、/tasks 的命令定义在 createBuiltinCommands（deps 注入
  * TuiApp 的显隐切换）；/status 保持 TuiApp 内注册。
  */
-export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'tasks', 'density', 'goal', 'status', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'export', 'exit'] as const
+export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'preset', 'tasks', 'density', 'goal', 'status', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'export', 'exit'] as const
 
 /**
  * /model 一键切换别名（TUI 便捷层）：展开为 deepseek-spark route 的
@@ -262,6 +284,10 @@ export interface BuiltinCommandDeps {
   exportTranscript(path?: string): Promise<string>
   /** /exit：请求退出 TUI（与 Ctrl+Q 同一 onExit 路径）。 */
   requestExit(): void
+  /** /preset：当前会话的 agent（recompose/composedPreset 的 agentCtx 来源；无会话为 null）。 */
+  currentAgent(): Agent | null
+  /** /preset：当前会话是否 blank（无消息且无进行中工具调用）——recompose 的调用方契约。 */
+  isBlankSession(): boolean
 }
 
 /**
@@ -304,8 +330,14 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
             echo('（当前无会话）')
             return
           }
+          // 每行在 session id 旁展示会话标题。数据源为官方 log-backed
+          // `session/title` 事件（dsh-base 装配的 session-title + session-title-llm
+          // 在会话活跃时自动生成）；无标题事件的历史会话展示首条真人消息的
+          // 确定性 fallback；无聊天记录的会话显示「新对话」。只读纯函数，
+          // 不调 API、不写 sidecar、不写 session log。
           for (const row of rows) {
-            echo(`${row.id} · ${new Date(row.createdAt).toISOString()}`)
+            const events = await loadHistory(ctx, row.id)
+            echo(`${row.id} · ${sessionTitleFor(events)} · ${new Date(row.createdAt).toISOString()}`)
           }
           return
         }
@@ -446,6 +478,58 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
         echo(hot
           ? `推理等级已设为 ${input}（固定；当前会话与默认均生效；/effort auto 回默认）`
           : `推理等级已设为 ${input}（固定；默认生效；当前会话不可热切；/effort auto 回默认）`)
+      },
+    },
+    {
+      name: 'preset',
+      description: '查看/切换 agent 预设模式（标准 / PTC / 极简 / 创造）',
+      argsHint: '[id]',
+      run: async ({ text, echo, ctx }) => {
+        // as unknown as：Context 声明合并的 agentPresets 是完整服务面，
+        // 这里只消费最小读/切三方法（本地 PresetFacet）。
+        const facet = (ctx as unknown as { agentPresets?: PresetFacet }).agentPresets
+        if (facet === undefined) {
+          echo('⚠ agent-presets 服务不可用（host 未装配 agent 预设）')
+          return
+        }
+        const target = text.trim()
+        if (target === '') {
+          const presets = await facet.list()
+          const agent = deps.currentAgent()
+          const current = agent === null ? undefined : facet.composedPreset?.(agent.ctx)
+          echo(`agent 预设 (${presets.length}):`)
+          for (const preset of presets) {
+            const mark = preset.id === current ? '*' : ' '
+            const name = preset.name ?? preset.id
+            const desc = preset.description === undefined || preset.description === ''
+              ? ''
+              : ` — ${preset.description}`
+            echo(` ${mark} ${name} (${preset.id})${desc}`)
+          }
+          echo(current === undefined ? '当前: 未装配（host 默认）' : `当前: ${current}`)
+          return
+        }
+        const agent = deps.currentAgent()
+        if (agent === null) {
+          echo('当前无会话，无法切换预设')
+          return
+        }
+        // 官方 recompose 契约：仅 blank session 可换（换工具集会留下历史 tool
+        // call 与新组成不匹配）；检查由调用方负责（方法本身不读会话历史）。
+        if (!deps.isBlankSession()) {
+          echo('⚠ 会话已产生内容，无法切换预设（仅空白会话可换；新会话默认仍用当前预设）')
+          return
+        }
+        try {
+          // 切换链与官方 host 一致（recompose 成功后才 append 落日志；失败
+          // 保留原组成且不留记录）。事件类型经上方 declare module 扩展，
+          // append 签名全类型检查（key 合法 + data 形状 { agentPreset }）。
+          const preset = await facet.recompose(agent.ctx, target)
+          agent.session.append('agent-preset/selected', { agentPreset: preset.id })
+          echo(`已切换为 ${preset.name ?? preset.id} (${preset.id})`)
+        } catch (error) {
+          echo(`切换失败: ${error instanceof Error ? error.message : String(error)}`)
+        }
       },
     },
     {

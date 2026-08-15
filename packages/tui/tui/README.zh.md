@@ -30,7 +30,7 @@
 
 **LSP 诊断**（移植自天枢 LSP 栈）：agent 触碰文件时，桥按扩展名懒启动语言 server（typescript 经 `npx -y` 默认可用；pyright/gopls/rust-analyzer/clangd/jdtls 按 PATH 探测）拉取诊断——live 工具卡标题带 `⚠ N错 M警` 徽标，`/lsp` 面板按文件分组展示。诊断只进 TUI 本地展示缓存：不写会话事件、不注册任何模型面，dispose 时 kill 全部 server。装配了 `getDiagnostics` 形状的外部服务（`provide('lsp')`，如 dsh-lsp 伴生插件）时直接消费、与模型工具面共享 server 集；官方 `ctx.lsp` seam 经 `query(getDiagnostics)` 操作适配，官方操作落地前恒空。
 
-依赖服务：`sessions`/`agents`/`agentDefaultModel` 必需；`goals`/`subagents` 可选——未装配时 `/goal` 命令与委派树面板降级（fails loud 报不可用，不静默吞）。TUI 同时注册 `userInteraction` provider（终端内答题）并订阅 `approval/request`（挂起审批卡片）。
+依赖服务：`sessions`/`agents`/`agentDefaultModel` 必需；`goals`/`subagents`/`agentPresets` 可选——未装配时 `/goal` 命令、委派树面板与 `/preset` 命令降级（fails loud 报不可用，不静默吞）。`/session list` 标题 fold 官方 `session/title` 事件（dsh-base 已装配）。TUI 同时注册 `userInteraction` provider（终端内答题）并订阅 `approval/request`（挂起审批卡片）。
 
 ## 分层
 

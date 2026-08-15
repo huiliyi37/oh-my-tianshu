@@ -23,6 +23,7 @@
 | src/adapter/live.ts | — | new |
 | src/adapter/send.ts | — | new |
 | src/adapter/sessions.ts | — | new |
+| src/adapter/session-title.ts | — | new（/session list 标题面：官方 log-backed session/title 事件 fold → 首条真人消息确定性 fallback → 「新对话」；纯只读，无 API/sidecar） |
 | src/adapter/tool-view.ts | — | new（presenter 桥：镜像 apiproxy viewFor 的 presentCall/presentResult 软降级消费） |
 | src/adapter/transcript.ts | — | new |
 | src/block-stream-writer.ts | block-stream-writer.ts | modified |

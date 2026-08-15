@@ -10,7 +10,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Context } from '@huiliyi37/cordis'
-import type { SessionId } from '@huiliyi37/dsh-session'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import type { SessionId, SessionEvent } from '@huiliyi37/dsh-session'
 import {
   BUILTIN_COMMAND_NAMES,
   SlashCommandRegistry,
@@ -20,7 +21,7 @@ import {
 import { getActiveThemeName, setTheme } from '../src/theme.js'
 
 /** 最小 ctx 替身：/session list 需要的 sessions.list + get('sessionPersistence')。 */
-function makeCtx(overrides: Partial<Record<'sessions' | 'agents' | 'compact' | 'agentDefaultModel' | 'goals' | 'tasks', unknown>> = {}): Context {
+function makeCtx(overrides: Partial<Record<'sessions' | 'agents' | 'compact' | 'agentDefaultModel' | 'goals' | 'tasks' | 'agentPresets', unknown>> = {}): Context {
   const ctx = {
     sessions: {
       list: vi.fn(() => []),
@@ -69,6 +70,8 @@ function commandByName(name: string) {
     switchSession: vi.fn(async () => undefined),
     exportTranscript: vi.fn(async (path?: string) => path ?? '/tmp/dsh-export-s1.md'),
     requestExit: vi.fn(),
+    currentAgent: vi.fn(() => null),
+    isBlankSession: vi.fn(() => true),
   }
   const commands = createBuiltinCommands(deps)
   const cmd = commands.find(c => c.name === name)
@@ -275,6 +278,97 @@ describe('内置命令 — /session', () => {
     await cmd.run(args)
     expect(deps.newSession).not.toHaveBeenCalled()
     expect(echo).toHaveBeenCalledWith(expect.stringContaining('/session new|list'))
+  })
+})
+
+describe('内置命令 — /session list 会话标题（官方 session/title 事件 fold + fallback）', () => {
+  /** 一条带真人用户消息与可选标题事件的 live 会话替身。 */
+  function liveSession(sid: SessionId, question: string, title?: string): { id: SessionId; events: SessionEvent[] } {
+    const events = [
+      {
+        seq: 1,
+        time: 1001,
+        type: 'user/message',
+        data: { content: [{ type: 'text', text: question }], source: { kind: 'user' } },
+      },
+    ] as unknown as SessionEvent[]
+    if (title !== undefined) {
+      events.push({
+        seq: 2,
+        time: 1002,
+        type: 'session/title',
+        data: { title, messageSeqs: [1], source: { kind: 'provider', provider: 'session-title-llm' } },
+      } as unknown as SessionEvent)
+    }
+    return { id: sid, events }
+  }
+
+  function listRows(
+    sid: SessionId,
+    createdAt = 1,
+  ): Array<{ id: SessionId; header: { id: SessionId; version: number; createdAt: number } }> {
+    return [{ id: sid, header: { id: sid, version: 0, createdAt } }]
+  }
+
+  it('list 展示官方 session/title 事件折叠出的标题', async () => {
+    const { cmd } = commandByName('session')
+    const sid = 'session-title-1' as SessionId
+    const live = liveSession(sid, '评估某模型的识别准确率', '评估某模型的识别准确率')
+    const ctx = makeCtx({
+      sessions: {
+        list: vi.fn(() => listRows(sid)),
+        get: vi.fn(() => live),
+      },
+    })
+    const { args, echo } = makeArgs({ text: 'list', ctx })
+    await cmd.run(args)
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining(`session-title-1 · 评估某模型的识别准确率 · ${new Date(1).toISOString()}`))
+  })
+
+  it('list 无标题事件时展示首条真人消息的确定性 fallback', async () => {
+    const { cmd } = commandByName('session')
+    const sid = 'session-title-2' as SessionId
+    const live = liveSession(sid, '写个脚本计算两个数组的交集')
+    const ctx = makeCtx({
+      sessions: {
+        list: vi.fn(() => listRows(sid)),
+        get: vi.fn(() => live),
+      },
+    })
+    const { args, echo } = makeArgs({ text: 'list', ctx })
+    await cmd.run(args)
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('session-title-2 · 写个脚本计算两个数组的交集 ·'))
+  })
+
+  it('list 无聊天记录的会话展示「新对话」', async () => {
+    const { cmd } = commandByName('session')
+    const sid = 'session-title-3' as SessionId
+    const ctx = makeCtx({
+      sessions: {
+        list: vi.fn(() => listRows(sid)),
+        get: vi.fn(() => ({ id: sid, events: [] })),
+      },
+    })
+    const { args, echo } = makeArgs({ text: 'list', ctx })
+    await cmd.run(args)
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('session-title-3 · 新对话 ·'))
+  })
+
+  it('list 不发起任何 llm 调用（纯只读展示）', async () => {
+    const { cmd } = commandByName('session')
+    const sid = 'session-title-4' as SessionId
+    const live = liveSession(sid, '问题', '标题')
+    const ctx = makeCtx({
+      sessions: {
+        list: vi.fn(() => listRows(sid)),
+        get: vi.fn(() => live),
+      },
+    })
+    const { args, echo } = makeArgs({ text: 'list', ctx })
+    await cmd.run(args)
+    expect(echo).toHaveBeenCalled()
+    // oxlint-disable-next-line unbound-method -- ctx 整体 cast 成 Context 后 reflect.get 是方法面；测试只断言调用
+    expect(ctx.reflect.get).not.toHaveBeenCalledWith('llm', false)
   })
 })
 
@@ -590,6 +684,128 @@ describe('内置命令 — /exit', () => {
     await cmd.run(args)
     expect(deps.requestExit).toHaveBeenCalledTimes(1)
     expect(echo).not.toHaveBeenCalled()
+  })
+})
+
+describe('内置命令 — /preset（agent 预设模式切换）', () => {
+  const presetByName = () => commandByName('preset')
+
+  /** 带 agentPresets 服务的 ctx（makeCtx overrides，/model 同机制）。 */
+  function presetCtx() {
+    const presets = {
+      list: vi.fn(async () => [] as Array<{ id: string; name?: string; description?: string }>),
+      composedPreset: vi.fn(() => undefined as string | undefined),
+      recompose: vi.fn(async () => ({ id: 'minimal' })),
+    }
+    const ctx = makeCtx({ agentPresets: presets })
+    return { presets, ctx }
+  }
+
+  /** 当前会话 agent 替身（recompose 的 agentCtx + append 落日志；append 保持 mock 类型可断言）。 */
+  function makeAgent(): Agent & { session: { append: ReturnType<typeof vi.fn> } } {
+    const append = vi.fn()
+    return { ctx: {}, session: { append } } as unknown as Agent & { session: { append: ReturnType<typeof vi.fn> } }
+  }
+
+  it('内置命令集含 /preset 且无前缀冲突', () => {
+    expect(BUILTIN_COMMAND_NAMES).toContain('preset')
+    const parsed = resolveSlashCommand('/preset', BUILTIN_COMMAND_NAMES)
+    expect(parsed?.command.name).toBe('preset')
+    expect(resolveSlashCommand('/p', BUILTIN_COMMAND_NAMES)?.command.name).toBe('preset')
+  })
+
+  it('无参：列出全部预设并标记当前项', async () => {
+    const { cmd, deps } = presetByName()
+    const { presets, ctx } = presetCtx()
+    presets.list.mockResolvedValue([
+      { id: 'standard', name: '标准模式', description: '功能完整' },
+      { id: 'minimal', name: '极简模式', description: '双工具' },
+      { id: 'cordis', name: '创造模式', description: '创作预设' },
+    ])
+    presets.composedPreset.mockReturnValue('minimal')
+    const agent = makeAgent()
+    deps.currentAgent.mockReturnValue(agent)
+    const { args, echo } = makeArgs({ text: '', ctx })
+    await cmd.run(args)
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('agent 预设'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('标准模式'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('极简模式'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('创造模式'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('当前: minimal'))
+    // 当前项带星标：极简行以 * 开头
+    const starred = echo.mock.calls.map(c => String(c[0])).find(l => l.includes('极简模式'))
+    expect(starred?.startsWith(' *')).toBe(true)
+  })
+
+  it('无参且无当前 agent：回显未装配默认', async () => {
+    const { cmd } = presetByName()
+    const { presets, ctx } = presetCtx()
+    presets.list.mockResolvedValue([{ id: 'standard', name: '标准模式' }])
+    const { args, echo } = makeArgs({ text: '', ctx })
+    await cmd.run(args)
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('当前: 未装配'))
+  })
+
+  it('切换成功：recompose 成功后 append 落日志并回显', async () => {
+    const { cmd, deps } = presetByName()
+    const { presets, ctx } = presetCtx()
+    presets.recompose.mockResolvedValue({ id: 'minimal', name: '极简模式' })
+    const agent = makeAgent()
+    deps.currentAgent.mockReturnValue(agent)
+    deps.isBlankSession.mockReturnValue(true)
+    const { args, echo } = makeArgs({ text: 'minimal', ctx })
+    await cmd.run(args)
+    expect(presets.recompose).toHaveBeenCalledWith(agent.ctx, 'minimal')
+    const append = agent.session.append
+    expect(append).toHaveBeenCalledTimes(1)
+    expect(append.mock.calls[0]![0]).toBe('agent-preset/selected')
+    expect(append.mock.calls[0]![1]).toEqual({ agentPreset: 'minimal' })
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('已切换为'))
+  })
+
+  it('非 blank 会话拒绝切换：不调 recompose / append', async () => {
+    const { cmd, deps } = presetByName()
+    const { presets, ctx } = presetCtx()
+    const agent = makeAgent()
+    deps.currentAgent.mockReturnValue(agent)
+    deps.isBlankSession.mockReturnValue(false)
+    const { args, echo } = makeArgs({ text: 'minimal', ctx })
+    await cmd.run(args)
+    expect(presets.recompose).not.toHaveBeenCalled()
+    const append = agent.session.append
+    expect(append).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('空白会话'))
+  })
+
+  it('无当前会话时拒绝切换', async () => {
+    const { cmd } = presetByName()
+    const { presets, ctx } = presetCtx()
+    const { args, echo } = makeArgs({ text: 'minimal', ctx })
+    await cmd.run(args)
+    expect(presets.recompose).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('无会话'))
+  })
+
+  it('agent-presets 服务缺失时回显不可用（fails loud）', async () => {
+    const { cmd } = presetByName()
+    const { args, echo } = makeArgs({ text: '' })
+    await cmd.run(args)
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('不可用'))
+  })
+
+  it('recompose 失败（未知预设/损坏组成）：回显错误且不 append', async () => {
+    const { cmd, deps } = presetByName()
+    const { presets, ctx } = presetCtx()
+    presets.recompose.mockRejectedValue(new Error('UnknownPresetError: no-such'))
+    const agent = makeAgent()
+    deps.currentAgent.mockReturnValue(agent)
+    deps.isBlankSession.mockReturnValue(true)
+    const { args, echo } = makeArgs({ text: 'no-such', ctx })
+    await cmd.run(args)
+    const append = agent.session.append
+    expect(append).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('切换失败'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('no-such'))
   })
 })
 

@@ -4808,9 +4808,9 @@ describe('slash 命令菜单接线（grok slash_dropdown 移植）', () => {
     stdin.emit('data', '/')
     await writtenOf(stdout)
     stdout.write.mockClear()
-    stdin.emit('data', '\x1b[6~') // PageDown → 菜单翻页（MRU 序命令集，落点随命令集变化——实测 /compact）
+    stdin.emit('data', '\x1b[6~') // PageDown → 菜单翻页（MRU 序命令集，落点随命令集变化——实测 /clear，preset 加入后分页边界移动）
     let written = await writtenOf(stdout)
-    expect(written).toMatch(/❯ \/compact/)
+    expect(written).toMatch(/❯ \/clear/)
     stdout.write.mockClear()
     stdin.emit('data', '\x1b[5~') // PageUp → 回顶部
     written = await writtenOf(stdout)

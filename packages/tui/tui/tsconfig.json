@@ -57,6 +57,9 @@
       "path": "../../sandbox/sandbox-policy"
     },
     {
+      "path": "../../session/session-title"
+    },
+    {
       "path": "../../subagent/subagent"
     },
     {
