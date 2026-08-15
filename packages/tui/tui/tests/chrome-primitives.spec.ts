@@ -41,9 +41,17 @@ describe('box geometry', () => {
   })
 
   it('pins to columns - 4 on narrow terminals', () => {
-    expect(boxInnerWidth(26)).toBe(20)
     expect(boxInnerWidth(25)).toBe(21)
     expect(boxOuterWidth(25)).toBe(25)
+  })
+
+  it('never shrinks when crossing the 26-column breathing threshold', () => {
+    // 25→26 列切入呼吸档（columns-6）时不得反缩：26、27 为 21 列平台期，
+    // 28 列起恢复呼吸增长。
+    expect(boxInnerWidth(26)).toBe(21)
+    expect(boxInnerWidth(27)).toBe(21)
+    expect(boxInnerWidth(28)).toBe(22)
+    expect(boxInnerWidth(29)).toBe(23)
   })
 
   it('never returns a negative inner width', () => {

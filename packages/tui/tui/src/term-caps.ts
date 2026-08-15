@@ -30,20 +30,19 @@ export function isLegacyWindowsConsole(
 }
 
 /**
- * locale 是否 CJK（zh/ja/ko 前缀）。优先 env（POSIX 约定），Intl（OS locale）兜底。
+ * locale 是否 CJK（zh/ja/ko 前缀）。env 显式值与 Intl（OS locale）任一命中即
+ * 判定 CJK——与上游 Tianshu-Tui 语义一致。仅 env 优先会把「中文 Windows 配
+ * 英文 LANG」（MSYS 直跑 bash.exe 常见）错判为 non-CJK，导致 legacy conhost
+ * 宽度档位误选、逐行宽度估算错位。
  * @param env - 环境变量（测试注入用，缺省 process.env）。
  * @returns 是否为 CJK locale。
  */
 export function isCjkLocale(env: NodeJS.ProcessEnv = process.env): boolean {
   const candidates = [env.LC_ALL ?? '', env.LC_CTYPE ?? '', env.LANG ?? '']
-  if (candidates.some(l => /^(zh|ja|ko)/i.test(l.trim()))) return true
-  // env 有显式值（无论 CJK 与否）时以 env 为准；仅 env 全空才用 Intl 兜底
-  if (candidates.some(l => l.trim() !== '')) return false
   try {
-    const locale = new Intl.DateTimeFormat().resolvedOptions().locale as string | undefined
-    return /^(zh|ja|ko)/i.test(locale ?? '')
+    candidates.push(new Intl.DateTimeFormat().resolvedOptions().locale ?? '')
   } catch { /* ICU 缺失（WSL/Alpine 精简版）时仅用 env */ }
-  return false
+  return candidates.some(l => /^(zh|ja|ko)/i.test(l.trim()))
 }
 
 let legacyCjkCache: boolean | null = null

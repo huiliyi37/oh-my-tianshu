@@ -14,9 +14,9 @@
  * - steer：marker `>>`/`➤` + warning（formatSteerMessage，见 steer-message.ts）
  */
 
-import chalk from 'chalk'
 import { color } from '../engine/ansi.js'
 import type { RivetTheme } from '../theme.js'
+import { useAsciiGlyphs } from '../term-caps.js'
 import { displayWidth, wrapToDisplayWidth } from '../width.js'
 
 /** formatUserMessage 的渲染输入。 */
@@ -105,7 +105,8 @@ export function formatRailedMessage(input: FormatRailedMessageInput, theme: Rive
  * @returns 渲染行数组（每行含导轨前缀）。
  */
 export function formatUserMessage(input: FormatUserMessageInput, theme: RivetTheme): string[] {
-  const useAscii = chalk.level < 3
-  const marker = useAscii ? '❯' : '▌'
+  // marker 由 useAsciiGlyphs 统一裁决：legacy conhost 与低色深终端（chalk.level<3）
+  // 走 ASCII 轨（❯ 在 GBK 点阵下 tofu，见 term-caps 模块头注释）；现代真彩终端用 ▌。
+  const marker = useAsciiGlyphs() ? '>' : '▌'
   return formatRailedMessage({ ...input, marker, markerColor: theme.userColor }, theme)
 }

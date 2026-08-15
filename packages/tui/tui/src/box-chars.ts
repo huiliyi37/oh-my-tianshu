@@ -52,16 +52,18 @@ export function boxCharsFor(separator: string): BoxCharSet {
  * 硬约束：框体外宽 = inner + 4（`│ ` + inner + ` │`）必须 ≤ columns，否则
  * 右边线折到下一行。故 inner 上限 = columns - 4。
  *
- * - columns >= 26：`columns - 6`（在上限内再留 2 列呼吸）—— 正常终端
+ * - columns >= 26：`columns - 6`（在上限内再留 2 列呼吸）—— 正常终端。
+ *   单调性约束：不因切入呼吸档而低于 columns=25 时的宽度（21），26–27 列为
+ *   平台期，28 列起恢复呼吸增长。
  * - columns < 26：`columns - 4`（框体顶满，外宽 = columns，贴右边界不超出）
  * - 下限 0：columns < 4 时框体无法成立，返回 0 让上层降级（极罕见）
  *
  * 此前固定下限 20 会让 < 26 列终端的框体外宽(24)超出边界、右边线折行。
  * @param columns - 终端列数。
- * @returns 内容区宽度（列），下限 0。
+ * @returns 内容区宽度（列），下限 0，随列数单调不减。
  */
 export function boxInnerWidth(columns: number): number {
-  if (columns >= 26) return columns - 6
+  if (columns >= 26) return Math.max(21, columns - 6)
   return Math.max(0, columns - 4)
 }
 

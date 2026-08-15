@@ -47,14 +47,36 @@ describe('isLegacyWindowsConsole', () => {
 })
 
 describe('isCjkLocale', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('detects zh/ja/ko prefixes from env candidates', () => {
     expect(isCjkLocale({ LANG: 'zh_CN.UTF-8' })).toBe(true)
     expect(isCjkLocale({ LC_ALL: 'ja_JP.UTF-8' })).toBe(true)
     expect(isCjkLocale({ LC_CTYPE: 'ko_KR.UTF-8' })).toBe(true)
   })
 
-  it('returns false for non-CJK locales', () => {
+  it('returns false when neither env nor Intl is CJK', () => {
+    vi.stubGlobal('Intl', {
+      DateTimeFormat: class {
+        resolvedOptions() {
+          return { locale: 'en-US' }
+        }
+      },
+    })
     expect(isCjkLocale({ LANG: 'en_US.UTF-8' })).toBe(false)
+  })
+
+  it('returns true when Intl is CJK even if env is non-CJK (upstream semantics)', () => {
+    vi.stubGlobal('Intl', {
+      DateTimeFormat: class {
+        resolvedOptions() {
+          return { locale: 'zh-CN' }
+        }
+      },
+    })
+    expect(isCjkLocale({ LANG: 'en_US.UTF-8' })).toBe(true)
   })
 
   it('falls back to Intl locale when env is empty', () => {
@@ -187,6 +209,15 @@ describe('truncateToDisplayWidth', () => {
   it('preserves ANSI sequences before the cut point', () => {
     const out = truncateToDisplayWidth('\x1B[1mbold text here', 4)
     expect(out).toBe('\x1B[1mbold\x1B[0m')
+  })
+
+  it('treats DEC private-mode CSI (\\x1B[?...]) as zero-width', () => {
+    // 工具输出常含 \x1B[?25l/\x1B[?2004h 等 private-mode 序列；修复前 payload
+    // 被当可见字符计宽，截断点可落在序列中间、输出半个转义序列。
+    expect(truncateToDisplayWidth('ab\x1B[?25h', 2)).toBe('ab\x1B[?25h')
+    const t = truncateToDisplayWidth('a\x1B[?25hb', 1)
+    expect(t.startsWith('a\x1B[?25h')).toBe(true)
+    expect(displayWidth(t)).toBe(1)
   })
 
   it('截断未闭合的 OSC 8 链接时补闭合', () => {
