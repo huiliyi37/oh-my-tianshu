@@ -70,7 +70,7 @@ function commandByName(name: string) {
     switchSession: vi.fn(async () => undefined),
     exportTranscript: vi.fn(async (path?: string) => path ?? '/tmp/dsh-export-s1.md'),
     requestExit: vi.fn(),
-    currentAgent: vi.fn(() => null),
+    currentAgent: vi.fn<() => Agent | null>(() => null),
     isBlankSession: vi.fn(() => true),
     setYoloMode: vi.fn(),
   }
@@ -726,7 +726,7 @@ describe('内置命令 — /preset（agent 预设模式切换）', () => {
     const presets = {
       list: vi.fn(async () => [] as Array<{ id: string; name?: string; description?: string }>),
       composedPreset: vi.fn(() => undefined as string | undefined),
-      recompose: vi.fn(async () => ({ id: 'minimal' })),
+      recompose: vi.fn(async (): Promise<{ id: string; name?: string }> => ({ id: 'minimal' })),
     }
     const ctx = makeCtx({ agentPresets: presets })
     return { presets, ctx }
@@ -1435,6 +1435,10 @@ describe('内置命令 — /effort', () => {
       openMemoryBrowser: vi.fn(async () => true),
       switchSession: vi.fn(async () => undefined),
       exportTranscript: vi.fn(async (path?: string) => path ?? '/tmp/dsh-export-s1.md'),
+      requestExit: vi.fn(),
+      currentAgent: vi.fn<() => Agent | null>(() => null),
+      isBlankSession: vi.fn(() => true),
+      setYoloMode: vi.fn(),
     }
     const cmd = createBuiltinCommands(deps).find(c => c.name === 'effort')
     if (cmd === undefined) throw new Error('builtin command not found: effort')

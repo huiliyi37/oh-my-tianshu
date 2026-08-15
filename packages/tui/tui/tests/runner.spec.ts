@@ -80,7 +80,7 @@ function makeSession(id: string): Session {
 }
 
 /** process.exit spy（beforeEach 安装；断言引用 spy 而非未绑定方法本身）。 */
-let exitSpy: ReturnType<typeof vi.spyOn<typeof process, 'exit'>>
+let exitSpy: ReturnType<typeof vi.fn>
 
 afterEach(() => {
   vi.restoreAllMocks()
