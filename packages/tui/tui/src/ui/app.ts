@@ -69,7 +69,7 @@ import type { TaskItem } from '../format/task-panel.js'
 // 数据源为投影总线缓存——纯函数只读，不发明事件词汇）。Wave 2：面板行渲染
 // 统一由 render/live-panels 的 7 面板纯函数承担，app.ts 只 import 类型做快照组装。
 import type { GoalProjectionInput, PlanProjectionInput } from '../status-panel.js'
-// 投影层接线（docs/projection-layer.md）：turn 级工具统计（turn/end 摘要行）
+// 投影层接线（见本包 docs 目录的 projection-layer.md）：turn 级工具统计（turn/end 摘要行）
 // 与会话级汇总（/status 会话段）——纯 fold 模型，输入即 session 事件流。
 import { applyTurnEvent, emptyTurnSummary, type TurnSummaryState } from '../turn-summary.js'
 import { applySummaryEvent, emptySummaryState, summarizeSession, type SummaryState } from '../summary-state.js'
@@ -209,7 +209,7 @@ import { QuestionController } from '../controllers/question-controller.js'
 import { BtwController } from '../controllers/btw-controller.js'
 import { SessionManager } from '../controllers/session-manager.js'
 import { renderBtwPanel } from '../format/btw-panel.js'
-import { CHROME_GUTTER, formatWelcomeHero, type WelcomeEnvCheck, type WelcomeTipItem } from '../format/welcome.js'
+import { CHROME_GUTTER, formatWelcomeCard, formatWelcomeHero, pickWelcomeTip, type WelcomeEnvCheck, type WelcomeTipItem } from '../format/welcome.js'
 import { formatWhaleLogo, WHALE_MIN_ROWS } from '../format/whale.js'
 import { formatTopBar } from '../format/top-bar.js'
 import { formatTurnStatus } from '../format/turn-status.js'
@@ -1048,8 +1048,9 @@ export class TuiApp {
       ? '恢复会话'
       : `恢复 · ${formatSessionAge(recent.createdAt, Date.now())}`
 
-    // 品牌鲸鱼像素画（窄屏/矮屏/低色深/legacy conhost 时降级为纯文字品牌区）。
-    const whale = formatWhaleLogo({ width: cols, rows: this.stdout.rows })
+    // 品牌鲸鱼像素画（omp 风格对角渐变——truecolor 轨；窄屏/矮屏/低色深/
+    // legacy conhost 时降级为纯文字品牌区）。卡盒内容宽 = cols - 4。
+    const whale = formatWhaleLogo({ width: Math.max(0, cols - 4), rows: this.stdout.rows, bodyGradient: true })
 
     // 顶栏与欢迎之间留 1 行。live overlay 不再填剩余视口。
     commitLine('')
@@ -1062,9 +1063,12 @@ export class TuiApp {
       { keyHint: 'ctrl+o', label: '展开推理' },
       { keyHint: 'shift+tab', label: '模式循环' },
     ]
-    for (const line of formatWelcomeHero({ width: cols, whale, env, tips }, this.theme)) {
+    const heroLines = formatWelcomeHero({ width: Math.max(0, cols - 4), whale, env, tips }, this.theme)
+    // omp 风格欢迎卡：圆角盒 + 顶边嵌品牌；盒下斜体随机 Tip。
+    for (const line of formatWelcomeCard({ width: cols, lines: heroLines }, this.theme)) {
       commitLine(line)
     }
+    commitLine(color(pickWelcomeTip(), this.theme.muted, { italic: true }))
     // 空行收尾：命令回显（如「模型已切换」）与欢迎页在视觉上自然分离。
     commitLine('')
   }

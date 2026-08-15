@@ -95,4 +95,4 @@ export function apply(ctx: Context) {
 
 下一章：[事件](04-events.md)：无需共享服务即可通信。
 
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/huiliyi37/dsh-tianshu-build)
+[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/huiliyi37/oh-my-tianshu)

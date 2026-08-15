@@ -40,7 +40,7 @@ export interface AppIdentity {
 export const APP_IDENTITY: AppIdentity = {
   product: 'tianshu-harness',
   version,
-  url: 'https://github.com/huiliyi37/dsh-tianshu-build',
+  url: 'https://github.com/huiliyi37/oh-my-tianshu',
 }
 
 /**

@@ -40,7 +40,7 @@ const publicLandlockPackages = new Set([
 const publicationSourceAllowlist: Readonly<Record<string, readonly string[]>> = {
   '@huiliyi37/node-addon-landlock-run': ['src/main.c'],
 }
-const repositoryUrl = 'git+https://github.com/huiliyi37/dsh-tianshu-build.git'
+const repositoryUrl = 'git+https://github.com/huiliyi37/oh-my-tianshu.git'
 
 const localArtifactDirs = new Set(['node_modules'])
 const appPackageFiles: Readonly<Record<string, readonly string[]>> = {

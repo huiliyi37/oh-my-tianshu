@@ -43,9 +43,9 @@ function stripLeadingSpaces(line: string): string {
 /** formatBrandWelcome 的渲染输入。 */
 export interface FormatBrandWelcomeInput {
   width: number
-  /** 品牌名（缺省 'DSH'）。 */
+  /** 品牌名（缺省 'Oh My Tianshu'）。 */
   brand?: string
-  /** 副标题（缺省 'dsh × Tianshu Harness'）。 */
+  /** 副标题（缺省 'Tianshu Harness'）。 */
   subtitle?: string
   /** 水平对齐；hero 左栏用 left，窄屏叠放用 center（缺省）。 */
   align?: 'center' | 'left'
@@ -59,8 +59,8 @@ export interface FormatBrandWelcomeInput {
  */
 export function formatBrandWelcome(input: FormatBrandWelcomeInput, theme: RivetTheme): string[] {
   if (input.width <= 0) return []
-  const brand = truncateTo(input.brand ?? 'DSH', input.width)
-  const subtitle = truncateTo(input.subtitle ?? 'dsh × Tianshu Harness', input.width)
+  const brand = truncateTo(input.brand ?? 'Oh My Tianshu', input.width)
+  const subtitle = truncateTo(input.subtitle ?? 'Tianshu Harness', input.width)
   const brandLine = color(brand, theme.brandColor, { bold: true })
   const subLine = color(subtitle, theme.muted)
   if (input.align === 'left') return [brandLine, subLine]
@@ -242,4 +242,66 @@ export function formatWelcomeHero(input: FormatWelcomeHeroInput, theme: RivetThe
     out.push(truncateToDisplayWidth(`${pad}${left}${gap}${right}`, width))
   }
   return out
+}
+
+/** formatWelcomeCard 的渲染输入。 */
+export interface FormatWelcomeCardInput {
+  width: number
+  /** 卡内内容行（formatWelcomeHero 的输出，含 ANSI；显示宽度应 ≤ width - 4）。 */
+  lines: readonly string[]
+  /** 顶边嵌入的品牌文案（缺省 'Oh My Tianshu'）。 */
+  brand?: string
+}
+
+/**
+ * 欢迎卡圆角边框盒（omp 风格）：顶边嵌品牌 `╭─ brand ───╮`（dim 边框 +
+ * brandColor BOLD 品牌），内容行左右各留一列呼吸，底边 `╰───╯`。超宽
+ * 内容 ANSI 安全截断；任何输出行 displayWidth ≤ width。width < 8 时盒体
+ * 不成立，原样返回内容行。
+ * @param input - 宽度、内容行与品牌文案。
+ * @param theme - 当前主题。
+ * @returns ANSI 行数组；width ≤ 0 返回空数组。
+ */
+export function formatWelcomeCard(input: FormatWelcomeCardInput, theme: RivetTheme): string[] {
+  const { width } = input
+  if (width <= 0) return []
+  if (width < 8) return [...input.lines]
+  const brandText = ` ${input.brand ?? 'Oh My Tianshu'} `
+  const shownBrand = truncateToDisplayWidth(brandText, width - 4)
+  // omp 版式：品牌靠左（╭─ brand ───╮）；fill 随宽度补足（总宽恒 = width）。
+  const fillTop = Math.max(1, width - 3 - displayWidth(shownBrand))
+  const inner = width - 4
+  const border = (s: string): string => color(s, theme.dim)
+  const top = border('╭─') + color(shownBrand, theme.brandColor, { bold: true }) + border('─'.repeat(fillTop) + '╮')
+  const bottom = border('╰' + '─'.repeat(width - 2) + '╯')
+  const out: string[] = [top]
+  for (const line of input.lines) {
+    out.push(`${border('│')} ${padTo(line, inner)} ${border('│')}`)
+  }
+  out.push(bottom)
+  return out
+}
+
+/** 欢迎卡下方的随机贴士池（启动时取一条，斜体 dim 渲染）。 */
+export const WELCOME_TIPS: readonly string[] = [
+  'Ctrl+. 随时调出完整键位表',
+  'Shift+Tab 在 normal / plan / always-approve 间循环',
+  'Ctrl+V 直接粘贴剪贴板里的截图',
+  '@ 开头输入路径，Tab 补全文件',
+  'Ctrl+O 展开最近一段推理',
+  '/rewind 回退到任意一条消息',
+  'Ctrl+F 搜索历史输入，n / N 前后跳',
+  '/fork 给当前会话分叉一个探索分支',
+  'Ctrl+E 用 $EDITOR 编辑长输入',
+  '/export 把会话导出成 Markdown',
+]
+
+/**
+ * 从贴士池随机取一条。
+ * @param rng - 随机源（测试注入；缺省 Math.random）。
+ * @returns 贴士文本（含 'Tip: ' 前缀）。
+ */
+export function pickWelcomeTip(rng: () => number = Math.random): string {
+  const tip = WELCOME_TIPS[Math.floor(rng() * WELCOME_TIPS.length) % WELCOME_TIPS.length] ?? WELCOME_TIPS[0] ?? ''
+  return `Tip: ${tip}`
 }

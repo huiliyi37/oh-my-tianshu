@@ -411,6 +411,36 @@ const GRAPHITE: ThemePaletteDef = {
   fallbackOverrides: { userColor: 'yellowBright', assistantColor: 'white', muted: 'gray' },
 }
 
+// ── OMP — Amber & Slate（oh-my-pi 风格对标）───────────────────────────
+// 琥珀主色 + 石板灰阶：品牌动作/强调全部交给 amber，结构层压到中性灰，
+// 用户消息暖金导轨与琥珀主色同族——第一眼识别度交给单一高饱和强调色。
+const OMP: ThemePaletteDef = {
+  background: 'dark',
+  description: 'OMP 琥珀 (oh-my-pi 对标默认)。amber 单一强调色 + 石板灰阶，暖黑消息底。',
+  truecolor: {
+    primary: '#febc38',   // 琥珀 accent — 品牌 / 光标 / 关键动作
+    secondary: '#178fb9', // 钢蓝 — 次级结构
+    success: '#89d281',   // 柔绿
+    warning: '#e4c00f',   // 明黄
+    error: '#fc3a4b',     // 亮珊瑚红
+    dim: '#777d88',       // 结构灰（omp 灰阶首档）
+    pulseQuiet: '#3d424a',
+    pulseActive: '#febc38',
+    pulseAlert: '#fc3a4b',
+    toolShell: '#e4c00f',
+    toolEdit: '#178fb9',
+    toolTest: '#89d281',
+    toolDelegate: '#febc38',
+  },
+  // userColor 与主色同族（暖金）/assistantColor 中性灰：对标 omp 用户消息暖底对比
+  overrides: { userColor: '#febc38', assistantColor: '#c8cdd6', muted: '#5f6673', systemColor: '#777d88' },
+  fallback: {
+    primary: 'yellow', secondary: 'blue', success: 'green', warning: 'yellow',
+    error: 'red', dim: 'gray', pulseQuiet: 'gray', pulseActive: 'yellow', pulseAlert: 'red',
+  },
+  fallbackOverrides: { userColor: 'yellowBright', assistantColor: 'white', muted: 'gray' },
+}
+
 // ── Gemini — Indigo, Purple & Mint Teal ───────────────────────────
 const GEMINI: ThemePaletteDef = {
   background: 'dark',
@@ -499,6 +529,7 @@ const LIGHT_ANSI: ThemePaletteDef = {
 
 /** 全部内置主题调色板（名字 → 定义）；消费方经 theme.ts 的 buildTheme/THEMES 使用。 */
 export const THEME_PALETTES = {
+  omp: OMP,
   pastel: PASTEL,
   cyberpunk: CYBERPUNK,
   observatory: OBSERVATORY,

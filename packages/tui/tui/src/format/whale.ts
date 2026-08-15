@@ -75,6 +75,25 @@ const ANSI16_PALETTE: WhalePalette = {
 /** SGR 背景回默认（49）：透明格前清背景，防止半块 bg 泄漏到空格。 */
 const BG_DEFAULT = '\x1B[49m'
 
+/** omp 风格对角渐变停靠点（粉 → 紫 → 长春花蓝 → 薄荷），仅 truecolor 轨。 */
+const BODY_GRADIENT_STOPS = ['#ff5cc8', '#a06bfa', '#7aa2f7', '#4fd6be'] as const
+
+/** hex '#rrggbb' → rgb 三元组。 */
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  return { r: parseInt(hex.slice(1, 3), 16), g: parseInt(hex.slice(3, 5), 16), b: parseInt(hex.slice(5, 7), 16) }
+}
+
+/** 对角渐变取样：t ∈ [0,1] 沿对角线方向，相邻停靠点线性插值。 */
+function gradientColorAt(t: number): string {
+  const pos = Math.min(0.9999, Math.max(0, t)) * (BODY_GRADIENT_STOPS.length - 1)
+  const i = Math.floor(pos)
+  const frac = pos - i
+  /* v8 ignore next -- pos ∈ [0, len-1)，i 与 i+1 恒在界内（noUncheckedIndexedAccess 收窄） */
+  const a = hexToRgb(BODY_GRADIENT_STOPS[i] ?? '#ff5cc8'), b = hexToRgb(BODY_GRADIENT_STOPS[i + 1] ?? '#4fd6be')
+  const mix = (u: number, v: number): string => Math.round(u + (v - u) * frac).toString(16).padStart(2, '0')
+  return `#${mix(a.r, b.r)}${mix(a.g, b.g)}${mix(a.b, b.b)}`
+}
+
 function pixelColor(ch: string, pal: WhalePalette): string | null {
   switch (ch) {
     case 'B': return pal.body
@@ -93,6 +112,8 @@ export interface FormatWhaleLogoInput {
   rows: number
   /** 颜色能力等级（缺省 chalk.level）；≥2 走品牌 hex 轨，1 走命名色轨，0 不出画。 */
   colorLevel?: number
+  /** 身体像素走 omp 风格对角渐变（仅 truecolor 轨；白肚/眼/腮红保持原色）。 */
+  bodyGradient?: boolean
 }
 
 /**
@@ -112,6 +133,16 @@ export function formatWhaleLogo(input: FormatWhaleLogoInput): string[] {
   if (ambiguousWidthMode() === 'full') return []
 
   const pal = level >= 2 ? TRUECOLOR_PALETTE : ANSI16_PALETTE
+  // 渐变轨（omp 风格）：仅 truecolor 且显式开启；身体像素按对角位置取样，
+  // 白肚/眼/腮红不受影响（它们的像素色与 body 不同，天然豁免）。
+  const gradient = input.bodyGradient === true && level >= 2
+  const colorAt = (ch: string, x: number, y: number): string | null => {
+    const c = pixelColor(ch, pal)
+    if (gradient && c === pal.body) {
+      return gradientColorAt((x / (WHALE_COLS - 1) + y / (GRID.length - 1)) / 2)
+    }
+    return c
+  }
   const indent = ' '.repeat(Math.max(0, Math.floor((input.width - WHALE_COLS) / 2)))
   const out: string[] = []
   for (let y = 0; y < GRID.length; y += 2) {
@@ -124,8 +155,8 @@ export function formatWhaleLogo(input: FormatWhaleLogoInput): string[] {
     // 行中透明段在下一个可见格前一次性落盘。
     let pendingSpaces = 0
     for (let x = 0; x < WHALE_COLS; x++) {
-      const t = pixelColor(top[x] ?? '.', pal)
-      const b = pixelColor(bottom[x] ?? '.', pal)
+      const t = colorAt(top[x] ?? '.', x, y)
+      const b = colorAt(bottom[x] ?? '.', x, y + 1)
       let ch: string
       let wantFg: string
       let wantBg: string | null = null

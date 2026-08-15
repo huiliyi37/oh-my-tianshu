@@ -6,14 +6,14 @@
 
 事实源（Session.events 日志、`session/event` 流、`agent/*` 事件）→ 订阅接线（`ui/app.ts` 的 `attachProjections`/`detachProjections` 对称挂卸）→ 派生状态。实际在跑的接线走 `adapter/live.ts`、`adapter/transcript.ts`、`statusline.ts`（transcript/live/statusline/stream-feed 与 subagent/workflow 订阅）；会话日志回放走 `restore-session.ts`（重放进 scrollback）。
 
-纯 fold 模型模块（输入为窄事件，输出为不可变派生状态，可脱离 cordis 单测）已落地四个，但 App 主体尚未驱动它们：
+纯 fold 模型模块（输入为窄事件，输出为不可变派生状态，可脱离 cordis 单测）已落地四个，其中两个已接线到 App 主体（`ui/app.ts` 的 `handleStreamEvent` 逐事件 fold，`mountSession` 复位/重放）：
 
 | 模块 | 职责 | 接线现状 |
 |---|---|---|
-| `activity-status.ts` | 单个活动状态机（phase/label/status/耗时），事件 fold | 模型与 spec 就绪；仅 `ActivityPhase` 类型被 `fluency-hook.ts` / `format/fluency-policy.ts` 消费 |
-| `activity-store.ts` | 归一 `ActivityItem` 投影 + 按 id 去重合并的只读容器 | 模型与 spec 就绪；App 尚未驱动 |
-| `turn-summary.ts` | turn 内工具统计模型（数量/耗时/家族分布） | 模型与 spec 就绪；渲染半为 `format/turn-summary.ts` |
-| `summary-state.ts` | 会话级跨 turn 汇总 | 模型与 spec 就绪；App 尚未驱动 |
+| `activity-status.ts` | 单个活动状态机（phase/label/status/耗时），事件 fold | 模型与 spec 就绪；`ActivityPhase` 类型被 `fluency-hook.ts` / `format/fluency-policy.ts` 消费。状态机本体刻意不接线：`statusline.ts` 的 WorkflowStatusLine 是自包含投影（自订阅自折叠），换成它是无收益重构 |
+| `activity-store.ts` | 归一 `ActivityItem` 投影 + 按 id 去重合并的只读容器 | 模型与 spec 就绪；无当前消费方，保留待用（无主的接线属于投机泛化） |
+| `turn-summary.ts` | turn 内工具统计模型（数量/耗时/家族分布） | **已接线**：`handleStreamEvent` fold → `turn/end`（非 aborted 且有工具调用）经 `format/turn-summary.ts` 渲染摘要行进 scrollback（`turn N · 读X 改Y · elapsed`）；读/改计数复用 `format/tool-meta.ts` 的 read\|find\|write 家族 |
+| `summary-state.ts` | 会话级跨 turn 汇总 | **已接线**：`handleStreamEvent` fold + `mountSession` 经 `summarizeSession` 从事件日志重放重建 → `/status` 面板「Σ 会话」段（`render/live-snapshot.ts` 的 `sessionTotals` 字段）；不依赖宿主投影总线，总线缺失时仍有数据 |
 
 设计曾承诺、至今未落地的模块：`cache-telemetry.ts`、`cache-panel-source.ts`、`history-replay.ts`、`adapter/projections.ts`——处置见 [README《Known Limitations and Deferred Work》](../README.md#known-limitations-and-deferred-work)。
 

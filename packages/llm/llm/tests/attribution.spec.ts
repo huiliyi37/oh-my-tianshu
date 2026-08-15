@@ -21,7 +21,7 @@ describe('APP_IDENTITY', () => {
     expect(APP_IDENTITY).toEqual({
       product: 'tianshu-harness',
       version: manifest.version,
-      url: 'https://github.com/huiliyi37/dsh-tianshu-build',
+      url: 'https://github.com/huiliyi37/oh-my-tianshu',
     })
   })
 })
@@ -29,7 +29,7 @@ describe('APP_IDENTITY', () => {
 describe('userAgent', () => {
   it('renders product/version with the +url comment', () => {
     expect(userAgent()).toBe(
-      `tianshu-harness/${manifest.version} (+https://github.com/huiliyi37/dsh-tianshu-build)`,
+      `tianshu-harness/${manifest.version} (+https://github.com/huiliyi37/oh-my-tianshu)`,
     )
   })
 

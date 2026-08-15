@@ -26,8 +26,8 @@ tianshu tui
 如需开发(或修改 harness 本体),从仓库检出直接运行——要求系统已安装 `git`、Node `^22.19 || >=24` 与 `pnpm`:
 
 ```sh
-git clone https://github.com/huiliyi37/dsh-tianshu-build.git
-cd dsh-tianshu-build
+git clone https://github.com/huiliyi37/oh-my-tianshu.git
+cd oh-my-tianshu
 pnpm install
 pnpm run build
 pnpm tianshu web

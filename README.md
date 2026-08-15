@@ -26,8 +26,8 @@ tianshu tui
 For development (or to hack on the harness itself), run from a repository checkout — requires `git`, Node `^22.19 || >=24`, and `pnpm`:
 
 ```sh
-git clone https://github.com/huiliyi37/dsh-tianshu-build.git
-cd dsh-tianshu-build
+git clone https://github.com/huiliyi37/oh-my-tianshu.git
+cd oh-my-tianshu
 pnpm install
 pnpm run build
 pnpm tianshu web

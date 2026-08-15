@@ -36,7 +36,7 @@ tianshu web --patch "$PWD/examples/mcp-memory/memorix.cordis.yml"
 mkdir -p "${DSH_HOME:-$HOME/.dsh}"
 curl --fail --location \
   --output "${DSH_HOME:-$HOME/.dsh}/memory.cordis.yml" \
-  https://raw.githubusercontent.com/huiliyi37/dsh-tianshu-build/master/examples/mcp-memory/memorix.cordis.yml
+  https://raw.githubusercontent.com/huiliyi37/oh-my-tianshu/master/examples/mcp-memory/memorix.cordis.yml
 tianshu web --patch "${DSH_HOME:-$HOME/.dsh}/memory.cordis.yml"
 ```
 

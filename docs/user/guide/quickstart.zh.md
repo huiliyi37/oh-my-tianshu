@@ -19,7 +19,7 @@ pnpm -v
 ## 第一步：安装并配置 API 密钥
 
 ```sh
-git clone https://github.com/huiliyi37/dsh-tianshu-build.git
+git clone https://github.com/huiliyi37/oh-my-tianshu.git
 cd dsh-tianshu-tui
 pnpm install
 pnpm run build

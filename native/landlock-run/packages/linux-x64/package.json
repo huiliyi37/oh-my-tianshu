@@ -4,7 +4,7 @@
   "description": "Prebuilt landlock-run Landlock launcher binary for linux-x64 (static musl) — resolved as a file path by @huiliyi37/node-addon-landlock-run, never imported",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huiliyi37/dsh-tianshu-build.git",
+    "url": "git+https://github.com/huiliyi37/oh-my-tianshu.git",
     "directory": "native/landlock-run/packages/linux-x64"
   },
   "os": [

@@ -120,6 +120,6 @@ export async function detectTerminalBackground(opts: DetectBackgroundOptions = {
  * @param background - 终端背景明暗。
  * @returns 对应主题名。
  */
-export function autoThemeFor(background: TerminalBackground): 'graphite' | 'paper' {
-  return background === 'light' ? 'paper' : 'graphite'
+export function autoThemeFor(background: TerminalBackground): 'omp' | 'paper' {
+  return background === 'light' ? 'paper' : 'omp'
 }

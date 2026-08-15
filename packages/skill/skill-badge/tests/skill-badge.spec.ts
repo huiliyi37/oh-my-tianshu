@@ -31,6 +31,6 @@ describe('dsh-skill-badge', () => {
   it('ships the Shields.io badge with the project link', async () => {
     const content = await readFile(new URL('../assets/dsh-badge.md', import.meta.url), 'utf8')
     expect(content).toContain('https://img.shields.io/badge/powered_by-tianshu-4D6BFE?style=flat-square')
-    expect(content).toContain('https://github.com/huiliyi37/dsh-tianshu-build')
+    expect(content).toContain('https://github.com/huiliyi37/oh-my-tianshu')
   })
 })

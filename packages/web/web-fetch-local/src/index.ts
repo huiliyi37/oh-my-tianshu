@@ -22,7 +22,7 @@ export {
 export type { LocalFetchLimits } from './provider.ts'
 
 /** Default `User-Agent`: an explicit product agent, never a browser disguise. */
-export const DEFAULT_USER_AGENT = 'tianshu-harness/0.2.1 (+https://github.com/huiliyi37/dsh-tianshu-build)'
+export const DEFAULT_USER_AGENT = 'tianshu-harness/0.2.1 (+https://github.com/huiliyi37/oh-my-tianshu)'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'web-fetch-local'

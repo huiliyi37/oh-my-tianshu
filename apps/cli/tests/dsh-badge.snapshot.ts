@@ -84,14 +84,14 @@ describe('dsh badge assembled snapshot', () => {
       ## Assets
 
       - Shields.io image URL: \`https://img.shields.io/badge/powered_by-tianshu-4D6BFE?style=flat-square\`
-      - Project URL: \`https://github.com/huiliyi37/dsh-tianshu-build\`
+      - Project URL: \`https://github.com/huiliyi37/oh-my-tianshu\`
 
       ## Markdown
 
       Use this linked badge in Markdown:
 
       \`\`\`markdown
-      [![](https://img.shields.io/badge/powered_by-tianshu-4D6BFE?style=flat-square)](https://github.com/huiliyi37/dsh-tianshu-build)
+      [![](https://img.shields.io/badge/powered_by-tianshu-4D6BFE?style=flat-square)](https://github.com/huiliyi37/oh-my-tianshu)
       \`\`\`
 
       If attribution should not be linked, use:
@@ -121,14 +121,14 @@ describe('dsh badge assembled snapshot', () => {
       ## Assets
 
       - Shields.io image URL: \`https://img.shields.io/badge/powered_by-tianshu-4D6BFE?style=flat-square\`
-      - Project URL: \`https://github.com/huiliyi37/dsh-tianshu-build\`
+      - Project URL: \`https://github.com/huiliyi37/oh-my-tianshu\`
 
       ## Markdown
 
       Use this linked badge in Markdown:
 
       \`\`\`markdown
-      [![](https://img.shields.io/badge/powered_by-tianshu-4D6BFE?style=flat-square)](https://github.com/huiliyi37/dsh-tianshu-build)
+      [![](https://img.shields.io/badge/powered_by-tianshu-4D6BFE?style=flat-square)](https://github.com/huiliyi37/oh-my-tianshu)
       \`\`\`
 
       If attribution should not be linked, use:

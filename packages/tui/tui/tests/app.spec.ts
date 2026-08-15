@@ -443,7 +443,7 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     await app.dispose()
   })
 
-  it('auto 主题走背景探测落点（graphite/paper 之一）', async () => {
+  it('auto 主题走背景探测落点（omp/paper 之一）', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('theme-auto')
     const handle = makeHandle(agent)
@@ -453,7 +453,7 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin(), theme: 'auto' })
     await app.attach()
 
-    expect(['graphite', 'paper']).toContain(getActiveThemeName())
+    expect(['omp', 'paper']).toContain(getActiveThemeName())
     await app.dispose()
   })
 

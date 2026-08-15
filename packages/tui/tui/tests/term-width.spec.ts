@@ -308,8 +308,8 @@ describe('parseColorFgBg', () => {
 })
 
 describe('autoThemeFor', () => {
-  it('maps dark to graphite and light to paper', () => {
-    expect(autoThemeFor('dark')).toBe('graphite')
+  it('maps dark to omp and light to paper', () => {
+    expect(autoThemeFor('dark')).toBe('omp')
     expect(autoThemeFor('light')).toBe('paper')
   })
 })

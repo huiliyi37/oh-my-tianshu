@@ -138,3 +138,21 @@ describe('formatWhaleLogo（色深轨）', () => {
     expect(joined).toContain('245;168;184') // 腮红 #f5a8b8
   })
 })
+
+describe('鲸鱼对角渐变（bodyGradient，omp 风格）', () => {
+  it('truecolor 轨开启：平色品牌蓝让位给多色渐变，白肚保持原色', () => {
+    const joined = formatWhaleLogo(input({ colorLevel: 3, bodyGradient: true })).join('\n')
+    const bodyColors = new Set([...joined.matchAll(/\x1B\[38;2;(\d+;\d+;\d+)m/g)].map(m => m[1]))
+    // 渐变体色逐格变化（多于 眼/肚/腮 三个固定色）
+    expect(bodyColors.size).toBeGreaterThan(3)
+    expect(joined).not.toContain('38;2;77;107;254') // 平色品牌蓝 #4d6bfe 不再出现
+    expect(joined).toContain('242;245;250') // 白肚 #f2f5fa 不受影响
+  })
+
+  it('未开启（平色品牌蓝）与 16 色轨（命名色）保持原样', () => {
+    const flat = formatWhaleLogo(input({ colorLevel: 3 })).join('\n')
+    expect(flat).toContain('\x1B[38;2;77;107;254m')
+    const ansi16 = formatWhaleLogo(input({ colorLevel: 1, bodyGradient: true })).join('\n')
+    expect(ansi16).not.toContain('\x1B[38;2;')
+  })
+})

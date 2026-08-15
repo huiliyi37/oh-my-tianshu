@@ -13,11 +13,14 @@ import type { RivetTheme } from '../src/theme.js'
 import { displayWidth } from '../src/width.js'
 import {
   WELCOME_HERO_WIDE_MIN,
+  WELCOME_TIPS,
   CHROME_GUTTER,
   formatBrandWelcome,
   formatEnvCheckLine,
+  formatWelcomeCard,
   formatWelcomeHero,
   formatWelcomeTips,
+  pickWelcomeTip,
   type WelcomeEnvCheck,
   type WelcomeTipItem,
 } from '../src/format/welcome.js'
@@ -46,13 +49,13 @@ function tips(over: Partial<WelcomeTipItem>[] = []): WelcomeTipItem[] {
 }
 
 describe('formatBrandWelcome（欢迎页品牌区）', () => {
-  it('两行：主标 DSH 居中 BOLD + 副标居中 muted，宽度守恒', () => {
+  it('两行：主标 Oh My Tianshu 居中 BOLD + 副标居中 muted，宽度守恒', () => {
     const lines = formatBrandWelcome({ width: 80 }, fakeTheme())
     expect(lines.length).toBe(2)
     const [brand, sub] = plain(lines)
-    expect(brand!.trim()).toBe('DSH')
-    expect(brand!.indexOf('DSH')).toBeGreaterThan(0) // 居中（前导空格）
-    expect(sub!.trim()).toBe('dsh × Tianshu Harness')
+    expect(brand!.trim()).toBe('Oh My Tianshu')
+    expect(brand!.indexOf('Oh My Tianshu')).toBeGreaterThan(0) // 居中（前导空格）
+    expect(sub!.trim()).toBe('Tianshu Harness')
     expect(lines[0]).toContain('\x1B[1m') // 主标 BOLD
     expect(displayWidth(lines[0]!)).toBeLessThanOrEqual(80)
     expect(displayWidth(lines[1]!)).toBeLessThanOrEqual(80)
@@ -60,7 +63,7 @@ describe('formatBrandWelcome（欢迎页品牌区）', () => {
 
   it('align=left：主标贴左，无前导空格', () => {
     const [brand] = plain(formatBrandWelcome({ width: 80, align: 'left' }, fakeTheme()))
-    expect(brand!.startsWith('DSH')).toBe(true)
+    expect(brand!.startsWith('Oh My Tianshu')).toBe(true)
   })
 
   it('自定义 brand/subtitle 生效', () => {
@@ -179,7 +182,7 @@ describe('formatWelcomeHero（左品牌 + 右 tips）', () => {
       width: 100, whale, env, tips: tips(),
     }, fakeTheme()))
     expect(lines.some(l => l.includes('Tips'))).toBe(true)
-    expect(lines.some(l => l.includes('DSH'))).toBe(true)
+    expect(lines.some(l => l.includes('Oh My Tianshu'))).toBe(true)
     expect(lines.some(l => l.includes('ctrl+n'))).toBe(true)
     // zip：含块字符的行同时含 Tips 或后续 tips 行在右
     const first = lines[0]!
@@ -192,7 +195,7 @@ describe('formatWelcomeHero（左品牌 + 右 tips）', () => {
     const lines = plain(formatWelcomeHero({
       width: 60, whale, env, tips: tips(),
     }, fakeTheme()))
-    const dsh = lines.findIndex(l => l.includes('DSH'))
+    const dsh = lines.findIndex(l => l.includes('Oh My Tianshu'))
     const tipsIdx = lines.findIndex(l => l.trim() === 'Tips' || l.includes('Tips'))
     expect(dsh).toBeGreaterThanOrEqual(0)
     expect(tipsIdx).toBeGreaterThan(dsh)
@@ -213,13 +216,43 @@ describe('formatWelcomeHero（左品牌 + 右 tips）', () => {
     const lines = plain(formatWelcomeHero({
       width: 100, whale: [], env, tips: tips(),
     }, fakeTheme()))
-    expect(lines.some(l => l.includes('DSH'))).toBe(true)
+    expect(lines.some(l => l.includes('Oh My Tianshu'))).toBe(true)
     expect(lines.some(l => l.includes('Tips'))).toBe(true)
-    const dsh = lines.find(l => l.includes('DSH'))!
-    expect(dsh.indexOf('DSH')).toBe(CHROME_GUTTER)
+    const dsh = lines.find(l => l.includes('Oh My Tianshu'))!
+    expect(dsh.indexOf('Oh My Tianshu')).toBe(CHROME_GUTTER)
   })
 
   it('width ≤ 0 → 空数组', () => {
     expect(formatWelcomeHero({ width: 0, whale, env, tips: tips() }, fakeTheme())).toEqual([])
+  })
+})
+
+describe('formatWelcomeCard（omp 风格圆角卡盒）', () => {
+  it('顶边嵌品牌 + 圆角边框包裹内容行，宽度守恒', () => {
+    const lines = formatWelcomeCard({ width: 40, lines: ['第一行内容', '第二行'] }, fakeTheme())
+    const flat = plain(lines)
+    expect(flat[0]).toMatch(/^╭─ Oh My Tianshu ─+╮$/)
+    expect(flat.at(-1)).toBe('╰' + '─'.repeat(38) + '╯')
+    expect(flat[1]).toMatch(/^│ 第一行内容/)
+    expect(flat[2]).toMatch(/ │$/)
+    for (const l of lines) expect(displayWidth(l)).toBeLessThanOrEqual(40)
+  })
+
+  it('窄宽守宽不破版；width < 8 盒体不成立原样返回；width ≤ 0 空数组', () => {
+    for (const l of formatWelcomeCard({ width: 12, lines: ['x'] }, fakeTheme())) {
+      expect(displayWidth(l)).toBeLessThanOrEqual(12)
+    }
+    expect(formatWelcomeCard({ width: 6, lines: ['abc'] }, fakeTheme())).toEqual(['abc'])
+    expect(formatWelcomeCard({ width: 0, lines: ['abc'] }, fakeTheme())).toEqual([])
+  })
+})
+
+describe('pickWelcomeTip（随机贴士）', () => {
+  it('带 Tip: 前缀返回池内条目；注入 rng 可复现', () => {
+    expect(pickWelcomeTip(() => 0)).toBe(`Tip: ${WELCOME_TIPS[0]}`)
+    expect(pickWelcomeTip(() => 0.999)).toMatch(/^Tip: /)
+    for (const tip of WELCOME_TIPS) {
+      expect(pickWelcomeTip(() => WELCOME_TIPS.indexOf(tip) / WELCOME_TIPS.length)).toBe(`Tip: ${tip}`)
+    }
   })
 })
