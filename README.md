@@ -10,6 +10,8 @@ It keeps the upstream architecture where **everything is a plugin**.
 
 ## Install
 
+Requirements: Node `^22.19 || >=24`, and a DeepSeek API key (`DEEPSEEK_API_KEY`).
+
 Run it straight from npm:
 
 ```sh
@@ -23,6 +25,17 @@ npm i -g @huiliyi37/dsh-tianshu
 tianshu tui
 ```
 
+**API key**: export it before starting, or drop it in the user env file once (loaded automatically on every boot):
+
+```sh
+export DEEPSEEK_API_KEY=sk-…
+echo 'DEEPSEEK_API_KEY=sk-…' >> ~/.dsh/.env
+```
+
+The first line covers the current shell; the second persists it.
+
+On the welcome screen, check the environment line: `API Key ✓` means the key is in place; `API Key ✗` means it was not found — set it and restart. Quit with `Ctrl+Q` or `/exit`.
+
 For development (or to hack on the harness itself), run from a repository checkout — requires `git`, Node `^22.19 || >=24`, and `pnpm`:
 
 ```sh
@@ -30,8 +43,11 @@ git clone https://github.com/huiliyi37/oh-my-tianshu.git
 cd oh-my-tianshu
 pnpm install
 pnpm run build
+pnpm tianshu tui
 pnpm tianshu web
 ```
+
+`pnpm tianshu tui` runs the full-screen terminal UI from source; `pnpm tianshu web` serves the Web UI at `http://127.0.0.1:3080`.
 
 ## What the full build adds
 
@@ -85,7 +101,7 @@ Start the full-screen terminal interface:
 tianshu tui          # or: tianshu --profile tui
 ```
 
-The TUI is a port of the Tianshu (opencode-tui) render core adapted to the harness seams. Type `/` to open the command menu — ↑↓ to select, Tab to accept, Enter to submit, Esc to close. Press `Ctrl+.` any time for the shortcut map.
+The TUI is a port of the Tianshu (opencode-tui) render core adapted to the harness seams, with an oh-my-pi-aligned interface: a bordered welcome card with a gradient logo, a segmented status bar embedded in the composer's top border, full-width message-surface tints (user bubble, per-status tool blocks), and 17 themes (the amber `omp` is the default, `graphite` and friends remain via `/theme`). Type `/` to open the command menu — ↑↓ to select, Tab to accept, Enter to submit, Esc to close. Press `Ctrl+.` any time for the shortcut map.
 
 **Slash commands**
 
@@ -99,7 +115,7 @@ The TUI is a port of the Tianshu (opencode-tui) render core adapted to the harne
 | `/clear` | clear the current conversation's scrollback |
 | `/compact` | compact the current session's context |
 | `/steer <text>` | mid-turn steering (redirect without interrupting) |
-| `/status` | status panel (5-domain projection snapshot) |
+| `/status` | status panel (goal/todos/plan projections + session totals) |
 | `/config` | settings panel (settings / permission / credentials) |
 | `/skills` | skill browser panel |
 | `/subagents` | delegation-tree panel |

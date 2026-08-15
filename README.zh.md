@@ -10,6 +10,8 @@
 
 ## 安装
 
+要求:Node `^22.19 || >=24`,以及一个 DeepSeek API key(`DEEPSEEK_API_KEY`)。
+
 已发布到 npm,一条命令直接运行:
 
 ```sh
@@ -23,6 +25,17 @@ npm i -g @huiliyi37/dsh-tianshu
 tianshu tui
 ```
 
+**API key**:启动前导出,或写入用户环境文件一次(每次启动自动加载):
+
+```sh
+export DEEPSEEK_API_KEY=sk-…
+echo 'DEEPSEEK_API_KEY=sk-…' >> ~/.dsh/.env
+```
+
+第一行管当前 shell;第二行持久化。
+
+启动后看欢迎页环境行:`API Key ✓` 表示已就位;`API Key ✗` 表示未读到——设置后重启。退出用 `Ctrl+Q` 或 `/exit`。
+
 如需开发(或修改 harness 本体),从仓库检出直接运行——要求系统已安装 `git`、Node `^22.19 || >=24` 与 `pnpm`:
 
 ```sh
@@ -30,8 +43,11 @@ git clone https://github.com/huiliyi37/oh-my-tianshu.git
 cd oh-my-tianshu
 pnpm install
 pnpm run build
+pnpm tianshu tui
 pnpm tianshu web
 ```
+
+`pnpm tianshu tui` 从源码跑全屏终端 UI;`pnpm tianshu web` 在 `http://127.0.0.1:3080` 起 Web UI。
 
 ## 完全体新增什么
 
@@ -85,7 +101,7 @@ profile 布局、层语义与配置输出命令详见 [CLI(命令行界面)约�
 tianshu tui          # or: tianshu --profile tui
 ```
 
-TUI 是天枢(opencode-tui)渲染核心适配 harness 接缝的移植。输入 `/` 打开命令菜单——↑↓ 选择、Tab 接受、Enter 提交、Esc 关闭;随时按 `Ctrl+.` 查看键位表。
+TUI 是天枢(opencode-tui)渲染核心适配 harness 接缝的移植,界面对标 oh-my-pi:边框欢迎卡 + 渐变 logo、嵌入输入框顶边的段式状态栏、消息面整宽底色(用户气泡、按状态着色的工具块)、17 个主题(琥珀色 `omp` 为默认,`graphite` 等可经 `/theme` 切换)。输入 `/` 打开命令菜单——↑↓ 选择、Tab 接受、Enter 提交、Esc 关闭;随时按 `Ctrl+.` 查看键位表。
 
 **Slash 命令**
 
@@ -99,7 +115,7 @@ TUI 是天枢(opencode-tui)渲染核心适配 harness 接缝的移植。输入 `
 | `/clear` | 清空当前会话滚动区 |
 | `/compact` | 压缩当前会话上下文 |
 | `/steer <text>` | 中轮转向(不中断地纠正方向) |
-| `/status` | 状态面板(5 域投影快照) |
+| `/status` | 状态面板(goal/todos/plan 投影 + 会话汇总段) |
 | `/config` | 设置面板(settings / permission / credentials) |
 | `/skills` | 技能浏览面板 |
 | `/subagents` | 委派树面板 |
