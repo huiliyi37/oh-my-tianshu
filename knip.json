@@ -727,7 +727,8 @@
     },
     "packages/tui/tui": {
       "ignoreDependencies": [
-        "@huiliyi37/dsh-spark-anchors"
+        "@huiliyi37/dsh-spark-anchors",
+        "@huiliyi37/dsh-vision-bridge"
       ]
     }
   }

@@ -1,0 +1,55 @@
+name: verify
+
+# 托管 runner 上的最小严谨闭环：typecheck + 全量单测 + 构建。
+# ci.yml 的企业级矩阵（自建池/Wine/覆盖率）与本工作流互补；本工作流不依赖
+# 任何自建基础设施，push 到 main 与每个 PR 都在标准托管 runner 上给出结论。
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # CI runs must never report to the production telemetry endpoint baked
+  # into apps/cli/cordis.yml (AppCLIEntry disables the row when set).
+  DSH_TELEMETRY_DISABLED: '1'
+
+jobs:
+  verify:
+    name: node ${{ matrix.node }} / typecheck + test + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22.19', '24']
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - name: Install (immutable)
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck (repo-wide)
+        run: pnpm run typecheck
+
+      - name: Unit tests (full)
+        run: pnpm run test
+
+      - name: Build (lib + web)
+        run: pnpm run build
