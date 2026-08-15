@@ -104,6 +104,8 @@ export function padDynamicRegion(
 /**
  * live 区行上限：固定 28 在小终端上会让全量重写的 cursorUp 回顶量超出屏幕 →
  * 错位/残影，故上限随终端高度收缩；下限 4 保输入框 chrome 最低可用。
+ * @param rows - 终端高度（行）；0/缺省按 24 计。
+ * @returns 本帧 live 区行数上限（4–28，随终端高度收缩）。
  */
 export function liveMaxRowsFor(rows: number): number {
   return Math.max(4, Math.min(28, (rows || 24) - 1))

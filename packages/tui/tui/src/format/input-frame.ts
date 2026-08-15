@@ -43,7 +43,12 @@ export interface FormatInputFrameOutput {
   caretCol: number
 }
 
-/** 输入轨线色：plan warning / auto error / normal 雾蓝（顶边状态栏与框体共用同一色）。 */
+/**
+ * 输入轨线色：plan warning / auto error / normal 雾蓝（顶边状态栏与框体共用同一色）。
+ * @param input - 模式标志（planPending/planActive 优先于 alwaysApprove）。
+ * @param theme - 当前主题（plan 取 warning、auto 取 error）。
+ * @returns 轨线色值（主题色或雾蓝 CHROME_PROMPT_BORDER）。
+ */
 export function promptBorderColor(
   input: { planActive?: boolean; planPending?: boolean; alwaysApprove?: boolean },
   theme: RivetTheme,

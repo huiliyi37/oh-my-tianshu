@@ -29,6 +29,10 @@ import { collectDoctorReport, getDoctorFixGuidance } from '../format/doctor-repo
 // Session.append('agent-preset/selected', ...) 获得完整类型检查。
 declare module '@huiliyi37/dsh-session/types' {
   interface SessionEventMap {
+    /**
+     * 用户经 `/preset` 选定 agent 预设的事实记录。载荷 `agentPreset` 是选中的预设名;
+     * log-only,只供投影与审计回放,不进模型派生历史。
+     */
     'agent-preset/selected': { agentPreset: string }
   }
 }

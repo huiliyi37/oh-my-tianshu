@@ -105,6 +105,20 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 来源：[`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types.ts)
 
+### `agent-preset/*`
+
+#### `agent-preset/selected` — log-only
+
+```ts persistence-catalog
+/**
+ * 用户经 `/preset` 选定 agent 预设的事实记录。载荷 `agentPreset` 是选中的预设名;
+ * log-only,只供投影与审计回放,不进模型派生历史。
+ */
+'agent-preset/selected': { agentPreset: string }
+```
+
+来源:[`packages/tui/tui/src/commands/registry.ts:36`](../packages/tui/tui/src/commands/registry.ts)
+
 ### `approval/*`
 
 #### `approval/asked` — log-only

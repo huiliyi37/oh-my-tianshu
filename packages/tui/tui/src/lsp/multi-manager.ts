@@ -25,6 +25,7 @@ interface Location {
   range: { start: { line: number; character: number }; end: { line: number; character: number } }
 }
 
+/** Options for {@link createMultiLspManager} (availability probe + spawn injection). */
 export interface MultiLspOptions {
   which?: WhichFn
   /** Injected for tests; defaults to a real child-process spawn. */
@@ -38,6 +39,10 @@ type LspSpawnFn = (cmd: string, args: string[], opts: Record<string, unknown>) =
  * normal Node process whose PATH carries npx (the CLI is launched via
  * `npx dsh`), so `npx -y typescript-language-server --stdio` resolves directly;
  * other servers are launched by their bare command names.
+ * @param def - Server definition (command + args) to launch.
+ * @param cwd - Working directory for the spawned server.
+ * @param spawnFn - Process launcher; injectable for tests, defaults to node:child_process spawn.
+ * @returns The spawned child process with piped stdio.
  */
 export function defaultLspSpawn(
   def: LspServerDef,
@@ -50,6 +55,13 @@ export function defaultLspSpawn(
   })
 }
 
+/**
+ * Create the multi-language facade: routes each request to the server matching
+ * the file's extension, lazily spawning + initializing servers on first use.
+ * @param cwd - Workspace root shared by every spawned server.
+ * @param opts - Availability probe / spawn injection (tests).
+ * @returns LspManager facade over the per-language servers; dispose() kills all.
+ */
 export function createMultiLspManager(cwd: string, opts: MultiLspOptions = {}): LspManager {
   const which = opts.which ?? defaultWhich
   const spawnFor = opts.spawnFor ?? ((def, c) => defaultLspSpawn(def, c))

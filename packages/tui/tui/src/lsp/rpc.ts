@@ -22,6 +22,7 @@ interface JsonRpcNotification {
 
 type JsonRpcMessage = JsonRpcRequest | JsonRpcResponse | JsonRpcNotification
 
+/** Minimal JSON-RPC 2.0 client over an LSP server process's stdio pair. */
 export interface RpcClient {
   request(method: string, params: Record<string, unknown>): Promise<unknown>
   notify(method: string, params?: Record<string, unknown>): void
@@ -29,6 +30,11 @@ export interface RpcClient {
   dispose(): void
 }
 
+/**
+ * Encode one JSON-RPC message with LSP Content-Length framing.
+ * @param msg - Request, response, or notification to serialize.
+ * @returns Framed wire string (`Content-Length: <bytes>\r\n\r\n<body>`).
+ */
 export function encodeMessage(msg: JsonRpcMessage): string {
   const body = JSON.stringify(msg)
   return `Content-Length: ${Buffer.byteLength(body)}\r\n\r\n${body}`
@@ -36,6 +42,12 @@ export function encodeMessage(msg: JsonRpcMessage): string {
 
 const CRLFCRLF = Buffer.from('\r\n\r\n')
 
+/**
+ * Decode a stream buffer into complete JSON-RPC messages, keeping any partial
+ * tail for the next chunk.
+ * @param input - Received bytes/text (zero or more framed messages plus tail).
+ * @returns Parsed `messages` (malformed bodies skipped) and unconsumed `rest`.
+ */
 export function decodeMessages(input: string | Buffer): { messages: JsonRpcMessage[]; rest: string } {
   const messages: JsonRpcMessage[] = []
   const buf = Buffer.isBuffer(input) ? input : Buffer.from(input, 'utf8')
@@ -70,6 +82,12 @@ export function decodeMessages(input: string | Buffer): { messages: JsonRpcMessa
   return { messages, rest }
 }
 
+/**
+ * Create a JSON-RPC client over a server process's stdio pair.
+ * @param readable - Server stdout (responses and notifications).
+ * @param writable - Server stdin (requests and notifications).
+ * @returns Client handle; dispose() drops pending requests and handlers.
+ */
 export function createRpcClient(readable: Readable, writable: Writable): RpcClient {
   let nextId = 1
   const pending = new Map<number, { resolve(v: unknown): void; reject(e: Error): void }>()

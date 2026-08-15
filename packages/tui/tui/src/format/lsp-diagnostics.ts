@@ -13,7 +13,11 @@ import { color } from '../engine/ansi.js'
 import type { RivetTheme } from '../theme.js'
 import { displayWidth } from '../width.js'
 
-/** 单文件诊断徽标（工具卡标题行注入；无诊断返回 null 不渲染）。 */
+/**
+ * 单文件诊断徽标（工具卡标题行注入；无诊断返回 null 不渲染）。
+ * @param diags - 该文件诊断视图（undefined = 未拉取）。
+ * @returns 徽标文本（如 `2错 1警 3提示`，按 severity 聚合）；未拉取/无诊断为 null。
+ */
 export function lspBadgeText(diags: readonly LspDiagnosticView[] | undefined): string | null {
   if (diags === undefined || diags.length === 0) return null
   const errors = diags.filter(d => d.severity === 1).length
@@ -26,7 +30,11 @@ export function lspBadgeText(diags: readonly LspDiagnosticView[] | undefined): s
   return parts.join(' ')
 }
 
-/** severity → 语义色名（接线层映射主题色）。 */
+/**
+ * severity → 语义色名（接线层映射主题色）。
+ * @param severity - LSP severity（1 Error / 2 Warning / 3 Info / 4 Hint）。
+ * @returns 语义色名：1 → error、2 → warning、其余 → info。
+ */
 export function lspSeverityColorName(severity: LspDiagnosticView['severity']): 'error' | 'warning' | 'info' {
   switch (severity) {
     case 1: return 'error'
@@ -66,7 +74,12 @@ export function groupLspDiagnostics(entries: readonly LspDiagnosticView[]): LspF
 /** 单条诊断行的最大宽度（列预算内截断，超长以 … 收尾）。 */
 const DIAG_LINE_MAX = 80
 
-/** 单条诊断行：`line:col · message`（severity 着色）。 */
+/**
+ * 单条诊断行：`line:col · message`（severity 着色）。
+ * @param diag - 单条诊断视图（1-based 行列）。
+ * @param theme - 主题（severity 语义色 + dim/muted 配色）。
+ * @returns ANSI 行；message 空白折叠、超出列预算截断以 … 收尾。
+ */
 export function lspDiagnosticLine(diag: LspDiagnosticView, theme: RivetTheme): string {
   const colorName = lspSeverityColorName(diag.severity)
   const themeColor = colorName === 'error' ? theme.error : colorName === 'warning' ? theme.warning : theme.muted

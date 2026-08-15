@@ -23,6 +23,8 @@ export const REASONING_ROWS_MAX = 6
 /**
  * 推理尾巴随终端高度缩放：矮窗不少于 {@link REASONING_TAIL_LINES}，
  * 高窗不超过 {@link REASONING_ROWS_MAX}。按显示行预算，避免长句 wrap 撑破定高视口。
+ * @param rows - 终端高度（行）；0/缺省按 24 计。
+ * @returns 尾巴显示行预算（{@link REASONING_TAIL_LINES}–{@link REASONING_ROWS_MAX}）。
  */
 export function reasoningTailBudget(rows: number): number {
   return Math.max(REASONING_TAIL_LINES, Math.min(REASONING_ROWS_MAX, Math.floor((rows || 24) / 6)))

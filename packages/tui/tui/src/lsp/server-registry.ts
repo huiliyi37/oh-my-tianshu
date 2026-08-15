@@ -9,6 +9,7 @@
 
 import { execFileSync } from 'node:child_process'
 
+/** Static definition of one known language server (launch command + handled extensions). */
 export interface LspServerDef {
   id: string
   extensions: string[]
@@ -42,8 +43,14 @@ export const LSP_SERVERS: readonly LspServerDef[] = [
   { id: 'jdtls', extensions: ['.java'], command: 'jdtls', args: [], languageId: 'java' },
 ]
 
+/** PATH probe: reports whether a binary resolves (injectable for tests). */
 export type WhichFn = (bin: string) => boolean
 
+/**
+ * Default {@link WhichFn}: shells out to `which` (`where` on Windows).
+ * @param bin - Binary name to probe on PATH.
+ * @returns True when the probe exits successfully within an 800ms timeout.
+ */
 export function defaultWhich(bin: string): boolean {
   try {
     execFileSync(process.platform === 'win32' ? 'where' : 'which', [bin], {
@@ -61,25 +68,44 @@ function extOf(filePath: string): string {
   return i >= 0 ? filePath.slice(i).toLowerCase() : ''
 }
 
-/** The server def that handles a given extension, or null. */
+/**
+ * The server def that handles a given extension, or null.
+ * @param ext - File extension, with or without the leading dot (case-insensitive).
+ * @returns The matching def from {@link LSP_SERVERS}, or null when unsupported.
+ */
 export function serverDefForExt(ext: string): LspServerDef | null {
   const e = ext.startsWith('.') ? ext.toLowerCase() : `.${ext.toLowerCase()}`
   return LSP_SERVERS.find(s => s.extensions.includes(e)) ?? null
 }
 
+/**
+ * Whether a server can be launched on this machine.
+ * @param def - Server definition to check.
+ * @param which - PATH probe; defaults to {@link defaultWhich}.
+ * @returns True for alwaysAvailable defs or when the binary probe succeeds.
+ */
 export function isServerAvailable(def: LspServerDef, which: WhichFn = defaultWhich): boolean {
   if (def.alwaysAvailable) return true
   return which(def.binary ?? def.command)
 }
 
-/** The available server for a file, or null when unsupported / not installed. */
+/**
+ * The available server for a file, or null when unsupported / not installed.
+ * @param filePath - Path whose extension selects the server.
+ * @param which - PATH probe; defaults to {@link defaultWhich}.
+ * @returns The matching def when installed, otherwise null.
+ */
 export function serverForFile(filePath: string, which: WhichFn = defaultWhich): LspServerDef | null {
   const def = serverDefForExt(extOf(filePath))
   if (!def) return null
   return isServerAvailable(def, which) ? def : null
 }
 
-/** All servers installed on this machine (for diagnostics / readiness checks). */
+/**
+ * All servers installed on this machine (for diagnostics / readiness checks).
+ * @param which - PATH probe; defaults to {@link defaultWhich}.
+ * @returns The installed subset of {@link LSP_SERVERS}.
+ */
 export function availableServers(which: WhichFn = defaultWhich): LspServerDef[] {
   return LSP_SERVERS.filter(s => isServerAvailable(s, which))
 }

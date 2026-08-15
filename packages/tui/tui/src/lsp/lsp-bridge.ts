@@ -33,6 +33,7 @@ export interface LspDiagnosticView {
   message: string
 }
 
+/** createLspBridge 装配选项（multi-manager 透传项 + 展示层策略）。 */
 export interface LspBridgeOptions extends MultiLspOptions {
   /** LSP server 的 rootUri 与相对路径基准（会话 cwd）。 */
   cwd: string
@@ -98,6 +99,7 @@ export function officialLspSource(
 /** 同文件重拉冷却（毫秒）：高频工具步进不刷屏。 */
 const FRESH_MS = 5_000
 
+/** LSP 展示桥消费面（TuiApp 持有）：touchFile 异步拉取，diagnosticsFor/entries 同步读缓存。 */
 export interface LspBridge {
   /** 通知桥「agent 触碰了该文件」：异步拉诊断并入缓存；不阻塞调用方。 */
   touchFile(path: string): void
@@ -138,6 +140,12 @@ function toView(diag: LspDiagnostic, file: string): LspDiagnosticView {
   }
 }
 
+/**
+ * 创建 LSP 展示桥：外部 source 存在时消费之（与模型工具面共享 server 集，
+ * 不内置 spawn）；否则内置 multi-manager 懒启动（未装配伴生插件的降级路径）。
+ * @param options - 装配选项（cwd、拉取超时、可选外部诊断源）。
+ * @returns 展示桥实例；dispose 销毁内置 manager（外部 source 只解绑不销毁）。
+ */
 export function createLspBridge(options: LspBridgeOptions): LspBridge {
   const cwd = options.cwd
   const timeoutMs = options.timeoutMs ?? 2_000

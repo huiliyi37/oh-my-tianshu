@@ -2501,13 +2501,24 @@ export interface TuiRunnerConfig {
   vision?: {
     /** 主控模型是否原生支持识图（图片直发）。 */
     supportsVision?: boolean
-    /** 是否配置了独立识图桥模型（主控不识图时经桥转文字描述）。 */
+    /** 是否配置了独立识图桥模型（主控不识图时经桥转文字描述）。
+     *  未传入时按宿主 `visionBridge` 服务（dsh-vision-bridge 装配时应 provide）
+     *  的存在性自动探测。 */
     bridgeEnabled?: boolean
     /** 识图桥来源（configured=显式配置 / auto=自动选用）。 */
     bridgeSource?: 'configured' | 'auto' | 'none'
   }
   /** 已结算 workflow run 缓存条数上限（/workflow 面板历史），超限 drop-oldest；正整数，缺省 50。 */
   workflowHistoryLimit?: number
+  /** LSP 诊断桥（本地语言服务）：懒启动——agent 触碰文件时拉取该文件诊断。
+   *  诊断只进 TUI 本地展示缓存（工具卡徽标 + /lsp 面板），不写会话事件、
+   *  不注册任何模型面。缺省启用。 */
+  lsp?: {
+    /** 是否启用诊断拉取；缺省 true。 */
+    enabled?: boolean
+    /** 单次诊断拉取超时（毫秒）；缺省 2000。 */
+    timeoutMs?: number
+  }
 }
 
 /** 可识别的按键语义名称；未映射的可打印字符与无法识别的序列为 'unknown'。 */
@@ -2676,7 +2687,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/context/vision-bridge/src/index.ts:35`](../packages/context/vision-bridge/src/index.ts)
+Source: [`packages/context/vision-bridge/src/index.ts:49`](../packages/context/vision-bridge/src/index.ts)
 
 ## `@huiliyi37/dsh-web`
 

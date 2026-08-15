@@ -30,6 +30,7 @@ export interface LspDiagnostic {
   source?: string
 }
 
+/** One spawned language-server session: initialize, capability-gated queries, dispose. */
 export interface LspManager {
   initialize(): Promise<void>
   isReady(): boolean
@@ -81,6 +82,12 @@ function languageId(filePath: string): string {
   return 'javascript'
 }
 
+/**
+ * Create a manager for one language server bound to a workspace root.
+ * @param spawnFn - Launches the server process (its stdio pipes carry JSON-RPC).
+ * @param cwd - Workspace root: the initialize rootUri and relative-path base.
+ * @returns Manager handle; call initialize() before queries, dispose() to kill the server.
+ */
 export function createLspManager(spawnFn: SpawnFn, cwd: string): LspManager {
   let rpc: RpcClient | null = null
   let proc: ChildProcess | null = null
