@@ -31,7 +31,7 @@ import { installModelSelection, type AgentHandle, type ModelSelection, type Mode
 import type {} from '@huiliyi37/dsh-agent-default-model'
 import { CommitEngine } from '../engine/commit-engine.js'
 import { ANSI, color, imageProtocol, osc52Clipboard } from '../engine/ansi.js'
-import { LiveEngine, padDynamicRegion, type LiveRegionLine } from '../engine/live-engine.js'
+import { LiveEngine, LIVE_TOOL_CARD_MAX, liveMaxRowsFor, nextDynamicBudget, padDynamicRegion, type LiveRegionLine } from '../engine/live-engine.js'
 import { WriteBatcher } from '../engine/write-batcher.js'
 import { InputHandler, type KeyPress, type KeyName } from '../engine/input-handler.js'
 import { InputLine } from '../engine/input-line.js'
@@ -60,7 +60,7 @@ import { formatUserMessage } from '../format/user-message.js'
 import { formatSteerMessage } from '../format/steer-message.js'
 import { formatToolCardLive } from '../format/tool-card.js'
 import { formatToolViewCard } from '../format/tool-view-card.js'
-import { formatReasoningBlock, formatReasoningLive } from '../format/reasoning.js'
+import { formatReasoningBlock, formatReasoningLive, reasoningTailBudget } from '../format/reasoning.js'
 import { renderKeymapPanel } from '../format/keymap-panel.js'
 import { renderSessionExport } from '../format/export.js'
 import type { TaskItem } from '../format/task-panel.js'
@@ -206,11 +206,11 @@ import { CHROME_GUTTER, formatWelcomeHero, type WelcomeEnvCheck, type WelcomeTip
 import { formatWhaleLogo, WHALE_MIN_ROWS } from '../format/whale.js'
 import { formatTopBar } from '../format/top-bar.js'
 import { formatTurnStatus } from '../format/turn-status.js'
-import { formatPromptFooter, FOOTER_RIGHT_MERGE_MIN_WIDTH } from '../format/prompt-footer.js'
+import { formatPromptFooter } from '../format/prompt-footer.js'
 import { formatInputFrame } from '../format/input-frame.js'
 import { formatSlashMenu, SLASH_MENU_MAX_ROWS } from '../format/slash-menu.js'
 import { formatSubagentRunning, formatSubagentDone } from '../format/subagent-line.js'
-import { formatGlanceBar, glanceBarSegments } from '../format/glance-bar.js'
+import { glanceBarSegments } from '../format/glance-bar.js'
 import { MemoryBrowserOverlay } from '../format/memory-overlay.js'
 
 /**
@@ -487,6 +487,11 @@ export class TuiApp {
   private disposed = false
   /** bracketed paste 处理器 disposer（attach 注册，dispose 释放）。 */
   private pasteDisposer: (() => void) | null = null
+  /**
+   * 动态段高水位（display rows），跨轮保留。回缩会使输入框上跳，并把旧轨线
+   * 留在空隙里（重影）。新会话 / 切会话时归零。
+   */
+  private dynamicRowsHighWater = 0
   /** 渲染帧合并器：事件路径走 schedule（16ms 合并），critical 路径走 flushLiveRender。 */
   private renderBatcher: WriteBatcher
   /** 上次输入框获得焦点的时间戳（Ctrl+V 剪贴板读图防抖；overlay 关闭后
@@ -516,7 +521,7 @@ export class TuiApp {
     this.live = new LiveEngine({
       stdout: options.stdout,
       reservedRows: LIVE_RESERVED_ROWS,
-      maxRows: Math.max(8, options.stdout.rows - 1),
+      maxRows: liveMaxRowsFor(options.stdout.rows),
     })
     this.input = new InputHandler({ stdin: options.stdin, mode: 'input' })
     this.inputLine = new InputLine({
@@ -711,7 +716,7 @@ export class TuiApp {
     await this.renderRestorableSessions()
 
     this.resize.onResize(() => {
-      this.live.setMaxRows(Math.max(8, this.stdout.rows - 1))
+      this.live.setMaxRows(liveMaxRowsFor(this.stdout.rows))
       this.flushLiveRender()
     })
     this.input.onAnyKey((key) => { this.handleKey(key) })
@@ -1010,6 +1015,7 @@ export class TuiApp {
     // /session new 后旧会话可切回。退出（dispose）时 detachProjections 默认
     // 释放全部 handle（见 dispose 路径）。
     await this.detachProjections({ keepHandle: true })
+    this.dynamicRowsHighWater = 0
     const id = SessionId(`session-${randomUUID()}`)
     const selection = this.ctx.agentDefaultModel.currentSelection()
     // C2 项 4：持有可变 ModelSelectionRef——/model 热切当前会话（改 current，
@@ -1228,6 +1234,7 @@ export class TuiApp {
     // P3 side conversation：切走时保留旧会话 agent（keepHandle 让渡 registry；
     // 切回时走下方 agents.get 兜底分支——不 create 不 resume，transcript 重放）。
     await this.detachProjections({ keepHandle: true })
+    this.dynamicRowsHighWater = 0
     this.activeSessionId = id
     const agent = this.ctx.agents.get(id)
     if (agent !== undefined) {
@@ -2505,8 +2512,7 @@ export class TuiApp {
     for (const line of renderSessionTabs(snapshot)) {
       lines.push({ text: color(line, theme.secondary) })
     }
-    // glance 段：状态行 + 错误行 + metrics 行（metrics 行自带 ANSI——
-    // formatGlanceBar 已着色，组合器不重复包装）。
+    // glance 段：状态行 + 错误行（metrics 已并入输入轨下方 footer，避免双份）。
     for (const line of renderGlancePanel(snapshot)) lines.push({ text: line })
     // T4 + T2.3：任务窗格 + 后台任务区（/tasks 面板内；taskPanelVisible 门控
     // 在 renderTasksPanel 内，窗格行在前、后台任务区行在后）。
@@ -2591,6 +2597,7 @@ export class TuiApp {
         tick: this.tick,
         columns: cols,
         compact: compactLive,
+        maxRows: reasoningTailBudget(this.stdout.rows),
       }, theme)
       for (const line of reasoningLines) lines.push({ text: line })
     }
@@ -2603,20 +2610,29 @@ export class TuiApp {
 
     // 进行中的工具卡（无 result 的 tool/call）；标题优先 presentCall 意图
     //（tool/call 时解析缓存），缺省回落 toolArgSummary 启发式。
+    // 只有最新一张展开末 3 行 tail（定高，防跳动）；其余仅标题。session 日志
+    // 无工具 stdout 增量，故进行中卡在 tool/result 前只显示占位 …。
     const pendingTools = this.transcript?.view.tools.filter(t => t.result === undefined) ?? []
-    for (const tool of pendingTools) {
+    const overflow = Math.max(0, pendingTools.length - LIVE_TOOL_CARD_MAX)
+    const shownTools = overflow > 0 ? pendingTools.slice(-LIVE_TOOL_CARD_MAX) : pendingTools
+    for (const [i, tool] of shownTools.entries()) {
       const args = parseToolArguments(tool.arguments)
       const titleOverride = this.pendingCallTitles.get(tool.callId)
+      const latest = i === shownTools.length - 1
       const rows = formatToolCardLive({
         toolName: tool.name,
         ...(args === undefined ? {} : { toolInput: args }),
         ...(titleOverride === undefined ? {} : { title: titleOverride }),
         columns: cols,
-        tailLines: tightViewport ? 1 : 2,
+        elapsedMs: Math.max(0, Date.now() - tool.time),
+        tailLines: compactLive || !latest ? 0 : (tightViewport ? 1 : 3),
         tick: this.tick,
         compact: compactLive,
       }, theme)
       for (const line of rows) lines.push({ text: line })
+    }
+    if (overflow > 0) {
+      lines.push({ text: color(` …(+${overflow}) 个工具进行中`, theme.muted) })
     }
 
     // 对话流 subagent 运行行（grok SubagentBlock 移植）：live 区动态 spinner 帧，
@@ -2720,14 +2736,12 @@ export class TuiApp {
       lines.push(i === frame.caretLine ? { text: line, caretCol: frame.caretCol } : { text: line })
     }
 
-    // C4 概念稿 B：footer 一行——左模式/快捷键、右 token/模型/API（宽终端
-    // 右对齐合并进同一行；窄终端 metrics 独立一行纵排）。metrics 段复用
-    // glance-bar 段组装（formatGlanceBar 已着色，组合器不重复包装）。
+    // C4：footer 一行——左模式/快捷键、右 token/模型/API。任意宽度右对齐合并，
+    // 放不下从右丢段；不再纵排 theme.primary 的第二行 metrics（窄屏折行变蓝）。
     const bottomMetrics = this.glanceMetrics()
-    const mergeRight = bottomMetrics !== null && termCols >= FOOTER_RIGHT_MERGE_MIN_WIDTH
-    const rightSegments = mergeRight
-      ? [...glanceBarSegments({ ...bottomMetrics, width: cols }), `API ${this.apiKeyReady ? '✓' : '✗'}`]
-      : undefined
+    const rightSegments = bottomMetrics === null
+      ? undefined
+      : [...glanceBarSegments({ ...bottomMetrics, width: cols }), `API ${this.apiKeyReady ? '✓' : '✗'}`]
     const footerLines = formatPromptFooter({
       width: cols,
       planActive: planProj?.active === true,
@@ -2737,11 +2751,6 @@ export class TuiApp {
       ...(rightSegments !== undefined ? { rightSegments } : {}),
     }, theme)
     for (const line of footerLines) lines.push({ text: line })
-    if (bottomMetrics !== null && !mergeRight) {
-      for (const line of formatGlanceBar({ ...bottomMetrics, width: cols }, theme)) {
-        lines.push({ text: line.text })
-      }
-    }
 
     if (gutter > 0) {
       const pad = ' '.repeat(gutter)
@@ -2758,9 +2767,28 @@ export class TuiApp {
       if (row === undefined) continue
       chromeRows += rowsForLine(row.text)
     }
-    // 溢出裁剪：动态段超过剩余视口才从顶裁；短则不垫，避免空 overlay 盖住转录。
-    const maxDynamic = Math.max(0, this.stdout.rows - chromeRows - 1)
-    const padded = padDynamicRegion(lines, chromeStart, maxDynamic, rowsForLine)
+    let dynamicRows = 0
+    for (let i = 0; i < chromeStart; i++) {
+      const row = lines[i]
+      if (row === undefined) continue
+      dynamicRows += rowsForLine(row.text)
+    }
+    // 定高视口：动态段按高水位垫到恰好 budget，live region 只涨不缩 →
+    // 输入框钉住、回缩黑洞与旧轨线重影一并消除。欢迎首帧（无消息且非运行）不垫。
+    const terminalRows = this.stdout.rows || 24
+    const raw = terminalRows - chromeRows - 2
+    const ceiling = Math.max(0, Math.min(raw, liveMaxRowsFor(terminalRows) - chromeRows))
+    const skipPad = (this.transcript?.view.messages ?? []).length === 0
+      && this.liveAgent?.state.status !== 'running'
+    const next = nextDynamicBudget(
+      this.dynamicRowsHighWater,
+      dynamicRows,
+      ceiling,
+      skipPad,
+      this.reasoningExpanded,
+    )
+    this.dynamicRowsHighWater = next.highWater
+    const padded = padDynamicRegion(lines, chromeStart, next.budget, rowsForLine)
     const chromeTail = padded.lines.length - padded.chromeStart
     this.live.render(padded.lines, chromeTail > 0 ? { reservedTail: chromeTail } : undefined)
     this.perfMonitor.record('renderLive', performance.now() - renderStart)

@@ -54,21 +54,22 @@ export interface LiveEngineOptions {
 }
 
 /**
- * 溢出裁剪：把 `[0, chromeStart)` 的动态段（spinner / thinking / streaming
- * tail / 工具卡片）限制在至多 `budget` display rows。
+ * 溢出裁剪 + 定高垫高：把 `[0, chromeStart)` 的动态段（spinner / thinking /
+ * streaming tail / 工具卡片）限制在恰好 `budget` display rows。
  *
  * 规则：
- * - `budget <= 0`：原样返回。
+ * - `budget <= 0`：原样返回（欢迎首帧不垫，避免凭空空白）。
  * - 动态段 > budget：从**顶部**截掉最旧行（approval / 提问等关键内容位于动态段
  *   尾部，天然优先保留）。
- * - 动态段 ≤ budget：**不垫空行**。live overlay 高度跟内容走，避免空行盖住
- *   中间的 scrollback。
+ * - 动态段 < budget：在动态内容与 chrome 之间垫空行，使动态段恰好占 budget。
+ *   内容贴上、输入框贴下；live overlay 高度稳定，避免回缩留下输入框重影与
+ *   屏底黑洞。
  *
  * @param lines - live region 全部行（动态段在前，chrome 在后）
  * @param chromeStart - chrome 段起始下标（`[0, chromeStart)` 为动态段）
- * @param budget - 动态段最大高度（display rows）；≤0 时原样返回
+ * @param budget - 动态段目标高度（display rows）；≤0 时原样返回
  * @param rowsForLine - 单行 display rows 度量（wrapping-aware）；默认每行 1 row
- * @returns 裁剪后的行数组与新的 chromeStart
+ * @returns 裁剪/垫高后的行数组与新的 chromeStart
  */
 export function padDynamicRegion(
   lines: readonly LiveRegionLine[],
@@ -91,12 +92,53 @@ export function padDynamicRegion(
     dropUntil++
   }
   const kept = dynamic.slice(dropUntil)
+  const padCount = Math.max(0, budget - rows)
+  const padding: LiveRegionLine[] = Array.from({ length: padCount }, () => ({ text: '' }))
 
   return {
-    lines: [...kept, ...chrome],
-    chromeStart: kept.length,
+    lines: [...kept, ...padding, ...chrome],
+    chromeStart: kept.length + padCount,
   }
 }
+
+/**
+ * live 区行上限：固定 28 在小终端上会让全量重写的 cursorUp 回顶量超出屏幕 →
+ * 错位/残影，故上限随终端高度收缩；下限 4 保输入框 chrome 最低可用。
+ */
+export function liveMaxRowsFor(rows: number): number {
+  return Math.max(4, Math.min(28, (rows || 24) - 1))
+}
+
+/**
+ * 动态段预算：高水位只涨不缩（回缩 = 输入框上跳 + 旧轨线残留）。
+ * skipPad（欢迎首帧）时预算 0 且不改高水位；ceiling 随终端缩小。
+ * freezeHighWater（Ctrl+O 展开推理）本帧可加高 overlay，但不把峰值写入高水位。
+ * @param highWater - 上一帧高水位（display rows）。
+ * @param dynamicRows - 本帧动态段 display rows。
+ * @param ceiling - 动态段上限。
+ * @param skipPad - 欢迎首帧：预算 0 且不改高水位。
+ * @param freezeHighWater - 本帧加高不写入高水位；缺省 false。
+ * @returns 本帧预算与更新后的高水位。
+ */
+export function nextDynamicBudget(
+  highWater: number,
+  dynamicRows: number,
+  ceiling: number,
+  skipPad: boolean,
+  freezeHighWater = false,
+): { budget: number; highWater: number } {
+  if (skipPad) return { budget: 0, highWater }
+  if (ceiling <= 0) return { budget: 0, highWater: 0 }
+  const budget = Math.min(ceiling, Math.max(highWater, dynamicRows))
+  if (freezeHighWater) return { budget, highWater: Math.min(ceiling, highWater) }
+  return { budget, highWater: budget }
+}
+
+/**
+ * live 区同时展示的进行中工具卡数量上限，超出折叠成 `…(+N)` 一行。
+ * 只有最新一张展开输出末尾，其余仅标题行。
+ */
+export const LIVE_TOOL_CARD_MAX = 3
 
 /**
  * 终端底部动态区域（live region）的增量重绘引擎。

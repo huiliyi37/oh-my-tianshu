@@ -349,8 +349,10 @@ export function formatToolCardLive(input: FormatToolCardLiveInput, theme: RivetT
   if (tailCount > 0 && tailLines.length === 0) {
     tailLines.push(`${color(BODY_FIRST_PREFIX, theme.dim)}${color('…', theme.dim)}`)
   }
-  // 不定高占位：live 总高跟内容走，这里再垫空行只会在卡片
-  // 与输入轨之间制造空洞。
+  // 固定 tail 区高度：内容不足时顶部补空行，避免卡片随输出涨缩带动输入框跳动。
+  while (tailLines.length < tailCount) {
+    tailLines.unshift(BODY_CONT_PREFIX)
+  }
 
   lines.push(...tailLines)
   return lines

@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RivetTheme } from '../src/theme.js'
 import { displayWidth } from '../src/width.js'
-import { formatPromptFooter, FOOTER_RIGHT_MERGE_MIN_WIDTH, type FormatPromptFooterInput } from '../src/format/prompt-footer.js'
+import { formatPromptFooter, type FormatPromptFooterInput } from '../src/format/prompt-footer.js'
 
 function fakeTheme(): RivetTheme {
   return {
@@ -97,29 +97,51 @@ describe('formatPromptFooter', () => {
 
   it('右侧段放不下：从后往前丢段，末尾段先丢', () => {
     const [narrow = ''] = plain(formatPromptFooter(base({
-      width: FOOTER_RIGHT_MERGE_MIN_WIDTH,
+      width: 80,
       rightSegments: ['AA', 'BB', 'CC', 'DD', 'EE', 'FF', 'GG', 'HH', 'II', 'JJ', 'KK'],
     }), fakeTheme()))
     expect(narrow).toContain('normal')
     expect(narrow).toContain('AA')
     expect(narrow).not.toContain('KK')
     expect(narrow).not.toContain('AA · BB · CC · DD · EE · FF · GG · HH · II · JJ · KK')
-    // 超窄（< 合并阈值）：右侧完全不出现
-    const [none = ''] = plain(formatPromptFooter(base({
-      width: 40,
-      rightSegments: ['AA', 'BB', 'CC'],
-    }), fakeTheme()))
-    expect(none).toContain('normal')
-    expect(none).not.toContain('AA')
   })
 
-  it('窄终端（< 合并阈值）：不合并右侧段', () => {
-    const [line = ''] = plain(formatPromptFooter(base({
+  it('任意宽度：右侧段合并进同一行，不另起第二行', () => {
+    const lines = formatPromptFooter(base({
       width: 79,
-      rightSegments: ['deepseek-chat'],
+      rightSegments: ['deepseek-chat', 'effort:high'],
+    }), fakeTheme())
+    expect(lines).toHaveLength(1)
+    const [line = ''] = plain(lines)
+    expect(line).toContain('normal')
+    expect(line).toContain('deepseek-chat')
+    expect(displayWidth(lines[0] ?? '')).toBe(79)
+  })
+
+  it('窄宽仍从右丢段，左侧与右侧同处一行', () => {
+    const lines = formatPromptFooter(base({
+      width: 39,
+      rightSegments: ['AA', 'BB', 'CC'],
+    }), fakeTheme())
+    expect(lines).toHaveLength(1)
+    const [line = ''] = plain(lines)
+    expect(line).toContain('normal')
+    expect(line).toContain('AA')
+    expect(line).not.toContain('CC')
+  })
+
+  it('右侧段恰好填满：pad=0 仍合并，不丢末段', () => {
+    // width 18 → 左侧只剩 `normal`(6)；right 12 → pad=0。旧逻辑 pad>0 会误丢右段。
+    const [line = ''] = plain(formatPromptFooter(base({
+      width: 18,
+      rightSegments: ['xxxxxxxxxxxx'],
     }), fakeTheme()))
     expect(line).toContain('normal')
-    expect(line).not.toContain('deepseek-chat')
+    expect(line).toContain('xxxxxxxxxxxx')
+    expect(displayWidth(formatPromptFooter(base({
+      width: 18,
+      rightSegments: ['xxxxxxxxxxxx'],
+    }), fakeTheme())[0] ?? '')).toBe(18)
   })
 
   it('空右侧段：与缺省行为一致', () => {

@@ -244,6 +244,23 @@ describe('formatToolCardLive', () => {
     expect(plain(lines).join('\n')).toContain('…')
   })
 
+  it('tail 区定高：内容不足时垫到 tailLines，避免卡片随输出涨缩', () => {
+    const lines = formatToolCardLive({
+      toolName: 'bash',
+      outputTail: 'only-one',
+      tailLines: 3,
+      columns: 80,
+    }, fakeTheme())
+    expect(lines).toHaveLength(1 + 3)
+    expect(plain(lines).join('\n')).toContain('only-one')
+  })
+
+  it('无输出时占位后仍垫到 tailLines', () => {
+    const lines = formatToolCardLive({ toolName: 'bash', tailLines: 3, columns: 80 }, fakeTheme())
+    expect(lines).toHaveLength(1 + 3)
+    expect(plain(lines).join('\n')).toContain('…')
+  })
+
   it('tailLines=0：无 tail 行', () => {
     const lines = formatToolCardLive({ toolName: 'bash', outputTail: 'a', tailLines: 0, columns: 80 }, fakeTheme())
     expect(lines).toHaveLength(1)
