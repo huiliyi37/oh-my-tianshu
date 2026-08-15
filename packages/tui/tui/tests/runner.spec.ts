@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Context } from '@huiliyi37/cordis'
 import type { WriteStream } from 'node:tty'
 import type { Session } from '@huiliyi37/dsh-session'
@@ -38,6 +38,7 @@ function makeStdin(): NodeJS.ReadStream {
 function makeCtx(): Context & {
   sessions: { list: ReturnType<typeof vi.fn>; get: ReturnType<typeof vi.fn>; flush: ReturnType<typeof vi.fn> }
   effect: ReturnType<typeof vi.fn>
+  reflect: { get: ReturnType<typeof vi.fn> }
 } {
   const ctx = {
     sessions: {
@@ -59,9 +60,12 @@ function makeCtx(): Context & {
     // inject 立即执行回调（mock 的 sessions/agents 已可用），与 effect 语义一致；
     // 真实 Cordis 中依赖就绪时才执行。
     inject: vi.fn((_deps: string[], cb: (injected: unknown) => void) =>{  cb(ctx) }),
+    // reflect.get：宿主能力探测（appExit 等）；缺省返回 undefined（无宿主能力）。
+    reflect: { get: vi.fn(() => undefined) },
   } as unknown as Context & {
     sessions: { list: ReturnType<typeof vi.fn>; get: ReturnType<typeof vi.fn>; flush: ReturnType<typeof vi.fn> }
     effect: ReturnType<typeof vi.fn>
+    reflect: { get: ReturnType<typeof vi.fn> }
   }
   return ctx
 }
@@ -75,8 +79,16 @@ function makeSession(id: string): Session {
   } as unknown as Session
 }
 
+/** process.exit spy（beforeEach 安装；断言引用 spy 而非未绑定方法本身）。 */
+let exitSpy: ReturnType<typeof vi.spyOn<typeof process, 'exit'>>
+
 afterEach(() => {
   vi.restoreAllMocks()
+})
+
+beforeEach(() => {
+  // process.exit 会真杀测试进程——mock 掉，断言其被调用而非真的退出。
+  exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as typeof process.exit)
 })
 
 describe('index apply() 装配与退出生命周期', () => {
@@ -98,6 +110,8 @@ describe('index apply() 装配与退出生命周期', () => {
 
     expect(disposeSpy).toHaveBeenCalledTimes(1)
     expect(ctx.sessions.flush).toHaveBeenCalled()
+    // 插件卸载路径只 dispose，把进程生命周期留给宿主（#22）。
+    expect(exitSpy).not.toHaveBeenCalled()
   })
 
   it('stdin SIGINT 触发同一 dispose 路径', async () => {
@@ -110,6 +124,37 @@ describe('index apply() 装配与退出生命周期', () => {
 
     stdin.emit('SIGINT')
     expect(disposeSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('SIGINT dispose 后经 appExit(0) 退出（#22 把 TTY 还给 shell）', async () => {
+    const ctx = makeCtx()
+    const appExit = vi.fn()
+    ctx.reflect.get.mockImplementation((name: string) => name === 'appExit' ? appExit : undefined)
+    vi.spyOn(TuiApp.prototype, 'attach').mockResolvedValue(undefined)
+    vi.spyOn(TuiApp.prototype, 'dispose').mockResolvedValue(undefined)
+
+    const stdin = makeStdin()
+    apply(ctx, { stdin, stdout: makeStdout() })
+    stdin.emit('SIGINT')
+
+    await vi.waitFor(() => {
+      expect(appExit).toHaveBeenCalledWith(0)
+    })
+    expect(exitSpy).not.toHaveBeenCalled()
+  })
+
+  it('用户退出且无 appExit 时 process.exit(0)', async () => {
+    const ctx = makeCtx()
+    vi.spyOn(TuiApp.prototype, 'attach').mockResolvedValue(undefined)
+    vi.spyOn(TuiApp.prototype, 'dispose').mockResolvedValue(undefined)
+
+    const stdin = makeStdin()
+    apply(ctx, { stdin, stdout: makeStdout() })
+    stdin.emit('SIGINT')
+
+    await vi.waitFor(() => {
+      expect(exitSpy).toHaveBeenCalledWith(0)
+    })
   })
 
   it('缺省 stdin/stdout 用 process 全局流', () => {

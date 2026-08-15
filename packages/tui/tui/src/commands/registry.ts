@@ -118,7 +118,7 @@ interface MemoryFacet {
  * /subagents、/workflow、/tasks 的命令定义在 createBuiltinCommands（deps 注入
  * TuiApp 的显隐切换）；/status 保持 TuiApp 内注册。
  */
-export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'tasks', 'density', 'goal', 'status', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'export'] as const
+export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'tasks', 'density', 'goal', 'status', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'export', 'exit'] as const
 
 /**
  * /model 一键切换别名（TUI 便捷层）：展开为 deepseek-spark route 的
@@ -260,6 +260,8 @@ export interface BuiltinCommandDeps {
   switchSession(id: string): Promise<void>
   /** /export（T3）：导出当前会话转录为 Markdown；path 缺省由实现决定；返回导出文件路径。 */
   exportTranscript(path?: string): Promise<string>
+  /** /exit：请求退出 TUI（与 Ctrl+Q 同一 onExit 路径）。 */
+  requestExit(): void
 }
 
 /**
@@ -773,6 +775,11 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
         const written = await deps.exportTranscript(path)
         echo(`会话已导出: ${written}`)
       },
+    },
+    {
+      name: 'exit',
+      description: '退出 TUI（与 Ctrl+Q 相同）',
+      run: () => { deps.requestExit() },
     },
   ]
 }

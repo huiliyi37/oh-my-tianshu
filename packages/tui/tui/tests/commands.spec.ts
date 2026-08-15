@@ -68,6 +68,7 @@ function commandByName(name: string) {
     openMemoryBrowser: vi.fn(async () => true),
     switchSession: vi.fn(async () => undefined),
     exportTranscript: vi.fn(async (path?: string) => path ?? '/tmp/dsh-export-s1.md'),
+    requestExit: vi.fn(),
   }
   const commands = createBuiltinCommands(deps)
   const cmd = commands.find(c => c.name === name)
@@ -568,6 +569,27 @@ describe('内置命令 — /export（T3 会话导出）', () => {
 
   it('内置命令集含 /export', () => {
     expect(BUILTIN_COMMAND_NAMES).toContain('export')
+  })
+})
+
+describe('内置命令 — /exit', () => {
+  it('内置命令集含 /exit，完整名与 /exi 前缀可解析', () => {
+    expect(BUILTIN_COMMAND_NAMES).toContain('exit')
+    expect(resolveSlashCommand('/exit', BUILTIN_COMMAND_NAMES)?.command.name).toBe('exit')
+    expect(resolveSlashCommand('/exi', BUILTIN_COMMAND_NAMES)?.command.name).toBe('exit')
+  })
+
+  it('/ex 在 exit/export 间歧义，不猜命令', () => {
+    expect(resolveSlashCommand('/ex', BUILTIN_COMMAND_NAMES)).toBeNull()
+    expect(resolveSlashCommand('/exp', BUILTIN_COMMAND_NAMES)?.command.name).toBe('export')
+  })
+
+  it('/exit 调用 requestExit（与 Ctrl+Q 同路径）', async () => {
+    const { cmd, deps } = commandByName('exit')
+    const { args, echo } = makeArgs()
+    await cmd.run(args)
+    expect(deps.requestExit).toHaveBeenCalledTimes(1)
+    expect(echo).not.toHaveBeenCalled()
   })
 })
 

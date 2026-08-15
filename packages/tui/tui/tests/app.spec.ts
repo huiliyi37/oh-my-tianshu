@@ -1914,6 +1914,34 @@ describe('TuiApp 命令面板（Ctrl+P overlay）', () => {
     await app.dispose()
   })
 
+  it('Esc 关闭面板（不提交、不回填输入行——底栏 "Esc 关闭" 提示真实生效）', async () => {
+    const { app, stdin, stdout } = await bootPaletteApp()
+
+    stdin.emit('data', '\x10') // Ctrl+P 打开
+    await new Promise(resolve => setImmediate(resolve))
+    stdin.emit('data', '\x1b') // Esc：input-handler 经 escapeTimeoutMs(80ms) 后派发 'escape'
+    await new Promise(resolve => setTimeout(resolve, 200)) // 等派发 + ticker 补绘主屏
+
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('\x1B[?1049l')  // 退出 alternate screen buffer（面板已关闭）
+    expect(written).not.toContain('❯ /theme') // 未提交：输入行不出现 /命令 回填
+    await app.dispose()
+  })
+
+  it('Ctrl+C 关闭面板（与 Esc 同分支，不提交）', async () => {
+    const { app, stdin, stdout } = await bootPaletteApp()
+
+    stdin.emit('data', '\x10') // Ctrl+P 打开
+    await new Promise(resolve => setImmediate(resolve))
+    stdin.emit('data', '\x03') // Ctrl+C → 关闭面板（消费在面板块，不触发退出）
+    await new Promise(resolve => setTimeout(resolve, 200))
+
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('\x1B[?1049l')
+    expect(written).not.toContain('❯ /theme')
+    await app.dispose()
+  })
+
   it('↓ 移动选中，Enter 回填第二项（方向键选择路径）', async () => {
     const { app, stdin, stdout } = await bootPaletteApp()
 
@@ -4493,6 +4521,16 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
     const { app, stdin } = boot({ onExit })
     await app.attach()
     stdin.emit('data', '\x11') // Ctrl+Q
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).toHaveBeenCalledTimes(1)
+    await app.dispose()
+  })
+
+  it('/exit 触发 onExit（与 Ctrl+Q 同一退出路径）', async () => {
+    const onExit = vi.fn()
+    const { app } = boot({ onExit })
+    await app.attach()
+    app.handleSubmit('/exit')
     await new Promise(resolve => setImmediate(resolve))
     expect(onExit).toHaveBeenCalledTimes(1)
     await app.dispose()

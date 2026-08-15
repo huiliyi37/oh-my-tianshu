@@ -67,15 +67,26 @@ export function apply(ctx: Context, config: TuiRunnerConfig = {}): void {
   // 装配与 attach 在注入作用域内执行；生命周期仍注册在外层插件 ctx（随插件卸载）。
   ctx.inject(['sessions', 'agents', 'agentDefaultModel'], (runtimeCtx) => {
     // 退出生命周期：stdin SIGINT、Ctrl+C 空输入（onExit）与插件卸载（effect cleanup）
-    // 走同一 async dispose 路径——teardown await flushAll，退出不丢会话数据。
-    // teardown 依赖 app、onExit 依赖 teardown：闭包延迟求值打破循环引用。
-    const teardown = async (): Promise<void> => { await app.dispose() }
-    const onSigint = (): void => { void teardown() }
+    // 走同一 async dispose 路径——teardown await flushAll（+ 恢复终端），退出不丢会话数据。
+    // 用户主动退出（Ctrl+Q / /exit / SIGINT）在 dispose 之后还要让宿主进程退出——
+    // 否则 InputHandler 已 pause stdin、TUI 仍占着 TTY，shell 收不回输入（#22）。
+    // 插件卸载只 dispose，把进程生命周期留给宿主。teardown 依赖 app、onExit 依赖
+    // teardown：闭包延迟求值打破循环引用。
+    const requestHostExit = (): void => {
+      const exit = runtimeCtx.reflect.get('appExit', false) as ((code?: number) => void) | undefined
+      if (typeof exit === 'function') exit(0)
+      else process.exit(0)
+    }
+    const teardown = async (quit: boolean): Promise<void> => {
+      await app.dispose()
+      if (quit) requestHostExit()
+    }
+    const onSigint = (): void => { void teardown(true) }
     const app = new TuiApp({
       ctx: runtimeCtx,
       stdin,
       stdout,
-      onExit: () => { void teardown() },
+      onExit: () => { void teardown(true) },
       ...(config.initialSessionId === undefined ? {} : { initialSessionId: config.initialSessionId }),
       ...(config.editorKey === undefined ? {} : { editorKey: config.editorKey }),
       ...(config.vimEnabled === undefined ? {} : { vimEnabled: config.vimEnabled }),
@@ -85,7 +96,7 @@ export function apply(ctx: Context, config: TuiRunnerConfig = {}): void {
     stdin.on('SIGINT', onSigint)
     ctx.effect(() => () => {
       stdin.off('SIGINT', onSigint)
-      return teardown()
+      return teardown(false)
     })
     void app.attach().catch((err: unknown) => {
       // attach 失败：恢复终端（dispose 幂等）后上报，避免半初始化终端残留。
