@@ -661,6 +661,7 @@ export class TuiApp {
       switchSession: id => this.switchSession(SessionId(id)),
       exportTranscript: path => this.exportTranscript(path),
       requestExit: () => { this.onExit?.() },
+      setYoloMode: (flag) => { this.setYoloMode(flag) },
       // /preset：当前会话 agent（recompose/composedPreset 的 agentCtx 来源）；
       // activeSessionId 为 null（未 attach）时返回 null，命令层拒绝切换。
       currentAgent: (): Agent | null => {
@@ -2175,6 +2176,19 @@ export class TuiApp {
       // Normal → Plan
       this.setPlanMode(true)
     }
+  }
+
+  /**
+   * /yolo：全放行模式快捷入口（approval always-approve 的显式开关）。
+   * 与 Shift+Tab 循环进 always-approve 同语义（allowed-once 短路），但提供
+   * 命令入口；切会话/退出时沿既有复位路径清零（detachProjections 的
+   * setAlwaysApprove(false) 覆盖）。
+   * @param flag - true 开启全放行（后续审批自动放行）；false 关闭。
+   */
+  private setYoloMode(flag: boolean): void {
+    this.approval.setAlwaysApprove(flag)
+    this.statusLine?.setAlwaysApprove(flag)
+    this.flushLiveRender()
   }
 
   /** C3 项 4：经 planMode 服务切换 plan 状态（服务缺失时回显警告，不再静默）。 */

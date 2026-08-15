@@ -26,11 +26,11 @@ function plain(s: string): string {
 describe('formatTopStatusBar', () => {
   it('左段 + 填充 + 右段嵌进顶轨，宽度恰为 width', () => {
     const line = formatTopStatusBar({
-      width: 60, left: ['deepseek-v4-flash', 'effort:max'], right: ['缓存 80%', 'API ✓'], borderColor: '#556677',
+      width: 60, left: ['deepseek-v4-flash', '◎max'], right: ['缓存 80%', 'API ✓'], borderColor: '#556677',
     }, fakeTheme())
     const flat = plain(line)
     // 分隔符随终端档位：unicode ›/‹，ascii 降级 >/<
-    expect(flat).toMatch(/^╭─deepseek-v4-flash [>›] effort:max─+缓存 80% [<‹] API ✓─╮$/)
+    expect(flat).toMatch(/^╭─deepseek-v4-flash [>›] ◎max─+缓存 80% [<‹] API ✓─╮$/)
     expect(displayWidth(line)).toBe(60)
   })
 
@@ -57,7 +57,7 @@ describe('formatTopStatusBar', () => {
   it('宽度守恒扫频：8..60 任意宽度不破版', () => {
     for (let w = 8; w <= 60; w++) {
       const line = formatTopStatusBar({
-        width: w, left: ['deepseek-v4-flash', 'effort:max'], right: ['缓存 80%', '上下文 12%', '◧ 11.7k/1.00M', 'API ✓'], borderColor: '#556677',
+        width: w, left: ['deepseek-v4-flash', '◎max'], right: ['缓存 80%', '上下文 12%', '◧ 11.7k/1.00M', 'API ✓'], borderColor: '#556677',
       }, fakeTheme())
       expect(displayWidth(line)).toBeLessThanOrEqual(w)
     }

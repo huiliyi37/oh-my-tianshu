@@ -28,7 +28,7 @@ export function formatTokenCount(n: number): string {
 export interface FormatGlanceBarInput {
   width?: number
   modelName?: string
-  /** 推理努力度（request/header 的 config.reasoningEffort；窄宽时随 model 后 drop）。 */
+  /** 推理努力度（request/header 的 config.reasoningEffort；渲染为 ◎max 形态，窄宽时随 model 后 drop）。 */
   effort?: string
   cacheHitRate?: number
   contextRatio?: number
@@ -49,7 +49,7 @@ export interface FormatGlanceBarInput {
 export function glanceBarSegments(input: FormatGlanceBarInput): string[] {
   const segs: string[] = []
   if (input.modelName !== undefined) segs.push(input.modelName)
-  if (input.effort !== undefined) segs.push(`effort:${input.effort}`)
+  if (input.effort !== undefined) segs.push(`◎${input.effort}`)
   if (input.cacheHitRate !== undefined) segs.push(`缓存 ${Math.round(input.cacheHitRate * 100)}%`)
   if (input.contextRatio !== undefined) segs.push(`上下文 ${Math.round(input.contextRatio * 100)}%`)
   if (input.tokens !== undefined) {

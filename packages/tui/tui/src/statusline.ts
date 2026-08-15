@@ -232,9 +232,11 @@ const PHASE_LABELS: Record<WorkflowPhase, string> = {
  * 渲染 statusline 文本：`阶段 · 工具名`，无活动时仅阶段。
  * plan 投影 active 时带 [plan] 徽标（T1.4）；pending 切换待生效时显示
  * [plan…]（A1：轮内 /plan 的意图在下一请求边界才落地，需给用户反馈）。
- * 授权模式徽标：permission preset 装配时显示预设名（如 [danger-full-access]，
- * 即 yolo 语义的全放行预设）；否则按 approval/policy 折叠值显示 [yolo]
- * （'never' = 不询问，sandbox 越界仍拒绝）或 [ask]（显式记录时）。
+ * 授权模式徽标：permission preset 装配时显示预设名（如 [danger-full-access]）；
+ * 否则按 approval/policy 折叠值显示 [yolo] / [ask]。注意：宿主 user-approval
+ * 的 policy 'never' 语义是「自动拒绝所有需审批操作」（decide() 返回 rejected），
+ * 并非放行——[yolo] 只是宿主 policy 词汇的展示；TUI 的全放行是 always-approve
+ * （[auto] 徽标，allowed-once 短路）。
  * @param view - 工作流视图。
  * @param planActive - plan 模式已生效（渲染 [plan]）。
  * @param planPending - plan 切换待请求边界落地（渲染 [plan…]，优先于 planActive）。

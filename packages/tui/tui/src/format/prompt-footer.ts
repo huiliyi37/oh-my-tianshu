@@ -3,7 +3,7 @@
  *
  * 输入行下方的模式/快捷键提示行：mode 段（normal + [plan]/[plan…]/[auto]
  * 徽标，与 statusline 徽标词汇一致）在前，快捷键提示在后。窄宽从后往前
- * 丢段（ctrl+p 面板 → / 命令 → Enter 发送），mode 恒保留。
+ * 丢段（ctrl+p 面板 → / 命令），mode 恒保留（Enter 发送是终端直觉，不提示）。
  * 右侧状态段（token/模型/API 等）右对齐合并进同一行；放不下从后往前丢右段，
  * 绝不另起 theme.primary 第二行。宽度守恒：任何输入下每行显示宽度 ≤ width。
  */
@@ -43,7 +43,7 @@ export function formatPromptFooter(input: FormatPromptFooterInput, theme: RivetT
     : alwaysApprove === true ? theme.error : CHROME_INACTIVE_SHIMMER
   const hints = input.approvalPending === true
     ? ['y 允许', 'n 拒绝', 'a 放行', 'esc 取消']
-    : ['Enter 发送', '/ 命令', 'ctrl+p 面板']
+    : ['/ 命令', 'ctrl+p 面板']
   // 从后往前丢段直到放得下（mode 恒保留）。
   let segs = hints
   for (;;) {

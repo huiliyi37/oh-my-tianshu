@@ -499,9 +499,14 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
 })
 
 describe('TuiApp Phase 6.4 外部编辑器', () => {
-  /** 生成把临时文件内容改为指定文本的编辑器替身脚本。 */
+  /** 生成把临时文件内容改为指定文本的编辑器替身脚本（win32 用 .cmd，其余平台 .sh）。 */
   function makeEditorScript(replacement: string): { script: string; dir: string } {
     const dir = mkdtempSync(join(tmpdir(), 'tui-edit-spec-'))
+    if (process.platform === 'win32') {
+      const script = join(dir, 'editor.cmd')
+      writeFileSync(script, `@echo off\r\npowershell -NoProfile -Command "Set-Content -Path '%1' -Value '${replacement}' -NoNewline -Encoding ascii"\r\n`)
+      return { script, dir }
+    }
     const script = join(dir, 'editor.sh')
     writeFileSync(script, `#!/bin/sh\nprintf '%s' "${replacement}" > "$1"\n`, { mode: 0o755 })
     return { script, dir }
@@ -750,7 +755,7 @@ describe('TuiApp glance 数据接线（usage/effort/contextWindow）', () => {
     await new Promise(resolve => setImmediate(resolve))
 
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('effort:max')
+    expect(written).toContain('◎max')
     await app.dispose()
   })
 
@@ -4551,7 +4556,9 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     // footer 恒渲染（formatPromptFooter 单行）；metrics 需 glance 数据（此处无，
     // 不占位——纯函数 spec 已覆盖渲染，此处断言装配不抛且 footer 在输出中）
-    expect(written).toContain('Enter 发送')
+    // 新 hint 集：/ 命令 + ctrl+p 面板（Enter 发送不再提示）
+    expect(written).toContain('/ 命令')
+    expect(written).not.toContain('Enter 发送')
     expect(written).toContain('normal')
     await app.dispose()
   })

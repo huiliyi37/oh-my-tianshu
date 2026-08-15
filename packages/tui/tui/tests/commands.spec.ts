@@ -72,6 +72,7 @@ function commandByName(name: string) {
     requestExit: vi.fn(),
     currentAgent: vi.fn(() => null),
     isBlankSession: vi.fn(() => true),
+    setYoloMode: vi.fn(),
   }
   const commands = createBuiltinCommands(deps)
   const cmd = commands.find(c => c.name === name)
@@ -684,6 +685,36 @@ describe('内置命令 — /exit', () => {
     await cmd.run(args)
     expect(deps.requestExit).toHaveBeenCalledTimes(1)
     expect(echo).not.toHaveBeenCalled()
+  })
+})
+
+describe('内置命令 — /yolo（全放行快捷入口）', () => {
+  it('内置命令集含 /yolo', () => {
+    expect(BUILTIN_COMMAND_NAMES).toContain('yolo')
+  })
+
+  it('/yolo 无参默认开启全放行（调用 setYoloMode(true)）', async () => {
+    const { cmd, deps } = commandByName('yolo')
+    const { args, echo } = makeArgs()
+    await cmd.run(args)
+    expect(deps.setYoloMode).toHaveBeenCalledWith(true)
+    expect(echo).toHaveBeenCalled()
+  })
+
+  it('/yolo on 开启；/yolo off 关闭', async () => {
+    const { cmd, deps } = commandByName('yolo')
+    await cmd.run(makeArgs({ text: 'on' }).args)
+    expect(deps.setYoloMode).toHaveBeenLastCalledWith(true)
+    await cmd.run(makeArgs({ text: 'off' }).args)
+    expect(deps.setYoloMode).toHaveBeenLastCalledWith(false)
+  })
+
+  it('/yolo 未知参数回显用法，不调 setYoloMode', async () => {
+    const { cmd, deps } = commandByName('yolo')
+    const { args, echo } = makeArgs({ text: 'maybe' })
+    await cmd.run(args)
+    expect(deps.setYoloMode).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('用法'))
   })
 })
 

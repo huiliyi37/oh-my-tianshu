@@ -12,7 +12,7 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   FALLBACK_EDGE,
   FALLBACK_QUALITY,
@@ -140,6 +140,16 @@ describe('loadImageAttachment（未超限）', () => {
 })
 
 describe('loadImageAttachment（三级自适应压缩）', () => {
+  // 集成测试断言 sips 命令形态（darwin 首候选）；命令形态的平台分支由
+  // resizeCandidates 单测显式传 platform 覆盖——此处固定 darwin 保证跨平台稳定。
+  const origPlatform = Object.getOwnPropertyDescriptor(process, 'platform')!
+  beforeEach(() => {
+    Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true })
+  })
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', { ...origPlatform })
+  })
+
   it('L1：PNG 源保透明——走 resizeCandidates（PNG 输出），返回 1×1 宽高', async () => {
     const calls: Array<{ bin: string; args: string[] }> = []
     setImageToolRunner((async (candidates) => {

@@ -149,7 +149,7 @@ describe('formatStatusLine plan 徽标（T1.4）', () => {
 })
 
 describe('formatStatusLine 授权模式徽标', () => {
-  it('approvalPolicy never → [yolo]（不询问 = 全放行语义）', () => {
+  it('approvalPolicy never → [yolo]（宿主 policy 词汇展示；宿主语义是自动拒绝非放行）', () => {
     expect(formatStatusLine(emptyWorkflowView(sid), false, false, false, 'never')).toContain('[yolo]')
   })
 

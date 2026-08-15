@@ -272,3 +272,54 @@ describe('Shift+Tab 三态循环（C3 项 4）', () => {
     await app.dispose()
   })
 })
+
+describe('/yolo 全放行命令（C3 项 4 快捷入口）', () => {
+  it('/yolo 提交后当前会话审批请求短路 allowed-once（不挂起）', async () => {
+    const { ctx, app, castId } = await bootApp()
+    app.handleSubmit('/yolo')
+    await new Promise(resolve => setImmediate(resolve))
+    const handler = ctx.on.mock.calls.find(call => call[0] === 'approval/request')?.[1] as
+      (req: unknown, next: () => Promise<string>) => Promise<string>
+    const outcome = handler(
+      { agent: { session: { id: castId } }, toolName: 'bash' },
+      () => Promise.resolve('unavailable'),
+    )
+    await expect(outcome).resolves.toBe('allowed-once')
+    await app.dispose()
+  })
+
+  it('/yolo off 后审批恢复挂起（请求不再短路）', async () => {
+    const { ctx, app, stdin, castId } = await bootApp()
+    app.handleSubmit('/yolo')
+    app.handleSubmit('/yolo off')
+    await new Promise(resolve => setImmediate(resolve))
+    const handler = ctx.on.mock.calls.find(call => call[0] === 'approval/request')?.[1] as
+      (req: unknown, next: () => Promise<string>) => Promise<string>
+    const outcome = handler(
+      { agent: { session: { id: castId } }, toolName: 'bash' },
+      () => Promise.resolve('unavailable'),
+    )
+    stdin.emit('data', 'n')
+    await expect(outcome).resolves.toBe('rejected')
+    await app.dispose()
+  })
+
+  it('/yolo 后切会话复位全放行（与 always-approve 同一复位路径）', async () => {
+    const { ctx, app, stdin } = await bootApp()
+    app.handleSubmit('/yolo')
+    await new Promise(resolve => setImmediate(resolve))
+    const other = makeAgent('mc-yolo-2')
+    ctx.agents.get.mockReturnValue(other)
+    ctx.sessions.get.mockReturnValue(other.session)
+    await app.switchSession(other.session.id)
+    const handler = ctx.on.mock.calls.find(call => call[0] === 'approval/request')?.[1] as
+      (req: unknown, next: () => Promise<string>) => Promise<string>
+    const outcome = handler(
+      { agent: { session: { id: other.session.id } }, toolName: 'bash' },
+      () => Promise.resolve('unavailable'),
+    )
+    stdin.emit('data', 'n')
+    await expect(outcome).resolves.toBe('rejected')
+    await app.dispose()
+  })
+})

@@ -6856,6 +6856,9 @@ importers:
       '@huiliyi37/dsh-session':
         specifier: workspace:^
         version: link:../../core/session
+      '@huiliyi37/dsh-session-title':
+        specifier: workspace:^
+        version: link:../../session/session-title
       '@huiliyi37/dsh-tools':
         specifier: workspace:^
         version: link:../../core/tools

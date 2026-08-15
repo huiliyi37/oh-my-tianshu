@@ -90,8 +90,8 @@ describe('glanceBarSegments', () => {
 
   it('effort：model 段后追加 effort 段', () => {
     const segs = plain(glanceBarSegments(base({ effort: 'max' }))).join(' · ')
-    expect(segs).toContain('effort:max')
-    expect(segs.indexOf('deepseek-v4')).toBeLessThan(segs.indexOf('effort:max'))
+    expect(segs).toContain('◎max')
+    expect(segs.indexOf('deepseek-v4')).toBeLessThan(segs.indexOf('◎max'))
   })
 
   it('effort 缺省：不渲染 effort 段', () => {
@@ -137,11 +137,12 @@ describe('formatGlanceBar', () => {
   })
 
   it('窄于 effort 段：drop effort 保留 model（effort 最贴近 model 的附属段）', () => {
-    const [line] = formatGlanceBar(base({ effort: 'max', width: 20 }), fakeTheme())
+    // ◎max 形态：width 17 → model(11) + ◎max(5) 超出 1 列 → 恰丢 effort 段
+    const [line] = formatGlanceBar(base({ effort: 'max', width: 17 }), fakeTheme())
     const text = plain([line!.text])[0]
-    expect(displayWidth(text!)).toBeLessThanOrEqual(20)
+    expect(displayWidth(text!)).toBeLessThanOrEqual(17)
     expect(text).toContain('deepseek-v4')
-    expect(text).not.toContain('effort')
+    expect(text).not.toContain('◎')
   })
 
   it('width ≤ 0：防御返回空数组', () => {

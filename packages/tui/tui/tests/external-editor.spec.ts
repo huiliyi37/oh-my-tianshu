@@ -18,12 +18,31 @@ import {
   readAndCleanup,
 } from '../src/external-editor.js'
 
-/** 生成一个修改文件内容的 shell 脚本（真实编辑器替身）。 */
+/** 生成一个修改文件内容的脚本（真实编辑器替身；win32 用 .cmd，其余平台 .sh）。 */
 function makeEditorScript(replacement: string): string {
   const dir = mkdtempSync(join(tmpdir(), 'rivet-edit-test-'))
   tempDirs.push(dir)
+  if (process.platform === 'win32') {
+    const script = join(dir, 'editor.cmd')
+    // PowerShell 写不带尾随换行的内容（echo 会带 CRLF，破坏回填断言）
+    writeFileSync(script, `@echo off\r\npowershell -NoProfile -Command "Set-Content -Path '%1' -Value '${replacement}' -NoNewline -Encoding ascii"\r\n`)
+    return script
+  }
   const script = join(dir, 'editor.sh')
   writeFileSync(script, `#!/bin/sh\nprintf '%s' "${replacement}" > "$1"\n`, { mode: 0o755 })
+  return script
+}
+
+/** 生成一个非零退出的脚本（win32 用 .cmd，其余平台 .sh）。 */
+function makeExitScript(): string {
+  const dir = mkdtempSync(join(tmpdir(), 'rivet-edit-test-'))
+  tempDirs.push(dir)
+  const script = join(dir, process.platform === 'win32' ? 'exit1.cmd' : 'exit1.sh')
+  if (process.platform === 'win32') {
+    writeFileSync(script, '@echo off\r\nexit /b 1\r\n')
+  } else {
+    writeFileSync(script, '#!/bin/sh\nexit 1\n', { mode: 0o755 })
+  }
   return script
 }
 
@@ -60,8 +79,14 @@ describe('getDefaultEditor', () => {
     }
   })
 
-  it('非 win32（当前平台）回退 vi', () => {
-    expect(getDefaultEditor()).toBe('vi')
+  it('非 win32 回退 vi', () => {
+    const original = Object.getOwnPropertyDescriptor(process, 'platform')!
+    try {
+      Object.defineProperty(process, 'platform', { value: 'linux', configurable: true })
+      expect(getDefaultEditor()).toBe('vi')
+    } finally {
+      Object.defineProperty(process, 'platform', { ...original })
+    }
   })
 })
 
@@ -114,10 +139,7 @@ describe('openInEditor', () => {
   })
 
   it('编辑器非零退出但无 error（文件已保存）→ 仍读回内容', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'rivet-edit-test-'))
-    tempDirs.push(dir)
-    const script = join(dir, 'exit1.sh')
-    writeFileSync(script, '#!/bin/sh\nexit 1\n', { mode: 0o755 })
+    const script = makeExitScript()
     const result = openInEditor('original', script)
     expect(result).toBe('original')
   })
@@ -139,10 +161,7 @@ describe('openInEditorDetailed', () => {
   })
 
   it('非零退出但无 error（文件已保存）→ content 仍读回、error 为 null', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'rivet-edit-test-'))
-    tempDirs.push(dir)
-    const script = join(dir, 'exit1.sh')
-    writeFileSync(script, '#!/bin/sh\nexit 1\n', { mode: 0o755 })
+    const script = makeExitScript()
     const r = openInEditorDetailed('original', script)
     expect(r.content).toBe('original')
     expect(r.error).toBeNull()

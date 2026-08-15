@@ -68,6 +68,10 @@ export interface EditorRunResult {
 /**
  * 打开编辑器编辑 initialContent，返回内容与异常原因。
  * 编辑器命令可注入（测试）；缺省走 getEditorCommand()。
+ * Windows 上 .cmd/.bat 编辑器（如 `code.cmd`）不经 shell 无法直接 spawn
+ * （EINVAL），回退经 cmd.exe /d /c 显式派发——args 作为 argv 传递，不触发
+ * DEP0190 弃用警告（shell:true + args 组合）；编辑器命令是用户配置的可信
+ * 字符串，命令名与文件路径均无 shell 元字符拼接风险。
  * 编辑器异常终止（status !== 0 且有 error）时 content 为 null、error 携带
  * spawn 原因；status 非 0 但无 error（编辑器被信号终止但文件已保存）仍读回内容。
  * @param initialContent - 预填进编辑器的初始内容。
@@ -77,7 +81,13 @@ export interface EditorRunResult {
 export function openInEditorDetailed(initialContent: string, editor?: string): EditorRunResult {
   const path = createTempFile(initialContent)
   const command = editor ?? getEditorCommand()
-  const result = spawnSync(command, [path], { stdio: 'inherit' })
+  let result = spawnSync(command, [path], { stdio: 'inherit' })
+  // Windows 回退：.cmd/.bat 编辑器（VSCode 的 code.cmd 等）直接 spawn 报
+  // EINVAL——经 cmd.exe /d /c 以参数数组显式派发（不拼接命令字符串）。
+  // 仅 EINVAL 回退：ENOENT（命令真不存在）保持原 error 语义，供调用方回显。
+  if ((result.error as NodeJS.ErrnoException | undefined)?.code === 'EINVAL' && process.platform === 'win32') {
+    result = spawnSync(process.env.ComSpec ?? 'cmd.exe', ['/d', '/c', command, path], { stdio: 'inherit' })
+  }
   if (result.status !== 0 && result.error) {
     // 失败路径清理临时目录（含 RIVET_INPUT.md）；成功路径由 readAndCleanup 处理文件
     try { rmSync(dirname(path), { recursive: true, force: true }) } catch { /* best-effort */ }

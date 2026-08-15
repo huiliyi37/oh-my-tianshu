@@ -2,7 +2,7 @@
  * 底部 footer（format/prompt-footer.ts）— 纯渲染契约测试（C4 概念稿 C 三行底部区）。
  *
  * - 模式 badge 段（normal / [plan] / [plan…] / [auto]）在前，快捷键提示在后。
- * - 窄宽从后往前丢段（ctrl+p → / 命令 → Enter 发送 → mode），mode 恒保留。
+ * - 窄宽从后往前丢段（ctrl+p → / 命令），mode 恒保留（Enter 发送不提示）。
  * - 宽度守恒：任何输入下每行显示宽度 ≤ width。
  */
 
@@ -30,10 +30,10 @@ function base(over: Partial<FormatPromptFooterInput> = {}): FormatPromptFooterIn
 }
 
 describe('formatPromptFooter', () => {
-  it('默认：normal + 快捷键提示（Enter 发送 / 命令 ctrl+p）', () => {
+  it('默认：normal + 快捷键提示（/ 命令 ctrl+p；Enter 发送不提示）', () => {
     const [line = ''] = plain(formatPromptFooter(base(), fakeTheme()))
     expect(line).toContain('normal')
-    expect(line).toContain('Enter 发送')
+    expect(line).not.toContain('Enter 发送')
     expect(line).toContain('/ 命令')
     expect(line).toContain('ctrl+p')
   })
@@ -71,10 +71,11 @@ describe('formatPromptFooter', () => {
     const [line = ''] = plain(formatPromptFooter(base({ width: 12 }), fakeTheme()))
     expect(line).toContain('normal')
     expect(line).not.toContain('ctrl+p')
-    // width 30：mode + Enter 发送，/ 命令与 ctrl+p 丢弃
-    const [mid = ''] = plain(formatPromptFooter(base({ width: 30 }), fakeTheme()))
-    expect(mid).toContain('Enter 发送')
+    // width 20：mode + / 命令，ctrl+p 丢弃（新 hint 集无 Enter 发送）
+    const [mid = ''] = plain(formatPromptFooter(base({ width: 20 }), fakeTheme()))
+    expect(mid).toContain('/ 命令')
     expect(mid).not.toContain('ctrl+p')
+    expect(mid).not.toContain('Enter 发送')
   })
 
   it('极窄（mode 段也放不下）：退化为 mode 单段（mode 恒保留）', () => {
@@ -131,23 +132,24 @@ describe('formatPromptFooter', () => {
   })
 
   it('右侧段恰好填满：pad=0 仍合并，不丢末段', () => {
-    // width 18 → 左侧只剩 `normal`(6)；right 12 → pad=0。旧逻辑 pad>0 会误丢右段。
+    // 新 hint 集（无 Enter 发送）左侧满档 29 列；width 41 → 右段 12 列恰好 pad=0 合并。
     const [line = ''] = plain(formatPromptFooter(base({
-      width: 18,
+      width: 41,
       rightSegments: ['xxxxxxxxxxxx'],
     }), fakeTheme()))
     expect(line).toContain('normal')
     expect(line).toContain('xxxxxxxxxxxx')
     expect(displayWidth(formatPromptFooter(base({
-      width: 18,
+      width: 41,
       rightSegments: ['xxxxxxxxxxxx'],
-    }), fakeTheme())[0] ?? '')).toBe(18)
+    }), fakeTheme())[0] ?? '')).toBe(41)
   })
 
   it('空右侧段：与缺省行为一致', () => {
     const [line = ''] = plain(formatPromptFooter(base({ width: 100, rightSegments: [] }), fakeTheme()))
     expect(line).toContain('normal')
-    expect(line).toContain('Enter 发送')
+    expect(line).toContain('/ 命令')
+    expect(line).not.toContain('Enter 发送')
   })
 
   it('雾蓝 chrome：mode 用 inactiveShimmer，提示用 subtle', () => {
