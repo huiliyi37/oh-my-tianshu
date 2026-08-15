@@ -209,6 +209,9 @@ import type {} from '@huiliyi37/dsh-user-approval'
 // handler 参数仍按本地结构子集标注，属主类型逆变兼容）。
 import type {} from '@huiliyi37/dsh-subagent'
 import type {} from '@huiliyi37/dsh-workflow'
+// hook/result 事件的属主声明(hook-protocol)——module augmentation 同源,
+// 让 switch 的 'hook/result' case 与 data.systemMessage 获得类型。
+import type {} from '@huiliyi37/dsh-hook-protocol'
 
 /** Phase 8：审批 answerer 的请求/结果类型由 ApprovalController 持有（单向依赖）。 */
 import {
@@ -2644,6 +2647,15 @@ export class TuiApp {
           this.discardReasoning()
         }
         this.pendingCallTitles.clear()
+        break
+      }
+      case 'hook/result': {
+        // hook 的用户可见通告(CC dialect systemMessage)——即席 scrollback
+        // 系统行;无 systemMessage 的常规结果不渲染(审计已在日志里)。
+        const hookMessage = event.data.systemMessage
+        if (hookMessage !== undefined) {
+          this.commitToScrollback({ text: color(`[hook] ${hookMessage}`, this.theme.muted), trailingNewline: true })
+        }
         break
       }
       default:

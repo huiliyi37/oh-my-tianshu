@@ -27,6 +27,8 @@ declare module '@huiliyi37/dsh-session/types' {
      * Log-only outcome paired to `hook/invoked` by `handlerId`. Decision is the
      * parsed permission result, `stop` for `continue:false`, or `pass`; exit code
      * may be absent, stderr is bounded, and duration is wall-clock runtime.
+     * `systemMessage` is the hook's user-facing notice (Claude Code dialect),
+     * trimmed and omitted when blank — durable so every client can surface it.
      */
     'hook/result': {
       turn: number
@@ -35,6 +37,8 @@ declare module '@huiliyi37/dsh-session/types' {
       decision: string
       exitCode?: number
       stderrSummary?: string
+      /** The hook's user-facing notice, when it emitted one. */
+      systemMessage?: string
       durationMs: number
     }
   }

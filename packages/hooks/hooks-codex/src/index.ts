@@ -158,9 +158,6 @@ export function apply(ctx: Context, config: Config): void {
         // Execution and decision mapping remain in each bridge so dialect
         // differences stay explicit at their owning extension point.
         /* jscpd:ignore-start */
-        if (output.systemMessage !== undefined) {
-          ctx.logger.warn(`hooks-codex: ${point} hook emitted a systemMessage, which is not yet surfaced (ignored)`)
-        }
         if (session && opts.turn !== undefined) {
           appendHookResult(session, { turn: opts.turn, point, handlerId, output, stderrSummaryMaxChars, durationMs })
         }

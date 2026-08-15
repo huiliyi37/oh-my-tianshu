@@ -601,7 +601,7 @@ export function defineCoverageCases(groups: CoverageGroup | readonly CoverageGro
       expect(events(agent).some(e => e.type === 'hook/invoked' && e.data.point === 'PreToolUse')).toBe(true)
     })
 
-    it('a hook emitting a systemMessage is warned as not-yet-surfaced', async () => {
+    it('a hook emitting a systemMessage has it durably recorded, never sent to the model', async () => {
       const d = dir()
       hooks(d, { UserPromptSubmit: [{ hooks: [{ type: 'command', command: sh(d, 'sm.sh', '#!/usr/bin/env bash\necho \'{"systemMessage":"heads up"}\'\n') }] }] })
       const adapter = new MockAdapter([textResponse('ok')])
@@ -609,7 +609,9 @@ export function defineCoverageCases(groups: CoverageGroup | readonly CoverageGro
       const warn = vi.fn(); ctx.logger.warn = warn as never
       const agent = ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
       agent.followup(createUserMessage({ content: [{ type: 'text', text: 'go' }], source: { kind: 'user' } })); await waitForIdle(ctx, agent)
-      expect(warn).toHaveBeenCalledWith(expect.stringContaining('systemMessage'))
+      expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('systemMessage'))
+      const result = events(agent).find(e => e.type === 'hook/result' && e.data.point === 'UserPromptSubmit')
+      expect(result?.data).toMatchObject({ systemMessage: 'heads up' })
       expect(JSON.stringify(adapter.requests[0]!.messages)).not.toContain('heads up')
     })
 

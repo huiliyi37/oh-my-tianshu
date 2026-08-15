@@ -1839,6 +1839,28 @@ describe('TuiApp 流式提交', () => {
     await app.dispose()
   })
 
+  it('hook/result 的 systemMessage 渲染为 scrollback 系统行,常规结果不渲染', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('hook-1')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin(), theme: 'paper' })
+    await app.attach()
+    const id = app.sessionId
+    if (id === null) throw new Error('no active session')
+    const emit = sessionEventBus(ctx)
+    emit(id, { seq: 1, time: 1, type: 'turn/start', data: { turn: 1 } })
+    emit(id, { seq: 2, time: 2, type: 'hook/result', data: { turn: 1, point: 'UserPromptSubmit', handlerId: 'h1', decision: 'pass', durationMs: 3, systemMessage: 'heads up from hook' } })
+    emit(id, { seq: 3, time: 3, type: 'hook/result', data: { turn: 1, point: 'Stop', handlerId: 'h2', decision: 'pass', durationMs: 1 } })
+    await new Promise(resolve => setImmediate(resolve))
+
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('[hook] heads up from hook')
+    await app.dispose()
+  })
+
   it('aborted turn 的流式残文不进 scrollback', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('stream-2')

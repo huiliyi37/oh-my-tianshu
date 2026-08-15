@@ -175,9 +175,6 @@ export function apply(ctx: Context, config: Config): void {
         if (output.updatedInput !== undefined) {
           ctx.logger.warn(`hooks-claude: ${point} hook requested updatedInput, which is not yet honored (ignored)`)
         }
-        if (output.systemMessage !== undefined) {
-          ctx.logger.warn(`hooks-claude: ${point} hook emitted a systemMessage, which is not yet surfaced (ignored)`)
-        }
         if (session && opts.turn !== undefined) {
           appendHookResult(session, { turn: opts.turn, point, handlerId, output, stderrSummaryMaxChars, durationMs })
         }

@@ -408,6 +408,8 @@ Source: [`packages/hooks/hook-protocol/src/types.ts:19`](../packages/hooks/hook-
  * Log-only outcome paired to `hook/invoked` by `handlerId`. Decision is the
  * parsed permission result, `stop` for `continue:false`, or `pass`; exit code
  * may be absent, stderr is bounded, and duration is wall-clock runtime.
+ * `systemMessage` is the hook's user-facing notice (Claude Code dialect),
+ * trimmed and omitted when blank — durable so every client can surface it.
  */
 'hook/result': {
   turn: number
@@ -416,11 +418,13 @@ Source: [`packages/hooks/hook-protocol/src/types.ts:19`](../packages/hooks/hook-
   decision: string
   exitCode?: number
   stderrSummary?: string
+  /** The hook's user-facing notice, when it emitted one. */
+  systemMessage?: string
   durationMs: number
 }
 ```
 
-Source: [`packages/hooks/hook-protocol/src/types.ts:31`](../packages/hooks/hook-protocol/src/types.ts)
+Source: [`packages/hooks/hook-protocol/src/types.ts:33`](../packages/hooks/hook-protocol/src/types.ts)
 
 ### `llm/*`
 

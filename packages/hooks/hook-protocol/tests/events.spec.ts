@@ -31,8 +31,7 @@ describe('hook/* session events', () => {
     }
   })
 
-  it('appendHookResult derives decision/exitCode/stderrSummary from the output', () => {
-    const session = Session.create(SessionId('s'))
+  it('appendHookResult derives decision/exitCode/stderrSummary from the output', () => {    const session = Session.create(SessionId('s'))
     appendHookResult(session, {
       turn: 1, point: 'PreToolUse', handlerId: 'h1',
       stderrSummaryMaxChars: 500, durationMs: 5, output: output({ exitCode: 2, stderr: 'blocked', decision: 'deny' }),
@@ -54,6 +53,24 @@ describe('hook/* session events', () => {
       expect('stderrSummary' in sparse.data).toBe(false)
       expect(sparse.data.decision).toBe('allow')
     }
+  })
+
+  it('appendHookResult records a non-blank systemMessage and omits a blank one', () => {
+    const session = Session.create(SessionId('s'))
+    appendHookResult(session, {
+      turn: 1, point: 'Stop', handlerId: 'h1',
+      stderrSummaryMaxChars: 500, durationMs: 3, output: output({ decision: 'allow', systemMessage: '  heads up  ' }),
+    })
+    const ev = [...session.events].find(e => e.type === 'hook/result')
+    if (ev?.type === 'hook/result') expect(ev.data.systemMessage).toBe('heads up')
+
+    const session2 = Session.create(SessionId('s2'))
+    appendHookResult(session2, {
+      turn: 1, point: 'Stop', handlerId: 'h2',
+      stderrSummaryMaxChars: 500, durationMs: 3, output: output({ decision: 'allow', systemMessage: '   ' }),
+    })
+    const ev2 = [...session2.events].find(e => e.type === 'hook/result')
+    if (ev2?.type === 'hook/result') expect('systemMessage' in ev2.data).toBe(false)
   })
 
   it('the decision falls back to stop on continue:false, else pass', () => {

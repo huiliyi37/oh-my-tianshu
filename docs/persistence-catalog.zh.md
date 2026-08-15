@@ -410,6 +410,8 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
  * Log-only outcome paired to `hook/invoked` by `handlerId`. Decision is the
  * parsed permission result, `stop` for `continue:false`, or `pass`; exit code
  * may be absent, stderr is bounded, and duration is wall-clock runtime.
+ * `systemMessage` is the hook's user-facing notice (Claude Code dialect),
+ * trimmed and omitted when blank — durable so every client can surface it.
  */
 'hook/result': {
   turn: number
@@ -418,11 +420,13 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
   decision: string
   exitCode?: number
   stderrSummary?: string
+  /** The hook's user-facing notice, when it emitted one. */
+  systemMessage?: string
   durationMs: number
 }
 ```
 
-来源：[`packages/hooks/hook-protocol/src/types.ts:31`](../packages/hooks/hook-protocol/src/types.ts)
+来源：[`packages/hooks/hook-protocol/src/types.ts:33`](../packages/hooks/hook-protocol/src/types.ts)
 
 ### `llm/*`
 
