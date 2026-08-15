@@ -64,6 +64,7 @@
 | src/format/collapsed-bash.ts | format/collapsed-bash.ts | modified |
 | src/format/diff.ts | format/diff.ts | modified |
 | src/format/doctor-report.ts | — | new |
+| src/format/lsp-diagnostics.ts | — | new（诊断展示纯函数：工具卡徽标 + /lsp 面板段，severity 语义色） |
 | src/format/export.ts | — | new（/export 会话导出：事件日志 → Markdown 转录，纯渲染） |
 | src/format/fluency-policy.ts | fluency-policy.ts | modified（目录重排：上游根 → src/format/） |
 | src/format/glance-bar.ts | format/glance-bar.ts | modified |
@@ -99,6 +100,11 @@
 | src/index.ts | — | new |
 | src/invariant.ts | — | new |
 | src/live-tail-cap.ts | live-tail-cap.ts | modified |
+| src/lsp/lsp-bridge.ts | — | new（LSP 诊断桥：懒生命周期 + 展示层诊断缓存；扩展名不支持/server 未安装一次标记；per-file 合并与冷却） |
+| src/lsp/manager.ts | lsp/manager.ts | ported（单 LSP server：initialize/didOpen/changeFile/getFileDiagnostics，pull 优先 + publishDiagnostics 缓存） |
+| src/lsp/multi-manager.ts | lsp/multi-manager.ts | modified（spawn 简化：弃上游 spawnHidden/resolve-node-cli 桌面 bundle 适配，用 node:child_process spawn 直连） |
+| src/lsp/rpc.ts | lsp/rpc.ts | ported（JSON-RPC over stdio：Content-Length 帧编解码 + 请求/通知分发） |
+| src/lsp/server-registry.ts | lsp/server-registry.ts | ported（语言 → server 映射：typescript 经 npx / pyright / gopls / rust-analyzer / clangd / jdtls + which 探测） |
 | src/mention-expand.ts | — | new |
 | src/mention-parser.ts | mention-parser.ts | modified |
 | src/pi/latex-block.ts | pi/latex-block.ts | modified |

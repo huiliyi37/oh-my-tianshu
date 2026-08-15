@@ -22,10 +22,13 @@
 | `vimEnabled` | Vim 键位（Phase 6.5）；缺省 `false` |
 | `vision` | 主控模型识图能力与视觉桥状态（图片附件气泡提示数据源：`supportsVision` / `bridgeEnabled` / `bridgeSource`）；由装配方按 vision-bridge 插件配置派生——装配方未派生时，`bridgeEnabled` 经插件 apply 时 provide 的 `visionBridge` 服务自动探测 |
 | `workflowHistoryLimit` | `/workflow` 面板已结算 run 缓存条数上限，超限 drop-oldest；正整数，缺省 `50` |
+| `lsp` | LSP 诊断桥：`enabled`（缺省 `true`）/ `timeoutMs`（缺省 `2000`）。agent 触碰文件时按扩展名懒启动语言 server 拉取诊断，展示于工具卡徽标与 `/lsp` 面板。纯展示——不写会话事件、不注册任何模型面 |
 
 **输入框剪贴板与图片粘贴**（移植自 opencode-tui 输入面）：`Ctrl+V` 读系统剪贴板图片（无图 fallback 剪贴板文本）；右键/终端菜单粘贴先识别剪贴板图片（命中则附图并吞掉图片字节乱码），粘贴内容像图片路径时加载为附件；附件以 `📎 N images` 标记显示在输入行上方，提交后在用户气泡下方以终端内联图形渲染（kitty / iTerm2）。vim yank / `Alt+W` 选区复制经 OSC52 写系统剪贴板。用户气泡携带识图提示——图片直发 / 经识图桥转描述 / 未发送（无识图桥）。
 
 **会话渲染面**（对标 Claude Code）：已结算工具卡在 `tool/result` 时实时提交进 scrollback，经软降级桥（`adapter/tool-view.ts`）消费 harness 的 presenter 渲染意图（`presentCall`/`presentResult`）——`diff` 结果渲染结构化红绿文件 diff（与审批预览共享 `renderFileDiff`），`terminal` 结果渲染命令标题 + cwd + exit/signal 徽标，其余回落文本折叠卡。think 推理通道流式期在 live 区渲染 shimmer 头行（`✻ 思考中…`，tick 驱动光带扫过，16 色终端静态降级）+ 暗色尾巴，段结束时以折叠头行落底进 scrollback（`✻ 思考 (3.2s) · 12 行`）——正文默认收起（对标竞品），`Ctrl+O` 在 live 区按需展开查看（scrollback append-only，展开不重复落底；中止的 turn 丢弃缓冲；紧凑模式只留头行）。resume/attach 经同一条桥重放，消息与工具卡按事件 seq 交错——live 与恢复转录渲染完全一致。
+
+**LSP 诊断**（移植自天枢 LSP 栈）：agent 触碰文件时，桥按扩展名懒启动语言 server（typescript 经 `npx -y` 默认可用；pyright/gopls/rust-analyzer/clangd/jdtls 按 PATH 探测）拉取诊断——live 工具卡标题带 `⚠ N错 M警` 徽标，`/lsp` 面板按文件分组展示。诊断只进 TUI 本地展示缓存：不写会话事件、不注册任何模型面，dispose 时 kill 全部 server。装配了 `getDiagnostics` 形状的外部服务（`provide('lsp')`，如 dsh-lsp 伴生插件）时直接消费、与模型工具面共享 server 集；官方 `ctx.lsp` seam 经 `query(getDiagnostics)` 操作适配，官方操作落地前恒空。
 
 依赖服务：`sessions`/`agents`/`agentDefaultModel` 必需；`goals`/`subagents` 可选——未装配时 `/goal` 命令与委派树面板降级（fails loud 报不可用，不静默吞）。TUI 同时注册 `userInteraction` provider（终端内答题）并订阅 `approval/request`（挂起审批卡片）。
 
@@ -52,6 +55,7 @@ None directly; user input submitted through the TUI becomes ordinary logged mess
 
 ## Known Limitations and Deferred Work
 
+- **LSP 需要本地语言 server** — 诊断依赖按扩展名安装的语言 server（typescript 经 `npx -y` 视为可用；pyright/gopls/rust-analyzer/clangd/jdtls 需在 PATH）。官方 `ctx.lsp` seam（`dsh-lsp`）当前未暴露 `getDiagnostics` 操作，装配官方 seam 时会被探测到但诊断恒空，待官方落地该操作后自动生效；无任何 `lsp` 服务时内置桥自行 spawn。
 - **图片追问未移植** — opencode-tui 的 ask_image 工具、imageRegistry 与视觉描述缓存未移植：已发送的图片无法反复追问，同角度重复描述会重调视觉模型。视觉桥本身（`dsh-vision-bridge`）覆盖提交时一次性描述路径。
 - **app.ts 单体（约 2.2k 行）** — 挂起态状态机已 controller 化（question/approval），渲染组合与键仲裁仍在 app.ts；C4 拆分方案（面板段纯函数化）继续推进。dispose 已释放 interaction/taskDone/taskSurface/subagent/workflow disposer，切会话结算挂起审批/提问（fail-closed）。
 - **engine I/O 文件覆盖率豁免** — input-line/live-engine 等终端边界文件在 vitest.config.ts 的覆盖率豁免清单中（`TODO(tui)` 注释），随真实组合测试线成熟逐步消化。

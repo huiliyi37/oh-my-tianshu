@@ -24,6 +24,7 @@ import type {
 import type { WorkflowRunView } from '../workflow-panel.js'
 import type { ConfigPanelProjection } from '../config-panel.js'
 import type { SkillSummaryInput } from '../skill-panel.js'
+import type { LspDiagnosticView } from '../lsp/lsp-bridge.js'
 
 /** T2.3：tasks.list() 返回项的最小 wire 形状（status/detail/startedAt 渲染所需）。 */
 export interface TaskSnapshotView {
@@ -101,6 +102,14 @@ export interface LiveSnapshot {
   skillsPanelVisible: boolean
   /** skill 快照缓存（ctx.skills.list；空数组 = 无技能或未加载）。 */
   skillItems: SkillSummaryInput[]
+
+  // lsp 面板（本地语言服务诊断；LspBridge 缓存折叠）
+  /** /lsp 面板显隐。 */
+  lspPanelVisible: boolean
+  /** 全量诊断视图（bridge 缓存折叠；空数组 = 无诊断）。 */
+  lspDiagnostics: LspDiagnosticView[]
+  /** 是否至少一个语言 server 可用（面板空态文案区分「无诊断」/「未安装」）。 */
+  lspAvailable: boolean
 
   // P3：会话 tab 栏（多会话 side conversation）
   /** 当前活跃会话 id（tab 高亮；未 attach null）。 */

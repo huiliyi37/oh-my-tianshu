@@ -23,6 +23,7 @@ import { projectDelegationTree } from '../delegation-panel.js'
 import { projectWorkflow, type WorkflowRunView } from '../workflow-panel.js'
 import { projectConfigPanel } from '../config-panel.js'
 import { projectSkillPanel } from '../skill-panel.js'
+import { projectLspPanel, groupLspDiagnostics } from '../format/lsp-diagnostics.js'
 
 /** 后台任务区状态标记（与 renderLive 现状一致：running ⏳ / completed ✓ / 其余 ✗）。 */
 function taskSnapshotMark(status: string): string {
@@ -115,6 +116,17 @@ export function renderConfigPanel(snapshot: LiveSnapshot): string[] {
 export function renderSkillsPanel(snapshot: LiveSnapshot): string[] {
   if (!snapshot.skillsPanelVisible) return []
   return projectSkillPanel(snapshot.skillItems, { width: snapshot.cols })
+}
+
+/**
+ * 渲染 /lsp 诊断面板（按文件分组的诊断列表；severity 着色）。面板隐藏 →
+ * 空数组。空诊断列表渲染空态行（区分「无诊断」与「server 未安装」）。
+ * @param snapshot - 当前帧快照。
+ * @returns 面板行数组。
+ */
+export function renderLspPanel(snapshot: LiveSnapshot): string[] {
+  if (!snapshot.lspPanelVisible) return []
+  return projectLspPanel(groupLspDiagnostics(snapshot.lspDiagnostics), snapshot.theme, snapshot.lspAvailable)
 }
 
 /**

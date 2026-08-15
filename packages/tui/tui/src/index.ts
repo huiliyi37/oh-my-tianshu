@@ -43,6 +43,15 @@ export interface TuiRunnerConfig {
   }
   /** 已结算 workflow run 缓存条数上限（/workflow 面板历史），超限 drop-oldest；正整数，缺省 50。 */
   workflowHistoryLimit?: number
+  /** LSP 诊断桥（本地语言服务）：懒启动——agent 触碰文件时拉取该文件诊断。
+   *  诊断只进 TUI 本地展示缓存（工具卡徽标 + /lsp 面板），不写会话事件、
+   *  不注册任何模型面。缺省启用。 */
+  lsp?: {
+    /** 是否启用诊断拉取；缺省 true。 */
+    enabled?: boolean
+    /** 单次诊断拉取超时（毫秒）；缺省 2000。 */
+    timeoutMs?: number
+  }
 }
 
 /**
@@ -92,6 +101,7 @@ export function apply(ctx: Context, config: TuiRunnerConfig = {}): void {
       ...(config.vimEnabled === undefined ? {} : { vimEnabled: config.vimEnabled }),
       ...(config.vision === undefined ? {} : { vision: config.vision }),
       ...(config.workflowHistoryLimit === undefined ? {} : { workflowHistoryLimit: config.workflowHistoryLimit }),
+      ...(config.lsp === undefined ? {} : { lsp: config.lsp }),
     })
     stdin.on('SIGINT', onSigint)
     ctx.effect(() => () => {
