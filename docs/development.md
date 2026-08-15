@@ -175,6 +175,7 @@ The root `pnpm` scripts below are the daily surface; [`package.json`](../package
 ```sh
 pnpm install            # pnpm workspaces, node ^22.19 || >=24
 pnpm run clean           # remove build outputs and safe residue from deleted packages
+pnpm run ci:local        # local CI loop (typecheck → test → build → hygiene → lint); the pre-push rigor gate
 pnpm run test           # vitest unit tests
 pnpm run test:coverage  # CI coverage gate: per-file 100% on packages/*/*/src
 pnpm run test:e2e       # real-API tests; self-skip without DEEPSEEK_API_KEY

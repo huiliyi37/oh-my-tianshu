@@ -85,6 +85,9 @@ export function openInEditorDetailed(initialContent: string, editor?: string): E
   // Windows 回退：.cmd/.bat 编辑器（VSCode 的 code.cmd 等）直接 spawn 报
   // EINVAL——经 cmd.exe /d /c 以参数数组显式派发（不拼接命令字符串）。
   // 仅 EINVAL 回退：ENOENT（命令真不存在）保持原 error 语义，供调用方回显。
+  // oxlint 与 tsc 对 spawnSync error 的类型面不一致（tsc 是无 code 的 Error，
+  // 需要 ErrnoException 收窄；oxlint 视为冗余）——窄豁免,以 tsc 为准。
+  // oxlint-disable-next-line no-unnecessary-type-assertion
   if ((result.error as NodeJS.ErrnoException | undefined)?.code === 'EINVAL' && process.platform === 'win32') {
     result = spawnSync(process.env.ComSpec ?? 'cmd.exe', ['/d', '/c', command, path], { stdio: 'inherit' })
   }

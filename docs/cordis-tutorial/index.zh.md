@@ -14,7 +14,7 @@ Cordis 是 Tianshu Harness SDK 底层的插件框架：它是一个小型运行�
 
 ```sh
 git clone https://github.com/huiliyi37/oh-my-tianshu.git
-cd dsh-tianshu-tui
+cd oh-my-tianshu
 pnpm install
 ```
 

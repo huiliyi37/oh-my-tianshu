@@ -12,6 +12,8 @@ Status: implemented
 
 新增 `.github/workflows/verify.yml`——标准托管 runner（`ubuntu-latest`，Node `22.19` + `24`）上的最小严谨闭环：不可变安装、仓级 `typecheck`、全量单测 `test`、`build`，随每次推送 main 与每个 PR 运行。它刻意不复制企业级 `ci.yml` 的拓扑，只依赖到处存在的基础设施。同一改动把继承的 `ci.yml` 里 `master` 的 push 触发与 master 门控任务改指 `main`，使其自身的 push 泳道恢复可触发（自建池 PR 泳道不动——基础设施决策仍归 failover runbook）。
 
+**同日更新（账单锁定）**:GitHub 账号被账单锁定，托管 runner 完全不可用，`verify.yml` 在解锁前仅保留 `workflow_dispatch` 手动触发。当前生效的提交门是本地闭环 `pnpm run ci:local`(`scripts/local-ci.sh`)——typecheck → 全量测试 → 构建 → hygiene → lint，按阶段计时并 fail-fast，语义与托管版一致；全绿才推。
+
 ## Alternatives considered
 
 - **只把 ci.yml 的 `master` 改成 `main`**：PR 泳道仍依赖 `dshubuntu-*` / `vm-backup` 池，无法验证本仓可用——永远排队中的检查不如没有。

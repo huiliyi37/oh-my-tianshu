@@ -66,7 +66,7 @@ export function supportsOsc52(env: NodeJS.ProcessEnv = process.env): boolean {
 export function isCjkLocale(env: NodeJS.ProcessEnv = process.env): boolean {
   const candidates = [env.LC_ALL ?? '', env.LC_CTYPE ?? '', env.LANG ?? '']
   try {
-    candidates.push(new Intl.DateTimeFormat().resolvedOptions().locale ?? '')
+    candidates.push(new Intl.DateTimeFormat().resolvedOptions().locale)
   } catch { /* ICU 缺失（WSL/Alpine 精简版）时仅用 env */ }
   return candidates.some(l => /^(zh|ja|ko)/i.test(l.trim()))
 }

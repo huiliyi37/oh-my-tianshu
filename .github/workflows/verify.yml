@@ -1,13 +1,17 @@
 name: verify
 
 # 托管 runner 上的最小严谨闭环：typecheck + 全量单测 + 构建。
-# ci.yml 的企业级矩阵（自建池/Wine/覆盖率）与本工作流互补；本工作流不依赖
-# 任何自建基础设施，push 到 main 与每个 PR 都在标准托管 runner 上给出结论。
+# 注意：当前仅手动触发——账号账单锁定期间托管 runner 无法启动，日常严谨提交门
+# 是本地闭环 `pnpm run ci:local`（scripts/local-ci.sh，同一门禁语义）。账号解锁后
+# 把 on 恢复为 push/pull_request 即可。
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
+# 解锁后恢复：
+# on:
+#   push:
+#     branches: [main]
+#   pull_request:
+#   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

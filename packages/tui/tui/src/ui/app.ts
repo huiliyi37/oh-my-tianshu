@@ -2977,7 +2977,8 @@ export class TuiApp {
         title,
         columns: cols,
         elapsedMs: Math.max(0, Date.now() - tool.time),
-        tailLines: compactLive || !latest ? 0 : (tightViewport ? 1 : 3),
+        // oxlint-disable-next-line no-unnecessary-condition -- oxlint 类型面把 latest 误判为恒 false;entries() 循环里 i 取 0..len-1,latest 在末位为 true
+        tailLines: compactLive ? 0 : latest ? (tightViewport ? 1 : 3) : 0,
         tick: this.tick,
         compact: compactLive,
       }, theme)

@@ -14,7 +14,7 @@ You need a clone of this repository with dependencies installed — the [quick s
 
 ```sh
 git clone https://github.com/huiliyi37/oh-my-tianshu.git
-cd dsh-tianshu-tui
+cd oh-my-tianshu
 pnpm install
 ```
 

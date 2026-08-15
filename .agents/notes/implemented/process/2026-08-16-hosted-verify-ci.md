@@ -12,6 +12,8 @@ Two gaps let red states land on `main`: the inherited `ci.yml` only triggered pu
 
 Add `.github/workflows/verify.yml` — a minimal rigor loop on standard hosted runners (`ubuntu-latest`, Node `22.19` + `24`): immutable install, repo-wide `typecheck`, full unit `test`, and `build`, on every push to `main` and every pull request. It intentionally duplicates nothing from the enterprise `ci.yml` topology; it only requires infrastructure that exists everywhere. In the same change, retarget the inherited `ci.yml` push triggers and master-gated jobs from `master` to `main` so its own push lanes can fire again (its custom-pool PR lanes are unchanged — that infrastructure decision stays with the failover runbook).
 
+**Update (same day, billing lock)**: the GitHub account is billing-locked and cannot run hosted runners at all, so `verify.yml` is `workflow_dispatch`-only until the account is resolved. The operative gate is the local loop `pnpm run ci:local` (`scripts/local-ci.sh`) — typecheck → full tests → build → hygiene → lint, fail-fast with per-stage timing, the same gate semantics; push only when it is green.
+
 ## Alternatives considered
 
 - **Only fix `master` → `main` in ci.yml**: the PR lanes would still depend on the `dsh-ubuntu-*` / `vm-backup` pools, which are not verifiably available to this repo — a queue-forever check is worse than none.

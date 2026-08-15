@@ -129,7 +129,8 @@
     "demo:web": "npm run build && node --import tsx/esm apps/cli/src/bin.ts web",
     "mock:llm": "node --import tsx packages/support/llm-mock-server/src/bin.ts",
     "dev:web": "tsx scripts/dev-web.ts --poll",
-    "postinstall": "node scripts/install-lefthook.mjs"
+    "postinstall": "node scripts/install-lefthook.mjs",
+    "ci:local": "bash scripts/local-ci.sh"
   },
   "devDependencies": {
     "@agentclientprotocol/sdk": "0.25.1",

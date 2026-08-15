@@ -20,7 +20,7 @@ pnpm -v
 
 ```sh
 git clone https://github.com/huiliyi37/oh-my-tianshu.git
-cd dsh-tianshu-tui
+cd oh-my-tianshu
 pnpm install
 pnpm run build
 ```
