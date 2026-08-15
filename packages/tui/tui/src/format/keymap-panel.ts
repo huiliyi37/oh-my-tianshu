@@ -19,17 +19,29 @@ export interface KeymapEntry {
   action: string
 }
 
-/** 当前实现的完整快捷键表（新增键位时在此登记，面板自动跟随）。 */
+/** 当前实现的完整快捷键表（新增键位时在此登记，面板自动跟随）。
+ *  与 README 快捷键表同源维护；审批卡的 y/N/a/Ctrl+C 为上下文键位，
+ *  由审批卡自带提示承担，不在此列。 */
 export const KEYMAP_ENTRIES: KeymapEntry[] = [
   { keys: 'Enter', action: '发送' },
   { keys: 'Shift+Enter', action: '换行（或 \\+Enter 续行）' },
+  { keys: 'Ctrl+N', action: '新会话' },
+  { keys: 'Ctrl+S', action: '恢复最近会话' },
+  { keys: 'Ctrl+Q', action: '退出' },
   { keys: 'Ctrl+P', action: '命令面板' },
+  { keys: 'Ctrl+.', action: '快捷键面板' },
+  { keys: 'Ctrl+F', action: '历史搜索（n/N 跳转）' },
   { keys: 'Ctrl+O', action: '展开/收起推理块' },
   { keys: 'Ctrl+E', action: '外部编辑器' },
   { keys: 'Ctrl+T', action: '中轮转向' },
+  { keys: 'Ctrl+V', action: '粘贴剪贴板图片/文本' },
   { keys: 'Ctrl+U', action: '删除到行首' },
-  { keys: 'Tab', action: '@-路径补全' },
-  { keys: 'Ctrl+.', action: '快捷键面板' },
+  { keys: 'Ctrl+C', action: '打断当前回合（空闲双击退出）' },
+  { keys: 'Shift+Tab', action: '模式循环 normal→plan→always-approve' },
+  { keys: 'Tab', action: '@-路径补全 / 接受 slash 选中项' },
+  { keys: '↑/↓', action: '输入历史（菜单打开时为选择）' },
+  { keys: 'PageUp/PageDown', action: 'slash 菜单翻页' },
+  { keys: 'Alt+W', action: '复制选区到系统剪贴板（OSC52）' },
   { keys: 'Esc', action: '取消/关闭' },
 ]
 
@@ -55,7 +67,9 @@ export function renderKeymapPanel(width: number): string[] {
   const rows: string[] = [title, '']
   if (width < 12) return rows
   const keyCol = keyColumnWidth(KEYMAP_ENTRIES)
-  const actionBudget = Math.max(1, width - keyCol)
+  // 键位列外还有 1 列前导空格：动作预算要再减 1，否则截断绑定宽度时
+  // 整行显示宽度超出 1 列（窄宽破版——length 度量测不出，见 spec 的 width 断言）。
+  const actionBudget = Math.max(1, width - keyCol - 1)
   for (const entry of KEYMAP_ENTRIES) {
     if (keyCol >= width) {
       // 极端窄宽：紧凑单列，键位不截断、动作截断

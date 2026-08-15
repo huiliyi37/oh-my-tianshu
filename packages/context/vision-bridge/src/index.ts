@@ -13,8 +13,9 @@
  * - **桥失败不炸轮**：视觉模型超时/报错/返回空，都降级为可见的桥接提示文本，
  *   让主控知道"有图但没读到"，而非静默吞图或整轮 failed。
  * - **TUI 提示一致性**：TUI 的 `vision.bridgeEnabled` 提示与本插件配置同源
- *   （装配方派生）；无桥且主控不识图时 TUI 提交侧已过滤图片（气泡警告），
- *   本插件只处理"有桥"一态。
+ *   （装配方派生）；装配方未派生时，TUI 经本插件 provide 的 `visionBridge`
+ *   探测服务自动判定桥可用性（存在即桥可用）。无桥且主控不识图时 TUI
+ *   提交侧已过滤图片（气泡警告），本插件只处理"有桥"一态。
  *
  * @module @huiliyi37/dsh-vision-bridge
  */
@@ -30,6 +31,19 @@ export const name = 'vision-bridge'
 
 /** The llm service that drives the vision-model bridge calls. */
 export const inject = ['llm']
+
+/** 视觉桥探测服务面：存在即桥已装配（展示层经 `reflect.get('visionBridge', false)` 判定）。 */
+export interface VisionBridgeProbe {
+  /** 装配该桥的插件名（调试/日志用）。 */
+  readonly providedBy: string
+}
+
+declare module '@huiliyi37/cordis' {
+  interface Context {
+    /** 视觉桥探测服务：vision-bridge 插件装配时 provide，随其卸载释放。 */
+    visionBridge: VisionBridgeProbe
+  }
+}
 
 /** 视觉桥配置：描述模型路由（显式或自动）+ 主控能力声明。 */
 export interface Config {
@@ -309,6 +323,10 @@ export function apply(ctx: Context, config: Config): void {
   if (!explicit && config.visionAutoBridge !== true) {
     throw new Error('vision-bridge: 未配置视觉模型——请提供 provider/model，或开启 visionAutoBridge')
   }
+
+  // 探测服务面：TUI 等展示层经 reflect.get('visionBridge', false) 判定桥可用性
+  // （存在即已装配），装配方无需再派生 vision.bridgeEnabled 配置；随插件卸载释放。
+  ctx.provide('visionBridge', { providedBy: name })
 
   ctx.on('agent/pre-step', async (
     { signal },

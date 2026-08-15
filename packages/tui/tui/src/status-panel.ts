@@ -13,6 +13,7 @@
 
 import { displayWidth } from './width.js'
 import { projectTaskPanel, type TaskItem } from './format/task-panel.js'
+import { formatElapsedHuman } from './format/spinner-status.js'
 
 /** goal 投影单元的状态阶段（与 goal 包 wire 形状一致）。 */
 export type GoalPhase = 'active' | 'paused' | 'blocked' | 'complete'
@@ -57,6 +58,19 @@ const GOAL_TITLE = '◆ 目标'
 /** 计划段徽标前缀。 */
 const PLAN_TITLE = '📐 计划'
 
+/** 会话汇总段标题行（summary-state 投影：TUI 本地 fold，不经宿主投影总线）。 */
+const SESSION_TITLE = 'Σ 会话'
+
+/** 会话级汇总段输入（summary-state 模型的展示投影）。 */
+export interface SessionTotalsInput {
+  /** 已完成轮数（turn/end 累计）。 */
+  turns: number
+  /** 已完成轮的工具调用总数。 */
+  toolCalls: number
+  /** 已完成轮的工具耗时合计（真实毫秒）。 */
+  elapsedMs: number
+}
+
 /**
  * 状态 → (文本, 颜色, 阶段) 三元组映射（grok-build status_label 模式）。
  * @param phase - goal 投影单元的状态阶段。
@@ -71,19 +85,20 @@ export function goalStatusLabel(phase: GoalPhase): GoalStatusLabel {
  * @param goal - goal 投影快照；null（从未写入）→ 目标段不渲染。
  * @param todos - 任务快照；null → 任务段不渲染，空数组 → 渲染占位。
  * @param plan - plan 投影快照；null → 计划段不渲染。
- * @param opts - 渲染选项（含行截断宽度预算）。
- * @returns 面板行数组（三段按目标/任务/计划顺序拼接）。
+ * @param opts - 渲染选项（含行截断宽度预算与可选会话汇总段）。
+ * @returns 面板行数组（段按目标/任务/计划/会话顺序拼接）。
  */
 export function projectStatusPanel(
   goal: GoalProjectionInput | null,
   todos: TaskItem[] | null,
   plan: PlanProjectionInput | null,
-  opts: { width: number },
+  opts: { width: number; sessionTotals?: SessionTotalsInput | null },
 ): string[] {
   const rows: string[] = []
   if (goal !== null) rows.push(...projectGoalSection(goal, opts.width))
   rows.push(...projectTaskPanel(todos, Math.max(1, opts.width)))
   if (plan !== null) rows.push(...projectPlanSection(plan, opts.width))
+  rows.push(...projectSessionSection(opts.sessionTotals ?? null, opts.width))
   return rows
 }
 
@@ -106,6 +121,14 @@ function projectPlanSection(plan: PlanProjectionInput, width: number): string[] 
   const pending = plan.pending === true ? ' · 待生效' : ''
   return [truncateByWidth(`${PLAN_TITLE} · ${mode}${pending}`, width)]
 /* jscpd:ignore-start */
+}
+
+/** 会话汇总段：`Σ 会话 · 回合 N · 工具 M · 耗时 X` 单行；无已完成轮时不渲染。 */
+function projectSessionSection(totals: SessionTotalsInput | null, width: number): string[] {
+  if (totals === null || totals.turns === 0) return []
+  const parts = [`${SESSION_TITLE} · 回合 ${totals.turns}`, `工具 ${totals.toolCalls}`]
+  if (totals.elapsedMs > 0) parts.push(formatElapsedHuman(totals.elapsedMs))
+  return [truncateByWidth(parts.join(' · '), width)]
 }
 
 /** 按显示宽度截断字符串（仅发生截断时尾部补 …；极端窄宽退化为 …）。 */

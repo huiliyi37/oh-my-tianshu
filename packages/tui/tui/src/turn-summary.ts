@@ -67,7 +67,7 @@ export function applyTurnEvent(state: TurnSummaryState, event: SessionEvent): Tu
       const record = state.calls.find(c => c.callId === source.callId)
       if (record === undefined) return state
       const failed = event.data.error !== undefined
-      // totalElapsedMs 存原始时间戳差（10ms 单位）；展示层换算秒。
+      // SessionEvent.time 是 Unix epoch 毫秒：差值即真实毫秒耗时。
       const elapsedMs = Math.max(0, event.time - record.startedAt)
       return {
         ...state,
@@ -84,13 +84,14 @@ export function applyTurnEvent(state: TurnSummaryState, event: SessionEvent): Tu
 }
 
 /**
- * 轮级摘要文本：`N tools · elapsed · file×k edit×k · N failed`（elapsed 秒一位小数）。
+ * 轮级摘要文本：`N tools · elapsed · file×k edit×k · N failed`（elapsed 秒一位小数；
+ * totalElapsedMs 为真实毫秒——SessionEvent.time 是 epoch 毫秒）。
  * @param state - 轮级统计状态。
  * @returns 摘要文本（零值段省略）。
  */
 export function formatTurnSummary(state: TurnSummaryState): string {
   const parts: string[] = [`${state.toolCount} tool${state.toolCount === 1 ? '' : 's'}`]
-  if (state.totalElapsedMs > 0) parts.push(`${(state.totalElapsedMs / 10).toFixed(1)}s`)
+  if (state.totalElapsedMs > 0) parts.push(`${(state.totalElapsedMs / 1000).toFixed(1)}s`)
   const familyParts: string[] = []
   const order: readonly ToolFamily[] = ['file', 'shell', 'search', 'edit', 'network', 'other']
   for (const family of order) {

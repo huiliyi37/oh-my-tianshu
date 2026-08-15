@@ -239,10 +239,14 @@ describe('Shift+Tab 三态循环（C3 项 4）', () => {
     await app.dispose()
   })
 
-  it('setPlanMode 降级：planMode 服务未装配时 shift_tab 静默不报错（不调 set）', async () => {
-    const { ctx, app, stdin } = await bootApp('mc-no-pm', { noPlanMode: true })
+  it('setPlanMode 降级：planMode 服务未装配时 shift_tab 回显警告（不调 set）', async () => {
+    const { ctx, app, stdin, stdout } = await bootApp('mc-no-pm', { noPlanMode: true })
+    stdout.write.mockClear()
     stdin.emit('data', '\x1b[Z')
     expect(ctx.planMode.set).not.toHaveBeenCalled()
+    // fails loud：不再静默——回显「无法进入 plan 模式」
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('无法进入 plan 模式')
     await app.dispose()
   })
 

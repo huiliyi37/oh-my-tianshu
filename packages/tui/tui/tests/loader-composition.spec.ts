@@ -92,14 +92,19 @@ interface Booted {
   stdin: FakeStdin
   /** tui-runner 插件自己的 ctx（选择性 dispose 该 fiber 用）。 */
   tuiCtx: () => Context
+  /** 重挂载 tui-runner（同 fake 流；验证 dispose 后重装配不抛 DUPLICATE_PROVIDER）。 */
+  remount: () => Promise<void>
 }
 
 /**
  * Boot the real tui composition (example cordis.yml minus the real adapter)
  * through an in-process Loader.
+ * @param opts.withGoalSubagent - false 时省略 subagent 插件与 spine 的 goals
+ *   配置（goals/subagents 服务缺席）：tui-runner 只把二者当可选服务，缺省 true。
  * @returns the booted root context, fake streams, and the tui plugin fiber handle.
  */
-async function boot(): Promise<Booted> {
+async function boot(opts?: { withGoalSubagent?: boolean }): Promise<Booted> {
+  const withGoalSubagent = opts?.withGoalSubagent ?? true
   root = await mkdtemp(join(tmpdir(), 'dsh-tui-loader-'))
   vi.stubEnv('DSH_HOME', join(root, '.dsh'))
   vi.stubEnv('DSH_AGENTS_HOME', join(root, '.agents'))
@@ -130,15 +135,18 @@ async function boot(): Promise<Booted> {
     '        models:',
     '          - id: deepseek-v4-flash',
     '            contextWindow: 128000',
-    // tui-runner 的 inject 全量要求 sessions/agents/agentDefaultModel/goals/
-    // subagents：spine 开 goals，default-model 与 subagent 对齐 dsh-base bundle。
+    // goals/subagents 是 tui-runner 的可选服务（不进 inject，缺失时经 reflect
+    // 读 undefined 后降级）：本组合覆盖 /goal 与委派树，故装配 subagent 插件与
+    // spine 的 goals 配置；withGoalSubagent=false 的场景验证缺席时仍能激活。
     '- id: agent-n',
     "  name: '@huiliyi37/dsh-agent-default-model'",
     '  config:',
     '    provider: deepseek-official',
     '    model: deepseek-v4-flash',
-    '- id: subagent',
-    "  name: '@huiliyi37/dsh-subagent'",
+    ...(withGoalSubagent ? [
+      '- id: subagent',
+      "  name: '@huiliyi37/dsh-subagent'",
+    ] : []),
     '- id: agent-spine',
     "  name: '@huiliyi37/dsh-agent-spine-demo'",
     '  config:',
@@ -147,7 +155,7 @@ async function boot(): Promise<Booted> {
     '        provider: deepseek-official',
     '        model: deepseek-v4-flash',
     `        cwd: ${JSON.stringify(root)}`,
-    '    goals: {}',
+    ...(withGoalSubagent ? ['    goals: {}'] : []),
     '    workspaceContext:',
     '      maxBytes: 65536',
     '    persona: |',
@@ -201,10 +209,20 @@ async function boot(): Promise<Booted> {
       if (tuiCtx === undefined) throw new Error('tui-runner never mounted through the Loader')
       return tuiCtx
     },
+    remount: async () => { await ctx.plugin(wrappedTui) },
   }
 }
 
 describe('tui real Loader composition through cordis.yml', () => {
+  // goals/subagents 是可选服务（不进 inject）：修复前 inject 全量语义下缺席会
+  // 让 tui-runner fiber 静默永不激活（无报错、无 TUI），本条是回归拦截。
+  it('tui-runner activates without optional goals/subagents services', async () => {
+    const { stdout } = await boot({ withGoalSubagent: false })
+    await vi.waitFor(() => {
+      expect(stdout.text()).toContain('📁')
+    }, { timeout: 10_000 })
+  }, 15_000)
+
   it('mounts over the real spine, renders on events, and releases every listener on fiber dispose', async () => {
     const { ctx, stdout, stdin, tuiCtx } = await boot()
 
@@ -256,8 +274,87 @@ describe('tui real Loader composition through cordis.yml', () => {
     expect(stdout.writes()).toBe(afterDispose)
   }, 30_000)
 
-  // C4 认领的 disposer 缺陷（dsh-tui-拆分方案-c4.md Wave 1 #6 / Wave 3）：
-  // 落地后翻绿这两条，组合线即是它们的拦截层。
-  it.todo('fiber dispose 后重挂载 tui-runner 不抛 DUPLICATE_PROVIDER（interactionDisposer 随 dispose 释放）')
-  it.todo('切会话结算挂起审批/提问（跨会话残留归零，approval fail-closed / question ASK_CANCELLED）')
+  // C4 认领的 disposer 缺陷（dsh-tui-拆分方案-c4.md Wave 1 #6 / Wave 3）——
+  // 已落地，以下两条是组合拦截层（翻绿自 it.todo）。
+  it('fiber dispose 后重挂载 tui-runner 不抛 DUPLICATE_PROVIDER（interactionDisposer 随 dispose 释放）', async () => {
+    const { stdout, tuiCtx, remount } = await boot()
+    await vi.waitFor(() => {
+      expect(stdout.text()).toContain('📁')
+    }, { timeout: 10_000 })
+
+    // 选择性 dispose：只拆 tui-runner fiber（userInteraction 等服务树保持运行）。
+    await tuiCtx().fiber.dispose()
+    // attach 失败被 index.ts 吞为 console.error——插探针判别重挂载是否真成功。
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await remount()
+    // dispose 后写静默（ticker 已停）；重挂载成功的判据是恢复产生新写入
+    // （新一轮 attach 的首帧渲染/ticker 帧）。
+    const frozenWrites = stdout.writes()
+    await vi.waitFor(() => {
+      expect(stdout.writes()).toBeGreaterThan(frozenWrites)
+    }, { timeout: 10_000 })
+    // interactionDisposer 若未随 dispose 释放，重挂载的 registerProvider 会抛
+    // DUPLICATE_PROVIDER 并走到 attach 失败的 console.error 分支。
+    expect(errors).not.toHaveBeenCalled()
+  }, 30_000)
+
+  it('切会话结算挂起审批/提问（跨会话残留归零，approval fail-closed / question ASK_CANCELLED）', async () => {
+    const { ctx, stdout } = await boot()
+    await vi.waitFor(() => {
+      expect(stdout.text()).toContain('📁')
+    }, { timeout: 10_000 })
+
+    // TUI 活跃会话读自 tab 栏 ▸ 标记：sessions.list 按 recency 排序，spine 的
+    // main-session 会后到插队——list()[0] 不可信。单会话时 tab 栏不渲染，
+    // 唯一会话即活跃。label 裁剪规则与 renderSessionTabs 一致。
+    const resolveActive = (): (ReturnType<typeof ctx.sessions.list>)[number] | undefined => {
+      const sessions = ctx.sessions.list()
+      if (sessions.length === 1) return sessions[0]
+      const frame = stdout.text()
+      return sessions.find((s) => {
+        const raw = String(s.id)
+        const label = raw.startsWith('session-') ? raw.slice(8, 20) : raw.slice(0, 16)
+        return frame.includes(`▸ ${label}`)
+      })
+    }
+    let activeEntry: ReturnType<typeof resolveActive>
+    await vi.waitFor(() => {
+      activeEntry = resolveActive()
+      expect(activeEntry).toBeDefined()
+    }, { timeout: 10_000 })
+    const sessionId = activeEntry!.id
+    const agent = ctx.agents.get(sessionId)!
+    // 提问走真实 userInteraction 服务（provider 是 TUI）；审批直接派发 waterfall
+    // 到 TUI answerer（真实 ApprovalService.request 要求开着的回合，组合线会话
+    // 空闲——绕过服务策略层，直测 TUI 的挂起/结算行为）。scope 不变量要求载体
+    // 键与事件主体同对象（dsh-scope 强制）：载体键到 req.agent。
+    const question = ctx.userInteraction.ask({
+      questions: [{ id: 'q1', question: '继续？', options: [{ label: '是' }, { label: '否' }] }],
+    })
+    // 立即挂接断言（reject 发生在切会话/dispose 时）——晚挂接会留未处理
+    // rejection 窗口（afterEach 的 fiber dispose 也会 cancel 挂起提问）。
+    const questionSettled = expect(question).rejects.toThrow(/cancelled/i)
+    const approval = (ctx as unknown as {
+      waterfall: (scope: unknown, event: string, req: unknown, next: () => Promise<string>) => Promise<string>
+    }).waterfall(scopeTarget(ctx, agent), 'approval/request',
+      { agent, toolName: 'bash' }, () => Promise.resolve('unavailable'))
+    const approvalSettled = expect(approval).resolves.toBe('cancelled')
+    // 等两卡真正挂起（渲染进帧）再切会话——否则 detach 先跑、挂起落空。
+    await vi.waitFor(() => {
+      expect(stdout.text()).toContain('继续？')
+      expect(stdout.text()).toContain('审批 · bash')
+    }, { timeout: 10_000 })
+
+    // 经真实命令面（tui.commands 服务）切会话：newSession → detachProjections。
+    const registry = ctx.get('tui.commands') as {
+      list(): { name: string; run(args: unknown): void | Promise<void> }[]
+    }
+    const session = registry.list().find(c => c.name === 'session')!
+    await session.run({ text: 'new', ctx, sessionId, echo: () => {}, rerender: () => {} })
+
+    // 提问 reject ASK_CANCELLED（provider 契约）；审批 fail-closed 结算 cancelled。
+    await questionSettled
+    await approvalSettled
+  }, 30_000)
 })

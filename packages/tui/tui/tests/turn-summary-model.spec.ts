@@ -178,17 +178,19 @@ describe('formatTurnSummary', () => {
   })
 
   it('formats count, elapsed and family distribution', () => {
+    // SessionEvent.time 是 epoch 毫秒：c1 耗时 1200ms（1002 → 2202）→ 1.2s
     let summary = emptyTurnSummary(1)
     summary = applyTurnEvent(summary, toolCall(2, 'c1', 'read_file', 1, 0))
-    summary = applyTurnEvent(summary, toolResult(14, 'c1'))
-    summary = applyTurnEvent(summary, toolCall(15, 'c2', 'edit_file', 1, 1))
+    summary = applyTurnEvent(summary, toolResult(1202, 'c1'))
+    summary = applyTurnEvent(summary, toolCall(1215, 'c2', 'edit_file', 1, 1))
     expect(formatTurnSummary(summary)).toBe('2 tools · 1.2s · file×2')
   })
 
   it('appends failed count when present', () => {
+    // c1 耗时 500ms（1002 → 1502）→ 0.5s
     let summary = emptyTurnSummary(1)
     summary = applyTurnEvent(summary, toolCall(2, 'c1', 'bash', 1, 0))
-    summary = applyTurnEvent(summary, toolResult(7, 'c1', { name: 'X', code: 'X' }))
+    summary = applyTurnEvent(summary, toolResult(502, 'c1', { name: 'X', code: 'X' }))
     expect(formatTurnSummary(summary)).toBe('1 tool · 0.5s · shell×1 · 1 failed')
   })
 })

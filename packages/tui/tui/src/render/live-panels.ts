@@ -158,13 +158,16 @@ function withVisibleRunId(run: WorkflowRunView): WorkflowRunView {
 }
 
 /**
- * 渲染 /status 状态面板（目标段 + 任务段 + 计划段）。面板隐藏 → 空数组。
- * todos 为 null 时任务段渲染「（无任务）」占位（区别于 goal/plan 为 null 时
- * 对应段不渲染的语义——todos null = 已清空/未写入，面板打开即展示任务区）。
+ * 渲染 /status 状态面板（目标段 + 任务段 + 计划段 + 会话汇总段）。面板隐藏 →
+ * 空数组。todos 为 null 时任务段渲染「（无任务）」占位（区别于 goal/plan 为
+ * null 时对应段不渲染的语义——todos null = 已清空/未写入，面板打开即展示
+ * 任务区）。会话段数据源是 TUI 本地 summary-state fold（不依赖宿主投影总线，
+ * turns 为 0 时该段不渲染）。
  * @param snapshot - 当前帧快照。
  * @returns 面板行数组。
  */
 export function renderStatusPanel(snapshot: LiveSnapshot): string[] {
   if (!snapshot.statusPanelVisible) return []
-  return projectStatusPanel(snapshot.goal, snapshot.todos ?? [], snapshot.plan, { width: snapshot.cols })
+  return projectStatusPanel(snapshot.goal, snapshot.todos ?? [], snapshot.plan,
+    { width: snapshot.cols, sessionTotals: snapshot.sessionTotals })
 }

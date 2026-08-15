@@ -20,7 +20,7 @@ Interactive terminal UI: the TUI layer for `tianshu --profile`, riding on top of
 | `initialSessionId` | The session to enter at startup; defaults to creating a new one |
 | `editorKey` | External-editor trigger key (Phase 6.4); defaults to `ctrl_o` |
 | `vimEnabled` | Vim keybindings (Phase 6.5); defaults to `false` |
-| `vision` | Primary-model vision capability and bridge state for the image-attachment bubble hints (`supportsVision` / `bridgeEnabled` / `bridgeSource`); derived by the assembler from the vision-bridge plugin config |
+| `vision` | Primary-model vision capability and bridge state for the image-attachment bubble hints (`supportsVision` / `bridgeEnabled` / `bridgeSource`); derived by the assembler from the vision-bridge plugin config — when absent, `bridgeEnabled` is auto-probed from the `visionBridge` service the plugin provides at apply time |
 | `workflowHistoryLimit` | Settled workflow-run cache cap for the `/workflow` panel, drop-oldest beyond it; positive integer, defaults to `50` |
 
 **Input-box clipboard and image paste** (ported from the opencode-tui input surface): `Ctrl+V` reads the system clipboard image (falling back to clipboard text); right-click / terminal-menu paste detects a clipboard image and attaches it instead of inserting the byte garbage, and pasted text that looks like an image path is loaded as an attachment; attached images render as a `📎 N images` marker above the input line and, on submit, as inline terminal graphics (kitty / iTerm2) under the user bubble. Vim yank / `Alt+W` selection copy drains to the system clipboard via OSC52. The user bubble carries a vision hint — image forwarded / bridged via a vision model / not sent (no vision bridge configured).

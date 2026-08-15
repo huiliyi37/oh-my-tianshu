@@ -12,8 +12,8 @@
  * @module @huiliyi37/dsh-tui/external-editor
  */
 
-import { writeFileSync, readFileSync, unlinkSync, mkdtempSync } from 'node:fs'
-import { join } from 'node:path'
+import { writeFileSync, readFileSync, mkdtempSync, rmSync } from 'node:fs'
+import { join, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
 import { spawnSync } from 'node:child_process'
 
@@ -47,30 +47,53 @@ export function createTempFile(content: string): string {
 }
 
 /**
- * 读取编辑结果并清理临时文件（unlink 失败 best-effort）。
+ * 读取编辑结果并清理临时目录（文件与 mkdtemp 目录一并删除；失败 best-effort）。
  * @param path - createTempFile 返回的临时文件路径。
  * @returns 文件内容（utf-8）。
  */
 export function readAndCleanup(path: string): string {
   const content = readFileSync(path, 'utf-8')
-  try { unlinkSync(path) } catch { /* best effort */ }
+  try { rmSync(dirname(path), { recursive: true, force: true }) } catch { /* best effort */ }
   return content
+}
+
+/** openInEditorDetailed 的结果：内容与启动异常原因分离（P1-1 失败回显用）。 */
+export interface EditorRunResult {
+  /** 编辑后的内容；编辑器启动/执行异常时为 null。 */
+  content: string | null
+  /** 启动/执行异常信息（spawn error.message）；正常路径为 null。 */
+  error: string | null
+}
+
+/**
+ * 打开编辑器编辑 initialContent，返回内容与异常原因。
+ * 编辑器命令可注入（测试）；缺省走 getEditorCommand()。
+ * 编辑器异常终止（status !== 0 且有 error）时 content 为 null、error 携带
+ * spawn 原因；status 非 0 但无 error（编辑器被信号终止但文件已保存）仍读回内容。
+ * @param initialContent - 预填进编辑器的初始内容。
+ * @param editor - 编辑器命令（测试注入）；缺省走 getEditorCommand()。
+ * @returns 内容与异常原因（内容为 null 当且仅当编辑器启动/执行异常）。
+ */
+export function openInEditorDetailed(initialContent: string, editor?: string): EditorRunResult {
+  const path = createTempFile(initialContent)
+  const command = editor ?? getEditorCommand()
+  const result = spawnSync(command, [path], { stdio: 'inherit' })
+  if (result.status !== 0 && result.error) {
+    // 失败路径清理临时目录（含 RIVET_INPUT.md）；成功路径由 readAndCleanup 处理文件
+    try { rmSync(dirname(path), { recursive: true, force: true }) } catch { /* best-effort */ }
+    return { content: null, error: result.error.message }
+  }
+  // status may be non-zero if editor was terminated but file was saved
+  return { content: readAndCleanup(path), error: null }
 }
 
 /**
  * 打开编辑器编辑 initialContent，返回编辑后的内容。
- * 编辑器命令可注入（测试）；缺省走 getEditorCommand()。
- * 编辑器异常终止（status !== 0 且有 error）返回 null；status 非 0 但无
- * error（编辑器被信号终止但文件已保存）仍读回内容。
+ * 兼容薄包装：失败（启动/执行异常）返回 null；原因经 openInEditorDetailed 获取。
  * @param initialContent - 预填进编辑器的初始内容。
  * @param editor - 编辑器命令（测试注入）；缺省走 getEditorCommand()。
  * @returns 编辑后的内容；编辑器启动/执行异常时为 null。
  */
 export function openInEditor(initialContent: string, editor?: string): string | null {
-  const path = createTempFile(initialContent)
-  const command = editor ?? getEditorCommand()
-  const result = spawnSync(command, [path], { stdio: 'inherit' })
-  if (result.status !== 0 && result.error) return null
-  // status may be non-zero if editor was terminated but file was saved
-  return readAndCleanup(path)
+  return openInEditorDetailed(initialContent, editor).content
 }

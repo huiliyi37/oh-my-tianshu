@@ -112,9 +112,9 @@ export class CommitEngine {
   }
 
   /**
-   * 清空 scrollback buffer（/clear 命令）。已写入终端的行无法被擦除——
-   * 重置只影响后续 getContent()/pager 读取与后续写入位置，视觉上由调用方
-   * 补一条分隔线收尾。
+   * 清空 scrollback buffer（/clear 命令）。只重置内部 buffer（后续
+   * getContent()/pager 读取与写入位置）；已显示的行由调用方经
+   * ANSI.ERASE_SCREEN + 光标回顶擦除（见 TuiApp 的 clearScrollback）。
    */
   reset(): void {
     this.buffer.clear()

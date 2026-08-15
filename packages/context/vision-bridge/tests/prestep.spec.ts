@@ -223,3 +223,25 @@ describe('agent/pre-step 视觉桥注入', () => {
     }
   })
 })
+
+describe('visionBridge 探测服务', () => {
+  it('装配即 provide，卸载即释放（TUI 经 reflect 探测桥可用性）', async () => {
+    const { ctx, dispose } = await mount()
+    expect(ctx.visionBridge).toEqual({ providedBy: 'vision-bridge' })
+    expect(ctx.reflect.get('visionBridge', false)).toBe(ctx.visionBridge)
+    await dispose()
+    expect(ctx.reflect.get('visionBridge', false)).toBeUndefined()
+  })
+
+  it('enabled: false 不提供探测服务（桥未装配，探测不误亮）', async () => {
+    const ctx = new Context()
+    await mountAgentLoopTestDependencies(ctx)
+    const fiber = await ctx.plugin(visionBridge, {
+      provider: 'fake-vision',
+      model: 'vision-m',
+      enabled: false,
+    })
+    expect(ctx.reflect.get('visionBridge', false)).toBeUndefined()
+    await fiber.dispose()
+  })
+})

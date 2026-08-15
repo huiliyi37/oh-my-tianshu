@@ -57,6 +57,7 @@ function baseSnapshot(): LiveSnapshot {
     goal: null,
     todos: null,
     plan: null,
+    sessionTotals: { turns: 0, toolCalls: 0, elapsedMs: 0 },
     subagentsPanelVisible: false,
     delegationEntries: null,
     subagentIdentities: new Map(),

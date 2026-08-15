@@ -15,7 +15,7 @@
 
 import type { TaskItem } from '../format/task-panel.js'
 import type { RivetTheme } from '../theme.js'
-import type { GoalProjectionInput, PlanProjectionInput } from '../status-panel.js'
+import type { GoalProjectionInput, PlanProjectionInput, SessionTotalsInput } from '../status-panel.js'
 import type {
   DelegationIdentityProjection,
   DelegationTimingProjection,
@@ -71,6 +71,8 @@ export interface LiveSnapshot {
   todos: TaskItem[] | null
   /** plan 投影快照（未写入 null）。 */
   plan: PlanProjectionInput | null
+  /** 会话级汇总段（summary-state 本地 fold；无已完成轮时 turns 为 0，面板段不渲染）。 */
+  sessionTotals: SessionTotalsInput
 
   // delegation 面板（委派树）
   /** /subagents 面板显隐。 */

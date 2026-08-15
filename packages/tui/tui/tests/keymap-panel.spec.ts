@@ -6,6 +6,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { KEYMAP_ENTRIES, renderKeymapPanel } from '../src/format/keymap-panel.js'
+import { displayWidth } from '../src/width.js'
 
 describe('KEYMAP_ENTRIES', () => {
   it('包含自引用条目（Ctrl+. 打开本面板）', () => {
@@ -54,7 +55,8 @@ describe('renderKeymapPanel', () => {
   it('窄宽（放不下动作列）时动作截断不破版', () => {
     const rows = renderKeymapPanel(20)
     for (const row of rows) {
-      expect(row.length).toBeLessThanOrEqual(20)
+      // 显示宽度才是破版判据（CJK 与截断省略号让 length 与宽度脱钩）
+      expect(displayWidth(row)).toBeLessThanOrEqual(20)
     }
   })
 
@@ -64,12 +66,12 @@ describe('renderKeymapPanel', () => {
   })
 
   it('紧凑单列降级：键位列宽 ≥ width 时键位不截断、动作截断', () => {
-    // 最长键位 Shift+Enter(11) → keyCol=13；width 12/13 触发紧凑分支
+    // 最长键位 PageUp/PageDown(15) → keyCol=17；width 12/13 触发紧凑分支
     const rows = renderKeymapPanel(12)
     expect(rows.length).toBeGreaterThan(2)
     for (const row of rows.slice(2)) {
       expect(row.length).toBeLessThanOrEqual(12)
-      expect(row).toMatch(/^ [A-Za-z]/)
+      expect(row).toMatch(/^ \S/) // 键位首字符不截断（含 ↑/↓ 等非字母键位）
     }
   })
 

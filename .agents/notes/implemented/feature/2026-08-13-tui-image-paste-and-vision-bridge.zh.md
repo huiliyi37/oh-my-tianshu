@@ -17,13 +17,13 @@ TUI 输入框移植了引擎原语（InputLine 图片状态机、term-image 编�
 - **终端图片渲染**：`commitUserPrompt` 同步渲染气泡，随后异步 prepare（`prepareTermImageForCommit`）并在同一写窗口协议（清 live 区 → `writeRaw` → 重绘）内追加 kitty/iTerm2 图形序列。本地转码毫秒级、先于任何网络往返的 assistant 输出，图片实际落在所属气泡下方；dsh 没有 opencode 的 enqueueMainCommit 队列，与流式提交的残余竞态窗口被接受并记录。
 - **模型侧**：`ImageBlock`（`{ type: 'image', dataUrl, mime? }`）加入 merge-extensible `ContentBlockMap`；`llm-deepseek` 把用户 image block 序列化为 OpenAI 风格 `image_url` content parts；agent loop 本就原样透传 `UserMessage` content（`session.deriveMessages()`），图片无需改 loop 即达 wire。compact 把图片 block 过滤为文本（不进摘要）——接受的语义。
 - **视觉桥**（新插件 `packages/context/vision-bridge`）：主控不识图（`primarySupportsVision: false`）且配置视觉模型（`provider`/`model`）时，`agent/pre-step` 把含图用户消息替换为 `[图片描述]\n<描述>\n\n<原文>`——描述由 `describeImages` 生成（`purpose: 'vision-description'` 的 llm 调用，prompt 按 UI/报错关键词在通用结构与 OCR 级精确转写间自动选择）。桥失败/空输出降级为可见 `[图片桥接失败]`/`[图片桥接提示]` 文本；整轮绝不 failed。**Model-visible ⟺ logged**：描述落 session 事件；原图从未到达 text-only 主控、也不落入 session 日志。可选 `fallback` 视觉模型（`{ provider, model }`）在主视觉模型 error/aborted（5xx/超时）时兜底重试一次；`describeImages` 在发起调用前校验图片 data URL（格式 + 载荷长度）。`visionAutoBridge: true` 使 `provider`/`model` 可选：调用期遍历已注册 provider 的 advisory catalog，取第一个 `supportsVision: true` 的模型（经 `LlmModelInfo.supportsVision`）——对齐 opencode-tui 的 `visionModel.fallback` / `visionAutoBridge` / data URL 校验。
-- **TUI 识图提示**：`setVisionInfo` + 气泡三态（图片直发 / 经识图桥转描述 / 未发送——无桥时）。主控不识图且无桥时，TUI 提交**不带图**（气泡已警告）——「未发送」态在提交边界强制，不留给模型层。
+- **TUI 识图提示**：`setVisionInfo` + 气泡三态（图片直发 / 经识图桥转描述 / 未发送——无桥时）。主控不识图且无桥时，TUI 提交**不带图**（气泡已警告）——「未发送」态在提交边界强制，不留给模型层。装配方未注入 `vision` 配置时，TUI 经本插件 apply 时 provide 的 `visionBridge` 探测服务自动判定桥可用性（`TuiApp.resolveVisionBridge`；服务存在即桥可用，随插件卸载释放）。
 
 ## Verification
 
 - `tests/clipboard-image.spec.ts`（12）：reader 注入（返回/空/抛错）、darwin osascript PNG + TIFF→sips、linux wl-paste/xclip + JPEG、win32 PowerShell、全失败 → null。
 - `tests/app.spec.ts` +12 接线：Ctrl+V 图/文本、onPaste 吞图、图片路径附图（真实临时 PNG）、路径加载失败警告、Alt+W OSC52 drain、提交带图 UserMessage 形状、空文本+图占位、vision 三态气泡。
-- `tests/vision-service.spec.ts`（18）+ `tests/prestep.spec.ts`（6）：prompt 模式选择、describeImages 请求契约（image block + purpose）、error/max-tokens 降级、data URL 校验（非 data / 不支持格式 / 载荷过短）、fallback 重试（主错误 → 备用成功；双错 → 抛错）、visionAutoBridge（自动选首个 supportsVision 模型 / 无识图模型 → NO_ADAPTER）、Config 必填/可选（schema 层 provider/model 可选、apply 层未开自动桥 fail-loud；fallback 可选且给出时内部必填）、pre-step 替换 / 主控识图直发 / 纯文本透传 / 空描述与报错降级 / enabled=false。
+- `tests/vision-service.spec.ts`（18）+ `tests/prestep.spec.ts`（8）：prompt 模式选择、describeImages 请求契约（image block + purpose）、error/max-tokens 降级、data URL 校验（非 data / 不支持格式 / 载荷过短）、fallback 重试（主错误 → 备用成功；双错 → 抛错）、visionAutoBridge（自动选首个 supportsVision 模型 / 无识图模型 → NO_ADAPTER）、Config 必填/可选（schema 层 provider/model 可选、apply 层未开自动桥 fail-loud；fallback 可选且给出时内部必填）、pre-step 替换 / 主控识图直发 / 纯文本透传 / 空描述与报错降级 / enabled=false。
 - `llm-deepseek/tests/serialize.spec.ts` +2：用户 image block → `image_url` parts（含与不含文本）。
 - TUI 全套 1470+ 通过；`tsc -b` host 0 错误；verify-source-budgets 的 app.ts 上限 2251→2538（input-line 基线即超 1331 预算，非本次引入）。
 
@@ -32,7 +32,7 @@ TUI 输入框移植了引擎原语（InputLine 图片状态机、term-image 编�
 - `packages/tui/tui/src/engine/clipboard-image.ts`（新移植）+ `SOURCE-MAP.md` 条目
 - `packages/tui/tui/src/ui/app.ts`（+292）、`src/adapter/send.ts`（followup images）、`src/index.ts`（TuiRunnerConfig.vision）
 - `packages/llm/llm/src/types.ts`（ImageBlock）、`packages/llm/llm-deepseek/src/types.ts` + `serialize.ts`（image_url parts）、`GenerateOptions.purpose` 加 `'vision-description'`
-- `packages/context/vision-bridge/`（新插件：src/index.ts、src/invariant.ts、README 三件套、tests）
+- `packages/context/vision-bridge/`（新插件：src/index.ts、src/invariant.ts、README 三件套、tests；apply 时 provide `visionBridge` 探测服务）
 
 ## Alternatives considered
 
