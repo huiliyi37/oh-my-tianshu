@@ -8,11 +8,17 @@
 
 `plan/mode`（`{ active: boolean }`）是一个仅存在于日志中、每次以完整值替换的 `SessionEventMap` 成员。`foldPlanMode(events)` 返回最后记录的值，如果没有则返回 `false`，因此恢复、fork 和压缩（compaction）都能直接从会话日志恢复 plan 状态。UI 通过 `session/event` 观察已提交的切换。
 
+`plan/file`（`{ path, heading }`）是它的 log-only 伴生事件：每次 `exit_plan_mode` 调用——无论批准还是继续规划——都会把提交的计划 markdown 落盘并记录位置。它从不进入模型面；它存在的意义是让已批准的计划在压缩之后仍可找回。
+
 `ctx.planMode.set(agent, active)` 在 agent 空闲时立即提交——下一个 prompt 之前不会有任何边界到来，因此独立的 `plan/mode` 事件当场落账——在 agent 运行中则持有待生效选择，并等待下一个被接受的轮内 pre-step；返回值区分 `committed`、`queued`、表示反转的 `cancelled` 和 `noop`。`get(agent)` 返回 `{ active, pending? }`，将塑造当前步骤的日志状态与用户的轮中选择分开。初始与续步 pre-step 边界都在覆盖范围内；同一步骤的请求恢复重试会复用已冻结的 assembly，并将该选择保留到下一个 pre-step。当最后记录的请求头描述了另一状态时，用户选择的变更会贡献一条插件来源的 `user/message` 通知（两条提交路径皆然）。
 
 ## 模型与人类交互
 
 激活时，`plan:policy` 会渲染已配置的 `section`。插件始终注册 `exit_plan_mode`，使工具 schema 在转换期间保持稳定；其 execute 路径只接受已激活的 plan mode，且只有通过 `ctx.userInteraction` 获得用户明确批准后才退出。
+
+plan mode 激活期间，一个单调的 `ctx.tools.guard` 守卫会在执行时拒绝变更工具族：`write`、`edit`、`str_replace_editor`（其 `create`/`str_replace`/`insert` 变异子命令）、`git_commit`、`terminal_open/send/signal/close`。拒绝是模型可见的工具错误，引导用只读工具探索并以 `exit_plan_mode` 提交；工具目录本身不变，schema 在模式切换间保持稳定。`bash`/`pwsh` 保持可用以支持只读 shell 探索（与 Claude Code 的 plan mode 语义一致）；残余的 shell 写洞由正交的沙箱轴兜底，部署方可经 `blockedTools` 扩大封禁名单。守卫只读已落账状态——轮内待生效的进入不会打断当前轮的合法写——子代理会话 fold 自己的日志，约束不泄漏进子会话。
+
+提交的计划同时会写到 `$DSH_HOME/plans/<编码 cwd>/<会话 id>/<slug>.md`（插件私有 `node:fs` 直写，不过 fs 沙箱，只读部署不会卡死评审），批准结果的渲染文本携带 `path`。
 
 评审问题声明 `plan-review` 呈现意图，并指名 `Approve` 为表示批准的标签，因此有能力的 UI 会把计划呈现为一次决定而非通用问题；两种情况下该工具读到的回答完全相同。放弃审阅 —— 用户关掉请求改用说话 —— 会如实报告给模型，要求它留在 plan mode 中等待那条消息；其余每一种评审失败都保留 seam 自身的消息。
 
@@ -33,11 +39,12 @@ Web 客户端使用该插件提供的 `/plan` 命令；其他入口可以直接�
     section: |
       You are in plan mode. Explore and design before presenting the complete
       plan through exit_plan_mode.
+    # blockedTools: [bash]  # optional: extend the guard's deny list
 ```
 
-`section` 必填且非空。出现未知键时，插件会加载失败。该包不接受任意命名的 mode、工具过滤器、沙箱设置或批准策略。
+`section` 必填且非空。`blockedTools` 可选，是在内置变更工具族之上追加封禁的工具名列表。出现未知键时，插件会加载失败。该包不接受任意命名的 mode、工具过滤器、沙箱设置或批准策略。
 
-设计：[plan 专用协作状态](../../../.agents/notes/implemented/simplification/2026-07-22-plan-specific-collaboration-state.md)。
+设计：[plan 专用协作状态](../../../.agents/notes/implemented/simplification/2026-07-22-plan-specific-collaboration-state.md) · [硬只读守卫与计划文件](../../../.agents/notes/implemented/feature/2026-08-16-plan-mode-hard-readonly-and-plan-file.md)。
 
 ## 模型体验
 

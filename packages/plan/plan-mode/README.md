@@ -8,11 +8,17 @@ Logged, per-agent plan collaboration state with deployment-owned guidance, direc
 
 `plan/mode` (`{ active: boolean }`) is a log-only, whole-value-replace `SessionEventMap` member. `foldPlanMode(events)` returns the last logged value or `false`, so resume, fork, and compaction recover plan state directly from the session log. UIs observe committed flips through `session/event`.
 
+`plan/file` (`{ path, heading }`) is its log-only companion: every `exit_plan_mode` call — approved or keep-planning — persists the presented markdown to a plan file and records where. It never enters the model surface; it exists so an approved plan stays recoverable after compaction.
+
 `ctx.planMode.set(agent, active)` commits immediately when the agent is idle — no boundary would arrive until the next prompt, so the standalone `plan/mode` event lands at once — and holds a pending selection for the next accepted in-turn pre-step while the agent is running; it returns which of the two happened (`committed`/`queued`), a `cancelled` reversal, or a `noop`. `get(agent)` returns `{ active, pending? }`, separating the logged state shaping the current step from a user's mid-turn selection. Initial and continuation pre-step boundaries are covered; a same-step request-recovery retry reuses its frozen assembly and leaves the selection pending for the next pre-step. A changed user selection contributes one plugin-sourced `user/message` notice when the last logged request header described the other state (both commit paths).
 
 ## Model and human surfaces
 
 While active, `plan:policy` renders the configured `section`. The plugin always registers `exit_plan_mode`, keeping tool schemas stable across the transition; its execute path accepts only active plan mode and leaves it only after an exact user approval through `ctx.userInteraction`.
+
+While plan mode is active, a monotonic `ctx.tools.guard` denies the mutation-tool families at execution time: `write`, `edit`, `str_replace_editor` (its `create`/`str_replace`/`insert` commands), `git_commit`, and `terminal_open/send/signal/close`. The denial is a model-facing tool error pointing at read-only exploration and `exit_plan_mode`; the tool catalog itself is untouched, so schemas stay stable across mode switches. `bash`/`pwsh` stay allowed for read-only shell exploration (Claude Code's plan-mode semantics); the residual shell-write hole rides on the orthogonal sandbox axis, and deployments close it or widen the list through `blockedTools`. The guard reads the committed log only — a pending mid-turn entry never breaks the running turn's writes — and subagent sessions fold their own logs, so the constraint never leaks into children.
+
+The presented plan is also written to `$DSH_HOME/plans/<encoded-cwd>/<session-id>/<slug>.md` via plugin-private `node:fs` (never crossing the fs sandbox, so a read-only deployment cannot deadlock the review), and an approved result carries the `path` in its rendered text.
 
 The review question declares the `plan-review` presentation intent, naming `Approve` as the label that approves it, so a capable UI presents the plan as a decision instead of a generic question; the answer the tool reads is the same either way. A dismissed review — the user closing the request to speak instead — is reported to the model as such, telling it to stay in plan mode and wait for the message; every other review failure keeps the seam's own message.
 
@@ -33,11 +39,12 @@ When the composition mounts `ctx.sessionProjections` ([`@huiliyi37/dsh-session-p
     section: |
       You are in plan mode. Explore and design before presenting the complete
       plan through exit_plan_mode.
+    # blockedTools: [bash]  # optional: extend the guard's deny list
 ```
 
-`section` is required and non-empty. Unknown keys fail at load. The package does not accept arbitrary named modes, tool filters, sandbox settings, or approval policy.
+`section` is required and non-empty. `blockedTools` is an optional list of extra tool names the guard denies on top of the built-in mutation families. Unknown keys fail at load. The package does not accept arbitrary named modes, tool filters, sandbox settings, or approval policy.
 
-Design: [plan-specific collaboration state](../../../.agents/notes/implemented/simplification/2026-07-22-plan-specific-collaboration-state.md).
+Design: [plan-specific collaboration state](../../../.agents/notes/implemented/simplification/2026-07-22-plan-specific-collaboration-state.md) · [hard read-only guard and plan file](../../../.agents/notes/implemented/feature/2026-08-16-plan-mode-hard-readonly-and-plan-file.md).
 
 ## Model Experience
 

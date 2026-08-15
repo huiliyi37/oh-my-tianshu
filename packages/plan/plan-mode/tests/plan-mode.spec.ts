@@ -1,4 +1,7 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { mkdtemp, readFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { Context } from '@huiliyi37/cordis'
 import { createUserMessage, CallId } from '@huiliyi37/dsh-llm'
 import SystemPrompt from '@huiliyi37/dsh-system-prompt'
@@ -16,6 +19,14 @@ import type { PlanModeConfig } from '../src/index.ts'
 
 const TEST_PLAN_SECTION = 'Test plan mode instructions.'
 const PLAN_CONFIG = { section: TEST_PLAN_SECTION } satisfies PlanModeConfig
+
+// Plan files write under $DSH_HOME — pin every test to its own temp home so
+// the suite never touches the real harness home.
+let testDshHome = ''
+beforeEach(async () => {
+  testDshHome = await mkdtemp(join(tmpdir(), 'plan-mode-test-'))
+  vi.stubEnv('DSH_HOME', testDshHome)
+})
 
 /**
  * Drives the REAL plugin: mounts `dsh-plan-mode` beside real `SystemPrompt` and
@@ -137,7 +148,7 @@ function expectPlanCodeSdkBindings(sdk: string): void {
   expect(sdk).toContain('read: Record<string, JsonValue>;')
   expect(sdk).toContain('write: Record<string, JsonValue>;')
   expect(sdk).toContain('interface ToolOutputMap {')
-  expect(sdk).toContain('exit_plan_mode: {\n    approved: true;\n  };')
+  expect(sdk).toContain('exit_plan_mode: {\n    approved: true;\n    /** The plan file this approved plan was persisted to. */\n    path?: string;\n  };')
   expect(sdk).toContain('[K in ToolName]: (args: ToolArgsMap[K]) => Promise<ToolOutputMap[K]>;')
 }
 
@@ -171,7 +182,18 @@ describe('resolveConfig', () => {
 
   it('rejects fields outside the plan policy config', () => {
     expect(() => resolveConfig({ section: TEST_PLAN_SECTION, tools: ['read'] } as unknown as PlanModeConfig))
-      .toThrow('unknown key(s) tools — config is { section }')
+      .toThrow('unknown key(s) tools — config is { section, blockedTools? }')
+  })
+
+  it('accepts and detaches deployment-added blockedTools', () => {
+    const config = { section: TEST_PLAN_SECTION, blockedTools: ['bash'] } satisfies PlanModeConfig
+    const resolved = resolveConfig(config)
+    expect(resolved).toEqual(config)
+    expect(resolved.blockedTools).not.toBe(config.blockedTools)
+    expect(() => resolveConfig({ section: TEST_PLAN_SECTION, blockedTools: [''] }))
+      .toThrow('`blockedTools` must be a list of non-empty tool names')
+    expect(() => resolveConfig({ section: TEST_PLAN_SECTION, blockedTools: 'bash' } as unknown as PlanModeConfig))
+      .toThrow('`blockedTools` must be a list of non-empty tool names')
   })
 })
 
@@ -536,14 +558,19 @@ describe('no execution gating beyond the exit tool', () => {
     expect(defaulted.isError).toBe(false)
   })
 
-  it('runs every call in plan mode untouched — guidance and enforcement are separate axes', async () => {
+  it('denies mutation tools in plan mode while read-only calls run untouched', async () => {
     const ctx = await setup()
     registerNamedTools(ctx, ['read', 'write', 'bash'])
     const agent = await agentWithSession(ctx, 'agent-1', { active: true })
-    for (const name of ['read', 'write', 'bash']) {
+    // The guard reads only the logged state: read-only exploration (including
+    // the shell) runs; the mutation family is denied with model-facing guidance.
+    for (const name of ['read', 'bash']) {
       const result = await execute(ctx, name, agent)
       expect(result.isError).toBe(false)
     }
+    const write = await execute(ctx, 'write', agent)
+    expect(write.isError).toBe(true)
+    expect(JSON.stringify(write.content[0])).toContain("'write' is blocked")
   })
 })
 
@@ -666,6 +693,7 @@ describe('exit_plan_mode', () => {
     const ctx = await setup()
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(UserInteractionService)
+    const dshHome = testDshHome
     const asked: AskUserQuestionRequest[] = []
     if (answer !== undefined) {
       ctx.userInteraction.registerProvider({
@@ -676,7 +704,7 @@ describe('exit_plan_mode', () => {
       })
     }
     const agent = await agentWithSession(ctx, 'agent-1', { active: true })
-    return { ctx, agent, asked }
+    return { ctx, agent, asked, dshHome }
   }
 
   function callExit(ctx: Context, agent: Agent | undefined, plan = '# The plan\n\ndo things') {
@@ -763,12 +791,19 @@ describe('exit_plan_mode', () => {
   })
 
   it('approve: records the boundary-applied switch and confirms (the fold flips at the flush)', async () => {
-    const { ctx, agent, asked } = await setupWithReview({ selected: ['Approve'] })
+    const { ctx, agent, asked, dshHome } = await setupWithReview({ selected: ['Approve'] })
     const result = await callExit(ctx, agent)
     expect(result.isError).toBe(false)
     if (result.isError) throw new Error('expected approved plan result')
-    expect(result.value).toEqual({ approved: true })
-    expect(result.content).toEqual([{ type: 'text', text: 'Plan approved — plan mode exited; carry out the plan starting with your next step.' }])
+    expect(result.value).toMatchObject({ approved: true })
+    const planPath = (result.value as { path?: string }).path
+    expect(typeof planPath).toBe('string')
+    expect(planPath).toContain(dshHome)
+    expect(result.content).toEqual([{ type: 'text', text: `Plan approved — plan mode exited; carry out the plan starting with your next step. Plan file: ${planPath}` }])
+    // The presented plan landed on disk and left its log-only audit event.
+    expect(await readFile(planPath!, 'utf8')).toBe('# The plan\n\ndo things')
+    const fileEvent = agent.session.events.find(event => event.type === 'plan/file')
+    expect(fileEvent?.data).toEqual({ path: planPath, heading: 'The plan' })
     // Boundary-applied, not a direct append: the fold stays plan until the
     // step's end, so the plan policy covers any remaining call of the SAME batch.
     expect(foldPlanMode(agent.session.events)).toBe(true)
@@ -1049,5 +1084,142 @@ describe('HMR disposal', () => {
     expect((await ctx.systemPrompt.assemble()).sections.map(section => section.name)).not.toContain('plan:policy')
     await boundary(ctx, agent, 'step-start')
     expect(agent.session.events.some(event => event.type === 'plan/mode')).toBe(false)
+  })
+})
+
+describe('plan-mode guard', () => {
+  const WRITE_FAMILY = ['write', 'edit', 'git_commit', 'terminal_open', 'terminal_send', 'terminal_signal', 'terminal_close']
+
+  async function setupWithTools(config: PlanModeConfig = PLAN_CONFIG) {
+    const ctx = await setup(config)
+    registerNamedTools(ctx, [...WRITE_FAMILY, 'str_replace_editor', 'read', 'bash'])
+    const agent = await agentWithSession(ctx, 'guard-agent', { active: true })
+    return { ctx, agent }
+  }
+
+  function call(ctx: Context, name: string, agent: Agent | undefined, args: Record<string, unknown> = {}) {
+    return ctx.tools.execute({
+      callId: CallId(`call-guard-${++callCounter}`),
+      name,
+      arguments: args,
+      signal: new AbortController().signal,
+      ...agent ? { agent } : {},
+    })
+  }
+
+  it('denies the mutation-tool families in plan mode and allows read-only tools', async () => {
+    const { ctx, agent } = await setupWithTools()
+    for (const name of WRITE_FAMILY) {
+      const result = await call(ctx, name, agent)
+      expect(result.isError).toBe(true)
+      expect(result.content[0]).toMatchObject({
+        type: 'text',
+        text: `Error: plan mode is active: '${name}' is blocked. Explore with read-only tools and present the plan with exit_plan_mode when ready.`,
+      })
+    }
+    const read = await call(ctx, 'read', agent)
+    expect(read.isError).toBe(false)
+    // Shell exploration stays available (Claude Code plan semantics).
+    const bash = await call(ctx, 'bash', agent)
+    expect(bash.isError).toBe(false)
+  })
+
+  it('discriminates str_replace_editor by its command argument', async () => {
+    const { ctx, agent } = await setupWithTools()
+    for (const command of ['create', 'str_replace', 'insert']) {
+      const result = await call(ctx, 'str_replace_editor', agent, { command, path: '/tmp/x' })
+      expect(result.isError).toBe(true)
+    }
+    const view = await call(ctx, 'str_replace_editor', agent, { command: 'view', path: '/tmp/x' })
+    expect(view.isError).toBe(false)
+  })
+
+  it('allows every tool while plan mode is inactive', async () => {
+    const { ctx, agent } = await setupWithTools()
+    agent.session.append('plan/mode', { active: false })
+    const result = await call(ctx, 'write', agent)
+    expect(result.isError).toBe(false)
+  })
+
+  it('does not block a mid-turn pending entry before its boundary flush', async () => {
+    const { ctx, agent } = await setupWithTools()
+    agent.session.append('plan/mode', { active: false })
+    openTurn(agent.session)
+    expect(ctx.planMode.set(agent, true)).toBe('queued')
+    const result = await call(ctx, 'write', agent)
+    expect(result.isError).toBe(false)
+    await boundary(ctx, agent, 'step-start')
+    const blocked = await call(ctx, 'write', agent)
+    expect(blocked.isError).toBe(true)
+  })
+
+  it('lets the deployment add names through blockedTools config', async () => {
+    const { ctx, agent } = await setupWithTools({ section: TEST_PLAN_SECTION, blockedTools: ['bash'] })
+    const result = await call(ctx, 'bash', agent)
+    expect(result.isError).toBe(true)
+    expect(JSON.stringify(result.content[0])).toContain("'bash' is blocked")
+  })
+
+  it('ignores agent-less executions (no session to fold)', async () => {
+    const { ctx } = await setupWithTools()
+    const result = await call(ctx, 'write', undefined)
+    expect(result.isError).toBe(false)
+  })
+
+  it('keeps the guard out of forked child sessions (fresh logs fold inactive)', async () => {
+    const { ctx, agent } = await setupWithTools()
+    const child = await agentWithSession(ctx, 'guard-child', { owner: agent })
+    const result = await call(ctx, 'write', child)
+    expect(result.isError).toBe(false)
+  })
+})
+
+describe('plan file persistence', () => {
+  it('writes a slugged plan file under $DSH_HOME/plans and logs plan/file', async () => {
+    const ctx = await setup()
+    await ctx.plugin(AgentRegistry)
+    await ctx.plugin(UserInteractionService)
+    ctx.userInteraction.registerProvider({
+      ask: () => Promise.resolve({ answers: [{ id: 'plan-review', selected: ['Approve'] }] }),
+    })
+    const agent = await agentWithSession(ctx, 'plan-file', { active: true })
+    const plan = '# Retry the Budget Gate\n\n1. Raise the ceiling.'
+    const result = await ctx.tools.execute({
+      callId: CallId(`call-plan-${++callCounter}`),
+      name: EXIT_PLAN_MODE,
+      arguments: { plan },
+      signal: new AbortController().signal,
+      agent,
+    })
+    expect(result.isError).toBe(false)
+    const planPath = (result.value as { path?: string }).path!
+    expect(planPath).toContain(join('plans', ''))
+    expect(planPath.endsWith('retry-the-budget-gate.md')).toBe(true)
+    expect(await readFile(planPath, 'utf8')).toBe(plan)
+    expect(agent.session.events.find(event => event.type === 'plan/file')?.data)
+      .toEqual({ path: planPath, heading: 'Retry the Budget Gate' })
+  })
+
+  it('persists the draft even when the user keeps planning', async () => {
+    const ctx = await setup()
+    await ctx.plugin(AgentRegistry)
+    await ctx.plugin(UserInteractionService)
+    ctx.userInteraction.registerProvider({
+      ask: () => Promise.resolve({ answers: [{ id: 'plan-review', selected: ['Keep planning'], custom: 'tighten step 2' }] }),
+    })
+    const agent = await agentWithSession(ctx, 'plan-draft', { active: true })
+    const plan = '# Draft Plan\n\nfirst cut'
+    const result = await ctx.tools.execute({
+      callId: CallId(`call-plan-${++callCounter}`),
+      name: EXIT_PLAN_MODE,
+      arguments: { plan },
+      signal: new AbortController().signal,
+      agent,
+    })
+    expect(result.isError).toBe(true)
+    expect(JSON.stringify(result.content[0])).toContain('tighten step 2')
+    const fileEvent = agent.session.events.find(event => event.type === 'plan/file')
+    expect(fileEvent).toBeDefined()
+    expect(await readFile((fileEvent!.data as { path: string }).path, 'utf8')).toBe(plan)
   })
 })

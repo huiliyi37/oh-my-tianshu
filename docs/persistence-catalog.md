@@ -460,6 +460,21 @@ Source: [`packages/interaction/permission/src/index.ts:50`](../packages/interact
 
 ### `plan/*`
 
+#### `plan/file` — log-only
+
+```ts persistence-catalog
+/**
+ * A presented plan was persisted to a plan file: log-only audit carrying
+ * the absolute `path` written and the plan's first `heading`. Appended
+ * when `exit_plan_mode` is called, whether the review approves or keeps
+ * planning, so every reviewable draft remains recoverable after
+ * compaction; it never enters the model surface or derived history.
+ */
+'plan/file': { path: string; heading: string }
+```
+
+Source: [`packages/plan/plan-mode/src/index.ts:72`](../packages/plan/plan-mode/src/index.ts)
+
 #### `plan/mode` — log-only
 
 ```ts persistence-catalog
@@ -471,7 +486,7 @@ Source: [`packages/interaction/permission/src/index.ts:50`](../packages/interact
 'plan/mode': { active: boolean }
 ```
 
-Source: [`packages/plan/plan-mode/src/index.ts:52`](../packages/plan/plan-mode/src/index.ts)
+Source: [`packages/plan/plan-mode/src/index.ts:64`](../packages/plan/plan-mode/src/index.ts)
 
 ### `request/*`
 

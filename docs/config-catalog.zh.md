@@ -1133,10 +1133,17 @@ export interface PresetSpec {
 export interface PlanModeConfig {
   /** Guidance rendered as the `plan:policy` prompt section while plan mode is active. */
   section: string
+  /**
+   * Extra tool names the plan-mode guard denies on top of the built-in
+   * mutation families (fs writes, git commits, persistent-terminal control).
+   * Shell exploration (bash/pwsh) is intentionally not blocked by default —
+   * list them here for a stricter deployment.
+   */
+  blockedTools?: readonly string[]
 }
 ```
 
-来源：[`packages/plan/plan-mode/src/index.ts:69`](../packages/plan/plan-mode/src/index.ts)
+来源：[`packages/plan/plan-mode/src/index.ts:89`](../packages/plan/plan-mode/src/index.ts)
 
 ## `@huiliyi37/dsh-pty-local`
 

@@ -462,6 +462,21 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 ### `plan/*`
 
+#### `plan/file` — log-only
+
+```ts persistence-catalog
+/**
+ * A presented plan was persisted to a plan file: log-only audit carrying
+ * the absolute `path` written and the plan's first `heading`. Appended
+ * when `exit_plan_mode` is called, whether the review approves or keeps
+ * planning, so every reviewable draft remains recoverable after
+ * compaction; it never enters the model surface or derived history.
+ */
+'plan/file': { path: string; heading: string }
+```
+
+来源：[`packages/plan/plan-mode/src/index.ts:72`](../packages/plan/plan-mode/src/index.ts)
+
 #### `plan/mode` — log-only
 
 ```ts persistence-catalog
@@ -473,7 +488,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'plan/mode': { active: boolean }
 ```
 
-来源：[`packages/plan/plan-mode/src/index.ts:52`](../packages/plan/plan-mode/src/index.ts)
+来源：[`packages/plan/plan-mode/src/index.ts:64`](../packages/plan/plan-mode/src/index.ts)
 
 ### `request/*`
 

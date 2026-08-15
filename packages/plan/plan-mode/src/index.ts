@@ -6,6 +6,15 @@
  * sandbox mode and approval policy; those enforcement axes do not read or
  * write plan state.
  *
+ * While plan mode is active, a monotonic tool guard denies the mutation-tool
+ * families (fs writes, git commits, persistent-terminal control) at the
+ * registry boundary — the prompt section advises, the guard enforces. Shell
+ * exploration (bash/pwsh) stays available like Claude Code's plan mode; the
+ * residual shell-write hole rides on the orthogonal sandbox axis and is
+ * documented in the Agent Note. The presented plan is also persisted to a
+ * plan file under the harness home and recorded as a log-only `plan/file`
+ * event, so approved plans survive compaction and can be re-read later.
+ *
  * The state in force is folded from the session log (`plan/mode`, last one
  * wins), so resume and fork restore it without a live mirror. User selections
  * are held as pending intent until an in-turn step boundary. The service
@@ -22,6 +31,8 @@
  * @module @huiliyi37/dsh-plan-mode
  */
 
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { Context, Service } from '@huiliyi37/cordis'
 import { z as zod } from 'zod'
 import type { ZodType } from 'zod'
@@ -30,6 +41,7 @@ import { createUserMessage } from '@huiliyi37/dsh-llm'
 import type { Session, SessionEvent, UserMessage } from '@huiliyi37/dsh-session'
 import { defineTool } from '@huiliyi37/dsh-tools'
 import type {} from '@huiliyi37/dsh-system-prompt'
+import { dshHomePath } from '@huiliyi37/dsh-paths'
 import { UserInteractionError } from '@huiliyi37/dsh-user-interaction'
 // Type-only edge: resolves `ctx.commands` for the optional command child.
 import type {} from '@huiliyi37/dsh-commands'
@@ -50,6 +62,14 @@ declare module '@huiliyi37/dsh-session/types' {
      * inactive through {@link foldPlanMode}.
      */
     'plan/mode': { active: boolean }
+    /**
+     * A presented plan was persisted to a plan file: log-only audit carrying
+     * the absolute `path` written and the plan's first `heading`. Appended
+     * when `exit_plan_mode` is called, whether the review approves or keeps
+     * planning, so every reviewable draft remains recoverable after
+     * compaction; it never enters the model surface or derived history.
+     */
+    'plan/file': { path: string; heading: string }
   }
 }
 
@@ -69,6 +89,13 @@ export const EXIT_PLAN_MODE = 'exit_plan_mode'
 export interface PlanModeConfig {
   /** Guidance rendered as the `plan:policy` prompt section while plan mode is active. */
   section: string
+  /**
+   * Extra tool names the plan-mode guard denies on top of the built-in
+   * mutation families (fs writes, git commits, persistent-terminal control).
+   * Shell exploration (bash/pwsh) is intentionally not blocked by default —
+   * list them here for a stricter deployment.
+   */
+  blockedTools?: readonly string[]
 }
 
 /** The review question's id, echoed in the answer this tool reads. */
@@ -79,6 +106,61 @@ const APPROVE_LABEL = 'Approve'
 
 /** The review question's keep-planning option label. */
 const KEEP_PLANNING_LABEL = 'Keep planning'
+
+/**
+ * Tool names the plan-mode guard always denies while plan mode is active.
+ * `str_replace_editor` is discriminated by its `command` argument in
+ * {@link isPlanModeBlocked}: only the mutating commands are denied.
+ */
+const PLAN_BLOCKED_TOOLS: ReadonlySet<string> = new Set([
+  'write',
+  'edit',
+  'str_replace_editor',
+  'git_commit',
+  'terminal_open',
+  'terminal_send',
+  'terminal_signal',
+  'terminal_close',
+])
+
+/** The `str_replace_editor` commands that mutate files; `view` stays allowed. */
+const PLAN_BLOCKED_EDITOR_COMMANDS: ReadonlySet<string> = new Set(['create', 'str_replace', 'insert'])
+
+/**
+ * Whether the guard denies this call while plan mode is active. The shell
+ * tools (bash/pwsh) are deliberately absent: plan mode keeps read-only shell
+ * exploration (Claude Code's plan semantics), and the residual shell-write
+ * hole rides on the orthogonal sandbox axis.
+ *
+ * @param name - the tool being called.
+ * @param args - the call's arguments (read for `str_replace_editor`'s command).
+ * @param extra - deployment-added names from {@link PlanModeConfig.blockedTools}.
+ * @returns whether the call is denied.
+ */
+function isPlanModeBlocked(name: string, args: unknown, extra: ReadonlySet<string>): boolean {
+  if (extra.has(name)) return true
+  if (!PLAN_BLOCKED_TOOLS.has(name)) return false
+  if (name !== 'str_replace_editor') return true
+  const command = (args as { command?: unknown } | null)?.command
+  return typeof command === 'string' && PLAN_BLOCKED_EDITOR_COMMANDS.has(command)
+}
+
+/** One path segment's safe encoding: alphanumerics and `._-` pass, the rest become `~XXXX`. */
+function encodePathSegment(value: string): string {
+  let out = ''
+  for (const ch of value) {
+    const code = ch.codePointAt(0)
+    out += /^[A-Za-z0-9._-]$/.test(ch) || code === undefined ? ch : `~${code.toString(16).toUpperCase().padStart(4, '0')}`
+  }
+  return out || 'root'
+}
+
+/** The plan file's slug from its first heading: lowercase words joined by `-`, capped. */
+function planSlug(heading: string | undefined): string {
+  if (heading === undefined) return 'plan'
+  const slug = heading.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60)
+  return slug === '' ? 'plan' : slug
+}
 
 const EXIT_DESCRIPTION
   = 'Use only in plan mode. Present your plan for the user\'s review and, on approval, leave plan mode. '
@@ -110,11 +192,19 @@ export function resolveConfig(config: PlanModeConfig): PlanModeConfig {
   if (section.trim() === '') {
     throw new Error('PlanModeConfig needs a non-empty `section`')
   }
-  const unknown = Object.keys(config).filter(key => key !== 'section')
+  const unknown = Object.keys(config).filter(key => key !== 'section' && key !== 'blockedTools')
   if (unknown.length > 0) {
-    throw new Error(`PlanModeConfig has unknown key(s) ${unknown.join(', ')} — config is { section }`)
+    throw new Error(`PlanModeConfig has unknown key(s) ${unknown.join(', ')} — config is { section, blockedTools? }`)
   }
-  return { section }
+  const blockedTools = (config as Partial<PlanModeConfig>).blockedTools
+  if (blockedTools !== undefined) {
+    if (!Array.isArray(blockedTools) || blockedTools.some(name => typeof name !== 'string' || name.trim() === '')) {
+      throw new Error('PlanModeConfig `blockedTools` must be a list of non-empty tool names')
+    }
+  }
+  // Re-annotate past the Array.isArray any[] narrowing before the detach spread.
+  const detached: readonly string[] | undefined = blockedTools
+  return detached === undefined ? { section } : { section, blockedTools: [...detached] }
 }
 
 /**
@@ -186,6 +276,9 @@ export class PlanModeService extends Service {
   /** Validated deployment-owned guidance. */
   private readonly section: string
 
+  /** Deployment-added guard denials from {@link PlanModeConfig.blockedTools}. */
+  private readonly extraBlockedTools: ReadonlySet<string>
+
   /**
    * Latest selection per session awaiting an in-turn request-boundary flush.
    * `narrate` is true for user selections and false for the exit tool, whose
@@ -195,8 +288,24 @@ export class PlanModeService extends Service {
 
   constructor(ctx: Context, config: PlanModeConfig = { section: '' }) {
     super(ctx, 'planMode')
-    this.section = resolveConfig(config).section
+    const resolved = resolveConfig(config)
+    this.section = resolved.section
+    this.extraBlockedTools = new Set(resolved.blockedTools ?? [])
     let disposed = false
+    // The hard half of plan mode: a monotonic registry guard denying the
+    // mutation-tool families while the logged state is active. It reads the
+    // committed log only — a pending mid-turn entry must not break the running
+    // turn's legitimate writes, and an approved exit's own batch stays guided
+    // by the "from the next step" contract. Guards cannot be overturned by
+    // later listeners, so no deployment or hook accidentally re-allows a write.
+    ctx.effect(() => ctx.tools.guard((exec) => {
+      const agent = exec.agent
+      if (agent === undefined) return undefined
+      if (!foldPlanMode(agent.session.events)) return undefined
+      if (!isPlanModeBlocked(exec.name, exec.arguments, this.extraBlockedTools)) return undefined
+      return `plan mode is active: '${exec.name}' is blocked. `
+        + 'Explore with read-only tools and present the plan with exit_plan_mode when ready.'
+    }), 'dsh-plan-mode: guard mutation tools in plan mode')
     // Pre-step is outside Session.append publication, so its log-only mode
     // event can land between turns or inside an open turn without re-entering
     // the session. A failed append remains pending for a later boundary, and
@@ -311,9 +420,14 @@ export class PlanModeService extends Service {
           additionalProperties: false,
           properties: {
             approved: { type: 'boolean', const: true, required: true },
+            path: { type: 'string', description: 'The plan file this approved plan was persisted to.' },
           },
         },
-        render: () => [{ type: 'text', text: 'Plan approved — plan mode exited; carry out the plan starting with your next step.' }],
+        render: (_args, value) => [{
+          type: 'text',
+          text: 'Plan approved — plan mode exited; carry out the plan starting with your next step.'
+            + (typeof value.path === 'string' ? ` Plan file: ${value.path}` : ''),
+        }],
       },
       execute: async (args, exec) => {
         const agent = exec.agent
@@ -324,6 +438,10 @@ export class PlanModeService extends Service {
         if (!/^#\s+\S/.test(args.plan.trim())) {
           throw new Error(`${EXIT_PLAN_MODE} requires a non-empty markdown plan starting with a # heading`)
         }
+        // Persist every presented draft before the review: an approved plan is
+        // carried out (and compacted away), a kept-planning one is revised —
+        // both stay recoverable from the plan file and its log-only event.
+        const planPath = this.persistPlan(agent.session, args.plan)
         const interaction = ctx.get('userInteraction')
         if (interaction === undefined) {
           throw new Error('no user-interaction channel is available to review the plan; ask the user to switch the session mode instead')
@@ -373,7 +491,7 @@ export class PlanModeService extends Service {
         // Keep plan guidance for the rest of this assistant tool batch. The
         // silent intent flushes after the step, before the next assembly.
         this.pendingIntents.set(agent.session, { active: false, narrate: false })
-        return { approved: true }
+        return planPath === undefined ? { approved: true } : { approved: true, path: planPath }
       },
       presentCall: args => ({
         card: 'generic',
@@ -452,6 +570,32 @@ export class PlanModeService extends Service {
     // Delete only after append succeeds so a later boundary can retry a failed
     // durable write.
     this.pendingIntents.delete(session)
+  }
+
+  /**
+   * Write the presented plan to its plan file under the harness home and
+   * append the log-only `plan/file` event. The plugin-private node:fs write
+   * (the spill-local/fs-snapshot precedent) never crosses the fs sandbox, so
+   * a read-only deployment cannot deadlock the review. Best-effort: a write
+   * failure loses only the durable copy, never the review flow.
+   *
+   * @param session The session the plan belongs to.
+   * @param plan The complete presented plan, as markdown.
+   * @returns The absolute plan-file path, or `undefined` when writing failed.
+   */
+  private persistPlan(session: Session, plan: string): string | undefined {
+    const heading = firstHeading(plan) ?? 'Plan'
+    try {
+      const dir = join(dshHomePath('plans'), encodePathSegment(session.header.cwd ?? ''), encodePathSegment(session.id))
+      mkdirSync(dir, { recursive: true, mode: 0o700 })
+      const path = join(dir, `${planSlug(heading)}.md`)
+      writeFileSync(path, plan, 'utf8')
+      session.append('plan/file', { path, heading })
+      return path
+    } catch (error) {
+      this.ctx.logger.warn('dsh-plan-mode: plan file persistence failed: %o', error)
+      return undefined
+    }
   }
 
   /** Build a user-switch notice when the last logged header described the other mode. */

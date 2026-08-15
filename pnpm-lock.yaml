@@ -4916,6 +4916,9 @@ importers:
       '@huiliyi37/dsh-llm':
         specifier: workspace:^
         version: link:../../llm/llm
+      '@huiliyi37/dsh-paths':
+        specifier: workspace:^
+        version: link:../../util/paths
       '@huiliyi37/dsh-session':
         specifier: workspace:^
         version: link:../../core/session

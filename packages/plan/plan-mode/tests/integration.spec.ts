@@ -64,7 +64,7 @@ function findEvent<T extends SessionEvent['type']>(
 }
 
 describe('plan mode through the agent loop', () => {
-  it('a pre-turn set() makes the FIRST header plan-shaped, and a non-shell call is guidance-constrained only', async () => {
+  it('a pre-turn set() makes the FIRST header plan-shaped, and a mutation call is guard-denied', async () => {
     const adapter = new MockAdapter([
       toolCallResponse('call-1', 'write', {}, 'Writing during plan.'),
       textResponse('Noted in the plan.'),
@@ -85,11 +85,12 @@ describe('plan mode through the agent loop', () => {
     expect(header.data.header.tools?.map(tool => tool.name)).toEqual(['exit_plan_mode', 'read', 'write'])
     expect(header.data.header.system).toContain('plan mode')
 
-    // No tool gate: the write RUNS — plan restrains by the section's
-    // guidance alone (enforcement lives on the independent sandbox/approval
-    // axes). The mode itself stays plan throughout.
+    // The catalog stays full, but the monotonic guard denies the write: plan
+    // mode restrains through the section's guidance AND the registry guard.
+    // The mode itself stays plan throughout.
     const result = findEvent(log, 'tool/result')
-    expect(result.data.message.content[0].isError).toBe(false)
+    expect(result.data.message.content[0].isError).toBe(true)
+    expect(JSON.stringify(result.data.message.content[0])).toContain("'write' is blocked")
     expect(foldPlanMode(log)).toBe(true)
     expect(log.some(event => event.type === 'user/message' && event.data.source.kind === 'plugin')).toBe(false)
   })

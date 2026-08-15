@@ -37,6 +37,9 @@
     },
     {
       "path": "../../support/invariants"
+    },
+    {
+      "path": "../../util/paths"
     }
   ]
 }
