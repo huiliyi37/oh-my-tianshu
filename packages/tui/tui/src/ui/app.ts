@@ -367,6 +367,35 @@ function normalizeSubmitImages(images?: string[]): string[] | undefined {
   return valid.length === 0 ? undefined : valid
 }
 
+/** 判断输入是否更像文件路径而非 slash 命令（移植自本体 looksLikeFilePath）：
+ *  /src/main.ts、/tmp/foo bar、~/xxx、Windows 盘符 C:\... 走普通文本流程；
+ *  /exit 等已知命令、/h 等命令前缀仍视为命令（触发解析/提示）。
+ *  单段绝对路径（/etc、/mnt）依赖 isKnownCommand 谓词区分命令与路径。 */
+function looksLikeFilePath(
+  input: string,
+  isKnownCommand?: (name: string) => boolean,
+  isCommandPrefix?: (name: string) => boolean,
+): boolean {
+  if (input.startsWith('~/')) return true
+  // Windows 盘符路径 C:\... 或 C:/...（不是 slash 命令）
+  if (/^[a-zA-Z]:[\\/]/.test(input)) return true
+  if (!input.startsWith('/')) return false
+  const rest = input.slice(1)
+  const slashIdx = rest.indexOf('/')
+  if (slashIdx !== -1) {
+    const spaceIdx = rest.indexOf(' ')
+    return spaceIdx === -1 || slashIdx < spaceIdx
+  }
+  // 单段 /xxx：可能是命令（/exit）也可能是路径（/etc, /mnt）
+  if (isKnownCommand) {
+    const firstToken = rest.split(/\s/)[0] ?? ''
+    if (firstToken === '') return false
+    if (isCommandPrefix?.(firstToken)) return false
+    return !isKnownCommand(firstToken)
+  }
+  return false
+}
+
 /** 检测当前目录是否为 git 仓库（静默，失败返回 false）。 */
 function isGitRepo(): boolean {
   try {
@@ -501,6 +530,8 @@ export class TuiApp {
   /** 双击 Esc 触发 rewind：第一次 Esc 的时间戳（0 = 无待定；窗口内第二次 Esc
    *  打开 rewind overlay，对齐 Claude Code 的 Esc+Esc 时间回溯）。 */
   private escRewindPendingSince = 0
+  /** 最近一次 Ctrl+C 字节（0x03）处理时间戳；0 = 未处理过（SIGINT 防抖用）。 */
+  private lastCtrlCAt = 0
   /** git 未提交改动文件数（gitDirtyCount 快照；attach + turn/end 刷新，0 = 干净/非仓库）。 */
   private gitDirty = 0
   /** A5：手动展开的进行中工具卡 callId（空输入 Enter 切换；turn/end 复位）。 */
@@ -802,6 +833,9 @@ export class TuiApp {
       openModelPicker: () => { void this.openModelPicker() },
       openThemePicker: () => { this.openThemePicker() },
       openSessionPicker: () => { void this.openSessionPicker() },
+      // /help：注册表所有者即 TuiApp（this.slash），经 deps 注入——不暴露为 ctx
+      // 服务（Cordis 注入代理对未声明属性抛 without inject，见 #36）。
+      listCommands: () => this.slash.list(),
     })) {
       this.slash.register(command)
     }
@@ -1354,6 +1388,27 @@ export class TuiApp {
     const idx = tabs.findIndex(t => t.id === active)
     const next = tabs[(idx + 1) % tabs.length]
     if (next !== undefined && next.id !== active) void this.switchSession(SessionId(next.id))
+  }
+
+  /** slash 注册表当前命令名集合（现取——/lsp 等动态注册命令不误判为路径）。 */
+  private isKnownCommand(name: string): boolean {
+    return this.slash.list().some(c => c.name === name)
+  }
+
+  /** name 是否为某个已注册命令的前缀（/h → help；模糊输入仍视为命令）。 */
+  private isCommandPrefix(name: string): boolean {
+    return this.slash.list().some(c => c.name.startsWith(name))
+  }
+
+  /**
+   * Windows 双触发防护：最近 800ms 内 Ctrl+C 字节（0x03）已处理（打断/退出）时，
+   * 紧随的 SIGINT 应被忽略——否则刚打断的 TUI 被 teardown 拆掉（输入框消失、
+   * 进程存活）。装配层（index.ts）的 SIGINT handler 先查此门再决定是否退出。
+   * @param now - 当前时间戳（注入便于测试）。
+   * @returns true = SIGINT 应忽略（0x03 刚处理过）。
+   */
+  shouldDeferSigint(now: number): boolean {
+    return now - this.lastCtrlCAt < 800
   }
 
   /**
@@ -2205,9 +2260,11 @@ export class TuiApp {
       }
     }
     if (!trimmed) return
-    // 任何 / 前缀输入都进命令通道：注册表命中则执行，未命中回显未知命令
-    // 提示——不把命令文本当普通消息发给 agent。
-    if (trimmed.startsWith('/')) {
+    // 任何 / 前缀输入都进命令通道……但以 / 开头的文件路径（/src/main.ts、
+    // /tmp/foo bar、/etc 等非命令单段）不是命令——走普通文本流程，避免被
+    // 当作未知 slash 命令报失败（参考本体 looksLikeFilePath；命令集取注册表
+    // 现值——/lsp 等动态注册命令不误判为路径）。
+    if (trimmed.startsWith('/') && !looksLikeFilePath(trimmed, n => this.isKnownCommand(n), n => this.isCommandPrefix(n))) {
       void this.runSlash(trimmed)
       return
     }
@@ -2399,6 +2456,12 @@ export class TuiApp {
 
   /** 取消当前运行（Esc/Ctrl+C）：cancel agent、丢弃未发出的流式/推理缓冲并重置流渲染。 */
   handleAbort(): void {
+    // 防御：打断优先于 overlay——释放任何激活的全屏 overlay（palette/search/
+    // rewind/picker），保证主屏（含输入轨）在下一帧必然恢复。按键路径上 overlay
+    // 分支先于 ctrl_c 分支拦截，此防御覆盖未来新增路径在 overlay 激活时调 abort。
+    this.overlay?.deactivate()
+    this.palette?.close()
+    this.picker?.close()
     this.controls?.cancel({ kind: 'user' })
     this.commitToScrollback({ text: '⏹ 已取消', trailingNewline: true })
     this.blockWriter.discard()
@@ -2746,7 +2809,12 @@ export class TuiApp {
         const committed = this.palette.commit()
         this.overlay?.deactivate()
         this.palette.close()
-        if (committed !== null) this.inputLine.setValue(committed.text)
+        if (committed !== null) {
+          // execute 模式（Tab 命令菜单，#31）：直接执行无参命令
+          // （/model /theme /session → 对应选择器）；backfill 模式（Ctrl+P）回填。
+          if (committed.execute) this.handleSubmit(committed.text)
+          else this.inputLine.setValue(committed.text)
+        }
       } else if (key.name === 'up' || key.name === 'down') {
         this.palette.move(key.name === 'up' ? -1 : 1)
         this.overlay?.rerender()
@@ -2837,6 +2905,10 @@ export class TuiApp {
       this.escRewindPendingSince = now
     }
     if (key.name === 'ctrl_c') {
+      // Windows 控制台（PowerShell/conhost）下 Ctrl+C 可能同时产生 0x03 字节
+      // 与 SIGINT：记录字节处理时间，供 index.ts 的 SIGINT 防抖（双触发时
+      // SIGINT 忽略，避免刚打断的 TUI 被 teardown 拆掉——「输入框消失」）。
+      this.lastCtrlCAt = Date.now()
       // raw-mode 下 Ctrl+C 是 0x03 数据字节而非 SIGINT。
       // 在途：打断当前 turn（连按窗口一并复位）；空闲空输入：连按两次才
       // onExit——单次误触不拆 TUI，第一次提示、窗口内第二次才退出
@@ -2927,6 +2999,21 @@ export class TuiApp {
       // 交给 InputLine 的历史导航（InputLineEvent 'history' 不消费即已处理）
       this.inputLine.handleKey(key.name, key.char, key.ctrl, key.meta, key.shift, key.inline === true)
       this.flushLiveRender()
+      return
+    }
+    // 空输入框 Tab → 命令菜单（palette execute 模式，#31 参考 Claude Code）：
+    // 选命令回车直接执行（/model → 模型选择器），省去输入 /cmd 一步。
+    // 非空输入框 Tab 走 @ 补全（下方 inputLine.handleKey → onTabComplete）；
+    // slash 菜单打开时 Tab 已被上方分支拦截（接受补全）。
+    if (key.name === 'tab' && this.inputLine.value === '') {
+      const palette = this.palette
+      const overlay = this.overlay
+      /* v8 ignore next 2 -- palette/overlay 在 attach 时恒创建，null 仅类型收窄 */
+      if (palette !== null && overlay !== null) {
+        palette.open(true)
+        overlay.activate('command-palette')
+        this.flushLiveRender()
+      }
       return
     }
     const event = this.inputLine.handleKey(key.name, key.char, key.ctrl, key.meta, key.shift, key.inline === true)

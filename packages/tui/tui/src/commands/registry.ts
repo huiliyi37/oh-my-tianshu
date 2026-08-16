@@ -305,6 +305,8 @@ export interface BuiltinCommandDeps {
   openThemePicker(): void
   /** #31：打开会话选择器。 */
   openSessionPicker(): void
+  /** /help：当前注册表的全部命令（TuiApp 是注册表所有者，经 deps 注入而非 ctx 服务）。 */
+  listCommands(): SlashCommand[]
 }
 
 /**
@@ -937,15 +939,10 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
       name: 'help',
       description: '列出全部命令与用法（/help <cmd> 查看单条详情）',
       argsHint: '[cmd]',
-      run: ({ text, echo, ctx }) => {
-        // 注册表经 ctx.provide('tui.commands') 暴露（app.ts）；取不到时 fails loud。
-        const registry = (ctx as unknown as { tui?: { commands?: { list(): SlashCommand[] } } })
-          .tui?.commands
-        if (registry === undefined) {
-          echo('⚠ 命令注册表服务不可用')
-          return
-        }
-        const all = registry.list()
+      run: ({ text, echo }) => {
+        // 注册表经 deps 注入（TuiApp 持有 this.slash 实例）——不访问 ctx 属性：
+        // Cordis 注入代理对未声明属性直接抛 "without inject"（#36 根因）。
+        const all = deps.listCommands()
         const target = text.trim()
         if (target !== '') {
           const command = all.find(c => c.name === target)

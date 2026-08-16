@@ -17,6 +17,7 @@ import {
   SlashCommandRegistry,
   createBuiltinCommands,
   resolveSlashCommand,
+  type SlashCommand,
 } from '../src/commands/registry.js'
 import { getActiveThemeName, setTheme } from '../src/theme.js'
 
@@ -78,6 +79,7 @@ function commandByName(name: string) {
     openModelPicker: vi.fn(),
     openThemePicker: vi.fn(),
     openSessionPicker: vi.fn(),
+    listCommands: vi.fn<() => SlashCommand[]>(() => []),
   }
   const commands = createBuiltinCommands(deps)
   const cmd = commands.find(c => c.name === name)
@@ -1404,6 +1406,33 @@ describe('/mcp MCP 状态命令', () => {
   })
 })
 
+describe('内置命令 — /help', () => {
+  it('列出注册表全部命令（deps 注入契约，不访问 ctx.tui——#36）', async () => {
+    const { cmd, deps } = commandByName('help')
+    const fakeCommands = [
+      { name: 'theme', description: '切换主题', argsHint: '<name>' },
+      { name: 'exit', description: '退出' },
+    ] as SlashCommand[]
+    deps.listCommands.mockReturnValue(fakeCommands)
+    const { args, echo } = makeArgs({ text: '' })
+    await cmd.run(args)
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('全部命令（2 条）'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('/theme <name> — 切换主题'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('/exit — 退出'))
+  })
+
+  it('/help <cmd> 单条详情；未知命令回显提示', async () => {
+    const { cmd, deps } = commandByName('help')
+    deps.listCommands.mockReturnValue([{ name: 'exit', description: '退出' }] as SlashCommand[])
+    const { args, echo } = makeArgs({ text: 'exit' })
+    await cmd.run(args)
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('/exit — 退出'))
+    const unknown = makeArgs({ text: 'zzz' })
+    await cmd.run(unknown.args)
+    expect(unknown.echo).toHaveBeenCalledWith(expect.stringContaining('未知命令: /zzz'))
+  })
+})
+
 describe('内置命令 — /effort', () => {
   const effortByName = () => commandByName('effort')
 
@@ -1463,6 +1492,7 @@ describe('内置命令 — /effort', () => {
       openModelPicker: vi.fn(),
       openThemePicker: vi.fn(),
       openSessionPicker: vi.fn(),
+      listCommands: vi.fn<() => SlashCommand[]>(() => []),
       currentAgent: vi.fn<() => Agent | null>(() => null),
       isBlankSession: vi.fn(() => true),
       setYoloMode: vi.fn(),

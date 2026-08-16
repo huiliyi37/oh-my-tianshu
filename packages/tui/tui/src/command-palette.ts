@@ -182,6 +182,8 @@ export interface CommandPaletteOptions {
 /** Ctrl+P 面板控制器：open/toggle/type/move/commit，实现 OverlayRenderer 契约。 */
 export class CommandPalette {
   private state: PaletteState = emptyPaletteState()
+  /** 确认模式：true = execute（Enter 直接执行 `/name`）；false = backfill（回填 `/name `）。 */
+  private executeMode = false
   private readonly getCommands: () => readonly SlashCommand[]
   private readonly getTheme: () => RivetTheme
 
@@ -198,8 +200,12 @@ export class CommandPalette {
     return this.state.open
   }
 
-  /** 打开面板（重置查询与选中）。 */
-  open(): void {
+  /** 打开面板（重置查询与选中）。
+   * @param execute - true 为 execute 模式（Enter 直接执行 `/name`，Tab 命令菜单用）；
+   *                  缺省 false 为 backfill 模式（Ctrl+P 命令面板，回填 `/name `）。
+   */
+  open(execute = false): void {
+    this.executeMode = execute
     this.state = applyPaletteEvent(this.state, { type: 'open' })
   }
 
@@ -250,14 +256,18 @@ export class CommandPalette {
   }
 
   /**
-   * 提交选中项：返回条目 + 回填文本；无选中返回 null。
-   * @returns 条目与回填文本；选中越界（如无匹配）返回 null。
+   * 提交选中项：返回条目 + 文本 + 确认模式；无选中返回 null。
+   * execute 模式文本为 `/name`（无尾随空格，调用方直接执行）；backfill 模式
+   * 为 `/name `（含尾随空格，调用方回填输入框续写参数）。
+   * @returns 条目与文本/模式；选中越界（如无匹配）返回 null。
    */
-  commit(): { entry: PaletteEntry; text: string } | null {
+  commit(): { entry: PaletteEntry; text: string; execute: boolean } | null {
     const visible = this.paletteVisible()
     const entry = visible[this.state.selected]
     if (entry === undefined) return null
-    return { entry, text: paletteCommitText(entry) }
+    return this.executeMode
+      ? { entry, text: `/${entry.name}`, execute: true }
+      : { entry, text: paletteCommitText(entry), execute: false }
   }
 
   /**

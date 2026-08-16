@@ -101,7 +101,22 @@ export function apply(ctx: Context, config: TuiRunnerConfig = {}): void {
       }
       if (quit) requestHostExit()
     }
-    const onSigint = (): void => { void teardown(true) }
+    let lastSigintAt = 0
+    const onSigint = (): void => {
+      // Windows 控制台（PowerShell/conhost）下 Ctrl+C 可能同时产生 0x03 字节
+      // 与 SIGINT 信号：0x03 已走 handleAbort（打断），紧随的 SIGINT 若直接
+      // teardown 会把刚打断的 TUI 拆掉（输入框消失、进程存活）——800ms 内已有
+      // ctrl_c 字节处理则忽略 SIGINT（shouldDeferSigint）。SIGINT 自身去重兜底
+      // （process + stdin 双注册时同一信号只处理一次）。
+      const now = Date.now()
+      if (app.shouldDeferSigint(now)) return
+      if (now - lastSigintAt < 500) return
+      lastSigintAt = now
+      void teardown(true)
+    }
+    // SIGINT 双注册：Windows 上 stdin 流对 SIGINT 的转发不可靠，process 级
+    // 注册（POSIX/Windows 均可靠）为双保险；stdin 级保留（与既有测试/语义兼容）。
+    process.on('SIGINT', onSigint)
     const app = new TuiApp({
       ctx: runtimeCtx,
       stdin,
@@ -116,8 +131,15 @@ export function apply(ctx: Context, config: TuiRunnerConfig = {}): void {
       ...(config.lsp === undefined ? {} : { lsp: config.lsp }),
     })
     stdin.on('SIGINT', onSigint)
+    // 兜底：任何异常退出路径都恢复终端（raw mode off）——本体（opencode-tui）
+    // 同款 best-effort。防止异常跳过 dispose 时残留 raw mode（终端乱/输入框不可见）。
+    // exit 时进程将结束，handler 无需卸载。
+    process.on('exit', () => {
+      try { if (stdin.isTTY && typeof stdin.setRawMode === 'function') stdin.setRawMode(false) } catch { /* best-effort */ }
+    })
     ctx.effect(() => () => {
       stdin.off('SIGINT', onSigint)
+      process.off('SIGINT', onSigint)
       return teardown(false)
     })
     void app.attach().catch((err: unknown) => {

@@ -808,6 +808,90 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     await app.dispose()
   })
 
+  it('#31 空输入框 Tab → execute 模式：过滤 /exit 回车直接执行（onExit 触发，不经输入框回填）', async () => {
+    const onExit = vi.fn()
+    const ctx = makeCtx()
+    const agent = makeAgent('tab-exec-1')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdin = makeStdin()
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin, onExit })
+    await app.attach()
+
+    stdin.emit('data', '\x09') // Tab（空输入框）→ execute 模式命令菜单
+    await new Promise(resolve => setImmediate(resolve))
+    stdin.emit('data', 'exit') // 过滤 → /exit（'ex' 会同时命中 export，输入完整名）
+    stdin.emit('data', '\r')   // Enter → 直接执行 /exit（无参）→ onExit
+    await new Promise(resolve => setImmediate(resolve))
+
+    expect(onExit).toHaveBeenCalledTimes(1)
+    await app.dispose()
+  })
+
+  it('#31 空输入框 Tab 打开 execute 模式后 Esc 关闭（不执行、不回填）', async () => {
+    const onExit = vi.fn()
+    const ctx = makeCtx()
+    const agent = makeAgent('tab-exec-2')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin, onExit })
+    await app.attach()
+
+    stdin.emit('data', '\x09') // Tab → execute 模式菜单
+    await new Promise(resolve => setImmediate(resolve))
+    stdin.emit('data', '\x1b') // Esc 关闭
+    await new Promise(resolve => setTimeout(resolve, 200))
+
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('\x1B[?1049l') // 退出 alt screen（菜单已关闭）
+    expect(onExit).not.toHaveBeenCalled()     // 未执行任何命令
+    await app.dispose()
+  })
+
+  describe('TuiApp slash 路径豁免（/ 开头文件路径不误判为命令）', () => {
+    async function boot() {
+      const ctx = makeCtx()
+      const agent = makeAgent('slash-path-1')
+      const handle = makeHandle(agent)
+      ctx.agents.create.mockResolvedValue(handle)
+      ctx.sessions.get.mockReturnValue(agent.session)
+      const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+      await app.newSession()
+      return { app, agent }
+    }
+
+    it('/src/main.ts 走普通消息（followup），不报未知命令', async () => {
+      const { app, agent } = await boot()
+      app.handleSubmit('/src/main.ts')
+      expect(agent.followup).toHaveBeenCalledTimes(1)
+      expect(firstCallText(agent.followup)).toBe('/src/main.ts')
+      await app.dispose()
+    })
+
+    it('/tmp/foo bar（路径含空格）走普通消息', async () => {
+      const { app, agent } = await boot()
+      app.handleSubmit('/tmp/foo bar')
+      expect(agent.followup).toHaveBeenCalledTimes(1)
+      await app.dispose()
+    })
+
+    it('已知命令 /exit 仍走命令通道（不豁免）', async () => {
+      const { app, agent } = await boot()
+      app.handleSubmit('/exit')
+      expect(agent.followup).not.toHaveBeenCalled()
+      await app.dispose()
+    })
+
+    it('/st 歧义前缀仍进命令通道（未知命令回显，不豁免）', async () => {
+      const { app, agent } = await boot()
+      app.handleSubmit('/st')
+      expect(agent.followup).not.toHaveBeenCalled()
+      await app.dispose()
+    })
+  })
+
   describe('Issue #31 交互式选择器（/model /theme /session 无参打开）', () => {
     /** attach 模式 boot（键盘链路在 attach 注册）。 */
     async function bootPicker() {
@@ -2161,11 +2245,11 @@ describe('TuiApp Phase 6.1 slash 命令系统', () => {
 
     const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
     await app.newSession()
-    app.handleSubmit('/zzz')
+    app.handleSubmit('/st')
     await new Promise(resolve => setImmediate(resolve))
 
     expect(agent.followup).not.toHaveBeenCalled()
-    expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('未知命令: /zzz')
+    expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('未知命令: /st')
     await app.dispose()
   })
 
@@ -3286,11 +3370,11 @@ describe('runSlash fallback 到 CommandService（A1）', () => {
   it('未知名命令 + commands 可用 → execute 被调，回显 success 文本', async () => {
     const execute = vi.fn().mockResolvedValue({ result: { kind: 'success', text: '已进入 plan 模式' } })
     const { app, agent, stdout } = await setupApp({ execute })
-    app.handleSubmit('/plan')
+    app.handleSubmit('/st')
     await flush()
     expect(execute).toHaveBeenCalledTimes(1)
     expect(execute.mock.calls[0]![0]).toBe(agent)
-    expect(execute.mock.calls[0]![1]).toBe('/plan')
+    expect(execute.mock.calls[0]![1]).toBe('/st')
     expect(execute.mock.calls[0]![2]).toBeInstanceOf(AbortSignal)
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('已进入 plan 模式')
@@ -3300,7 +3384,7 @@ describe('runSlash fallback 到 CommandService（A1）', () => {
   it('execute 返回 error → 回显 ⚠ 与错误文本', async () => {
     const execute = vi.fn().mockResolvedValue({ result: { kind: 'error', text: 'plan mode 不可用' } })
     const { app, stdout } = await setupApp({ execute })
-    app.handleSubmit('/plan')
+    app.handleSubmit('/st')
     await flush()
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('⚠')
@@ -3311,7 +3395,7 @@ describe('runSlash fallback 到 CommandService（A1）', () => {
   it('execute 返回 undefined（未知名）→ 回显未知命令与可用列表', async () => {
     const execute = vi.fn().mockResolvedValue(undefined)
     const { app, stdout } = await setupApp({ execute })
-    app.handleSubmit('/definitely-not-a-command')
+    app.handleSubmit('/st')
     await flush()
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('未知命令')
@@ -3326,7 +3410,7 @@ describe('runSlash fallback 到 CommandService（A1）', () => {
     const stdout = makeStdout()
     const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
     // 未 attach/newSession：activeSessionId 为 null
-    app.handleSubmit('/plan')
+    app.handleSubmit('/st')
     await flush()
     expect(execute).not.toHaveBeenCalled()
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
@@ -3337,7 +3421,7 @@ describe('runSlash fallback 到 CommandService（A1）', () => {
   it('commands 服务不可用 → 不调 execute，回显未知命令（降级）', async () => {
     const execute = vi.fn()
     const { app, stdout } = await setupApp(undefined)
-    app.handleSubmit('/plan')
+    app.handleSubmit('/st')
     await flush()
     expect(execute).not.toHaveBeenCalled()
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
@@ -3353,7 +3437,7 @@ describe('TuiApp parseSlashCommand 导出', () => {
   })
 
   it('未知名命令 → null', () => {
-    expect(parseSlashCommand('/definitely-not-a-command')).toBeNull()
+    expect(parseSlashCommand('/st')).toBeNull()
   })
 })
 
@@ -4687,7 +4771,7 @@ describe('runCordisCommand 余下分支', () => {
 
   it('agent undefined（有会话但 registry 无 live agent）→ 未知命令', async () => {
     const { app, execute, stdout } = await setupAppWithAgent(() => undefined)
-    app.handleSubmit('/plan')
+    app.handleSubmit('/st')
     await new Promise(resolve => setImmediate(resolve))
     await new Promise(resolve => setImmediate(resolve))
     expect(execute).not.toHaveBeenCalled()
@@ -4699,7 +4783,7 @@ describe('runCordisCommand 余下分支', () => {
   it('execute success 无 text → 回显默认已执行', async () => {
     const { app, execute, stdout } = await setupAppWithAgent(() => makeAgent('cordis-1'))
     execute.mockResolvedValue({ result: { kind: 'success' } })
-    app.handleSubmit('/plan')
+    app.handleSubmit('/st')
     await new Promise(resolve => setImmediate(resolve))
     await new Promise(resolve => setImmediate(resolve))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
@@ -4710,7 +4794,7 @@ describe('runCordisCommand 余下分支', () => {
   it('execute 抛错 → ⚠ 命令执行失败（catch 分支）', async () => {
     const { app, execute, stdout } = await setupAppWithAgent(() => makeAgent('cordis-1'))
     execute.mockRejectedValue(new Error('cordis boom'))
-    app.handleSubmit('/plan')
+    app.handleSubmit('/st')
     await new Promise(resolve => setImmediate(resolve))
     await new Promise(resolve => setImmediate(resolve))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
@@ -4722,7 +4806,7 @@ describe('runCordisCommand 余下分支', () => {
   it('execute 抛字符串 → String(err) 分支回显（非 Error 抛出）', async () => {
     const { app, execute, stdout } = await setupAppWithAgent(() => makeAgent('cordis-2'))
     execute.mockRejectedValue('plain string failure')
-    app.handleSubmit('/plan')
+    app.handleSubmit('/st')
     await new Promise(resolve => setImmediate(resolve))
     await new Promise(resolve => setImmediate(resolve))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
