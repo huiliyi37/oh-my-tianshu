@@ -82,6 +82,49 @@ export interface Config {
 
 来源：[`packages/examples/acp-demo/src/index.ts:39`](../packages/examples/acp-demo/src/index.ts)
 
+## `@huiliyi37/dsh-adaptive-memory`
+
+需要：`systemPrompt`
+
+```ts config-catalog
+/** 插件配置：全部预算/阈值经 schemastery 校验，缺省值在 schema 上。 */
+export interface Config {
+  /** 整份 STM 快照的估算 token 预算（缺省 600；汉字按 1 token、其余按 1/4 估算）。 */
+  stmTokenBudget?: number
+  /** STM 候选数上限（缺省 12）。 */
+  maxEntries?: number
+  /** intentKey 保留的关键词数上限（缺省 6）。 */
+  maxIntentTokens?: number
+  /** 实体提取数上限（缺省 24）。 */
+  maxEntities?: number
+  /** pressure 阀门：距上次刷新满 N 轮强制重评估（缺省 8）。 */
+  reviewIntervalTurns?: number
+  /** 目标动词表：含动词的用户消息成为新 intent 锚点（拉丁词按词边界、CJK 按子串匹配）。 */
+  goalVerbs?: string[]
+  /** 始终入选 STM 候选的 tag（安全/用户约束类条目；缺省 ['safety', 'constraint', 'preference']）。 */
+  alwaysIncludeTags?: string[]
+  /** 每行摘要的字符数上限（缺省 120）。 */
+  summaryMaxChars?: number
+  /** 每条目的关键词数上限（缺省 5）。 */
+  maxKeywords?: number
+  /**
+   * 置信度门高阈值（缺省 0.82，占位待调参）：结构化 provider 的归一化
+   * score ≥ 此值时条目全文注入 STM；只在 provider 产出 score 时生效。
+   */
+  confidenceHigh?: number
+  /** 置信度门中阈值（缺省 0.55，占位待调参）：score ≥ 此值注入索引行；低于此不注入。 */
+  confidenceMedium?: number
+  /** 结构化路径每次 search/list 的候选拉取上限（缺省 24）。 */
+  retrievalLimit?: number
+  /** 兜底提醒每轮上限（缺省 1）。 */
+  maxRemindersPerTurn?: number
+  /** 兜底提醒每 intent 上限（缺省 3）。 */
+  maxRemindersPerIntent?: number
+}
+```
+
+来源：[`packages/memory/adaptive-memory/src/index.ts:81`](../packages/memory/adaptive-memory/src/index.ts)
+
 ## `@huiliyi37/dsh-agent-default-model`
 
 ```ts config-catalog
@@ -1122,6 +1165,39 @@ export interface StreamableHttpConfig {
 ```
 
 来源：[`packages/mcp/mcp-client/src/index.ts:100`](../packages/mcp/mcp-client/src/index.ts)
+
+## `@huiliyi37/dsh-memory-consolidate`
+
+```ts config-catalog
+/** 插件配置：全部阈值经 schemastery 校验，缺省值在 schema 上。 */
+export interface Config {
+  /** 总开关（缺省 true；false 时完全不监听会话结束）。 */
+  enabled?: boolean
+  /** 成功门控级别（缺省 'standard'：末轮范围；'strict'：全会话范围）。 */
+  gate?: GateLevel
+  /** 门控未通过的会话是否记录 failure-pattern 经验（缺省 true）。 */
+  recordFailures?: boolean
+  /** 是否巩固子代理会话（缺省 false：reader 等子会话的一次性工作不产生经验）。 */
+  consolidateChildSessions?: boolean
+  /** 单次巩固写入的候选数上限（缺省 8）。 */
+  maxCandidatesPerSession?: number
+  /** 单条候选文本字符上限（缺省 280）。 */
+  maxTextChars?: number
+  /** 单条候选实体数上限（缺省 8）。 */
+  maxEntities?: number
+  /** 退役开关（缺省 true；store 不支持 retireStale 能力时自动跳过）。 */
+  retirementEnabled?: boolean
+  /** superseded 版本保留天数（缺省 30；超过即退役）。 */
+  supersededRetentionDays?: number
+  /** 巩固期未使用阈值（缺省 8；连续这么多次巩固未被检索命中的事实退役）。 */
+  unusedConsolidations?: number
+}
+
+/** 门控级别：standard（缺省；末轮范围）或 strict（全会话范围）。 */
+export type GateLevel = 'standard' | 'strict'
+```
+
+来源：[`packages/memory/memory-consolidate/src/index.ts:61`](../packages/memory/memory-consolidate/src/index.ts)
 
 ## `@huiliyi37/dsh-permission`
 
@@ -2195,12 +2271,42 @@ export interface Config {
 ```ts config-catalog
 /** 插件配置。 */
 export interface ToolMemoryConfig {
-  /** 摘要注入开关（缺省 true）。 */
+  /**
+   * 调试开关（缺省 false）：在 system prompt 追加最近 20 条记忆摘要。
+   * 摘要在每次 save 后刷新，会重写请求前缀并击穿 provider 前缀缓存——
+   * 仅供缓存对比实验（基线臂 B）使用，生产组合保持关闭。
+   */
   digest?: boolean
+  /** memory_search 单次调用的结果数预算（缺省 10；模型的 limit 参数被钳制到此值）。 */
+  searchLimit?: number
 }
 ```
 
-来源：[`packages/memory/tool-memory/src/index.ts:60`](../packages/memory/tool-memory/src/index.ts)
+来源：[`packages/memory/tool-memory/src/index.ts:63`](../packages/memory/tool-memory/src/index.ts)
+
+## `@huiliyi37/dsh-tool-memory-recall`
+
+需要：`tools` · `systemPrompt`
+
+```ts config-catalog
+/** 插件配置：reader 规模与返回预算，缺省值在 schema 上。 */
+export interface Config {
+  /** reader 使用的 ctx.subagents provider 名（缺省 'spawn'，进程内一次性）。 */
+  provider?: string
+  /** reader 可用的只读搜索工具（缺省 session_query 三件套；缺失即报告不可用）。 */
+  readerTools?: string[]
+  /** 返回主上下文的 answer 字符上限（缺省 2000；超出截断）。 */
+  maxAnswerChars?: number
+  /** 返回的 evidence 条数上限（缺省 5；uncertainties 同受此数限制）。 */
+  maxEvidence?: number
+  /** 单条 evidence quote 的字符上限（缺省 240；超出截断）。 */
+  maxQuoteChars?: number
+  /** reader 子代理的最大委托深度（缺省 0：reader 不得再委托）。 */
+  maxDepth?: number
+}
+```
+
+来源：[`packages/memory/tool-memory-recall/src/index.ts:85`](../packages/memory/tool-memory-recall/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-meridian`
 
@@ -2773,7 +2879,7 @@ export interface WebServiceConfig {
 ```ts config-catalog
 /** Plugin config: the surface facts the launcher patches over this bundle's defaults. */
 export interface Config {
-  /** Whether this process mounted the client-plugin HMR receiver (`oh-my-tianshu web --dev`). */
+  /** Whether this process mounted the client-plugin HMR receiver (`tianshu web --dev`). */
   mode: WebMode
   /** Print the URL line on activation; a headless layer over this bundle turns it off. */
   printUrl: boolean
@@ -2982,6 +3088,7 @@ export interface Config {
 - `@huiliyi37/dsh-command-compact` — 需要 `commands` · `compact`（[`packages/compact/command-compact/src/index.ts`](../packages/compact/command-compact/src/index.ts)）
 - `@huiliyi37/dsh-command-feedback` — 需要 `commands`（[`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts)）
 - `@huiliyi37/dsh-command-goal` — 需要 `commands` · `goals`（[`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts)）
+- `@huiliyi37/dsh-command-memory` — 需要 `commands`（[`packages/memory/command-memory/src/index.ts`](../packages/memory/command-memory/src/index.ts)）
 - `@huiliyi37/dsh-commands`（[`packages/interaction/commands/src/index.ts`](../packages/interaction/commands/src/index.ts)）
 - `@huiliyi37/dsh-fs-e2b` — 需要 `e2b`（[`packages/e2b/fs-e2b/src/index.ts`](../packages/e2b/fs-e2b/src/index.ts)）
 - `@huiliyi37/dsh-fs-policy`（[`packages/fs/fs-policy/src/index.ts`](../packages/fs/fs-policy/src/index.ts)）
@@ -3046,6 +3153,7 @@ export interface Config {
 - `@huiliyi37/dsh-llm-mock-server`（[`packages/support/llm-mock-server/src/index.ts`](../packages/support/llm-mock-server/src/index.ts)）
 - `@huiliyi37/dsh-loader-smoke`（[`packages/support/loader-smoke/src/index.ts`](../packages/support/loader-smoke/src/index.ts)）
 - `@huiliyi37/dsh-memory`（[`packages/memory/memory/src/index.ts`](../packages/memory/memory/src/index.ts)）
+- `@huiliyi37/dsh-memory-sqlite`（[`packages/memory/memory-sqlite/src/index.ts`](../packages/memory/memory-sqlite/src/index.ts)）
 - `@huiliyi37/dsh-meridian`（[`packages/search/meridian/src/index.ts`](../packages/search/meridian/src/index.ts)）
 - `@huiliyi37/dsh-native-command`（[`packages/util/native-command/src/index.ts`](../packages/util/native-command/src/index.ts)）
 - `@huiliyi37/dsh-paths`（[`packages/util/paths/src/index.ts`](../packages/util/paths/src/index.ts)）

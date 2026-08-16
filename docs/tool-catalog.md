@@ -41,6 +41,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@huiliyi37/dsh-tool-file-info` | `file_info` | `ctx.tools`, `ctx.fs` | `tool/call`, `tool/result` | - | file_info reports metadata (size, kind, mtime) through ctx.fs without reading file contents into model context. |
 | `@huiliyi37/dsh-tool-git` | `git` | `ctx.tools`, `ctx.git`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | git_status / git_diff / git_log / git_commit consume the typed ctx.git seam (no subprocess contact in the tool layer); git_commit requires a message and runs exclusively (not concurrency-safe), and commits do not raise an approval card — file mutations still go through the fs approval surface. |
 | `@huiliyi37/dsh-tool-memory` | `memory_save`, `memory_search` | `ctx.tools`, `ctx.systemPrompt`, `ctx.memory (execution time)` | `tool/call`, `tool/result` | - | memory_save and memory_search reach the project-memory store lazily at execution time, so the schemas are independent of the memory backend. |
+| `@huiliyi37/dsh-tool-memory-recall` | `memory_deep_recall` | `ctx.tools`, `ctx.systemPrompt`, `ctx.sessionQuery + ctx.subagents + the session-query read tools (execution time, probed)` | `tool/call`, `tool/result`, `child session events through the chosen provider` | - | memory_deep_recall fans a question out to a read-only in-process reader subagent (static persona, structured output, tool allow list, maxDepth 0) and returns only the budget-clamped distillation — raw transcript bytes never enter the main context. The schema is independent of capability availability: a missing session-query service, search tool, or provider surfaces as a plain execution-time error. |
 | `@huiliyi37/dsh-tool-meridian` | `repo_graph` | `ctx.tools`, `ctx.systemPrompt`, `ctx.meridian (execution time)` | `tool/call`, `tool/result` | - | repo_graph queries the code-graph index (repo map, impact analysis, flow queries) lazily at execution time; its system-prompt section is injected by the runtime-context content-diff only when the index is present. |
 | `@huiliyi37/dsh-tool-semantic-search` | `semantic_search` | `ctx.tools`, `ctx.systemPrompt`, `ctx.semanticIndex (execution time)` | `tool/call`, `tool/result` | - | semantic_search runs workspace retrieval (definition-aligned BM25 with optional vector fusion) lazily at execution time; its system-prompt section is injected by the runtime-context content-diff only when the index is present. |
 
@@ -1675,7 +1676,7 @@ Source: [`packages/memory/tool-memory/src/index.ts`](../packages/memory/tool-mem
 
 ### `memory_search`
 
-在项目记忆中检索知识（关键词子串匹配，大小写不敏感；空 query 列出全部）。开始新任务、需要历史决策/项目约定/用户偏好时使用。
+在项目记忆中检索知识（关键词子串匹配，大小写不敏感；空 query 列出全部）。开始新任务、需要历史决策/项目约定/用户偏好时使用。已在「相关项目记忆」上下文中出现的条目用 excludeIds 排除，避免重复占用上下文。
 
 ```json
 {
@@ -1687,7 +1688,14 @@ Source: [`packages/memory/tool-memory/src/index.ts`](../packages/memory/tool-mem
     },
     "limit": {
       "type": "number",
-      "description": "返回条数上限（缺省 10）"
+      "description": "返回条数上限（缺省且封顶 10）"
+    },
+    "excludeIds": {
+      "type": "array",
+      "description": "要排除的记忆 id（完整 id 或 STM 中展示的短 id 前缀）",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "required": [
@@ -1699,6 +1707,31 @@ Source: [`packages/memory/tool-memory/src/index.ts`](../packages/memory/tool-mem
 Source: [`packages/memory/tool-memory/src/index.ts`](../packages/memory/tool-memory/src/index.ts)
 
 memory_save and memory_search reach the project-memory store lazily at execution time, so the schemas are independent of the memory backend.
+
+## `@huiliyi37/dsh-tool-memory-recall`
+
+### `memory_deep_recall`
+
+深度召回：回答关于历史会话具体经过的问题（"上次为什么改用 X"、"某错误当时怎么解决的"）。派出只读 reader 子代理检索历史会话转录，返回蒸馏答案（answer + evidence + uncertainties + confidence）；原始转录不进入本会话上下文。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "question": {
+      "type": "string",
+      "description": "要问历史的问题（具体、自成一体）"
+    }
+  },
+  "required": [
+    "question"
+  ]
+}
+```
+
+Source: [`packages/memory/tool-memory-recall/src/index.ts`](../packages/memory/tool-memory-recall/src/index.ts)
+
+memory_deep_recall fans a question out to a read-only in-process reader subagent (static persona, structured output, tool allow list, maxDepth 0) and returns only the budget-clamped distillation — raw transcript bytes never enter the main context. The schema is independent of capability availability: a missing session-query service, search tool, or provider surfaces as a plain execution-time error.
 
 ## `@huiliyi37/dsh-tool-meridian`
 

@@ -2356,8 +2356,10 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
             { name: 'compact', description: 'fixture：压缩当前会话上下文' },
             { name: 'echo', description: 'fixture：回显参数', input: { hint: 'text to echo' } },
             { name: 'goal', description: 'set or view the goal for a long-running task', input: { hint: '<objective>' } },
+            { name: 'memory', description: 'List saved memories; delete <id> removes one', input: { hint: '[delete <id>]' } },
             { name: 'permission', description: 'Switch the permission preset (sandbox mode + approval policy)', input: { hint: '<preset>' } },
             { name: 'plan', description: 'Enter or leave plan mode', input: { hint: '[off|message]' } },
+            { name: 'remember', description: 'Save a project memory entry (writes .dsh/memory/global.md)', input: { hint: '<text>' } },
           ],
         })
       },
@@ -2414,6 +2416,15 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
             text = `Goal created: ${created.goal.objective}`
           }
           append(id, { type: 'command/done', data: { commandId, kind: 'success', text } })
+          return ok(request, { matched: true as const, commandId })
+        }
+        // Host parallel: the shipped composition mounts dsh-command-memory
+        // without the memory plugin, so both commands settle with the
+        // adapter's unavailable text inside the lifecycle pair.
+        if (name === 'remember' || name === 'memory') {
+          const commandId = `fx-cmd-${logOf(id).length}` as CommandId
+          append(id, { type: 'command/run', data: { commandId, name, args, source: { kind: 'user' } } })
+          append(id, { type: 'command/done', data: { commandId, kind: 'error', text: '⚠ memory 服务不可用（未加载 memory 插件）' } })
           return ok(request, { matched: true as const, commandId })
         }
         // Host parallel: /plan on an idle fixture session commits plan/mode

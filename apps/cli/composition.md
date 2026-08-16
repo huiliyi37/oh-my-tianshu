@@ -112,6 +112,8 @@ flowchart LR
   cfg --> plugin_dsh_base_compact_basic
   plugin_dsh_base_command_compact["command-compact<br/>@huiliyi37/dsh-command-compact"]
   cfg --> plugin_dsh_base_command_compact
+  plugin_dsh_base_command_memory["command-memory<br/>@huiliyi37/dsh-command-memory"]
+  cfg --> plugin_dsh_base_command_memory
   plugin_dsh_base_subagent["subagent<br/>@huiliyi37/dsh-subagent"]
   cfg --> plugin_dsh_base_subagent
   plugin_dsh_base_agent_definitions["agent-definitions<br/>@huiliyi37/dsh-agent-definitions"]
@@ -226,6 +228,7 @@ flowchart LR
 | `token-meter` | `@huiliyi37/dsh-token-meter` |
 | `compact-basic` | `@huiliyi37/dsh-compact-basic` |
 | `command-compact` | `@huiliyi37/dsh-command-compact` |
+| `command-memory` | `@huiliyi37/dsh-command-memory` |
 | `subagent` | `@huiliyi37/dsh-subagent` |
 | `agent-definitions` | `@huiliyi37/dsh-agent-definitions` |
 | `subagent-spawn` | `@huiliyi37/dsh-subagent-spawn` |

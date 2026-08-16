@@ -283,6 +283,12 @@
     - id: command-compact
       name: '@huiliyi37/dsh-command-compact'
 
+    # Human `/remember` + `/memory`: the memory service is optional and not
+    # mounted here, so both commands answer the adapter's unavailable text
+    # until a leaf adds dsh-memory.
+    - id: command-memory
+      name: '@huiliyi37/dsh-command-memory'
+
     - id: subagent
       name: '@huiliyi37/dsh-subagent'
 

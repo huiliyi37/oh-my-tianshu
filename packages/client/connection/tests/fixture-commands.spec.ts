@@ -23,7 +23,7 @@ describe('createFixtureApi commands/skills', () => {
     expect(response.rpcId).toBe(request.rpcId)
     if (!response.result.ok) throw new Error('list failed')
     const commands = response.result.value.commands
-    expect(commands.map(c => c.name)).toEqual(['compact', 'echo', 'goal', 'permission', 'plan'])
+    expect(commands.map(c => c.name)).toEqual(['compact', 'echo', 'goal', 'memory', 'permission', 'plan', 'remember'])
     // input hint rides only the commands declaring it.
     const echo = commands.find(c => c.name === 'echo')
     expect(echo?.input?.hint).toBeTruthy()
@@ -70,6 +70,33 @@ describe('createFixtureApi commands/skills', () => {
 
     const missing = await api.commands.execute(req({ sessionId: sid('fx-nope'), line: '/goal ship' }), signal)
     expect(missing.result).toMatchObject({ ok: false, error: { code: 'session-not-found' } })
+  })
+
+  it('mirrors the host /remember and /memory without the memory plugin: matched with the unavailable text', async () => {
+    const api = createFixtureApi()
+    const events: Array<{ type: string; data: Record<string, unknown> }> = []
+    const abort = new AbortController()
+    const stream = api.events.mux(req({}), abort.signal)
+    const pump = (async () => {
+      for await (const frame of stream) {
+        const payload = frame.payload as { type: string; event?: { type: string; data: Record<string, unknown> } }
+        if (payload.type === 'session/event' && payload.event !== undefined) events.push(payload.event)
+        if (events.length >= 2) abort.abort()
+      }
+    })()
+    const response = await api.commands.execute(req({ sessionId: sid('fx-alpha'), line: '/remember ship it' }), signal)
+    if (!response.result.ok) throw new Error('execute failed')
+    expect(response.result.value.matched).toBe(true)
+    await pump
+    expect(events).toMatchObject([
+      { type: 'command/run', data: { name: 'remember', args: ' ship it', source: { kind: 'user' } } },
+      { type: 'command/done', data: { kind: 'error', text: '⚠ memory 服务不可用（未加载 memory 插件）' } },
+    ])
+    expect(events[0]?.data.commandId).toBe(events[1]?.data.commandId)
+
+    const listed = await api.commands.execute(req({ sessionId: sid('fx-alpha'), line: '/memory' }), signal)
+    if (!listed.result.ok) throw new Error('execute failed')
+    expect(listed.result.value.matched).toBe(true)
   })
 
   it('falls to matched:false on unknown names and non-command lines', async () => {

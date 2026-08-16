@@ -49,6 +49,7 @@
     "@huiliyi37/dsh-command-compact": "workspace:^",
     "@huiliyi37/dsh-command-feedback": "workspace:^",
     "@huiliyi37/dsh-command-goal": "workspace:^",
+    "@huiliyi37/dsh-command-memory": "workspace:^",
     "@huiliyi37/dsh-commands": "workspace:^",
     "@huiliyi37/dsh-compact-basic": "workspace:^",
     "@huiliyi37/dsh-compact-tool-result-prune": "workspace:^",

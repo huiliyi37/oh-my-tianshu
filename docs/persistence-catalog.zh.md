@@ -448,6 +448,52 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 来源：[`packages/llm/llm-retry/src/types.ts:11`](../packages/llm/llm-retry/src/types.ts)
 
+### `memory/*`
+
+#### `memory/cache-hit` — log-only
+
+```ts persistence-catalog
+/** 门控保持：本轮评估后 STM 逐字节不变 — log-only（无 surfaceOp）。 */
+'memory/cache-hit': { intentId: string; intentKey: string; turn: number }
+```
+
+来源：[`packages/memory/adaptive-memory/src/types.ts:65`](../packages/memory/adaptive-memory/src/types.ts)
+
+#### `memory/cache-miss` — log-only
+
+```ts persistence-catalog
+/** 门控触发一次 STM 刷新 — log-only（无 surfaceOp）；选择结果见紧随的 memory/stm-selected。 */
+'memory/cache-miss': { intentId: string; intentKey: string; turn: number; reason: StmRefreshReason }
+```
+
+来源：[`packages/memory/adaptive-memory/src/types.ts:67`](../packages/memory/adaptive-memory/src/types.ts)
+
+#### `memory/reminder` — log-only
+
+```ts persistence-catalog
+/**
+ * 一次规则兜底提醒的触发决策 — log-only（无 surfaceOp）。提醒文本本身经
+ * memory:reminder context 贡献进入下一份 context-snapshot（模型可见面由
+ * 快照机制记录）；本事件只记决策（kind/subject/预算基准），供指标与审计。
+ */
+'memory/reminder': { intentId: string; turn: number; kind: 'unknown-entity' | 'error-code'; subject: string }
+```
+
+来源：[`packages/memory/adaptive-memory/src/types.ts:73`](../packages/memory/adaptive-memory/src/types.ts)
+
+#### `memory/stm-selected` — log-only
+
+```ts persistence-catalog
+/**
+ * 一次 STM 刷新的选择结果 — log-only（无 surfaceOp，不进模型可见面）。
+ * 与紧随其后的 context-snapshot user/message 共同满足 model-visible ⟺
+ * logged：快照里渲染的短 id 必须能以本事件 entryIds 的前缀匹配还原。
+ */
+'memory/stm-selected': { intentId: string; intentKey: string; turn: number; entryIds: string[] }
+```
+
+来源：[`packages/memory/adaptive-memory/src/types.ts:63`](../packages/memory/adaptive-memory/src/types.ts)
+
 ### `permission/*`
 
 #### `permission/preset` — log-only
