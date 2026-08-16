@@ -38,6 +38,7 @@ Groups hold `packages/<group>/<pkg>/`; names `@huiliyi37/dsh-<pkg>`. **Group REA
 | [`spill/`](spill/README.md) | Spill capability family: storage seam, local impl, tool-result spill policy | Product — stable surface |
 | [`todo/`](todo/README.md) | The model-facing `todo_write` tool | Product — stable surface |
 | [`plan/`](plan/README.md) | Plan collaboration state with a direct entry command and reviewed exit | Product — stable surface |
+| [`preset/`](preset/README.md) | Per-session agent composition from preset cordis.yml files | Product — stable surface |
 | [`guard/`](guard/README.md) | Loop-hygiene guards: repeat-call reminders + the `tools/execute` deadline enforcer | Product — stable surface |
 | [`bundle/`](bundle/README.md) | Installable `oh-my-tianshu --profile` patch layers | Product — stable surface |
 | [`self-modification/`](self-modification/README.md) | Self-modifying runtime: inspect live plugins/services, mount/unmount model-written plugins ([design](../.agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md)), restricted repository Plugin loading | Product — stable surface |

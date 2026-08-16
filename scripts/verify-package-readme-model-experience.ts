@@ -147,6 +147,8 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/examples/jsonrpc-demo': { kind: 'indirect', reason: 'Only the externally configured plugin tree contributes model context.' },
   'packages/interaction/permission': { kind: 'indirect', reason: 'The service writes mechanism events rendered by dsh-user-approval and dsh-tool-bash.' },
   'packages/interaction/user-interaction': { kind: 'indirect', reason: 'Model-facing consumers render provider answers and seam errors.' },
+  'packages/preset/agent-presets': { kind: 'indirect', reason: 'The service mounts per-session compositions; the mounted plugins own every tool schema and prompt section the preset makes visible.' },
+
   'packages/util/timeout': { kind: 'indirect', reason: 'Only timeout consumers render timeout outcomes.' },
   'packages/util/retention': { kind: 'indirect', reason: 'Only retention consumers render retained content and omission metadata.' },
   'packages/util/native-command': { kind: 'none', reason: 'The host-side subprocess runner registers no model surface.' },
