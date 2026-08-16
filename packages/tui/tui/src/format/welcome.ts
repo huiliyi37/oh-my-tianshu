@@ -47,6 +47,8 @@ export interface FormatBrandWelcomeInput {
   brand?: string
   /** 副标题（缺省 'Tianshu Harness'）。 */
   subtitle?: string
+  /** 发行版本号（提供时副标题行追加 ` · v<version>`；缺省不追加）。 */
+  version?: string
   /** 水平对齐；hero 左栏用 left，窄屏叠放用 center（缺省）。 */
   align?: 'center' | 'left'
 }
@@ -60,7 +62,10 @@ export interface FormatBrandWelcomeInput {
 export function formatBrandWelcome(input: FormatBrandWelcomeInput, theme: RivetTheme): string[] {
   if (input.width <= 0) return []
   const brand = truncateTo(input.brand ?? 'Oh My Tianshu', input.width)
-  const subtitle = truncateTo(input.subtitle ?? 'Tianshu Harness', input.width)
+  const subtitle = truncateTo(
+    `${input.subtitle ?? 'Tianshu Harness'}${input.version === undefined ? '' : ` · v${input.version}`}`,
+    input.width,
+  )
   const brandLine = color(brand, theme.brandColor, { bold: true })
   const subLine = color(subtitle, theme.muted)
   if (input.align === 'left') return [brandLine, subLine]
@@ -182,6 +187,8 @@ export interface FormatWelcomeHeroInput {
   whale: readonly string[]
   env: WelcomeEnvCheck
   tips: readonly WelcomeTipItem[]
+  /** 发行版本号（透传 formatBrandWelcome 副标题行）。 */
+  version?: string
 }
 
 /**
@@ -201,7 +208,7 @@ export function formatWelcomeHero(input: FormatWelcomeHeroInput, theme: RivetThe
       out.push(...whale)
       out.push('')
     }
-    out.push(...formatBrandWelcome({ width, align: 'center' }, theme))
+    out.push(...formatBrandWelcome({ width, align: 'center', ...(input.version === undefined ? {} : { version: input.version }) }, theme))
     out.push('')
     out.push(...formatEnvCheckLine({ ...env, cols: width, align: 'center' }, theme))
     out.push('')
@@ -213,7 +220,7 @@ export function formatWelcomeHero(input: FormatWelcomeHeroInput, theme: RivetThe
 
   const gutter = width >= CHROME_GUTTER * 2 + TIPS_MIN_WIDTH ? CHROME_GUTTER : 0
   const inner = width - gutter
-  const brand = formatBrandWelcome({ width: inner, align: 'left' }, theme)
+  const brand = formatBrandWelcome({ width: inner, align: 'left', ...(input.version === undefined ? {} : { version: input.version }) }, theme)
   const envLeft = formatEnvCheckLine({ ...env, cols: inner, align: 'left' }, theme)
   const whaleStripped = whale.map(stripLeadingSpaces)
   let leftW = WHALE_COLS

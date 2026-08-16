@@ -49,6 +49,13 @@ function tips(over: Partial<WelcomeTipItem>[] = []): WelcomeTipItem[] {
 }
 
 describe('formatBrandWelcome（欢迎页品牌区）', () => {
+  it('version 提供时副标题行追加 · v<version>', () => {
+    const lines = formatBrandWelcome({ width: 80, version: '0.2.4' }, fakeTheme())
+    const [brand, sub] = plain(lines)
+    expect(brand!.trim()).toBe('Oh My Tianshu')
+    expect(sub!.trim()).toBe('Tianshu Harness · v0.2.4')
+  })
+
   it('两行：主标 Oh My Tianshu 居中 BOLD + 副标居中 muted，宽度守恒', () => {
     const lines = formatBrandWelcome({ width: 80 }, fakeTheme())
     expect(lines.length).toBe(2)

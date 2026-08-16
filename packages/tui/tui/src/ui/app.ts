@@ -20,8 +20,10 @@
 
 import { randomUUID } from 'node:crypto'
 import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { ReadStream, WriteStream } from 'node:tty'
 import type { Context } from '@huiliyi37/cordis'
 import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
@@ -382,6 +384,39 @@ function toSlashHint(command: { name: string; description: string; argsHint?: st
  * 会话界面主装配。生命周期：构造 → attach()（接管终端）→ dispose()（恢复终端）。
  * attach 前不写终端；dispose 后终端恢复 raw-mode 前状态。
  */
+/**
+ * 读发行版本:向上找 `@huiliyi37/oh-my-tianshu`(CLI 发行)的 package.json,
+ * 并在每层检查 scope 兄弟目录(运行时 oh-my-tianshu 与 dsh-tui 在
+ * `@huiliyi37/` 下同级);找不到回退 `@huiliyi37/dsh-tui`(TUI 包,源码/单测
+ * 场景)。欢迎页副标题展示用。
+ */
+function readDistributionVersion(): string | undefined {
+  const start = fileURLToPath(new URL('.', import.meta.url))
+  let fallback: string | undefined
+  let dir = start
+  for (let i = 0; i < 8; i++) {
+    // 当前目录是 scope 根时,横向检查发行包兄弟
+    try {
+      const distPkg = JSON.parse(readFileSync(join(dir, '@huiliyi37', 'oh-my-tianshu', 'package.json'), 'utf8')) as { version?: unknown }
+      if (typeof distPkg.version === 'string') return distPkg.version
+    } catch {
+      /* 非 scope 根/未装配发行包,继续向上 */
+    }
+    // 当前目录自身是包:发行包直接返回,TUI 包记回退
+    try {
+      const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as { name?: unknown; version?: unknown }
+      if (pkg.name === '@huiliyi37/oh-my-tianshu' && typeof pkg.version === 'string') return pkg.version
+      if (pkg.name === '@huiliyi37/dsh-tui' && typeof pkg.version === 'string') fallback = pkg.version
+    } catch {
+      /* 非包目录,继续向上 */
+    }
+    const parent = dirname(dir)
+    if (parent === dir) break
+    dir = parent
+  }
+  return fallback
+}
+
 export class TuiApp {
   private readonly ctx: Context
   private readonly stdout: WriteStream
@@ -1231,7 +1266,14 @@ export class TuiApp {
       { keyHint: 'ctrl+o', label: '展开推理' },
       { keyHint: 'shift+tab', label: '模式循环' },
     ]
-    const heroLines = formatWelcomeHero({ width: Math.max(0, cols - 4), whale, env, tips }, this.theme)
+    const distVersion = readDistributionVersion()
+    const heroLines = formatWelcomeHero({
+      width: Math.max(0, cols - 4),
+      whale,
+      env,
+      tips,
+      ...(distVersion === undefined ? {} : { version: distVersion }),
+    }, this.theme)
     // omp 风格欢迎卡：圆角盒 + 顶边嵌品牌；盒下斜体随机 Tip。
     for (const line of formatWelcomeCard({ width: cols, lines: heroLines }, this.theme)) {
       commitLine(line)
