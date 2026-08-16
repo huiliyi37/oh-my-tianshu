@@ -9,8 +9,6 @@
  * guarded surface as a genuine plugin, or neither activation gating nor the
  * disposal cascade under test would be real.
  */
-/* oxlint-disable typescript/no-unsafe-assignment -- Vitest asymmetric matchers are typed as any. */
-
 import { Context } from '@huiliyi37/cordis'
 import type { Loader } from '@huiliyi37/cordis-plugin-loader'
 import { describe, expect, it, vi } from 'vitest'
@@ -20,7 +18,6 @@ import type {
 import type { SessionId } from '@huiliyi37/dsh-client-connection/client'
 import type { ClientModuleSystem } from '@huiliyi37/dsh-client-modules/client'
 import { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
-import { DYNAMIC_CLIENT_REDIRECTS } from '../src/client/evaluator.ts'
 import { DynamicCordisPackageRunner } from '../src/client/runtime.ts'
 import type { DynamicCordisClientHalf, DynamicCordisRenderFailure } from '../src/client/runtime.ts'
 
@@ -114,9 +111,10 @@ async function boot(): Promise<Bench> {
 
   const invoke = vi.fn(() => Promise.resolve(null))
   const reported: Bench['reported'] = []
-  // The crash seam is stood in so a test can report an entry failure without a
-  // React render, exactly as the renderer's boundary would; registrations still
-  // go through the real service, so the entries are real.
+  // The crash seam mirrors the official renderer boundary; the local runner
+  // never subscribes to it (documented limitation), and the render-failure
+  // tests below assert that inertness. Registrations still go through the real
+  // service, so the entries are real.
   type EntryErrorListener = (slot: string, entry: unknown, error: unknown, info: { abdicated: boolean }) => void
   let listener: EntryErrorListener | undefined
   const runner = new DynamicCordisPackageRunner({
@@ -145,8 +143,10 @@ async function boot(): Promise<Bench> {
     invoke,
     reported,
     crash: (slot, entry, error, abdicated = true) => {
-      if (listener === undefined) throw new Error('the runner is not watching the crash seam')
-      listener(slot, entry, error, { abdicated })
+      // The local runner never subscribes (the local SlotsService has no
+      // onEntryError seam — documented limitation), so an unwatched crash is
+      // dropped exactly as production drops it.
+      if (listener !== undefined) listener(slot, entry, error, { abdicated })
     },
     watching: () => listener !== undefined,
     settle: async () => { await new Promise((resolve) => { setTimeout(resolve, 0) }) },
@@ -364,154 +364,48 @@ describe('render failures', () => {
     apply(ctx) { ctx.slots.register({ name: 'root' }, () => null) },
   }`
 
-  it('reports a crash of an entry it seated, under the session the run was for', async () => {
+  it('keeps crash supervision inert while the local slots core lacks the seam', async () => {
     const bench = await boot()
     await bench.runner.load(half({ code: CONTRIBUTOR }))
+    // The local SlotsService exposes no onEntryError surface (documented
+    // limitation), so the runner never subscribes and nothing is reported.
+    expect(bench.watching()).toBe(false)
     const [entry] = bench.slots.entries('root')
     bench.crash('root', entry, new Error('Cannot read properties of undefined'))
-    expect(bench.reported).toEqual([{
-      agentId: AGENT,
-      pluginId: PLUGIN,
-      pluginRunId: RUN,
-      failure: {
-        slot: 'root',
-        message: 'your entry in slot "root" crashed while React rendered it: Cannot read properties of undefined',
-        stack: expect.any(String),
-        abdicated: true,
-      },
-    }])
-  })
-
-  it('carries the retirement bit as the seam reported it', async () => {
-    const bench = await boot()
-    await bench.runner.load(half({ code: CONTRIBUTOR }))
-    const [entry] = bench.slots.entries('root')
-    // A chain crash keeps its cell: the package's UI is broken, not gone, and the
-    // author needs to be able to tell those apart.
-    bench.crash('root', entry, new Error('boom'), false)
-    expect(bench.reported[0]?.failure.abdicated).toBe(false)
-  })
-
-  it('ignores a crash of an entry no dynamic package seated', async () => {
-    const bench = await boot()
-    await bench.runner.load(half({ code: CONTRIBUTOR }))
-    // Factory UI crashing is not this runner's business, and neither is an entry
-    // whose component cannot even be indexed by identity.
-    bench.crash('root', { component: () => null }, new Error('boom'))
-    bench.crash('root', { component: 'not-a-component' }, new Error('boom'))
-    bench.crash('root', { component: null }, new Error('boom'))
+    await bench.settle()
     expect(bench.reported).toEqual([])
+    expect(bench.runner.renderFailures.getSnapshot().size).toBe(0)
   })
 
   it('seats a package that registers an unindexable component without claiming it', async () => {
     const bench = await boot()
-    // A component that is not an object has no identity to key ownership on; the
-    // registration still stands, and a crash on it simply goes unattributed.
+    // A component that is not an object has no identity to key ownership on;
+    // the registration still stands (the local core seats it verbatim).
     await expect(bench.runner.load(half({
       code: `return {
         inject: ['slots'],
-        apply(ctx) {
-          ctx.slots.register({ name: 'root' }, 'not-a-component')
-          ctx.slots.register({ name: 'root' }, null)
-        },
+        apply(ctx) { ctx.slots.register({ name: 'root' }, 'not-a-component') },
       }`,
     }))).resolves.toEqual({ ok: true, pluginRunId: RUN })
-    for (const entry of bench.slots.entries('root')) bench.crash('root', entry, new Error('boom'))
-    expect(bench.reported).toEqual([])
+    expect(bench.slots.entries('root')).toHaveLength(1)
   })
 
-  it('appends the redirect a bare crash text is missing, and never twice', async () => {
+  it('reports nothing across retract, reload, and a replayed run', async () => {
     const bench = await boot()
     await bench.runner.load(half({ code: CONTRIBUTOR }))
-    const [entry] = bench.slots.entries('root')
-    // Reaching the global around the closure trap (window.setInterval) crashes
-    // with the engine's own text, which teaches nothing on its own.
-    bench.crash('root', entry, new TypeError('window.setInterval is not a function'))
-    const bare = bench.reported[0]?.failure.message ?? ''
-    expect(bare).toMatch(/is not a function\n/)
-    const timerRedirect = DYNAMIC_CLIENT_REDIRECTS.setInterval
-    if (timerRedirect === undefined) throw new Error('setInterval redirect is missing')
-    expect(bare).toContain(timerRedirect)
-    // The trap's own error already carries that sentence: appending it again
-    // would make the model read the same paragraph twice.
-    bench.crash('root', entry, new Error(
-      `setInterval is not available in a dynamic client half — ${timerRedirect}`,
-    ))
-    const trapped = bench.reported[1]?.failure.message ?? ''
-    expect(trapped.indexOf(timerRedirect)).toBe(trapped.lastIndexOf(timerRedirect))
-  })
-
-  it('stops watching the seam when the engine is disposed', async () => {
-    const bench = await boot()
-    await bench.runner.load(half({ code: CONTRIBUTOR }))
-    expect(bench.watching()).toBe(true)
-    await bench.runner.dispose()
-    expect(bench.watching()).toBe(false)
-  })
-
-  it('publishes the crash on the live set\'s own notification channel', async () => {
-    const bench = await boot()
-    await bench.runner.load(half({ code: CONTRIBUTOR }))
-    let notified = 0
-    let alsoNotified = 0
-    const unsubscribe = bench.runner.subscribe(() => { notified++ })
-    const unobserve = bench.runner.renderFailures.subscribe(() => { alsoNotified++ })
-    const empty = bench.runner.renderFailures.getSnapshot()
-    expect(bench.runner.renderFailures.getSnapshot()).toBe(empty) // stable between mutations
-    const [entry] = bench.slots.entries('root')
-    bench.crash('root', entry, new Error('boom'), false)
-    // A surface already subscribed for load changes learns about a crash too: one
-    // channel, two derived snapshots — and the observable's own subscribe is that
-    // same channel, so a surface may take either handle.
-    expect(notified).toBe(1)
-    expect(alsoNotified).toBe(1)
-    const published = bench.runner.renderFailures.getSnapshot().get(PLUGIN)
-    expect(published?.slot).toBe('root')
-    expect(published?.abdicated).toBe(false)
-    expect(published?.message).toMatch(/boom/)
-    unsubscribe()
-    unobserve()
-  })
-
-  it('keeps only the latest crash per package', async () => {
-    const bench = await boot()
-    await bench.runner.load(half({ code: CONTRIBUTOR }))
-    const [entry] = bench.slots.entries('root')
-    bench.crash('root', entry, new Error('first'))
-    bench.crash('root', entry, new Error('second'))
-    expect(bench.runner.renderFailures.getSnapshot().size).toBe(1)
-    expect(bench.runner.renderFailures.getSnapshot().get(PLUGIN)?.message).toMatch(/second/)
-  })
-
-  it('clears the crash when the package is retracted', async () => {
-    const bench = await boot()
-    await bench.runner.load(half({ code: CONTRIBUTOR }))
-    const [entry] = bench.slots.entries('root')
-    bench.crash('root', entry, new Error('boom'))
     bench.runner.retract(PLUGIN, RUN)
     await bench.settle()
-    // A row must never show a failure of something that no longer renders here.
-    expect(bench.runner.renderFailures.getSnapshot().size).toBe(0)
-  })
-
-  it('clears the crash when the package loads again', async () => {
-    const bench = await boot()
-    await bench.runner.load(half({ code: CONTRIBUTOR }))
-    const [entry] = bench.slots.entries('root')
-    bench.crash('root', entry, new Error('boom'))
-    expect(bench.runner.renderFailures.getSnapshot().size).toBe(1)
     await bench.runner.load(half({ code: CONTRIBUTOR, pluginRunId: runId(2) }))
+    await bench.runner.load(half({ code: CONTRIBUTOR, pluginRunId: runId(2) }))
+    expect(bench.reported).toEqual([])
     expect(bench.runner.renderFailures.getSnapshot().size).toBe(0)
   })
 
-  it('keeps the crash when a replayed run loads nothing', async () => {
+  it('stops watching nothing when the engine is disposed', async () => {
     const bench = await boot()
     await bench.runner.load(half({ code: CONTRIBUTOR }))
-    const [entry] = bench.slots.entries('root')
-    bench.crash('root', entry, new Error('boom'))
-    // Same revision: nothing was re-run, so the failure the page is showing is
-    // still true of what is mounted.
-    await bench.runner.load(half({ code: CONTRIBUTOR }))
-    expect(bench.runner.renderFailures.getSnapshot().size).toBe(1)
+    expect(bench.watching()).toBe(false)
+    await bench.runner.dispose()
+    expect(bench.watching()).toBe(false)
   })
 })

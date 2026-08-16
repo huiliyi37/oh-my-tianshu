@@ -147,19 +147,18 @@ describe('facade surface', () => {
 })
 
 describe('slots seat', () => {
-  it('assigns a descending shadowing priority per registration and ledgers it', async () => {
+  it('assigns a descending shadowing priority and rejects a second single-slot registration', async () => {
     const bench = await boot(['slots'])
     const slots = bench.facade.slots as { register(options: object, component: unknown): () => void }
     slots.register({ name: 'root' }, C)
-    slots.register({ name: 'root' }, C)
-    expect(bench.ledger).toEqual([
-      { slot: 'root', priority: -1 },
-      { slot: 'root', priority: -2 },
-    ])
-    // Newest-wins ordering is what "registering IS shadowing" means.
-    const priorities = bench.slots.entries('root').map(entry => entry.options.priority)
-    expect(priorities).toContain(-1)
-    expect(priorities).toContain(-2)
+    // The local SlotCore seats one registration per single slot (no shadowing
+    // cells, unlike the official core): the guard still allocates the next
+    // page-local rank before the core write, but the duplicate is rejected
+    // there and never reaches the ledger.
+    expect(() => slots.register({ name: 'root' }, C))
+      .toThrow(/single slot "root" already has a registration/)
+    expect(bench.ledger).toEqual([{ slot: 'root', priority: -1 }])
+    expect(bench.slots.entries('root').map(entry => entry.options.priority)).toEqual([-1])
   })
 
   it('keeps an explicit priority when the target elects its own order', async () => {

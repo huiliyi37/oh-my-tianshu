@@ -12,7 +12,7 @@
 
 import type { Context } from '@huiliyi37/cordis'
 import type {
-  ApprovalRequestId, CordisDynamicPluginId, JsonValue,
+  ApprovalRequestId, CordisDynamicPluginId, CordisDynamicPluginRunId, DynamicCordisInvokeResult, JsonValue,
   DynamicCordisInventoryRow,
 } from '@huiliyi37/dsh-api-remotes/client'
 import type { ClientModuleSystem } from '@huiliyi37/dsh-client-modules/client'
@@ -130,6 +130,22 @@ declare module '@huiliyi37/cordis' {
 }
 
 /**
+/** Teaching text for a routing failure the infrastructure itself reports. */
+function invokeFailure(pluginId: CordisDynamicPluginId, method: string, result: Extract<DynamicCordisInvokeResult, { ok: false }>): string {
+  const where = `host.call("${method}") on ${pluginId}`
+  if (result.code === 'plugin-not-running') {
+    return `${where} found no active Host half — the Plugin is stopped or was removed.`
+  }
+  if (result.code === 'stale-run') {
+    return `${where} belongs to an activation that has already been replaced.`
+  }
+  if (result.code === 'method-not-found') {
+    return `${where} is not registered: the host half must declare it with harness.handle("${method}", fn).`
+  }
+  return `${where} failed inside the host handler: ${result.message}`
+}
+
+/**
  * Teaching text for a `host.call` the wire itself refused: the generated codec
  * rejected the argument before sending, or the result on the way back, or the
  * transport broke. The infrastructure's message names the field it refused but
@@ -193,7 +209,7 @@ export function apply(ctx: Context): void {
       // never reached the host half, and the namespace's own `ok: false`
       // envelope when that half answers with a refusal.
       if (answered === null) throw new Error(wireFailure(pluginId, method, 'host half unavailable'))
-      if (!answered.ok) throw new Error(wireFailure(pluginId, method, `${answered.code}: ${answered.message}`))
+      if (!answered.ok) throw new Error(wireFailure(pluginId, method, invokeFailure(pluginId, method, answered)))
       return answered.value
     },
     // Post-settle diagnosis, deliberately fire-and-forget: the run this package
@@ -256,14 +272,29 @@ export function apply(ctx: Context): void {
   ctx.provide('dynamicCordisRunner', face)
   ctx.effect(() => () => { void runner.dispose() }, 'cordis-client-runner: dynamic package runner')
 
-  // Forwarded Host events: the local client face has no event-forwarding
-  // mechanism (the official TypeRT `$on` surface is absent), so these
-  // subscriptions are inert. The runner's RPC paths (invoke/run/resolve) work;
-  // event-driven UI updates are a documented limitation until the local client
-  // gains the forwarding seam. The intended subscriptions:
-  //   cordis/request-run -> orchestrator.open(request)
-  //   cordis/request-run-resolved -> orchestrator.close(requestId)
-  //   cordis/dynamic-retract -> runner.retract(pluginId, pluginRunId)
-  //   cordis/inspect-query -> inspect.query(request)
-  //   cordis/inspect-query-resolved -> inspect.close(requestId)
+  // Host-forwarded dynamic-cordis events. The local Gateway does not forward
+  // events yet ($on is typed but absent at runtime), so the subscriptions are
+  // guarded; once the forwarding seam lands they become live without a change.
+  if (typeof ctx.remote.$on === 'function') {
+    ctx.remote.$on('cordis/request-run', (request) => {
+      orchestrator.open(request as Parameters<typeof orchestrator.open>[0])
+    })
+    ctx.remote.$on('cordis/request-run-resolved', (resolved) => {
+      orchestrator.close((resolved as { requestId: ApprovalRequestId }).requestId)
+    })
+    ctx.remote.$on('cordis/dynamic-retract', (retracted) => {
+      runner.retract(
+        (retracted as { pluginId: CordisDynamicPluginId }).pluginId,
+        (retracted as { pluginRunId: CordisDynamicPluginRunId }).pluginRunId,
+      )
+    })
+    ctx.remote.$on('cordis/inspect-query', (request) => {
+      void inspect.query(request as Parameters<typeof inspect.query>[0]).catch((error: unknown) => {
+        console.error('[cordis-client-runner] inspect query failed:', error)
+      })
+    })
+    ctx.remote.$on('cordis/inspect-query-resolved', (resolved) => {
+      inspect.close((resolved as { requestId: string }).requestId as never)
+    })
+  }
 }
