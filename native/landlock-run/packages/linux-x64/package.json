@@ -1,6 +1,6 @@
 {
   "name": "@huiliyi37/node-addon-landlock-run-linux-x64",
-  "version": "0.2.1",
+  "version": "0.2.5",
   "description": "Prebuilt landlock-run Landlock launcher binary for linux-x64 (static musl) — resolved as a file path by @huiliyi37/node-addon-landlock-run, never imported",
   "repository": {
     "type": "git",

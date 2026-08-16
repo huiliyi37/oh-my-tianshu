@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tool-git",
   "description": "Model-facing git tools — git_status / git_diff / git_log / git_commit, consuming the ctx.git seam",
-  "version": "0.2.1",
+  "version": "0.2.5",
   "publishConfig": {
     "access": "public"
   },

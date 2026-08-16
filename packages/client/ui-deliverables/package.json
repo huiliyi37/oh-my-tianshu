@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-client-ui-deliverables",
   "description": "Produced-files turn tail: the deliverables row a finished turn ends with",
-  "version": "0.2.1",
+  "version": "0.2.5",
   "publishConfig": {
     "access": "public"
   },

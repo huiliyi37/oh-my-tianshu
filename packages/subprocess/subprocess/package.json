@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-subprocess",
   "description": "Subprocess seam (ctx.subprocess) for the Tianshu Harness — managed process groups, bounded spill-backed output, and escalated kills behind one abstract service",
-  "version": "0.2.1",
+  "version": "0.2.5",
   "publishConfig": {
     "access": "public"
   },

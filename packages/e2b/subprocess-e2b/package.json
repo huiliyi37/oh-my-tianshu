@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-subprocess-e2b",
   "description": "E2B subprocess implementation for Tianshu Harness",
-  "version": "0.2.1",
+  "version": "0.2.5",
   "publishConfig": {
     "access": "public"
   },

@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-goal-session",
   "description": "Race-fenced same-session goal-round driver",
-  "version": "0.2.1",
+  "version": "0.2.5",
   "publishConfig": {
     "access": "public"
   },

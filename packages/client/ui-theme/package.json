@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-client-ui-theme",
   "description": "Theme plugin: ThemeService (light/dark/system preference, prefers-color-scheme resolution, theme/change snapshots; no DOM), --dsw-* token base stylesheets; registers the Appearance settings row",
-  "version": "0.2.1",
+  "version": "0.2.5",
   "publishConfig": {
     "access": "public"
   },
