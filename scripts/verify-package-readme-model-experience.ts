@@ -115,6 +115,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/scaffold/protocol': { kind: 'none', reason: 'Client-facing wire library; the runtime plugins behind the serving entry own the model surface.' },
   'packages/session/session-projection': { kind: 'none', reason: 'The projection registry serves client-facing read models of already-logged session state and registers no model surface.' },
   'packages/session/session-projection-cache': { kind: 'none', reason: 'The persisted cache accelerates host-side cold reads of projection state and registers no model surface.' },
+  'packages/session/session-stats': { kind: 'none', reason: 'The plugin computes a client-facing read model of already-logged session events and touches no prompt, message, schema, stream, or tool result.' },
   'packages/session-query/session-query': { kind: 'none', reason: 'The trusted query service exposes cloned records only to callers and registers no model surface.' },
   'packages/session-query/session-query-sqlite': { kind: 'none', reason: 'The search backend returns hits only to callers and registers no model surface.' },
   'packages/settings/settings': { kind: 'indirect', reason: 'The seam stores and resolves user settings; consumer plugins own any model surface a value feeds.' },
