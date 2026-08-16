@@ -10,7 +10,7 @@
  * 机制：
  * - 模型以一个问题调用 memory_deep_recall；工具经 ctx.subagents 启动一个
  *   进程内一次性 reader 子代理（静态 persona + outputSchema + 只读
- *   toolFilter + maxDepth 0），reader 用 session-query 的只读搜索工具
+ *   toolFilter + maxDepth 1），reader 用 session-query 的只读搜索工具
  *   （session_search 等）检索历史转录，经结构化输出返回蒸馏结果。
  * - 能力按执行时探测：sessionQuery 服务、reader 搜索工具、subagents 服务与
  *   provider 能力任一缺失 → 以平实的模型可见错误报告不可用（fail loud，
@@ -93,7 +93,7 @@ export interface Config {
   maxEvidence?: number
   /** 单条 evidence quote 的字符上限（缺省 240；超出截断）。 */
   maxQuoteChars?: number
-  /** reader 子代理的最大委托深度（缺省 0：reader 不得再委托）。 */
+  /** reader 子代理的最大委托深度（缺省 1：reader 位于深度 1，不得再委托）。 */
   maxDepth?: number
 }
 
@@ -105,7 +105,7 @@ export const Config: z<Config> = z.object({
   maxAnswerChars: z.number().default(2000),
   maxEvidence: z.number().default(5),
   maxQuoteChars: z.number().default(240),
-  maxDepth: z.number().default(0),
+  maxDepth: z.number().default(1),
 })
 
 /** 解析后的预算（schema 缺省 + 直接 apply 调用的回落，与 tool-memory 同例）。 */
@@ -126,7 +126,7 @@ function resolveConfig(config: Config): RecallBudgets {
     maxAnswerChars: config.maxAnswerChars ?? 2000,
     maxEvidence: config.maxEvidence ?? 5,
     maxQuoteChars: config.maxQuoteChars ?? 240,
-    maxDepth: config.maxDepth ?? 0,
+    maxDepth: config.maxDepth ?? 1,
   }
 }
 

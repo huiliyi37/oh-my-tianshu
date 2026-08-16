@@ -492,6 +492,35 @@ Source: [`packages/memory/adaptive-memory/src/types.ts:73`](../packages/memory/a
 
 Source: [`packages/memory/adaptive-memory/src/types.ts:63`](../packages/memory/adaptive-memory/src/types.ts)
 
+### `next-workflow/*`
+
+#### `next-workflow/end` — log-only
+
+```ts persistence-catalog
+/**
+ * A `/next-workflow` run settled. Log-only; pairs with its
+ * `next-workflow/phase` records by `runId`. `detail` carries the verify
+ * disposition (`verified`/`unverified`) or the failure message.
+ */
+'next-workflow/end': { runId: string; outcome: NextWorkflowOutcome; detail?: string }
+```
+
+Source: [`packages/workflow/next-workflow/src/index.ts:82`](../packages/workflow/next-workflow/src/index.ts)
+
+#### `next-workflow/phase` — log-only
+
+```ts persistence-catalog
+/**
+ * One `/next-workflow` phase settled. Log-only (never the model surface or
+ * derived history); `artifact` points at the on-disk phase handoff, which
+ * survives compaction, and `detail` carries a short human summary such as
+ * the critique verdict or the verify outcome.
+ */
+'next-workflow/phase': { runId: string; phase: NextWorkflowPhase; artifact?: string; detail?: string }
+```
+
+Source: [`packages/workflow/next-workflow/src/index.ts:76`](../packages/workflow/next-workflow/src/index.ts)
+
 ### `permission/*`
 
 #### `permission/preset` — log-only

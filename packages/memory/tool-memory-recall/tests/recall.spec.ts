@@ -139,7 +139,7 @@ describe('memory_deep_recall', () => {
     expect(request?.toolFilter).toEqual({ allow: ['session_search', 'session_event_search', 'session_event_read'] })
     expect(request?.outputSchema).toBeDefined()
     expect(typeof request?.persona).toBe('string')
-    expect(request?.maxDepth).toBe(0)
+    expect(request?.maxDepth).toBe(1)
     // 主上下文只收到蒸馏结果：reader 的原始输出不经由本工具返回。
     expect(JSON.stringify(result)).not.toContain('reader raw text')
   })
@@ -210,7 +210,7 @@ describe('distillRecallResult', () => {
     maxAnswerChars: 10,
     maxEvidence: 2,
     maxQuoteChars: 5,
-    maxDepth: 0,
+    maxDepth: 1,
   }
 
   it('非对象/缺字段 → 错误', () => {

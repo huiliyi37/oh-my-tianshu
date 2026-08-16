@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-`memory_deep_recall`——模式 C 的原始历史召回（adaptive-memory Agent Note 的阶段三）。模型带一个问题调用本工具；工具把问题扇出给一个**只读的进程内 reader subagent**（静态 persona、固定的结构化输出 schema、工具允许列表缺省为 `session_search` / `session_event_search` / `session_event_read`、`maxDepth` 为 0 使 reader 不得再委托），由它经 session-query FTS 检索会话 transcript，返回固定蒸馏形态 `{ answer, evidence: [{ sessionId, eventSeqs, quote }], uncertainties, confidence }`。只有按预算钳制的蒸馏结果（`maxAnswerChars` 2000、`maxEvidence` 5、`maxQuoteChars` 240——均为 Config 字段）作为工具结果返回；**原始 transcript 字节绝不进入主上下文**。能力在执行时探测：缺 `sessionQuery` 服务、缺只读工具（挂载 `@huiliyi37/dsh-tool-session-query`）、缺 subagent provider（`provider`，缺省 `spawn`）、或 provider 不具备 `toolFilter` / `outputSchema` / `persona` / `depthLimit` 能力时，都以普通的模型可见错误呈现——fail loud，绝不静默降级。工具 schema 与指引 section 都是静态字符串（前缀缓存纪律）。发布组合均不挂载本插件。
+`memory_deep_recall`——模式 C 的原始历史召回（adaptive-memory Agent Note 的阶段三）。模型带一个问题调用本工具；工具把问题扇出给一个**只读的进程内 reader subagent**（静态 persona、固定的结构化输出 schema、工具允许列表缺省为 `session_search` / `session_event_search` / `session_event_read`、`maxDepth` 为 1 使 reader 位于深度 1、不得再委托），由它经 session-query FTS 检索会话 transcript，返回固定蒸馏形态 `{ answer, evidence: [{ sessionId, eventSeqs, quote }], uncertainties, confidence }`。只有按预算钳制的蒸馏结果（`maxAnswerChars` 2000、`maxEvidence` 5、`maxQuoteChars` 240——均为 Config 字段）作为工具结果返回；**原始 transcript 字节绝不进入主上下文**。能力在执行时探测：缺 `sessionQuery` 服务、缺只读工具（挂载 `@huiliyi37/dsh-tool-session-query`）、缺 subagent provider（`provider`，缺省 `spawn`）、或 provider 不具备 `toolFilter` / `outputSchema` / `persona` / `depthLimit` 能力时，都以普通的模型可见错误呈现——fail loud，绝不静默降级。工具 schema 与指引 section 都是静态字符串（前缀缓存纪律）。发布组合均不挂载本插件。
 
 ## Model Experience
 

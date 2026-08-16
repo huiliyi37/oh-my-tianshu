@@ -1199,6 +1199,38 @@ export type GateLevel = 'standard' | 'strict'
 
 来源：[`packages/memory/memory-consolidate/src/index.ts:61`](../packages/memory/memory-consolidate/src/index.ts)
 
+## `@huiliyi37/dsh-next-workflow`
+
+需要：`commands`
+
+```ts config-catalog
+/** Deployment policy for the fixed intent pipeline. */
+export interface Config {
+  /** One-shot structured-output provider for every subagent phase (default `spawn`). */
+  provider?: string
+  /** Artifact root; one `<run-id>/SPEC.md|PLAN.md|REVIEW.md` directory per run (default `$DSH_HOME/workflows`). */
+  workflowsRoot?: string
+  /** Deterministic VERIFY gate command run through the bash executor (default unset: report `unverified`). */
+  verifyCommand?: string
+  /** Timeout for one `verifyCommand` run in milliseconds (default 120000). */
+  verifyTimeoutMs?: number
+  /** Maximum critique-driven PLAN revisions (default 1). */
+  maxCritiqueRounds?: number
+  /** Maximum verify-failure retries steered back into IMPLEMENT (default 1). */
+  maxVerifyRetries?: number
+  /** Per-phase reasoning effort for the main session's requests (default plan/critique/review `high`; unset phases inherit). */
+  phaseEfforts?: Record<string, string>
+  /** Maximum characters of one phase artifact (default 32768; longer subagent output is truncated). */
+  maxArtifactChars?: number
+  /** Maximum characters of verify output steered back on failure (default 8192). */
+  maxVerifyOutputChars?: number
+  /** Maximum characters of the git diff offered to the reviewer (default 32768). */
+  maxDiffChars?: number
+}
+```
+
+来源：[`packages/workflow/next-workflow/src/index.ts:87`](../packages/workflow/next-workflow/src/index.ts)
+
 ## `@huiliyi37/dsh-permission`
 
 需要：`bash` · `approval` · `sessions`
@@ -2301,7 +2333,7 @@ export interface Config {
   maxEvidence?: number
   /** 单条 evidence quote 的字符上限（缺省 240；超出截断）。 */
   maxQuoteChars?: number
-  /** reader 子代理的最大委托深度（缺省 0：reader 不得再委托）。 */
+  /** reader 子代理的最大委托深度（缺省 1：reader 位于深度 1，不得再委托）。 */
   maxDepth?: number
 }
 ```
