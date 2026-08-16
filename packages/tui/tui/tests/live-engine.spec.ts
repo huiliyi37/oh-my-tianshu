@@ -26,7 +26,7 @@ function makeLiveStdout(): { stdout: WriteStream; writes: string[] } {
     columns: 80,
     rows: 24,
     write: (chunk: string) => {
-      writes.push(String(chunk))
+      writes.push(chunk)
       return true
     },
   } as unknown as WriteStream
