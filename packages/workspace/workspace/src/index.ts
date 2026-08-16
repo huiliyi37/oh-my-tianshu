@@ -56,6 +56,8 @@ export class WorkspaceUnknownSessionError extends Error {
 declare module '@huiliyi37/cordis' {
   interface Context {
     workspace: WorkspaceRegistry
+    /** Upstream dsh alias: `workspaceRegistry` resolves to the same instance. */
+    workspaceRegistry: WorkspaceRegistry
   }
 }
 
@@ -102,6 +104,10 @@ export class WorkspaceRegistry extends Service {
 
   constructor(ctx: Context) {
     super(ctx, 'workspace')
+    // Upstream dsh compatibility: DeepSeek Harness plugins inject the
+    // `workspaceRegistry` service name. Register this instance under both
+    // names so the whole upstream plugin ecosystem keeps working on the fork.
+    ctx.provide('workspaceRegistry', this)
   }
 
   /** Open the domain, finish bootstrap when required, and rebuild the ordered cache. */

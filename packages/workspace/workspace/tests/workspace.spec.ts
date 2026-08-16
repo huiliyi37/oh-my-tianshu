@@ -180,6 +180,19 @@ afterEach(async () => {
 })
 
 describe('WorkspaceRegistry lifecycle and bootstrap', () => {
+  it('registers the upstream legacy `workspaceRegistry` alias for the `workspace` service', async () => {
+    const pool = new MemoryMediaPool()
+    const ctx = await storageContext(pool)
+    const fiber = await ctx.plugin(WorkspaceRegistry)
+    const list = vi.fn(async () => [] as SessionHeader[])
+    ctx.provide('sessionPersistence', { list } as never)
+    await fiber.await()
+    // Third-party plugins written against DeepSeek Harness inject the
+    // `workspaceRegistry` service name; it must resolve to the same registry.
+    expect(ctx.workspaceRegistry).toBeDefined()
+    expect(ctx.workspaceRegistry.list()).toEqual([])
+  })
+
   it('stays pending without sessionPersistence and never opens or marks the domain', async () => {
     const pool = new MemoryMediaPool()
     const ctx = await storageContext(pool)
