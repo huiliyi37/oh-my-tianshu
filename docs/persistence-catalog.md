@@ -78,7 +78,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }[T]
 ```
 
-Sources: [`packages/core/session/src/types.ts:310`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:317`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:345`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:377`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:318`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:325`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:353`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:385`](../packages/core/session/src/types.ts)
 
 ## Events
 
@@ -109,13 +109,15 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 
 ```ts persistence-catalog
 /**
- * 用户经 `/preset` 选定 agent 预设的事实记录。载荷 `agentPreset` 是选中的预设名;
- * log-only,只供投影与审计回放,不进模型派生历史。
+ * The session's agent preset was chosen after creation, while the session
+ * was still blank. Log-only: it records the composition later turns ran
+ * under, so a resumed or forked session rebuilds the same one instead of
+ * the header's creation-time value.
  */
 'agent-preset/selected': { agentPreset: string }
 ```
 
-Source: [`packages/tui/tui/src/commands/registry.ts:37`](../packages/tui/tui/src/commands/registry.ts)
+Source: [`packages/preset/agent-presets/src/session.ts:26`](../packages/preset/agent-presets/src/session.ts)
 
 ### `approval/*`
 
@@ -189,7 +191,7 @@ Source: [`packages/interaction/user-approval/src/index.ts:67`](../packages/inter
 
 Types: [StreamChunk](subsystems/llm-streaming.md)
 
-Source: [`packages/core/session/src/types.ts:238`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:246`](../packages/core/session/src/types.ts)
 
 #### `assistant/message` — surface
 
@@ -205,7 +207,7 @@ Source: [`packages/core/session/src/types.ts:238`](../packages/core/session/src/
 
 Types: [TokenUsage](subsystems/llm-streaming.md)
 
-Source: [`packages/core/session/src/types.ts:245`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:253`](../packages/core/session/src/types.ts)
 
 ### `command/*`
 
@@ -504,7 +506,7 @@ Source: [`packages/plan/plan-mode/src/index.ts:64`](../packages/plan/plan-mode/s
 'request/context': RequestContext
 ```
 
-Source: [`packages/core/session/src/types.ts:283`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:291`](../packages/core/session/src/types.ts)
 
 #### `request/header` — log-only
 
@@ -516,7 +518,7 @@ Source: [`packages/core/session/src/types.ts:283`](../packages/core/session/src/
 'request/header': { header: EpochHeader; reason: RequestHeaderReason }
 ```
 
-Source: [`packages/core/session/src/types.ts:278`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:286`](../packages/core/session/src/types.ts)
 
 ### `sandbox/*`
 
@@ -583,7 +585,7 @@ Source: [`packages/schedule/schedule/src/types.ts:219`](../packages/schedule/sch
 'session/end-seed': Record<string, never>
 ```
 
-Source: [`packages/core/session/src/types.ts:306`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:314`](../packages/core/session/src/types.ts)
 
 #### `session/title` — log-only
 
@@ -619,7 +621,7 @@ Source: [`packages/session/session-title-llm/src/index.ts:43`](../packages/sessi
 'step/end': { turn: number; step: number }
 ```
 
-Source: [`packages/core/session/src/types.ts:228`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:236`](../packages/core/session/src/types.ts)
 
 #### `step/start` — log-only
 
@@ -628,7 +630,7 @@ Source: [`packages/core/session/src/types.ts:228`](../packages/core/session/src/
 'step/start': { turn: number; step: number }
 ```
 
-Source: [`packages/core/session/src/types.ts:226`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:234`](../packages/core/session/src/types.ts)
 
 ### `subagent/*`
 
@@ -658,7 +660,7 @@ Source: [`packages/subagent/subagent/src/descriptor.ts:37`](../packages/subagent
 
 Types: [TodoItem](subsystems/session.md)
 
-Source: [`packages/core/session/src/types.ts:273`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:281`](../packages/core/session/src/types.ts)
 
 ### `tool/*`
 
@@ -677,7 +679,7 @@ Source: [`packages/core/session/src/types.ts:273`](../packages/core/session/src/
 
 Types: [CallId](subsystems/core.md)
 
-Source: [`packages/core/session/src/types.ts:253`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:261`](../packages/core/session/src/types.ts)
 
 #### `tool/code-dispatch` — log-only
 
@@ -746,7 +748,7 @@ Source: [`packages/core/tools/src/types.ts:40`](../packages/core/tools/src/types
 }
 ```
 
-Source: [`packages/core/session/src/types.ts:265`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:273`](../packages/core/session/src/types.ts)
 
 ### `turn/*`
 
@@ -766,7 +768,7 @@ Source: [`packages/core/session/src/types.ts:265`](../packages/core/session/src/
 
 Types: [TurnEndReason](subsystems/session.md)
 
-Source: [`packages/core/session/src/types.ts:224`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:232`](../packages/core/session/src/types.ts)
 
 #### `turn/start` — log-only
 
@@ -780,7 +782,7 @@ Source: [`packages/core/session/src/types.ts:224`](../packages/core/session/src/
 'turn/start': { turn: number }
 ```
 
-Source: [`packages/core/session/src/types.ts:215`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:223`](../packages/core/session/src/types.ts)
 
 ### `user/*`
 
@@ -797,7 +799,7 @@ Source: [`packages/core/session/src/types.ts:215`](../packages/core/session/src/
 'user/message': UserMessage
 ```
 
-Source: [`packages/core/session/src/types.ts:236`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:244`](../packages/core/session/src/types.ts)
 
 ### `web/*`
 

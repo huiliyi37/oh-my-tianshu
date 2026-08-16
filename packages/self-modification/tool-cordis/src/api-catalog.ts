@@ -117,6 +117,56 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'agentPresets',
+    summary: 'Registry over the deployment\'s agent presets.',
+    methods: [
+      {
+        signature: 'async list(): Promise<AgentPreset[]>',
+        jsDoc: '/**\n * Every preset the configured roots currently supply.\n * @returns the presets, first-root-wins per id.\n */',
+      },
+      {
+        signature: 'async resolve(id?: string): Promise<AgentPreset>',
+        jsDoc: '/**\n * Resolve one preset by id.\n *\n * A broken preset resolves — deleting one, reading one, and reporting one\n * all need the row — and the mounting paths refuse it AFTER resolution\n * through {@link resolveMountable}.\n * @param id - the preset id, or `undefined` for {@link defaultId}.\n * @returns the resolved preset.\n * @throws when no configured root supplies that id.\n */',
+      },
+      {
+        signature: 'async mount(agentCtx: Context, id?: string): Promise<AgentPreset>',
+        jsDoc: '/**\n * Compose one agent from a preset: ensure the preset\'s standing mount, then\n * parent the agent\'s scope key to it so the mount\'s registrations and\n * listeners cover this agent.\n *\n * Call from the agent factory\'s `setup(agentCtx)`; a rejection there rolls\n * the agent creation back, so a broken preset never yields a half-composed\n * session.\n * @param agentCtx - the agent\'s scope context.\n * @param id - the preset id, or `undefined` for {@link defaultId}.\n * @returns the preset that was composed, for the caller to record.\n * @throws when the preset is unknown or its composition is unusable.\n */',
+      },
+      {
+        signature: 'composeFrom(agentCtx: Context, parentCtx: Context): string | undefined',
+        jsDoc: '/**\n * Join one agent to the SAME standing composition another already runs on.\n *\n * This is how a child agent inherits its parent\'s capabilities. It is a bind,\n * not a mount: the parent\'s generation is already composed, so the child gets\n * that exact instance — the same plugin objects, the same tool registrations,\n * the same prompt sections. Re-resolving the parent\'s preset by id instead\n * would re-read the roster, and a composition file edited since the parent\n * started would hand the child a DIFFERENT generation than the one its\n * parent\'s history was produced under (and a preset deleted since would fail\n * the child outright while its parent keeps running).\n *\n * Synchronous, and with no composition failure mode of its own — it reads no\n * roster, mounts nothing, and touches no file — which is what lets a child\n * creation window use it: the two in-process subagent drivers compose their\n * children inside a synchronous `setup`. It still rejects a caller error, as\n * the `@throws` below record.\n *\n * A parent that joined no preset — a rosterless deployment — yields no join\n * and no error: there, the model-facing rows sit in the host composition and\n * the child already sees them through the global layer.\n * @param agentCtx - the joining agent\'s scope context.\n * @param parentCtx - the scope context of the agent whose composition to join.\n * @returns the preset id joined, or undefined when the parent joined none.\n * @throws when `agentCtx` carries no scope, or has already joined a preset.\n */',
+      },
+      {
+        signature: 'composedPreset(agentCtx: Context): string | undefined',
+        jsDoc: '/**\n * The preset one live agent runs on.\n *\n * Read from the live scope chain rather than from the session, so it answers\n * for an agent whose session has not recorded a preset yet — a child agent\n * whose durable header is being built from its parent\'s composition.\n * @param agentCtx - the agent\'s scope context.\n * @returns the preset id, or undefined when the agent joined none.\n */',
+      },
+      {
+        signature: 'async read(id: string): Promise<string>',
+        jsDoc: '/**\n * Read one preset\'s composition text.\n * @param id - the preset id.\n * @returns the composition exactly as stored.\n * @throws when no configured root supplies that id.\n */',
+      },
+      {
+        signature: 'async copy(from: string, id: string, name?: string): Promise<void>',
+        jsDoc: '/**\n * Create a locally authored preset by copying an existing one whole.\n *\n * Copy is the only authoring write. Composition text never crosses this\n * seam: the source is named by id and its directory is copied as it stands,\n * so the copy is exactly as loadable as its source and authoring grants no\n * capability the roster did not already carry. The copy is NOT mounted to\n * validate — a source that mounts today yields a copy that mounts today.\n * @param from - the preset the copy starts from; shipped presets are the\n * primary source, so any trust is accepted.\n * @param id - the new preset\'s id, which becomes its directory name.\n * @param name - display name for the copy; absent falls back to the id.\n * @throws when the source is unknown, the id is unusable or already taken,\n * or the deployment configures no writable root.\n */',
+      },
+      {
+        signature: 'async remove(id: string): Promise<void>',
+        jsDoc: '/**\n * Delete a locally authored preset.\n * @param id - the preset id.\n * @throws when the preset is unknown or ships with the deployment.\n */',
+      },
+      {
+        signature: 'serviceFor<K extends string & keyof Context>(agent: { ctx: Context }, name: K): Context[K] | undefined',
+        jsDoc: '/**\n * One agent\'s instance of a service its preset mounted.\n *\n * A preset publishes services behind `isolate` realms, which are invisible\n * outside the group that declares them — including to the host. This is how a\n * caller holding the agent reads one anyway: a request that is ABOUT a\n * session but arrives from outside it, which is every browser RPC.\n *\n * Read addressing only. A host row that `inject`s a service cannot use this,\n * because injection resolves before any session exists and has no agent to\n * key by; such a service belongs on the host plane instead.\n * @param agent - the agent whose composition to look inside.\n * @param name - the service name as the preset\'s rows resolve it.\n * @returns the agent\'s instance, or undefined when its preset mounts none.\n */',
+      },
+      {
+        signature: 'async recompose(agentCtx: Context, id: string): Promise<AgentPreset>',
+        jsDoc: '/**\n * Re-link one agent to a different preset\'s standing composition.\n *\n * Only valid while the agent has produced nothing: swapping tools mid\n * conversation would leave logged tool calls the new composition cannot\n * make. The CALLER owns that check — this method does not read session\n * history.\n *\n * The swap is a parent re-link, not an unmount: standing mounts are shared\n * and permanent, so the old composition stays for its other agents and the\n * new one is ensured BEFORE the link moves. An unknown or unusable preset\n * therefore throws with the agent exactly as it was — there is no torn-down\n * state to restore. The re-link runs through the binding this roster kept\n * from the agent\'s mount — dsh-scope\'s only re-link authority. An agent\n * that never composed one has nothing to re-link: the switch is then the\n * agent\'s first bind, exactly a mount.\n * @param agentCtx - the agent\'s scope context.\n * @param id - the preset to compose the agent from instead.\n * @returns the preset now installed.\n * @throws when the preset is unknown or its composition is unusable.\n */',
+      },
+      {
+        signature: 'async standingKeyFor(id?: string): Promise<ScopeKey>',
+        jsDoc: '/**\n * The standing scope key of one preset, for a host reader with no agent.\n *\n * A cold transcript read resolves tool presenters against the composition\n * the session recorded, and the standing mount makes that possible without\n * resuming anything: ensuring the mount composes plugins but starts no\n * agent, no session, and no turn.\n * @param id - the preset id, or `undefined` for {@link defaultId}.\n * @returns the standing scope key readers pass as a registry view scope.\n * @throws when the preset is unknown or its composition is unusable.\n */',
+      },
+    ],
+  },
+  {
     key: 'agents',
     summary: 'Agent service (`ctx.agents`): tracks live agents and carries the initiating Agent through one process-local asynchronous driver chain.',
     methods: [
@@ -193,6 +243,24 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: 'overrideOf(session: Session): ApprovalPolicy | undefined',
         jsDoc: '/**\n * Read the session override without applying the configured default.\n * @param session - session whose log supplies the override.\n * @returns the last logged policy, or `undefined` without one.\n */',
+      },
+    ],
+  },
+  {
+    key: 'attachments',
+    summary: 'Immutable binary attachment service.',
+    methods: [
+      {
+        signature: 'abstract validateImage(input: SaveImageAttachment): Promise<void>',
+        jsDoc: '/**\n * Validate one image without persisting it.\n * Batch callers validate every member before saving any member.\n * @param input - encoded bytes, declared media type, and optional display name.\n * @returns completion after the encoded raster has been fully decoded.\n */',
+      },
+      {
+        signature: 'abstract saveImage(input: SaveImageAttachment): Promise<ImageAttachmentRef>',
+        jsDoc: '/**\n * Validate and durably commit one image before its owning session event is appended.\n * @param input - encoded bytes, declared media type, and optional display name.\n * @returns a durable content-addressed reference.\n */',
+      },
+      {
+        signature: 'abstract readImage(ref: ImageAttachmentRef, signal?: AbortSignal): Promise<StoredImageAttachment>',
+        jsDoc: '/**\n * Read one image and verify that bytes still match the recorded reference.\n * @param ref - durable reference from the session log.\n * @param signal - optional cancellation for backend read and verification work.\n * @returns the verified bytes and canonical reference.\n * @throws the signal reason when aborted, or a storage error when verification fails.\n */',
       },
     ],
   },
@@ -309,6 +377,32 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'cordisInspect',
+    summary: 'Registry and cross-page router behind the two model-facing inspect tools.',
+    methods: [
+      {
+        signature: 'register(registration: HostCordisInspectProviderRegistration): () => void',
+        jsDoc: '/**\n * Register one Host provider.\n * @param registration - manifest and local query handler.\n * @returns idempotent disposer.\n */',
+      },
+      {
+        signature: 'syncClientManifest(providers: readonly CordisInspectProviderManifest[]): void',
+        jsDoc: '/**\n * Replace the mirrored Client provider directory.\n * @param providers - complete Client manifest snapshot.\n */',
+      },
+      {
+        signature: 'list(): CordisInspectProviderView[]',
+        jsDoc: '/**\n * Return the complete known Host and Client provider directory.\n * @returns Host providers followed by the Client providers.\n */',
+      },
+      {
+        signature: 'async query( platform: CordisInspectPlatform, providerId: string, methodName: string, input: JsonValue | undefined, agent: Agent, signal: AbortSignal, ): Promise<JsonValue>',
+        jsDoc: '/**\n * Execute one provider query on its owning platform.\n * @param platform - Host or Client runtime.\n * @param providerId - provider selected from {@link list}.\n * @param methodName - declared method name.\n * @param input - optional lossless JSON input.\n * @param agent - requesting Agent and scope.\n * @param signal - tool-call cancellation.\n * @returns provider JSON data.\n */',
+      },
+      {
+        signature: 'resolveClientQuery( agent: Agent, requestId: CordisInspectRequestId, resolution: CordisInspectQueryResolution, ): CordisInspectResolveAck',
+        jsDoc: '/**\n * Accept the first valid Client response for a pending query.\n * @param agent - Agent whose Session owns the query.\n * @param requestId - Pending Client query identity.\n * @param resolution - Client provider result or failure.\n * @returns whether this response settled the still-pending query.\n */',
+      },
+    ],
+  },
+  {
     key: 'credentials',
     summary: 'Abstract credential service.',
     methods: [
@@ -337,6 +431,96 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: 'abstract capability(): DirectoryPickerCapability',
         jsDoc: '/**\n * The backend\'s interaction capability.\n * @returns the discriminated capability consumers switch on.\n */',
+      },
+    ],
+  },
+  {
+    key: 'dynamicCordisRunner',
+    summary: 'Dynamic Plugin registry and Host-half lifecycle.',
+    methods: [
+      {
+        signature: 'define(request: DynamicCordisDefineRequest): DynamicCordisDefineReceipt',
+        jsDoc: '/**\n * Define a new Plugin\'s first Package or append a Package to an existing Plugin.\n * @param request - Session ownership, Plugin selection, metadata, and source code.\n * @returns Host-minted Plugin and Package identities with declared-half metadata.\n */',
+      },
+      {
+        signature: 'async undefine(agent: Agent, pluginId: CordisDynamicPluginId): Promise<DynamicCordisUndefineReceipt>',
+        jsDoc: '/**\n * Remove a Plugin, its active run, and all immutable Packages.\n * @param agent - Agent whose Session must own the Plugin.\n * @param pluginId - Stable Plugin identity to remove.\n * @returns Whether removal succeeded and whether it stopped an active run.\n */',
+      },
+      {
+        signature: '@Remote(\'undefineFromPanel\') async undefineFromPanel(agent: Agent, pluginId: CordisDynamicPluginId): Promise<DynamicCordisUndefineReceipt>',
+        jsDoc: '/**\n * Remove a Plugin from the user panel and queue the resulting state change for the model\'s next step.\n * @param agent - Agent whose Session owns the Plugin and receives the context.\n * @param pluginId - Stable Plugin identity to remove.\n * @returns Whether removal succeeded and whether it stopped an active run.\n */',
+      },
+      {
+        signature: 'async run( agent: Agent, pluginId: CordisDynamicPluginId, packageId: CordisDynamicPackageId, mode: CordisDynamicRunMode, signal?: AbortSignal, ): Promise<DynamicCordisRunResponse>',
+        jsDoc: '/**\n * Start or update one Package for a model tool call. An unauthorized Client\n * Package waits for approval; Plugin-wide authorization covers later versions.\n * @param agent - Agent whose Session must own the Plugin.\n * @param pluginId - Stable Plugin identity to activate.\n * @param packageId - Immutable Package version to activate.\n * @param mode - Whether to run the current version or switch versions.\n * @param signal - Tool-call cancellation signal while the activation request is being created.\n * @returns The successful activation identity or an actionable refusal.\n */',
+      },
+      {
+        signature: '@Remote(\'runHostHalf\') async runHostHalf( agent: Agent, pluginId: CordisDynamicPluginId, packageId: CordisDynamicPackageId, mode: CordisDynamicRunMode, requestId: ApprovalRequestId | null, approveFutureVersions: boolean, ): Promise<DynamicCordisHostHalfResult>',
+        jsDoc: '/**\n * Start Host code for an approved request or a direct panel gesture.\n * @param agent - Agent whose Session must own the Plugin.\n * @param pluginId - Stable Plugin identity to activate.\n * @param packageId - Immutable Package version to activate.\n * @param mode - Whether to run the current version or switch versions.\n * @param requestId - Model-driven request identity, or null for a direct user gesture.\n * @param approveFutureVersions - Whether this approval covers later Packages of the same Plugin.\n * @returns The exact Host activation or a failure message.\n */',
+      },
+      {
+        signature: '@Remote(\'getClientCode\') getClientCode( agent: Agent, pluginId: CordisDynamicPluginId, pluginRunId: CordisDynamicPluginRunId, ): DynamicCordisClientSource',
+        jsDoc: '/**\n * Fetch Client code for the exact active run.\n * @param agent - Agent whose Session must own the Plugin.\n * @param pluginId - Stable Plugin identity to read.\n * @param pluginRunId - Exact active run authorized to receive source.\n * @returns Client source and its Plugin, Package, and run identities.\n */',
+      },
+      {
+        signature: '@Remote(\'resolveRequestRun\') async resolveRequestRun( requestId: ApprovalRequestId, resolution: DynamicCordisRunResolution, ): Promise<DynamicCordisResolveAck>',
+        jsDoc: '/**\n * Resolve one model-driven Client activation request.\n * @param requestId - Request identity to settle once.\n * @param resolution - Browser refusal or exact Client activation result.\n * @returns Whether the still-pending request accepted this resolution.\n */',
+      },
+      {
+        signature: '@Remote(\'settleUserRun\') async settleUserRun( agent: Agent, pluginId: CordisDynamicPluginId, resolution: DynamicCordisRunResolution, ): Promise<DynamicCordisRunResponse>',
+        jsDoc: '/**\n * Settle a direct panel run after this page loaded or failed its Client half.\n * @param agent - Agent whose Session must own the Plugin.\n * @param pluginId - Stable Plugin identity being settled.\n * @param resolution - Exact Client activation result from the acting page.\n * @returns The committed activation or its failure.\n */',
+      },
+      {
+        signature: 'async stop(agent: Agent, pluginId: CordisDynamicPluginId): Promise<DynamicCordisStopResponse>',
+        jsDoc: '/**\n * Stop the active run while retaining every Package version.\n * @param agent - Agent whose Session must own the Plugin.\n * @param pluginId - Stable Plugin identity to stop.\n * @returns Success or the reason no run was stopped.\n */',
+      },
+      {
+        signature: '@Remote(\'stopFromPanel\') async stopFromPanel(agent: Agent, pluginId: CordisDynamicPluginId): Promise<DynamicCordisStopResponse>',
+        jsDoc: '/**\n * Stop a Plugin from the user panel and queue the resulting state change for the model\'s next step.\n * @param agent - Agent whose Session owns the Plugin and receives the context.\n * @param pluginId - Stable Plugin identity to stop.\n * @returns Success or the reason no run was stopped.\n */',
+      },
+      {
+        signature: '@Remote(\'syncInspectManifest\') syncInspectManifest(providers: readonly CordisInspectProviderManifest[]): null',
+        jsDoc: '/**\n * Replace the Host mirror of the Client inspect provider directory.\n * @param providers - complete Client provider manifest.\n * @returns null after accepting the manifest.\n */',
+      },
+      {
+        signature: '@Remote(\'resolveInspectQuery\') resolveInspectQuery( agent: Agent, requestId: CordisInspectRequestId, resolution: CordisInspectQueryResolution, ): CordisInspectResolveAck',
+        jsDoc: '/**\n * Claim one pending Client inspect query with its live result.\n * @param agent - Session that owns the query.\n * @param requestId - exact pending query identity.\n * @param resolution - provider result or structured refusal.\n * @returns whether this answer won the query.\n */',
+      },
+      {
+        signature: '@Remote(\'inventory\') inventory(): DynamicCordisInventoryRow[]',
+        jsDoc: '/**\n * Frame-wide inventory, grouped as one row per stable Plugin.\n * @returns Source-free metadata for every process-local Plugin.\n */',
+      },
+      {
+        signature: 'snapshot(agent: Agent): DynamicCordisSnapshotRow[]',
+        jsDoc: '/**\n * Read one Session\'s Host-rich state for inspection and result rendering.\n * @param agent - Agent whose Session selects visible Plugins.\n * @returns Plugin versions, active runs, Host fibers, and render failures.\n */',
+      },
+      {
+        signature: 'reference(agent: Agent, pluginId: CordisDynamicPluginId): DynamicCordisReference | undefined',
+        jsDoc: '/**\n * Read source-free context for an explicit `@pluginId` user gesture.\n * @param agent - Agent whose Session must own the Plugin.\n * @param pluginId - Stable Plugin identity referenced by the user.\n * @returns The preferred modification base, or undefined when unavailable.\n */',
+      },
+      {
+        signature: 'listPlugins(agent: Agent): DynamicCordisPluginInspection[]',
+        jsDoc: '/**\n * List source-free Plugin summaries owned by one Session.\n * @param agent - Agent whose Session selects visible Plugins.\n * @returns one summary per Plugin in creation order.\n */',
+      },
+      {
+        signature: 'inspectPlugin(agent: Agent, pluginId: CordisDynamicPluginId): DynamicCordisPluginInspection',
+        jsDoc: '/**\n * Inspect one Plugin without returning Package source.\n * @param agent - Agent whose Session must own the Plugin.\n * @param pluginId - stable Plugin identity.\n * @returns version pointers, latest run, and all Package summaries.\n */',
+      },
+      {
+        signature: 'inspectPackage( agent: Agent, pluginId: CordisDynamicPluginId, packageId: CordisDynamicPackageId, ): DynamicCordisPackageInspection',
+        jsDoc: '/**\n * Read one exact immutable Package and its Host and Client source.\n * @param agent - Agent whose Session must own the Plugin.\n * @param pluginId - Stable Plugin identity that owns the Package.\n * @param packageId - Exact immutable Package identity to inspect.\n * @returns Package metadata, source, and the Plugin\'s lifecycle pointers.\n */',
+      },
+      {
+        signature: '@Remote(\'reportRenderFailure\') async reportRenderFailure( agent: Agent, pluginId: CordisDynamicPluginId, pluginRunId: CordisDynamicPluginRunId, failure: DynamicCordisRenderFailure, ): Promise<null>',
+        jsDoc: '/**\n * Record a post-load render failure for the exact active run.\n * @param agent - Agent whose Session must own the Plugin.\n * @param pluginId - Stable Plugin identity that rendered.\n * @param pluginRunId - Exact active run that produced the failure.\n * @param failure - Slot, message, and entry-retirement result.\n * @returns Null after recording or ignoring a stale report.\n */',
+      },
+      {
+        signature: '@Remote(\'reportClientGuardFailure\') async reportClientGuardFailure( agent: Agent, pluginId: CordisDynamicPluginId, pluginRunId: CordisDynamicPluginRunId, failure: CordisErrorDetails, ): Promise<null>',
+        jsDoc: '/**\n * Report a Client guard rejection that happened after the Package completed activation.\n * @param agent - Agent whose Session must own the Plugin.\n * @param pluginId - Stable Plugin identity whose Client code was rejected.\n * @param pluginRunId - Exact active run that produced the rejection.\n * @param failure - Original guard message and stack.\n * @returns Null after reporting or ignoring a stale/startup failure.\n */',
+      },
+      {
+        signature: '@Remote(\'invoke\') async invoke( pluginId: CordisDynamicPluginId, pluginRunId: CordisDynamicPluginRunId, method: string, args: JsonValue, ): Promise<DynamicCordisInvokeResult>',
+        jsDoc: '/**\n * Invoke an active Host method while rejecting stale Client runs.\n * @param pluginId - Stable Plugin identity that owns the method.\n * @param pluginRunId - Exact active run authorizing the call.\n * @param method - Registered Host handler name.\n * @param args - JSON argument delivered to the handler.\n * @returns The JSON result or a typed invocation failure.\n */',
       },
     ],
   },
@@ -1081,6 +1265,10 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         jsDoc: '/**\n * Register an ordered prompt section in the calling context\'s scope. A scoped\n * section shadows a global section with the same name; duplicates within one\n * layer and non-finite orders throw. Registration and disposal emit\n * `system-prompt/change`.\n * @param section - the section to register.\n * @returns the exact Cordis effect disposer.\n */',
       },
       {
+        signature: 'suppressRuntimeContext(): () => void',
+        jsDoc: '/**\n * Suppress every dynamic runtime-context contribution in the calling\n * context\'s scope without changing the services that own or enforce those\n * facts. Multiple suppressors remain independently disposable.\n * @returns the exact Cordis effect disposer.\n */',
+      },
+      {
         signature: 'context(context: PromptContext): () => void',
         jsDoc: '/**\n * Register ordered dynamic context in the calling context\'s scope. Scoped\n * entries shadow global entries with the same name.\n * @param context - the context contribution to register.\n * @returns the exact Cordis effect disposer.\n */',
       },
@@ -1305,6 +1493,32 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'webServer',
+    summary: 'The web-shape HTTP carrier service.',
+    methods: [
+      {
+        signature: 'register(route: WebRoute): () => void',
+        jsDoc: '/**\n * Register a named route. Duplicate (kind, path) throws — route patterns are\n * a composition-level contract, so a collision is a misconfiguration.\n * @param route - kind, path, and the owning handler.\n * @returns the disposer removing the route.\n */',
+      },
+      {
+        signature: 'registerUpgrade(route: WebUpgradeRoute): () => void',
+        jsDoc: '/**\n * Register an exact-path HTTP upgrade route. Duplicate paths throw because\n * one socket can have only one protocol owner.\n * @param route - pathname and handler owning negotiation plus socket use.\n * @returns the disposer removing the route.\n */',
+      },
+      {
+        signature: 'registerFallback(handler: WebRoute[\'handler\']): () => void',
+        jsDoc: '/**\n * Claim the fallback seat: the handler answering every request no named\n * route matches (the SPA dist server in the shipped Web composition). One\n * owner only — a second registration throws, because two fallbacks cannot\n * compose.\n * @param handler - owns the full response lifecycle of unmatched requests.\n * @returns the disposer releasing the seat.\n */',
+      },
+      {
+        signature: 'tapIndex(transform: (html: string) => string): () => void',
+        jsDoc: '/**\n * Register an index.html transform, applied by the fallback owner to every\n * index response ({@link applyIndexTaps}) in registration order.\n * @param transform - pure html-to-html function.\n * @returns the disposer removing the transform.\n */',
+      },
+      {
+        signature: 'applyIndexTaps(html: string): string',
+        jsDoc: '/**\n * Run an index.html body through the registered taps in registration order\n * — called by the fallback owner on every index response it renders.\n * @param html - the raw index.html body.\n * @returns the transformed body.\n */',
+      },
+    ],
+  },
+  {
     key: 'workflows',
     summary: 'Workflow Service Definition contract.',
     methods: [
@@ -1344,6 +1558,36 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
     ],
   },
+  {
+    key: 'workspaceRegistry',
+    summary: 'Durable workspace registry.',
+    methods: [
+      {
+        signature: 'async create(path: string, title?: string): Promise<Workspace>',
+        jsDoc: '/**\n * Create or reuse a workspace for an existing directory. The path is\n * canonicalized through `fs.realpath`; a nonexistent path rejects with the\n * original error and a non-directory rejects. Repeated calls for the same\n * canonical path return the existing entity without changing its title.\n * A newly created workspace is prepended to the durable registry order.\n * Different canonical paths may share a display title.\n * @param path - Existing directory to own, in any path spelling.\n * @param title - Display title used only when a new record is created.\n * @returns the existing or newly durable workspace.\n */',
+      },
+      {
+        signature: 'get(id: WorkspaceId): Workspace | undefined',
+        jsDoc: '/**\n * Look up a workspace by id.\n * @param id - Workspace id.\n * @returns the workspace, or `undefined` when unknown.\n */',
+      },
+      {
+        signature: 'list(): Workspace[]',
+        jsDoc: '/**\n * Synchronous workspace projection in durable registry order. Every\n * entity\'s `sessionIds` getter is already filtered by the startup/live\n * canonical-cwd header index; this method performs no persistence reads.\n * @returns a fresh ordered array of workspace entities.\n */',
+      },
+      {
+        signature: 'delete(id: WorkspaceId): Promise<boolean>',
+        jsDoc: '/**\n * Delete one workspace registration while retaining its directory and every\n * session log. The durable order is updated before the table deletion; a\n * failed table write restores the prior order and keeps the entity\n * published. Unknown ids are an idempotent no-op for domain callers.\n * @param id - Workspace registration to remove.\n * @returns `true` when a record was deleted, `false` when it was unknown.\n */',
+      },
+      {
+        signature: 'archiveSession(sessionId: SessionId): Promise<void>',
+        jsDoc: '/**\n * Archive one session durably. The session must exist (live or in session\n * persistence); its workspace accounting — or lack of one — is irrelevant.\n * An already archived id resolves without writing.\n * @param sessionId - The session to archive.\n * @returns resolution after durability.\n */',
+      },
+      {
+        signature: 'async resolveByPath(path: string): Promise<Workspace | undefined>',
+        jsDoc: '/**\n * Resolve by canonical directory path without creating or mutating a\n * workspace. A missing path rejects during `realpath`; an existing unowned\n * directory returns `undefined`.\n * @param path - Existing directory path in any spelling.\n * @returns the workspace owning the canonical path, when one exists.\n */',
+      },
+    ],
+  },
 ]
 
 /** Every harness event, sorted by name. */
@@ -1354,6 +1598,13 @@ export const EVENT_API: readonly EventApiEntry[] = [
     signature: '\'agent-loop/config-start-failed\'(payload: { sessionId: SessionId; error: unknown }): void',
     jsDoc: '/**\n * A declarative agent entry failed before it could publish a live agent.\n * Consumers that buffer work for the configured identity use this\n * transient signal to reject that work instead of waiting forever. Normal\n * factory teardown suppresses failures from the cancelled startup attempt.\n * @param payload.sessionId - exact shared agent/session identity that failed startup.\n * @param payload.error - persistence, setup, or publication failure.\n * @mode emit\n */',
     summary: 'A declarative agent entry failed before it could publish a live agent.',
+  },
+  {
+    name: 'agent-preset/selected',
+    mode: 'emit',
+    signature: '\'agent-preset/selected\'(sessionId: SessionId, agentPreset: string): void',
+    jsDoc: '/**\n * One session committed a different agent preset to its durable log.\n * Consumers invalidate only state derived from that session\'s composition.\n * @mode emit\n * @param sessionId - the session whose composition changed.\n * @param agentPreset - the preset recorded by the committed selection.\n */',
+    summary: 'One session committed a different agent preset to its durable log.',
   },
   {
     name: 'agent/created',
@@ -1459,6 +1710,48 @@ export const EVENT_API: readonly EventApiEntry[] = [
     signature: '\'commands/change\'(): void',
     jsDoc: '/**\n * A command was registered or unregistered. This is an unfiltered registry\n * notification because a global or scoped change may affect any UI view.\n * Observer failures are contained and cannot veto the registry mutation.\n * @mode emit\n */',
     summary: 'A command was registered or unregistered.',
+  },
+  {
+    name: 'cordis/dynamic-package',
+    mode: 'emit',
+    signature: '\'cordis/dynamic-package\'(pkg: DynamicCordisPackage): void',
+    jsDoc: '/**\n * One exact Plugin/Package activation is now live in the Host.\n * @param pkg - stable plugin, immutable package, run identity, and label.\n * @mode emit\n */',
+    summary: 'One exact Plugin/Package activation is now live in the Host.',
+  },
+  {
+    name: 'cordis/dynamic-retract',
+    mode: 'emit',
+    signature: '\'cordis/dynamic-retract\'(retracted: DynamicCordisRetracted): void',
+    jsDoc: '/**\n * One exact activation was withdrawn.\n * @param retracted - plugin, package, and run identity.\n * @mode emit\n */',
+    summary: 'One exact activation was withdrawn.',
+  },
+  {
+    name: 'cordis/inspect-query',
+    mode: 'emit',
+    signature: '\'cordis/inspect-query\'(request: CordisInspectQueryRequest): void',
+    jsDoc: '/**\n * Request a live read-only query from the Client inspect registry.\n * @param request - correlation, Session, provider, method, and JSON input.\n * @mode emit\n */',
+    summary: 'Request a live read-only query from the Client inspect registry.',
+  },
+  {
+    name: 'cordis/inspect-query-resolved',
+    mode: 'emit',
+    signature: '\'cordis/inspect-query-resolved\'(resolved: CordisInspectQueryResolved): void',
+    jsDoc: '/**\n * Notify every Client that an inspect query has settled or been cancelled.\n * @param resolved - exact query identity that is no longer answerable.\n * @mode emit\n */',
+    summary: 'Notify every Client that an inspect query has settled or been cancelled.',
+  },
+  {
+    name: 'cordis/request-run',
+    mode: 'emit',
+    signature: '\'cordis/request-run\'(request: DynamicCordisRunRequest): void',
+    jsDoc: '/**\n * A Client-bearing activation needs a browser page, and may require a user decision.\n * @param request - correlation identity, owner, target version, mode, and approval requirement.\n * @mode emit\n */',
+    summary: 'A Client-bearing activation needs a browser page, and may require a user decision.',
+  },
+  {
+    name: 'cordis/request-run-resolved',
+    mode: 'emit',
+    signature: '\'cordis/request-run-resolved\'(resolved: DynamicCordisRequestResolved): void',
+    jsDoc: '/**\n * A pending Client activation request left the answerable state.\n * @param resolved - request identity and outcome.\n * @mode emit\n */',
+    summary: 'A pending Client activation request left the answerable state.',
   },
   {
     name: 'credentials/updated',
@@ -1751,6 +2044,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface AgentOptions {\n    provider?: string;\n    model?: string;\n    maxTokens?: number;\n}',
   },
   {
+    name: 'AgentPreset',
+    declaration: 'export interface AgentPreset {\n    readonly id: string;\n    readonly trust: PresetTrust;\n    readonly path: string;\n    readonly name?: string;\n    readonly description?: string;\n    readonly order?: number;\n    readonly broken?: string;\n}',
+  },
+  {
     name: 'AgentSetup',
     declaration: 'export type AgentSetup = (agentCtx: Context) => AgentSetupCommit | Promise<AgentSetupCommit | void> | void;',
   },
@@ -1817,6 +2114,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'AssistantProvenance',
     declaration: 'export interface AssistantProvenance {\n    provider: string;\n    model: string;\n    replayState?: unknown;\n}',
+  },
+  {
+    name: 'AttachmentId',
+    declaration: 'export type AttachmentId = Branded<\'AttachmentId\'>;',
   },
   {
     name: 'BashEnvContributor',
@@ -1995,6 +2296,66 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ContinuableSubagentDescriptorData extends SubagentDescriptorBase {\n    readonly mode: \'continuable\';\n    readonly label: string;\n    readonly agentProvider?: string;\n    readonly agentModel?: string;\n    readonly persona?: string;\n    readonly toolFilter?: ToolRestriction;\n}',
   },
   {
+    name: 'CordisDynamicPackageId',
+    declaration: 'export type CordisDynamicPackageId = Branded<\'CordisDynamicPackageId\'>;',
+  },
+  {
+    name: 'CordisDynamicPluginId',
+    declaration: 'export type CordisDynamicPluginId = Branded<\'CordisDynamicPluginId\'>;',
+  },
+  {
+    name: 'CordisDynamicPluginRunId',
+    declaration: 'export type CordisDynamicPluginRunId = Branded<\'CordisDynamicPluginRunId\'>;',
+  },
+  {
+    name: 'CordisDynamicRunMode',
+    declaration: 'export type CordisDynamicRunMode = \'run\' | \'update\';',
+  },
+  {
+    name: 'CordisErrorDetails',
+    declaration: 'export interface CordisErrorDetails {\n    message: string;\n    stack?: string;\n}',
+  },
+  {
+    name: 'CordisHalfState',
+    declaration: 'export interface CordisHalfState {\n    status: \'absent\' | \'pending\' | \'stopped\' | \'running\' | \'waiting\' | \'failed\';\n    waitingFor: readonly string[];\n    error?: string;\n}',
+  },
+  {
+    name: 'CordisInspectMethodManifest',
+    declaration: 'export interface CordisInspectMethodManifest {\n    name: string;\n    description: string;\n    inputSchema: JsonValue;\n    outputSchema: JsonValue;\n}',
+  },
+  {
+    name: 'CordisInspectPlatform',
+    declaration: 'export type CordisInspectPlatform = \'host\' | \'client\';',
+  },
+  {
+    name: 'CordisInspectProviderManifest',
+    declaration: 'export interface CordisInspectProviderManifest {\n    id: string;\n    description: string;\n    methods: readonly CordisInspectMethodManifest[];\n}',
+  },
+  {
+    name: 'CordisInspectProviderView',
+    declaration: 'export interface CordisInspectProviderView extends CordisInspectProviderManifest {\n    platform: CordisInspectPlatform;\n}',
+  },
+  {
+    name: 'CordisInspectQueryResolution',
+    declaration: 'export type CordisInspectQueryResolution = {\n    ok: true;\n    data: JsonValue;\n} | {\n    ok: false;\n    reason: \'provider-missing\' | \'method-missing\' | \'invalid-input\' | \'provider-error\' | \'cancelled\';\n    message: string;\n};',
+  },
+  {
+    name: 'CordisInspectRequestId',
+    declaration: 'export type CordisInspectRequestId = Branded<\'CordisInspectRequestId\'>;',
+  },
+  {
+    name: 'CordisInspectResolveAck',
+    declaration: 'export interface CordisInspectResolveAck {\n    accepted: boolean;\n}',
+  },
+  {
+    name: 'CordisRunDiagnostic',
+    declaration: 'export interface CordisRunDiagnostic {\n    phase: \'approval\' | \'host-load\' | \'host-apply\' | \'client-load\' | \'client-apply\' | \'client-render\';\n    message: string;\n    stack?: string;\n    pluginId: CordisDynamicPluginId;\n    packageId: CordisDynamicPackageId;\n    pluginRunId: CordisDynamicPluginRunId;\n}',
+  },
+  {
+    name: 'CordisRunStatus',
+    declaration: 'export type CordisRunStatus = \'awaiting-approval\' | \'starting-host\' | \'client-pending\' | \'running\' | \'waiting\' | \'rejected\' | \'failed\' | \'cancelled\' | \'stopped\';',
+  },
+  {
     name: 'CreateAgentOptions',
     declaration: 'export interface CreateAgentOptions {\n    readonly sessionId: SessionId;\n    readonly meta?: {\n        readonly cwd?: string;\n        readonly parentSession?: SessionId;\n        readonly seedLength?: number;\n        readonly origin?: \'subagent\';\n        readonly delegationDepth?: number;\n    };\n    readonly seed?: readonly SessionEvent[];\n    readonly agentOptions?: AgentOptions;\n    readonly signal?: AbortSignal;\n    readonly setup?: AgentSetup;\n}',
   },
@@ -2008,7 +2369,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'CreateSessionOptions',
-    declaration: 'export interface CreateSessionOptions {\n    readonly seed?: readonly SessionEvent[];\n    readonly meta?: {\n        readonly cwd?: string;\n        readonly parentSession?: SessionId;\n        readonly createdAt?: number;\n        readonly seedLength?: number;\n        readonly origin?: \'subagent\';\n        readonly delegationDepth?: number;\n    };\n}',
+    declaration: 'export interface CreateSessionOptions {\n    readonly seed?: readonly SessionEvent[];\n    readonly meta?: {\n        readonly cwd?: string;\n        readonly parentSession?: SessionId;\n        readonly createdAt?: number;\n        readonly seedLength?: number;\n        readonly origin?: \'subagent\';\n        readonly delegationDepth?: number;\n        readonly agentPreset?: string;\n    };\n}',
   },
   {
     name: 'CredentialInfo',
@@ -2089,6 +2450,78 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'DshEnvironmentKey',
     declaration: 'export type DshEnvironmentKey = `${typeof DSH_ENV_PREFIX}${string}`;',
+  },
+  {
+    name: 'DynamicCordisClientSource',
+    declaration: 'export interface DynamicCordisClientSource {\n    code: string;\n    name: string;\n    pluginId: CordisDynamicPluginId;\n    packageId: CordisDynamicPackageId;\n    pluginRunId: CordisDynamicPluginRunId;\n}',
+  },
+  {
+    name: 'DynamicCordisDefineReceipt',
+    declaration: 'export interface DynamicCordisDefineReceipt {\n    pluginId: CordisDynamicPluginId;\n    packageId: CordisDynamicPackageId;\n    name: string;\n    purpose: string;\n    hasHostHalf: boolean;\n    hasClientHalf: boolean;\n}',
+  },
+  {
+    name: 'DynamicCordisDefineRequest',
+    declaration: 'export interface DynamicCordisDefineRequest {\n    sessionId: SessionId;\n    plugin: {\n        kind: \'new\';\n        idPrefix: string;\n    } | {\n        kind: \'existing\';\n        pluginId: CordisDynamicPluginId;\n    };\n    name: string;\n    purpose: string;\n    code: {\n        host?: string;\n        client?: string;\n    };\n}',
+  },
+  {
+    name: 'DynamicCordisHostHalfResult',
+    declaration: 'export type DynamicCordisHostHalfResult = {\n    ok: true;\n    pluginId: CordisDynamicPluginId;\n    packageId: CordisDynamicPackageId;\n    pluginRunId: CordisDynamicPluginRunId;\n    waitingFor: readonly string[];\n    startedHere: boolean;\n} | ({\n    ok: false;\n} & CordisErrorDetails);',
+  },
+  {
+    name: 'DynamicCordisInventoryPackage',
+    declaration: 'export interface DynamicCordisInventoryPackage {\n    packageId: CordisDynamicPackageId;\n    name: string;\n    purpose: string;\n    hasHostHalf: boolean;\n    hasClientHalf: boolean;\n}',
+  },
+  {
+    name: 'DynamicCordisInventoryRow',
+    declaration: 'export interface DynamicCordisInventoryRow {\n    pluginId: CordisDynamicPluginId;\n    agentId: SessionId;\n    packages: readonly DynamicCordisInventoryPackage[];\n    currentPackageId?: CordisDynamicPackageId;\n    nextPackageId?: CordisDynamicPackageId;\n    activeRun?: {\n        pluginRunId: CordisDynamicPluginRunId;\n        packageId: CordisDynamicPackageId;\n    };\n    latestRun?: DynamicCordisRunAttempt;\n}',
+  },
+  {
+    name: 'DynamicCordisInvokeResult',
+    declaration: 'export type DynamicCordisInvokeResult = {\n    ok: true;\n    value: JsonValue;\n} | ({\n    ok: false;\n    code: \'plugin-not-running\' | \'stale-run\' | \'method-not-found\' | \'handler-error\';\n} & CordisErrorDetails);',
+  },
+  {
+    name: 'DynamicCordisPackageInspection',
+    declaration: 'export interface DynamicCordisPackageInspection extends DynamicCordisReference {\n    code: {\n        host?: string;\n        client?: string;\n    };\n}',
+  },
+  {
+    name: 'DynamicCordisPluginInspection',
+    declaration: 'export interface DynamicCordisPluginInspection extends DynamicCordisReference {\n    packages: Array<{\n        packageId: CordisDynamicPackageId;\n        name: string;\n        purpose: string;\n        hasHostHalf: boolean;\n        hasClientHalf: boolean;\n    }>;\n}',
+  },
+  {
+    name: 'DynamicCordisReference',
+    declaration: 'export interface DynamicCordisReference {\n    pluginId: CordisDynamicPluginId;\n    packageId: CordisDynamicPackageId;\n    name: string;\n    purpose: string;\n    currentPackageId?: CordisDynamicPackageId;\n    nextPackageId?: CordisDynamicPackageId;\n    activeRun?: {\n        pluginRunId: CordisDynamicPluginRunId;\n        packageId: CordisDynamicPackageId;\n    };\n    latestRun?: DynamicCordisRunAttempt;\n}',
+  },
+  {
+    name: 'DynamicCordisRenderFailure',
+    declaration: 'export interface DynamicCordisRenderFailure {\n    slot: string;\n    message: string;\n    stack?: string;\n    abdicated: boolean;\n}',
+  },
+  {
+    name: 'DynamicCordisResolveAck',
+    declaration: 'export interface DynamicCordisResolveAck {\n    accepted: boolean;\n}',
+  },
+  {
+    name: 'DynamicCordisRunAttempt',
+    declaration: 'export interface DynamicCordisRunAttempt {\n    pluginRunId: CordisDynamicPluginRunId;\n    packageId: CordisDynamicPackageId;\n    mode: CordisDynamicRunMode;\n    status: CordisRunStatus;\n    approvalRequestId?: ApprovalRequestId;\n    requiresApproval?: boolean;\n    host: CordisHalfState;\n    client: CordisHalfState;\n    error?: CordisRunDiagnostic;\n}',
+  },
+  {
+    name: 'DynamicCordisRunResolution',
+    declaration: 'export type DynamicCordisRunResolution = {\n    ok: true;\n    pluginRunId: CordisDynamicPluginRunId;\n    waitingFor?: readonly string[];\n} | {\n    ok: false;\n    reason: \'rejected\' | \'host-half-failed\' | \'client-half-failed\';\n    pluginRunId?: CordisDynamicPluginRunId;\n    startedHere?: boolean;\n    message?: string;\n    stack?: string;\n};',
+  },
+  {
+    name: 'DynamicCordisRunResponse',
+    declaration: 'export type DynamicCordisRunResponse = {\n    ok: true;\n    status: \'awaiting-approval\' | \'starting\' | \'running\';\n    pluginId: CordisDynamicPluginId;\n    packageId: CordisDynamicPackageId;\n    pluginRunId: CordisDynamicPluginRunId;\n    waitingFor: readonly string[];\n    clientWaitingFor?: readonly string[];\n    currentPackageId?: CordisDynamicPackageId;\n    nextPackageId?: CordisDynamicPackageId;\n    mode: CordisDynamicRunMode;\n} | {\n    ok: false;\n    reason: \'plugin-missing\' | \'package-missing\' | \'invalid-mode\' | \'transition-in-flight\' | \'host-half-failed\' | \'client-half-failed\' | \'rejected\' | \'cancelled\' | \'not-running\';\n    message: string;\n    stack?: string;\n};',
+  },
+  {
+    name: 'DynamicCordisSnapshotRow',
+    declaration: 'export interface DynamicCordisSnapshotRow {\n    pluginId: CordisDynamicPluginId;\n    currentPackageId?: CordisDynamicPackageId;\n    nextPackageId?: CordisDynamicPackageId;\n    packages: Array<{\n        packageId: CordisDynamicPackageId;\n        name: string;\n        purpose: string;\n        hasHostHalf: boolean;\n        hasClientHalf: boolean;\n    }>;\n    activeRun?: {\n        pluginRunId: CordisDynamicPluginRunId;\n        packageId: CordisDynamicPackageId;\n        fiber?: Fiber;\n        handlers: string[];\n        renderFailure?: DynamicCordisRenderFailure;\n    };\n    latestRun?: DynamicCordisRunAttempt;\n}',
+  },
+  {
+    name: 'DynamicCordisStopResponse',
+    declaration: 'export type DynamicCordisStopResponse = {\n    ok: true;\n} | {\n    ok: false;\n    reason: \'plugin-missing\' | \'not-running\';\n    message: string;\n};',
+  },
+  {
+    name: 'DynamicCordisUndefineReceipt',
+    declaration: 'export type DynamicCordisUndefineReceipt = {\n    ok: true;\n    wasRunning: boolean;\n} | {\n    ok: false;\n    reason: \'plugin-missing\';\n    message: string;\n};',
   },
   {
     name: 'EditGoalRequest',
@@ -2211,8 +2644,24 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface GoalView extends GoalSnapshot {\n    readonly roundsStarted: number;\n    readonly createdAt: number;\n    readonly updatedAt: number;\n    readonly activation: GoalActivation;\n}',
   },
   {
+    name: 'HostCordisInspectProviderRegistration',
+    declaration: 'export interface HostCordisInspectProviderRegistration {\n    manifest: CordisInspectProviderManifest;\n    query(method: string, input: JsonValue | undefined, context: HostCordisInspectQueryContext): Promise<JsonValue>;\n}',
+  },
+  {
+    name: 'HostCordisInspectQueryContext',
+    declaration: 'export interface HostCordisInspectQueryContext {\n    signal: AbortSignal;\n    agent: Agent;\n}',
+  },
+  {
+    name: 'ImageAttachmentRef',
+    declaration: 'export interface ImageAttachmentRef {\n    attachmentId: AttachmentId;\n    mediaType: ImageMediaType;\n    bytes: number;\n    width: number;\n    height: number;\n    name?: string;\n}',
+  },
+  {
     name: 'ImageBlock',
     declaration: 'export interface ImageBlock {\n    type: \'image\';\n    dataUrl: string;\n    mime?: string;\n}',
+  },
+  {
+    name: 'ImageMediaType',
+    declaration: 'export type ImageMediaType = \'image/png\' | \'image/jpeg\' | \'image/webp\' | \'image/gif\';',
   },
   {
     name: 'Inbox',
@@ -2391,6 +2840,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface PresetSpec {\n    sandbox: SandboxMode;\n    approval: ApprovalPolicy;\n    name?: string;\n    description?: string;\n}',
   },
   {
+    name: 'PresetTrust',
+    declaration: 'export type PresetTrust = \'system\' | \'user\';',
+  },
+  {
     name: 'ProjectionChangeListener',
     declaration: 'export type ProjectionChangeListener = (session: Session, key: Extract<keyof SessionProjectionMap, string>, value: unknown, seq: number) => void;',
   },
@@ -2420,7 +2873,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'PromptSection',
-    declaration: 'export interface PromptSection {\n    readonly name: string;\n    readonly order: number;\n    readonly text: string | ((context: AssembleContext) => string);\n}',
+    declaration: 'export interface PromptSection {\n    readonly name: string;\n    readonly order: number;\n    readonly complete?: boolean;\n    readonly text: string | ((context: AssembleContext) => string);\n}',
   },
   {
     name: 'ProviderRequestId',
@@ -2591,6 +3044,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SandboxPolicyRequest {\n    session?: Session;\n    mode?: SandboxMode;\n}',
   },
   {
+    name: 'SaveImageAttachment',
+    declaration: 'export interface SaveImageAttachment {\n    data: Uint8Array;\n    mediaType: ImageMediaType;\n    name?: string;\n}',
+  },
+  {
     name: 'SaveTextSpill',
     declaration: 'export interface SaveTextSpill {\n    owner: SpillOwner;\n    source: SpillSource;\n    suggestedName: string;\n    content: string;\n}',
   },
@@ -2696,7 +3153,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SessionHeader',
-    declaration: 'export interface SessionHeader {\n    readonly version: number;\n    readonly id: SessionId;\n    readonly createdAt: number;\n    readonly cwd?: string;\n    readonly parentSession?: SessionId;\n    readonly seedLength?: number;\n    readonly origin?: \'subagent\';\n    readonly delegationDepth?: number;\n}',
+    declaration: 'export interface SessionHeader {\n    readonly version: number;\n    readonly id: SessionId;\n    readonly createdAt: number;\n    readonly cwd?: string;\n    readonly parentSession?: SessionId;\n    readonly seedLength?: number;\n    readonly origin?: \'subagent\';\n    readonly delegationDepth?: number;\n    readonly agentPreset?: string;\n}',
   },
   {
     name: 'SessionId',
@@ -2933,6 +3390,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'StorageForms',
     declaration: 'export interface StorageForms {\n}',
+  },
+  {
+    name: 'StoredImageAttachment',
+    declaration: 'export interface StoredImageAttachment {\n    ref: ImageAttachmentRef;\n    data: Uint8Array;\n}',
   },
   {
     name: 'StreamChunk',

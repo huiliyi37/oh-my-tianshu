@@ -73,6 +73,9 @@
     },
     {
       "path": "../../hooks/hook-protocol"
+    },
+    {
+      "path": "../../preset/agent-presets"
     }
   ]
 }

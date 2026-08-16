@@ -162,6 +162,43 @@ export interface Config {
 
 来源：[`packages/core/agent-loop/src/index.ts:236`](../packages/core/agent-loop/src/index.ts)
 
+## `@huiliyi37/dsh-agent-presets`
+
+需要：`loader`
+
+```ts config-catalog
+/** Plugin config: which preset is the default, and where presets live. */
+export interface Config {
+  /** Preset id mounted when a caller names none. Missing at mount time fails loud. */
+  default: string
+  /** Scanned roots in precedence order; an earlier root wins a duplicate id. */
+  roots: PresetRoot[]
+  /**
+   * Append the harness home's `USER_PRESET_DIR` as a `user` root, after every
+   * configured root. False mounts a roster over `roots` alone.
+   */
+  includeUserRoot: boolean
+}
+
+/** One directory scanned for preset subdirectories. */
+export interface PresetRoot {
+  /** Directory holding one subdirectory per preset; a leading `~` expands. */
+  path: string
+  /** Trust recorded on every preset discovered under this root. */
+  trust: PresetTrust
+}
+
+/**
+ * Where a preset's composition came from. A `system` preset ships with the
+ * deployment; a `user` preset was authored locally, by a person or by an
+ * agent, and therefore carries the same trust as shell access.
+ */
+export type PresetTrust = 'system' | 'user'
+```
+
+来源：[`packages/preset/agent-presets/src/preset.ts:52`](../packages/preset/agent-presets/src/preset.ts)
+
+
 ## `@huiliyi37/dsh-agent-router`
 
 ```ts config-catalog
@@ -261,6 +298,27 @@ export interface GoalConfig {
 依赖：[`AgentLoopConfig`](#huiliyi37dsh-agent-loop) · [`GoalDomainConfig`](#huiliyi37dsh-goal) · [`InvariantConfig`](#huiliyi37dsh-invariants) · [`SessionTitleConfig`](#huiliyi37dsh-session-title) · [`SkillLocal`](../packages/skill/skill-local/src/index.ts) · [`SkillRegistryConfig`](#huiliyi37dsh-skill) · [`SystemPromptConfig`](#huiliyi37dsh-system-prompt) · [`toolBash`](../packages/bash/tool-bash/src/index.ts) · [`toolGoal`](../packages/goal/tool-goal/src/index.ts) · [`ToolsConfig`](#huiliyi37dsh-tools) · [`toolSkill`](../packages/skill/tool-skill/src/index.ts) · [`toolTasks`](../packages/tasks/tool-tasks/src/index.ts) · [`workspaceContext`](../packages/context/workspace-context/src/index.ts)
 
 来源：[`packages/examples/agent-spine-demo/src/index.ts:90`](../packages/examples/agent-spine-demo/src/index.ts)
+
+## `@huiliyi37/dsh-attachment-local`
+
+```ts config-catalog
+/** Local attachment backend configuration. */
+export interface Config {
+  /** Explicit harness home; omitted follows `DSH_HOME`, then `~/.dsh`. */
+  dshHome?: string
+  /** Maximum encoded bytes accepted for one image. */
+  maxImageBytes?: number
+  /** Maximum image count accepted in one submitted message. */
+  maxImagesPerMessage?: number
+  /** Maximum aggregate encoded image bytes accepted in one submitted message. */
+  maxMessageImageBytes?: number
+  /** Maximum intrinsic width multiplied by height accepted for one image. */
+  maxImagePixels?: number
+}
+```
+
+来源：[`packages/attachment/attachment-local/src/index.ts:24`](../packages/attachment/attachment-local/src/index.ts)
+
 
 ## `@huiliyi37/dsh-bash-env`
 
@@ -448,6 +506,21 @@ export interface ToolResultPruneConfig {
 ```
 
 来源：[`packages/compact/compact-tool-result-prune/src/types.ts:4`](../packages/compact/compact-tool-result-prune/src/types.ts)
+
+## `@huiliyi37/dsh-cordis-host-runner`
+
+需要：`tools`
+
+```ts config-catalog
+/** Runner configuration. */
+export interface Config {
+  /** Maximum synchronous VM evaluation time in milliseconds. */
+  vmTimeoutMs?: number
+}
+```
+
+来源：[`packages/self-modification/cordis-host-runner/src/index.ts:88`](../packages/self-modification/cordis-host-runner/src/index.ts)
+
 
 ## `@huiliyi37/dsh-credentials-local`
 
@@ -685,7 +758,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/host/webserver/src/index.ts:45`](../packages/host/webserver/src/index.ts)
+来源：[`packages/host/webserver/src/index.ts:47`](../packages/host/webserver/src/index.ts)
 
 ## `@huiliyi37/dsh-invariants`
 
@@ -1160,6 +1233,29 @@ export interface PresetSpec {
 
 来源：[`packages/interaction/permission/src/index.ts:140`](../packages/interaction/permission/src/index.ts)
 
+## `@huiliyi37/dsh-persona`
+
+需要：`systemPrompt`
+
+```ts config-catalog
+/** Plugin config: the persona text this composition contributes. */
+export interface Config {
+  /**
+   * Persona prose rendered as the `deployment:persona` section. A template:
+   * complete `{{…}}` groups interpolate strictly against registered prompt
+   * variables. Empty text drops the section at render, matching the registry.
+   */
+  text: string
+  /** Make this persona the complete system prompt, suppressing every other section. */
+  complete?: boolean
+  /** Suppress dynamic runtime-context snapshots for this persona's agent scope. */
+  includeRuntimeContext?: boolean
+}
+```
+
+来源：[`packages/preset/persona/src/index.ts:34`](../packages/preset/persona/src/index.ts)
+
+
 ## `@huiliyi37/dsh-plan-mode`
 
 需要：`tools` · `systemPrompt`
@@ -1254,6 +1350,27 @@ export interface Config {
 ```
 
 来源：[`packages/bash/pwsh-local/src/index.ts:54`](../packages/bash/pwsh-local/src/index.ts)
+
+## `@huiliyi37/dsh-pwsh-sandbox`
+
+需要：`subprocess` · `sandbox` · `sandboxPolicy`
+
+```ts config-catalog
+/**
+ * Plugin config: the local executor's knobs, verbatim. The sandbox policy —
+ * the default mode and fallback `workspace-write` root — is NOT here: it lives
+ * on `ctx.sandboxPolicy` (`@huiliyi37/dsh-sandbox-policy`), which resolves
+ * each calling session's mode and cwd for every enforcing capability. The
+ * runner choice is likewise the `ctx.sandbox` provider's config, not this
+ * executor's.
+ */
+export type Config = LocalConfig
+```
+
+依赖：[`LocalConfig`](#huiliyi37dsh-pwsh-local)
+
+来源：[`packages/bash/pwsh-sandbox/src/index.ts:40`](../packages/bash/pwsh-sandbox/src/index.ts)
+
 
 ## `@huiliyi37/dsh-repeat-tool-guard`
 
@@ -1984,7 +2101,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/core/system-prompt/src/index.ts:166`](../packages/core/system-prompt/src/index.ts)
+来源：[`packages/core/system-prompt/src/index.ts:179`](../packages/core/system-prompt/src/index.ts)
 
 ## `@huiliyi37/dsh-time-context`
 
@@ -2283,14 +2400,14 @@ export interface Config {
   root?: string
   /** Max source files indexed in one pass. */
   maxFiles?: number
-  /** `isStale()` verdict cache window (ms). */
+  /** Staleness-verdict cache window (ms) reused by each refresh. */
   staleTtlMs?: number
   /** Cooperative tool-call timeout budget (ms). */
   timeoutMs?: number
 }
 ```
 
-来源：[`packages/search/tool-semantic-search/src/index.ts:32`](../packages/search/tool-semantic-search/src/index.ts)
+来源：[`packages/search/tool-semantic-search/src/index.ts:36`](../packages/search/tool-semantic-search/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-session-query`
 
@@ -2320,7 +2437,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/skill/tool-skill/src/index.ts:61`](../packages/skill/tool-skill/src/index.ts)
+来源：[`packages/skill/tool-skill/src/index.ts:62`](../packages/skill/tool-skill/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-str-replace-editor`
 
@@ -2412,7 +2529,7 @@ export interface Config {
 
 依赖：[`AgentOptions`](subsystems/core.md)
 
-来源：[`packages/subagent/tool-subagent/src/index.ts:40`](../packages/subagent/tool-subagent/src/index.ts)
+来源：[`packages/subagent/tool-subagent/src/index.ts:41`](../packages/subagent/tool-subagent/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-subagent-report`
 
@@ -2629,7 +2746,7 @@ export type KeyName =
 
 依赖：`ReadStream`（`node:tty`）· [`SessionId`](subsystems/core.md) · `WriteStream`（`node:tty`）
 
-来源：[`packages/tui/tui/src/index.ts:22`](../packages/tui/tui/src/index.ts)
+来源：[`packages/tui/tui/src/index.ts:23`](../packages/tui/tui/src/index.ts)
 
 ## `@huiliyi37/dsh-typert-loader`
 
@@ -2773,7 +2890,7 @@ export interface WebServiceConfig {
 ```ts config-catalog
 /** Plugin config: the surface facts the launcher patches over this bundle's defaults. */
 export interface Config {
-  /** Whether this process mounted the client-plugin HMR receiver (`oh-my-tianshu web --dev`). */
+  /** Whether this process mounted the client-plugin HMR receiver (`tianshu web --dev`). */
   mode: WebMode
   /** Print the URL line on activation; a headless layer over this bundle turns it off. */
   printUrl: boolean
@@ -2963,6 +3080,7 @@ export interface Config {
 - `@huiliyi37/dsh-client-ui-conversation`（[`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts)）
 - `@huiliyi37/dsh-client-ui-deliverables`（[`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts)）
 - `@huiliyi37/dsh-client-ui-goal`（[`packages/client/ui-goal/src/index.ts`](../packages/client/ui-goal/src/index.ts)）
+- `@huiliyi37/dsh-client-ui-input-trigger`（[`packages/client/ui-input-trigger/src/index.ts`](../packages/client/ui-input-trigger/src/index.ts)）
 - `@huiliyi37/dsh-client-ui-layout`（[`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts)）
 - `@huiliyi37/dsh-client-ui-model`（[`packages/client/ui-model/src/index.ts`](../packages/client/ui-model/src/index.ts)）
 - `@huiliyi37/dsh-client-ui-models`（[`packages/client/ui-models/src/index.ts`](../packages/client/ui-models/src/index.ts)）
@@ -2983,6 +3101,7 @@ export interface Config {
 - `@huiliyi37/dsh-command-feedback` — 需要 `commands`（[`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts)）
 - `@huiliyi37/dsh-command-goal` — 需要 `commands` · `goals`（[`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts)）
 - `@huiliyi37/dsh-commands`（[`packages/interaction/commands/src/index.ts`](../packages/interaction/commands/src/index.ts)）
+- `@huiliyi37/dsh-cordis-client-runner`（[`packages/self-modification/cordis-client-runner/src/index.ts`](../packages/self-modification/cordis-client-runner/src/index.ts)）
 - `@huiliyi37/dsh-fs-e2b` — 需要 `e2b`（[`packages/e2b/fs-e2b/src/index.ts`](../packages/e2b/fs-e2b/src/index.ts)）
 - `@huiliyi37/dsh-fs-policy`（[`packages/fs/fs-policy/src/index.ts`](../packages/fs/fs-policy/src/index.ts)）
 - `@huiliyi37/dsh-goal-session` — 需要 `agents` · `goals` · `sessions`（[`packages/goal/goal-session/src/index.ts`](../packages/goal/goal-session/src/index.ts)）
@@ -2991,6 +3110,7 @@ export interface Config {
 - `@huiliyi37/dsh-llm`（[`packages/llm/llm/src/index.ts`](../packages/llm/llm/src/index.ts)）
 - `@huiliyi37/dsh-lsp`（[`packages/lsp/lsp/src/index.ts`](../packages/lsp/lsp/src/index.ts)）
 - `@huiliyi37/dsh-pty`（[`packages/pty/pty/src/index.ts`](../packages/pty/pty/src/index.ts)）
+- `@huiliyi37/dsh-schedule` — 需要 `agents` · `sessions` · `tools` · `sessionPersistence`（[`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts)）
 - `@huiliyi37/dsh-session`（[`packages/core/session/src/index.ts`](../packages/core/session/src/index.ts)）
 - `@huiliyi37/dsh-session-checkpoint-policy` — 需要 `llm` · `sessionPersistence` · `sessions` · `tools`（[`packages/session/session-checkpoint-policy/src/index.ts`](../packages/session/session-checkpoint-policy/src/index.ts)）
 - `@huiliyi37/dsh-session-projection`（[`packages/session/session-projection/src/index.ts`](../packages/session/session-projection/src/index.ts)）
@@ -3002,6 +3122,7 @@ export interface Config {
 - `@huiliyi37/dsh-timeout-policy` — 需要 `tools`（[`packages/guard/timeout-policy/src/index.ts`](../packages/guard/timeout-policy/src/index.ts)）
 - `@huiliyi37/dsh-tool-ask-user` — 需要 `tools` · `userInteraction`（[`packages/interaction/tool-ask-user/src/index.ts`](../packages/interaction/tool-ask-user/src/index.ts)）
 - `@huiliyi37/dsh-tool-subagent-control` — 需要 `tools` · `subagents`（[`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.ts)）
+- `@huiliyi37/dsh-ui-cordis`（[`packages/self-modification/ui-cordis/src/index.ts`](../packages/self-modification/ui-cordis/src/index.ts)）
 - `@huiliyi37/dsh-user-interaction`（[`packages/interaction/user-interaction/src/index.ts`](../packages/interaction/user-interaction/src/index.ts)）
 - `@huiliyi37/dsh-workspace` — 需要 `storageDomain` · `sessionPersistence`（[`packages/workspace/workspace/src/index.ts`](../packages/workspace/workspace/src/index.ts)）
 
@@ -3009,6 +3130,7 @@ export interface Config {
 
 抽象服务类——部署时应改为加载具体的实现包（参见[能力 seam](../.agents/notes/implemented/architecture/2026-06-13-capability-seams.md)）。
 
+- `@huiliyi37/dsh-attachment` — 抽象 `AttachmentStore`（[`packages/attachment/attachment/src/index.ts`](../packages/attachment/attachment/src/index.ts)）
 - `@huiliyi37/dsh-bash` — 抽象 `BashExecutor`（[`packages/bash/bash/src/index.ts`](../packages/bash/bash/src/index.ts)）
 - `@huiliyi37/dsh-code-runtime` — 抽象 `CodeRuntime`（[`packages/code-runtime/code-runtime/src/index.ts`](../packages/code-runtime/code-runtime/src/index.ts)）
 - `@huiliyi37/dsh-compact` — 抽象 `CompactService`（[`packages/compact/compact/src/index.ts`](../packages/compact/compact/src/index.ts)）
@@ -3029,6 +3151,7 @@ export interface Config {
 
 - `@huiliyi37/dsh-acp-snapshot`（[`packages/support/acp-snapshot/src/index.ts`](../packages/support/acp-snapshot/src/index.ts)）
 - `@huiliyi37/dsh-agent-loop-testkit`（[`packages/support/agent-loop-testkit/src/index.ts`](../packages/support/agent-loop-testkit/src/index.ts)）
+- `@huiliyi37/dsh-anonymous-user-id`（[`packages/identity/anonymous-user-id/src/index.ts`](../packages/identity/anonymous-user-id/src/index.ts)）
 - `@huiliyi37/dsh-app-boot`（[`packages/boot/app-boot/src/index.ts`](../packages/boot/app-boot/src/index.ts)）
 - `@huiliyi37/dsh-atomic-write`（[`packages/util/atomic-write/src/index.ts`](../packages/util/atomic-write/src/index.ts)）
 - `@huiliyi37/dsh-base`（[`packages/bundle/base/src/index.ts`](../packages/bundle/base/src/index.ts)）

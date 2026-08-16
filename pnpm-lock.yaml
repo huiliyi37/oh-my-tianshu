@@ -7294,6 +7294,9 @@ importers:
       '@huiliyi37/dsh-agent-default-model':
         specifier: workspace:^
         version: link:../../core/agent-default-model
+      '@huiliyi37/dsh-agent-presets':
+        specifier: workspace:^
+        version: link:../../preset/agent-presets
       '@huiliyi37/dsh-invariants':
         specifier: workspace:^
         version: link:../../support/invariants

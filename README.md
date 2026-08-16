@@ -25,26 +25,17 @@ npm i -g @huiliyi37/oh-my-tianshu
 oh-my-tianshu tui
 ```
 
-npm 11 and newer blocks lifecycle scripts it has not been told to allow
-(`allowScripts`). The native dependencies need theirs — `koffi` compiles from
-source, `node-pty` builds its PTY binary, `@huiliyi37/dsh-subprocess-local`
-restores the PTY spawn-helper's executable bit, and `@google/genai` /
-`protobufjs` generate runtime assets — so allow them on the global install:
+npm 11 and newer blocks lifecycle scripts it has not been told to allow (`allowScripts`). The native dependencies need theirs — `koffi` compiles from source, `node-pty` builds its PTY binary, `@huiliyi37/dsh-subprocess-local` restores the PTY spawn-helper's executable bit, and `@google/genai` / `protobufjs` generate runtime assets — so allow them on the global install:
 
 ```sh
 npm i -g --allow-scripts=koffi,node-pty,@huiliyi37/dsh-subprocess-local,@google/genai,protobufjs @huiliyi37/oh-my-tianshu
 ```
 
-If npm still warns about a package not on this list, append it and re-run; a
-silently skipped native build surfaces later as `Cannot find module` at
-runtime.
+If npm still warns about a package not on this list, append it and re-run; a silently skipped native build surfaces later as `Cannot find module` at runtime.
 
 #### Android (Termux)
 
-On Termux (or a `proot-distro` root) `process.platform` is `android`, the
-`koffi` FFI dependency has no Android prebuilt and compiles from source, and
-its CMake configure needs the Termux prefix — which a `proot-distro` root may
-not export. Set it before installing:
+On Termux (or a `proot-distro` root) `process.platform` is `android`, the `koffi` FFI dependency has no Android prebuilt and compiles from source, and its CMake configure needs the Termux prefix — which a `proot-distro` root may not export. Set it before installing:
 
 ```sh
 export PREFIX=/data/data/com.termux/files/usr
@@ -258,15 +249,9 @@ This project forked from DeepSeek Harness (MIT) at the 2026-08 baseline and evol
 | Official `dsh` + [`dsh-tianshu-tui`](https://github.com/huiliyi37/dsh-tianshu-tui) (plugin) | A TUI plugin for the official DeepSeek Harness, installed into an official profile | `~/.dsh` (fixed by the official CLI) |
 | This repo (oh-my-tianshu, formerly tianshu-public) | A standalone integrated distribution with its own CLI (`oh-my-tianshu`) | A dedicated `$DSH_HOME` (default-home isolation planned; will no longer default to `~/.dsh`) |
 
-- This repo fully honors `$DSH_HOME` (precedence: explicit config > `$DSH_HOME` > default home).
-  When coexisting with the official dsh, set `export DSH_HOME=~/.dsh-tianshu` (no manual setup
-  needed once the default-home isolation lands). Sessions / profiles / settings stay separate.
-- **Naming memo (avoid confusion)**: `dsh-tianshu-tui` = the TUI plugin for official dsh;
-  `oh-my-tianshu` / `@huiliyi37/oh-my-tianshu` = the standalone integrated distribution;
-  `Tianshu-Tui` = the upstream render-core source (Apache-2.0).
-- **Renaming plan (phase 2)**: the repo will be uniformly named `oh-my-tianshu`, and the
-  launch command plus npm package name will follow (`oh-my-tianshu` → new command name) to eliminate
-  semantic confusion with the plugin name `dsh-tianshu-tui`; this section will be updated then.
+- This repo fully honors `$DSH_HOME` (precedence: explicit config > `$DSH_HOME` > default home). When coexisting with the official dsh, set `export DSH_HOME=~/.dsh-tianshu` (no manual setup needed once the default-home isolation lands). Sessions / profiles / settings stay separate.
+- **Naming memo (avoid confusion)**: `dsh-tianshu-tui` = the TUI plugin for official dsh; `oh-my-tianshu` / `@huiliyi37/oh-my-tianshu` = the standalone integrated distribution; `Tianshu-Tui` = the upstream render-core source (Apache-2.0).
+- **Renaming plan (phase 2)**: the repo will be uniformly named `oh-my-tianshu`, and the launch command plus npm package name will follow (`oh-my-tianshu` → new command name) to eliminate semantic confusion with the plugin name `dsh-tianshu-tui`; this section will be updated then.
 
 ## Development
 

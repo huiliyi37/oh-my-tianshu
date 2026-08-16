@@ -24,19 +24,12 @@ import { listSessions, loadHistory } from '../adapter/sessions.js'
 import { sessionTitleFor } from '../adapter/session-title.js'
 import { collectDoctorReport, getDoctorFixGuidance } from '../format/doctor-report.js'
 
-// agent-preset/selected 事件由 host 的 dsh-agent-presets 声明扩展（官方同款
-// declare module）；插件本地声明同型合并——host 包进入依赖后 interface 合并
-// 且属性类型一致（{ agentPreset: string }），无冲突。此扩展使
-// Session.append('agent-preset/selected', ...) 获得完整类型检查。
-declare module '@huiliyi37/dsh-session/types' {
-  interface SessionEventMap {
-    /**
-     * 用户经 `/preset` 选定 agent 预设的事实记录。载荷 `agentPreset` 是选中的预设名;
-     * log-only,只供投影与审计回放,不进模型派生历史。
-     */
-    'agent-preset/selected': { agentPreset: string }
-  }
-}
+// agent-preset/selected 会话事件由 dsh-agent-presets 声明扩展（persistence
+// catalog 门禁要求全仓单一声明）；此处仅以 type-only 引用把该合并引入本包
+// 编译面,使 Session.append('agent-preset/selected', ...) 获得完整类型检查。
+// /preset 的运行时服务面仍走 ctx.reflect.get('agentPresets') 最小接口,
+// 不引入 dsh-agent-presets 运行时依赖。
+import type {} from '@huiliyi37/dsh-agent-presets'
 
 /**
  * Slash 命令执行上下文——TuiApp 在分发时注入。
