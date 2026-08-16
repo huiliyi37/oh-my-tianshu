@@ -350,6 +350,28 @@ const LIVE_RESERVED_ROWS = 4
  *  比 Ctrl+C 双击退出的 2s 短——rewind 是高频操作，双击节奏更跟手。 */
 const REWIND_DOUBLE_ESC_MS = 1000
 
+/** A3：`oh-my-tianshu tui --help` 输出的用法文本（port of dsh-tianshu-tui#21）。 */
+const USAGE_TEXT = `oh-my-tianshu tui — oh-my-tianshu 交互式终端界面 / interactive terminal UI
+
+用法 / Usage:
+  oh-my-tianshu tui                   启动交互式 TUI / start the interactive TUI
+  oh-my-tianshu tui "<提示词>"        启动并直接发送提示词 / start and send a prompt
+  oh-my-tianshu tui --help            显示本帮助 / show this help
+  oh-my-tianshu tui --version         输出版本 / print the version
+
+快捷键 / Keys: ctrl+n 新会话 · ctrl+s 恢复 · ctrl+p 命令面板 · / slash 命令 · ctrl+o 展开推理 · shift+tab 模式循环
+`
+
+/** 读取 tui 包自身版本（packages/tui/tui/package.json），供 --version 输出。 */
+function readOwnVersion(anchorUrl: string): string | undefined {
+  try {
+    const { version } = JSON.parse(readFileSync(fileURLToPath(new URL('../../package.json', anchorUrl)), 'utf8')) as { version?: unknown }
+    return typeof version === 'string' ? version : undefined
+  } catch {
+    return undefined
+  }
+}
+
 /** C3 项 3：写工具名判定（与 fs-snapshot 的 trackEdit 钩子同一集合）。 */
 function isWriteToolCall(name: string): boolean {
   return name === 'write' || name === 'edit' || name === 'str_replace_editor'
@@ -969,6 +991,25 @@ export class TuiApp {
    */
   async attach(initialSessionId?: SessionId): Promise<void> {
     if (this.disposed) throw new Error('TuiApp already disposed')
+    // A3：处理 launcher 转发的命令行参数（`oh-my-tianshu tui <args>`）：
+    // --help/-h 输出用法、--version/-v 输出版本后经 appExit 退出；纯位置参数
+    // 作为初始 prompt（attach 完成后发送）。含其它 flag 时不发 prompt（避免
+    // 与 --resume 等未实现参数的组合语义冲突）。port of dsh-tianshu-tui#21。
+    const cmdline = this.ctx.reflect.get('cmdlineArgs', false) as { get(): string[] } | undefined
+    const args = cmdline?.get() ?? []
+    const flags = args.filter(a => a.startsWith('-'))
+    const wantHelp = flags.includes('--help') || flags.includes('-h')
+    const wantVersion = flags.includes('--version') || flags.includes('-v')
+    const initialPrompt = flags.length === 0 ? args.filter(a => !a.startsWith('-')).join(' ') : ''
+    if (wantHelp || wantVersion) {
+      const exit = this.ctx.reflect.get('appExit', false) as ((code?: number) => void) | undefined
+      this.stdout.write(wantHelp
+        ? USAGE_TEXT
+        : `oh-my-tianshu tui ${readOwnVersion(fileURLToPath(new URL('.', import.meta.url))) ?? 'unknown'}\n`)
+      if (exit !== undefined) { exit(0); return }
+      // 无 appExit（测试/裸装配）：保持 fail loud，由调用方 dispose 收尾。
+      throw new Error('[tui-runner] --help/--version requested but no appExit service provided')
+    }
     // bracketed paste：粘贴的多行文本被终端包裹为整段（行尾 CR 不再逐行触发
     // Enter 提交）；onPaste 处理器把整段插入输入行（超阈值折叠为标记）。
     this.stdout.write(ANSI.BRACKETED_PASTE_ON)
@@ -1064,6 +1105,10 @@ export class TuiApp {
       })
     }
     this.flushLiveRender()
+    // A3：纯位置参数作为初始 prompt（`oh-my-tianshu tui "修复这个 bug"`）。
+    if (initialPrompt !== '') {
+      this.handleSubmit(initialPrompt)
+    }
   }
 
   /** T3.1：结构化提问 answerer——薄转发 QuestionController（渲染/ESC/重绘由控制器回调承担）。 */

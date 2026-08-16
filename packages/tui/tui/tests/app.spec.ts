@@ -6187,3 +6187,47 @@ describe('TuiApp 首帧渲染等待 settings/credentials 服务（A1/A2）', () 
   })
 })
 
+
+describe('TuiApp cmdline 参数处理（A3）', () => {
+  it('--help 输出用法并经 appExit(0) 退出，不进入交互', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('arg-help')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const exit = vi.fn()
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'cmdlineArgs') return { get: () => ['--help'] }
+      if (name === 'appExit') return exit
+      return undefined
+    })
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('oh-my-tianshu tui')
+    expect(exit).toHaveBeenCalledWith(0)
+    // 未进入交互：没有创建会话/订阅（attach 提前返回）
+    expect(ctx.agents.create).not.toHaveBeenCalled()
+    await app.dispose()
+  })
+
+  it('纯位置参数作为初始 prompt 发送', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('arg-prompt')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'cmdlineArgs') return { get: () => ['修复这个', 'bug'] }
+      return undefined
+    })
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    expect(firstCallText(agent.followup)).toBe('修复这个 bug')
+    await app.dispose()
+  })
+})

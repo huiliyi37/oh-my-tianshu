@@ -69,6 +69,8 @@ interface TuiInvocation {
   mode: 'tui'
   /** Extra patch-list overlays applied after the profile's own layer, in argv order. */
   patches: string[]
+  /** Inner arguments forwarded to the booted TUI app (--help/--version or an initial prompt). */
+  args: string[]
 }
 
 /** Migrate the old default home (`~/.dsh`) to the isolated default (`~/.dsh-tianshu`). */
@@ -240,12 +242,24 @@ Examples:
 
   const tui = program.command('tui').description('boot the terminal UI profile (alias of --profile tui)')
   tui
+    // --help/--version belong to the TUI app (port of dsh-tianshu-tui#21):
+    // capture them as explicit options and forward them inside the inner args,
+    // alongside positional arguments (the initial prompt).
+    .helpOption(false)
+    .option('--help', 'show the TUI usage (forwarded to the TUI app)')
+    .option('-h', 'alias of --help')
+    .option('--version', 'print the TUI version (forwarded to the TUI app)')
+    .option('-v', 'alias of --version')
     .option('--patch <path>', 'extra patch-list overlay applied after the profile layer (repeatable)', collect)
-    .action((options: { patch?: string[] }) => {
+    .argument('[args...]', 'arguments for the booted TUI app (--help/--version or an initial prompt)')
+    .action((args: string[], options: { patch?: string[]; help?: boolean; h?: boolean; version?: boolean; v?: boolean }) => {
       rejectParentOptions('tui')
       const patches = options.patch ?? []
       if (patches.includes('')) program.error('error: --patch needs a path')
-      resolved = { mode: 'tui', patches }
+      const tuiFlags: string[] = []
+      if (options.help || options.h) tuiFlags.push('--help')
+      if (options.version || options.v) tuiFlags.push('--version')
+      resolved = { mode: 'tui', patches, args: [...tuiFlags, ...args] }
     })
 
   const migrateHome = program.command('migrate-home').description('copy the legacy default home (~/.dsh) to the isolated default (~/.dsh-tianshu); the old home is kept')

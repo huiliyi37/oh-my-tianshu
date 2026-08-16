@@ -65,10 +65,13 @@ describe('parseDshArgs', () => {
   })
 
   it('routes the tui command as the tui profile alias', () => {
-    expect(parse(['tui'])).toEqual({ mode: 'tui', patches: [] })
-    expect(parse(['tui', '--patch', 'x.yml'])).toEqual({ mode: 'tui', patches: ['x.yml'] })
+    expect(parse(['tui'])).toEqual({ mode: 'tui', patches: [], args: [] })
+    expect(parse(['tui', '--patch', 'x.yml'])).toEqual({ mode: 'tui', patches: ['x.yml'], args: [] })
     expect(parse(['tui', '--patch', 'a.yml', '--patch', 'b.yml']))
-      .toEqual({ mode: 'tui', patches: ['a.yml', 'b.yml'] })
+      .toEqual({ mode: 'tui', patches: ['a.yml', 'b.yml'], args: [] })
+    // port of dsh-tianshu-tui#21: inner args (--help/--version/initial prompt) are forwarded
+    expect(parse(['tui', '--help'])).toEqual({ mode: 'tui', patches: [], args: ['--help'] })
+    expect(parse(['tui', '修复这个', 'bug'])).toEqual({ mode: 'tui', patches: [], args: ['修复这个', 'bug'] })
   })
 
   it('rejects missing profile, removed flags, and contradictory inputs', () => {
