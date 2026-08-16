@@ -57,7 +57,7 @@ Claude Code 始终导出 `CLAUDE_PROJECT_DIR`，常见的未修改钩子引用 `
 
 ## 推迟的兼容性缺口
 
-- **工具输入重写。** CC/Codex 的 `updatedInput` 被记录日志并发出警告，但不予执行——输入重写是一个推迟的一致性设计问题（见 [pre-tool-input-rewrite Agent Note](../../proposed/feature/2026-06-30-pre-tool-input-rewrite.md)），因为 pre-execution 参数被 `tool/call` 审计、`assistant/message` 历史和工具展示共同读取，诚实的重写是一个设计单元，而非一个字段。
+- **工具输入重写。** CC/Codex 的 `updatedInput` 对 loop 派发的调用经 pre-commit 相位生效（见 [pre-tool-input-rewrite Agent Note](2026-06-30-pre-tool-input-rewrite.md)）：历史、`tool/call` 审计（原始入参入 sidecar）、展示与执行四者同带生效入参；绕过 loop 相位的调用保留降级警告。
 - **Stop 循环防护**（`TODO(stop-loop-guard)`）。Claude Code 提供 `stop_hook_active` 并在连续八次阻塞后覆盖钩子；Codex 提供 `stop_hook_active` 但未记录等效上限。两个桥接始终报告 `false`，因此一个无条件阻塞的 Stop 钩子会在每一步强制继续——在状态追踪落地之前，钩子作者必须自行限制。
 - **钩子 `continue:false`（硬停止）。** 钩子可以请求终止整个运行（CC/Codex `continue:false`）；共享合并将其折叠为 `MergedHookOutcome.stop`/`stopReason`，但没有桥接对其采取行动（`TODO(hook-continue-false)`）——拦截点尚无「硬停止 agent」原语（Decision 阻塞/引导的是单个点，而非整个运行）。与循环防护工作一同推迟；轮中请求会将停止请求记录在 `hook/result` 中，钩子在此期间保留其逐点效果（决策/上下文）。
 - **配置发现。** 路径在 `cordis.yml` 中显式指定且为进程级（见上文）；完整的多层 CC/Codex 优先级遍历、按会话的项目本地发现以及信任/hash 模型未被重新实现（`TODO(per-session-hook-config)`）。

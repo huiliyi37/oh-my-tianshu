@@ -97,4 +97,16 @@ describe('mergeHookOutputs — reasons, stop, context, systemMessages accumulate
     expect(m.additionalContext).toEqual(['ctx-A', 'ctx-B'])
     expect(m.systemMessages).toEqual(['warn-A', 'warn-B'])
   })
+
+  it('folds updatedInput as last-in-declaration-order wins, wholesale', () => {
+    const m = mergeHookOutputs([
+      out({ updatedInput: { command: 'first', extra: 1 } }),
+      out({ decision: 'allow' }),
+      out({ updatedInput: { command: 'second' } }),
+    ])
+    expect(m.updatedInput).toEqual({ command: 'second' })
+
+    const none = mergeHookOutputs([out({ decision: 'allow' })])
+    expect('updatedInput' in none).toBe(false)
+  })
 })

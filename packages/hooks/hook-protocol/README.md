@@ -41,4 +41,4 @@ No direct invalidation; the named consumer owns any request-prefix changes.
 
 ## Known Limitations and Deferred Work
 
-- **`HookOutput.updatedInput` is parsed but not honored** — input rewrite is a deferred consistency-design problem ([the pre-tool-input-rewrite Agent Note](../../../.agents/notes/proposed/feature/2026-06-30-pre-tool-input-rewrite.md)); a bridge logs + warns when a hook sets it. See `src/types.ts` for the full contracts.
+- **`HookOutput.updatedInput` is honored for loop-dispatched calls** — the rewrite resolves at the loop pre-commit phase, so history, audit, presentation, and execution all carry the effective arguments ([the pre-tool-input-rewrite Agent Note](../../../.agents/notes/implemented/feature/2026-06-30-pre-tool-input-rewrite.md)); a bridge warns when a hook sets it on a call outside that phase. See `src/types.ts` for the full contracts.

@@ -1211,6 +1211,10 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         jsDoc: '/**\n * Project visible definitions onto the allowlisted model-facing schema fields,\n * excluding execution and presentation callbacks.\n * @param scope - the viewing scope (the agent); omitted = the global view.\n * @returns one deep-cloned schema per visible tool.\n */',
       },
       {
+        signature: 'validateArguments(name: string, args: unknown, scope?: ScopeKey): string[] | undefined',
+        jsDoc: '/**\n * Validate candidate arguments against a visible tool\'s declared parameter\n * schema without executing it — the pre-commit rewrite phase\'s legality\n * check, so a hook\'s `updatedInput` lands in the audit only when the tool\n * would accept it.\n * @param name - the tool name as registered.\n * @param args - candidate arguments, however malformed.\n * @param scope - the viewing scope; the tool must be visible there.\n * @returns path-qualified violations (empty = valid), or `undefined` when no such tool is visible.\n */',
+      },
+      {
         signature: 'executionMode(exec: ToolExecutionInput): ToolExecutionMode',
         jsDoc: '/**\n * Classify a pending call through the caller\'s visible tool definition. Only\n * an exact `true` is parallel; unknown, hidden, undeclared, invalid, or\n * throwing classifiers are exclusive.\n * @param exec - call name, parsed arguments, and optional agent scope.\n * @returns the fail-closed scheduling mode.\n */',
       },
@@ -1399,6 +1403,13 @@ export const EVENT_API: readonly EventApiEntry[] = [
     signature: '\'agent/pre-step\'(this: Scoped<Agent>, payload: { agent: Agent; messages: UserMessage[]; turn: number; step: number; signal: AbortSignal }, next: () => Promise<PreStepDecision>): Promise<PreStepDecision>',
     jsDoc: '/**\n * Reject a proposed step or replace the messages that enter it. Calling\n * `next()` preserves the current messages.\n * @param payload.agent - the agent proposing the step.\n * @param payload.messages - messages removed from the inbox for this step.\n * @param payload.turn - the turn that will own the step.\n * @param payload.step - the step proposed by the loop.\n * @param payload.signal - the current turn\'s cancellation signal.\n * Scope-filtered dispatch (`@huiliyi37/dsh-scope`): agent-scoped listeners receive only that agent.\n * @mode waterfall\n */',
     summary: 'Reject a proposed step or replace the messages that enter it.',
+  },
+  {
+    name: 'agent/pre-tool-commit',
+    mode: 'waterfall',
+    signature: '\'agent/pre-tool-commit\'(this: Scoped<Agent>, payload: { agent: Agent; calls: PreCommitToolCall[]; turn: number; step: number; signal: AbortSignal }, next: () => Promise<PreToolCommitDecision>): Promise<PreToolCommitDecision>',
+    jsDoc: '/**\n * Rewrite one response\'s tool calls before anything durable is committed.\n * Fired by the loop after the assistant message is assembled and BEFORE it\n * is appended: the message, the `tool/call` audit, and the execution all\n * carry the effective (possibly rewritten) arguments, so derived history\n * always agrees with what ran. A listener returns replacement `calls` to\n * rewrite (same ids, same order — anything else throws); `await next()`\n * yields the current calls. This is the only phase where a rewrite is\n * representable; `tools/pre-execute` decisions still gate execution later.\n * @param payload.agent - the agent whose response carries the calls.\n * @param payload.calls - the response\'s parsed tool calls, in model order.\n * @param payload.turn - the open turn owning the step.\n * @param payload.step - the step whose response this is.\n * @param payload.signal - the current turn\'s cancellation signal.\n * Scope-filtered dispatch (`@huiliyi37/dsh-scope`): agent-scoped listeners receive only that agent.\n * @mode waterfall\n */',
+    summary: 'Rewrite one response\'s tool calls before anything durable is committed.',
   },
   {
     name: 'agent/request',
@@ -2621,7 +2632,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SessionEventMap',
-    declaration: 'export interface SessionEventMap {\n    \'turn/start\': {\n        turn: number;\n    };\n    \'turn/end\': {\n        turn: number;\n        reason: TurnEndReason;\n    };\n    \'step/start\': {\n        turn: number;\n        step: number;\n    };\n    \'step/end\': {\n        turn: number;\n        step: number;\n    };\n    \'user/message\': UserMessage;\n    \'assistant/chunk\': {\n        turn: number;\n        step: number;\n        chunk: StreamChunk;\n    };\n    \'assistant/message\': {\n        turn: number;\n        step: number;\n        message: AssistantMessage;\n        usage?: TokenUsage;\n    };\n    \'tool/call\': {\n        turn: number;\n        step: number;\n        callId: CallId;\n        name: string;\n        arguments: string;\n    };\n    \'tool/result\': {\n        turn: number;\n        step: number;\n        message: ToolResultMessage;\n        error?: {\n            name: string;\n            code: string;\n        };\n        meta?: JsonValue;\n    };\n    \'todo/write\': {\n        todos: TodoItem[];\n    };\n    \'request/header\': {\n        header: EpochHeader;\n        reason: RequestHeaderReason;\n    };\n    \'request/context\': RequestContext;\n    \'session/end-seed\': Record<string, never>;\n}',
+    declaration: 'export interface SessionEventMap {\n    \'turn/start\': {\n        turn: number;\n    };\n    \'turn/end\': {\n        turn: number;\n        reason: TurnEndReason;\n    };\n    \'step/start\': {\n        turn: number;\n        step: number;\n    };\n    \'step/end\': {\n        turn: number;\n        step: number;\n    };\n    \'user/message\': UserMessage;\n    \'assistant/chunk\': {\n        turn: number;\n        step: number;\n        chunk: StreamChunk;\n    };\n    \'assistant/message\': {\n        turn: number;\n        step: number;\n        message: AssistantMessage;\n        usage?: TokenUsage;\n    };\n    \'tool/call\': {\n        turn: number;\n        step: number;\n        callId: CallId;\n        name: string;\n        arguments: string;\n        originalArguments?: string;\n    };\n    \'tool/result\': {\n        turn: number;\n        step: number;\n        message: ToolResultMessage;\n        error?: {\n            name: string;\n            code: string;\n        };\n        meta?: JsonValue;\n    };\n    \'todo/write\': {\n        todos: TodoItem[];\n    };\n    \'request/header\': {\n        header: EpochHeader;\n        reason: RequestHeaderReason;\n    };\n    \'request/context\': RequestContext;\n    \'session/end-seed\': Record<string, never>;\n}',
   },
   {
     name: 'SessionEventMetadataFilter',

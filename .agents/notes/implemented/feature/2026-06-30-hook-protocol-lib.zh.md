@@ -29,4 +29,4 @@ Status: implemented
 
 ## 后果
 
-每个桥接插件以原子方式解析配置、构建方言 payload、调用共享的 runner 与合并逻辑、映射 decision、追加 `hook/*`。协议测试覆盖每种 matcher 模式与诊断、exit-code 与编解码器字段、runner 接线、合并优先级和审计辅助函数，逐文件 100% 覆盖率；桥接插件测试验证库的加载路径并锁定精确警告。无密钥 ACP 快照通过真实 Loader/app 路径启动两个桥接插件，在非法 matcher 之前放置一个合法的拦截 group，然后证明请求仍到达 replay 模型且没有持久化任何 `hook/*` 行，从而避免手工挂载 Context 掩盖部分注册。`updatedInput` 已解析但仅记录日志并发出警告，直到 [input-rewrite 提案](../../proposed/feature/2026-06-30-pre-tool-input-rewrite.md)落地。
+每个桥接插件以原子方式解析配置、构建方言 payload、调用共享的 runner 与合并逻辑、映射 decision、追加 `hook/*`。协议测试覆盖每种 matcher 模式与诊断、exit-code 与编解码器字段、runner 接线、合并优先级和审计辅助函数，逐文件 100% 覆盖率；桥接插件测试验证库的加载路径并锁定精确警告。无密钥 ACP 快照通过真实 Loader/app 路径启动两个桥接插件，在非法 matcher 之前放置一个合法的拦截 group，然后证明请求仍到达 replay 模型且没有持久化任何 `hook/*` 行，从而避免手工挂载 Context 掩盖部分注册。`updatedInput` 自 [input-rewrite Agent Note](2026-06-30-pre-tool-input-rewrite.md) 落地起对 loop 派发的调用生效。

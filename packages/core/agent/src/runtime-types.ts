@@ -7,7 +7,7 @@
 
 import type { Context } from '@huiliyi37/cordis'
 import type { Scoped } from '@huiliyi37/dsh-scope'
-import type { LlmCallConfig, LlmFailure, ResolvedRetryPolicy } from '@huiliyi37/dsh-llm'
+import type { CallId, LlmCallConfig, LlmFailure, ResolvedRetryPolicy } from '@huiliyi37/dsh-llm'
 import type { AgentCancelCause, Session, SessionId, UserMessage } from '@huiliyi37/dsh-session'
 export type { AgentCancelCause } from '@huiliyi37/dsh-session'
 import type { Inbox } from './inbox.ts'
@@ -53,6 +53,25 @@ export type AgentStatus = 'idle' | 'running'
 export type PreStepDecision =
   | { kind: 'reject' }
   | { kind: 'enter'; messages: UserMessage[] }
+
+/** One parsed tool call offered to the `agent/pre-tool-commit` rewrite phase. */
+export interface PreCommitToolCall {
+  /** The model-assigned call id; the call's immutable identity. */
+  readonly callId: CallId
+  /** The registered tool name. */
+  readonly name: string
+  /** The call's current effective arguments; a replacement must be lossless JSON. */
+  readonly arguments: unknown
+}
+
+/**
+ * The pre-commit phase's outcome: the effective calls to commit — same ids in
+ * the same order as offered, with any listener rewrites applied to
+ * `arguments`. Anything else is a listener bug and fails the step loud.
+ */
+export interface PreToolCommitDecision {
+  readonly calls: readonly PreCommitToolCall[]
+}
 
 /** Action returned by a listener that owns model-request recovery. */
 export type RequestErrorAction = { kind: 'retry' } | undefined
@@ -229,6 +248,24 @@ declare module '@huiliyi37/cordis' {
      * @mode waterfall
      */
     'agent/pre-step'(this: Scoped<Agent>, payload: { agent: Agent; messages: UserMessage[]; turn: number; step: number; signal: AbortSignal }, next: () => Promise<PreStepDecision>): Promise<PreStepDecision>
+    /**
+     * Rewrite one response's tool calls before anything durable is committed.
+     * Fired by the loop after the assistant message is assembled and BEFORE it
+     * is appended: the message, the `tool/call` audit, and the execution all
+     * carry the effective (possibly rewritten) arguments, so derived history
+     * always agrees with what ran. A listener returns replacement `calls` to
+     * rewrite (same ids, same order — anything else throws); `await next()`
+     * yields the current calls. This is the only phase where a rewrite is
+     * representable; `tools/pre-execute` decisions still gate execution later.
+     * @param payload.agent - the agent whose response carries the calls.
+     * @param payload.calls - the response's parsed tool calls, in model order.
+     * @param payload.turn - the open turn owning the step.
+     * @param payload.step - the step whose response this is.
+     * @param payload.signal - the current turn's cancellation signal.
+     * Scope-filtered dispatch (`@huiliyi37/dsh-scope`): agent-scoped listeners receive only that agent.
+     * @mode waterfall
+     */
+    'agent/pre-tool-commit'(this: Scoped<Agent>, payload: { agent: Agent; calls: PreCommitToolCall[]; turn: number; step: number; signal: AbortSignal }, next: () => Promise<PreToolCommitDecision>): Promise<PreToolCommitDecision>
     /**
      * Replace the frozen call configuration. `await next()` yields the config
      * the machine would use (agent options on the first request, the logged

@@ -41,4 +41,4 @@ Hook 调用／结果记录必须位于一个尚未结束的轮次内。`UserProm
 
 ## 已知限制与暂缓事项
 
-- **`HookOutput.updatedInput` 会被解析但不会应用**：输入改写是已暂缓的一致性设计问题（见 [pre-tool-input-rewrite Agent Note](../../../.agents/notes/proposed/feature/2026-06-30-pre-tool-input-rewrite.md)）；当 hook 设置它时，桥接会记录 + 警告。完整约定见 `src/types.ts`。
+- **`HookOutput.updatedInput` 对 loop 派发的调用生效**：改写在 loop 的 pre-commit 相位解析，历史、审计、展示与执行同带生效入参（见 [pre-tool-input-rewrite Agent Note](../../../.agents/notes/implemented/feature/2026-06-30-pre-tool-input-rewrite.md)）；hook 在该相位之外的调用上设置它时，桥接会警告。完整约定见 `src/types.ts`。

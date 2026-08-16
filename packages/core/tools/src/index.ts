@@ -1021,6 +1021,22 @@ export class ToolRegistry extends Service {
     return [...this.view(scope).visible.values()].map(definition => this.schemaOf(definition, true))
   }
 
+  /**
+   * Validate candidate arguments against a visible tool's declared parameter
+   * schema without executing it — the pre-commit rewrite phase's legality
+   * check, so a hook's `updatedInput` lands in the audit only when the tool
+   * would accept it.
+   * @param name - the tool name as registered.
+   * @param args - candidate arguments, however malformed.
+   * @param scope - the viewing scope; the tool must be visible there.
+   * @returns path-qualified violations (empty = valid), or `undefined` when no such tool is visible.
+   */
+  validateArguments(name: string, args: unknown, scope?: ScopeKey): string[] | undefined {
+    const definition = this.view(scope).visible.get(name)
+    if (definition === undefined) return undefined
+    return validateJsonSchemaValue(definition.parameters, args)
+  }
+
   /** Project visible callable tools onto the generated Code Mode SDK contract. */
   private sdkSchemas(scope?: ScopeKey): ToolSdkSchema[] {
     return [...this.view(scope).visible.values()]

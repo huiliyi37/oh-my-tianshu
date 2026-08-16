@@ -15,6 +15,7 @@ const scopedSubjectResolvers: Readonly<Record<string, ScopedSubjectResolver | nu
   'agent/inbox/discarded': args => (args[0] as Record<string, unknown>)['agent'],
   'agent/inbox/inserted': args => (args[0] as Record<string, unknown>)['agent'],
   'agent/pre-step': args => (args[0] as Record<string, unknown>)['agent'],
+  'agent/pre-tool-commit': args => (args[0] as Record<string, unknown>)['agent'],
   'agent/request': args => (args[0] as Record<string, unknown>)['agent'],
   'agent/request-error': args => (args[0] as Record<string, unknown>)['agent'],
   'agent/session-start': args => (args[0] as Record<string, unknown>)['agent'],

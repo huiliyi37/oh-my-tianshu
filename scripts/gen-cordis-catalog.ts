@@ -231,6 +231,8 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   UserMessage: 'session.md',
   PreStepDecision: 'core.md',
   PreStepContext: 'core.md',
+  PreCommitToolCall: 'core.md',
+  PreToolCommitDecision: 'core.md',
   RequestErrorAction: 'core.md',
   RequestFailureContext: 'core.md',
   PreparedReferencedMessage: 'session-reference.md',

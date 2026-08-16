@@ -3,7 +3,10 @@
  * extension points. It supports SessionStart, prompt/tool pre/post, Stop, and subagent
  * start/stop. It owns Claude payloads, environment, substitution, and decision
  * mapping; shared execution and parsing live in `dsh-hook-protocol`.
- * `updatedInput` is logged and warned but not honored. Bespoke behavior should
+ * `updatedInput` is honored for loop-dispatched calls (fired at the loop's
+ * pre-commit phase so history, audit, and execution all carry the rewrite);
+ * calls that bypass the phase (code-mode sub-calls) cannot be rewritten and
+ * keep the faithful degraded warning. Bespoke behavior should
  * use typed native plugins on the same extension points; see the
  * [hook-bridges Agent Note](../../../../.agents/notes/implemented/feature/2026-06-30-hook-bridges.md).
  * @module @huiliyi37/dsh-hooks-claude
@@ -12,9 +15,9 @@
 import { readFileSync } from 'node:fs'
 import type { Context } from '@huiliyi37/cordis'
 import z from '@huiliyi37/schemastery'
-import type { Agent, PreStepDecision } from '@huiliyi37/dsh-agent'
+import type { Agent, PreStepDecision, PreToolCommitDecision } from '@huiliyi37/dsh-agent'
 import { createUserMessage } from '@huiliyi37/dsh-llm'
-import type { ContentBlock, MessageSource } from '@huiliyi37/dsh-llm'
+import type { CallId, ContentBlock, MessageSource } from '@huiliyi37/dsh-llm'
 import type { UserMessage } from '@huiliyi37/dsh-session'
 import type {} from '@huiliyi37/dsh-session-persistence'
 import type { PostToolDecision, PreToolDecision, ToolExecution, ToolExecutionResult } from '@huiliyi37/dsh-tools'
@@ -172,9 +175,6 @@ export function apply(ctx: Context, config: Config): void {
           expectedEventName: point,
         }, () => performance.now())
         outputs.push(output)
-        if (output.updatedInput !== undefined) {
-          ctx.logger.warn(`hooks-claude: ${point} hook requested updatedInput, which is not yet honored (ignored)`)
-        }
         if (session && opts.turn !== undefined) {
           appendHookResult(session, { turn: opts.turn, point, handlerId, output, stderrSummaryMaxChars, durationMs })
         }
@@ -231,10 +231,45 @@ export function apply(ctx: Context, config: Config): void {
     }
   })
 
+  // --- PreToolUse: fired ONCE at the loop's pre-commit phase (the only point
+  // where an updatedInput rewrite is still representable — before the
+  // assistant/message and tool/call commit). The merged decision is memoized
+  // per callId and replayed at tools/pre-execute, so a hook process runs
+  // exactly once per call while deny/ask keep their registry-boundary shape. ---
+  const preToolDecisions = new Map<string, MergedHookOutcome>()
+  ctx.effect(() => () => { preToolDecisions.clear() }, 'hooks-claude: drop memoized PreToolUse decisions')
+
+  ctx.on('agent/pre-tool-commit', async ({ agent, turn, signal }, next): Promise<PreToolCommitDecision> => {
+    const decision = await next()
+    if ((parsed['PreToolUse'] ?? []).length === 0) return decision
+    const rewritten = []
+    for (const call of decision.calls) {
+      const merged = await runPoint('PreToolUse', call.name, preToolPayload(ctx, { agent, ...call }), { agent, turn, signal })
+      preToolDecisions.set(String(call.callId), merged)
+      rewritten.push(merged.updatedInput === undefined ? call : { ...call, arguments: merged.updatedInput })
+    }
+    return { calls: rewritten }
+  })
+
   // --- PreToolUse → PreToolDecision. Matcher subject is the tool name. ---
   ctx.on('tools/pre-execute', async (exec, next): Promise<PreToolDecision> => {
+    const memoKey = String(exec.callId)
+    const memoized = preToolDecisions.get(memoKey)
+    if (memoized !== undefined) {
+      // The hook already fired at pre-commit; replay its decision verbatim.
+      preToolDecisions.delete(memoKey)
+      if (memoized.decision === 'deny') return { kind: 'deny', reason: memoized.reason ?? 'blocked by PreToolUse hook' }
+      if (memoized.decision === 'ask') return { kind: 'ask', ...memoized.reason !== undefined ? { reason: memoized.reason } : {} }
+      return next()
+    }
+    // Calls that never crossed the loop's pre-commit phase (code-mode
+    // sub-calls, direct registry executions) fire here as before — but their
+    // arguments are already frozen and audited, so a rewrite cannot apply.
     const turn = lastTurn(exec.agent)
     const merged = await runPoint('PreToolUse', exec.name, preToolPayload(ctx, exec), { ...exec.agent ? { agent: exec.agent } : {}, turn, signal: exec.signal })
+    if (merged.updatedInput !== undefined) {
+      ctx.logger.warn('hooks-claude: PreToolUse hook requested updatedInput outside the loop pre-commit phase — cannot be honored here (ignored)')
+    }
     if (merged.decision === 'deny') return { kind: 'deny', reason: merged.reason ?? 'blocked by PreToolUse hook' }
     if (merged.decision === 'ask') return { kind: 'ask', ...merged.reason !== undefined ? { reason: merged.reason } : {} }
     return next()
@@ -333,8 +368,8 @@ function sessionStartPayload(ctx: Context, agent: Agent, source: string): Record
 function promptPayload(ctx: Context, agent: Agent, content: ContentBlock[]): Record<string, unknown> {
   return { ...base(ctx, agent, 'UserPromptSubmit'), prompt: blocksToText(content) }
 }
-function preToolPayload(ctx: Context, exec: ToolExecution): Record<string, unknown> {
-  return { ...base(ctx, exec.agent, 'PreToolUse'), tool_name: exec.name, tool_input: exec.arguments, tool_use_id: exec.callId }
+function preToolPayload(ctx: Context, call: { agent?: Agent; name: string; arguments: unknown; callId: CallId }): Record<string, unknown> {
+  return { ...base(ctx, call.agent, 'PreToolUse'), tool_name: call.name, tool_input: call.arguments, tool_use_id: call.callId }
 }
 function postToolPayload(ctx: Context, exec: ToolExecution, result: ToolExecutionResult): Record<string, unknown> {
   return { ...base(ctx, exec.agent, 'PostToolUse'), tool_name: exec.name, tool_input: exec.arguments, tool_use_id: exec.callId, tool_response: blocksToText(result.content) }

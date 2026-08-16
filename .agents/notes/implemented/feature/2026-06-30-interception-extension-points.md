@@ -43,7 +43,7 @@ Core dispatch and the tool body sit inside normalization boundaries, so tool, li
 
 ### Pre-tool input rewrite is a separate consistency decision
 
-`PreToolDecision` cannot rewrite arguments. History and the audit call are logged before execution, and UI presentation reads the same input, so the registry seals arguments before policy. A valid rewrite must update history, audit, presentation, and execution before identity is created; that contract belongs to the [input-rewrite proposal](../../proposed/feature/2026-06-30-pre-tool-input-rewrite.md).
+`PreToolDecision` cannot rewrite arguments. History and the audit call are logged before execution, and UI presentation reads the same input, so the registry seals arguments before policy. A valid rewrite must update history, audit, presentation, and execution before identity is created; that contract shipped as the `agent/pre-tool-commit` phase in [the input-rewrite Agent Note](2026-06-30-pre-tool-input-rewrite.md).
 
 ### Boundaries
 
@@ -51,7 +51,7 @@ The Service Definition package does **not** declare `hook/*` session events (the
 
 ## Alternatives considered
 
-- **Shipping pre-tool INPUT rewrite as part of this extension-point set** — deferred as the over-reach signal; the section above carries the consistency problem (audit, history, and presentation all read `tool/call.arguments` logged before execution), and [the pre-tool input-rewrite proposal](../../proposed/feature/2026-06-30-pre-tool-input-rewrite.md) owns the design.
+- **Shipping pre-tool INPUT rewrite as part of this extension-point set** — deferred as the over-reach signal; the section above carries the consistency problem (audit, history, and presentation all read `tool/call.arguments` logged before execution), and [the pre-tool input-rewrite Agent Note](2026-06-30-pre-tool-input-rewrite.md) owns the shipped design.
 - **Declaring the durable `hook/*` SessionEvents alongside the extension points** — rejected: a native plugin uses the typed Decisions with no hook log at all (the worked example proves it), so the durable log belongs to [the hook-protocol library](2026-06-30-hook-protocol-lib.md), not the extension surface.
 
 ## Consequences

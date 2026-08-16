@@ -527,6 +527,18 @@ get(name: string, scope?: ScopeKey): ToolDefinition | undefined
 schemas(scope?: ScopeKey): ToolSchema[]
 
 /**
+ * Validate candidate arguments against a visible tool's declared parameter
+ * schema without executing it — the pre-commit rewrite phase's legality
+ * check, so a hook's `updatedInput` lands in the audit only when the tool
+ * would accept it.
+ * @param name - the tool name as registered.
+ * @param args - candidate arguments, however malformed.
+ * @param scope - the viewing scope; the tool must be visible there.
+ * @returns path-qualified violations (empty = valid), or `undefined` when no such tool is visible.
+ */
+validateArguments(name: string, args: unknown, scope?: ScopeKey): string[] | undefined
+
+/**
  * Classify a pending call through the caller's visible tool definition. Only
  * an exact `true` is parallel; unknown, hidden, undeclared, invalid, or
  * throwing classifiers are exclusive.

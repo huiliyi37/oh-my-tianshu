@@ -133,9 +133,12 @@ export interface HookOutput {
   /** A warning surfaced to the user (CC `systemMessage`). */
   systemMessage?: string
   /**
-   * A tool-input rewrite a hook requested (CC `updatedInput`). PARSED but NOT
-   * honored — input rewrite is deferred (see the interception extension-points Agent Note); a
-   * bridge logs + warns when this is present.
+   * A tool-input rewrite a hook requested (CC `updatedInput`). For calls the
+   * agent loop dispatches, the rewrite resolves before any durable record:
+   * the assistant message and the `tool/call` audit commit carry the
+   * rewritten arguments, with the original preserved on the audit event's
+   * sidecar. Calls fired outside the loop's pre-commit phase (e.g. code-mode
+   * sub-calls) cannot be rewritten — the bridge warns and ignores this.
    */
   updatedInput?: Record<string, unknown>
 }

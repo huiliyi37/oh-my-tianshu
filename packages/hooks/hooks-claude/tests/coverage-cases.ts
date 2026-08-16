@@ -1,4 +1,4 @@
-import { createUserMessage } from '@huiliyi37/dsh-llm'
+import { createUserMessage, CallId } from '@huiliyi37/dsh-llm'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, rmSync, writeFileSync, chmodSync, existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -112,7 +112,7 @@ export function defineCoverageCases(group: CoverageGroup): void {
       expect(existsSync(marker)).toBe(true) // substituted command ran
     }, 15_000) // Real agent and hook subprocess startup can exceed Vitest's default under coverage concurrency.
 
-    it('warns and honors updatedInput as a no-op (input rewrite deferred)', async () => {
+    it('honors updatedInput through the pre-commit rewrite (audit keeps the original)', async () => {
       const d = dir()
       const s = sh(d, 'u.sh', '#!/usr/bin/env bash\necho \'{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","updatedInput":{"command":"rewritten"}}}\'\n')
       const path = hooks(d, { PreToolUse: [{ hooks: [{ type: 'command', command: s }] }] })
@@ -125,9 +125,62 @@ export function defineCoverageCases(group: CoverageGroup): void {
       const agent = ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
       agent.followup(createUserMessage({ content: [{ type: 'text', text: 'go' }], source: { kind: 'user' } }))
       await waitForIdle(ctx, agent)
-      // updatedInput is NOT honored — the tool ran with the ORIGINAL args.
+      // updatedInput IS honored: the tool ran with the rewritten arguments…
+      expect((sawArgs as { command?: string }).command).toBe('rewritten')
+      // …the audit event keeps both facts — effective arguments plus the original sidecar…
+      const call = agent.session.events.find(e => e.type === 'tool/call')
+      expect(call?.data).toMatchObject({ name: 'echo', arguments: '{"command":"rewritten"}', originalArguments: '{"command":"original"}' })
+      // …and the next request's derived history carries the effective call
+      // (the model sees the rewrite took effect).
+      expect(JSON.stringify(adapter.requests[1] ?? {})).toContain('rewritten')
+      expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('updatedInput'))
+    })
+
+    it('drops a schema-invalid rewrite and runs the original call', async () => {
+      const d = dir()
+      // The rewrite omits the required `command` property — the tool's own
+      // parameter schema rejects it, so the original call must run untouched.
+      const s = sh(d, 'u.sh', '#!/usr/bin/env bash\necho \'{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","updatedInput":{"wrong":1}}}\'\n')
+      const path = hooks(d, { PreToolUse: [{ hooks: [{ type: 'command', command: s }] }] })
+      const warn = vi.fn()
+      const adapter = new MockAdapter([toolCallResponse('c1', 'echo', { command: 'original' }), textResponse('done')])
+      const ctx = await harness(path, adapter)
+      ctx.logger.warn = warn as never
+      let sawArgs: unknown
+      ctx.tools.register(defineContentToolFixture({ name: 'echo', description: 'e', parameters: { command: { type: 'string', required: true } }, async execute(args) { sawArgs = args; return [{ type: 'text', text: 'ok' }] } }))
+      const agent = ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
+      agent.followup(createUserMessage({ content: [{ type: 'text', text: 'go' }], source: { kind: 'user' } }))
+      await waitForIdle(ctx, agent)
       expect((sawArgs as { command?: string }).command).toBe('original')
-      expect(warn).toHaveBeenCalledWith(expect.stringContaining('updatedInput'))
+      const call = agent.session.events.find(e => e.type === 'tool/call')
+      expect(call?.data).toMatchObject({ arguments: '{"command":"original"}' })
+      expect(call?.data).not.toHaveProperty('originalArguments')
+      expect(warn.mock.calls.some(args => String(args[0]).includes('failed the tool'))).toBe(true)
+    })
+
+    it('warns and cannot rewrite when a call bypasses the loop pre-commit phase', async () => {
+      const d = dir()
+      const s = sh(d, 'u.sh', '#!/usr/bin/env bash\necho \'{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","updatedInput":{"command":"rewritten"}}}\'\n')
+      const path = hooks(d, { PreToolUse: [{ hooks: [{ type: 'command', command: s }] }] })
+      const warn = vi.fn()
+      const ctx = await harness(path, new MockAdapter([]))
+      ctx.logger.warn = warn as never
+      let sawArgs: unknown
+      ctx.tools.register(defineContentToolFixture({ name: 'echo', description: 'e', parameters: { command: { type: 'string' } }, async execute(args) { sawArgs = args; return [{ type: 'text', text: 'ok' }] } }))
+      const agent = ctx.agentLoop.create(SessionId('direct'), { provider: 'mock', model: 'mock' })
+      // A direct registry execution never crosses the loop's pre-commit phase:
+      // the hook fires at the registry boundary as before, but its rewrite
+      // request cannot apply to an already-frozen, already-audited call.
+      const result = await ctx.tools.execute({
+        callId: CallId('direct-1'),
+        name: 'echo',
+        arguments: { command: 'original' },
+        agent,
+        signal: new AbortController().signal,
+      })
+      expect(result.isError).toBe(false)
+      expect((sawArgs as { command?: string }).command).toBe('original')
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('cannot be honored'))
     })
   })
 

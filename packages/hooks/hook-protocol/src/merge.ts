@@ -29,6 +29,13 @@ export interface MergedHookOutcome {
   additionalContext: string[]
   /** Every hook's `systemMessage`, in hook order. */
   systemMessages: string[]
+  /**
+   * The winning tool-input rewrite, when any hook supplied `updatedInput`:
+   * later hooks in declaration order override earlier ones wholesale
+   * (deterministic — Claude Code's "last finisher wins, order unspecified"
+   * made deterministic). Whole-value replacement, never a field merge.
+   */
+  updatedInput?: Record<string, unknown>
 }
 
 /** Rank a single hook's decision for the deny>ask>allow precedence (higher = stricter). */
@@ -67,6 +74,7 @@ export function mergeHookOutputs(outputs: HookOutput[]): MergedHookOutcome {
   let stopReason: string | undefined
   const additionalContext: string[] = []
   const systemMessages: string[] = []
+  let updatedInput: Record<string, unknown> | undefined
 
   for (const out of outputs) {
     const r = rank(out.decision)
@@ -84,6 +92,9 @@ export function mergeHookOutputs(outputs: HookOutput[]): MergedHookOutcome {
     if (out.systemMessage !== undefined && out.systemMessage.length > 0) {
       systemMessages.push(out.systemMessage)
     }
+    // Last-in-declaration-order wins, wholesale: a later rewriting hook can
+    // see and revise what an earlier one produced.
+    if (out.updatedInput !== undefined) updatedInput = out.updatedInput
   }
 
   const reasons = reasonsByRank.get(maxRank) ?? []
@@ -94,5 +105,6 @@ export function mergeHookOutputs(outputs: HookOutput[]): MergedHookOutcome {
     ...stopReason !== undefined ? { stopReason } : {},
     additionalContext,
     systemMessages,
+    ...updatedInput !== undefined ? { updatedInput } : {},
   }
 }

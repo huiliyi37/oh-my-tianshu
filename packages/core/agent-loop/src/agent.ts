@@ -12,11 +12,12 @@ import type {
   AgentStatus,
   CancelOptions,
   InboxTarget,
+  PreCommitToolCall,
   PreStepDecision,
   RequestErrorAction,
 } from '@huiliyi37/dsh-agent'
 import { Inbox, agentEvents, assembleContextFor } from '@huiliyi37/dsh-agent'
-import type { GenerateOptions, LlmCallConfig, Message, PreparedLlmCall } from '@huiliyi37/dsh-llm'
+import type { CallId, ContentBlock, GenerateOptions, LlmCallConfig, Message, PreparedLlmCall, ToolCallBlock } from '@huiliyi37/dsh-llm'
 import {
   BlockAssembler,
   LlmError,
@@ -33,7 +34,7 @@ import { joinContextSections, renderContextSections, renderPrompt } from '@huili
 import type { PromptAssembly } from '@huiliyi37/dsh-system-prompt'
 import type { Context } from '@huiliyi37/cordis'
 import { RuntimeContextProjection } from './runtime-context.ts'
-import { executeToolCalls } from './tool-calls.ts'
+import { executeToolCalls, parseArguments } from './tool-calls.ts'
 
 type Phase =
   | { kind: 'idle'; lastTurn: number }
@@ -370,8 +371,17 @@ export class ReactLoopAgent implements Agent {
         continue
       }
 
+      // Resolve listener rewrites (e.g. a PreToolUse hook's updatedInput)
+      // before anything durable lands: the message, the tool/call audit, and
+      // the execution then all carry the effective arguments, and derived
+      // history always agrees with what ran. A max-tokens fragment never
+      // dispatches calls, so the phase is skipped for it.
+      const assembledBlocks = assembler.blocks()
+      const { blocks, originals } = finish.kind === 'max-tokens'
+        ? { blocks: assembledBlocks, originals: new Map<CallId, string>() }
+        : await this.rewriteToolCalls(turn, step, assembledBlocks, signal)
       const message = createAssistantMessage({
-        content: assembler.blocks(),
+        content: blocks,
         source: {
           provider: request.provider,
           model: request.model,
@@ -395,8 +405,78 @@ export class ReactLoopAgent implements Agent {
       const { concluded } = await executeToolCalls(
         this.loopCtx, turn, step, toolCalls, signal,
         context => this.inbox.splice('next-step', this.inbox.nextStep.length, 0, [context]),
+        originals,
       )
       return concluded ? { kind: 'completed' } : null
+    }
+  }
+
+  /**
+   * Resolve one response's tool calls through the `agent/pre-tool-commit`
+   * rewrite phase before anything durable is committed: the assistant
+   * message, the `tool/call` audit, and the execution all carry the effective
+   * arguments, so derived history always agrees with what ran. A rewrite that
+   * is not lossless JSON or fails the tool's own parameter schema is dropped
+   * with a warning — the audit never records a call the tool would reject.
+   * The returned `originals` maps a rewritten callId to the model's own raw
+   * arguments string for the audit sidecar.
+   */
+  private async rewriteToolCalls(
+    turn: number,
+    step: number,
+    blocks: ContentBlock[],
+    signal: AbortSignal,
+  ): Promise<{ blocks: ContentBlock[]; originals: Map<CallId, string> }> {
+    const originals = new Map<CallId, string>()
+    const toolCalls = blocks.filter((block): block is ToolCallBlock => block.type === 'tool-call')
+    if (toolCalls.length === 0) return { blocks, originals }
+    const calls: PreCommitToolCall[] = toolCalls.map(block => ({
+      callId: block.id,
+      name: block.name,
+      arguments: parseArguments(block.arguments),
+    }))
+    const decision = await this.dispatch.waterfall(
+      'agent/pre-tool-commit', { calls, turn, step, signal },
+      () => Promise.resolve({ calls }),
+    )
+    signal.throwIfAborted()
+    if (decision.calls.length !== calls.length
+      || decision.calls.some((call, index) => {
+        const offered = calls[index]
+        return offered === undefined || call.callId !== offered.callId || call.name !== offered.name
+      })) {
+      throw new Error('agent/pre-tool-commit: a listener returned a different call set — rewrites may replace `arguments` only')
+    }
+    const effective = new Map<CallId, string>()
+    decision.calls.forEach((call, index) => {
+      const offered = calls[index]
+      const block = toolCalls[index]
+      if (offered === undefined || block === undefined || call.arguments === offered.arguments) return
+      let serialized: string | undefined
+      try {
+        serialized = JSON.stringify(call.arguments)
+      } catch { serialized = undefined }
+      if (serialized === undefined) {
+        this.loopCtx.logger.warn('agent-loop: pre-tool-commit rewrite of "%s" is not lossless JSON — dropped', call.name)
+        return
+      }
+      const violations = this.loopCtx.tools.validateArguments(call.name, call.arguments, this.scope)
+      if (violations === undefined) return
+      if (violations.length > 0) {
+        this.loopCtx.logger.warn('agent-loop: pre-tool-commit rewrite of "%s" failed the tool\'s parameter schema (%s) — dropped', call.name, violations.join('; '))
+        return
+      }
+      effective.set(call.callId, serialized)
+      originals.set(call.callId, block.arguments)
+    })
+    if (effective.size === 0) return { blocks, originals: new Map() }
+    return {
+      blocks: blocks.map((block) => {
+        if (block.type !== 'tool-call') return block
+        const rewritten = effective.get(block.id)
+        return rewritten === undefined ? block : { ...block, arguments: rewritten }
+      }),
+      originals,
     }
   }
 

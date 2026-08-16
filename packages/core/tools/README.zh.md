@@ -187,7 +187,7 @@ The available tools:
 ## 已知限制与暂缓事项
 
 - **并发策略不是事件门禁**：`executionMode()` 直接读取已解析的工具定义；插件只能在自身拥有的定义上声明分类器。
-- **`tools/pre-execute` 有意不允许改写 `exec.arguments`**：否则日志记录和呈现的参数会与实际运行内容失去同步；改写设计记录在[拟议的 Agent Note](../../../.agents/notes/proposed/feature/2026-06-30-pre-tool-input-rewrite.md)中。
+- **`tools/pre-execute` 有意不允许改写 `exec.arguments`**：否则日志记录和呈现的参数会与实际运行内容失去同步；改写提前一个相位解析，已落地设计见 [pre-tool-input-rewrite Agent Note](../../../.agents/notes/implemented/feature/2026-06-30-pre-tool-input-rewrite.md)。
 - **调用方定义的 subagent 与工作流结构化输出仍要求对象根**：这是消费方层面的守卫；共享 schema 词汇和工具输出支持任意 JSON 根。
 - **定义上的 `timeoutMs` 仅为声明**：注册表绝不会强制执行截止时间；要强制执行，必须使用 `@huiliyi37/dsh-timeout-policy` 包装层。
 - **Code Mode 的 SDK 语言跟随唯一加载的运行时，且呈现模式在服务内统一**：`mode: code`/`both` 会拒绝组装提示词，除非 `ctx.codeRuntime.language` 有已注册的 SDK 渲染器（`typescript` 经 worker 后端，`python` 用于任何报告该语言的运行时）；作用域限制／遮蔽仍会选择每个 agent 的可见绑定，但不能让一个工具仅使用 Native、另一个仅使用 Code，且单个运行时把语言固定为服务级（[语言分发 Agent Note](../../../.agents/notes/implemented/feature/2026-07-31-code-mode-language-dispatch.md) 负责这次查表，以及注册表为何读取所加载的运行时而不自带 language 字段）。

@@ -12,7 +12,7 @@
  */
 
 import type { Context } from '@huiliyi37/cordis'
-import { assertNever, createToolResultMessage, type ToolCallBlock } from '@huiliyi37/dsh-llm'
+import { assertNever, createToolResultMessage, type CallId, type ToolCallBlock } from '@huiliyi37/dsh-llm'
 import type { Session, UserMessage } from '@huiliyi37/dsh-session'
 import { TOOL_ABORTED_BEFORE_DISPATCH, TOOL_REGISTRY_SCHEDULER, type ToolExecutionInput, type ToolExecutionMode, type ToolExecutionResult, type ToolRunContext } from '@huiliyi37/dsh-tools'
 
@@ -20,6 +20,8 @@ import { TOOL_ABORTED_BEFORE_DISPATCH, TOOL_REGISTRY_SCHEDULER, type ToolExecuti
 interface PlannedCall {
   block: ToolCallBlock
   exec: ToolExecutionInput
+  /** The model's own raw arguments when a pre-commit rewrite replaced them (audit sidecar). */
+  originalArguments?: string
 }
 
 /** Settled dispatch awaiting model-order finalization. */
@@ -63,21 +65,26 @@ export async function executeToolCalls(
   toolCalls: ToolCallBlock[],
   signal: AbortSignal,
   acceptContext: (context: UserMessage) => void,
+  originals?: ReadonlyMap<CallId, string>,
 ): Promise<{ concluded: boolean }> {
   const agent = ctx.agents.requireInitiator()
   const { session } = agent
 
   // Inputs are distinct because tools/execute wrappers may replace `exec.signal`.
-  const planned: PlannedCall[] = toolCalls.map(block => ({
-    block,
-    exec: {
-      callId: block.id,
-      name: block.name,
-      arguments: parseArguments(block.arguments),
-      agent,
-      signal,
-    },
-  }))
+  const planned: PlannedCall[] = toolCalls.map((block) => {
+    const original = originals?.get(block.id)
+    return {
+      block,
+      exec: {
+        callId: block.id,
+        name: block.name,
+        arguments: parseArguments(block.arguments),
+        agent,
+        signal,
+      },
+      ...original !== undefined ? { originalArguments: original } : {},
+    }
+  })
 
   let next = 0
   let concluded = false
@@ -101,7 +108,7 @@ export async function executeToolCalls(
 }
 
 /** Parse model arguments, preserving invalid JSON as text and mapping empty input to `{}`. */
-function parseArguments(raw: string): unknown {
+export function parseArguments(raw: string): unknown {
   try {
     return raw ? JSON.parse(raw) : {}
   } catch {
@@ -164,7 +171,7 @@ async function runGroup(
   const startCall = async (index: number): Promise<void> => {
     // oxlint-disable-next-line typescript/no-non-null-assertion -- bounded index
     const call = group[index]!
-    callSeqs[index] = appendToolCall(session, turn, step, call.block)
+    callSeqs[index] = appendToolCall(session, turn, step, call.block, call.originalArguments)
     started++
     const prepared = await ctx.tools[TOOL_REGISTRY_SCHEDULER].prepare(call.exec)
     throwSchedulerFailure()
@@ -259,8 +266,13 @@ function appendSkippedToolCall(session: Session, turn: number, step: number, blo
 }
 
 /** Append a started call and return the event seq that its result must cite. */
-function appendToolCall(session: Session, turn: number, step: number, block: ToolCallBlock): number {
-  const event = session.append('tool/call', { turn, step, callId: block.id, name: block.name, arguments: block.arguments })
+function appendToolCall(session: Session, turn: number, step: number, block: ToolCallBlock, originalArguments?: string): number {
+  const event = session.append('tool/call', {
+    turn, step, callId: block.id, name: block.name, arguments: block.arguments,
+    // A pre-commit rewrite's audit sidecar: the effective string above ran;
+    // this preserves what the model itself emitted.
+    ...originalArguments !== undefined ? { originalArguments } : {},
+  })
   return event.seq
 }
 

@@ -618,7 +618,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/hooks/hooks-claude/src/index.ts:45`](../packages/hooks/hooks-claude/src/index.ts)
+Source: [`packages/hooks/hooks-claude/src/index.ts:48`](../packages/hooks/hooks-claude/src/index.ts)
 
 ## `@huiliyi37/dsh-hooks-codex`
 
