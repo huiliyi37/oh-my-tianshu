@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-16-upstream-subsystem-port-parity.md
-2026-08-16-upstream-subsystem-port-parity.md: be123144b10db991180096b1f8434ff4df41b89b
-2026-08-16-upstream-subsystem-port-parity.zh.md: 40db83a3501cd6e05f45afd50d8a0aa7bff79050
+2026-08-16-upstream-subsystem-port-parity.md: 025a95e981b3a07d5ddd074f4f435b8a5c019c10
+2026-08-16-upstream-subsystem-port-parity.zh.md: 88a52d70c17c8db966f56368e78894700a7eb963
