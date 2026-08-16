@@ -44,6 +44,7 @@ export function apply(ctx: ClientContext): void {
       children: {
         'sidebar.workspaces': { kind: 'single', scope: 'root' },
         'sidebar.settings': { kind: 'single', scope: 'root' },
+        'sidebar.footer.action': { kind: 'single', scope: 'root' },
       },
       inject: injectProps,
     }, SidebarRoot),

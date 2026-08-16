@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import {
-  IconCheckOutline16, IconCloseOutline16, IconCordisPluginOutline14, IconPlayOutline16,
+  IconCheckOutline16, IconCloseOutline16, IconLinkOutline14, IconPlayOutline16,
   IconStopFill16, IconTrashOutline16, Tooltip,
 } from '@huiliyi37/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@huiliyi37/dsh-client-ui-slots'
@@ -458,7 +458,7 @@ export function CordisPanel({
           aria-expanded={open}
           onClick={() => { setOpen(value => !value) }}
         >
-          <IconCordisPluginOutline14 />
+          <IconLinkOutline14 />
           {wide && (
             <>
               <span className={css.badgeLabel}>{t('panel.trigger')}</span>

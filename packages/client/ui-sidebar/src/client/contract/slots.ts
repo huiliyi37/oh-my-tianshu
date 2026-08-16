@@ -27,6 +27,12 @@ declare module '@huiliyi37/dsh-client-ui-slots' {
      * The sidebar passes only its column state — it holds no settings state.
      */
     'sidebar.settings': { kind: 'single'; scope: 'root'; owner: SidebarSettingsOwnerProps }
+    /**
+     * The footer-action seat beside the settings trigger. Declared by this
+     * package's 'sidebar' entry; ui-cordis registers its frame-wide dynamic
+     * Package panel here. The sidebar passes only its column state.
+     */
+    'sidebar.footer.action': { kind: 'single'; scope: 'root'; owner: SidebarSettingsOwnerProps }
   }
 }
 
@@ -72,5 +78,5 @@ export type SidebarRootInjected = {
  * seat. No store is registered.
  */
 export type SidebarRootComponentProps =
-  PropsRuntime<'sidebar'> & PropsRenderSlots<'sidebar.workspaces' | 'sidebar.settings'>
+  PropsRuntime<'sidebar'> & PropsRenderSlots<'sidebar.workspaces' | 'sidebar.settings' | 'sidebar.footer.action'>
   & SidebarRootInjected & PropsLocale<'sidebar'>

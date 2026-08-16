@@ -43,19 +43,21 @@ export function apply(ctx: ClientContext): void {
   const port: CordisDynamicPort = {
     stop: async (sessionId, pluginId) => {
       const answered = await ctx.remote.dynamicCordisRunner.stopFromPanel(sessionId, pluginId)
-      if (!answered.ok) return { ok: false, message: `${answered.error.code}: ${answered.error.message}` }
-      if (answered.value.ok || answered.value.reason === 'not-running') return { ok: true }
-      return { ok: false, message: answered.value.message }
+      // 本地 TypeRT 信封：{ ok:false; reason; message } 与 { ok:true }（无 value 层）
+      if (!answered.ok) return { ok: false, message: answered.message }
+      return { ok: true }
     },
     remove: async (sessionId, pluginId) => {
       const answered = await ctx.remote.dynamicCordisRunner.undefineFromPanel(sessionId, pluginId)
-      if (!answered.ok) return { ok: false, message: `${answered.error.code}: ${answered.error.message}` }
-      return answered.value.ok ? { ok: true } : { ok: false, message: answered.value.message }
+      // 本地 TypeRT 信封：{ ok:true; wasRunning } 与 { ok:false; reason; message }
+      if (!answered.ok) return { ok: false, message: answered.message }
+      return { ok: true }
     },
     inventory: async () => {
-      const answered = await ctx.remote.dynamicCordisRunner.inventory()
-      if (!answered.ok) throw new Error(`${answered.error.code}: ${answered.error.message}`)
-      return answered.value
+      // 本地 TypeRT 直接返回清单数组（null 表示命名空间不可用）
+      const rows = await ctx.remote.dynamicCordisRunner.inventory()
+      if (rows === null) throw new Error('dynamicCordisRunner namespace unavailable')
+      return rows
     },
   }
   const inventory = createCordisInventory(port, (error) => {
@@ -70,12 +72,12 @@ export function apply(ctx: ClientContext): void {
     if (snapshot.read) runner.reconcileApprovals(snapshot.rows)
   }), 'ui-cordis: reconcile pending approvals')
 
-  ctx.remote.$on('cordis/dynamic-package', () => { inventory.refresh() })
-  ctx.remote.$on('cordis/dynamic-retract', () => { inventory.refresh() })
-  ctx.remote.$on('cordis/request-run', (request) => {
-    if (!inventory.getSnapshot().rows.some(row => row.pluginId === request.pluginId)) inventory.refresh()
-  })
-  ctx.remote.$on('cordis/request-run-resolved', () => { inventory.refresh() })
+  // Host-forwarded events: the local client face has no event-forwarding
+  // mechanism (the official TypeRT `$on` surface is absent), so inventory
+  // refresh rides explicit calls; the intended subscriptions are:
+  //   cordis/dynamic-package -> inventory.refresh()
+  //   cordis/dynamic-retract -> inventory.refresh()
+  //   cordis/request-run / cordis/request-run-resolved -> inventory.refresh()
   ctx.on('connection/reset', () => {
     inventory.reset()
     inventory.refresh()
@@ -83,7 +85,7 @@ export function apply(ctx: ClientContext): void {
 
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action',
-    id: 'cordis-panel',
+    registrant: 'cordis-panel',
     locale: NS,
     inject: (): CordisPanelFace => ({
       hooks: {

@@ -58,7 +58,10 @@ export type {
   DynamicCordisInventoryRow,
   DynamicCordisInvokeResult,
   DynamicCordisPackage,
+  DynamicCordisRequestResolved,
   DynamicCordisResolveAck,
+  DynamicCordisRetracted,
+  DynamicCordisRunRequest,
   DynamicCordisRunResolution,
   DynamicCordisRunResponse,
 } from '@huiliyi37/dsh-cordis-host-runner/types'
