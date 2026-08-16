@@ -40,9 +40,19 @@ oh-my-tianshu 是 deepseek-ai/deepseek-harness 的独立 fork（2026-08-14 公�
 
 存量失败（与本轮无关、并行 agent WIP）：verify-source-budgets 与 verify-export-jsdoc 的 tui app.ts（TuiApp 无 JSDoc、超行数上限）、translation-pairing 的 tui/tui 与 tui/vision-ask。
 
+## 第二轮内核盘点（2026-08-17）
+
+官方 226 包 vs 本地 229 包全量 diff：74 个官方路径中除改名组外，真差距 7 个 host 候选 + 13 个 client 面板。已排除（本地已覆盖）：goal-round-driver（goal-session 内已实现 race-fenced 轮驱动）、repeat-tool-reminder（repeat-tool-guard 即提醒实现）、lsp-stdio（lsp-local）、code-runtime-worker-thread（code-runtime-worker）等。已移植 4 个：
+
+- **agent-tool-presentation**（acde9c1d）：per-agent 工具呈现行。dsh-tools 核心升级 presentAs()/modeFor 链感知（ToolLayer.mode、codeTransport 按需构建、tools:code-only collapse 段、register/restrict 无条件保留 run_code）；新包 config.mode 必填行，code 模式经 ctx.inject(['codeRuntime']) 挂起。code preset 依赖解除，可入 roster。
+- **session-stats**（4dfdd94c）：sessionStats 投影单元（step/end 计数、turn 去重、llmMs/toolMs/ttftMs/decodeMs 折叠）经本地 session-projection seam 注册；dsh-llm/message 补 isTokenDelta。
+- **message-feedback**（673c69f5）：MessageFeedbackService(GatewayService)+@Remote list/put/delete，storage-domain sidecar、Session 头身份围栏、持久化屏障、CAS、per-Session 队列；typert-protocol→type-meta（typertRemote→typertGateway）。
+- **plugin-inventory**（5d12bdef）：PluginInventoryGateway + @Remote('list') 只读 Loader 树投影（entryId/moduleName/enabled/fiberPhase）。
+
+验证：tools 365 + agent-tool-presentation 7 + agent-presets 129 + session-stats 17 + message-feedback 20 + plugin-inventory 3 + llm 557 全绿；226 README/invariants 全过；909 对配对一致；module-graph/config-catalog 重生成并镜像 zh。
+
 ## Deferred
 
 - 文档化限制（本地 client 面缺口，按 no-op/空报告 + 注释处理）：$on 事件转发（Gateway 未实现）、slots 树快照与 entry 崩溃上报 seam（SlotCore 无 reportEntryError）、theme exportInspectTokens 检查面。
-- code preset 依赖的 agent-tool-presentation：需 tools registry 的 presentAs per-scope 声明（core 重构），独立工作流；code preset 暂缓入 roster。
-- 并行工作流提示：工作树可能含其他 agent 的未提交改动（如 search 包 async-refresh 修复），提交前按文件区分。
-- session-stats / message-feedback / sandbox-windows-acl / typert/protocol / client-ui-*：待消费方确认后再定。
+- client 消费面：ui-message-feedback 等 13 个官方 client 面板（消费方是官方 web 客户端，本地 web 面已有自研对应物）、session-log-export（web 导出）、sandbox-windows-acl（Windows 专属）——待消费方确认后再定。
+- 并行工作流提示：工作树可能含其他 agent 的未提交改动（如 search 包 async-refresh 修复、tui app.ts），提交前按文件区分。

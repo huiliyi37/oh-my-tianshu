@@ -109,7 +109,7 @@ export function messageFixture(
 
 /** Minimal controllable persistence provider for service-level tests. */
 class TestPersistence extends SessionPersistence {
-  override readonly supportsRawArtifacts = false
+  readonly supportsRawArtifacts = false
 
   static inject = ['sessions']
 
@@ -156,6 +156,15 @@ class TestPersistence extends SessionPersistence {
 
   list(): Promise<SessionHeader[]> {
     return Promise.resolve([...this.durable.values()].map(value => value.meta))
+  }
+
+  truncateStored(id: SessionId, atSeq: number): Promise<void> {
+    // Test backend: drop the stored events at or after the boundary, mirroring
+    // the JSONL backend's truncate contract.
+    const stored = this.durable.get(id)
+    if (stored === undefined) return Promise.resolve()
+    this.durable.set(id, { meta: stored.meta, events: stored.events.filter(event => event.seq < atSeq) })
+    return Promise.resolve()
   }
 
   async listSnapshots(): Promise<SessionPersistenceSnapshot[]> {
