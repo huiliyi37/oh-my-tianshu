@@ -236,8 +236,13 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
     hostCtx.provide(DSH_ENVIRONMENT_KEY, options.environment)
     // Forward launcher inner args to the tree: the TUI consumes them via
     // ctx.reflect.get('cmdlineArgs') (--help/--version/initial prompt; port of dsh-tianshu-tui#21).
+    // Cordis 4: services are registered with provide(); reflect.set only overwrites
+    // an already-provided service ("cannot set property without provide").
     if (options.innerArgs !== undefined) {
-      hostCtx.reflect.set('cmdlineArgs', { get: () => options.innerArgs })
+      hostCtx.provide('cmdlineArgs', { get: () => options.innerArgs })
+      // The TUI exits via appExit for --help/--version (port of dsh-tianshu-tui#21);
+      // route it through the same shutdown path as SIGTERM so the tree tears down.
+      hostCtx.provide('appExit', (code?: number) => { void shutdown.shutdown(code ?? 0) })
     }
     if (options.task !== undefined) {
       const io: HeadlessIo = {

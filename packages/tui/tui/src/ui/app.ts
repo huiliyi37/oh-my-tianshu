@@ -362,14 +362,20 @@ const USAGE_TEXT = `oh-my-tianshu tui — oh-my-tianshu 交互式终端界面 / 
 快捷键 / Keys: ctrl+n 新会话 · ctrl+s 恢复 · ctrl+p 命令面板 · / slash 命令 · ctrl+o 展开推理 · shift+tab 模式循环
 `
 
-/** 读取 tui 包自身版本（packages/tui/tui/package.json），供 --version 输出。 */
-function readOwnVersion(anchorUrl: string): string | undefined {
-  try {
-    const { version } = JSON.parse(readFileSync(fileURLToPath(new URL('../../package.json', anchorUrl)), 'utf8')) as { version?: unknown }
-    return typeof version === 'string' ? version : undefined
-  } catch {
-    return undefined
+/** 读取 tui 包自身版本（packages/tui/tui/package.json），供 --version 输出。
+ *  从 anchor 目录路径向上逐级查找（src/ 与 lib/ 产物深度不同，固定相对路径会 miss）。 */
+function readOwnVersion(anchorDir: string): string | undefined {
+  let dir = anchorDir
+  for (let depth = 0; depth < 6; depth++) {
+    try {
+      const { version } = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as { version?: unknown }
+      if (typeof version === 'string') return version
+    } catch { /* not this dir; walk up */ }
+    const parent = dirname(dir)
+    if (parent === dir) return undefined
+    dir = parent
   }
+  return undefined
 }
 
 /** C3 项 3：写工具名判定（与 fs-snapshot 的 trackEdit 钩子同一集合）。 */
