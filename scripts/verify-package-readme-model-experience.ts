@@ -136,6 +136,8 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/support/llm-mock-server': { kind: 'none', reason: 'The test server substitutes provider wire behavior without invoking a real model.' },
   'packages/support/llm-replay': { kind: 'none', reason: 'The keyless adapter invokes no provider model.' },
   'packages/api/gateway': { kind: 'none', reason: 'Remote dispatch infrastructure; invoked business methods own any model-visible effect.' },
+  'packages/attachment/attachment': { kind: 'indirect', reason: 'The seam validates and atomically commits immutable image bytes; provider adapters resolve the role-neutral core ImageBlock.' },
+  'packages/attachment/attachment-local': { kind: 'indirect', reason: 'The backend persists content-addressed objects; durable replay of image blocks owns the model-visible effect.' },
   'packages/typert/type-meta': { kind: 'none', reason: 'Compiler-independent Remote protocol declarations; registers no model surface.' },
   'packages/typert/generator': { kind: 'none', reason: 'The build-time generator runs outside any agent runtime and touches no model request.' },
   'packages/tasks/tasks': { kind: 'indirect', reason: 'Producer and control-surface plugins own all model rendering over the task registry.' },

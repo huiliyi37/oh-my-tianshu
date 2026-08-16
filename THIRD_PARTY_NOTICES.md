@@ -81,6 +81,7 @@ External packages that a workspace package resolves at runtime. Source execution
 | [`pnpm`](https://github.com/pnpm/pnpm) | MIT |
 | [`react`](https://github.com/facebook/react) | MIT |
 | [`react-dom`](https://github.com/facebook/react) | MIT |
+| [`sharp`](https://github.com/lovell/sharp) | Apache-2.0 |
 | [`shiki`](https://github.com/shikijs/shiki) | MIT |
 | [`string-width`](https://github.com/sindresorhus/string-width) | MIT |
 | [`supports-color`](https://github.com/chalk/supports-color) | MIT |

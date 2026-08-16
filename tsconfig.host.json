@@ -220,6 +220,8 @@
     { "path": "./packages/guard/timeout-policy" },
     { "path": "./packages/support/invariants" },
     { "path": "./packages/identity/anonymous-user-id" },
+    { "path": "./packages/attachment/attachment" },
+    { "path": "./packages/attachment/attachment-local" },
     { "path": "./packages/support/agent-loop-testkit" },
     { "path": "./packages/acp/acp" },
     { "path": "./packages/examples/acp-demo" },
