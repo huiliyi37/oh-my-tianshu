@@ -236,8 +236,9 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
     hostCtx.provide(DSH_ENVIRONMENT_KEY, options.environment)
     // Forward launcher inner args to the tree: the TUI consumes them via
     // ctx.reflect.get('cmdlineArgs') (--help/--version/initial prompt; port of dsh-tianshu-tui#21).
+    // provide 而非 reflect.set：Cordis 注入代理对未声明属性 set 抛 "without provide"。
     if (options.innerArgs !== undefined) {
-      hostCtx.reflect.set('cmdlineArgs', { get: () => options.innerArgs })
+      hostCtx.provide('cmdlineArgs', { get: () => options.innerArgs })
     }
     if (options.task !== undefined) {
       const io: HeadlessIo = {

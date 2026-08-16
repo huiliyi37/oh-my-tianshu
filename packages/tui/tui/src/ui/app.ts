@@ -362,16 +362,6 @@ const USAGE_TEXT = `oh-my-tianshu tui — oh-my-tianshu 交互式终端界面 / 
 快捷键 / Keys: ctrl+n 新会话 · ctrl+s 恢复 · ctrl+p 命令面板 · / slash 命令 · ctrl+o 展开推理 · shift+tab 模式循环
 `
 
-/** 读取 tui 包自身版本（packages/tui/tui/package.json），供 --version 输出。 */
-function readOwnVersion(anchorUrl: string): string | undefined {
-  try {
-    const { version } = JSON.parse(readFileSync(fileURLToPath(new URL('../../package.json', anchorUrl)), 'utf8')) as { version?: unknown }
-    return typeof version === 'string' ? version : undefined
-  } catch {
-    return undefined
-  }
-}
-
 /** C3 项 3：写工具名判定（与 fs-snapshot 的 trackEdit 钩子同一集合）。 */
 function isWriteToolCall(name: string): boolean {
   return name === 'write' || name === 'edit' || name === 'str_replace_editor'
@@ -1005,10 +995,11 @@ export class TuiApp {
       const exit = this.ctx.reflect.get('appExit', false) as ((code?: number) => void) | undefined
       this.stdout.write(wantHelp
         ? USAGE_TEXT
-        : `oh-my-tianshu tui ${readOwnVersion(fileURLToPath(new URL('.', import.meta.url))) ?? 'unknown'}\n`)
+        : `oh-my-tianshu tui ${readDistributionVersion() ?? 'unknown'}\n`)
       if (exit !== undefined) { exit(0); return }
-      // 无 appExit（测试/裸装配）：保持 fail loud，由调用方 dispose 收尾。
-      throw new Error('[tui-runner] --help/--version requested but no appExit service provided')
+      // 无 appExit（测试/裸装配）：fallback 直接退出进程——--help/--version 是
+      // 一次性诊断输出，不进入交互，无需 flush（与 index.ts requestHostExit 同款）。
+      process.exit(0)
     }
     // bracketed paste：粘贴的多行文本被终端包裹为整段（行尾 CR 不再逐行触发
     // Enter 提交）；onPaste 处理器把整段插入输入行（超阈值折叠为标记）。
