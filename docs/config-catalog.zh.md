@@ -1219,6 +1219,19 @@ export interface StreamableHttpConfig {
 
 来源：[`packages/mcp/mcp-client/src/index.ts:100`](../packages/mcp/mcp-client/src/index.ts)
 
+## `@huiliyi37/dsh-message-feedback`
+
+需要：`storageDomain` · `sessionPersistence` · `sessions`
+
+```ts config-catalog
+/** Required deployment policy for optional notes. */
+export interface Config {
+  /** Maximum UTF-8 byte length accepted for one note. */
+  readonly maxNoteBytes: number
+}
+```
+
+来源：[`packages/feedback/message-feedback/src/index.ts:49`](../packages/feedback/message-feedback/src/index.ts)
 ## `@huiliyi37/dsh-permission`
 
 需要：`bash` · `approval` · `sessions`
@@ -3130,6 +3143,7 @@ export interface Config {
 - `@huiliyi37/dsh-goal-session` — 需要 `agents` · `goals` · `sessions`（[`packages/goal/goal-session/src/index.ts`](../packages/goal/goal-session/src/index.ts)）
 - `@huiliyi37/dsh-host-directory-picker-auto` — 需要 `httpServer` · `loader`（[`packages/host/directory-picker-auto/src/index.ts`](../packages/host/directory-picker-auto/src/index.ts)）
 - `@huiliyi37/dsh-host-directory-picker-native`（[`packages/host/directory-picker-native/src/index.ts`](../packages/host/directory-picker-native/src/index.ts)）
+- `@huiliyi37/dsh-host-plugin-inventory` — 需要 `loader`（[`packages/host/plugin-inventory/src/index.ts`](../packages/host/plugin-inventory/src/index.ts)）
 - `@huiliyi37/dsh-llm`（[`packages/llm/llm/src/index.ts`](../packages/llm/llm/src/index.ts)）
 - `@huiliyi37/dsh-lsp`（[`packages/lsp/lsp/src/index.ts`](../packages/lsp/lsp/src/index.ts)）
 - `@huiliyi37/dsh-pty`（[`packages/pty/pty/src/index.ts`](../packages/pty/pty/src/index.ts)）
@@ -3137,6 +3151,7 @@ export interface Config {
 - `@huiliyi37/dsh-session`（[`packages/core/session/src/index.ts`](../packages/core/session/src/index.ts)）
 - `@huiliyi37/dsh-session-checkpoint-policy` — 需要 `llm` · `sessionPersistence` · `sessions` · `tools`（[`packages/session/session-checkpoint-policy/src/index.ts`](../packages/session/session-checkpoint-policy/src/index.ts)）
 - `@huiliyi37/dsh-session-projection`（[`packages/session/session-projection/src/index.ts`](../packages/session/session-projection/src/index.ts)）
+- `@huiliyi37/dsh-session-stats` — 需要 `sessionProjections`（[`packages/session/session-stats/src/index.ts`](../packages/session/session-stats/src/index.ts)）
 - `@huiliyi37/dsh-skill-badge` — 需要 `skills`（[`packages/skill/skill-badge/src/index.ts`](../packages/skill/skill-badge/src/index.ts)）
 - `@huiliyi37/dsh-storage`（[`packages/storage/storage/src/index.ts`](../packages/storage/storage/src/index.ts)）
 - `@huiliyi37/dsh-subagent`（[`packages/subagent/subagent/src/index.ts`](../packages/subagent/subagent/src/index.ts)）
