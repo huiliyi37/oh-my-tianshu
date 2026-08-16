@@ -30,6 +30,7 @@ const SELECT_OPTS = {
   summaryMaxChars: 120,
   thresholds: THRESHOLDS,
   retrievalLimit: 24,
+  topicBoosts: {},
 }
 
 /** 构造结构化检索命中（测试夹具；id 逐一定名以便断言）。 */
@@ -138,6 +139,32 @@ describe('selectStructured（置信度门与签名）', () => {
       sessionScope: 'session:s1',
     }, SELECT_OPTS)
     expect(selection.candidates.map(c => c.id)).toEqual(['ent-1'])
+  })
+
+  it('topicBoosts：按 topic 加性抬升门层级（procedure 做法条目进入 STM）', async () => {
+    const entries = [
+      hit({ id: 'proc-1', text: '登录 做法条目全文', tags: ['procedure'], score: 0.6 }),
+      hit({ id: 'plain-2', text: '登录 普通条目', tags: ['auth'], score: 0.6 }),
+    ]
+    const base = await selectStructured(fakeMemory(entries, { procedure: 1, auth: 1 }),
+      { query: '登录', entities: [], sessionScope: 'session:s1' }, SELECT_OPTS)
+    // 0.6 落在 medium 层：两条都只进索引行
+    expect(base.candidates.every(c => c.body === undefined)).toBe(true)
+    const boosted = await selectStructured(fakeMemory(entries, { procedure: 1, auth: 1 }),
+      { query: '登录', entities: [], sessionScope: 'session:s1' },
+      { ...SELECT_OPTS, topicBoosts: { procedure: 0.3 } })
+    // 0.6 + 0.3 = 0.9 ≥ high：procedure 条目带全文，普通条目不受影响
+    expect(boosted.candidates[0]?.id).toBe('proc-1')
+    expect(boosted.candidates[0]?.body).toBe('登录 做法条目全文')
+    expect(boosted.candidates[1]?.body).toBeUndefined()
+  })
+
+  it('topicBoosts：无 score 的命中不被制造得分（pinned 语义不变）', async () => {
+    const entries = [hit({ id: 'proc-1', text: '登录 无分条目', tags: ['procedure'] })]
+    const selection = await selectStructured(fakeMemory(entries, { procedure: 1 }),
+      { query: '登录', entities: [], sessionScope: 'session:s1' },
+      { ...SELECT_OPTS, topicBoosts: { procedure: 0.9 } })
+    expect(selection.candidates).toEqual([])
   })
 })
 

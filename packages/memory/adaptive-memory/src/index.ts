@@ -106,6 +106,13 @@ export interface Config {
   confidenceMedium?: number
   /** 结构化路径每次 search/list 的候选拉取上限（缺省 24）。 */
   retrievalLimit?: number
+  /**
+   * 按 topic 的加分权重（缺省 {}）：topic → 0..1 的加性 score 提升，在置信度
+   * 门层级判定前施加（封顶 1；只作用于带 score 的检索命中）。小语料上 BM25
+   * 归一化得分天然趋零，procedure 等高价值 topic 可经此抬升——例如
+   * `{ procedure: 0.2 }` 让巩固产出的做法条目更易进入 STM 候选集。
+   */
+  topicBoosts?: Record<string, number>
   /** 兜底提醒每轮上限（缺省 1）。 */
   maxRemindersPerTurn?: number
   /** 兜底提醒每 intent 上限（缺省 3）。 */
@@ -131,6 +138,7 @@ export const Config: z<Config> = z.object({
   confidenceHigh: z.number().default(0.82),
   confidenceMedium: z.number().default(0.55),
   retrievalLimit: z.number().default(24),
+  topicBoosts: z.dict(z.number()).default({}),
   maxRemindersPerTurn: z.number().default(1),
   maxRemindersPerIntent: z.number().default(3),
 })
@@ -163,6 +171,7 @@ interface ResolvedConfig {
   confidenceHigh: number
   confidenceMedium: number
   retrievalLimit: number
+  topicBoosts: Record<string, number>
   maxRemindersPerTurn: number
   maxRemindersPerIntent: number
 }
@@ -186,6 +195,7 @@ function resolveConfig(config: Config): ResolvedConfig {
     confidenceHigh: config.confidenceHigh ?? 0.82,
     confidenceMedium: config.confidenceMedium ?? 0.55,
     retrievalLimit: config.retrievalLimit ?? 24,
+    topicBoosts: config.topicBoosts ?? {},
     maxRemindersPerTurn: config.maxRemindersPerTurn ?? 1,
     maxRemindersPerIntent: config.maxRemindersPerIntent ?? 3,
   }
@@ -193,6 +203,11 @@ function resolveConfig(config: Config): ResolvedConfig {
     throw new Error(
       `adaptive-memory: confidenceHigh (${resolved.confidenceHigh}) 不得低于 confidenceMedium (${resolved.confidenceMedium})`,
     )
+  }
+  for (const [topic, boost] of Object.entries(resolved.topicBoosts)) {
+    if (!Number.isFinite(boost) || boost < 0 || boost > 1) {
+      throw new Error(`adaptive-memory: topicBoosts["${topic}"] (${boost}) 必须是 0..1 的有限数`)
+    }
   }
   return resolved
 }
@@ -275,6 +290,7 @@ async function reviewStm(
       summaryMaxChars: config.summaryMaxChars,
       thresholds: { high: config.confidenceHigh, medium: config.confidenceMedium },
       retrievalLimit: config.retrievalLimit,
+      topicBoosts: config.topicBoosts,
     })
     candidates = selection.candidates
     signature = selection.signature

@@ -17,6 +17,10 @@
  *   （topic error-resolution；实体含工具名与错误码）。
  * - R4 决策陈述：assistant 文本含 decided to/we'll use/决定/采用 等标记 →
  *   observation（topic decision），取含标记的一句。
+ * - R5 做法沉淀（保守变体）：显式编码了方法的用户纠正（含 instead/应该/改用
+ *   等标记）→ experience（topic procedure），正文为 formatProcedure 的
+ *   名称+时机+有序步骤形状；其余会话形状不猜测做法。开关为
+ *   ExtractionBounds.proceduresEnabled。
  *
  * @module @huiliyi37/dsh-memory-consolidate/extract
  */
@@ -51,6 +55,8 @@ export interface ExtractionBounds {
   maxTextChars: number
   /** 单条候选实体数上限。 */
   maxEntities: number
+  /** 是否产出 procedure（做法沉淀）条目（两条提取路径共用此开关）。 */
+  proceduresEnabled: boolean
 }
 
 /** 提取输入：一个已结束会话的完整事件日志。 */
@@ -104,6 +110,21 @@ const CORRECTION_RE = /^(?:no\b|nope\b|wrong\b|actually\b|instead\b|不是|不�
 /** R4：决策陈述标记。 */
 const DECISION_RE = /(?:\bdecided to\b|\bwe'll\b|\bwe will\b|\bdecision:\s*|决定|采用|改用)[^\n。！？.!?]*/i
 
+/** R5：编码了做法的用户纠正标记（instead / 应该 / 应当 / 改用——纠正里含可复用方法）。 */
+const METHOD_RE = /\binstead\b|应该|应当|改用/i
+
+/**
+ * 做法条目的规范文本形状（启发式 R5 与 LLM 提取器共用）：名称 + 适用时机 +
+ * 有序步骤。做法是带来源的建议，不是自动执行的 playbook。
+ * @param name - 做法名（短句）。
+ * @param when - 适用时机。
+ * @param steps - 有序步骤。
+ * @returns 做法条目正文。
+ */
+export function formatProcedure(name: string, when: string, steps: readonly string[]): string {
+  return `Procedure: ${name}\nWhen: ${when}\nSteps:\n${steps.map((step, index) => `${index + 1}. ${step}`).join('\n')}`
+}
+
 /** 文本里的实体提取：反引号标识符与文件路径（去重、限量）。 */
 function entitiesOf(text: string, maxEntities: number): string[] {
   const entities: string[] = []
@@ -116,7 +137,7 @@ function entitiesOf(text: string, maxEntities: number): string[] {
 }
 
 /** 截断到 maxTextChars（按字符；截断加省略号）。 */
-function truncate(text: string, maxTextChars: number): string {
+export function truncate(text: string, maxTextChars: number): string {
   const trimmed = text.trim()
   return trimmed.length <= maxTextChars ? trimmed : `${trimmed.slice(0, maxTextChars - 1)}…`
 }
@@ -159,6 +180,7 @@ export class HeuristicExtractor implements ExperienceExtractor {
           const prior = events.slice(0, index).findLast(
             (candidate): candidate is SessionEvent<'assistant/message'> => candidate.type === 'assistant/message',
           )
+          const sourceSeqs = prior === undefined ? [event.seq] : [prior.seq, event.seq]
           candidates.push({
             kind: 'experience',
             topic: 'correction',
@@ -166,8 +188,25 @@ export class HeuristicExtractor implements ExperienceExtractor {
             keywords: ['correction'],
             entities: entitiesOf(text, bounds.maxEntities),
             confidence: 0.9,
-            sourceSeqs: prior === undefined ? [event.seq] : [prior.seq, event.seq],
+            sourceSeqs,
           })
+          // R5 做法沉淀（保守变体）：只有显式编码了方法的纠正才产出 procedure
+          // 条目——纠正本身已是用户背书的方法信号；其余会话形状不做猜测。
+          if (bounds.proceduresEnabled && METHOD_RE.test(text)) {
+            candidates.push({
+              kind: 'experience',
+              topic: 'procedure',
+              text: truncate(formatProcedure(
+                'User-corrected method',
+                'When the corrected situation recurs (see the source session for context)',
+                [text.trim()],
+              ), bounds.maxTextChars),
+              keywords: ['procedure'],
+              entities: entitiesOf(text, bounds.maxEntities),
+              confidence: 0.7,
+              sourceSeqs,
+            })
+          }
         }
       } else if (event.type === 'assistant/message') {
         const text = assistantText(event)

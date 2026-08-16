@@ -50,6 +50,8 @@
     "@huiliyi37/dsh-lsp": "workspace:*",
     "@huiliyi37/dsh-lsp-local": "workspace:*",
     "@huiliyi37/dsh-memory": "workspace:*",
+    "@huiliyi37/dsh-memory-consolidate": "workspace:*",
+    "@huiliyi37/dsh-memory-sqlite": "workspace:*",
     "@huiliyi37/dsh-permission": "workspace:*",
     "@huiliyi37/dsh-plan-mode": "workspace:*",
     "@huiliyi37/dsh-pty": "workspace:*",

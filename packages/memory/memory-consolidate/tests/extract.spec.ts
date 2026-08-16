@@ -6,6 +6,8 @@
  * - R2 用户纠正 → experience（topic correction；sourceSeqs 含前一条 assistant）。
  * - R3 错误-解决 → experience（topic error-resolution；实体含工具名与错误码）。
  * - R4 决策陈述 → observation（topic decision；取含标记的一句）。
+ * - R5 编码方法的纠正（instead/应该/改用）→ 追加 procedure 经验（开关
+ *   proceduresEnabled）；不含方法标记的纠正不产出。
  * - failureCandidates：门控未通过会话的未解决失败 → failure-pattern 经验。
  *
  * @module @huiliyi37/dsh-memory-consolidate/tests/extract
@@ -17,7 +19,7 @@ import { Session, SessionId } from '@huiliyi37/dsh-session'
 import { HeuristicExtractor, failureCandidates } from '../src/extract.ts'
 import type { ExtractionBounds } from '../src/extract.ts'
 
-const BOUNDS: ExtractionBounds = { maxTextChars: 280, maxEntities: 8 }
+const BOUNDS: ExtractionBounds = { maxTextChars: 280, maxEntities: 8, proceduresEnabled: true }
 
 let seq = 0
 
@@ -149,9 +151,43 @@ describe('HeuristicExtractor', () => {
     const candidates = await new HeuristicExtractor().extract({
       sessionId: long.id,
       events: long.events,
-      bounds: { maxTextChars: 100, maxEntities: 8 },
+      bounds: { maxTextChars: 100, maxEntities: 8, proceduresEnabled: true },
     })
     expect(candidates[0]?.text.length).toBeLessThanOrEqual(100)
+  })
+
+  it('R5：编码方法的纠正 → 追加 procedure 条目（名称+时机+有序步骤）', async () => {
+    const session = makeSession()
+    appendUser(session, 'fix the build')
+    appendAssistant(session, 'I will run npm install to fix it')
+    appendUser(session, 'No, use pnpm install instead — npm breaks the lockfile here')
+    const candidates = await extract(session)
+    expect(candidates.map(c => c.topic)).toEqual(['correction', 'procedure'])
+    const procedure = candidates[1]!
+    expect(procedure.kind).toBe('experience')
+    expect(procedure.keywords).toEqual(['procedure'])
+    expect(procedure.text).toContain('Procedure: User-corrected method')
+    expect(procedure.text).toContain('1. No, use pnpm install instead')
+    expect(procedure.sourceSeqs).toHaveLength(2)
+  })
+
+  it('R5：不含方法标记的纠正不产出 procedure；proceduresEnabled 关闭时不产出', async () => {
+    const plain = makeSession()
+    appendUser(plain, 'change the title')
+    appendAssistant(plain, 'I set it to X')
+    appendUser(plain, 'Wrong file, I meant the other one')
+    expect((await extract(plain)).map(c => c.topic)).toEqual(['correction'])
+
+    const gated = makeSession()
+    appendUser(gated, 'fix the build')
+    appendAssistant(gated, 'I will run npm install')
+    appendUser(gated, 'No, use pnpm instead')
+    const candidates = await new HeuristicExtractor().extract({
+      sessionId: gated.id,
+      events: gated.events,
+      bounds: { ...BOUNDS, proceduresEnabled: false },
+    })
+    expect(candidates.map(c => c.topic)).toEqual(['correction'])
   })
 })
 

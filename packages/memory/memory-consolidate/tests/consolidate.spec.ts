@@ -18,7 +18,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { MockInstance } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
-import { CallId, createToolResultMessage, createUserMessage } from '@huiliyi37/dsh-llm'
+import LlmService, { CallId, LlmAdapter, createAssistantMessage, createToolResultMessage, createUserMessage } from '@huiliyi37/dsh-llm'
+import type { GenerateOptions, StreamChunk } from '@huiliyi37/dsh-llm'
 import SessionStore, { Session, SessionId } from '@huiliyi37/dsh-session'
 import { SqliteMemoryStore } from '@huiliyi37/dsh-memory-sqlite'
 import * as memoryConsolidate from '../src/index.ts'
@@ -196,5 +197,139 @@ describe('memory-consolidate（REAL composition）', () => {
     appendCompletedTurn(session, 1, 'remember: db is postgres')
     // 拆除不因巩固失败而 reject。
     await fiber.dispose()
+  })
+})
+
+/** 追加一条 assistant 消息（携带 mock 路由 source，供 LLM 提取器推导路由）。 */
+function appendAssistant(session: Session, turn: number, text: string): void {
+  session.append('assistant/message', {
+    turn,
+    step: 1,
+    message: createAssistantMessage({
+      content: [{ type: 'text', text }],
+      source: { provider: 'mock', model: 'mock-1' },
+    }),
+  }, { surfaceOp: 'append' })
+}
+
+/** 脚本化 LLM 适配器：返回固定文本响应（recorded requests 供断言）。 */
+class ScriptedAdapter extends LlmAdapter {
+  readonly requests: GenerateOptions[] = []
+
+  constructor(private readonly script: string[]) {
+    super()
+  }
+
+  override async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+    this.requests.push(options)
+    const text = this.script.shift()
+    if (text === undefined) throw new Error('ScriptedAdapter: script exhausted')
+    yield { type: 'block-start', index: 0, blockType: 'text' }
+    yield { type: 'block-end', index: 0, block: { type: 'text', text } }
+    yield { type: 'finish', reason: { kind: 'stop' } }
+  }
+}
+
+/** 带真实 llm 服务 + 脚本化适配器的组合 harness（extractor: 'llm' 路径）。 */
+async function llmHarness(
+  adapter: ScriptedAdapter,
+  config: memoryConsolidate.Config = {},
+): Promise<Harness> {
+  const ctx = new Context()
+  await ctx.plugin(LlmService)
+  ctx.llm.registerAdapter(['mock'], adapter)
+  await ctx.plugin(SessionStore)
+  const store = new SqliteMemoryStore({ dbPath: ':memory:', journalMode: 'wal', importMaxFileBytes: 1_048_576 })
+  stores.push(store)
+  ctx.provide('memory', store)
+  await ctx.plugin(memoryConsolidate, config)
+  return {
+    ctx,
+    store,
+    saveSpy: vi.spyOn(store, 'save'),
+    uncertainSpy: vi.spyOn(store, 'markUncertain'),
+    retireSpy: vi.spyOn(store, 'retireStale'),
+  }
+}
+
+describe('memory-consolidate extractor: "llm"（REAL composition + 脚本化 llm）', () => {
+  it('LLM 提取：session-summary + 候选 + procedure 落库；一次有界调用', async () => {
+    const adapter = new ScriptedAdapter([JSON.stringify({
+      summary: 'Created src/format.ts, found and fixed the padLeft bug, verified via node -e.',
+      candidates: [{
+        kind: 'observation',
+        topic: 'project-layout',
+        text: 'String utilities live in src/format.ts',
+        keywords: ['format'],
+        entities: ['src/format.ts'],
+        confidence: 0.9,
+      }],
+      procedure: {
+        name: 'Quick TS module check',
+        when: 'Verifying a small TS module',
+        steps: ['Run node with strip-types', 'Assert the output'],
+      },
+    })])
+    const h = await llmHarness(adapter, { extractor: 'llm' })
+    const { session, dispose } = await liveSession(h, 'llm-success')
+    appendCompletedTurn(session, 1, 'create src/format.ts with padLeft and fix its bug')
+    appendAssistant(session, 1, 'done, verified')
+    await dispose()
+
+    await waitConsolidated(h)
+    expect(adapter.requests).toHaveLength(1)
+    expect(adapter.requests[0]?.provider).toBe('mock')
+    expect(adapter.requests[0]?.maxTokens).toBe(2000)
+    const entries = await h.store.list({ scope: 'global' })
+    const topics = entries.map(entry => entry.tags[0])
+    expect(topics).toContain('session-summary')
+    expect(topics).toContain('project-layout')
+    expect(topics).toContain('procedure')
+    expect(entries.find(entry => entry.tags[0] === 'procedure')?.text).toContain('Procedure: Quick TS module check')
+  })
+
+  it('LLM 输出非法 → 回退启发式（log-only），remember 信号仍落库', async () => {
+    const adapter = new ScriptedAdapter(['not json at all'])
+    const h = await llmHarness(adapter, { extractor: 'llm' })
+    const { session, dispose } = await liveSession(h, 'llm-invalid')
+    appendCompletedTurn(session, 1, 'remember: the default branch is main')
+    appendAssistant(session, 1, 'noted')
+    await dispose()
+
+    await waitConsolidated(h)
+    const entries = await h.store.list({ scope: 'global' })
+    expect(entries.some(entry => entry.text.includes('the default branch is main'))).toBe(true)
+    expect(entries.every(entry => !entry.tags.includes('session-summary'))).toBe(true)
+  })
+
+  it('extractor 缺省 heuristic：不发任何模型调用', async () => {
+    const adapter = new ScriptedAdapter([])
+    const h = await llmHarness(adapter, {})
+    const { session, dispose } = await liveSession(h, 'default-heuristic')
+    appendCompletedTurn(session, 1, 'remember: db is postgres')
+    await dispose()
+
+    await waitConsolidated(h)
+    expect(adapter.requests).toHaveLength(0)
+    expect((await h.store.list({ scope: 'global' })).length).toBeGreaterThan(0)
+  })
+
+  it('proceduresEnabled: false 时编码方法的纠正只落 correction 条目', async () => {
+    const h = await harness({ proceduresEnabled: false })
+    const { session, dispose } = await liveSession(h, 'procedure-off')
+    appendCompletedTurn(session, 1, 'fix the build')
+    appendAssistant(session, 1, 'I will run npm install')
+    session.append('turn/start', { turn: 2 })
+    session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'No, use pnpm install instead' }],
+      source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    session.append('turn/end', { turn: 2, reason: { kind: 'completed' } })
+    await dispose()
+
+    await waitConsolidated(h)
+    const entries = await h.store.list({ scope: 'global' })
+    expect(entries.some(entry => entry.tags.includes('correction'))).toBe(true)
+    expect(entries.every(entry => !entry.tags.includes('procedure'))).toBe(true)
   })
 })

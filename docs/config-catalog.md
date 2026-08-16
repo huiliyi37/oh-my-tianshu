@@ -114,6 +114,13 @@ export interface Config {
   confidenceMedium?: number
   /** 结构化路径每次 search/list 的候选拉取上限（缺省 24）。 */
   retrievalLimit?: number
+  /**
+   * 按 topic 的加分权重（缺省 {}）：topic → 0..1 的加性 score 提升，在置信度
+   * 门层级判定前施加（封顶 1；只作用于带 score 的检索命中）。小语料上 BM25
+   * 归一化得分天然趋零，procedure 等高价值 topic 可经此抬升——例如
+   * `{ procedure: 0.2 }` 让巩固产出的做法条目更易进入 STM 候选集。
+   */
+  topicBoosts?: Record<string, number>
   /** 兜底提醒每轮上限（缺省 1）。 */
   maxRemindersPerTurn?: number
   /** 兜底提醒每 intent 上限（缺省 3）。 */
@@ -1189,13 +1196,38 @@ export interface Config {
   supersededRetentionDays?: number
   /** 巩固期未使用阈值（缺省 8；连续这么多次巩固未被检索命中的事实退役）。 */
   unusedConsolidations?: number
+  /**
+   * 提取器选择（缺省 'heuristic'——零额外模型请求是契约点）：'llm' 时在会话
+   * 结束后做一次有界结构化调用，产出会话摘要 + 模型质量候选 + 可选做法条目；
+   * 失败回退启发式（log-only）。
+   */
+  extractor?: ExtractorKind
+  /** LLM 提取的显式路由对（与 llmModel 成对；缺省取会话最后一条 assistant 消息的来源路由）。 */
+  llmProvider?: string
+  /** LLM 提取的显式路由对（与 llmProvider 成对；缺省取会话路由）。 */
+  llmModel?: string
+  /** LLM 提取输入转写的字符上限（缺省 20000；超出截断）。 */
+  llmMaxInputChars?: number
+  /** LLM 提取的输出 token 上限（缺省 2000）。 */
+  llmMaxOutputTokens?: number
+  /** LLM 提取的 reasoning effort（缺省 'off'：提取是机械摘要，不烧思考 token）。 */
+  llmEffort?: string
+  /** LLM 提取的端到端超时毫秒数（缺省 30000）。 */
+  llmTimeoutMs?: number
+  /** 会话摘要条目的字符上限（缺省 600）。 */
+  maxSummaryChars?: number
+  /** 是否产出 procedure（做法沉淀）条目（缺省 true；两条提取路径共用）。 */
+  proceduresEnabled?: boolean
 }
 
 /** 门控级别：standard（缺省；末轮范围）或 strict（全会话范围）。 */
 export type GateLevel = 'standard' | 'strict'
+
+/** 提取器选择：heuristic（缺省，零额外模型请求）或 llm（一次有界结构化调用）。 */
+export type ExtractorKind = 'heuristic' | 'llm'
 ```
 
-Source: [`packages/memory/memory-consolidate/src/index.ts:61`](../packages/memory/memory-consolidate/src/index.ts)
+Source: [`packages/memory/memory-consolidate/src/index.ts:77`](../packages/memory/memory-consolidate/src/index.ts)
 
 ## `@huiliyi37/dsh-next-workflow`
 

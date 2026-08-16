@@ -10,7 +10,9 @@
  *   alwaysIncludeTags 从 list 结果钉入（无 score 也进索引行）。
  * - 置信度门（gate.ts）：high → 候选带 body（条目全文进快照）；medium →
  *   只进索引行；low → 不注入（模型保留 memory_search）。pinned 约束条目
- *   至少保留索引行（安全钉不受门驱逐）。
+ *   至少保留索引行（安全钉不受门驱逐）。topic 加分（Config topicBoosts）
+ *   在门层级判定前加性抬升带 score 命中的得分（小语料 BM25 得分趋零时
+ *   抬升 procedure 等高价值 topic；只作用于已有得分，不制造得分）。
  * - 门控签名：注入 id 集 + 全部检索命中（含被门拦下的 low 层）id 集 + 这些
  *   命中覆盖的 topic 版本号——相关 topic 的任何写入/supersede 推进版本号即
  *   触发刷新；无关 topic 的写入不触发（阶段一 relevanceSignature 的结构化
@@ -55,6 +57,12 @@ export interface StructuredOptions extends SelectOptions {
   thresholds: GateThresholds
   /** 每次 search/list 的候选拉取上限。 */
   retrievalLimit: number
+  /**
+   * 按 topic 的加分权重（topic → 0..1 的加性 score 提升，封顶 1）：小语料上
+   * BM25 归一化得分天然趋零，procedure 等高价值 topic 可经此抬升门层级
+   * （如 `{ procedure: 0.2 }`）；只作用于带 score 的检索命中，不制造得分。
+   */
+  topicBoosts: Record<string, number>
 }
 
 /** 结构化选择结果：渲染候选 + 门控签名 + intent 状态的 topicVersions 切片。 */
@@ -116,7 +124,12 @@ export async function selectStructured(
 
   const rows: ScoredHit[] = [...hits.values()].map((entry) => {
     const isPinned = pinned(entry)
-    return { entry, pinned: isPinned, tier: tierOf(entry, isPinned, opts.thresholds) }
+    // topic 加分（Config topicBoosts）：只抬升已有 score 的命中，封顶 1。
+    const boost = opts.topicBoosts[entry.tags[0] ?? 'general'] ?? 0
+    const scored = boost > 0 && entry.score !== undefined
+      ? { ...entry, score: Math.min(1, entry.score + boost) }
+      : entry
+    return { entry: scored, pinned: isPinned, tier: tierOf(scored, isPinned, opts.thresholds) }
   })
   const injected = rows.filter(row => row.tier !== 'low')
   injected.sort((a, b) =>

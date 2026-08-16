@@ -436,6 +436,12 @@ importers:
       '@huiliyi37/dsh-memory':
         specifier: workspace:*
         version: link:../packages/memory/memory
+      '@huiliyi37/dsh-memory-consolidate':
+        specifier: workspace:*
+        version: link:../packages/memory/memory-consolidate
+      '@huiliyi37/dsh-memory-sqlite':
+        specifier: workspace:*
+        version: link:../packages/memory/memory-sqlite
       '@huiliyi37/dsh-permission':
         specifier: workspace:*
         version: link:../packages/interaction/permission
@@ -4982,6 +4988,9 @@ importers:
       '@huiliyi37/dsh-session':
         specifier: workspace:^
         version: link:../../core/session
+      '@huiliyi37/dsh-timeout':
+        specifier: workspace:^
+        version: link:../../util/timeout
       '@huiliyi37/schemastery':
         specifier: ^3.0.0-rc.3
         version: link:../../../vendor/schemastery
