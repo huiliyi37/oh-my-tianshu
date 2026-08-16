@@ -112,6 +112,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/e2b/subprocess-e2b': { kind: 'indirect', reason: 'The remote spawn backend delegates model rendering to consumer seams such as the bash executor family.' },
   'packages/subprocess/subprocess-local': { kind: 'indirect', reason: 'The spawn backend delegates model rendering to consumer seams such as the bash executor family.' },
   'packages/sandbox/sandbox-local': { kind: 'indirect', reason: 'The provider backend delegates model rendering to dsh-bash-sandbox and dsh-tool-bash.' },
+  'packages/sandbox/sandbox-windows-acl': { kind: 'indirect', reason: 'The backend confinement and denial facts render through the bash/pwsh sandbox tools; the seam owns the unavailable text.' },
   'packages/scaffold/client': { kind: 'none', reason: 'Client-process library; the model surface lives in the spawned runtime\'s composed plugins.' },
   'packages/scaffold/protocol': { kind: 'none', reason: 'Client-facing wire library; the runtime plugins behind the serving entry own the model surface.' },
   'packages/session/session-projection': { kind: 'none', reason: 'The projection registry serves client-facing read models of already-logged session state and registers no model surface.' },

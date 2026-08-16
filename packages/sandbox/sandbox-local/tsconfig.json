@@ -28,6 +28,12 @@
     },
     {
       "path": "../../support/invariants"
+    },
+    {
+      "path": "../../sandbox/sandbox-windows-acl"
+    },
+    {
+      "path": "../../core/session"
     }
   ]
 }

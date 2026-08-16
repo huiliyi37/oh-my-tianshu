@@ -265,6 +265,7 @@ flowchart TD
     pkg_sandbox["sandbox"]
     pkg_sandbox_local["sandbox-local"]
     pkg_sandbox_policy["sandbox-policy"]
+    pkg_sandbox_windows_acl["sandbox-windows-acl"]
   end
   subgraph group_scaffold["packages/scaffold"]
     pkg_jsonrpc["jsonrpc"]
@@ -363,6 +364,7 @@ flowchart TD
   pkg_host_directory_picker --> pkg_invariants
   pkg_host_webserver --> pkg_invariants
   pkg_memory --> pkg_invariants
+  pkg_sandbox_windows_acl --> pkg_invariants
   pkg_semantic_index --> pkg_invariants
   pkg_storage --> pkg_invariants
   pkg_subprocess --> pkg_invariants
@@ -558,6 +560,7 @@ flowchart TD
   pkg_sandbox_local --> pkg_invariants
   pkg_sandbox_local --> pkg_llm
   pkg_sandbox_local --> pkg_sandbox
+  pkg_sandbox_local --> pkg_session
   pkg_session_persistence --> pkg_brand
   pkg_session_persistence --> pkg_invariants
   pkg_session_persistence --> pkg_session
@@ -1393,6 +1396,7 @@ flowchart TD
 | [`host-directory-picker`](../packages/host/directory-picker) | `host` | [`invariants`](../packages/support/invariants) |
 | [`host-webserver`](../packages/host/webserver) | `host` | [`invariants`](../packages/support/invariants) |
 | [`memory`](../packages/memory/memory) | `memory` | [`invariants`](../packages/support/invariants) |
+| [`sandbox-windows-acl`](../packages/sandbox/sandbox-windows-acl) | `sandbox` | [`invariants`](../packages/support/invariants) |
 | [`semantic-index`](../packages/search/semantic-index) | `search` | [`invariants`](../packages/support/invariants) |
 | [`storage`](../packages/storage/storage) | `storage` | [`invariants`](../packages/support/invariants) |
 | [`subprocess`](../packages/subprocess/subprocess) | `subprocess` | [`invariants`](../packages/support/invariants) |
@@ -1453,7 +1457,7 @@ flowchart TD
 | [`client-ui-workspace`](../packages/client/ui-workspace) | `client` | [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-slots`](../packages/client/ui-slots), [`invariants`](../packages/support/invariants) |
 | [`code-runtime-worker`](../packages/code-runtime/code-runtime-worker) | `code-runtime` | [`code-runtime`](../packages/code-runtime/code-runtime), [`invariants`](../packages/support/invariants), [`session`](../packages/core/session), [`timeout`](../packages/util/timeout) |
 | [`persona`](../packages/preset/persona) | `preset` | [`invariants`](../packages/support/invariants), [`system-prompt`](../packages/core/system-prompt) |
-| [`sandbox-local`](../packages/sandbox/sandbox-local) | `sandbox` | [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`sandbox`](../packages/sandbox/sandbox) |
+| [`sandbox-local`](../packages/sandbox/sandbox-local) | `sandbox` | [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`sandbox`](../packages/sandbox/sandbox), [`session`](../packages/core/session) |
 | [`session-persistence`](../packages/session/session-persistence) | `session` | [`brand`](../packages/util/brand), [`invariants`](../packages/support/invariants), [`session`](../packages/core/session), [`timeout`](../packages/util/timeout) |
 | [`session-projection`](../packages/session/session-projection) | `session` | [`invariants`](../packages/support/invariants), [`session`](../packages/core/session) |
 | [`llm-retry`](../packages/llm/llm-retry) | `llm` | [`agent`](../packages/core/agent), [`brand`](../packages/util/brand), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`timeout`](../packages/util/timeout) |

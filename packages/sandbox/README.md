@@ -9,6 +9,7 @@ This family applies per-session confinement policy to process execution. It cove
 | [`sandbox/`](sandbox/README.md) | Defines the process-sandbox service and shared escalation vocabulary | `ctx.sandbox` |
 | [`sandbox-local/`](sandbox-local/README.md) | Provides local platform confinement backends | registers on `ctx.sandbox` |
 | [`sandbox-policy/`](sandbox-policy/README.md) | Resolves durable per-session sandbox policy | `ctx.sandboxPolicy` |
+| [`sandbox-windows-acl/`](sandbox-windows-acl/README.md) | Windows restricted-token write-restriction backend | rung of `ctx.sandbox` |
 
 See the [sandbox decision](../../.agents/notes/implemented/feature/2026-07-06-sandbox.md) for the capability boundary and the [filesystem integration decision](../../.agents/notes/implemented/feature/2026-07-14-cross-family-fs-sandbox.md) for cross-family policy use.
 
