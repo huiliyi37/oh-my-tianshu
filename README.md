@@ -25,6 +25,32 @@ npm i -g @huiliyi37/oh-my-tianshu
 oh-my-tianshu tui
 ```
 
+npm 11 and newer blocks lifecycle scripts it has not been told to allow
+(`allowScripts`). The native dependencies need theirs — `koffi` compiles from
+source, `node-pty` builds its PTY binary, `@huiliyi37/dsh-subprocess-local`
+restores the PTY spawn-helper's executable bit, and `@google/genai` /
+`protobufjs` generate runtime assets — so allow them on the global install:
+
+```sh
+npm i -g --allow-scripts=koffi,node-pty,@huiliyi37/dsh-subprocess-local,@google/genai,protobufjs @huiliyi37/oh-my-tianshu
+```
+
+If npm still warns about a package not on this list, append it and re-run; a
+silently skipped native build surfaces later as `Cannot find module` at
+runtime.
+
+#### Android (Termux)
+
+On Termux (or a `proot-distro` root) `process.platform` is `android`, the
+`koffi` FFI dependency has no Android prebuilt and compiles from source, and
+its CMake configure needs the Termux prefix — which a `proot-distro` root may
+not export. Set it before installing:
+
+```sh
+export PREFIX=/data/data/com.termux/files/usr
+npm i -g @huiliyi37/oh-my-tianshu
+```
+
 **API key**: export it before starting, or drop it in the user env file once (loaded automatically on every boot):
 
 ```sh

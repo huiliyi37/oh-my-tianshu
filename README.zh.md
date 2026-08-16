@@ -25,6 +25,23 @@ npm i -g @huiliyi37/oh-my-tianshu
 oh-my-tianshu tui
 ```
 
+npm 11 及以上默认拦截未显式放行的生命周期脚本(`allowScripts`)。原生依赖需要执行各自的脚本——`koffi` 需源码编译、`node-pty` 需构建 PTY 二进制、`@huiliyi37/dsh-subprocess-local` 需恢复 PTY spawn-helper 的可执行位、`@google/genai` / `protobufjs` 需生成运行时资源——因此全局安装时一并放行:
+
+```sh
+npm i -g --allow-scripts=koffi,node-pty,@huiliyi37/dsh-subprocess-local,@google/genai,protobufjs @huiliyi37/oh-my-tianshu
+```
+
+若 npm 仍警告列表中未覆盖的包,将其追加后重装;静默跳过的原生构建会在运行时以 `Cannot find module` 形式暴露。
+
+#### Android(Termux)
+
+在 Termux(或 `proot-distro` root)上 `process.platform` 为 `android`,`koffi` FFI 依赖没有 Android 预编译产物而需源码编译,其 CMake configure 需要 Termux 前缀——`proot-distro` root 可能未导出该变量。安装前先设置:
+
+```sh
+export PREFIX=/data/data/com.termux/files/usr
+npm i -g @huiliyi37/oh-my-tianshu
+```
+
 **API key**:启动前导出,或写入用户环境文件一次(每次启动自动加载):
 
 ```sh

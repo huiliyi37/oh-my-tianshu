@@ -103,7 +103,9 @@ function createProfileLifecycleFixture(): ProfileLifecycleFixture {
   writeFileSync(join(profileDir, 'package.json'), JSON.stringify({
     name: 'dsh-profile-lifecycle',
     private: true,
-    dependencies: {},
+    // Declared: the bundle-ownership check accepts bundles the profile itself
+    // depends on, even when this installation does not provide them.
+    dependencies: { 'dsh-lifecycle-bundle': '0.0.0' },
     dsh: { profile: { bundles: ['dsh-lifecycle-bundle'] } },
   }, undefined, 2))
   // Hand-place the "installed" bundle where profile resolution finds it.
@@ -182,7 +184,7 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
     const help = await runBuiltBin(['--help'])
     expect(help.code).toBe(0)
     expect(help.stdout).toContain('tianshu --profile web')
-    expect(help.stdout).toContain('tianshu run "run the tests"')
+    expect(help.stdout).toContain('oh-my-tianshu run "run the tests"')
     expect(help.stdout).toContain('tianshu plugin --profile')
     expect(help.stdout).not.toMatch(/^\s+(?:meta|upgrade)\b/mu)
     // `tui` graduated to a real command; only truly removed shapes stay rejected.
@@ -199,7 +201,7 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
       const result = await runBuiltBin(['run', '--help'], { DSH_HOME: home })
       expect(result.code).toBe(0)
       expect(result.stderr).toBe('')
-      expect(result.stdout).toContain('Usage: tianshu run [options] <task...>')
+      expect(result.stdout).toContain('Usage: oh-my-tianshu run [options] <task...>')
       expect(existsSync(home)).toBe(false)
     } finally {
       rmSync(parent, { recursive: true, force: true })
@@ -238,10 +240,28 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
     writeFileSync(join(project, '.env'), 'PATH=/project-only-path\n')
     try {
       const result = await runBuiltBin(['--version'], {}, project)
-      expect(result).toEqual({ code: 0, stdout: '0.2.1', stderr: '' })
+      expect(result).toEqual({ code: 0, stdout: '0.2.4', stderr: '' })
     } finally {
       rmSync(project, { recursive: true, force: true })
     }
+  })
+
+  it('re-execs with --expose-internals when launched without it', async () => {
+    // npm bin links launch a bare `node <script>`; the HMR service mounted by
+    // long-lived profile boots needs the flag, so the bin re-execs itself
+    // once. The published entry must therefore work from a bare invocation.
+    const result = await runBuiltBin(['--version'])
+    expect(result).toEqual({ code: 0, stdout: '0.2.4', stderr: '' })
+  })
+
+  it('does not re-exec when already launched with --expose-internals', async () => {
+    const result = await execa(
+      process.execPath,
+      ['--expose-internals', '--disable-warning=ExperimentalWarning', dshBin, '--version'],
+      { input: '', timeout: 25_000, killSignal: 'SIGKILL', reject: false, extendEnv: false },
+    )
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toBe('0.2.4')
   })
 
   it('fails loud on a nonexistent profile with the plugin-command hint', async () => {

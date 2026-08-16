@@ -16,8 +16,12 @@
   },
   "files": [
     "lib/*.js",
-    "config"
+    "config",
+    "scripts/check-android-prefix.mjs"
   ],
+  "scripts": {
+    "preinstall": "node scripts/check-android-prefix.mjs"
+  },
   "license": "Apache-2.0",
   "dependencies": {
     "@huiliyi37/cordis-plugin-hmr": "workspace:*",

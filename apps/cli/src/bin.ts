@@ -24,6 +24,43 @@ function readVersion(): string {
   return typeof manifest.version === 'string' ? manifest.version : '0.0.0'
 }
 
+/**
+ * The HMR service mounted by long-lived profile boots requires access to
+ * Node's internal ESM loader (`--expose-internals`). npm bin links launch
+ * with a bare `node <script>`, so re-exec once with the flag when it is
+ * absent. `process.execArgv` is preserved so the source launcher's
+ * `--import tsx/esm` hook survives, and the `process.execArgv` guard makes
+ * the re-exec idempotent.
+ *
+ * The parent forwards signals instead of dying on them: a synchronous spawn
+ * would leave the parent without a JS handler while it blocks, so a signal
+ * aimed at the bin (an e2e `kill`, a wrapper's SIGTERM) would kill the
+ * parent and orphan the real service. The parent mirrors the child's exit
+ * code and signal, and the child owns the inherited stdio (including the
+ * TTY's raw mode), so terminal behavior is unchanged.
+ * @returns the process exit promise; never resolves when a re-exec happened.
+ */
+async function reExecWithExposeInternals(): Promise<void> {
+  if (process.execArgv.includes('--expose-internals')) return
+  const { spawn } = await import('node:child_process')
+  const child = spawn(
+    process.execPath,
+    [...process.execArgv, '--expose-internals', ...process.argv.slice(1)],
+    { stdio: 'inherit' },
+  )
+  const forward = (signal: NodeJS.Signals): void => { child.kill(signal) }
+  for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) {
+    process.on(signal, () => { forward(signal) })
+  }
+  child.on('exit', (code, signal) => {
+    if (signal !== null) process.kill(process.pid, signal)
+    else process.exit(code ?? 1)
+  })
+  await new Promise<never>(() => {})
+}
+
+await reExecWithExposeInternals()
+
 const invocation = parseDshArgs(process.argv.slice(2), readVersion())
 
 switch (invocation.mode) {

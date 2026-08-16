@@ -357,6 +357,50 @@ export function resolveBundleDir(
 }
 
 /**
+ * Fail loud when a profile's `dsh.profile.bundles` names a package this
+ * installation neither provides nor the profile declares as a dependency,
+ * yet the profile directory still resolves it. The profile was then
+ * initialized by a different dsh installation sharing this `$DSH_HOME` (the
+ * official `@deepseek-ai/dsh` and this fork both default to `~/.dsh`): its
+ * leftover flat-fallback module links leak in, and the tree would load the
+ * other installation's bundle under this installation's boot contract — the
+ * raw `cannot get property "…" without inject` crash. A resolvable-but-
+ * unowned bundle is a version-mismatch accident, so it fails loud with the
+ * fix instead of booting into an unreadable error.
+ * @param binName - the diagnostic prefix on the thrown error.
+ * @param name - the profile name (its directory basename).
+ * @param dir - the profile directory.
+ * @param manifest - the profile manifest whose bundles are checked.
+ * @param installAnchor - absolute path of the dsh app's package.json.
+ */
+function assertBundlesOwnedByInstallation(
+  binName: string, name: string, dir: string, manifest: ProfileManifest, installAnchor: string,
+): void {
+  const bundles = manifest.dsh?.profile?.bundles ?? []
+  if (bundles.length === 0) return
+  // The profile's own declared dependencies are the second legitimate bundle
+  // source: `dsh plugin --profile <name> install <pkg>` records them here
+  // (the installation-owned in-box bundles are never dependencies).
+  const declared = new Set([
+    ...Object.keys(manifest.dependencies ?? {}),
+    ...Object.keys(manifest.peerDependencies ?? {}),
+  ])
+  const profileAnchor = join(dir, 'package.json')
+  for (const packageName of bundles) {
+    if (packageDirFromAnchor(installAnchor, packageName) !== undefined || declared.has(packageName)) continue
+    if (packageDirFromAnchor(profileAnchor, packageName) === undefined) continue
+    throw new Error(
+      `${binName}: profile ${JSON.stringify(name)} lists bundle ${JSON.stringify(packageName)}, which is not part `
+      + 'of this dsh installation and is not a declared dependency of the profile itself, yet it resolves from '
+      + `${dir}. ` + 'A different dsh installation sharing this $DSH_HOME (for example the official @deepseek-ai/dsh) '
+      + 'initialized this profile, and its leftover module links would load an incompatible bundle. Remove '
+      + `${dir} and re-run to ` + 'initialize the profile for this installation, or isolate this installation: '
+      + 'export DSH_HOME=$HOME/.dsh-tianshu',
+    )
+  }
+}
+
+/**
  * Load a profile: resolve every `dsh.profile.bundles` entry to its patch
  * layer and parse the profile's own patch file. A listed bundle without a
  * `dsh.bundle` manifest fails loud — naming a bundle-less package as a layer
@@ -387,6 +431,7 @@ export function loadProfile(
   const manifest = normalizeShippedProfile(name, dir, readProfileManifest(binName, dir))
   // A hand-written profile manifest may omit the dsh section entirely.
   const bundles = manifest.dsh?.profile?.bundles ?? []
+  assertBundlesOwnedByInstallation(binName, name, dir, manifest, installAnchor)
   const layers = bundles.map((packageName): ProfileLayer => {
     const packageDir = resolveBundleDir(binName, packageName, installAnchor, dir)
     const bundleManifest = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')) as ProfileManifest

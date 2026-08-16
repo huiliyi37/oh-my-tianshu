@@ -195,6 +195,57 @@ describe('loadProfile', () => {
     initProfile(dir, ['not-a-bundle'])
     expect(() => loadProfile('t', 'demo', anchor, home)).toThrow('declares no dsh.bundle')
   })
+
+  it('fails loud when a bundle resolves only from another installation leftover', () => {
+    // The official @deepseek-ai/dsh shares the default ~/.dsh home and leaves
+    // its flat-fallback links behind; this installation owns none of them.
+    const anchor = stageInstallation({})
+    const home = tmp()
+    const dir = resolveProfileDir('web', home)
+    initProfile(dir, ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'])
+    const farm = join(home, 'profiles', 'node_modules', '@deepseek-ai')
+    mkdirSync(farm, { recursive: true })
+    for (const name of ['dsh-base', 'dsh-web-app']) {
+      const pkgDir = join(farm, name)
+      mkdirSync(pkgDir, { recursive: true })
+      writeFileSync(join(pkgDir, 'package.json'), JSON.stringify({
+        name: `@deepseek-ai/${name}`, version: '0.0.0', dsh: { bundle: { patch: './cordis.patch.yml' } },
+      }))
+      writeFileSync(join(pkgDir, 'cordis.patch.yml'), '[]\n')
+    }
+    expect(() => loadProfile('t', 'web', anchor, home))
+      .toThrow(/different dsh installation sharing this \$DSH_HOME/)
+    expect(() => loadProfile('t', 'web', anchor, home)).toThrow(/DSH_HOME=\$HOME\/\.dsh-tianshu/)
+  })
+
+  it('allows a bundle the profile declares as a dependency when the installation lacks it', () => {
+    // `dsh plugin --profile <name> install <pkg>` records out-of-tree
+    // plugins in the profile's dependencies; those stay legitimate even
+    // though this installation does not provide them.
+    const anchor = stageInstallation({})
+    const home = tmp()
+    const dir = resolveProfileDir('demo', home)
+    initProfile(dir, ['out-of-tree-bundle'])
+    const manifest = readProfileManifest('t', dir)
+    manifest.dependencies = { 'out-of-tree-bundle': '0.0.0' }
+    writeProfileManifest(dir, manifest)
+    const pkgDir = join(dir, 'node_modules', 'out-of-tree-bundle')
+    mkdirSync(pkgDir, { recursive: true })
+    writeFileSync(join(pkgDir, 'package.json'), JSON.stringify({
+      name: 'out-of-tree-bundle', version: '0.0.0', dsh: { bundle: { patch: './cordis.patch.yml' } },
+    }))
+    writeFileSync(join(pkgDir, 'cordis.patch.yml'), '[]\n')
+    const profile = loadProfile('t', 'demo', anchor, home)
+    expect(profile.layers.map(layer => layer.packageName)).toEqual(['out-of-tree-bundle'])
+  })
+
+  it('keeps the plain unresolvable-bundle error when the bundle is nowhere', () => {
+    const anchor = stageInstallation({})
+    const home = tmp()
+    const dir = resolveProfileDir('demo', home)
+    initProfile(dir, ['absent-bundle'])
+    expect(() => loadProfile('t', 'demo', anchor, home)).toThrow('cannot resolve profile bundle')
+  })
 })
 
 describe('composeEntries', () => {
