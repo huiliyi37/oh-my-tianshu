@@ -48,6 +48,7 @@ import * as ToolFileInfo from '@huiliyi37/dsh-tool-file-info'
 import GitLocal from '@huiliyi37/dsh-git'
 import * as ToolGit from '@huiliyi37/dsh-tool-git'
 import * as ToolMemory from '@huiliyi37/dsh-tool-memory'
+import * as ToolMemoryRecall from '@huiliyi37/dsh-tool-memory-recall'
 import * as ToolMeridian from '@huiliyi37/dsh-tool-meridian'
 import * as ToolSemanticSearch from '@huiliyi37/dsh-tool-semantic-search'
 import * as ToolStrReplaceEditor from '@huiliyi37/dsh-tool-str-replace-editor'
@@ -541,6 +542,18 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'memory_save and memory_search reach the project-memory store lazily at execution time, so the schemas are independent of the memory backend.',
+  },
+  {
+    pkg: '@huiliyi37/dsh-tool-memory-recall',
+    dir: 'tool-memory-recall',
+    source: 'packages/memory/tool-memory-recall/src/index.ts',
+    requires: ['ctx.tools', 'ctx.systemPrompt', 'ctx.sessionQuery + ctx.subagents + the session-query read tools (execution time, probed)'],
+    writes: ['tool/call', 'tool/result', 'child session events through the chosen provider'],
+    async mount(ctx) {
+      await ctx.plugin(ToolMemoryRecall)
+    },
+    note:
+      'memory_deep_recall fans a question out to a read-only in-process reader subagent (static persona, structured output, tool allow list, maxDepth 0) and returns only the budget-clamped distillation — raw transcript bytes never enter the main context. The schema is independent of capability availability: a missing session-query service, search tool, or provider surfaces as a plain execution-time error.',
   },
   {
     pkg: '@huiliyi37/dsh-tool-meridian',

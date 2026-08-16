@@ -32,6 +32,8 @@
 | [`tasks/`](tasks/README.md) | 通用后台任务运行时和面向模型的 `task_*` 控制工具 | 产品：稳定接口 |
 | [`workflow/`](workflow/README.md) | 工作流 seam、worker 线程引擎和面向模型的 `workflow`/`ralph` 工具 | 产品：稳定接口 |
 | [`web/`](web/README.md) | Web 能力系列：seam、搜索／获取提供方实现和面向模型的 Web 工具 | 产品：稳定接口 |
+| [`search/`](search/README.md) | 代码库索引（符号图、BM25）+ 面向模型的检索工具 | 产品：稳定接口 |
+| [`memory/`](memory/README.md) | 项目记忆存储、面向模型的工具、intent 门控的 STM 快照 | 产品：稳定接口 |
 | [`spill/`](spill/README.md) | spill 能力系列：存储 seam、本地实现、工具结果 spill 策略 | 产品：稳定接口 |
 | [`todo/`](todo/README.md) | 面向模型的 `todo_write` 工具 | 产品：稳定接口 |
 | [`plan/`](plan/README.md) | Plan 协作状态，提供直接进入命令与经评审的退出 | 产品：稳定接口 |

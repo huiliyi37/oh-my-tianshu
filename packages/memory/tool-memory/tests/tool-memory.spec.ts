@@ -4,7 +4,8 @@
  * mock ctx：tools.register 捕获 defineTool 定义（取 execute/present 行为验证）、
  * systemPrompt.section 捕获注册、reflect.get('memory') 注入假 memory 服务。
  * 行为契约：memory_save 调 save（scope 校验/来源 agent）、memory_search 调
- * search（limit 透传）、服务缺失 fail loud、system prompt section 注册。
+ * search（excludeIds 透传、limit 钳制到 searchLimit 预算）、服务缺失 fail
+ * loud、system prompt section 缺省仅静态指引（digest 调试开关才追加摘要）。
  *
  * @module @huiliyi37/dsh-tool-memory/tests/tool-memory
  */
@@ -107,6 +108,16 @@ describe('tool-memory', () => {
     })
   })
 
+  it('memory_search：excludeIds 透传，limit 钳制到 searchLimit 预算', async () => {
+    const search = vi.fn(async () => [])
+    const { ctx, tools } = makeCtx({ memory: { save: vi.fn(), search } })
+    apply(ctx, { searchLimit: 3 })
+    await runTool(tools, 'memory_search', { query: 'x', excludeIds: ['a1b2c3d4'] })
+    expect(search).toHaveBeenCalledWith('x', { limit: 3, excludeIds: ['a1b2c3d4'] })
+    await runTool(tools, 'memory_search', { query: 'x', limit: 50 })
+    expect(search).toHaveBeenLastCalledWith('x', { limit: 3 })
+  })
+
   it('memory 服务缺失：工具执行 fail loud', async () => {
     const { ctx, tools } = makeCtx()
     apply(ctx)
@@ -114,20 +125,21 @@ describe('tool-memory', () => {
     await expect(runTool(tools, 'memory_search', { query: 'x' })).rejects.toThrow('memory 服务不可用')
   })
 
-  it('system prompt section：text 函数含静态指引与记忆摘要', async () => {
+  it('system prompt section：缺省仅静态指引（逐字节稳定，不读记忆）', async () => {
     const list = vi.fn(async () => [{ id: 'm1', text: '摘要行', tags: [], createdAt: 1 }])
     const { ctx, sections } = makeCtx({ memory: { save: vi.fn(), search: vi.fn(), list } })
     apply(ctx)
     const text = (sections[0]?.text as () => string)()
     expect(text).toContain('memory_search')
     expect(text).toContain('memory_save')
-    // 摘要异步刷新后（等待 microtask）应含记忆首行
-    await vi.waitFor(() => {
-      expect((sections[0]?.text as () => string)()).toContain('摘要行')
-    })
+    expect(text).not.toContain('摘要行')
+    // 静态指引：两次渲染逐字节一致，且从不触发 list（无动态摘要预取）
+    expect((sections[0]?.text as () => string)()).toBe(text)
+    await Promise.resolve()
+    expect(list).not.toHaveBeenCalled()
   })
 
-  it('摘要缓存刷新：save 后 text 函数含新记忆', async () => {
+  it('digest 调试开关：开启后 section 含记忆摘要，save 后刷新', async () => {
     const saved: Array<{ text: string }> = []
     const save = vi.fn(async (entry: { text: string }) => {
       saved.push(entry)
@@ -135,7 +147,7 @@ describe('tool-memory', () => {
     })
     const list = vi.fn(async () => saved.map((s, i) => ({ id: `m${i}`, text: s.text, tags: [], createdAt: i })))
     const { ctx, tools, sections } = makeCtx({ memory: { save, search: vi.fn(), list } })
-    apply(ctx)
+    apply(ctx, { digest: true })
     await runTool(tools, 'memory_save', { text: '新决策' })
     await vi.waitFor(() => {
       expect((sections[0]?.text as () => string)()).toContain('新决策')

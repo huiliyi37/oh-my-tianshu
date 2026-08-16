@@ -3,12 +3,14 @@
  *
  * 让 agent 在工作过程中读写项目级记忆（dsh-memory 服务）：
  * - memory_save：将重要发现（项目结构、用户偏好、关键决策）写入记忆
- * - memory_search：检索之前保存的知识（关键词子串匹配）
+ * - memory_search：检索之前保存的知识（关键词子串匹配；excludeIds 排除
+ *   已进入 STM 上下文的条目；结果数受 searchLimit 预算约束）
  *
  * memory 服务经 `ctx.reflect.get('memory', false)` 动态获取（非静态依赖；
- * 未装配时工具执行 fail loud）。system prompt 注入静态指引 + 动态记忆摘要
- * （摘要经预取缓存：apply 时与 save 后异步刷新，section text 函数同步读缓存
- * ——PromptSection.text 是同步签名，无法直接 await memory.list）。
+ * 未装配时工具执行 fail loud）。system prompt 注入静态指引（缺省仅此——
+ * 每次 save 后刷新的动态摘要会重写请求前缀、击穿 provider 前缀缓存，已
+ * 移除；`digest: true` 仅供调试对比开启，经预取缓存同步读——
+ * PromptSection.text 是同步签名，无法直接 await memory.list）。
  *
  * @module @huiliyi37/dsh-tool-memory
  */
@@ -26,11 +28,12 @@ export const inject = ['tools', 'systemPrompt']
 /** memory 服务键（与 dsh-memory 的 MEMORY_KEY 对齐；经 reflect 动态获取）。 */
 const MEMORY_KEY = 'memory'
 
-/** 静态指引文本（agent 开局看到 memory 能力）。 */
+/** 静态指引文本（agent 开局看到 memory 能力；逐字节稳定——前缀缓存安全）。 */
 const MEMORY_GUIDANCE = [
   '项目记忆（memory）：本项目有持久化记忆服务，可跨会话保存与检索知识。',
   '- 需要历史决策/项目结构/用户偏好时：用 memory_search 检索',
   '- 发现重要事实（决策、偏好、约定）时：用 memory_save 保存（scope 缺省 global）',
+  '- 检索时用 excludeIds 排除已出现在「相关项目记忆」上下文中的条目，避免重复',
 ].join('\n')
 
 /** 取 memory 服务（未装配返回 undefined）。 */
@@ -58,25 +61,32 @@ function requireMemory(ctx: Context): MemoryService {
 
 /** 插件配置。 */
 export interface ToolMemoryConfig {
-  /** 摘要注入开关（缺省 true）。 */
+  /**
+   * 调试开关（缺省 false）：在 system prompt 追加最近 20 条记忆摘要。
+   * 摘要在每次 save 后刷新，会重写请求前缀并击穿 provider 前缀缓存——
+   * 仅供缓存对比实验（基线臂 B）使用，生产组合保持关闭。
+   */
   digest?: boolean
+  /** memory_search 单次调用的结果数预算（缺省 10；模型的 limit 参数被钳制到此值）。 */
+  searchLimit?: number
 }
 
 export const Config = z.object({
-  digest: z.boolean().default(true),
+  digest: z.boolean().default(false),
+  searchLimit: z.number().default(10),
 })
 
 /**
- * 注册 memory_save / memory_search 工具 + system prompt 指引。
+ * 注册 memory_save / memory_search 工具 + system prompt 静态指引。
  * @param ctx - 插件上下文（注入 tools/systemPrompt）。
- * @param config - digest 摘要注入开关。
+ * @param config - digest 调试摘要开关与 searchLimit 检索预算。
  */
 export function apply(ctx: Context, config: ToolMemoryConfig = {}): void {
-  const resolved = { digest: config.digest ?? true }
+  const resolved = { digest: config.digest ?? false, searchLimit: config.searchLimit ?? 10 }
   // 摘要缓存为 apply 实例局部（多 ctx/并行测试互不串扰；section text 同步读）。
   let digestCache = '（项目记忆为空）'
 
-  /** 刷新记忆摘要缓存（apply 时 + save 后；失败保持旧缓存）。 */
+  /** 刷新记忆摘要缓存（仅 digest 调试开关开启时：apply 时 + save 后；失败保持旧缓存）。 */
   const refreshDigest = async (): Promise<void> => {
     const memory = getMemory(ctx)
     if (memory === undefined) {
@@ -95,11 +105,12 @@ export function apply(ctx: Context, config: ToolMemoryConfig = {}): void {
 
   if (resolved.digest) void refreshDigest()
 
-  // 记忆摘要 section（text 同步读缓存；装配时即最新摘要）。
+  // 记忆指引 section：缺省仅静态指引（逐字节稳定）；digest 调试开关开启时
+  // 追加动态摘要（text 同步读缓存；装配时即最新摘要）。
   ctx.systemPrompt.section({
     name: 'tool:memory',
     order: 130,
-    text: () => `${MEMORY_GUIDANCE}\n${digestCache}`,
+    text: () => resolved.digest ? `${MEMORY_GUIDANCE}\n${digestCache}` : MEMORY_GUIDANCE,
   })
 
   ctx.tools.register(defineTool({
@@ -148,10 +159,16 @@ export function apply(ctx: Context, config: ToolMemoryConfig = {}): void {
     name: 'memory_search',
     description:
       '在项目记忆中检索知识（关键词子串匹配，大小写不敏感；空 query 列出全部）。'
-      + '开始新任务、需要历史决策/项目约定/用户偏好时使用。',
+      + '开始新任务、需要历史决策/项目约定/用户偏好时使用。'
+      + '已在「相关项目记忆」上下文中出现的条目用 excludeIds 排除，避免重复占用上下文。',
     parameters: {
       query: { type: 'string', required: true, description: '搜索关键词（空串匹配全部）' },
-      limit: { type: 'number', description: '返回条数上限（缺省 10）' },
+      limit: { type: 'number', description: `返回条数上限（缺省且封顶 ${resolved.searchLimit}）` },
+      excludeIds: {
+        type: 'array',
+        items: { type: 'string' },
+        description: '要排除的记忆 id（完整 id 或 STM 中展示的短 id 前缀）',
+      },
     },
     output: {
       schema: {
@@ -184,7 +201,12 @@ export function apply(ctx: Context, config: ToolMemoryConfig = {}): void {
     },
     async execute(args) {
       const memory = requireMemory(ctx)
-      const entries = await memory.search(args.query, { limit: args.limit ?? 10 })
+      // 单次结果预算：模型的 limit 被钳制到 searchLimit（缺省即预算本身）。
+      const limit = Math.min(args.limit ?? resolved.searchLimit, resolved.searchLimit)
+      const entries = await memory.search(args.query, {
+        limit,
+        ...(args.excludeIds === undefined ? {} : { excludeIds: args.excludeIds }),
+      })
       return {
         entries: entries.map(e => ({
           id: e.id,

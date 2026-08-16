@@ -31,7 +31,7 @@
 import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, readdir, rename, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import type { MemoryEntry, MemoryScope, MemoryService } from './types.js'
+import type { MemoryEntry, MemorySaveInput, MemoryScope, MemorySearchOptions, MemorySearchResult, MemoryService } from './types.js'
 
 /** 文件格式版本标记（解析时忽略未知行，向前兼容）。 */
 const FILE_HEADER = '<!-- dsh-memory v1 -->'
@@ -156,7 +156,9 @@ export class MarkdownMemoryStore implements MemoryService {
     this.root = root
   }
 
-  async save(entry: Omit<MemoryEntry, 'id' | 'createdAt'> & { id?: string }): Promise<MemoryEntry> {
+  async save(entry: MemorySaveInput): Promise<MemoryEntry> {
+    // 结构化字段（kind/topic/entities/confidence/fact/sourceRefs）属结构化
+    // provider 的维度；Markdown 为纯文本存储，按契约忽略。
     assertScope(entry.scope)
     const all = await this.readAll(entry.scope)
     const existing = entry.id === undefined ? undefined : all.find(e => e.id === entry.id)
@@ -188,10 +190,20 @@ export class MarkdownMemoryStore implements MemoryService {
     return updated
   }
 
-  async search(query: string, opts: { scope?: string; limit?: number; offset?: number } = {}): Promise<MemoryEntry[]> {
+  async search(
+    query: string,
+    opts: MemorySearchOptions = {},
+  ): Promise<MemorySearchResult[]> {
+    const { excludeIds, entities, topic, ...listOpts } = opts
     const needle = query.toLowerCase()
-    return this.list(opts).then(all =>
-      all.filter(e => needle === '' || e.text.toLowerCase().includes(needle)),
+    return this.list(listOpts).then(all =>
+      all.filter(e =>
+        (needle === '' || e.text.toLowerCase().includes(needle))
+        && !isExcluded(e, excludeIds ?? [])
+        // 无 entities/topic 维度：退化为 tags 精确匹配（契约允许的退化语义）。
+        && (entities ?? []).every(entity => e.tags.includes(entity))
+        && (topic === undefined || e.tags.includes(topic)),
+      ),
     )
   }
 
@@ -275,4 +287,9 @@ export class MarkdownMemoryStore implements MemoryService {
 /** limit 截断（缺省不限）。 */
 function applyLimit(limit: number | undefined): (entries: MemoryEntry[]) => MemoryEntry[] {
   return entries => limit === undefined ? entries : entries.slice(0, limit)
+}
+
+/** excludeIds 排除：精确 id 或 id 前缀（模型从 STM 短 id 排除已载条目）。 */
+function isExcluded(entry: MemoryEntry, excludeIds: string[]): boolean {
+  return excludeIds.some(excluded => excluded !== '' && entry.id.startsWith(excluded))
 }

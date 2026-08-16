@@ -137,6 +137,7 @@
         "./packages/examples/*/src/invariant.ts",
         "./packages/util/*/src/invariant.ts",
         "./packages/mcp/*/src/invariant.ts",
+        "./packages/memory/*/src/invariant.ts",
         "./packages/support/*/src/invariant.ts",
         "./packages/tui/*/src/invariant.ts"
       ],
@@ -246,6 +247,7 @@
         "./packages/examples/*/src",
         "./packages/util/*/src",
         "./packages/mcp/*/src",
+        "./packages/memory/*/src",
         "./packages/support/*/src",
         "./packages/tui/*/src",
         "./packages/host/*/src",

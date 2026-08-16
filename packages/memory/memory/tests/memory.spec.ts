@@ -8,7 +8,8 @@
  * - 文件格式人类可读/可手动编辑：每条记忆 = 元数据注释行 + 文本 + 结束注释。
  * - save 新建（id 缺省）→ 生成 uuid + createdAt；save 更新（带 id）→ 覆盖 +
  *   updatedAt；delete → 移除。整文件原子重写（temp + rename）。
- * - list 按 createdAt 倒序；search 朴素子串匹配（大小写不敏感）。
+ * - list 按 createdAt 倒序；search 朴素子串匹配（大小写不敏感），excludeIds
+ *   按 id 或 id 前缀排除条目。
  * - 新实例读同一目录可恢复全部记忆（重启可读）。
  *
  * @module @huiliyi37/dsh-memory/tests/memory
@@ -91,6 +92,21 @@ describe('MarkdownMemoryStore', () => {
     expect(miss).toHaveLength(0)
     const limited = await store.search('', { limit: 1 })
     expect(limited).toHaveLength(1)
+  })
+
+  it('search：excludeIds 按 id 或 id 前缀排除条目', async () => {
+    const store = await makeStore()
+    const keep = await store.save({ text: '保留的记忆', scope: 'global', tags: [], source: 'user' })
+    const drop = await store.save({ text: '已进 STM 的记忆', scope: 'global', tags: [], source: 'user' })
+    // 精确 id 排除
+    const exact = await store.search('', { excludeIds: [drop.id] })
+    expect(exact.map(e => e.id)).toEqual([keep.id])
+    // id 前缀排除（STM 只展示短 id，模型以前缀回传）
+    const prefix = await store.search('', { excludeIds: [drop.id.slice(0, 8)] })
+    expect(prefix.map(e => e.id)).toEqual([keep.id])
+    // 空串前缀不排除任何条目
+    const emptyPrefix = await store.search('', { excludeIds: [''] })
+    expect(emptyPrefix).toHaveLength(2)
   })
 
   it('delete：移除条目；删除不存在的 id 静默 no-op', async () => {
