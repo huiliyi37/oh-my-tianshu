@@ -14,6 +14,7 @@
  * @module @huiliyi37/dsh-tui/delegation-panel
  */
 
+import { shortSessionLabel } from './session-label.js'
 import { displayWidth } from './width.js'
 
 /** activity 状态：running 在 store 中存活，inactive 仅存在于持久化。 */
@@ -97,9 +98,9 @@ function reasonLabel(reason: Extract<DelegationTreeEntry, { kind: 'diagnostic' }
   return '不支持'
 }
 
-/** id 前 8 位短哈希（label 缺失回退）。 */
+/** id 前 8 位短哈希（label 缺失回退；`session-` 前缀已剥离）。 */
 function shortHash(id: string): string {
-  return id.slice(0, 8)
+  return shortSessionLabel(id)
 }
 
 /** settledMs → 秒文本（一位小数）。 */

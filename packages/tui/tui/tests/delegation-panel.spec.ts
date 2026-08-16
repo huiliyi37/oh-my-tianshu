@@ -92,6 +92,16 @@ describe('projectDelegationTree label 与短哈希回退', () => {
     expect(rows.some(r => r.includes('aaaaaaaa'))).toBe(true)
     expect(rows.some(r => r.includes('aaaaaaaa-bbbb'))).toBe(false)
   })
+
+  it('session- 前缀 id 的短哈希回退去前缀（uuid8，非 session- 空壳）', () => {
+    const entry: DelegationTreeEntry = {
+      ...childInactiveOneShotNoLabel,
+      id: 'session-77aa88bb-9c00-4d11-8e22-334455667788',
+    }
+    const rows = projectDelegationTree([entry], new Map(), new Map(), { width: 80 })
+    expect(rows.some(r => r.includes('77aa88bb'))).toBe(true)
+    expect(rows.some(r => r.includes('session-'))).toBe(false)
+  })
 })
 
 describe('projectDelegationTree identities 投影覆盖', () => {

@@ -768,10 +768,12 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     const app = new TuiApp({ ctx, stdout, stdin })
     await app.attach()
     expect(app.sessionId).toBe(s1)
-    // tab 栏渲染：短 id + 当前 ●（s1 当前）
+    // tab 栏渲染：短 id（session- 前缀已剥离）+ 当前 ●（s1 当前）
     await new Promise(resolve => setTimeout(resolve, 50))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('session-tab-one'.slice(0, 8) + '●')
+    expect(written).toContain('tab-one●')
+    // 双栏整合：live 段 renderSessionTabs（▸ 前缀形态）不再渲染，tab 栏唯一
+    expect(written).not.toContain('▸')
     // Ctrl+X → 下一个（s2）
     stdin.emit('data', '\x18')
     await new Promise(resolve => setTimeout(resolve, 50))
