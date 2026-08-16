@@ -7,5 +7,6 @@ The feedback family lets a human record a remark about the session without actin
 | Package | Role | ctx key |
 |---|---|---|
 | `command-feedback/` | Trigger-independent `feedback/record` event plus the human-facing `/feedback` producer | — |
+| [`message-feedback/`](message-feedback/README.md) | Lifecycle-bound per-message rating and note sidecar | `ctx.messageFeedback` |
 
 A recorded remark is log-only: it never enters the model surface or derived history. When mounted, [`dsh-session-telemetry-otel`](../session/session-telemetry-otel) observes `feedback/record` to release a pending telemetry prefix or warn that disabled telemetry leaves the feedback local; capture itself remains independent of that policy.

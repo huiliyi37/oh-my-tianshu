@@ -3696,6 +3696,55 @@ importers:
         specifier: workspace:^
         version: link:../../core/session
 
+  packages/feedback/message-feedback:
+    dependencies:
+      '@huiliyi37/schemastery':
+        specifier: ^3.18.0
+        version: link:../../../vendor/schemastery
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@huiliyi37/cordis':
+        specifier: ^4.0.0-rc.7
+        version: link:../../../vendor/cordis
+      '@huiliyi37/cordis-plugin-include':
+        specifier: workspace:^
+        version: link:../../../vendor/include
+      '@huiliyi37/cordis-plugin-loader':
+        specifier: workspace:^
+        version: link:../../../vendor/loader
+      '@huiliyi37/dsh-brand':
+        specifier: workspace:^
+        version: link:../../util/brand
+      '@huiliyi37/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../support/invariants
+      '@huiliyi37/dsh-llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
+      '@huiliyi37/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@huiliyi37/dsh-session-persistence':
+        specifier: workspace:^
+        version: link:../../session/session-persistence
+      '@huiliyi37/dsh-session-persistence-jsonl':
+        specifier: workspace:^
+        version: link:../../session/session-persistence-jsonl
+      '@huiliyi37/dsh-storage':
+        specifier: workspace:^
+        version: link:../../storage/storage
+      '@huiliyi37/dsh-storage-domain':
+        specifier: workspace:^
+        version: link:../../storage/storage-domain
+      '@huiliyi37/dsh-storage-json':
+        specifier: workspace:^
+        version: link:../../storage/storage-json
+      '@huiliyi37/dsh-type-meta':
+        specifier: workspace:^
+        version: link:../../typert/type-meta
+
   packages/fs/fs:
     devDependencies:
       '@huiliyi37/cordis':

@@ -151,6 +151,7 @@
     { "path": "./packages/goal/goal-session" },
     { "path": "./packages/goal/command-goal" },
     { "path": "./packages/feedback/command-feedback" },
+    { "path": "./packages/feedback/message-feedback" },
     { "path": "./packages/context/time-context" },
     { "path": "./packages/context/spark-anchors" },
     { "path": "./packages/context/vision-bridge" },
