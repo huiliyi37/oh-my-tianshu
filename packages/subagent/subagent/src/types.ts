@@ -84,6 +84,7 @@ export interface SubagentCapabilities {
   readonly depthLimit: boolean
   readonly toolFilter: boolean
   readonly persona: boolean
+  readonly sandboxMode: boolean
 }
 
 /**
@@ -142,6 +143,16 @@ export interface SubagentStartRequest {
    * persona (strict `{{…}}` interpolation against the registered variables).
    */
   readonly persona?: string
+  /**
+   * Optional sandbox narrowing to `read-only` for the child. Requires
+   * {@link SubagentCapabilities.sandboxMode}; rejected at start otherwise.
+   * In-process backends append a durable `sandbox/mode` override
+   * (`source: 'delegation'`) inside the child's creation window, so the
+   * narrowing lives on the child's own log and survives cold resume. Only
+   * narrowing is representable — a delegation can never widen the sandbox
+   * through this field.
+   */
+  readonly sandboxMode?: 'read-only'
 }
 
 /**

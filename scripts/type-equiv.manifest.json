@@ -1122,6 +1122,16 @@
     },
     {
       "doc": "docs/subsystems/subagent.md",
+      "symbol": "AgentDefinitionSummary",
+      "source": "packages/subagent/agent-definitions/src/index.ts"
+    },
+    {
+      "doc": "docs/subsystems/subagent.md",
+      "symbol": "AgentDefinition",
+      "source": "packages/subagent/agent-definitions/src/index.ts"
+    },
+    {
+      "doc": "docs/subsystems/subagent.md",
       "symbol": "CoordinatorMessageSource",
       "source": "packages/subagent/subagent/src/continuation.ts"
     },

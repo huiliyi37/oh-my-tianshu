@@ -183,7 +183,7 @@ describe('SubagentService.startContinuable', () => {
     const start = vi.fn(async () => { throw new Error('must not dispatch') })
     ctx.subagents.registerProvider({
       name: 'one-shot',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
       inheritsParentContext: false,
       start,
     })
@@ -225,6 +225,27 @@ describe('SubagentService.startContinuable', () => {
     expect(loaded.meta.id).toBe(started.childId)
     expect(loaded.meta.parentSession).toBe(SessionId('parent'))
     expect(loaded.meta.origin).toBe('subagent')
+  })
+
+  it('persists a requested sandbox narrowing on the child log across cold resume', async () => {
+    const { ctx, parent } = await setup([textResponse('first'), textResponse('after resume')])
+    const spec = startSpec(parent)
+    const started = await ctx.subagents.startContinuable({
+      ...spec,
+      request: { ...spec.request, sandboxMode: 'read-only' as const },
+    })
+    await waitNoActivation(ctx, started.childId)
+
+    const loaded = await ctx.sessionPersistence.load(started.childId)
+    const modeEvents = loaded.events.filter(event => event.type === 'sandbox/mode')
+    expect(modeEvents).toHaveLength(1)
+    expect(modeEvents[0]).toMatchObject({ data: { mode: 'read-only', source: 'delegation' } })
+
+    // Cold resume replays the durable event instead of appending a fresh one.
+    await followup(ctx, parent, started.childId, message('again'))
+    await waitNoActivation(ctx, started.childId)
+    const reloaded = await ctx.sessionPersistence.load(started.childId)
+    expect(reloaded.events.filter(event => event.type === 'sandbox/mode')).toHaveLength(1)
   })
 
   it('rolls the child back completely when the caller signal aborts before acceptance', async () => {
@@ -474,7 +495,7 @@ describe('SubagentService.followup residency routing', () => {
     await ctx.plugin(SubagentInvariant)
     const disposeProvider = ctx.subagents.registerProvider({
       name: 'retired',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
       inheritsParentContext: false,
       start: async () => { throw new Error('one-shot start is not used') },
       prepareContinuable: () => Promise.resolve({}),

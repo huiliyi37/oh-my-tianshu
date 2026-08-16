@@ -40,6 +40,7 @@ describe('product-provider public Loader composition', () => {
             depthLimit: false,
             toolFilter: false,
             persona: false,
+            sandboxMode: false,
           },
           inheritsParentContext: false,
         },
@@ -50,6 +51,7 @@ describe('product-provider public Loader composition', () => {
             depthLimit: false,
             toolFilter: false,
             persona: false,
+            sandboxMode: false,
           },
           inheritsParentContext: false,
         },
@@ -57,12 +59,12 @@ describe('product-provider public Loader composition', () => {
       tools: [
         {
           name: 'subagent_codex',
-          parameterNames: ['description', 'prompt'],
+          parameterNames: ['description', 'prompt', 'agent'],
           required: ['description', 'prompt'],
         },
         {
           name: 'subagent_claude_code',
-          parameterNames: ['description', 'prompt'],
+          parameterNames: ['description', 'prompt', 'agent'],
           required: ['description', 'prompt'],
         },
       ],

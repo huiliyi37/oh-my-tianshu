@@ -27,6 +27,9 @@
       "path": "../../core/scope"
     },
     {
+      "path": "../../sandbox/sandbox-policy"
+    },
+    {
       "path": "../../session/session-persistence"
     },
     {

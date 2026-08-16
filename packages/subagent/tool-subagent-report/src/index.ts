@@ -10,6 +10,7 @@ import type { Context } from '@huiliyi37/cordis'
 import z from '@huiliyi37/schemastery'
 import type { Agent } from '@huiliyi37/dsh-agent'
 import type { ContentBlock } from '@huiliyi37/dsh-llm'
+import { escapeText } from '@huiliyi37/dsh-skill'
 import type { SubagentReportDelivery } from '@huiliyi37/dsh-subagent'
 import { defineTool } from '@huiliyi37/dsh-tools'
 
@@ -70,7 +71,10 @@ export function installReportTool(
       }],
     },
     async execute(args, exec) {
-      const content: ContentBlock[] = [{ type: 'text', text: args.output }]
+      // The report text crosses into the parent's conversation as a user
+      // message: escape pseudo-XML framing so a child that read hostile
+      // content cannot inject markup the parent parses as harness instructions.
+      const content: ContentBlock[] = [{ type: 'text', text: escapeText(args.output) }]
       // Scope-local resolution guarantees an Agent. The service still verifies
       // its exact live Activation identity at the authority boundary.
       const messageId = await ctx.subagents.reportFrom(exec.agent as Agent, content, {

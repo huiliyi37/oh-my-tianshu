@@ -329,6 +329,16 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
         watch: false,
       },
     },
+    // Agent-role discovery is model-visible input for the same reason: pin its
+    // host-level roots inside the owned temp world too.
+    {
+      id: 'agent-definitions',
+      config: {
+        dshHome: join(workspaceCwd, '.dsh-home'),
+        agentsHome: join(workspaceCwd, '.agents-home'),
+        watch: false,
+      },
+    },
     // fs/bash cwd default to process.cwd(); the gateway injects the same
     // value into session.cwd — chdir below anchors all three to the temp
     // workspace, keeping the composition untouched.

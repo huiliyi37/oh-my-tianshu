@@ -12,6 +12,10 @@ import type { Context } from '@huiliyi37/cordis'
 import type { Agent, AgentOptions, CreateAgentOptions } from '@huiliyi37/dsh-agent'
 import type { SessionId } from '@huiliyi37/dsh-session'
 import type { ToolRestriction } from '@huiliyi37/dsh-tools'
+// Type-only: the `sandbox/mode` payload declaration lives in the policy
+// package; the composition append consumes it opportunistically, never as a
+// hard dependency.
+import type {} from '@huiliyi37/dsh-sandbox-policy'
 import { delegationDepthOf } from './depth.ts'
 
 /** Thrown when starting a child would exceed the requested depth cap. */
@@ -103,20 +107,32 @@ export interface ChildComposition {
   readonly persona?: string | undefined
   /** Per-child tool scoping. */
   readonly toolFilter?: ToolRestriction | undefined
+  /**
+   * Per-child sandbox narrowing, appended as a durable `sandbox/mode`
+   * delegation override on the child's own log. Only fresh composition passes
+   * it: a cold-resumed child already replays the event from its log.
+   */
+  readonly sandboxMode?: 'read-only' | undefined
 }
 
 /**
  * Apply one child's scoped composition inside its creation window: a shadowing
- * persona section and a tool restriction, both owned by the child's scope and
- * therefore invisible to its parent and siblings.
+ * persona section, a tool restriction, and a sandbox-mode override, all owned
+ * by the child's scope and therefore invisible to its parent and siblings.
  * @param childCtx - the child agent's scoped creation context.
- * @param composition - the persona and tool filter to install.
+ * @param composition - the persona, tool filter, and sandbox narrowing to install.
  */
 export function applyChildComposition(childCtx: Context, composition: ChildComposition): void {
   if (composition.persona !== undefined) {
     childCtx.systemPrompt.section({ name: 'deployment:persona', order: 0, text: composition.persona })
   }
   if (composition.toolFilter !== undefined) childCtx.tools.restrict(composition.toolFilter)
+  if (composition.sandboxMode !== undefined) {
+    // The raw append matches the inherited-override append in the one-shot
+    // driver: a log-only event needs no turn enclosure, and landing after any
+    // inherited override makes the delegation narrowing the effective mode.
+    (childCtx.agent as Agent).session.append('sandbox/mode', { mode: composition.sandboxMode, source: 'delegation' })
+  }
 }
 
 /** Identity and lineage inputs shared by every in-process child creation. */

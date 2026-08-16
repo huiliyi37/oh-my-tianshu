@@ -201,4 +201,33 @@ describe('in-process policy inheritance', () => {
       await run.dispose()
     }
   })
+
+  it('narrows the child sandbox to read-only when the request asks for it', async () => {
+    const script: Script = []
+    const { ctx, parent } = await setupWalled(script)
+    const blocked = join(workspace, 'role-blocked.txt')
+    // No parent override: the deployment default (workspace-write) would allow
+    // this write, so only the requested narrowing denies it.
+    script.push(
+      toolCallResponse('write', 'write', { file_path: blocked, content: 'escaped' }),
+      textResponse('child done'),
+    )
+
+    const run = await startInProcessRun({ ...spawnRequest(parent), sandboxMode: 'read-only' as const }, {})
+    try {
+      const result = await run.result
+      const child = run.localAgent as Agent
+      await expect(readFile(blocked, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
+      expect(toolResultTexts(child).join('\n')).toContain(READ_ONLY_DENIAL)
+      expect(result.stopReason).toBe('completed')
+      expect(child.session.events[0]).toMatchObject({
+        type: 'sandbox/mode',
+        data: { mode: 'read-only', source: 'delegation' },
+      })
+      expect(ctx.sandboxPolicy.overrideOf(child.session)).toBe('read-only')
+      expect(parent.session.events.some(event => event.type === 'sandbox/mode')).toBe(false)
+    } finally {
+      await run.dispose()
+    }
+  })
 })

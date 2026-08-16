@@ -6,7 +6,7 @@ The subagent seam — an agent delegating work to a child agent. Like [bash](bas
 
 Service Definition: [dsh-subagent](../../packages/subagent/subagent) (`ctx.subagents` + the vocabulary below). Service providers are sibling packages (`dsh-subagent-spawn`, `-fork`, `-acp`, `-codex`, `-claude-code`, `-dsh-sdk`); the model-facing Consumers are [dsh-tool-subagent](../../packages/subagent/tool-subagent) (per-provider delegation), [dsh-tool-subagent-control](../../packages/subagent/tool-subagent-control) (the optional global `send_message`, `interrupt_agent`, and `list_agents` controls), and [dsh-tool-subagent-report](../../packages/subagent/tool-subagent-report) (the optional child-scoped `report` return channel). The same `ctx.subagents` service owns continuable-child orchestration through an internal activation manager and read-only child and descendant discovery straight from the session store and optional session persistence. Product-provider rationale lives in [the Codex and Claude Code Agent Note](../../.agents/notes/implemented/feature/2026-08-04-claude-code-and-codex-subagent-backends.md); common-seam rationale lives in [the subagent Agent Note](../../.agents/notes/implemented/feature/2026-06-21-subagent-capability-seam.md), [the continuable subagents Agent Note](../../.agents/notes/implemented/feature/2026-07-28-continuable-subagent-conversations.md), [the report-tool Agent Note](../../.agents/notes/implemented/feature/2026-07-30-continuable-subagent-report-tool.md), [the durable catalog Agent Note](../../.agents/notes/implemented/feature/2026-07-22-durable-subagent-catalog-and-list-agents.md), [the list-identity-projection Agent Note](../../.agents/notes/implemented/architecture/2026-08-06-subagent-list-identity-projection.md), and [the merged-service Agent Note](../../.agents/notes/implemented/simplification/2026-07-26-merge-subagent-control-service.md).
 
-Sources: [`packages/subagent/subagent/src/types.ts`](../../packages/subagent/subagent/src/types.ts), [`packages/subagent/subagent/src/index.ts`](../../packages/subagent/subagent/src/index.ts), and [`packages/subagent/subagent/src/continuation.ts`](../../packages/subagent/subagent/src/continuation.ts)
+Sources: [`packages/subagent/subagent/src/types.ts`](../../packages/subagent/subagent/src/types.ts), [`packages/subagent/subagent/src/index.ts`](../../packages/subagent/subagent/src/index.ts), [`packages/subagent/subagent/src/continuation.ts`](../../packages/subagent/subagent/src/continuation.ts), and [`packages/subagent/agent-definitions/src/index.ts`](../../packages/subagent/agent-definitions/src/index.ts)
 
 ## Two kinds of capability, discovered two ways
 
@@ -29,12 +29,13 @@ interface SubagentCapabilities {
   readonly depthLimit: boolean
   readonly toolFilter: boolean
   readonly persona: boolean
+  readonly sandboxMode: boolean
 }
 ```
 
 ## The one-shot start request
 
-The tool layer builds this request from the model input and its own config; the service validates it against the named provider before `start`. Required `parent` supplies the session cwd, lineage, and delegation depth. Optional output schema, depth, tool filter, and persona require matching capability flags. Unsupported schemas fail at start; in-process backends scope filters and personas to child creation and implement the supported object-rooted schema with a forced capture tool.
+The tool layer builds this request from the model input and its own config; the service validates it against the named provider before `start`. Required `parent` supplies the session cwd, lineage, and delegation depth. Optional output schema, depth, tool filter, persona, and sandbox narrowing require matching capability flags. Unsupported schemas fail at start; in-process backends scope filters and personas to child creation and implement the supported object-rooted schema with a forced capture tool.
 
 ```ts type-equiv
 /**
@@ -93,6 +94,16 @@ interface SubagentStartRequest {
    * persona (strict `{{…}}` interpolation against the registered variables).
    */
   readonly persona?: string
+  /**
+   * Optional sandbox narrowing to `read-only` for the child. Requires
+   * {@link SubagentCapabilities.sandboxMode}; rejected at start otherwise.
+   * In-process backends append a durable `sandbox/mode` override
+   * (`source: 'delegation'`) inside the child's creation window, so the
+   * narrowing lives on the child's own log and survives cold resume. Only
+   * narrowing is representable — a delegation can never widen the sandbox
+   * through this field.
+   */
+  readonly sandboxMode?: 'read-only'
 }
 ```
 
@@ -110,6 +121,42 @@ interface ResolvedSubagentStartRequest extends SubagentStartRequest {
   readonly descriptor: SubagentDescriptorData
 }
 ```
+
+## Agent role definitions (`ctx.agentDefinitions`)
+
+A **role** is a named composition of start-request inputs — persona body, tool allow list, model route, sandbox narrowing — that one delegation call merges into its request; it is not a provider, and provider selection stays with the delegation tool's deployment configuration. `AgentDefinitionService` discovers roles from flat `<name>.md` files whose YAML frontmatter carries a required `name` and `description` plus an optional `tools` allow list and `model`, with the markdown body becoming the persona. Discovery mirrors [the skill seam's](skills.md) local shape: ranked roots — project `.dsh/agents` (100) and `.agents/agents` (200), custom roots (300), user `~/.dsh/agents` (400) and `~/.agents/agents` (500), a configured bundled root (600) — first-wins duplicate handling, and watcher-driven invalidation. Runtime registrations through `register()` sit at rank 250; that seam hosts the built-in read-only `explore` role (a `grep`/`read`/`glob`/`semantic_search`/`bash` allow list plus a `read-only` sandbox narrowing).
+
+```ts type-equiv
+/** Invocation-neutral role metadata returned by `ctx.agentDefinitions.list()`. */
+interface AgentDefinitionSummary {
+  /** Kebab-case identifier used to address the role. */
+  readonly name: string
+  /** Short routing description shown by discovery consumers. */
+  readonly description: string
+  /** Discovery source that produced this winning role. */
+  readonly source: AgentDefinitionSource
+  /** Absolute file path when the role came from disk. */
+  readonly path?: string
+}
+```
+
+```ts type-equiv
+/** Complete parsed role definition, including the persona body. */
+interface AgentDefinition extends AgentDefinitionSummary {
+  /** Persona body: the markdown content after frontmatter removal. */
+  readonly content: string
+  /** Global tool names the child keeps when delegated as this role. */
+  readonly tools?: readonly string[]
+  /** Model route override for the child's `agentOptions.model`. */
+  readonly model?: string
+  /** Sandbox narrowing requested for the child; only `'read-only'` is representable. */
+  readonly sandbox?: 'read-only'
+}
+```
+
+The model meets roles through the delegation tool's optional `agent` parameter and, when exactly one delegation tool instance enables `agentCatalog`, a durable `<available_agents>` catalog message whose publication follows a sha256 digest of its entries — the same first/replace/remove discipline as the [skill catalog](skills.md), including disappearing when the owning tool is restricted away. An unknown role name fails the call loud toward the catalog. A role never widens the deployment: the tool instance's configured `toolFilter` stays a ceiling intersected with the role's allow list, and `sandboxMode` only narrows. Role composition persists without the role name — `persona` and `toolFilter` ride the continuable descriptor, the sandbox narrowing rides a durable `sandbox/mode` event on the child's own log — so cold resume reconstructs the composition and the descriptor format is unchanged.
+
+Text crossing the parent boundary in either direction is untrusted input to the receiving model's context: child output text in foreground results and one-shot background task output, `report` deliveries, and `send_message` follow-ups are pseudo-XML-escaped (`&`, `<`, `>` neutralized) at the tool boundary, so markup read from hostile content cannot be parsed as harness instructions. The durable record holds exactly the escaped text the receiving model sees.
 
 ## Continuable children and activations
 
@@ -441,6 +488,52 @@ The spawn and fork backends create an ordinary one-shot agent through `parent.ct
 ## Cordis surface
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — this section is byte-identical in both language sides of the page. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` surface lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+
+<a id="ctxagentdefinitions--agentdefinitionservice"></a>
+
+### `ctx.agentDefinitions` — `AgentDefinitionService`
+
+Registry of agent role definitions. It merges the runtime registrations with local filesystem discovery using stable first-wins duplicate handling, exposes sorted invocation-neutral summaries, and loads full role bodies on demand. Discovery invalidation is watcher- and mutation-driven; catalogs are cached per cwd until the next invalidation.
+
+```ts cordis-catalog
+/**
+ * Register a borrowed readonly runtime role. Project entries outrank runtime
+ * entries, which outrank custom and user entries. Same-name runtime entries
+ * are first-wins; a duplicate logs a warning and receives a no-op disposer so
+ * it cannot remove the winner.
+ * @param registration - the role definition input; an omitted source records `runtime`.
+ * @returns the exact Cordis effect disposer, preserving composite teardown order.
+ */
+register(registration: AgentDefinitionRegistration): () => void
+
+/**
+ * List invocation-neutral role summaries for a workspace.
+ * @param options - lookup options; `cwd` selects project roots and `signal` cancels discovery.
+ * @returns all sorted winning summaries.
+ */
+async list(options: AgentDefinitionLookupOptions = {}): Promise<AgentDefinitionSummary[]>
+
+/**
+ * Observe the current invocation-neutral catalog and whether discovery
+ * completed cleanly. Incomplete observations are never cached, allowing
+ * consumers to retain last-good state and retry on their next request
+ * boundary.
+ * @param options - lookup options; `cwd` selects project roots and `signal` cancels discovery.
+ * @returns sorted summaries plus discovery-completeness state.
+ */
+async snapshot(options: AgentDefinitionLookupOptions = {}): Promise<AgentDefinitionCatalogSnapshot>
+
+/**
+ * Load the winning role definition for a name, re-reading the source file so
+ * a watcher-less deployment still observes external edits at this boundary.
+ * @param name - kebab-case role name.
+ * @param options - lookup options; `cwd` selects workspace-sensitive roles and `signal` cancels work.
+ * @returns the full role definition, or `undefined` when the name is unknown.
+ */
+async get(name: string, options: AgentDefinitionLookupOptions = {}): Promise<AgentDefinition | undefined>
+```
+
+Source: [`packages/subagent/agent-definitions/src/index.ts:185`](../../packages/subagent/agent-definitions/src/index.ts)
 
 <a id="ctxsubagents--subagentservice"></a>
 

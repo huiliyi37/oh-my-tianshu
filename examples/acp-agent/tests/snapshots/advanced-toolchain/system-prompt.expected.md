@@ -140,6 +140,8 @@ interface ToolArgsMap {
     description: string;
     /** The complete, self-contained task for the subagent. It does not share this conversation's context, so include everything it needs. */
     prompt: string;
+    /** Optional role to delegate as: an exact name from this session's available agents catalog (<available_agents>). The role supplies the child's instructions, tool set, and sandbox. Omit for a general-purpose subagent. */
+    agent?: string;
     /** Run as a background subagent that keeps its conversation and return only its subagent id. This call never returns its result; send it more work with send_message. */
     run_in_background?: boolean;
   } & Record<string, JsonValue>;
@@ -149,6 +151,8 @@ interface ToolArgsMap {
     description: string;
     /** The task for the subagent. It already sees this conversation's completed turns, so build on them freely and state only what is new. */
     prompt: string;
+    /** Optional role to delegate as: an exact name from this session's available agents catalog (<available_agents>). The role supplies the child's instructions, tool set, and sandbox. Omit for a general-purpose subagent. */
+    agent?: string;
     /** Run as a background subagent that keeps its conversation and return only its subagent id. This call never returns its result; send it more work with send_message. */
     run_in_background?: boolean;
   } & Record<string, JsonValue>;

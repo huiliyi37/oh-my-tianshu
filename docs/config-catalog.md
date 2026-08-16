@@ -94,6 +94,42 @@ export interface Config {
 
 Source: [`packages/core/agent-default-model/src/index.ts:41`](../packages/core/agent-default-model/src/index.ts)
 
+## `@huiliyi37/dsh-agent-definitions`
+
+```ts config-catalog
+/** Agent definition registry and local discovery configuration. */
+export interface Config {
+  /** Whether project and user roots are included around custom roots. */
+  includeDefaultRoots?: boolean
+  /** Tianshu Harness config root. Defaults to `$DSH_HOME` or `~/.dsh`. */
+  dshHome?: string
+  /** Shared agent config root. Defaults to `$DSH_AGENTS_HOME` or `~/.agents`. */
+  agentsHome?: string
+  /** Additional agent roots scanned after project roots and before user roots. */
+  customAgentDirs?: string[]
+  /** Bundled agent root for installer-supplied roles; defaults to none. */
+  bundledAgentDir?: string
+  /** Register the built-in read-only `explore` role (default true). */
+  builtinExplore?: boolean
+  /** Maximum number of completed cwd catalogs kept in memory. */
+  collectCacheMaxEntries?: number
+  /** Whether host-local agent roots are watched for catalog changes. */
+  watch?: boolean
+  /** Whether Chokidar uses polling instead of native filesystem events. */
+  watchUsePolling?: boolean
+  /** Milliseconds a changed role file must remain stable before it is observed. */
+  watchStabilityThresholdMs?: number
+  /** Milliseconds between Chokidar stability or polling probes. */
+  watchPollIntervalMs?: number
+  /** Maximum distinct project roots whose agent directories remain watched. */
+  watchMaxProjects?: number
+  /** Whether watched symbolic links follow their target files. */
+  watchFollowSymlinks?: boolean
+}
+```
+
+Source: [`packages/subagent/agent-definitions/src/index.ts:107`](../packages/subagent/agent-definitions/src/index.ts)
+
 ## `@huiliyi37/dsh-agent-loop`
 
 Requires: `agents` · `sessions` · `llm` · `tools` · `systemPrompt`
@@ -2356,12 +2392,26 @@ export interface Config {
    * budget belongs to the child runtime or its own deployment.
    */
   maxDepth?: number | 'provider-managed'
+  /**
+   * Publish the durable `<available_agents>` catalog message on sessions whose
+   * agent can see this exact tool instance (default false). The catalog follows
+   * the optional `ctx.agentDefinitions` service: absent service, no catalog.
+   * Enable on at most ONE delegation tool instance per assembly — each enabled
+   * instance owns an identical catalog, and this instance's visibility alone
+   * decides publication.
+   */
+  agentCatalog?: boolean
+  /**
+   * Maximum normalized description length rendered in the session agent
+   * catalog; minimum 3 (default 500).
+   */
+  catalogDescriptionMaxLength?: number
 }
 ```
 
 Depends on: [`AgentOptions`](subsystems/core.md)
 
-Source: [`packages/subagent/tool-subagent/src/index.ts:25`](../packages/subagent/tool-subagent/src/index.ts)
+Source: [`packages/subagent/tool-subagent/src/index.ts:40`](../packages/subagent/tool-subagent/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-subagent-report`
 
@@ -2380,7 +2430,7 @@ export interface Config {
 
 Depends on: [`SubagentReportDelivery`](subsystems/subagent.md)
 
-Source: [`packages/subagent/tool-subagent-report/src/index.ts:22`](../packages/subagent/tool-subagent-report/src/index.ts)
+Source: [`packages/subagent/tool-subagent-report/src/index.ts:23`](../packages/subagent/tool-subagent-report/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-tasks`
 

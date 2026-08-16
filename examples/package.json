@@ -11,6 +11,7 @@
     "@huiliyi37/cordis-plugin-timer": "workspace:*",
     "@huiliyi37/dsh-acp-demo": "workspace:*",
     "@huiliyi37/dsh-agent": "workspace:*",
+    "@huiliyi37/dsh-agent-definitions": "workspace:*",
     "@huiliyi37/dsh-agent-loop": "workspace:*",
     "@huiliyi37/dsh-agent-router": "workspace:*",
     "@huiliyi37/dsh-agent-spine-demo": "workspace:*",

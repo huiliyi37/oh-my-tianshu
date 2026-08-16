@@ -7,6 +7,7 @@
 | 包 | 职责 | ctx 键 |
 |---|---|---|
 | [`subagent/`](subagent/README.md) | 定义提供方注册、委派和继续执行 | `ctx.subagents` |
+| [`agent-definitions/`](agent-definitions/README.md) | 定义从 markdown 发现的命名委派角色及运行时注册 | `ctx.agentDefinitions` |
 | [`subagent-inprocess/`](subagent-inprocess/README.md) | 提供共享的进程内运行驱动器 | 无 |
 | [`subagent-spawn/`](subagent-spawn/README.md) | 启动全新的进程内子 agent | 注册到 `ctx.subagents` |
 | [`subagent-fork/`](subagent-fork/README.md) | 从父 agent 已完成的历史记录启动进程内子 agent | 注册到 `ctx.subagents` |

@@ -33,12 +33,19 @@
   "license": "Apache-2.0",
   "peerDependencies": {
     "@huiliyi37/dsh-agent": "^0.2.0",
+    "@huiliyi37/dsh-agent-definitions": "^0.2.0",
     "@huiliyi37/dsh-invariants": "^0.2.0",
     "@huiliyi37/dsh-llm": "^0.2.0",
+    "@huiliyi37/dsh-skill": "^0.2.0",
     "@huiliyi37/dsh-subagent": "^0.2.0",
     "@huiliyi37/dsh-tasks": "^0.2.0",
     "@huiliyi37/dsh-tools": "^0.2.0",
     "@huiliyi37/cordis": "^4.0.0-rc.7"
+  },
+  "peerDependenciesMeta": {
+    "@huiliyi37/dsh-agent-definitions": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@huiliyi37/schemastery": "^3.18.0"
@@ -46,11 +53,13 @@
   "devDependencies": {
     "@huiliyi37/cordis-plugin-loader": "^1.0.0-rc.5",
     "@huiliyi37/dsh-agent": "workspace:^",
+    "@huiliyi37/dsh-agent-definitions": "workspace:^",
     "@huiliyi37/dsh-invariants": "workspace:^",
     "@huiliyi37/dsh-llm": "workspace:^",
     "@huiliyi37/dsh-session": "workspace:^",
     "@huiliyi37/dsh-session-persistence": "workspace:^",
     "@huiliyi37/dsh-session-persistence-jsonl": "workspace:^",
+    "@huiliyi37/dsh-skill": "workspace:^",
     "@huiliyi37/dsh-subagent": "workspace:^",
     "@huiliyi37/dsh-subagent-spawn": "workspace:^",
     "@huiliyi37/dsh-system-prompt": "workspace:^",

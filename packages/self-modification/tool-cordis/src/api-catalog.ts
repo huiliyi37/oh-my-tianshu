@@ -77,6 +77,28 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'agentDefinitions',
+    summary: 'Registry of agent role definitions.',
+    methods: [
+      {
+        signature: 'register(registration: AgentDefinitionRegistration): () => void',
+        jsDoc: '/**\n * Register a borrowed readonly runtime role. Project entries outrank runtime\n * entries, which outrank custom and user entries. Same-name runtime entries\n * are first-wins; a duplicate logs a warning and receives a no-op disposer so\n * it cannot remove the winner.\n * @param registration - the role definition input; an omitted source records `runtime`.\n * @returns the exact Cordis effect disposer, preserving composite teardown order.\n */',
+      },
+      {
+        signature: 'async list(options: AgentDefinitionLookupOptions = {}): Promise<AgentDefinitionSummary[]>',
+        jsDoc: '/**\n * List invocation-neutral role summaries for a workspace.\n * @param options - lookup options; `cwd` selects project roots and `signal` cancels discovery.\n * @returns all sorted winning summaries.\n */',
+      },
+      {
+        signature: 'async snapshot(options: AgentDefinitionLookupOptions = {}): Promise<AgentDefinitionCatalogSnapshot>',
+        jsDoc: '/**\n * Observe the current invocation-neutral catalog and whether discovery\n * completed cleanly. Incomplete observations are never cached, allowing\n * consumers to retain last-good state and retry on their next request\n * boundary.\n * @param options - lookup options; `cwd` selects project roots and `signal` cancels discovery.\n * @returns sorted summaries plus discovery-completeness state.\n */',
+      },
+      {
+        signature: 'async get(name: string, options: AgentDefinitionLookupOptions = {}): Promise<AgentDefinition | undefined>',
+        jsDoc: '/**\n * Load the winning role definition for a name, re-reading the source file so\n * a watcher-less deployment still observes external edits at this boundary.\n * @param name - kebab-case role name.\n * @param options - lookup options; `cwd` selects workspace-sensitive roles and `signal` cancels work.\n * @returns the full role definition, or `undefined` when the name is unknown.\n */',
+      },
+    ],
+  },
+  {
     key: 'agentLoop',
     summary: 'Concrete agent factory and driver service.',
     methods: [
@@ -1682,6 +1704,30 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type AgentCancelCause = {\n    readonly kind: \'user\';\n} | {\n    readonly kind: \'parent\';\n} | {\n    readonly kind: \'hook\';\n    readonly reason: string;\n} | {\n    readonly kind: \'disposed\';\n};',
   },
   {
+    name: 'AgentDefinition',
+    declaration: 'export interface AgentDefinition extends AgentDefinitionSummary {\n    readonly content: string;\n    readonly tools?: readonly string[];\n    readonly model?: string;\n    readonly sandbox?: \'read-only\';\n}',
+  },
+  {
+    name: 'AgentDefinitionCatalogSnapshot',
+    declaration: 'export interface AgentDefinitionCatalogSnapshot {\n    readonly definitions: AgentDefinitionSummary[];\n    readonly complete: boolean;\n}',
+  },
+  {
+    name: 'AgentDefinitionLookupOptions',
+    declaration: 'export interface AgentDefinitionLookupOptions {\n    readonly cwd?: string | undefined;\n    readonly signal?: AbortSignal | undefined;\n}',
+  },
+  {
+    name: 'AgentDefinitionRegistration',
+    declaration: 'export interface AgentDefinitionRegistration {\n    readonly name: string;\n    readonly description: string;\n    readonly content: string;\n    readonly source?: AgentDefinitionSource;\n    readonly tools?: readonly string[];\n    readonly model?: string;\n    readonly sandbox?: \'read-only\';\n}',
+  },
+  {
+    name: 'AgentDefinitionSource',
+    declaration: 'export type AgentDefinitionSource = \'project-dsh\' | \'project-agents\' | \'runtime\' | \'user-dsh\' | \'user-agents\' | \'custom\' | \'bundled\' | (string & {});',
+  },
+  {
+    name: 'AgentDefinitionSummary',
+    declaration: 'export interface AgentDefinitionSummary {\n    readonly name: string;\n    readonly description: string;\n    readonly source: AgentDefinitionSource;\n    readonly path?: string;\n}',
+  },
+  {
     name: 'AgentFactory',
     declaration: 'export interface AgentFactory {\n    createAgent(ownerCtx: Context, options: CreateAgentOptions): Promise<AgentHandle>;\n    resume(ownerCtx: Context, options: ResumeAgentOptions): Promise<AgentHandle>;\n}',
   },
@@ -2883,7 +2929,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SubagentCapabilities',
-    declaration: 'export interface SubagentCapabilities {\n    readonly outputSchema: boolean;\n    readonly depthLimit: boolean;\n    readonly toolFilter: boolean;\n    readonly persona: boolean;\n}',
+    declaration: 'export interface SubagentCapabilities {\n    readonly outputSchema: boolean;\n    readonly depthLimit: boolean;\n    readonly toolFilter: boolean;\n    readonly persona: boolean;\n    readonly sandboxMode: boolean;\n}',
   },
   {
     name: 'SubagentDescendantListEntry',
@@ -2927,7 +2973,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SubagentStartRequest',
-    declaration: 'export interface SubagentStartRequest {\n    readonly label?: string;\n    readonly prompt: ContentBlock[];\n    readonly parent: Agent;\n    readonly signal: AbortSignal;\n    readonly agentOptions?: AgentOptions;\n    readonly outputSchema?: ObjectJsonSchema;\n    readonly maxDepth?: number;\n    readonly toolFilter?: ToolRestriction;\n    readonly persona?: string;\n}',
+    declaration: 'export interface SubagentStartRequest {\n    readonly label?: string;\n    readonly prompt: ContentBlock[];\n    readonly parent: Agent;\n    readonly signal: AbortSignal;\n    readonly agentOptions?: AgentOptions;\n    readonly outputSchema?: ObjectJsonSchema;\n    readonly maxDepth?: number;\n    readonly toolFilter?: ToolRestriction;\n    readonly persona?: string;\n    readonly sandboxMode?: \'read-only\';\n}',
   },
   {
     name: 'SubagentStopReason',

@@ -6,7 +6,7 @@ subagent seam：一个 agent（智能体）将工作委派给子 agent。与 [ba
 
 Service Definition：[dsh-subagent](../../packages/subagent/subagent)（`ctx.subagents` + 下文词汇）。Service provider 是六个兄弟包：`dsh-subagent-spawn`、`-fork`、`-acp`、`-codex`、`-claude-code`、`-dsh-sdk`；面向模型的 Consumer 包括 [dsh-tool-subagent](../../packages/subagent/tool-subagent)（按提供方委派）、[dsh-tool-subagent-control](../../packages/subagent/tool-subagent-control)（可选的全局 `send_message`、`interrupt_agent` 与 `list_agents` 控制工具）和 [dsh-tool-subagent-report](../../packages/subagent/tool-subagent-report)（可选的 child 作用域 `report` 返回通道）。同一个 `ctx.subagents` 服务通过内部激活管理器负责可继续子 agent 编排，并直接基于会话存储和可选的会话持久化提供只读的 child 与后代发现。产品提供方设计理由见 [Codex 与 Claude Code Agent Note](../../.agents/notes/implemented/feature/2026-08-04-claude-code-and-codex-subagent-backends.md)；通用 seam 的设计理由见 [subagent Agent Note](../../.agents/notes/implemented/feature/2026-06-21-subagent-capability-seam.md)、[可继续 subagent Agent Note](../../.agents/notes/implemented/feature/2026-07-28-continuable-subagent-conversations.md)、[report 工具 Agent Note](../../.agents/notes/implemented/feature/2026-07-30-continuable-subagent-report-tool.md)、[持久化目录 Agent Note](../../.agents/notes/implemented/feature/2026-07-22-durable-subagent-catalog-and-list-agents.md)、[列表身份投影 Agent Note](../../.agents/notes/implemented/architecture/2026-08-06-subagent-list-identity-projection.md)和[服务合并 Agent Note](../../.agents/notes/implemented/simplification/2026-07-26-merge-subagent-control-service.md)。
 
-源码：[`packages/subagent/subagent/src/types.ts`](../../packages/subagent/subagent/src/types.ts)、[`packages/subagent/subagent/src/index.ts`](../../packages/subagent/subagent/src/index.ts)和 [`packages/subagent/subagent/src/continuation.ts`](../../packages/subagent/subagent/src/continuation.ts)
+源码：[`packages/subagent/subagent/src/types.ts`](../../packages/subagent/subagent/src/types.ts)、[`packages/subagent/subagent/src/index.ts`](../../packages/subagent/subagent/src/index.ts)、[`packages/subagent/subagent/src/continuation.ts`](../../packages/subagent/subagent/src/continuation.ts)和 [`packages/subagent/agent-definitions/src/index.ts`](../../packages/subagent/agent-definitions/src/index.ts)
 
 ## 两类能力，两种发现方式
 
@@ -29,12 +29,13 @@ interface SubagentCapabilities {
   readonly depthLimit: boolean
   readonly toolFilter: boolean
   readonly persona: boolean
+  readonly sandboxMode: boolean
 }
 ```
 
 ## 单次启动请求
 
-工具层根据模型输入和自身配置构建此请求；服务在 `start` 之前针对指定提供方进行校验。必填的 `parent` 提供会话 cwd、谱系与委派深度。可选的 output schema、depth、工具过滤器和 persona 需要对应的能力 flag 匹配。不支持的 schema 在启动时即失败；进程内后端将 filter 和 persona 的作用域限定在子 agent 创建阶段，并通过强制 capture 工具实现所支持的 object-rooted schema。
+工具层根据模型输入和自身配置构建此请求；服务在 `start` 之前针对指定提供方进行校验。必填的 `parent` 提供会话 cwd、谱系与委派深度。可选的 output schema、depth、工具过滤器、persona 和沙箱收窄需要对应的能力 flag 匹配。不支持的 schema 在启动时即失败；进程内后端将 filter 和 persona 的作用域限定在子 agent 创建阶段，并通过强制 capture 工具实现所支持的 object-rooted schema。
 
 ```ts type-equiv
 /**
@@ -93,6 +94,16 @@ interface SubagentStartRequest {
    * persona (strict `{{…}}` interpolation against the registered variables).
    */
   readonly persona?: string
+  /**
+   * Optional sandbox narrowing to `read-only` for the child. Requires
+   * {@link SubagentCapabilities.sandboxMode}; rejected at start otherwise.
+   * In-process backends append a durable `sandbox/mode` override
+   * (`source: 'delegation'`) inside the child's creation window, so the
+   * narrowing lives on the child's own log and survives cold resume. Only
+   * narrowing is representable — a delegation can never widen the sandbox
+   * through this field.
+   */
+  readonly sandboxMode?: 'read-only'
 }
 ```
 
@@ -110,6 +121,42 @@ interface ResolvedSubagentStartRequest extends SubagentStartRequest {
   readonly descriptor: SubagentDescriptorData
 }
 ```
+
+## Agent 角色定义（`ctx.agentDefinitions`）
+
+**角色**是一组启动请求输入的命名组合——persona 正文、工具 allow 名单、模型路由、沙箱收窄——由一次委派调用合并进它的请求；角色不是提供方，提供方选择仍由委派工具的部署配置决定。`AgentDefinitionService` 从扁平的 `<name>.md` 文件发现角色：YAML frontmatter 携带必填的 `name` 与 `description` 以及可选的 `tools` allow 名单和 `model`,markdown 正文成为 persona。发现机制镜像 [skill seam](skills.md) 的本地形态：分级目录——项目 `.dsh/agents`(100）与 `.agents/agents`(200)、custom 目录（300)、用户 `~/.dsh/agents`(400）与 `~/.agents/agents`(500)、配置的 bundled 目录（600)——同名 first-wins 去重，以及监听器驱动的失效。通过 `register()` 的运行时注册位于第 250 级；该接缝承载着内置只读 `explore` 角色（`grep`/`read`/`glob`/`semantic_search`/`bash` allow 名单加 `read-only` 沙箱收窄）。
+
+```ts type-equiv
+/** Invocation-neutral role metadata returned by `ctx.agentDefinitions.list()`. */
+interface AgentDefinitionSummary {
+  /** Kebab-case identifier used to address the role. */
+  readonly name: string
+  /** Short routing description shown by discovery consumers. */
+  readonly description: string
+  /** Discovery source that produced this winning role. */
+  readonly source: AgentDefinitionSource
+  /** Absolute file path when the role came from disk. */
+  readonly path?: string
+}
+```
+
+```ts type-equiv
+/** Complete parsed role definition, including the persona body. */
+interface AgentDefinition extends AgentDefinitionSummary {
+  /** Persona body: the markdown content after frontmatter removal. */
+  readonly content: string
+  /** Global tool names the child keeps when delegated as this role. */
+  readonly tools?: readonly string[]
+  /** Model route override for the child's `agentOptions.model`. */
+  readonly model?: string
+  /** Sandbox narrowing requested for the child; only `'read-only'` is representable. */
+  readonly sandbox?: 'read-only'
+}
+```
+
+模型通过委派工具的可选 `agent` 参数见到角色；当恰好一个委派工具实例启用 `agentCatalog` 时，会话内发布一条 durable `<available_agents>` 目录消息，其发布跟随条目内容的 sha256 digest——与 [skill 目录](skills.md)相同的首发/替换/摘除纪律，包括所属工具被 restrict 摘除时目录同步消失。未知角色名会响亮失败并指引查看目录。角色绝不会放宽部署约束：工具实例配置的 `toolFilter` 仍是与角色 allow 名单求交的上限，`sandboxMode` 只能收窄。角色组合持久化时不含角色名——`persona` 与 `toolFilter` 随可继续描述符保存，沙箱收窄随子 agent 自己日志上的 durable `sandbox/mode` 事件保存——因此冷恢复可重建组合，描述符格式保持不变。
+
+跨越父子边界的双向文本都是接收方模型上下文里的不可信输入：前台结果与一次性后台任务输出中的子 agent 文本、`report` 投递以及 `send_message` 跟进消息，都在工具边界做伪 XML 转义（中和 `&`、`<`、`>`），使从不可信内容读到的标记不会被解析成 harness 指令。durable 记录保存的正是接收方模型看到的转义后文本。
 
 ## 可继续子 agent 与激活
 
@@ -443,6 +490,52 @@ spawn 和 fork 后端通过 `parent.ctx` 创建一个普通的单次 agent，将
 ## Cordis surface
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — this section is byte-identical in both language sides of the page. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` surface lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+
+<a id="ctxagentdefinitions--agentdefinitionservice"></a>
+
+### `ctx.agentDefinitions` — `AgentDefinitionService`
+
+Registry of agent role definitions. It merges the runtime registrations with local filesystem discovery using stable first-wins duplicate handling, exposes sorted invocation-neutral summaries, and loads full role bodies on demand. Discovery invalidation is watcher- and mutation-driven; catalogs are cached per cwd until the next invalidation.
+
+```ts cordis-catalog
+/**
+ * Register a borrowed readonly runtime role. Project entries outrank runtime
+ * entries, which outrank custom and user entries. Same-name runtime entries
+ * are first-wins; a duplicate logs a warning and receives a no-op disposer so
+ * it cannot remove the winner.
+ * @param registration - the role definition input; an omitted source records `runtime`.
+ * @returns the exact Cordis effect disposer, preserving composite teardown order.
+ */
+register(registration: AgentDefinitionRegistration): () => void
+
+/**
+ * List invocation-neutral role summaries for a workspace.
+ * @param options - lookup options; `cwd` selects project roots and `signal` cancels discovery.
+ * @returns all sorted winning summaries.
+ */
+async list(options: AgentDefinitionLookupOptions = {}): Promise<AgentDefinitionSummary[]>
+
+/**
+ * Observe the current invocation-neutral catalog and whether discovery
+ * completed cleanly. Incomplete observations are never cached, allowing
+ * consumers to retain last-good state and retry on their next request
+ * boundary.
+ * @param options - lookup options; `cwd` selects project roots and `signal` cancels discovery.
+ * @returns sorted summaries plus discovery-completeness state.
+ */
+async snapshot(options: AgentDefinitionLookupOptions = {}): Promise<AgentDefinitionCatalogSnapshot>
+
+/**
+ * Load the winning role definition for a name, re-reading the source file so
+ * a watcher-less deployment still observes external edits at this boundary.
+ * @param name - kebab-case role name.
+ * @param options - lookup options; `cwd` selects workspace-sensitive roles and `signal` cancels work.
+ * @returns the full role definition, or `undefined` when the name is unknown.
+ */
+async get(name: string, options: AgentDefinitionLookupOptions = {}): Promise<AgentDefinition | undefined>
+```
+
+Source: [`packages/subagent/agent-definitions/src/index.ts:185`](../../packages/subagent/agent-definitions/src/index.ts)
 
 <a id="ctxsubagents--subagentservice"></a>
 

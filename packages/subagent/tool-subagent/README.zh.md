@@ -14,6 +14,14 @@
 
 `toolFilter` 会改变子 agent 的全局工具层，但不是从父级派生的权限上限。见 [agent 作用域的安全非目标](../../../.agents/notes/implemented/architecture/2026-07-08-agent-scope-contexts.md#security-and-authority-are-non-goals)。
 
+## Agent 角色
+
+可选的 `agent` 参数以命名角色委派，角色经可选的 `ctx.agentDefinitions` 服务解析（服务缺失时任何 `agent` 值都会使调用失败）。角色提供子 agent 的 persona 正文、工具 allow 名单、模型路由和沙箱收窄，按调用合并：persona 与 model 替换实例配置值；角色的 allow 名单与实例的 `toolFilter` 求交（部署仍是模型所选角色无法逾越的上限，一个工具被掏空的角色会响亮失败）；`sandboxMode: 'read-only'` 要求提供方具备 `sandboxMode` 能力。未知名称是指向目录的出错调用，绝不会静默退化为通用委派。见 [agent 角色定义 Agent Note](../../../.agents/notes/implemented/feature/2026-08-16-agent-role-definitions.md)。
+
+设置 `agentCatalog: true`（每个装配至多一个实例开启）后，该实例会向会话发布一条 durable `<available_agents>` 目录消息：名称加转义描述的条目、由条目 sha256 digest 决定的首发/替换/摘除，以及绑定这个确切工具注册的可见性——工具被 restrict 摘除时目录同步消失。目录只跟随 `ctx.agentDefinitions` 的目录；没有该服务则不发布目录。
+
+经本工具返回的子 agent 文本——前台结果块与一次性后台任务输出——在此边界做伪 XML 转义（`&`、`<`、`>`），使子 agent 从不可信内容读到的标记到达父级模型时是惰性的。durable 工具结果记录的正是转义后的文本。
+
 ## 配置
 
 | 键 | 含义 |
@@ -26,6 +34,8 @@
 | `persona` | 每个子 agent 独立的 persona；要求提供方具备 `persona` 能力。 |
 | `toolFilter` | 每个子 agent 独立的全局工具限制；要求提供方具备 `toolFilter` 能力。 |
 | `maxDepth` | 绝对委派深度上限，默认 `3`（`0` 禁止委派）；数值上限要求 `depthLimit` 能力，缺失时挂载失败。对于预算由子 harness 拥有的进程外提供方，`'provider-managed'` 不发送上限。工具在达到上限时仍然可见；每次尝试启动都会检查调用 agent 的当前深度，被拒绝时返回出错的工具结果。 |
+| `agentCatalog` | 发布 durable `<available_agents>` 会话目录，默认 `false`；每个装配中至多一个委派工具实例开启。 |
+| `catalogDescriptionMaxLength` | 目录中角色描述的最大归一化长度，默认 `500`，最小 `3`。 |
 
 ## 并发
 
@@ -37,7 +47,7 @@
 
 #### 模型看到的内容
 
-当提供方存在时，以当前实例配置的名称公开已生成的默认 [`subagent` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-subagent)。提供方是否继承上下文会改变工具描述和提示词描述；启用后台模式会添加 `run_in_background`，可继续模式描述为启动一个保留其对话并返回子 agent id 的后台子 agent，而一次性模式描述为返回一个用 `task_output` 收集、用 `task_kill` 停止的后台任务 id。
+当提供方存在时，以当前实例配置的名称公开已生成的默认 [`subagent` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-subagent)。提供方是否继承上下文会改变工具描述和提示词描述；可选的 `agent` 参数接受会话 agent 目录中的确切角色名；启用后台模式会添加 `run_in_background`，可继续模式描述为启动一个保留其对话并返回子 agent id 的后台子 agent，而一次性模式描述为返回一个用 `task_output` 收集、用 `task_kill` 停止的后台任务 id。
 
 #### Token 影响
 
@@ -51,7 +61,7 @@
 
 #### 模型看到的内容
 
-调用会保留描述和提示词。成功时只包含子 agent 的最终文本；其他结果变为 `Error: <message>`。子 agent 中间步骤不会进入父级。
+调用会保留描述和提示词。成功时只包含子 agent 的最终文本（在此边界做过伪 XML 转义）；其他结果变为 `Error: <message>`。子 agent 中间步骤不会进入父级。
 
 #### Token 影响
 
@@ -75,8 +85,22 @@
 
 仅追加；新增可见内容位于可复用请求前缀之后，不会使现有 KV Cache 条目失效。
 
+### Agent 目录（条件性）
+
+#### 模型看到的内容
+
+当 `agentCatalog: true` 且加载了 `ctx.agentDefinitions` 服务时，每个会话有一条 durable `<system-reminder>` 消息携带 `<available_agents>` 列表：每个角色一行 `- \`name\`: description`（描述经过伪 XML 转义），并附带路由指引——以确切的角色名调用本工具的 `agent` 参数。角色集合变化时就地替换该消息并重新发布完整目录；目录被清空或工具新不可见时消息被摘除。没有该服务或该开关时没有目录可见面。
+
+#### Token 影响
+
+条件性：一条目录消息，大小随角色数量而定，仅当条目 digest 变化时重新发布。
+
+#### KV Cache 影响
+
+替换或摘除目录会使该消息之后的复用失效；digest 不变则前缀保持稳定。
+
 ## 已知限制与暂缓事项
 
 - **后台运行不通过本工具公开结果**：一次性任务的最终输出通过通用 Task 接口收集，可继续子 agent 的输出留在其自身会话中，按其 subagent id 读取。
 - **等待中实例的重复名称发现较晚**（`TODO(subagent-dup-toolname)`）：若要阻止提供方注册回滚，需要一份预期名称注册表。
-- **每个实例的子 agent 策略固定**：其他模型、persona、工具过滤器或深度上限都需要另一个名称不同的工具。
+- **实例配置是部署上限，角色是逐调用的组合**：固定的部署级子 agent 策略仍需实例配置，角色只在其之内收窄或改变样式。

@@ -16,7 +16,7 @@ The seed transfers conversation history only. The child still receives a fresh f
 
 `start(request)` passes the completed-turn seed to [`startInProcessRun`](../subagent-inprocess/README.md) and awaits child publication. The shared driver owns cancellation, depth, customization, result reading, and disposal.
 
-Fork advertises `{ outputSchema: true, depthLimit: true, toolFilter: true, persona: true }`, identical to spawn.
+Fork advertises `{ outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true }`, identical to spawn.
 
 ## Config
 

@@ -21,7 +21,7 @@ async function setup(): Promise<Context> {
 
 const provider = (name: string): SubagentProvider => ({
   name,
-  capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false },
+  capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
   inheritsParentContext: false,
   start: async () => { throw new Error('not used') },
 })

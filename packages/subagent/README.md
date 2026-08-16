@@ -7,6 +7,7 @@ This family lets an agent delegate work to child agents. Multiple named provider
 | Package | Role | ctx key |
 |---|---|---|
 | [`subagent/`](subagent/README.md) | Defines provider registration, delegation, and continuation | `ctx.subagents` |
+| [`agent-definitions/`](agent-definitions/README.md) | Defines named delegation roles discovered from markdown plus runtime registrations | `ctx.agentDefinitions` |
 | [`subagent-inprocess/`](subagent-inprocess/README.md) | Provides the shared in-process run driver | — |
 | [`subagent-spawn/`](subagent-spawn/README.md) | Starts a fresh in-process child | registers on `ctx.subagents` |
 | [`subagent-fork/`](subagent-fork/README.md) | Starts an in-process child from the parent's completed history | registers on `ctx.subagents` |

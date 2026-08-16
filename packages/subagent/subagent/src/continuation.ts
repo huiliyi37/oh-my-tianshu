@@ -28,7 +28,6 @@ import type { ContentBlock, MessageId, MessageSource } from '@huiliyi37/dsh-llm'
 import { SessionId } from '@huiliyi37/dsh-session'
 import type { SessionEvent } from '@huiliyi37/dsh-session'
 import type { SessionPersistence } from '@huiliyi37/dsh-session-persistence'
-import type { ToolRestriction } from '@huiliyi37/dsh-tools'
 import { foldSubagentDescriptor, snapshotSubagentDescriptor } from './descriptor.ts'
 import type { SubagentDescriptorData } from './descriptor.ts'
 import {
@@ -37,6 +36,7 @@ import {
   resolveChildAgentOptions,
   resolveChildDepth,
 } from './child-agent.ts'
+import type { ChildComposition } from './child-agent.ts'
 import { assertSubagentMaxDepth } from './depth.ts'
 import { seedDescriptorTurn } from './descriptor-seed.ts'
 import type { ContinuableCreateRequest, ContinuableCreateSpec, SubagentStartRequest } from './types.ts'
@@ -206,7 +206,7 @@ interface MaterializeInputs {
   /** Creation inputs; absent for a cold resume, which loads the persisted session. */
   create?: { seed: readonly SessionEvent[]; meta: NonNullable<CreateAgentOptions['meta']> }
   agentOptions: AgentOptions
-  composition: { persona?: string | undefined; toolFilter?: ToolRestriction | undefined }
+  composition: ChildComposition
   signal: AbortSignal
 }
 
@@ -359,7 +359,10 @@ export class SubagentContinuationManager {
         parent,
         create: { seed, meta: childSessionMeta(parent, childDepth, lineageSeedLength) },
         agentOptions: resolveChildAgentOptions(parent, request.agentOptions, childDepth),
-        composition: { persona: request.persona, toolFilter: request.toolFilter },
+        // Fresh creation carries the requested sandbox narrowing; a cold
+        // resume replays the appended `sandbox/mode` event from the child log,
+        // so the descriptor stays at v2 without a field for it.
+        composition: { persona: request.persona, toolFilter: request.toolFilter, sandboxMode: request.sandboxMode },
         signal: spec.signal,
       })
       return this.submitMaterialized(

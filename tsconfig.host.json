@@ -234,6 +234,7 @@
     { "path": "./packages/support/loader-smoke" },
     { "path": "./packages/support/llm-mock-server" },
     { "path": "./packages/subagent/subagent" },
+    { "path": "./packages/subagent/agent-definitions" },
     { "path": "./packages/subagent/tool-subagent" },
     { "path": "./packages/subagent/tool-subagent-control" },
     { "path": "./packages/subagent/tool-subagent-report" },

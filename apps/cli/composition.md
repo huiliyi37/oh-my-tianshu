@@ -114,6 +114,8 @@ flowchart LR
   cfg --> plugin_dsh_base_command_compact
   plugin_dsh_base_subagent["subagent<br/>@huiliyi37/dsh-subagent"]
   cfg --> plugin_dsh_base_subagent
+  plugin_dsh_base_agent_definitions["agent-definitions<br/>@huiliyi37/dsh-agent-definitions"]
+  cfg --> plugin_dsh_base_agent_definitions
   plugin_dsh_base_subagent_spawn["subagent-spawn<br/>@huiliyi37/dsh-subagent-spawn"]
   cfg --> plugin_dsh_base_subagent_spawn
   plugin_dsh_base_subagent_fork["subagent-fork<br/>@huiliyi37/dsh-subagent-fork"]
@@ -225,6 +227,7 @@ flowchart LR
 | `compact-basic` | `@huiliyi37/dsh-compact-basic` |
 | `command-compact` | `@huiliyi37/dsh-command-compact` |
 | `subagent` | `@huiliyi37/dsh-subagent` |
+| `agent-definitions` | `@huiliyi37/dsh-agent-definitions` |
 | `subagent-spawn` | `@huiliyi37/dsh-subagent-spawn` |
 | `subagent-fork` | `@huiliyi37/dsh-subagent-fork` |
 | `tool-subagent-control` | `@huiliyi37/dsh-tool-subagent-control` |

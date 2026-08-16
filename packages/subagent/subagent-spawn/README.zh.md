@@ -12,7 +12,7 @@ spawn 提供方会在当前进程中创建一个全新的子 `Agent`。子 agent
 
 ## 能力
 
-spawn 声明 `{ outputSchema: true, depthLimit: true, toolFilter: true, persona: true }`，因为它控制子 agent 的创建窗口，能够强制执行全部四项功能。
+spawn 声明 `{ outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true }`，因为它控制子 agent 的创建窗口，能够强制执行全部五项功能。
 
 ## 配置
 

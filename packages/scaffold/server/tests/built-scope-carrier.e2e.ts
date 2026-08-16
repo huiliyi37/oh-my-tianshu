@@ -66,7 +66,7 @@ try {
   const result = Promise.withResolvers();
   const unregister = ctx.subagents.registerProvider({
     name: "built-local",
-    capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false },
+    capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
     inheritsParentContext: false,
     start() {
       return Promise.resolve({

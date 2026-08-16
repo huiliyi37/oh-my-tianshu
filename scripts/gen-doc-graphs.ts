@@ -300,6 +300,14 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Merges provider skill catalogs; tool-skill renders the session-prefix catalog and loads complete skill bodies.',
   },
   {
+    key: 'agentDefinitions',
+    pkg: 'agent-definitions',
+    title: 'Agent role definition registry',
+    mode: 'core',
+    consumers: ['tool-subagent'],
+    note: 'Discovers named delegation roles from markdown and hosts runtime registrations (the built-in read-only explore role); tool-subagent merges a chosen role into one delegation request.',
+  },
+  {
     key: 'agents',
     pkg: 'agent',
     title: 'Agent service',

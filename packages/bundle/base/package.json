@@ -82,6 +82,7 @@
     "@huiliyi37/dsh-spill-local": "workspace:^",
     "@huiliyi37/dsh-spill-policy": "workspace:^",
     "@huiliyi37/dsh-subagent": "workspace:^",
+    "@huiliyi37/dsh-agent-definitions": "workspace:^",
     "@huiliyi37/dsh-subagent-fork": "workspace:^",
     "@huiliyi37/dsh-subagent-spawn": "workspace:^",
     "@huiliyi37/dsh-subprocess-local": "workspace:^",

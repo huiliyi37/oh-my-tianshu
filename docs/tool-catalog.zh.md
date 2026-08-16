@@ -1188,6 +1188,10 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
       "type": "string",
       "description": "The complete, self-contained task for the subagent. It does not share this conversation's context, so include everything it needs."
     },
+    "agent": {
+      "type": "string",
+      "description": "Optional role to delegate as: an exact name from this session's available agents catalog (<available_agents>). The role supplies the child's instructions, tool set, and sandbox. Omit for a general-purpose subagent."
+    },
     "run_in_background": {
       "type": "boolean",
       "description": "Run as a background task and return its id; collect with task_output or stop with task_kill."

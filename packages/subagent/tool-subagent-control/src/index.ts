@@ -13,6 +13,7 @@ import type { Context } from '@huiliyi37/cordis'
 import { defineTool } from '@huiliyi37/dsh-tools'
 import type { ContentBlock } from '@huiliyi37/dsh-llm'
 import { SessionId } from '@huiliyi37/dsh-session'
+import { escapeText } from '@huiliyi37/dsh-skill'
 import type {} from '@huiliyi37/dsh-subagent'
 
 export const name = 'tool-subagent-control'
@@ -62,7 +63,10 @@ export function apply(ctx: Context): void {
         // Parent authority requires an exact live calling agent.
         throw new Error('send_message requires a calling agent (exec.agent was undefined)')
       }
-      const message: Array<ContentBlock> = [{ type: 'text', text: args.message }]
+      // The reverse direction of the report escape: parent text becomes the
+      // child's next turn, so pseudo-XML framing is neutralized before the
+      // child model can parse it as harness instructions.
+      const message: Array<ContentBlock> = [{ type: 'text', text: escapeText(args.message) }]
       const messageId = await ctx.subagents.followup(
         parent,
         SessionId(args.subagent_id),

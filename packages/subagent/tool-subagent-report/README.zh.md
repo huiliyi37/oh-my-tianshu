@@ -46,7 +46,7 @@
 
 #### 模型看到的内容
 
-一条用户角色的父级消息，以 `Background subagent <child-id> reported:` 开头，后接子级未经改动的 `output`，并带有指明该子级的持久化来源 `{ kind: 'subagent-report', senderSessionId: <child-id> }`。
+一条用户角色的父级消息，以 `Background subagent <child-id> reported:` 开头，后接经伪 XML 转义的子级 `output`（在此边界中和 `&`、`<`、`>`，使子级从不可信内容读到的标记到达父级模型时是惰性的；持久化记录保存的正是转义后的文本），并带有指明该子级的持久化来源 `{ kind: 'subagent-report', senderSessionId: <child-id> }`。
 
 #### Token 影响
 
