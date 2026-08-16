@@ -44,7 +44,8 @@ const repositoryUrl = 'git+https://github.com/huiliyi37/oh-my-tianshu.git'
 
 const localArtifactDirs = new Set(['node_modules'])
 const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
-  '@huiliyi37/oh-my-tianshu': ['lib/*.js', 'config'],
+  // scripts/check-android-prefix.mjs: Termux 安装守卫(preinstall 引用,必须随包发布)。
+  '@huiliyi37/oh-my-tianshu': ['lib/*.js', 'config', 'scripts/check-android-prefix.mjs'],
   '@huiliyi37/dsh-frontend': ['dist'],
 }
 
