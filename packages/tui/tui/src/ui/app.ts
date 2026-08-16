@@ -831,6 +831,10 @@ export class TuiApp {
       setTheme(this.themeName)
     }
 
+    // A1/A2：创建/恢复会话与首帧渲染前，等 settings/credentials 服务激活
+    // （有界；未注册跳过）——否则 newSession/resume 在创建时快照到的是 config
+    // 默认模型（settings 未加载），且欢迎页误报 API Key ✗。
+    await this.waitForServicesReady(['settings', 'credentials'])
     const target = initialSessionId ?? this.initialSessionId ?? this.ctx.sessions.list()[0]?.id
     if (target !== undefined) await this.switchSession(target)
     else await this.newSession()
@@ -1052,6 +1056,25 @@ export class TuiApp {
       }
     }
     this.apiKeyReady = Boolean(process.env.DEEPSEEK_API_KEY)
+  }
+
+  /**
+   * 等一组 cordis 服务激活（fiber init 完成）后再继续。
+   * 已注册（非严格取得到）但未激活（严格取不到）的服务有界轮询等待；
+   * 未注册的服务直接跳过（本 profile 没有该服务，无数据可等）。
+   * @param names - 服务名列表。
+   * @param timeoutMs - 每个服务的等待上限（默认 5s）。
+   */
+  private async waitForServicesReady(names: readonly string[], timeoutMs = 5000): Promise<void> {
+    const deadline = Date.now() + timeoutMs
+    for (const name of names) {
+      // 未注册（非严格取不到）：本 profile 无该服务，没有数据可等，直接跳过。
+      if (this.ctx.reflect.get(name, false) === undefined) continue
+      // 已注册但 fiber 未激活（init 未完成）：有界轮询等待激活完成。
+      while (this.ctx.reflect.get(name) === undefined && Date.now() < deadline) {
+        await new Promise(resolve => setTimeout(resolve, 25))
+      }
+    }
   }
 
   /**
