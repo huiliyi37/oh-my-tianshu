@@ -49,6 +49,8 @@ export interface SlashMenuState {
  * manages the state values.
  */
 export class InputController {
+  /** 空闲时空输入 Ctrl+C 连按退出的时间窗（ms）。 */
+  static readonly EXIT_WINDOW_MS = 2000
   /** slash 命令列表（外部注入，提示 + Tab 补全用） */
   slashCommands: SlashHintEntry[] = []
   /** slash hint 当前选中项索引（输入以 / 开头时，Tab 补全目标） */

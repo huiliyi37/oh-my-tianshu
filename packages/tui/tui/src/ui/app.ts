@@ -280,7 +280,7 @@ export interface TuiAppOptions {
   initialSessionId?: SessionId
   /** 主题名；'auto' 走系统终端配色探测，缺省 'auto'。 */
   theme?: string
-  /** 输入行为空时 Ctrl+C 的退出回调（raw-mode 下 Ctrl+C 是数据字节非 SIGINT）。 */
+  /** 输入行为空时 Ctrl+C 连按两次的退出回调（raw-mode 下 Ctrl+C 是数据字节非 SIGINT；窗口内第二次触发）。 */
   onExit?: () => void
   /** 外部编辑器触发键（KeyName）；缺省 'ctrl_e'（ctrl+o 已恢复为推理展开，Phase 6.4）。 */
   editorKey?: KeyName
@@ -2102,6 +2102,31 @@ export class TuiApp {
     this.flushLiveRender()
   }
 
+  /** 连按退出提示占位的恢复定时器；null = 未激活。 */
+  private ctrlCExitHintTimer: ReturnType<typeof setTimeout> | null = null
+
+  /** 第一次空闲 Ctrl+C：输入行显示连按退出提示，窗口超时自动复位。 */
+  private showCtrlCExitHint(): void {
+    this.inputLine.setPlaceholder('再按 Ctrl+C 退出 · Ctrl+Q 立即退出')
+    if (this.ctrlCExitHintTimer !== null) clearTimeout(this.ctrlCExitHintTimer)
+    this.ctrlCExitHintTimer = setTimeout(() => {
+      this.ctrlCExitHintTimer = null
+      this.inputController.ctrlCPendingSince = 0
+      this.inputLine.setPlaceholder('')
+      this.flushLiveRender()
+    }, InputController.EXIT_WINDOW_MS)
+    this.flushLiveRender()
+  }
+
+  /** 终止连按窗口：复位提示占位与恢复定时器。 */
+  private clearCtrlCExitHint(): void {
+    if (this.ctrlCExitHintTimer !== null) {
+      clearTimeout(this.ctrlCExitHintTimer)
+      this.ctrlCExitHintTimer = null
+    }
+    if (this.inputLine.placeholder !== '') this.inputLine.setPlaceholder('')
+  }
+
   /**
    * Phase 6.4：打开外部编辑器编辑当前输入行。编辑器是外部进程，必须暂时
    * 退出 raw-mode（编辑器需要正常终端交互）；spawnSync 阻塞期间 ticker 暂停。
@@ -2253,6 +2278,11 @@ export class TuiApp {
 
   /** 键路由：Enter 提交 / Ctrl-C 取消或退出 / 上下键历史 / 其余交给 InputLine。 */
   private handleKey(key: KeyPress): void {
+    // 任何非 Ctrl+C 键都终止连按退出窗口（提示占位随窗口一起复位）。
+    if (key.name !== 'ctrl_c' && this.inputController.ctrlCPendingSince !== 0) {
+      this.inputController.ctrlCPendingSince = 0
+      this.clearCtrlCExitHint()
+    }
     // C3 项 4：Shift+Tab 三态循环（Normal → Plan → Always-Approve → Normal）。
     if (key.name === 'shift_tab') {
       this.cycleMode()
@@ -2260,7 +2290,7 @@ export class TuiApp {
     }
     // C4 概念稿 A：欢迎页菜单入口快捷键——新会话 / 恢复会话 / 退出。
     // 语义与菜单行提示一致（grok menu.rs 的 ctrl+w/ctrl+s/ctrl+q 对齐）；
-    // 任意时刻可用（新会话即 /session new 语义，退出即 Ctrl+C 空输入退出）。
+    // 任意时刻可用（新会话即 /session new 语义，退出即 Ctrl+Q 或连按两次 Ctrl+C）。
     // 注意：ctrl_n 在此劫持 InputLine 的 historyNext（L791）、ctrl_p 早已被
     // 命令面板劫持（historyPrev）——输入历史导航由 ↑/↓ 承担，此处不留键。
     if (key.name === 'ctrl_n') {
@@ -2439,12 +2469,31 @@ export class TuiApp {
       return
     }
     if (key.name === 'ctrl_c') {
-      // raw-mode 下 Ctrl+C 是 0x03 数据字节而非 SIGINT——退出路径走这里：
-      // 输入为空退出（onExit），有输入取消当前活动（handleAbort）。
-      if (this.inputLine.value === '' && this.onExit !== undefined) {
-        this.onExit()
+      // raw-mode 下 Ctrl+C 是 0x03 数据字节而非 SIGINT。
+      // 在途：打断当前 turn（连按窗口一并复位）；空闲空输入：连按两次才
+      // onExit——单次误触不拆 TUI，第一次提示、窗口内第二次才退出
+      // （Claude Code 同款；Ctrl+Q 仍立即退出）。
+      if (this.liveAgent?.state.status === 'running') {
+        this.inputController.ctrlCPendingSince = 0
+        this.clearCtrlCExitHint()
+        this.handleAbort()
         return
       }
+      if (this.inputLine.value === '' && this.onExit !== undefined) {
+        const now = Date.now()
+        const pending = this.inputController.ctrlCPendingSince
+        if (pending !== 0 && now - pending < InputController.EXIT_WINDOW_MS) {
+          this.inputController.ctrlCPendingSince = 0
+          this.clearCtrlCExitHint()
+          this.onExit()
+          return
+        }
+        this.inputController.ctrlCPendingSince = now
+        this.showCtrlCExitHint()
+        return
+      }
+      this.inputController.ctrlCPendingSince = 0
+      this.clearCtrlCExitHint()
       this.handleAbort()
       return
     }
@@ -3290,6 +3339,7 @@ export class TuiApp {
   async dispose(): Promise<void> {
     if (this.disposed) return
     this.disposed = true
+    if (this.ctrlCExitHintTimer !== null) { clearTimeout(this.ctrlCExitHintTimer); this.ctrlCExitHintTimer = null }
     if (this.ticker !== null) { clearInterval(this.ticker); this.ticker = null }
     // 先 flush 再释放本层持有的 handle：flushAll 依赖 live store 未拆，
     // 而 dispose owned handle 会卸载投影/释放 agent，先拆会让 flush 无物可刷。

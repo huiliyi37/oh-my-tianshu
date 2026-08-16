@@ -459,9 +459,36 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     await app.dispose()
   })
 
-  it('ctrl_c 空输入触发 onExit 而非取消', async () => {
+  it('ctrl_c 空闲空输入：第一次提示不退出，窗口内第二次才 onExit', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('exit-1')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const onExit = vi.fn()
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin, onExit })
+    await app.attach()
+
+    stdin.emit('data', '\x03') // raw-mode Ctrl+C 作为 0x03 字节进入数据流
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).not.toHaveBeenCalled()
+    expect(agent.cancel).not.toHaveBeenCalled()
+    const afterFirst = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(afterFirst).toContain('再按 Ctrl+C 退出')
+
+    stdin.emit('data', '\x03')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).toHaveBeenCalledTimes(1)
+    expect(agent.cancel).not.toHaveBeenCalled()
+    await app.dispose()
+  })
+
+  it('ctrl_c 空闲空输入：超过连按窗口的第二次仍不退出', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('exit-window')
     const handle = makeHandle(agent)
     ctx.agents.create.mockResolvedValue(handle)
     ctx.sessions.get.mockReturnValue(agent.session)
@@ -471,11 +498,46 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     const app = new TuiApp({ ctx, stdout: makeStdout(), stdin, onExit })
     await app.attach()
 
-    stdin.emit('data', '\x03') // raw-mode Ctrl+C 作为 0x03 字节进入数据流
+    const now = Date.now()
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(now)
+    stdin.emit('data', '\x03')
     await new Promise(resolve => setImmediate(resolve))
-
+    nowSpy.mockReturnValue(now + 2_001)
+    stdin.emit('data', '\x03')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).not.toHaveBeenCalled()
+    nowSpy.mockReturnValue(now + 2_002)
+    stdin.emit('data', '\x03')
+    await new Promise(resolve => setImmediate(resolve))
     expect(onExit).toHaveBeenCalledTimes(1)
-    expect(agent.cancel).not.toHaveBeenCalled()
+    nowSpy.mockRestore()
+    await app.dispose()
+  })
+
+  it('agent running 时空输入 Ctrl+C → handleAbort，不 onExit', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('abort-run')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const onExit = vi.fn()
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin, onExit })
+    await app.attach()
+    const id = app.sessionId
+    if (id === null) throw new Error('sessionId missing after attach')
+    const statusHandlers = ctx.on.mock.calls
+      .filter((call: unknown[]) => call[0] === 'agent/status')
+      .map(call => call[1] as (payload: { agent: { id: SessionId }; status: string }) => void)
+    for (const handler of statusHandlers) handler({ agent: { id }, status: 'running' })
+
+    stdin.emit('data', '\x03')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).not.toHaveBeenCalled()
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('已取消')
     await app.dispose()
   })
 
