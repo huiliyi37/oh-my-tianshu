@@ -293,4 +293,37 @@ describe('WorkflowStatusLine (自包含事件订阅)', () => {
     expect(updates).toHaveLength(0)
     expect(line.current).toBeNull()
   })
+
+  it('A5：turn/end 收尾在 agent idle 时不占据状态行（回到空闲不占位）', () => {
+    const { ctx, handlers } = fakeCtx()
+    const updates: (string | null)[] = []
+    const line = new WorkflowStatusLine(ctx, sid, text => updates.push(text))
+    const sessionHandler = handlers.get('session/event')?.[0]
+    if (sessionHandler === undefined) throw new Error('session/event handler not registered')
+
+    sessionHandler({ id: sid }, turnStart(1, 1))
+    sessionHandler({ id: sid }, turnEnd(2, 1))
+    // agent 默认 idle：收尾相位保留在视图里，但状态行回到空闲（null，不占位）。
+    expect(updates[updates.length - 1]).toBeNull()
+    expect(line.current).toBeNull()
+  })
+
+  it('A5：agent running 时 turn/end 仍显示收尾；idle 后清除', () => {
+    const { ctx, handlers } = fakeCtx()
+    const updates: (string | null)[] = []
+    const line = new WorkflowStatusLine(ctx, sid, text => updates.push(text))
+    const sessionHandler = handlers.get('session/event')?.[0]
+    const statusHandler = handlers.get('agent/status')?.[0]
+    if (sessionHandler === undefined) throw new Error('session/event handler not registered')
+    if (statusHandler === undefined) throw new Error('agent/status handler not registered')
+
+    statusHandler({ agent: { id: sid }, status: 'running' })
+    sessionHandler({ id: sid }, turnStart(1, 1))
+    sessionHandler({ id: sid }, turnEnd(2, 1))
+    expect(line.current).toContain('收尾')
+
+    statusHandler({ agent: { id: sid }, status: 'idle' })
+    expect(line.current).toBeNull()
+    expect(updates[updates.length - 1]).toBeNull()
+  })
 })

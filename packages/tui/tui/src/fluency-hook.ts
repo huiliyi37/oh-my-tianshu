@@ -37,6 +37,8 @@ export class FluencyTracker {
   private phase: ActivityPhase = 'idle'
   private outputRate = 0
   private resultLength = 0
+  /** 是否有请求在途（turn/start 置位，turn/end 复位）。false 时静默提示不触发。 */
+  private inFlight = false
 
   /**
    * 判定一次工具调用是否算 routine（只读检索类且未出错）。
@@ -85,6 +87,7 @@ export class FluencyTracker {
    */
   setPhase(phase: ActivityPhase): void {
     this.phase = phase
+    this.inFlight = true
     this.lastEventAt = Date.now()
   }
 
@@ -96,7 +99,13 @@ export class FluencyTracker {
     this.lastEventAt = Date.now() - silentMs
   }
 
-  /** 回合结束：清空全部信号并回到 idle 阶段。 */
+  /** 回合开始：标记请求在途，重置静默计时起点。静默提示仅在在途时有效。 */
+  onTurnStart(): void {
+    this.inFlight = true
+    this.lastEventAt = Date.now()
+  }
+
+  /** 回合结束：清空全部信号、复位在途标记并回到 idle 阶段。 */
   onTurnComplete(): void {
     this.routine.reset()
     this.lastIsError = false
@@ -105,6 +114,7 @@ export class FluencyTracker {
     this.resultLength = 0
     this.lastEventAt = Date.now()
     this.phase = 'idle'
+    this.inFlight = false
   }
 
   /**
@@ -121,6 +131,7 @@ export class FluencyTracker {
       isError: this.lastIsError,
       isApproval: this.lastIsApproval,
       consecutiveRoutine: this.routine.count,
+      inFlight: this.inFlight,
     }
     return computeFluencyPolicy(signals)
   }

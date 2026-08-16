@@ -29,6 +29,10 @@ export interface FluencySignals {
   isError: boolean
   isApproval: boolean
   consecutiveRoutine: number
+  /** 是否有请求在途。缺省按 true 处理（兼容旧信号源）；false 时静默提示不触发——
+   *  回合结束后 agent 已 idle，silentMs 仍在增长，继续提示会把已完成的回复
+   *  谎报成 "Waiting for response"。 */
+  inFlight?: boolean
 }
 
 /** 策略输出：可见度、是否折叠例行事件、聚合窗口与可选停滞提示。 */
@@ -109,7 +113,10 @@ export function computeFluencyPolicy(signals: FluencySignals): FluencyPolicy {
   }
 
   // Silent too long → stale inspection (phase-aware thresholds)
-  if (signals.silentMs >= 15_000) {
+  // A5：仅在请求在途（inFlight !== false）时提示——turn 结束后 tracker 回到
+  // idle 但 silentMs 仍在增长，无在途请求时提示是噪音（"Waiting for response"
+  // 出现在已完成回复下方并持续计时）。
+  if (signals.silentMs >= 15_000 && signals.inFlight !== false) {
     const stale = getPhaseStaleMessage(signals.phase, signals.silentMs)
     if (stale) {
       return {
