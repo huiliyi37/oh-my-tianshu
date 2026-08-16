@@ -86,6 +86,7 @@
     "@huiliyi37/dsh-system-prompt": "workspace:*",
     "@huiliyi37/dsh-tasks-local": "workspace:*",
     "@huiliyi37/dsh-time-context": "workspace:*",
+    "@huiliyi37/dsh-schedule": "workspace:*",
     "@huiliyi37/dsh-timeout-policy": "workspace:*",
     "@huiliyi37/dsh-token-meter": "workspace:*",
     "@huiliyi37/dsh-tool-ask-user": "workspace:*",

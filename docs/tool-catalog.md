@@ -18,6 +18,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@huiliyi37/dsh-tool-ask-user` | `ask_user_question` | `ctx.tools`, `ctx.userInteraction` | `tool/call`, `tool/result after a UI/provider answers the question` | - | ask_user_question pauses the tool call until the active UI provider returns a human answer. |
 | `@huiliyi37/dsh-tools` | `run_code` | `ctx.tools`, `ctx.codeRuntime (execution time)`, `ctx.systemPrompt` | `tool/call`, `one tool/code-dispatch-start + tool/code-dispatch pair per bridged sub-call`, `tool/result` | - | Owned by the tool registry as a reserved transport outside filterable capability layers under `mode: code` / `mode: both` (see the Code Mode Agent Note). Under `code` it is the registry's only wire contribution; the other visible capabilities are declared in a generated SDK section in the loaded runtime's language, and a program calls them through bindings scheduled under the native concurrency contract (submission-ordered starts and policy; concurrency-safe bodies overlap up to `maxParallelSubCalls`) that re-enter the complete guarded tool pipeline and link each nested execution to this outer result. |
 | `@huiliyi37/dsh-plan-mode` | `exit_plan_mode` | `ctx.tools`, `ctx.systemPrompt`, `ctx.userInteraction (execution time, opportunistic)` | `tool/call`, `plan/mode inactive on an approved review`, `tool/result` | - | exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-interaction seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary. |
+| `@huiliyi37/dsh-schedule` | `schedule_create`, `schedule_delete`, `schedule_list` | `ctx.tools`, `ctx.sessions`, `ctx.agents`, `ctx.sessionPersistence` | `schedule/change`, `tool/call`, `tool/result` | - | schedule_create / schedule_list / schedule_delete are agent-scoped: they exist only on root agents created after the plugin loads, and their durable state lives in the session log. |
 | `@huiliyi37/dsh-tool-bash` | `bash` | `ctx.tools`, `ctx.bash`, `ctx.systemPrompt`, `ctx.bashEnv`, `ctx.tasks at call time for run_in_background` | `tool/call`, `tool/result` | - | The bash tool is the model-facing consumer of the bash executor seam. A `run_in_background` run registers with the generic `ctx.tasks` runtime and is collected/stopped through the `task_*` tools from `@huiliyi37/dsh-tool-tasks`; the `enableRunInBackground` config (default true) removes the parameter entirely when disabled. |
 | `@huiliyi37/dsh-tool-pwsh` | `pwsh` | `ctx.tools`, `ctx.bash`, `ctx.systemPrompt`, `ctx.bashEnv`, `ctx.tasks at call time for run_in_background` | `tool/call`, `tool/result` | - | The pwsh tool is the PowerShell-dialect consumer of the bash executor seam for Windows compositions (a PowerShell executor such as `@huiliyi37/dsh-pwsh-local` backs `ctx.bash`); it mirrors the bash tool call-for-call minus the sandbox surface — `run_in_background` runs register with the generic `ctx.tasks` runtime and are collected/stopped through the `task_*` tools, and the managed `DSH_*` environment comes from `@huiliyi37/dsh-bash-env`. Each call runs in a fresh process (no persistent PTY session; ConPTY is roadmap work), with native `C:\...` paths and `$env:NAME` variables. |
 | `@huiliyi37/dsh-tool-cordis` | `cordis_inspect`, `cordis_mount`, `cordis_unmount` | `ctx.tools` | `tool/call`, `tool/result`, `process-local temporary Plugin lifecycle` | - | Not in any shipped tree (a deliberate opt-in — temporary Plugin code reaches the real runtime, see .agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md). Plugins created by cordis_mount may register ADDITIONAL model-visible tools until unmounted or DSH restarts; a full changed request header logs those tool-set changes. |
@@ -170,6 +171,101 @@ Use only in plan mode. Present your plan for the user's review and, on approval,
 Source: [`packages/plan/plan-mode/src/index.ts`](../packages/plan/plan-mode/src/index.ts)
 
 exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-interaction seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary.
+
+## `@huiliyi37/dsh-schedule`
+
+### `schedule_create`
+
+Create one reminder in the current session. Supply a non-empty prompt and exactly one selector: a positive safe-integer after_seconds delay, at as a strict offset date-time or local date/time object, or safe-integer every_seconds of at least 300. Fixed-rate reminders stay creation-aligned, skip missed occurrences, and batch one latest occurrence per overdue rule. Delivery is session-local: the reminder runs on time only while this session is live and otherwise becomes overdue until the session is resumed.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "prompt": {
+      "type": "string",
+      "description": "Reminder content to present when the target becomes due."
+    },
+    "after_seconds": {
+      "type": "number",
+      "description": "Positive safe-integer delay in seconds."
+    },
+    "every_seconds": {
+      "type": "number",
+      "description": "Fixed-rate safe-integer interval in seconds, at least 300."
+    },
+    "at": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "date": {
+              "type": "string"
+            },
+            "time": {
+              "type": "string"
+            },
+            "time_zone": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "date",
+            "time",
+            "time_zone"
+          ]
+        }
+      ],
+      "description": "Absolute target as strict offset RFC 3339 or local date/time with an explicit IANA zone."
+    }
+  },
+  "required": [
+    "prompt"
+  ]
+}
+```
+
+Source: [`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts)
+
+### `schedule_delete`
+
+Delete one active reminder in the current session by the exact id returned by schedule_create or schedule_list. Unknown or already-finished ids return deleted false.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Exact session-local schedule id."
+    }
+  },
+  "required": [
+    "id"
+  ]
+}
+```
+
+Source: [`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts)
+
+### `schedule_list`
+
+List every active reminder in the current session in creation order, including its exact id, UTC target, scheduled or overdue state, and session-local delivery mode.
+
+```json
+{
+  "type": "object",
+  "properties": {}
+}
+```
+
+Source: [`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts)
+
+schedule_create / schedule_list / schedule_delete are agent-scoped: they exist only on root agents created after the plugin loads, and their durable state lives in the session log.
 
 ## `@huiliyi37/dsh-tool-bash`
 

@@ -8,7 +8,7 @@
 
 import { globSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
-import { Context } from '@huiliyi37/cordis'
+import { Context, Service } from '@huiliyi37/cordis'
 import type { ToolSchema } from '@huiliyi37/dsh-llm'
 import AgentRegistry from '@huiliyi37/dsh-agent'
 import type { Agent } from '@huiliyi37/dsh-agent'
@@ -64,6 +64,9 @@ import * as ToolSubagent from '@huiliyi37/dsh-tool-subagent'
 import * as ToolWeb from '@huiliyi37/dsh-tool-web'
 import VmWorkflowEngine from '@huiliyi37/dsh-workflow-workerthread'
 import * as ToolRalph from '@huiliyi37/dsh-tool-ralph'
+import * as SchedulePlugin from '@huiliyi37/dsh-schedule'
+import LlmService from '@huiliyi37/dsh-llm'
+import AgentLoop from '@huiliyi37/dsh-agent-loop'
 import * as ToolWorkflow from '@huiliyi37/dsh-tool-workflow'
 
 const root = resolve(import.meta.dirname, '..')
@@ -89,6 +92,9 @@ function registerCatalogSubagentProvider(ctx: Context, name: string): void {
 
 /** Minted child-scope keys for packages whose tools are never global. */
 const catalogChildScopes = new WeakMap<Context, Agent>()
+
+/** Root agents minted per catalog context for agent-scoped schedule tools. */
+const scheduleRootAgents = new WeakMap<Context, Agent>()
 
 /**
  * Install one scope-local tool package into an agent-like child scope for
@@ -195,6 +201,38 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-interaction seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary.',
+  },
+  {
+    pkg: '@huiliyi37/dsh-schedule',
+    dir: 'schedule',
+    source: 'packages/schedule/schedule/src/index.ts',
+    requires: ['ctx.tools', 'ctx.sessions', 'ctx.agents', 'ctx.sessionPersistence'],
+    writes: ['schedule/change', 'tool/call', 'tool/result'],
+    scope: ctx => scheduleRootAgents.get(ctx) as Agent,
+    async mount(ctx) {
+      // Schema harvest never executes tools, so the flush barrier needs only a
+      // service presence + no-op listener, not a real persistence backend.
+      class SchedulePersistenceProbe extends Service {
+        constructor(c: Context) {
+          super(c, 'sessionPersistence')
+        }
+      }
+      // AgentRegistry.create needs a registered factory (agent-loop). The
+      // catalog already mounted SystemPrompt + ToolRegistry; add the remaining
+      // loop deps, and the loop never starts a turn here.
+      await ctx.plugin(LlmService)
+      await ctx.plugin(SessionStore)
+      await ctx.plugin(AgentRegistry)
+      await ctx.plugin(AgentLoop, { agents: [] })
+      await ctx.plugin(SchedulePersistenceProbe)
+      ctx.on('session/flush', () => {})
+      await ctx.plugin(SchedulePlugin)
+      // The plugin installs tools only on root agents created after it loads.
+      const root = await ctx.agents.create({ sessionId: SessionId('tool-catalog-schedule') })
+      scheduleRootAgents.set(ctx, root.agent)
+    },
+    note:
+      'schedule_create / schedule_list / schedule_delete are agent-scoped: they exist only on root agents created after the plugin loads, and their durable state lives in the session log.',
   },
   {
     pkg: '@huiliyi37/dsh-tool-bash',

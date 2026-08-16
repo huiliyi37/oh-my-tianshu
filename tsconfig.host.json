@@ -187,6 +187,7 @@
     { "path": "./packages/sandbox/sandbox" },
     { "path": "./packages/sandbox/sandbox-local" },
     { "path": "./packages/sandbox/sandbox-policy" },
+    { "path": "./packages/schedule/schedule" },
     { "path": "./packages/bash/bash-sandbox" },
     { "path": "./packages/bash/tool-bash" },
     { "path": "./packages/fs/fs" },

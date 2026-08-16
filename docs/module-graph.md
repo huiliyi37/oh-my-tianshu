@@ -260,6 +260,9 @@ flowchart TD
     pkg_sdk_client["sdk-client"]
     pkg_sdk_protocol["sdk-protocol"]
   end
+  subgraph group_schedule["packages/schedule"]
+    pkg_schedule["schedule"]
+  end
   subgraph group_search["packages/search"]
     pkg_meridian["meridian"]
     pkg_semantic_index["semantic-index"]
@@ -964,6 +967,13 @@ flowchart TD
   pkg_tool_pty --> pkg_system_prompt
   pkg_tool_pty --> pkg_tasks
   pkg_tool_pty --> pkg_tools
+  pkg_schedule --> pkg_agent
+  pkg_schedule --> pkg_brand
+  pkg_schedule --> pkg_invariants
+  pkg_schedule --> pkg_llm
+  pkg_schedule --> pkg_session
+  pkg_schedule --> pkg_session_persistence
+  pkg_schedule --> pkg_tools
   pkg_tool_meridian --> pkg_invariants
   pkg_tool_meridian --> pkg_meridian
   pkg_tool_meridian --> pkg_system_prompt
@@ -1451,6 +1461,7 @@ flowchart TD
 | [`tool-memory`](../packages/memory/tool-memory) | `memory` | [`invariants`](../packages/support/invariants), [`system-prompt`](../packages/core/system-prompt), [`tools`](../packages/core/tools) |
 | [`tool-bash-persistent`](../packages/pty/tool-bash-persistent) | `pty` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`pty`](../packages/pty/pty), [`timeout`](../packages/util/timeout), [`tools`](../packages/core/tools) |
 | [`tool-pty`](../packages/pty/tool-pty) | `pty` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`pty`](../packages/pty/pty), [`retention`](../packages/util/retention), [`system-prompt`](../packages/core/system-prompt), [`tasks`](../packages/tasks/tasks), [`tools`](../packages/core/tools) |
+| [`schedule`](../packages/schedule/schedule) | `schedule` | [`agent`](../packages/core/agent), [`brand`](../packages/util/brand), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`session-persistence`](../packages/session/session-persistence), [`tools`](../packages/core/tools) |
 | [`tool-meridian`](../packages/search/tool-meridian) | `search` | [`invariants`](../packages/support/invariants), [`meridian`](../packages/search/meridian), [`system-prompt`](../packages/core/system-prompt), [`tools`](../packages/core/tools) |
 | [`tool-semantic-search`](../packages/search/tool-semantic-search) | `search` | [`invariants`](../packages/support/invariants), [`semantic-index`](../packages/search/semantic-index), [`system-prompt`](../packages/core/system-prompt), [`tools`](../packages/core/tools) |
 | [`tool-cordis`](../packages/self-modification/tool-cordis) | `self-modification` | [`invariants`](../packages/support/invariants), [`scope`](../packages/core/scope), [`tools`](../packages/core/tools) |

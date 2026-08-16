@@ -6,7 +6,7 @@ Packages use the `@huiliyi37/dsh-*` scope. Cordis `Service` subclasses and funct
 
 ## Hierarchy
 
-Groups hold `packages/<group>/<pkg>/`; names stay `@huiliyi37/dsh-<pkg>`. **Group READMEs own package/ctx-key maps.**
+Groups hold `packages/<group>/<pkg>/`; names `@huiliyi37/dsh-<pkg>`. **Group READMEs own package/ctx-key maps.**
 
 | Group | Role | Release expectation |
 |---|---|---|
@@ -14,6 +14,7 @@ Groups hold `packages/<group>/<pkg>/`; names stay `@huiliyi37/dsh-<pkg>`. **Grou
 | [`api/`](api/README.md) | Remote BFF assembly and TypeRT RPC gateway | Product — stable surface |
 | [`typert/`](typert/README.md) | Type graph generation, artifact loading, and runtime registry | Product — stable surface |
 | [`goal/`](goal/README.md) | Same-session goal persistence and lifecycle | Product — stable surface |
+| [`schedule/`](schedule/README.md) | Session-local durable reminders | Product — stable surface |
 | [`feedback/`](feedback/README.md) | Human feedback | Product — stable surface |
 | [`identity/`](identity/README.md) | Shared anonymous identity | Product — stable surface |
 | [`llm/`](llm/README.md) | LLM capability family: the abstract service + provider adapters | Product — stable surface |
@@ -58,7 +59,7 @@ Groups hold `packages/<group>/<pkg>/`; names stay `@huiliyi37/dsh-<pkg>`. **Grou
 | [`support/`](support/README.md) | Support infrastructure (testkits, invariants, replay, Loader smokes) | Support — lower compatibility expectations |
 | [`util/`](util/README.md) | Low-level zero-dependency utilities (`Branded<B>`, home/path helpers, timeout, retention) | Support — small, stable, harness-dep-free |
 
-New packages join existing groups; new groups update their README and this table.
+New packages join existing groups; new groups update this table.
 
 ## Dependencies
 

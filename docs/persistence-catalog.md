@@ -115,7 +115,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 'agent-preset/selected': { agentPreset: string }
 ```
 
-Source: [`packages/tui/tui/src/commands/registry.ts:36`](../packages/tui/tui/src/commands/registry.ts)
+Source: [`packages/tui/tui/src/commands/registry.ts:37`](../packages/tui/tui/src/commands/registry.ts)
 
 ### `approval/*`
 
@@ -538,6 +538,20 @@ Source: [`packages/core/session/src/types.ts:278`](../packages/core/session/src/
 ```
 
 Source: [`packages/sandbox/sandbox-policy/src/session-mode.ts:33`](../packages/sandbox/sandbox-policy/src/session-mode.ts)
+
+### `schedule/*`
+
+#### `schedule/change` — log-only
+
+```ts persistence-catalog
+/**
+ * Versioned Schedule mutation. The owning package validates the complete
+ * session-local transition stream before accepting a candidate event.
+ */
+'schedule/change': ScheduleChange
+```
+
+Source: [`packages/schedule/schedule/src/types.ts:219`](../packages/schedule/schedule/src/types.ts)
 
 ### `session/*`
 
