@@ -10,6 +10,12 @@ Source: [`packages/plan/plan-mode/src/index.ts`](../../packages/plan/plan-mode/s
 
 `plan/mode` (`{ active: boolean }`) is a log-only, whole-value-replace [session event](session.md): durable and replayable, never in the model transcript. `foldPlanMode(events, end?)` returns the last logged value in the prefix, or `false` when there is none — the state in force is always a pure fold of the session log, so resume, fork, and compaction recover it with no live mirror, and UIs observe committed flips through `session/event`. The complete event declaration is in the [persistence log event catalog](../persistence-catalog.md).
 
+## The execution guard and the plan file
+
+While the logged state is active, a monotonic `ctx.tools.guard` registered by the service denies the mutation-tool families at execution time: `write`, `edit`, `str_replace_editor` (only its `create`/`str_replace`/`insert` commands, read off the call arguments), `git_commit`, and `terminal_open/send/signal/close`. The denial is a model-facing tool error; the tool catalog itself is untouched, so request schemas stay stable across mode switches. `bash`/`pwsh` stay allowed for read-only shell exploration, and deployments extend the deny list through the `blockedTools` config. The guard reads the committed log only — a pending mid-turn entry never breaks the running turn's writes — and child agent sessions fold their own logs, so the constraint never leaks into subagents.
+
+Every `exit_plan_mode` call, approved or not, persists the presented markdown to `$DSH_HOME/plans/<encoded-cwd>/<session-id>/<slug>.md` through plugin-private `node:fs` (it never crosses the fs sandbox) and appends the log-only `plan/file { path, heading }` event; an approved result carries the path in its rendered text. Rationale and rejected alternatives: [the hard read-only guard and plan file Agent Note](../../.agents/notes/implemented/feature/2026-08-16-plan-mode-hard-readonly-and-plan-file.md).
+
 ## Pending intent and the step-boundary flush
 
 Because every session event is turn-enclosed, a user selection is held as pending intent until the next step boundary — the next request derivation, in whichever turn it occurs (selection never forces continuation, so an intent recorded after a turn's final step lands in a later turn). `set(agent, active)` records the pending selection (a no-op when the target equals the logged-or-already-pending state), and `get(agent)` returns `{ active: boolean; pending?: boolean }` — the logged state shaping the current step, plus the optimistic selection awaiting a boundary.
@@ -23,6 +29,13 @@ The sole flush point is a prepended `agent/step` listener — the loop's in-turn
 interface PlanModeConfig {
   /** Guidance rendered as the `plan:policy` prompt section while plan mode is active. */
   section: string
+  /**
+   * Extra tool names the plan-mode guard denies on top of the built-in
+   * mutation families (fs writes, git commits, persistent-terminal control).
+   * Shell exploration (bash/pwsh) is intentionally not blocked by default —
+   * list them here for a stricter deployment.
+   */
+  blockedTools?: readonly string[]
 }
 ```
 
@@ -82,5 +95,5 @@ set(agent: Agent, active: boolean): 'committed' | 'queued' | 'cancelled' | 'noop
 
 Types: [Agent](core.md)
 
-Source: [`packages/plan/plan-mode/src/index.ts:183`](../../packages/plan/plan-mode/src/index.ts)
+Source: [`packages/plan/plan-mode/src/index.ts:273`](../../packages/plan/plan-mode/src/index.ts)
 <!-- END GENERATED cordis-surface -->

@@ -10,6 +10,12 @@
 
 `plan/mode`（`{ active: boolean }`）是仅记日志、整值替换的[会话事件](session.md)：持久且可回放，绝不进入模型 transcript（文本记录）。`foldPlanMode(events, end?)` 返回前缀中最后一条已记录值，没有时返回 `false`：生效状态始终是会话日志的纯折叠，因此恢复、fork 与压缩（compaction）无需实时镜像即可将其复原，UI 通过 `session/event` 观察已提交的切换。完整事件声明见[持久化日志事件目录](../persistence-catalog.md)。
 
+## 执行守卫与计划文件
+
+已记录状态激活期间，服务注册的单调 `ctx.tools.guard` 守卫在执行时拒绝变更工具族：`write`、`edit`、`str_replace_editor`（仅 `create`/`str_replace`/`insert` 变异子命令，从调用入参判别）、`git_commit`、`terminal_open/send/signal/close`。拒绝是模型可见的工具错误；工具目录本身不变，请求 schema 在模式切换间保持稳定。`bash`/`pwsh` 保持可用以支持只读 shell 探索，部署方可经 `blockedTools` 配置扩大封禁名单。守卫只读已落账状态——轮内待生效的进入不会打断当前轮的合法写——子代理会话 fold 自己的日志，约束不泄漏进子会话。
+
+每次 `exit_plan_mode` 调用（无论批准与否）都会把提交的 markdown 经插件私有 `node:fs` 写到 `$DSH_HOME/plans/<编码 cwd>/<会话 id>/<slug>.md`（不过 fs 沙箱），并追加 log-only 事件 `plan/file { path, heading }`；批准结果的渲染文本携带该路径。设计取舍与被否方案见[硬只读守卫与计划文件 Agent Note](../../.agents/notes/implemented/feature/2026-08-16-plan-mode-hard-readonly-and-plan-file.md)。
+
 ## 待定意图与步骤边界冲刷
 
 由于每个会话事件都位于轮次之内，用户的选择会作为待定意图保留到下一个步骤边界——即下一次请求派生，落在哪个轮次就在哪个轮次生效（选择绝不强制续行，因此在某轮最后一步之后记录的意图会在之后的轮次落地）。`set(agent, active)` 记录待定选择（目标值与已记录或已在待定中的状态相同时不做任何事），`get(agent)` 返回 `{ active: boolean; pending?: boolean }`，即影响当前步骤的已记录状态，加上正在等待边界的乐观选择。
@@ -23,6 +29,13 @@
 interface PlanModeConfig {
   /** Guidance rendered as the `plan:policy` prompt section while plan mode is active. */
   section: string
+  /**
+   * Extra tool names the plan-mode guard denies on top of the built-in
+   * mutation families (fs writes, git commits, persistent-terminal control).
+   * Shell exploration (bash/pwsh) is intentionally not blocked by default —
+   * list them here for a stricter deployment.
+   */
+  blockedTools?: readonly string[]
 }
 ```
 
@@ -82,5 +95,5 @@ set(agent: Agent, active: boolean): 'committed' | 'queued' | 'cancelled' | 'noop
 
 Types: [Agent](core.md)
 
-Source: [`packages/plan/plan-mode/src/index.ts:183`](../../packages/plan/plan-mode/src/index.ts)
+Source: [`packages/plan/plan-mode/src/index.ts:273`](../../packages/plan/plan-mode/src/index.ts)
 <!-- END GENERATED cordis-surface -->

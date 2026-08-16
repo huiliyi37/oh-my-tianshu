@@ -412,6 +412,19 @@ export class InputLine {
    *  onPaste 到达、不触发累积；Vim normal 的 return 同样走合并（一致性）。 */
   private _inlinePasteLines: string[] = []
 
+  /** 粘贴流合并提交：累积行 + 当前行并为一次多行提交；无累积行则原样提交。 */
+  private submitFlushingPasteLines(submitted: string, submittedImages: string[]): InputLineEvent {
+    if (this._inlinePasteLines.length > 0) {
+      // 粘贴流结束（缓冲已空）：合并累积行 + 当前行为一次多行提交。
+      const merged = [...this._inlinePasteLines, submitted].join('\n')
+      this._inlinePasteLines = []
+      this.onSubmitCallback?.(merged, submittedImages)
+      return { type: 'submit', value: merged, images: submittedImages }
+    }
+    this.onSubmitCallback?.(submitted, submittedImages)
+    return { type: 'submit', value: submitted, images: submittedImages }
+  }
+
   // ── 键盘选区（S1）──
   /** 选区锚点（shift+方向键设定）；null = 无选区。选区 = [min(anchor,cursor), max)。 */
   private _selAnchor: number | null = null
@@ -770,15 +783,7 @@ export class InputLine {
         this._inlinePasteLines.push(submitted)
         return { type: 'change', value: '', cursor: 0 }
       }
-      if (this._inlinePasteLines.length > 0) {
-        // 粘贴流结束（缓冲已空）：合并累积行 + 当前行为一次多行提交。
-        const merged = [...this._inlinePasteLines, submitted].join('\n')
-        this._inlinePasteLines = []
-        this.onSubmitCallback?.(merged, submittedImages)
-        return { type: 'submit', value: merged, images: submittedImages }
-      }
-      this.onSubmitCallback?.(submitted, submittedImages)
-      return { type: 'submit', value: submitted, images: submittedImages }
+      return this.submitFlushingPasteLines(submitted, submittedImages)
     }
 
     // 多行输入：Ctrl+J 插入换行
@@ -1227,14 +1232,7 @@ export class InputLine {
         this.clearAfterSubmit()
         this.onImagesChangeCallback?.([])
         // 与 insert 模式一致：粘贴流累积行 + 当前行合并为一次提交。
-        if (this._inlinePasteLines.length > 0) {
-          const merged = [...this._inlinePasteLines, submitted].join('\n')
-          this._inlinePasteLines = []
-          this.onSubmitCallback?.(merged, submittedImages)
-          return { type: 'submit', value: merged, images: submittedImages }
-        }
-        this.onSubmitCallback?.(submitted, submittedImages)
-        return { type: 'submit', value: submitted, images: submittedImages }
+        return this.submitFlushingPasteLines(submitted, submittedImages)
       }
       case 'left':
       case 'ctrl_b': return this.moveLeft()
