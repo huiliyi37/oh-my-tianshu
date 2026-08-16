@@ -182,6 +182,7 @@
     { "path": "./packages/bash/bash-local" },
     { "path": "./packages/bash/bash-env" },
     { "path": "./packages/bash/pwsh-local" },
+    { "path": "./packages/bash/pwsh-sandbox" },
     { "path": "./packages/bash/tool-pwsh" },
     { "path": "./native/landlock-run/packages/entry" },
     { "path": "./packages/sandbox/sandbox" },

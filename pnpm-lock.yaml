@@ -943,6 +943,33 @@ importers:
         specifier: workspace:^
         version: link:../../util/timeout
 
+  packages/bash/pwsh-sandbox:
+    devDependencies:
+      '@huiliyi37/cordis':
+        specifier: ^4.0.0-rc.7
+        version: link:../../../vendor/cordis
+      '@huiliyi37/dsh-bash':
+        specifier: workspace:^
+        version: link:../bash
+      '@huiliyi37/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../support/invariants
+      '@huiliyi37/dsh-pwsh-local':
+        specifier: workspace:^
+        version: link:../pwsh-local
+      '@huiliyi37/dsh-sandbox':
+        specifier: workspace:^
+        version: link:../../sandbox/sandbox
+      '@huiliyi37/dsh-sandbox-local':
+        specifier: workspace:^
+        version: link:../../sandbox/sandbox-local
+      '@huiliyi37/dsh-sandbox-policy':
+        specifier: workspace:^
+        version: link:../../sandbox/sandbox-policy
+      '@huiliyi37/dsh-subprocess-local':
+        specifier: workspace:^
+        version: link:../../subprocess/subprocess-local
+
   packages/bash/tool-bash:
     dependencies:
       '@huiliyi37/schemastery':
