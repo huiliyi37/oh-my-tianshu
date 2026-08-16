@@ -221,9 +221,26 @@ The [Python SDK](python/README.md) drives a bundled JSON-RPC runtime. The [examp
 
 Disabled by default — nothing is uploaded anywhere. To stream session telemetry to your **own** OTLP/HTTP collector, set `DSH_TELEMETRY_OTLP_URL` (e.g. `https://collector.example.com/v1/logs`). A non-empty `DSH_TELEMETRY_DISABLED` force-disables it regardless of other settings.
 
-## Relationship with upstream `dsh`
+## Relationship with upstream `dsh` and coexistence
 
-This project forked from DeepSeek Harness (MIT) at the 2026-08 baseline and evolves independently — it does not track upstream releases, and its packages live under the `@huiliyi37/*` npm scope (CLI: `@huiliyi37/dsh-tianshu`, bin `tianshu`) so the two lines never collide. The repository is licensed under the Apache License 2.0; upstream attribution is preserved in [NOTICE](NOTICE), and the TUI package carries its own Apache-2.0 provenance chain ([LICENSE](packages/tui/tui/LICENSE) / [NOTICE](packages/tui/tui/NOTICE) / [SOURCE-MAP](packages/tui/tui/SOURCE-MAP.md)). The plugin-only distribution (`dsh-tianshu-tui` as an upstream-`dsh` plugin) is paused for now; this full monorepo is the maintained line.
+This project forked from DeepSeek Harness (MIT) at the 2026-08 baseline and evolves independently — it does not track upstream releases, and its packages live under the `@huiliyi37/*` npm scope (CLI: `@huiliyi37/dsh-tianshu`, bin `tianshu`). The repository is licensed under the Apache License 2.0; upstream attribution is preserved in [NOTICE](NOTICE), and the TUI package carries its own Apache-2.0 provenance chain ([LICENSE](packages/tui/tui/LICENSE) / [NOTICE](packages/tui/tui/NOTICE) / [SOURCE-MAP](packages/tui/tui/SOURCE-MAP.md)).
+
+**Two distribution lines, installable side by side without conflicts:**
+
+| Line | What it is | Data home |
+|---|---|---|
+| Official `dsh` + [`dsh-tianshu-tui`](https://github.com/huiliyi37/dsh-tianshu-tui) (plugin) | A TUI plugin for the official DeepSeek Harness, installed into an official profile | `~/.dsh` (fixed by the official CLI) |
+| This repo (oh-my-tianshu, formerly tianshu-public) | A standalone integrated distribution with its own CLI (`tianshu`) | A dedicated `$DSH_HOME` (default-home isolation planned; will no longer default to `~/.dsh`) |
+
+- This repo fully honors `$DSH_HOME` (precedence: explicit config > `$DSH_HOME` > default home).
+  When coexisting with the official dsh, set `export DSH_HOME=~/.dsh-tianshu` (no manual setup
+  needed once the default-home isolation lands). Sessions / profiles / settings stay separate.
+- **Naming memo (avoid confusion)**: `dsh-tianshu-tui` = the TUI plugin for official dsh;
+  `oh-my-tianshu` / `@huiliyi37/dsh-tianshu` = the standalone integrated distribution;
+  `Tianshu-Tui` = the upstream render-core source (Apache-2.0).
+- **Renaming plan (phase 2)**: the repo will be uniformly named `oh-my-tianshu`, and the
+  launch command plus npm package name will follow (`tianshu` → new command name) to eliminate
+  semantic confusion with the plugin name `dsh-tianshu-tui`; this section will be updated then.
 
 ## Development
 

@@ -221,9 +221,29 @@ pnpm run demo:acp
 
 默认关闭——不会向任何地方上传任何内容。如需把会话遥测流式发送到**你自己的** OTLP/HTTP 收集器,设置 `DSH_TELEMETRY_OTLP_URL`(如 `https://collector.example.com/v1/logs`)。非空的 `DSH_TELEMETRY_DISABLED` 无条件强制关闭。
 
-## 与上游 `dsh` 的关系
+## 与上游 `dsh` 的关系与共存
 
-本项目于 2026-08 基线从 DeepSeek Harness(MIT)分叉,独立演进——不追踪上游发布;包发布在 `@huiliyi37/*` npm scope 下(CLI:`@huiliyi37/dsh-tianshu`,bin 名 `tianshu`),两条线永不相撞。本仓库以 Apache License 2.0 发布;上游署名保留在 [NOTICE](NOTICE),TUI 包携带自己的 Apache-2.0 来源链([LICENSE](packages/tui/tui/LICENSE) / [NOTICE](packages/tui/tui/NOTICE) / [SOURCE-MAP](packages/tui/tui/SOURCE-MAP.md))。纯插件形态的发行(`dsh-tianshu-tui` 作为上游 `dsh` 的插件)暂缓;本完全体 monorepo 是持续维护的主线。
+本项目于 2026-08 基线从 DeepSeek Harness(MIT)分叉,独立演进——不追踪上游发布;
+包发布在 `@huiliyi37/*` npm scope 下(CLI:`@huiliyi37/dsh-tianshu`,bin 名 `tianshu`)。
+本仓库以 Apache License 2.0 发布;上游署名保留在 [NOTICE](NOTICE),TUI 包携带自己的
+Apache-2.0 来源链([LICENSE](packages/tui/tui/LICENSE) / [NOTICE](packages/tui/tui/NOTICE) /
+[SOURCE-MAP](packages/tui/tui/SOURCE-MAP.md))。
+
+**两条发行线,可同时安装、互不干扰**:
+
+| 发行线 | 定位 | 数据 home |
+|---|---|---|
+| 官方 `dsh` + [`dsh-tianshu-tui`](https://github.com/huiliyi37/dsh-tianshu-tui)(插件) | 官方 DeepSeek Harness 的 TUI 插件,装进官方 profile | `~/.dsh`(官方固定) |
+| 本仓库(oh-my-tianshu,原 tianshu-public) | 独立集成发行,自带 CLI(`tianshu`) | 独立 `$DSH_HOME`(默认值独立化计划中,将不再默认 `~/.dsh`) |
+
+- 本仓库完全尊重 `$DSH_HOME`(优先级:显式配置 > `$DSH_HOME` > 默认 home):
+  与官方 dsh 共存时设 `export DSH_HOME=~/.dsh-tianshu`(默认值独立化落地后无需手动设置)。
+  会话 / profile / settings 各自独立,互不覆盖。
+- **命名备忘(防止混淆)**:`dsh-tianshu-tui` = 官方 dsh 的 TUI 插件;
+  `oh-my-tianshu` / `@huiliyi37/dsh-tianshu` = 独立集成发行;`Tianshu-Tui` = 上游渲染核心
+  来源(Apache-2.0,天枢)。
+- **更名计划(第二批)**:仓库名统一为 `oh-my-tianshu`,启动命令与 npm 包名同步改名
+  (`tianshu` → 新命令名),消除与插件名 `dsh-tianshu-tui` 的语义混淆;本说明届时同步更新。
 
 ## 开发
 
