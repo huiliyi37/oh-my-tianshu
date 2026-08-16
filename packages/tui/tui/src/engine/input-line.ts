@@ -1136,14 +1136,14 @@ export class InputLine {
 
   // ── Multi-line Navigation ────────────────────────────────────
 
-  /** 当前光标的（行,列），列以 code-unit 计。 */
+  /** 当前光标的（行,列），列以 grapheme 计（CJK/emoji/组合簇不被拆开）。 */
   private getLineCol(pos: number): { line: number; col: number } {
     const parts = this._value.slice(0, pos).split('\n')
     const last = parts[parts.length - 1]
-    return { line: parts.length - 1, col: last === undefined ? 0 : last.length }
+    return { line: parts.length - 1, col: last === undefined ? 0 : graphemeBoundaries(last).length - 1 }
   }
 
-  /** 由（行,列）还原 code-unit 偏移，col 超出行长则贴到行尾。 */
+  /** 由（行,grapheme 列）还原 code-unit 偏移，col 超出行长则贴到行尾。 */
   private posFromLineCol(line: number, col: number): number {
     const lines = this._value.split('\n')
     const clampedLine = Math.max(0, Math.min(line, lines.length - 1))
@@ -1154,7 +1154,11 @@ export class InputLine {
       pos += l.length + 1 // +1 = '\n'
     }
     const last = lines[clampedLine]
-    if (last !== undefined) pos += Math.min(col, last.length)
+    if (last !== undefined) {
+      // 列号经 grapheme 边界换算偏移——code-unit 直取会落在代理对/ZWJ 簇中间
+      const bounds = graphemeBoundaries(last)
+      pos += bounds[Math.min(Math.max(0, col), bounds.length - 1)] ?? 0
+    }
     return pos
   }
 

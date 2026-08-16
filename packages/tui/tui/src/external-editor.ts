@@ -81,7 +81,7 @@ export interface EditorRunResult {
 export function openInEditorDetailed(initialContent: string, editor?: string): EditorRunResult {
   const path = createTempFile(initialContent)
   const command = editor ?? getEditorCommand()
-  let result = spawnSync(command, [path], { stdio: 'inherit' })
+  let result = spawnSync(command, [path], { stdio: 'inherit', windowsHide: true })
   // Windows 回退：.cmd/.bat 编辑器（VSCode 的 code.cmd 等）直接 spawn 报
   // EINVAL——经 cmd.exe /d /c 以参数数组显式派发（不拼接命令字符串）。
   // 仅 EINVAL 回退：ENOENT（命令真不存在）保持原 error 语义，供调用方回显。
@@ -89,7 +89,7 @@ export function openInEditorDetailed(initialContent: string, editor?: string): E
   // 需要 ErrnoException 收窄；oxlint 视为冗余）——窄豁免,以 tsc 为准。
   // oxlint-disable-next-line no-unnecessary-type-assertion
   if ((result.error as NodeJS.ErrnoException | undefined)?.code === 'EINVAL' && process.platform === 'win32') {
-    result = spawnSync(process.env.ComSpec ?? 'cmd.exe', ['/d', '/c', command, path], { stdio: 'inherit' })
+    result = spawnSync(process.env.ComSpec ?? 'cmd.exe', ['/d', '/c', command, path], { stdio: 'inherit', windowsHide: true })
   }
   if (result.status !== 0 && result.error) {
     // 失败路径清理临时目录（含 RIVET_INPUT.md）；成功路径由 readAndCleanup 处理文件

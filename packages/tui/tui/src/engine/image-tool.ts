@@ -127,7 +127,8 @@ export function resizeCandidates(
     ]
   }
   return [
-    { bin: 'sips', args: ['-Z', String(maxEdge), inPath, '--out', outPath] },
+    // -s format png 显式指定：sips 默认按 out 路径扩展名猜格式，显式化不依赖调用方命名
+    { bin: 'sips', args: ['-Z', String(maxEdge), '-s', 'format', 'png', inPath, '--out', outPath] },
     { bin: 'magick', args: [inPath, '-resize', `${maxEdge}x${maxEdge}>`, outPath] },
     { bin: 'convert', args: [inPath, '-resize', `${maxEdge}x${maxEdge}>`, outPath] },
   ]
@@ -242,7 +243,7 @@ export async function runImageTool(
   for (const { bin, args } of candidates) {
     try {
       await rm(outputPath, { force: true })
-      await execFileAsync(bin, args, { timeout: timeoutMs })
+      await execFileAsync(bin, args, { timeout: timeoutMs, windowsHide: true })
       const out = await readFile(outputPath)
       if (isCompletePng(out)) return out
       // exit 0 但输出缺失/为空/非完整 PNG——尝试下一个候选

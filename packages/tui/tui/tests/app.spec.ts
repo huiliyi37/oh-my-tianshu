@@ -2106,9 +2106,15 @@ describe('TuiApp Phase 9d 流利度装配', () => {
           },
         },
       })
-      // 推进 200s：ticker（120ms）触发多轮渲染，tool action 档（180s）已过，
-      // 最后一次 renderLive 读到 stale 提示必须上屏
-      vi.advanceTimersByTime(200_000)
+      // stale 判定 = renderLive 时的 Date.now() - lastEventAt（fluency-hook
+      // 快照），与经过多少轮 ticker 无关——时间跳跃而非逐帧推进：
+      // setSystemTime 直接跨过 tool action 档（180s），再推进 1s 触发少量
+      // ticker/batcher 渲染即可。此前 advanceTimersByTime(200_000) 要同步跑
+      // ~1700 次全量 renderLive，真实 CPU 耗时随全量并发负载膨胀直至撞穿
+      // 20s 测试预算（跨四批复现的 flaky 根因；移植 dsh-tui 86cea46）。
+      // async 版在每轮定时器间排空微任务，写入顺序确定。
+      vi.setSystemTime(Date.now() + 200_000)
+      await vi.advanceTimersByTimeAsync(1_000)
     } finally {
       vi.useRealTimers()
     }
@@ -5777,9 +5783,13 @@ describe('TuiApp 剪贴板图片与复制（opencode 接线移植）', () => {
     stdout.write.mockClear()
     // 右键粘贴图片：终端把图片字节作为文本 paste 进来（乱码）
     stdin.emit('data', '\x1b[200~���PNG\x1b[201~')
-    await new Promise(resolve => setTimeout(resolve, 40))
+    // 条件轮询替代固定 40ms：附图渲染异步落定，全量并发负载下固定等待
+    // 曾欠额（与本文件流利度 flaky 同类根因；移植 dsh-tui 86cea46）
+    await vi.waitFor(() => {
+      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('📎 1 image')
+    }, { timeout: 5_000, interval: 25 })
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('📎 1 image')
     expect(written).not.toContain('���PNG') // 乱码被吞
     await app.dispose()
   })
@@ -5793,9 +5803,11 @@ describe('TuiApp 剪贴板图片与复制（opencode 接线移植）', () => {
       await app.attach()
       stdout.write.mockClear()
       stdin.emit('data', `\x1b[200~${pngPath}\x1b[201~`)
-      await new Promise(resolve => setTimeout(resolve, 60))
-      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-      expect(written).toContain('📎 1 image')
+      // 条件轮询替代固定 60ms（同上：异步加载 + 渲染在全量并发下不定时落定）
+      await vi.waitFor(() => {
+        const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+        expect(written).toContain('📎 1 image')
+      }, { timeout: 5_000, interval: 25 })
       await app.dispose()
     } finally {
       rmSync(dir, { recursive: true, force: true })
