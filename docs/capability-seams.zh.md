@@ -174,11 +174,21 @@ flowchart LR
   svc_directoryPicker["ctx.directoryPicker<br/>Workspace-directory picking seam"]
   pkg_directory_picker_native["directory-picker-native"]
   pkg_directory_picker_browse["directory-picker-browse"]
+  pkg_agent_presets["agent-presets"]
+  svc_agentPresets["ctx.agentPresets<br/>Per-session agent composition"]
+  pkg_attachment["attachment"]
+  svc_attachments["ctx.attachments<br/>Durable binary attachment storage"]
+  pkg_attachment_local["attachment-local"]
+  pkg_cordis_host_runner["cordis-host-runner"]
+  svc_cordisInspect["ctx.cordisInspect<br/>Dynamic Cordis inspect registry"]
+  svc_dynamicCordisRunner["ctx.dynamicCordisRunner<br/>Dynamic Cordis package host runner"]
   pkg_webserver["webserver"]
-  svc_httpServer["ctx.httpServer<br/>HTTP route registration"]
+  svc_webServer["ctx.webServer<br/>HTTP route registration"]
   pkg_connection["connection"]
   pkg_modules["modules"]
   pkg_hmr["hmr"]
+  svc_workspaceRegistry["ctx.workspaceRegistry<br/>Workspace entity registry"]
+  svc_httpServer["ctx.httpServer<br/>HTTP route registration"]
   svc_clientModuleHost["ctx.clientModuleHost<br/>Client plugin graph host"]
   pkg_workflow["workflow"]
   svc_workflows["ctx.workflows<br/>Workflow script engine"]
@@ -189,8 +199,11 @@ flowchart LR
   pkg_agent_default_model --> svc_agentDefaultModel
   pkg_agent_definitions --> svc_agentDefinitions
   pkg_agent_loop --> svc_agentLoop
+  pkg_agent_presets --> svc_agentPresets
   pkg_api_gateway --> svc_typertGateway
   pkg_approval --> svc_approval
+  pkg_attachment --> svc_attachments
+  pkg_attachment_local --> svc_attachments
   pkg_bash --> svc_bash
   pkg_bash_env --> svc_bashEnv
   pkg_bash_local --> svc_bash
@@ -201,6 +214,8 @@ flowchart LR
   pkg_compact --> svc_compact
   pkg_compact_basic --> svc_compact
   pkg_compact_tool_result_prune --> svc_toolResultPrune
+  pkg_cordis_host_runner --> svc_cordisInspect
+  pkg_cordis_host_runner --> svc_dynamicCordisRunner
   pkg_credentials --> svc_credentials
   pkg_credentials_local --> svc_credentials
   pkg_directory_picker --> svc_directoryPicker
@@ -275,9 +290,11 @@ flowchart LR
   pkg_web_search_exa --> svc_web
   pkg_web_search_perplexity --> svc_web
   pkg_webserver --> svc_httpServer
+  pkg_webserver --> svc_webServer
   pkg_workflow --> svc_workflows
   pkg_workflow_workerthread --> svc_workflows
   pkg_workspace --> svc_workspace
+  pkg_workspace --> svc_workspaceRegistry
   svc_agentDefaultModel --> pkg_headless
   svc_agentDefaultModel --> pkg_host_apiproxy
   svc_agentDefinitions --> pkg_tool_subagent
@@ -296,10 +313,12 @@ flowchart LR
   svc_clientModuleHost --> pkg_hmr
   svc_codeRuntime --> pkg_tools
   svc_compact --> pkg_compact_basic
+  svc_cordisInspect --> pkg_tool_cordis
   svc_credentials --> pkg_apiproxy
   svc_credentials --> pkg_llm_deepseek
   svc_credentials --> pkg_llm_pi_ai
   svc_directoryPicker --> pkg_apiproxy
+  svc_dynamicCordisRunner --> pkg_tool_cordis
   svc_e2b --> pkg_fs_e2b
   svc_e2b --> pkg_subprocess_e2b
   svc_fs --> pkg_tool_fs
@@ -380,9 +399,13 @@ flowchart LR
   svc_typert --> pkg_typert_loader
   svc_userInteraction --> pkg_tool_ask_user
   svc_web --> pkg_tool_web
+  svc_webServer --> pkg_connection
+  svc_webServer --> pkg_hmr
+  svc_webServer --> pkg_modules
   svc_workflows --> pkg_tool_ralph
   svc_workflows --> pkg_tool_workflow
   svc_workspace --> pkg_apiproxy
+  svc_workspaceRegistry --> pkg_apiproxy
   svc_fs -. event gate .-> pkg_fs_policy
 ```
 
@@ -436,6 +459,12 @@ flowchart LR
 | `ctx.web` | `seam` | [`web`](../packages/web/web) | [`web-search-exa`](../packages/web/web-search-exa)、[`web-search-perplexity`](../packages/web/web-search-perplexity)、[`web-search-deepseek`](../packages/web/web-search-deepseek)、[`web-fetch-local`](../packages/web/web-fetch-local) | [`tool-web`](../packages/web/tool-web) | - | 搜索和抓取提供方注册到同一个 ctx.web seam；tool-web 负责稳定的面向模型名称。 |
 | `ctx.spillStore` | `seam` | [`spill`](../packages/spill/spill) | [`spill-local`](../packages/spill/spill-local) | [`spill-policy`](../packages/spill/spill-policy) | - | 后端保存过大的工具文本，并返回面向模型的定位信息和取回提示；spill-policy 是 tools/post-execute 消费方，负责决定何时 spill。 |
 | `ctx.directoryPicker` | `seam` | `directory-picker` | `directory-picker-native`、`directory-picker-browse` | `apiproxy` | - | 带判别标记的交互能力：原生后端在 Host 显示设备上打开一个操作系统选择器，浏览后端为应用内浏览器提供列表与创建原语；双端后端通过其浏览器侧填充 ui-workspace 目录流程的 slot（不通过协议发布）。 |
+| `ctx.agentPresets` | `core` | [`agent-presets`](../packages/preset/agent-presets) | - | - | - | 发现受信任与用户自建根目录下的预设目录，并在创建时把一个预设 cordis.yml 挂载到 agent scope 下；拒绝从未激活或向根服务域发布的行。 |
+| `ctx.attachments` | `seam` | [`attachment`](../packages/attachment/attachment) | [`attachment-local`](../packages/attachment/attachment-local) | - | - | 宿主在会话事件前提交已接受的图片；提供方适配器把经授权的持久引用解析为提供方原生内容。 |
+| `ctx.cordisInspect` | `core` | [`cordis-host-runner`](../packages/self-modification/cordis-host-runner) | - | [`tool-cordis`](../packages/self-modification/tool-cordis) | - | 注册 host 检查提供方，镜像 client 提供方清单，并经由动态 Cordis 传输路由 client 查询。 |
+| `ctx.dynamicCordisRunner` | `core` | [`cordis-host-runner`](../packages/self-modification/cordis-host-runner) | - | [`tool-cordis`](../packages/self-modification/tool-cordis) | - | 拥有内存定义注册表、宿主半的 vm 沙箱与 request-run 往返；浏览器页面经其 remote 命名空间在线上触达同一服务。 |
+| `ctx.webServer` | `core` | `webserver` | - | `connection`, `modules`, `hmr` | - | 纯 node:http 载体：命名路由注册表、index 变换挂接点与静态 dist 回退；web 传输插件注册自己的路由。 |
+| `ctx.workspaceRegistry` | `core` | [`workspace`](../packages/workspace/workspace) | - | `apiproxy` | - | 在域设施之上拥有 WorkspaceId 标记的记录；稳定 sessionIds 账户驱动 Host RPC 与 GUI 投影。 |
 | `ctx.httpServer` | `core` | `webserver` | - | `connection`、`modules`、`hmr` | - | 普通的 node:http 载体：具名路由注册表、索引转换 tap，以及静态 dist 回退；Web 传输插件注册自己的路由。 |
 | `ctx.clientModuleHost` | `core` | `modules` | - | `hmr` | - | 通过增量 dshClient 扫描组合 __DSH_BOOT__ 入口图，提供插件组合包，并通知重建／图变更订阅方。 |
 | `ctx.workflows` | `seam` | [`workflow`](../packages/workflow/workflow) | [`workflow-workerthread`](../packages/workflow/workflow-workerthread) | [`tool-workflow`](../packages/workflow/tool-workflow)、[`tool-ralph`](../packages/workflow/tool-ralph) | - | 每个上下文使用一个引擎（bash 形态，无具名提供方注册表）；通用工作流与固定 Ralph 消费方启动运行，其中的 agent() 调用通过 ctx.subagents 扇出。 |

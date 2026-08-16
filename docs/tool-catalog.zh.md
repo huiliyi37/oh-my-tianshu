@@ -20,6 +20,7 @@
 | `@huiliyi37/dsh-tool-ask-user` | `ask_user_question` | `ctx.tools`、`ctx.userInteraction` | `tool/call`、`tool/result after a UI/provider answers the question` | - | ask_user_question 会暂停工具调用，直到当前 UI 提供方返回人类答案。 |
 | `@huiliyi37/dsh-tools` | `run_code` | `ctx.tools`、`ctx.codeRuntime (execution time)`、`ctx.systemPrompt` | `tool/call`、`one tool/code-dispatch-start + tool/code-dispatch pair per bridged sub-call`、`tool/result` | - | 在 `mode: code`／`mode: both` 下，它由工具注册表所有，作为可过滤能力层之外的保留传输机制（参见 Code Mode Agent Note）。在 `code` 下，它是注册表对协议格式（wire format）的唯一贡献；其他可见能力在使用已加载运行时语言生成的 SDK 章节中声明。程序通过 binding 调用这些能力，调用按照原生并发约定调度：启动顺序和策略遵循提交顺序，并发安全的函数体最多重叠执行 `maxParallelSubCalls` 个。调用会重新进入完整且受守卫保护的工具流水线，并将每个嵌套执行关联到此外层结果。 |
 | `@huiliyi37/dsh-plan-mode` | `exit_plan_mode` | `ctx.tools`、`ctx.systemPrompt`、`ctx.userInteraction (execution time, opportunistic)` | `tool/call`、`plan/mode inactive on an approved review`、`tool/result` | - | 规划未激活时，exit_plan_mode 仍保留在面向模型的 schema 中，这样状态转换不会在规划策略变更之外额外造成工具目录变动。其执行路径会拒绝规划模式之外的调用；在规划模式下，它通过用户交互 seam 提交计划（批准／根据反馈继续规划），批准后会在步骤边界记录规划模式已停用。 |
+| `@huiliyi37/dsh-schedule` | `schedule_create`、`schedule_delete`、`schedule_list` | `ctx.tools`、`ctx.sessions`、`ctx.agents`、`ctx.sessionPersistence` | `schedule/change`、`tool/call`、`tool/result` | - | schedule_create / schedule_list / schedule_delete 是 agent 作用域的:它们只存在于插件加载后创建的根 agent 上,其持久状态存在于会话日志中。 |
 | `@huiliyi37/dsh-tool-bash` | `bash` | `ctx.tools`、`ctx.bash`、`ctx.systemPrompt`、`ctx.bashEnv`、`ctx.tasks at call time for run_in_background` | `tool/call`、`tool/result` | - | bash 工具是 bash 执行器 seam 面向模型的消费方。使用 `run_in_background` 的运行会注册到通用 `ctx.tasks` 运行时，并通过 `task_*` 工具（来自 `@huiliyi37/dsh-tool-tasks`）收集／停止；禁用 `enableRunInBackground` 配置（默认为 true）后，该参数会被完全移除。 |
 | `@huiliyi37/dsh-tool-pwsh` | `pwsh` | `ctx.tools`、`ctx.bash`、`ctx.systemPrompt`、`ctx.bashEnv`、`ctx.tasks at call time for run_in_background` | `tool/call`、`tool/result` | - | pwsh 工具是 Windows 组合中 bash 执行器 seam 的 PowerShell 方言消费方（由 `@huiliyi37/dsh-pwsh-local` 等 PowerShell 执行器为 `ctx.bash` 提供后端）；除沙箱接口外，它逐项对应 bash 工具调用。使用 `run_in_background` 的运行会注册到通用 `ctx.tasks` 运行时，并通过 `task_*` 工具收集／停止；托管的 `DSH_*` 环境来自 `@huiliyi37/dsh-bash-env`。每次调用都在新进程中运行，不使用持久 PTY 会话；ConPTY 尚在规划中。路径采用原生 `C:\...` 形式，变量采用 `$env:NAME`。 |
 | `@huiliyi37/dsh-tool-cordis` | `cordis_inspect`、`cordis_mount`、`cordis_unmount` | `ctx.tools` | `tool/call`、`tool/result`、`process-local temporary Plugin lifecycle` | - | 不在任何随产品发布的树中，需要有意选择启用；临时 Plugin 代码可以访问真实运行时，见 .agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md。由 cordis_mount 创建的插件在卸载或 DSH 重启之前可以注册**额外的**模型可见工具；发生这类工具集变更时，系统会记录完整且有变动的请求头。 |
@@ -172,6 +173,101 @@ ask_user_question 会暂停工具调用，直到当前 UI 提供方返回人类�
 来源：[`packages/plan/plan-mode/src/index.ts`](../packages/plan/plan-mode/src/index.ts)
 
 规划未激活时，exit_plan_mode 仍保留在面向模型的 schema 中，这样状态转换不会在规划策略变更之外额外造成工具目录变动。其执行路径会拒绝规划模式之外的调用；在规划模式下，它通过用户交互 seam 提交计划（批准／根据反馈继续规划），批准后会在步骤边界记录规划模式已停用。
+
+## `@huiliyi37/dsh-schedule`
+
+### `schedule_create`
+
+在当前会话中创建一条提醒。提供一个非空 prompt 且恰好一个选择器:正整数安全整数 after_seconds 延迟、at 严格偏移日期时间或本地日期/时间对象,或至少 300 秒的 safe-integer every_seconds。定频提醒保持创建对齐、跳过错过的发生,并按逾期规则合并每次最新一次发生。投递是会话本地的:提醒仅在本会话存活时准时运行,否则转为逾期,直到会话恢复。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "prompt": {
+      "type": "string",
+      "description": "Reminder content to present when the target becomes due."
+    },
+    "after_seconds": {
+      "type": "number",
+      "description": "Positive safe-integer delay in seconds."
+    },
+    "every_seconds": {
+      "type": "number",
+      "description": "Fixed-rate safe-integer interval in seconds, at least 300."
+    },
+    "at": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "date": {
+              "type": "string"
+            },
+            "time": {
+              "type": "string"
+            },
+            "time_zone": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "date",
+            "time",
+            "time_zone"
+          ]
+        }
+      ],
+      "description": "Absolute target as strict offset RFC 3339 or local date/time with an explicit IANA zone."
+    }
+  },
+  "required": [
+    "prompt"
+  ]
+}
+```
+
+来源：[`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts)
+
+### `schedule_delete`
+
+按 schedule_create 或 schedule_list 返回的精确 id 删除当前会话中的一条活跃提醒。未知或已结束的 id 返回 deleted false。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Exact session-local schedule id."
+    }
+  },
+  "required": [
+    "id"
+  ]
+}
+```
+
+来源：[`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts)
+
+### `schedule_list`
+
+按创建顺序列出当前会话的每一条活跃提醒,包括精确 id、UTC 目标、scheduled 或 overdue 状态,以及会话本地投递模式。
+
+```json
+{
+  "type": "object",
+  "properties": {}
+}
+```
+
+来源：[`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts)
+
+schedule_create / schedule_list / schedule_delete 是 agent 作用域的:它们只存在于插件加载后创建的根 agent 上,其持久状态存在于会话日志中。
 
 ## `@huiliyi37/dsh-tool-bash`
 

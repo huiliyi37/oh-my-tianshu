@@ -53,6 +53,13 @@ interface PromptSection {
    */
   readonly order: number
   /**
+   * Treat this contribution as the complete system prompt. Assembly still
+   * runs its waterfall, but the effective complete section is restored as the
+   * sole prompt section afterwards. More than one effective complete section
+   * makes assembly fail.
+   */
+  readonly complete?: boolean
+  /**
    * Static text or a provider evaluated at each assembly with that assembly's
    * {@link AssembleContext}. The text may reference `{{variable}}`s — they are
    * interpolated later, by {@link renderPrompt}.

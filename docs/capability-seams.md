@@ -172,11 +172,21 @@ flowchart LR
   svc_directoryPicker["ctx.directoryPicker<br/>Workspace-directory picking seam"]
   pkg_directory_picker_native["directory-picker-native"]
   pkg_directory_picker_browse["directory-picker-browse"]
+  pkg_agent_presets["agent-presets"]
+  svc_agentPresets["ctx.agentPresets<br/>Per-session agent composition"]
+  pkg_attachment["attachment"]
+  svc_attachments["ctx.attachments<br/>Durable binary attachment storage"]
+  pkg_attachment_local["attachment-local"]
+  pkg_cordis_host_runner["cordis-host-runner"]
+  svc_cordisInspect["ctx.cordisInspect<br/>Dynamic Cordis inspect registry"]
+  svc_dynamicCordisRunner["ctx.dynamicCordisRunner<br/>Dynamic Cordis package host runner"]
   pkg_webserver["webserver"]
-  svc_httpServer["ctx.httpServer<br/>HTTP route registration"]
+  svc_webServer["ctx.webServer<br/>HTTP route registration"]
   pkg_connection["connection"]
   pkg_modules["modules"]
   pkg_hmr["hmr"]
+  svc_workspaceRegistry["ctx.workspaceRegistry<br/>Workspace entity registry"]
+  svc_httpServer["ctx.httpServer<br/>HTTP route registration"]
   svc_clientModuleHost["ctx.clientModuleHost<br/>Client plugin graph host"]
   pkg_workflow["workflow"]
   svc_workflows["ctx.workflows<br/>Workflow script engine"]
@@ -187,8 +197,11 @@ flowchart LR
   pkg_agent_default_model --> svc_agentDefaultModel
   pkg_agent_definitions --> svc_agentDefinitions
   pkg_agent_loop --> svc_agentLoop
+  pkg_agent_presets --> svc_agentPresets
   pkg_api_gateway --> svc_typertGateway
   pkg_approval --> svc_approval
+  pkg_attachment --> svc_attachments
+  pkg_attachment_local --> svc_attachments
   pkg_bash --> svc_bash
   pkg_bash_env --> svc_bashEnv
   pkg_bash_local --> svc_bash
@@ -199,6 +212,8 @@ flowchart LR
   pkg_compact --> svc_compact
   pkg_compact_basic --> svc_compact
   pkg_compact_tool_result_prune --> svc_toolResultPrune
+  pkg_cordis_host_runner --> svc_cordisInspect
+  pkg_cordis_host_runner --> svc_dynamicCordisRunner
   pkg_credentials --> svc_credentials
   pkg_credentials_local --> svc_credentials
   pkg_directory_picker --> svc_directoryPicker
@@ -273,9 +288,11 @@ flowchart LR
   pkg_web_search_exa --> svc_web
   pkg_web_search_perplexity --> svc_web
   pkg_webserver --> svc_httpServer
+  pkg_webserver --> svc_webServer
   pkg_workflow --> svc_workflows
   pkg_workflow_workerthread --> svc_workflows
   pkg_workspace --> svc_workspace
+  pkg_workspace --> svc_workspaceRegistry
   svc_agentDefaultModel --> pkg_headless
   svc_agentDefaultModel --> pkg_host_apiproxy
   svc_agentDefinitions --> pkg_tool_subagent
@@ -294,10 +311,12 @@ flowchart LR
   svc_clientModuleHost --> pkg_hmr
   svc_codeRuntime --> pkg_tools
   svc_compact --> pkg_compact_basic
+  svc_cordisInspect --> pkg_tool_cordis
   svc_credentials --> pkg_apiproxy
   svc_credentials --> pkg_llm_deepseek
   svc_credentials --> pkg_llm_pi_ai
   svc_directoryPicker --> pkg_apiproxy
+  svc_dynamicCordisRunner --> pkg_tool_cordis
   svc_e2b --> pkg_fs_e2b
   svc_e2b --> pkg_subprocess_e2b
   svc_fs --> pkg_tool_fs
@@ -378,9 +397,13 @@ flowchart LR
   svc_typert --> pkg_typert_loader
   svc_userInteraction --> pkg_tool_ask_user
   svc_web --> pkg_tool_web
+  svc_webServer --> pkg_connection
+  svc_webServer --> pkg_hmr
+  svc_webServer --> pkg_modules
   svc_workflows --> pkg_tool_ralph
   svc_workflows --> pkg_tool_workflow
   svc_workspace --> pkg_apiproxy
+  svc_workspaceRegistry --> pkg_apiproxy
   svc_fs -. event gate .-> pkg_fs_policy
 ```
 
@@ -434,6 +457,12 @@ flowchart LR
 | `ctx.web` | `seam` | [`web`](../packages/web/web) | [`web-search-exa`](../packages/web/web-search-exa), [`web-search-perplexity`](../packages/web/web-search-perplexity), [`web-search-deepseek`](../packages/web/web-search-deepseek), [`web-fetch-local`](../packages/web/web-fetch-local) | [`tool-web`](../packages/web/tool-web) | - | Search and fetch providers register into one ctx.web seam; tool-web owns the stable model-facing names. |
 | `ctx.spillStore` | `seam` | [`spill`](../packages/spill/spill) | [`spill-local`](../packages/spill/spill-local) | [`spill-policy`](../packages/spill/spill-policy) | - | The backend saves oversized tool text and returns a model-facing locator plus retrieval hint; spill-policy is the tools/post-execute consumer that decides when to spill. |
 | `ctx.directoryPicker` | `seam` | `directory-picker` | `directory-picker-native`, `directory-picker-browse` | `apiproxy` | - | Discriminated interaction capability: the native backend opens one OS chooser on the host display, the browse backend serves listing/creation primitives for the in-app browser; dual-face backends fill ui-workspace directory-flow slots from their browser halves (no wire advertisement). |
+| `ctx.agentPresets` | `core` | [`agent-presets`](../packages/preset/agent-presets) | - | - | - | Discovers preset directories over trusted and user-authored roots and mounts one preset cordis.yml under an agent scope during creation, rejecting a row that never activates or that publishes into the root service realm. |
+| `ctx.attachments` | `seam` | [`attachment`](../packages/attachment/attachment) | [`attachment-local`](../packages/attachment/attachment-local) | - | - | The host commits accepted images before session events; provider adapters resolve authorized durable references into provider-native content. |
+| `ctx.cordisInspect` | `core` | [`cordis-host-runner`](../packages/self-modification/cordis-host-runner) | - | [`tool-cordis`](../packages/self-modification/tool-cordis) | - | Registers host inspect providers, mirrors the client provider manifest, and routes client queries through the dynamic Cordis transport. |
+| `ctx.dynamicCordisRunner` | `core` | [`cordis-host-runner`](../packages/self-modification/cordis-host-runner) | - | [`tool-cordis`](../packages/self-modification/tool-cordis) | - | Owns the in-memory definition registry, the vm sandbox for host halves, and the request-run round trip; browser pages reach the same service over the wire through its remote namespace. |
+| `ctx.webServer` | `core` | `webserver` | - | `connection`, `modules`, `hmr` | - | Plain node:http carrier: named-route registry, index transform taps, and the static dist fallback; web-transport plugins register their own routes. |
+| `ctx.workspaceRegistry` | `core` | [`workspace`](../packages/workspace/workspace) | - | `apiproxy` | - | Owns WorkspaceId-branded records over the domain facility; stable sessionIds accounts drive Host RPC and GUI projections. |
 | `ctx.httpServer` | `core` | `webserver` | - | `connection`, `modules`, `hmr` | - | Plain node:http carrier: named-route registry, index transform taps, and the static dist fallback; web-transport plugins register their own routes. |
 | `ctx.clientModuleHost` | `core` | `modules` | - | `hmr` | - | Composes the __DSH_BOOT__ entry graph from an incremental dshClient scan, serves plugin bundles, and notifies rebuilt/graph-changed subscribers. |
 | `ctx.workflows` | `seam` | [`workflow`](../packages/workflow/workflow) | [`workflow-workerthread`](../packages/workflow/workflow-workerthread) | [`tool-workflow`](../packages/workflow/tool-workflow), [`tool-ralph`](../packages/workflow/tool-ralph) | - | One engine per context (bash shape, no named-provider registry); the general workflow and fixed Ralph consumers start runs whose agent() calls fan out through ctx.subagents. |

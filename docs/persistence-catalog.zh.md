@@ -80,9 +80,9 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }[T]
 ```
 
-来源：[`packages/core/session/src/types.ts:310`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:317`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:345`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:377`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:318`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:325`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:353`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:385`](../packages/core/session/src/types.ts)
 
-## 事件
+## Events
 
 ### `agent/*`
 
@@ -103,7 +103,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }
 ```
 
-来源：[`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types.ts)
+Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types.ts)
 
 ### `agent-preset/*`
 
@@ -111,13 +111,15 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 ```ts persistence-catalog
 /**
- * 用户经 `/preset` 选定 agent 预设的事实记录。载荷 `agentPreset` 是选中的预设名;
- * log-only,只供投影与审计回放,不进模型派生历史。
+ * The session's agent preset was chosen after creation, while the session
+ * was still blank. Log-only: it records the composition later turns ran
+ * under, so a resumed or forked session rebuilds the same one instead of
+ * the header's creation-time value.
  */
 'agent-preset/selected': { agentPreset: string }
 ```
 
-来源:[`packages/tui/tui/src/commands/registry.ts:36`](../packages/tui/tui/src/commands/registry.ts)
+来源：[`packages/preset/agent-presets/src/session.ts:26`](../packages/preset/agent-presets/src/session.ts)
 
 ### `approval/*`
 
@@ -541,6 +543,19 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 来源：[`packages/sandbox/sandbox-policy/src/session-mode.ts:33`](../packages/sandbox/sandbox-policy/src/session-mode.ts)
 
+### `schedule/*`
+
+#### `schedule/change` — log-only
+
+```ts persistence-catalog
+/**
+ * Versioned Schedule mutation. The owning package validates the complete
+ * session-local transition stream before accepting a candidate event.
+ */
+'schedule/change': ScheduleChange
+```
+
+来源：[`packages/schedule/schedule/src/types.ts:219`](../packages/schedule/schedule/src/types.ts)
 ### `session/*`
 
 #### `session/end-seed` — log-only

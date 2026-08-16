@@ -1267,99 +1267,6 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     source: 'packages/client/ui-settings/src/client/contract/slots.ts:73',
   },
   {
-    key: 'settings.plugin.item',
-    kind: 'list',
-    scope: 'root',
-    summary: 'One plugin\'s card inside the plugin configuration section (see module JSDoc).',
-    doc: 'One plugin\'s card inside the plugin configuration section (see module JSDoc).',
-    registerOptions: [
-      {
-        name: 'id',
-        requirement: 'required',
-        type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
-      },
-      {
-        name: 'order',
-        requirement: 'optional',
-        type: 'number',
-        doc: 'Position among the entries, ascending (default 0).',
-      },
-      {
-        name: 'label',
-        requirement: 'optional',
-        type: 'string | (() => string)',
-        doc: 'Display text where the owner projects one (nav rows, tabs). A thunk is re-read on every projection, so localized text follows the active locale without re-registering.',
-      },
-    ],
-    ownerProps: [
-      '/** Owner share of a plugin card (the section supplies nothing). */\nexport interface SettingsPluginItemOwnerProps {\n  /** Marker field: card owner props are intentionally empty. */\n  children?: never\n}',
-    ],
-    ownerPropsReferences: [],
-    standardProps: [
-      'useSessions: SnapshotSelectorHook<SessionListState>',
-      'useWorkspaces: SnapshotSelectorHook<import(\'./workspaces/service.ts\').WorkspaceListState>',
-    ],
-    keyDomain: '',
-    hookContext: '',
-    slotInject: '',
-    declaredBy: 'an entry in \'settings.plugins.tab\' (client-ui-settings-plugins), so it exists while that entry is mounted',
-    occupants: [
-      'client-ui-settings-plugins BashCard id \'bash\'',
-      'client-ui-settings-plugins AgentLoopCard id \'agent-loop\'',
-      'client-ui-settings-plugins WebSearchCard id \'web-search\'',
-    ],
-    replaceRisk: 'none',
-    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.plugin.item\', () => ctx.slots.register(\n      { name: \'settings.plugin.item\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-settings-plugins/src/client/slot-contract.ts:16',
-  },
-  {
-    key: 'settings.plugins.tab',
-    kind: 'list',
-    scope: 'root',
-    summary: 'One page inside the Plugins settings section.',
-    doc: 'One page inside the Plugins settings section. The section owner renders\nlocalized entry labels as tabs and mounts each contribution inside its\ncorresponding tab panel. Options: `id` (tab key), `order` (tab order),\nand `label` (registrant-localized tab text). Declared at runtime by the\nfeature that owns the Plugins section; the type lives here so inventory\nand configuration plugins collaborate without depending on one another.',
-    registerOptions: [
-      {
-        name: 'id',
-        requirement: 'required',
-        type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
-      },
-      {
-        name: 'order',
-        requirement: 'optional',
-        type: 'number',
-        doc: 'Position among the entries, ascending (default 0).',
-      },
-      {
-        name: 'label',
-        requirement: 'optional',
-        type: 'string | (() => string)',
-        doc: 'Display text where the owner projects one (nav rows, tabs). A thunk is re-read on every projection, so localized text follows the active locale without re-registering.',
-      },
-    ],
-    ownerProps: [
-      '/** Owner share of a Plugins tab (the section supplies nothing). */\nexport interface SettingsPluginsTabOwnerProps {\n  /** Marker field: tab owner props are intentionally empty. */\n  children?: never\n}',
-    ],
-    ownerPropsReferences: [],
-    standardProps: [
-      'useSessions: SnapshotSelectorHook<SessionListState>',
-      'useWorkspaces: SnapshotSelectorHook<import(\'./workspaces/service.ts\').WorkspaceListState>',
-    ],
-    keyDomain: '',
-    hookContext: '',
-    slotInject: '',
-    declaredBy: 'an entry in \'settings.section\' (client-ui-settings-plugins), so it exists while that entry is mounted',
-    occupants: [
-      'client-ui-settings-plugin-inventory PluginInventorySettingsTab id \'all\'',
-      'client-ui-settings-plugins ConfigurablePluginsTab id \'configurable\'',
-    ],
-    replaceRisk: 'none',
-    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.plugins.tab\', () => ctx.slots.register(\n      { name: \'settings.plugins.tab\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-settings/src/client/contract/slots.ts:62',
-  },
-  {
     key: 'settings.section',
     kind: 'list',
     scope: 'root',
@@ -1716,7 +1623,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'tool.view.cordis\', () => ctx.slots.register(\n      { name: \'tool.view.cordis\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/extensions/ui-cordis/src/client/slots.ts:31',
+    source: 'packages/self-modification/ui-cordis/src/client/slots.ts:31',
   },
 ]
 /* jscpd:ignore-end */
