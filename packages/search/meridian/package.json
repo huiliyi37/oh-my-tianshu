@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-meridian",
   "description": "MeridianDB codebase index — SQLite symbol/edge graph + tree-sitter parsing (ts/py/go), lazy incremental indexing with backfill (Tianshu meridian port)",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "publishConfig": {
     "access": "public"
   },

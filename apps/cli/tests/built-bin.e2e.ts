@@ -240,7 +240,7 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
     writeFileSync(join(project, '.env'), 'PATH=/project-only-path\n')
     try {
       const result = await runBuiltBin(['--version'], {}, project)
-      expect(result).toEqual({ code: 0, stdout: '0.2.5', stderr: '' })
+      expect(result).toEqual({ code: 0, stdout: '0.2.6', stderr: '' })
     } finally {
       rmSync(project, { recursive: true, force: true })
     }
@@ -251,7 +251,7 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
     // long-lived profile boots needs the flag, so the bin re-execs itself
     // once. The published entry must therefore work from a bare invocation.
     const result = await runBuiltBin(['--version'])
-    expect(result).toEqual({ code: 0, stdout: '0.2.5', stderr: '' })
+    expect(result).toEqual({ code: 0, stdout: '0.2.6', stderr: '' })
   })
 
   it('does not re-exec when already launched with --expose-internals', async () => {
@@ -261,7 +261,7 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
       { input: '', timeout: 25_000, killSignal: 'SIGKILL', reject: false, extendEnv: false },
     )
     expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBe('0.2.5')
+    expect(result.stdout).toBe('0.2.6')
   })
 
   it('fails loud on a nonexistent profile with the plugin-command hint', async () => {

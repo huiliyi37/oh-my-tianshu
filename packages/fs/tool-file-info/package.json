@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tool-file-info",
   "description": "file_info tool + pheromone signal sources — size/mtime/line skeleton with on-demand signal recall (Tianshu file-perception port)",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "publishConfig": {
     "access": "public"
   },

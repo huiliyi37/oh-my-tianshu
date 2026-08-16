@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-agent-default-model",
   "description": "Default model selection shared by Agent front doors",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "publishConfig": {
     "access": "public"
   },

@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-spill",
   "description": "Abstract spill storage seam (ctx.spillStore) for the Tianshu Harness — save oversized tool text and return a retrieval locator",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "publishConfig": {
     "access": "public"
   },

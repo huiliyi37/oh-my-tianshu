@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-web-fetch-local",
   "description": "Anonymous public HTTP(S) fetch provider for the Tianshu Harness web capability seam (ctx.web)",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "publishConfig": {
     "access": "public"
   },

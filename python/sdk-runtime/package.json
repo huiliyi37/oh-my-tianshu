@@ -1,7 +1,7 @@
 {
   "name": "dsh-jsonrpc-agent-pkg",
   "description": "Dependency-only deploy root defining the executable and Python runtime closure; pnpm deploy materializes this manifest and node_modules.",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "private": true,
   "type": "module",
   "dependencies": {

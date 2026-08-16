@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-llm-deepseek",
   "description": "DeepSeek chat-completions adapter for the Tianshu Harness LLM seam",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "publishConfig": {
     "access": "public"
   },
