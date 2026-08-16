@@ -9,6 +9,7 @@ The host side of the oh-my-tianshu web GUI: the API gateway every client shape s
 | [`apiproxy/`](apiproxy/README.md) | Shared host API gateway and wire contract | `ctx.apiProxy` |
 | [`webserver/`](webserver/README.md) | HTTP route carrier | `ctx.httpServer` |
 | [`frontend-static/`](frontend-static/README.md) | SPA dist server on the webserver fallback seat | consumes `ctx.httpServer` |
+| [`plugin-inventory/`](plugin-inventory/README.md) | Read-only Loader tree projection | `ctx.pluginInventory` |
 | [`directory-picker/`](directory-picker/README.md) | Workspace-directory picking seam | `ctx.directoryPicker` |
 | [`directory-picker-native/`](directory-picker-native/README.md) | Native directory-picker backend and browser interaction | registers `ctx.directoryPicker` |
 | [`directory-picker-browse/`](directory-picker-browse/README.md) | In-app directory-browser backend and interaction | registers `ctx.directoryPicker` |
