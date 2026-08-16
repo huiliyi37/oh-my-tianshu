@@ -39,6 +39,7 @@
     }
   },
   "dependencies": {
+    "@huiliyi37/dsh-agent-presets": "workspace:^",
     "@huiliyi37/dsh-client-connection": "workspace:^",
     "@huiliyi37/dsh-client-hmr": "workspace:^",
     "@huiliyi37/dsh-client-locale": "workspace:^",

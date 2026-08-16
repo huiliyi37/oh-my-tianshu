@@ -155,12 +155,24 @@ importers:
       '@huiliyi37/cordis-plugin-timer':
         specifier: workspace:*
         version: link:../../vendor/timer
+      '@huiliyi37/dsh-agent-presets':
+        specifier: workspace:^
+        version: link:../../packages/preset/agent-presets
       '@huiliyi37/dsh-app-boot':
         specifier: workspace:^
         version: link:../../packages/boot/app-boot
       '@huiliyi37/dsh-base':
         specifier: workspace:^
         version: link:../../packages/bundle/base
+      '@huiliyi37/dsh-command-compact':
+        specifier: workspace:^
+        version: link:../../packages/compact/command-compact
+      '@huiliyi37/dsh-compact-basic':
+        specifier: workspace:^
+        version: link:../../packages/compact/compact-basic
+      '@huiliyi37/dsh-compact-tool-result-prune':
+        specifier: workspace:^
+        version: link:../../packages/compact/compact-tool-result-prune
       '@huiliyi37/dsh-headless':
         specifier: workspace:^
         version: link:../../packages/bundle/headless
@@ -170,6 +182,9 @@ importers:
       '@huiliyi37/dsh-paths':
         specifier: workspace:^
         version: link:../../packages/util/paths
+      '@huiliyi37/dsh-persona':
+        specifier: workspace:^
+        version: link:../../packages/preset/persona
       '@huiliyi37/dsh-pty':
         specifier: workspace:^
         version: link:../../packages/pty/pty
@@ -179,6 +194,9 @@ importers:
       '@huiliyi37/dsh-session-reference':
         specifier: workspace:^
         version: link:../../packages/context/session-reference
+      '@huiliyi37/dsh-skill-local':
+        specifier: workspace:^
+        version: link:../../packages/skill/skill-local
       '@huiliyi37/dsh-tmux-context':
         specifier: workspace:^
         version: link:../../packages/context/tmux-context
@@ -191,12 +209,21 @@ importers:
       '@huiliyi37/dsh-tool-cordis':
         specifier: workspace:^
         version: link:../../packages/self-modification/tool-cordis
+      '@huiliyi37/dsh-tool-tasks':
+        specifier: workspace:^
+        version: link:../../packages/tasks/tool-tasks
       '@huiliyi37/dsh-tui':
         specifier: workspace:^
         version: link:../../packages/tui/tui
       '@huiliyi37/dsh-web-app':
         specifier: workspace:^
         version: link:../../packages/bundle/web-app
+      '@huiliyi37/dsh-workflow-workerthread':
+        specifier: workspace:^
+        version: link:../../packages/workflow/workflow-workerthread
+      '@huiliyi37/dsh-workspace-context':
+        specifier: workspace:^
+        version: link:../../packages/context/workspace-context
       commander:
         specifier: ^15.0.0
         version: 15.0.0
@@ -1358,6 +1385,9 @@ importers:
 
   packages/bundle/web-app:
     dependencies:
+      '@huiliyi37/dsh-agent-presets':
+        specifier: workspace:^
+        version: link:../../preset/agent-presets
       '@huiliyi37/dsh-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes

@@ -89,11 +89,11 @@ When a preset genuinely owns a service, wrap the provider **and every consumer t
     workflows: true
   config:
     - id: workflow-worker-thread
-      name: '@deepseek-ai/dsh-workflow-worker-thread'
+      name: '@huiliyi37/dsh-workflow-workerthread'
       config:
         provider: spawn
     - id: tool-workflow
-      name: '@deepseek-ai/dsh-tool-workflow'
+      name: '@huiliyi37/dsh-tool-workflow'
 ```
 
 `true` means a realm private to each mounting session. A string label instead joins subtrees into one shared realm; `provide()` still throws on the second registration under that symbol, so a label does not pool instances and is not what a preset needs.
@@ -129,7 +129,7 @@ Copy these disabled templates from a shipped full preset and remove `disabled` o
 
 ```yaml
 - id: tool-subagent-codex
-  name: '@deepseek-ai/dsh-tool-subagent'
+  name: '@huiliyi37/dsh-tool-subagent'
   disabled: true
   config:
     provider: codex
@@ -138,7 +138,7 @@ Copy these disabled templates from a shipped full preset and remove `disabled` o
     maxDepth: provider-managed
 
 - id: tool-subagent-claude-code
-  name: '@deepseek-ai/dsh-tool-subagent'
+  name: '@huiliyi37/dsh-tool-subagent'
   disabled: true
   config:
     provider: claude-code
