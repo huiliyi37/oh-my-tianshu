@@ -18,7 +18,7 @@ import type { SessionId } from '@huiliyi37/dsh-client-connection/client'
 import type { DynamicCordisInvokeResult } from '@huiliyi37/dsh-api-remotes/client'
 // Type-only: resolves `ctx.remote` and with it the `$on`/`$dispatch` surface.
 import type {} from '@huiliyi37/dsh-api-gateway/client'
-import { SlotRegistry } from '@huiliyi37/dsh-client-runtime/client'
+import { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
 import * as NodeHalf from '../src/index.ts'
 import * as Invariant from '../src/invariant.ts'
 import * as ClientHalf from '../src/client/index.ts'
@@ -80,7 +80,7 @@ interface Bench {
 /** Mount the browser half over a module table and a loader standing on real fibers. */
 async function boot(): Promise<Bench> {
   const ctx = new Context()
-  await ctx.plugin(SlotRegistry)
+  await ctx.plugin(SlotsService)
   const factories = new Map<string, () => unknown>()
   const fibers = new Map<string, { fiber: unknown }>()
   let next = 0

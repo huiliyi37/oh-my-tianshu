@@ -16,7 +16,7 @@ import type {
   CordisDynamicPluginRunId,
   DynamicCordisPackage,
 } from '@huiliyi37/dsh-api-remotes/client'
-import { SlotRegistry } from '@huiliyi37/dsh-client-runtime/client'
+import { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
 import { dynamicCordisContext } from '../src/client/guard.ts'
 import type { DynamicCordisSlotLedgerRow } from '../src/client/guard.ts'
 
@@ -37,7 +37,7 @@ type Facade = Record<string, unknown> & { get(name: string): unknown }
 
 interface Bench {
   ctx: Context
-  slots: SlotRegistry
+  slots: SlotsService
   facade: Facade
   ledger: DynamicCordisSlotLedgerRow[]
   /** Components the facade claimed for the package, in registration order. */
@@ -53,7 +53,7 @@ interface Bench {
  */
 async function boot(inject: string[], extras: Record<string, unknown> = {}): Promise<Bench> {
   const ctx = new Context()
-  await ctx.plugin(SlotRegistry)
+  await ctx.plugin(SlotsService)
   const themeLayerDispose = vi.fn()
   const overrideTokens = vi.fn(() => themeLayerDispose)
   ctx.reflect.provide('theme', {

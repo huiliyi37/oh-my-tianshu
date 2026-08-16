@@ -1,14 +1,14 @@
 /**
- * apply wiring on a real cordis Context + SlotRegistry: InputTriggerService mounts
+ * apply wiring on a real cordis Context + SlotsService: InputTriggerService mounts
  * as ctx.inputTriggers once its sessions dependency is up; the MenuView overlay
  * registration follows the slot declaration, resolves the per-session controller from the slot's
  * sessionId, and unregisters on fiber teardown.
  */
 import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it } from 'vitest'
-import { LocaleRuntime } from '@huiliyi37/dsh-client-locale/client'
+import { LocaleService } from '@huiliyi37/dsh-client-locale/client'
 import { usePinnedBrowserLanguages } from '@huiliyi37/dsh-client-test-runtime'
-import { createScope, scopeOf, SlotRegistry } from '@huiliyi37/dsh-client-runtime/client'
+import { createScope, scopeOf, SlotsService } from '@huiliyi37/dsh-client-runtime/client'
 import type { SessionId } from '@huiliyi37/dsh-client-runtime/client'
 import { apply, inject, InputTriggerService } from '@huiliyi37/dsh-client-ui-input-trigger/client'
 import type { MenuViewInjected } from '@huiliyi37/dsh-client-ui-input-trigger/client'
@@ -21,8 +21,8 @@ const sid = (k: string): SessionId => k as SessionId
 
 async function bench() {
   const ctx = new Context()
-  await ctx.plugin(SlotRegistry).await()
-  const slots = ctx.get('slots') as SlotRegistry
+  await ctx.plugin(SlotsService).await()
+  const slots = ctx.get('slots') as SlotsService
   // Stand-in for the ui-conversation composer entry: declare the overlay
   // slot without providing ConversationController, which is not its lifecycle
   // signal.
@@ -36,7 +36,7 @@ async function bench() {
     scope: (id: SessionId) => (id === sid('a') ? scope.ctx : undefined),
     scopeOf: (c: Context) => scopeOf(c),
   })
-  const locale = new LocaleRuntime(ctx)
+  const locale = new LocaleService(ctx)
   ctx.provide('locale', locale)
   return { ctx, slots, locale }
 }

@@ -19,7 +19,7 @@ import type {
 } from '@huiliyi37/dsh-api-remotes/client'
 import type { SessionId } from '@huiliyi37/dsh-client-connection/client'
 import type { ClientModuleSystem } from '@huiliyi37/dsh-client-modules/client'
-import { SlotRegistry } from '@huiliyi37/dsh-client-runtime/client'
+import { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
 import { DYNAMIC_CLIENT_REDIRECTS } from '../src/client/evaluator.ts'
 import { DynamicCordisPackageRunner } from '../src/client/runtime.ts'
 import type { DynamicCordisClientHalf, DynamicCordisRenderFailure } from '../src/client/runtime.ts'
@@ -48,7 +48,7 @@ function half(overrides: Partial<DynamicCordisClientHalf> = {}): DynamicCordisCl
 
 interface Bench {
   ctx: Context
-  slots: SlotRegistry
+  slots: SlotsService
   runner: DynamicCordisPackageRunner
   invalidated: string[]
   removed: string[]
@@ -83,7 +83,7 @@ function seated<T>(fiber: T): T {
 
 async function boot(): Promise<Bench> {
   const ctx = new Context()
-  await ctx.plugin(SlotRegistry)
+  await ctx.plugin(SlotsService)
   const invalidated: string[] = []
   const removed: string[] = []
   const created: string[] = []
@@ -128,7 +128,7 @@ async function boot(): Promise<Bench> {
         listener = fn
         return () => { listener = undefined }
       },
-    } as unknown as SlotRegistry,
+    } as unknown as SlotsService,
     invoke,
     reportGuardFailure: () => {},
     reportRenderFailure: (agentId, pluginId, pluginRunId, failure) => {
