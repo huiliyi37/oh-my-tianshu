@@ -18,6 +18,8 @@ import z from '@huiliyi37/schemastery'
 declare module '@huiliyi37/cordis' {
   interface Context {
     httpServer: HttpServerService
+    /** Upstream dsh alias: `webServer` resolves to the same instance. */
+    webServer: HttpServerService
   }
 }
 
@@ -74,6 +76,10 @@ export class HttpServerService extends Service {
 
   constructor(ctx: Context, private config: Config) {
     super(ctx, 'httpServer')
+    // Upstream dsh compatibility: DeepSeek Harness plugins inject the
+    // `webServer` service name. Register this instance under both names so
+    // the whole upstream plugin ecosystem keeps working on the fork.
+    ctx.provide('webServer', this)
   }
 
   /** The listening port (the OS-assigned value when config.port is 0). */

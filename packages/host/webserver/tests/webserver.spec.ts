@@ -98,6 +98,11 @@ describe('real Loader composition', () => {
 
     const server = loaded.httpServer
     expect(server).toBeInstanceOf(HttpServer)
+    // Upstream dsh compatibility: the legacy `webServer` service name must
+    // serve the same route table as the fork's `httpServer` (third-party
+    // plugins written against DeepSeek Harness inject `webServer`).
+    expect(loaded.webServer).toBeDefined()
+    loaded.webServer.register({ kind: 'exact', path: '/via-legacy', handler: (_req, res) => { res.writeHead(200); res.end('LEGACY') } })
     const port = server.port
     expect(port).toBeGreaterThan(0)
 
@@ -108,6 +113,7 @@ describe('real Loader composition', () => {
     server.register({ kind: 'prefix', path: '/api', handler: (_req, res) => { res.writeHead(200); res.end('API') } })
     server.register({ kind: 'prefix', path: '/api/deep', handler: (_req, res) => { res.writeHead(200); res.end('DEEP') } })
     expect(await request(port, '/probe')).toMatchObject({ status: 200, body: 'EXACT' })
+    expect(await request(port, '/via-legacy')).toMatchObject({ status: 200, body: 'LEGACY' })
     expect(await request(port, '/api/anything')).toMatchObject({ status: 200, body: 'API' })
     expect(await request(port, '/api/deep/leaf')).toMatchObject({ status: 200, body: 'DEEP' })
     expect(await request(port, '/api')).toMatchObject({ status: 200, body: 'API' })
