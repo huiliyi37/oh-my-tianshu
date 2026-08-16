@@ -42,7 +42,7 @@ oh-my-tianshu 是 deepseek-ai/deepseek-harness 的独立 fork（2026-08-14 公�
 ## Deferred
 
 - shipped presets 数据（apps/cli/config/agent-presets 名称映射）、profile-boot 装配与 web-app bundle 行：后续轮次落地。
-- extensions 剩余 client 半（cordis-client-runner、ui-cordis + 依赖的 ui-input-trigger）：移植中——阻塞点为本地 client 面缺官方演进（client-runtime/client 的 SlotRegistry、ui-theme/client 的 ThemeRuntime、api/remotes 的动态 cordis 契约装配），需先补本地 client 面；WIP 已在工作树。
+- extensions client 半：三个包（cordis-client-runner/ui-cordis/ui-input-trigger）已提交保全；本地 client 面补齐——ui-theme overrideTokens、api/remotes 动态契约再导出与 remote 挂载、client-runner 的 TypeRT 语义适配（原始返回值/null 替代 ok/error 信封）后编译通过。剩余：ui-cordis 的图标/槽键/事件类型适配、client-runner 测试适配（60 用例按本地语义重写）、client 面构建与门禁。文档化限制：本地 client 无事件转发机制（$on 惰性）与槽树/令牌检查面（空报告）。
 - code preset 依赖的 agent-tool-presentation：需 tools registry 的 presentAs per-scope 声明（core 重构），独立工作流；code preset 暂缓入 roster。
 - 并行工作流提示：工作树可能含其他 agent 的未提交改动（如 search 包 async-refresh 修复），提交前按文件区分。
 - session-stats / message-feedback / sandbox-windows-acl / typert/protocol / client-ui-*：待消费方确认后再定。
