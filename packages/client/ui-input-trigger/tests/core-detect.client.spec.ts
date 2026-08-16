@@ -4,7 +4,7 @@
 // non-whitespace char (scheme separator) — this is the concrete rule chosen
 // to honor "no trigger inside URLs".
 import { describe, expect, it } from 'vitest'
-import { detectTrigger } from '../src/core/detect.ts'
+import { detectTrigger } from '../src/client/detect.ts'
 import type { TriggerGuard } from '../src/types.ts'
 
 const plain: TriggerGuard = { tier: 'plain' }

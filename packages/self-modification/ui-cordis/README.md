@@ -1,4 +1,4 @@
-# @huiliyi37/dsh-client-ui-cordis
+# @huiliyi37/dsh-ui-cordis
 
 English | [中文](README.zh.md)
 

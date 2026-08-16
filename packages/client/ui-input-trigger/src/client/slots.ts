@@ -10,7 +10,7 @@
 // Type-only edge: the SlotMap augmentation below merges into this package's interface.
 import type {} from '@huiliyi37/dsh-client-ui-slots'
 import type { SnapshotStore } from '@huiliyi37/dsh-client-runtime/client'
-import type { MenuState } from '../core/contract.ts'
+import type { MenuState } from './core-contract.ts'
 
 declare module '@huiliyi37/dsh-client-ui-slots' {
   interface SlotMap {

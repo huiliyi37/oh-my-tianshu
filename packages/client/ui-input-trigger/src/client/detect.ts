@@ -4,7 +4,7 @@
  * word-boundary rules. Zero React / DOM / cordis.
  */
 import type { TriggerChar } from '../types.ts'
-import type { DetectTrigger } from './contract.ts'
+import type { DetectTrigger } from './core-contract.ts'
 
 const WORD_CHAR = /[\p{L}\p{N}_]/u
 const WHITESPACE = /\s/u

@@ -80,6 +80,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/client/ui-settings': { kind: 'none', reason: 'Browser-side UI plugin layer; registers no model surface.' },
   'packages/client/ui-settings-general': { kind: 'none', reason: 'Browser-side UI plugin layer; registers no model surface.' },
   'packages/client/ui-models': { kind: 'none', reason: 'Browser-side UI plugin layer; registers no model surface.' },
+  'packages/client/ui-input-trigger': { kind: 'none', reason: 'Browser-side input pipeline; picks produce data whose model-visible consequences belong to the consuming host and input-machine packages.' },
   'packages/client/locale': { kind: 'none', reason: 'Browser-side UI plugin layer; registers no model surface.' },
   'packages/client/web': { kind: 'none', reason: 'Browser-side UI plugin layer; registers no model surface.' },
   'packages/examples/agent-spine-demo': { kind: 'indirect', reason: 'The bundle only mounts model-facing child plugins.' },
@@ -148,6 +149,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/interaction/permission': { kind: 'indirect', reason: 'The service writes mechanism events rendered by dsh-user-approval and dsh-tool-bash.' },
   'packages/interaction/user-interaction': { kind: 'indirect', reason: 'Model-facing consumers render provider answers and seam errors.' },
   'packages/preset/agent-presets': { kind: 'indirect', reason: 'The service mounts per-session compositions; the mounted plugins own every tool schema and prompt section the preset makes visible.' },
+  'packages/self-modification/ui-cordis': { kind: 'indirect', reason: 'The panel verbs route cordis_run/cordis_stop to the runner and host tools, which own every model-visible effect.' },
 
   'packages/util/timeout': { kind: 'indirect', reason: 'Only timeout consumers render timeout outcomes.' },
   'packages/util/retention': { kind: 'indirect', reason: 'Only retention consumers render retained content and omission metadata.' },

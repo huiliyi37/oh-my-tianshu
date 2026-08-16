@@ -9,9 +9,9 @@
  */
 import type { ClientContext, SessionId, SnapshotStore } from '@huiliyi37/dsh-client-runtime/client'
 import { createSnapshotStore } from '@huiliyi37/dsh-client-runtime/client'
-import { detectTrigger } from '../core/detect.ts'
-import { MENU_CLOSED, menuReduce, seedGroups } from '../core/menu.ts'
-import type { MenuEvent, MenuState, TriggerHit } from '../core/contract.ts'
+import { detectTrigger } from './detect.ts'
+import { MENU_CLOSED, menuReduce, seedGroups } from './menu.ts'
+import type { MenuEvent, MenuState, TriggerHit } from './core-contract.ts'
 import type {
   ArbitrateKey, ArbitrateOutcome, ClientSessionContext, PickOutcome, InputTriggerSource, TriggerChar, TriggerGuard,
 } from '../types.ts'

@@ -153,6 +153,7 @@ flowchart TD
     pkg_client_ui_conversation["client-ui-conversation"]
     pkg_client_ui_deliverables["client-ui-deliverables"]
     pkg_client_ui_goal["client-ui-goal"]
+    pkg_client_ui_input_trigger["client-ui-input-trigger"]
     pkg_client_ui_layout["client-ui-layout"]
     pkg_client_ui_model["client-ui-model"]
     pkg_client_ui_models["client-ui-models"]
@@ -275,7 +276,10 @@ flowchart TD
     pkg_tool_semantic_search["tool-semantic-search"]
   end
   subgraph group_self_modification["packages/self-modification"]
+    pkg_cordis_client_runner["cordis-client-runner"]
+    pkg_cordis_host_runner["cordis-host-runner"]
     pkg_tool_cordis["tool-cordis"]
+    pkg_ui_cordis["ui-cordis"]
   end
   subgraph group_session["packages/session"]
     pkg_session_checkpoint_policy["session-checkpoint-policy"]
@@ -501,6 +505,11 @@ flowchart TD
   pkg_app_boot --> pkg_invariants
   pkg_app_boot --> pkg_paths
   pkg_app_boot --> pkg_system_prompt
+  pkg_client_ui_input_trigger --> pkg_client_locale
+  pkg_client_ui_input_trigger --> pkg_client_runtime
+  pkg_client_ui_input_trigger --> pkg_client_ui_primitives
+  pkg_client_ui_input_trigger --> pkg_client_ui_slots
+  pkg_client_ui_input_trigger --> pkg_invariants
   pkg_client_ui_question --> pkg_client_locale
   pkg_client_ui_question --> pkg_invariants
   pkg_client_ui_settings_general --> pkg_client_connection
@@ -1002,6 +1011,21 @@ flowchart TD
   pkg_tool_semantic_search --> pkg_semantic_index
   pkg_tool_semantic_search --> pkg_system_prompt
   pkg_tool_semantic_search --> pkg_tools
+  pkg_cordis_client_runner --> pkg_api_remotes
+  pkg_cordis_client_runner --> pkg_client_connection
+  pkg_cordis_client_runner --> pkg_client_modules
+  pkg_cordis_client_runner --> pkg_client_runtime
+  pkg_cordis_client_runner --> pkg_client_ui_slots
+  pkg_cordis_client_runner --> pkg_client_ui_theme
+  pkg_cordis_client_runner --> pkg_invariants
+  pkg_cordis_host_runner --> pkg_agent
+  pkg_cordis_host_runner --> pkg_brand
+  pkg_cordis_host_runner --> pkg_invariants
+  pkg_cordis_host_runner --> pkg_llm
+  pkg_cordis_host_runner --> pkg_scope
+  pkg_cordis_host_runner --> pkg_session
+  pkg_cordis_host_runner --> pkg_tools
+  pkg_cordis_host_runner --> pkg_type_meta
   pkg_tool_cordis --> pkg_invariants
   pkg_tool_cordis --> pkg_scope
   pkg_tool_cordis --> pkg_tools
@@ -1307,6 +1331,17 @@ flowchart TD
   pkg_acp_demo --> pkg_session_query_sqlite
   pkg_acp_demo --> pkg_tools
   pkg_acp_demo --> pkg_workspace_context
+  pkg_ui_cordis --> pkg_api_remotes
+  pkg_ui_cordis --> pkg_client_connection
+  pkg_ui_cordis --> pkg_client_locale
+  pkg_ui_cordis --> pkg_client_runtime
+  pkg_ui_cordis --> pkg_client_ui_input_trigger
+  pkg_ui_cordis --> pkg_client_ui_primitives
+  pkg_ui_cordis --> pkg_client_ui_sidebar
+  pkg_ui_cordis --> pkg_client_ui_slots
+  pkg_ui_cordis --> pkg_client_ui_tool
+  pkg_ui_cordis --> pkg_cordis_client_runner
+  pkg_ui_cordis --> pkg_invariants
 ```
 
 | Package | Group | Depends on |
@@ -1386,6 +1421,7 @@ flowchart TD
 | [`spill`](../packages/spill/spill) | `spill` | [`brand`](../packages/util/brand), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session) |
 | [`acp-snapshot`](../packages/support/acp-snapshot) | `support` | [`invariants`](../packages/support/invariants), [`session`](../packages/core/session) |
 | [`app-boot`](../packages/boot/app-boot) | `boot` | [`environment`](../packages/util/environment), [`invariants`](../packages/support/invariants), [`paths`](../packages/util/paths), [`system-prompt`](../packages/core/system-prompt) |
+| [`client-ui-input-trigger`](../packages/client/ui-input-trigger) | `client` | [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-slots`](../packages/client/ui-slots), [`invariants`](../packages/support/invariants) |
 | [`client-ui-question`](../packages/client/ui-question) | `client` | [`client-locale`](../packages/client/locale), [`invariants`](../packages/support/invariants) |
 | [`client-ui-settings-general`](../packages/client/ui-settings-general) | `client` | [`client-connection`](../packages/client/connection), [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-settings`](../packages/client/ui-settings), [`client-ui-slots`](../packages/client/ui-slots), [`client-web-react`](../packages/client/web-react), [`invariants`](../packages/support/invariants) |
 | [`client-ui-sidebar`](../packages/client/ui-sidebar) | `client` | [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-slots`](../packages/client/ui-slots), [`invariants`](../packages/support/invariants) |
@@ -1487,6 +1523,8 @@ flowchart TD
 | [`schedule`](../packages/schedule/schedule) | `schedule` | [`agent`](../packages/core/agent), [`brand`](../packages/util/brand), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`session-persistence`](../packages/session/session-persistence), [`tools`](../packages/core/tools) |
 | [`tool-meridian`](../packages/search/tool-meridian) | `search` | [`invariants`](../packages/support/invariants), [`meridian`](../packages/search/meridian), [`system-prompt`](../packages/core/system-prompt), [`tools`](../packages/core/tools) |
 | [`tool-semantic-search`](../packages/search/tool-semantic-search) | `search` | [`invariants`](../packages/support/invariants), [`semantic-index`](../packages/search/semantic-index), [`system-prompt`](../packages/core/system-prompt), [`tools`](../packages/core/tools) |
+| [`cordis-client-runner`](../packages/self-modification/cordis-client-runner) | `self-modification` | [`api-remotes`](../packages/api/remotes), [`client-connection`](../packages/client/connection), [`client-modules`](../packages/client/modules), [`client-runtime`](../packages/client/runtime), [`client-ui-slots`](../packages/client/ui-slots), [`client-ui-theme`](../packages/client/ui-theme), [`invariants`](../packages/support/invariants) |
+| [`cordis-host-runner`](../packages/self-modification/cordis-host-runner) | `self-modification` | [`agent`](../packages/core/agent), [`brand`](../packages/util/brand), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`scope`](../packages/core/scope), [`session`](../packages/core/session), [`tools`](../packages/core/tools), [`type-meta`](../packages/typert/type-meta) |
 | [`tool-cordis`](../packages/self-modification/tool-cordis) | `self-modification` | [`invariants`](../packages/support/invariants), [`scope`](../packages/core/scope), [`tools`](../packages/core/tools) |
 | [`session-checkpoint-policy`](../packages/session/session-checkpoint-policy) | `session` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`session-persistence`](../packages/session/session-persistence), [`tools`](../packages/core/tools) |
 | [`session-telemetry-otel`](../packages/session/session-telemetry-otel) | `session` | [`anonymous-user-id`](../packages/identity/anonymous-user-id), [`brand`](../packages/util/brand), [`command-feedback`](../packages/feedback/command-feedback), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`paths`](../packages/util/paths), [`session`](../packages/core/session), [`session-telemetry`](../packages/session/session-telemetry) |
@@ -1529,3 +1567,4 @@ flowchart TD
 | [`client-ui-permission`](../packages/client/ui-permission) | `client` | [`client-connection`](../packages/client/connection), [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-schema-form`](../packages/client/schema-form), [`client-ui-command`](../packages/client/ui-command), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-slash`](../packages/client/ui-slash), [`client-ui-slots`](../packages/client/ui-slots), [`invariants`](../packages/support/invariants), [`permission`](../packages/interaction/permission) |
 | [`client-ui-skill`](../packages/client/ui-skill) | `client` | [`client-connection`](../packages/client/connection), [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-slash`](../packages/client/ui-slash), [`client-ui-slots`](../packages/client/ui-slots), [`client-ui-tool`](../packages/client/ui-tool), [`invariants`](../packages/support/invariants) |
 | [`acp-demo`](../packages/examples/acp-demo) | `examples` | [`acp`](../packages/acp/acp), [`agent-spine-demo`](../packages/examples/agent-spine-demo), [`app-boot`](../packages/boot/app-boot), [`invariants`](../packages/support/invariants), [`session-checkpoint-policy`](../packages/session/session-checkpoint-policy), [`session-persistence-jsonl`](../packages/session/session-persistence-jsonl), [`session-query`](../packages/session-query/session-query), [`session-query-sqlite`](../packages/session-query/session-query-sqlite), [`tools`](../packages/core/tools), [`workspace-context`](../packages/context/workspace-context) |
+| [`ui-cordis`](../packages/self-modification/ui-cordis) | `self-modification` | [`api-remotes`](../packages/api/remotes), [`client-connection`](../packages/client/connection), [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-input-trigger`](../packages/client/ui-input-trigger), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-sidebar`](../packages/client/ui-sidebar), [`client-ui-slots`](../packages/client/ui-slots), [`client-ui-tool`](../packages/client/ui-tool), [`cordis-client-runner`](../packages/self-modification/cordis-client-runner), [`invariants`](../packages/support/invariants) |

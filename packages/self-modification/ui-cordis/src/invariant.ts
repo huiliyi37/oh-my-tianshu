@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@huiliyi37/dsh-client-ui-cordis`.
- * @module @huiliyi37/dsh-client-ui-cordis/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-ui-cordis`.
+ * @module @huiliyi37/dsh-ui-cordis/invariant
  */
 
 /* jscpd:ignore-start */
 import type { Context } from '@huiliyi37/cordis'
 import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@huiliyi37/dsh-client-ui-cordis'
+const PACKAGE_NAME = '@huiliyi37/dsh-ui-cordis'
 
 /** Cordis companion plugin name. */
 export const name = 'client-ui-cordis-invariant'

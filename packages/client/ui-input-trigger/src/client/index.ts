@@ -24,7 +24,7 @@ export type {
   ReferenceInsert, InputTriggerCandidate, InputTriggerPick, InputTriggerSource, SubmitOutcome, TokenSpan,
   TriggerChar, TriggerGuard, TriggerPosition,
 } from '../types.ts'
-export type { DetectTrigger, ExactMatch, MenuEvent, MenuReduce, MenuState, TriggerHit } from '../core/contract.ts'
+export type { DetectTrigger, ExactMatch, MenuEvent, MenuReduce, MenuState, TriggerHit } from './core-contract.ts'
 export type { InputTriggerServiceContract } from './contract.ts'
 
 declare module '@huiliyi37/cordis' {

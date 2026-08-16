@@ -11,7 +11,7 @@
  * a new generation. Auto-close and explicit close drop the groups.
  */
 import type { InputTriggerCandidate } from '../types.ts'
-import type { ExactMatch, MenuReduce, MenuState } from './contract.ts'
+import type { ExactMatch, MenuReduce, MenuState } from './core-contract.ts'
 
 /** Closed rest state with generation 0; store initializer and test seed. */
 export const MENU_CLOSED: MenuState = { open: false, hit: null, generation: 0, groups: [], highlight: null }
