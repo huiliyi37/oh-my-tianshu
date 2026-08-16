@@ -96,6 +96,7 @@ export interface Config {
 
 来源：[`packages/core/agent-default-model/src/index.ts:41`](../packages/core/agent-default-model/src/index.ts)
 
+
 ## `@huiliyi37/dsh-agent-definitions`
 
 ```ts config-catalog
@@ -298,6 +299,28 @@ export interface GoalConfig {
 依赖：[`AgentLoopConfig`](#huiliyi37dsh-agent-loop) · [`GoalDomainConfig`](#huiliyi37dsh-goal) · [`InvariantConfig`](#huiliyi37dsh-invariants) · [`SessionTitleConfig`](#huiliyi37dsh-session-title) · [`SkillLocal`](../packages/skill/skill-local/src/index.ts) · [`SkillRegistryConfig`](#huiliyi37dsh-skill) · [`SystemPromptConfig`](#huiliyi37dsh-system-prompt) · [`toolBash`](../packages/bash/tool-bash/src/index.ts) · [`toolGoal`](../packages/goal/tool-goal/src/index.ts) · [`ToolsConfig`](#huiliyi37dsh-tools) · [`toolSkill`](../packages/skill/tool-skill/src/index.ts) · [`toolTasks`](../packages/tasks/tool-tasks/src/index.ts) · [`workspaceContext`](../packages/context/workspace-context/src/index.ts)
 
 来源：[`packages/examples/agent-spine-demo/src/index.ts:90`](../packages/examples/agent-spine-demo/src/index.ts)
+## `@huiliyi37/dsh-agent-tool-presentation`
+
+需要：`tools`
+
+```ts config-catalog
+/** Plugin config. */
+export interface Config {
+  /**
+   * The form this agent's model sees. `native` sends every visible schema,
+   * `code` sends only `run_code` plus a generated SDK, `both` sends both.
+   * Required rather than defaulted: the deployment default is what a preset
+   * without this row already gets, so an omitted value would mean the row was
+   * composed for nothing.
+   */
+  mode: ToolPresentationMode
+}
+```
+
+依赖：[`ToolPresentationMode`](../packages/core/tools/src/index.ts)
+
+来源：[`packages/core/agent-tool-presentation/src/index.ts:38`](../packages/core/agent-tool-presentation/src/index.ts)
+
 
 ## `@huiliyi37/dsh-attachment-local`
 

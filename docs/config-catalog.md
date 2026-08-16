@@ -296,6 +296,28 @@ Depends on: [`AgentLoopConfig`](#huiliyi37dsh-agent-loop) · [`GoalDomainConfig`
 
 Source: [`packages/examples/agent-spine-demo/src/index.ts:90`](../packages/examples/agent-spine-demo/src/index.ts)
 
+## `@huiliyi37/dsh-agent-tool-presentation`
+
+Requires: `tools`
+
+```ts config-catalog
+/** Plugin config. */
+export interface Config {
+  /**
+   * The form this agent's model sees. `native` sends every visible schema,
+   * `code` sends only `run_code` plus a generated SDK, `both` sends both.
+   * Required rather than defaulted: the deployment default is what a preset
+   * without this row already gets, so an omitted value would mean the row was
+   * composed for nothing.
+   */
+  mode: ToolPresentationMode
+}
+```
+
+Depends on: [`ToolPresentationMode`](../packages/core/tools/src/index.ts)
+
+Source: [`packages/core/agent-tool-presentation/src/index.ts:38`](../packages/core/agent-tool-presentation/src/index.ts)
+
 ## `@huiliyi37/dsh-attachment-local`
 
 ```ts config-catalog
@@ -2649,7 +2671,7 @@ export interface Config {
 export type ToolPresentationMode = 'native' | 'code' | 'both'
 ```
 
-Source: [`packages/core/tools/src/index.ts:624`](../packages/core/tools/src/index.ts)
+Source: [`packages/core/tools/src/index.ts:634`](../packages/core/tools/src/index.ts)
 
 ## `@huiliyi37/dsh-tui`
 

@@ -159,6 +159,7 @@
     { "path": "./packages/interaction/user-approval" },
     { "path": "./packages/interaction/permission" },
     { "path": "./packages/core/tools" },
+    { "path": "./packages/core/agent-tool-presentation" },
     { "path": "./packages/skill/skill" },
     { "path": "./packages/skill/skill-badge" },
     { "path": "./packages/skill/skill-local" },
