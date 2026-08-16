@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-**Vision co-pilot plugin**: a session-scoped image registry plus the `ask_image` tool for the tianshu harness. When a user attaches images (any entry point — TUI, subagent, tool-injected messages), their inline data URLs are registered under short ids (`img_1`, …); the main model can then re-interrogate any retained image any number of times, from different angles, without the user re-sending it.
+**Vision co-pilot plugin**: a session-scoped image registry plus the `ask_image` tool for the oh-my-tianshu harness. When a user attaches images (any entry point — TUI, subagent, tool-injected messages), their inline data URLs are registered under short ids (`img_1`, …); the main model can then re-interrogate any retained image any number of times, from different angles, without the user re-sending it.
 
 ## Why a dedicated adapter
 

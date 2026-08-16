@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-可选的内置 skill（技能）提供方，向 `ctx.skills` 贡献 `dsh-badge`。该 skill 提供官方「powered by tianshu」Markdown 徽章片段。
+可选的内置 skill（技能）提供方，向 `ctx.skills` 贡献 `dsh-badge`。该 skill 提供官方「powered by oh-my-tianshu」Markdown 徽章片段。
 
 挂载该插件即可启用提供方。它没有配置。随附的 CLI（命令行界面）组合以 `disabled: true` 包含该插件；用户必须显式启用其 `skill-badge` 配置行，该 skill 才会进入目录。
 

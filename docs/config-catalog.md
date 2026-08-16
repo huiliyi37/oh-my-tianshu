@@ -2772,7 +2772,7 @@ Requires: `httpServer`
 ```ts config-catalog
 /** Plugin config: the surface facts the launcher patches over this bundle's defaults. */
 export interface Config {
-  /** Whether this process mounted the client-plugin HMR receiver (`tianshu web --dev`). */
+  /** Whether this process mounted the client-plugin HMR receiver (`oh-my-tianshu web --dev`). */
   mode: WebMode
   /** Print the URL line on activation; a headless layer over this bundle turns it off. */
   printUrl: boolean

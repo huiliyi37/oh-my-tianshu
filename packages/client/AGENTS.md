@@ -1,6 +1,6 @@
 # AGENTS.md — Web client stack
 
-Rules for `packages/client/*` (the browser side of the tianshu web GUI) plus its build entry `apps/web`. They supplement the repo-wide [conventions](../../AGENTS.md#conventions) and the [package rules](../README.md). Before touching slots, component props, stores, or plugin structure, read the [slot system standard](../../.agents/notes/implemented/architecture/2026-07-22-slot-type-chain-implementation.md) (the definitive composition model) and the [web client architecture note](../../.agents/notes/implemented/architecture/2026-07-19-gui-web-client-architecture.md) (loading chain, object layer, services).
+Rules for `packages/client/*` (the browser side of the oh-my-tianshu web GUI) plus its build entry `apps/web`. They supplement the repo-wide [conventions](../../AGENTS.md#conventions) and the [package rules](../README.md). Before touching slots, component props, stores, or plugin structure, read the [slot system standard](../../.agents/notes/implemented/architecture/2026-07-22-slot-type-chain-implementation.md) (the definitive composition model) and the [web client architecture note](../../.agents/notes/implemented/architecture/2026-07-19-gui-web-client-architecture.md) (loading chain, object layer, services).
 
 Packages here are named with the directory prefix: `@huiliyi37/dsh-client-<name>`.
 
@@ -95,7 +95,7 @@ Bringing up a new `packages/client/<name>` plugin package (ui-workspace is the l
 2. **Three registration surfaces, all required** (missing any one fails at a different, later point): the `tsconfig.client.json` aggregate `references` entry; a `dshClient` row in `packages/bundle/web-app/cordis.patch.yml`; a `packages/bundle/web-app/package.json` dependency (profile boots resolve bare row names through the healed `$DSH_HOME/profiles/node_modules` fallback, which mirrors the app's and each bundle's declared dependencies — a row whose package no manifest declares fails to import). `pnpm-workspace.yaml` already globs `packages/*/*`.
 3. **dshClient manifest semantics**: `platform: 'web'` always; `immediately: true` only for stage-one-prefetch infrastructure rows. `inject` lists package-name dependency edges — they are **informational only** (preflight display, HMR diffing); they do not sequence entry activation or apply order. Activation order is cordis fiber inject waiting on *services*, nothing else.
 4. **Registering into another package's slot**: apply order is unconstrained, and a business service is not a declaration barrier. Use `ctx.slots.inject(name, () => ctx.slots.register(...))`; it waits on the actual declaration, removes the contribution when that declaration collapses, reruns after redeclaration, and leaves with the caller's plugin fiber. Return a generator yielding each registration when several contributions must install and roll back atomically. A bare `slots.register` into an undeclared slot remains an error; keep service edges only for services the contribution actually reads.
-5. Rebuild the bundle (`pnpm --filter <pkg> bundle`) before probing a live `tianshu web` server — the registry serves `lib/client.js`, not sources.
+5. Rebuild the bundle (`pnpm --filter <pkg> bundle`) before probing a live `oh-my-tianshu web` server — the registry serves `lib/client.js`, not sources.
 
 ## New component checklist
 

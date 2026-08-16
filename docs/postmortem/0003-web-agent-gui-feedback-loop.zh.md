@@ -6,11 +6,11 @@ Status: resolved
 
 ## 摘要
 
-Web agent 修改了 GUI 源码，却不知道由哪个 URL 和进程承载当前会话。它把验收交还给用户，随后在 `window.__DSH_BOOT__` 缺失导致白屏的情况下，仍把裸 Vite 返回的 HTTP 200 当作成功；最后，原页面其实已经加载了重建产物，它却去验收另一个端口上的替代 `tianshu web` 服务器。修复让当前 URL 和运行模式对模型可见且可由 shell 查询，在独立 Vite 开始监听前拒绝启动，并依据外部状态验收生产模式刷新与开发模式 HMR（热模块替换）。
+Web agent 修改了 GUI 源码，却不知道由哪个 URL 和进程承载当前会话。它把验收交还给用户，随后在 `window.__DSH_BOOT__` 缺失导致白屏的情况下，仍把裸 Vite 返回的 HTTP 200 当作成功；最后，原页面其实已经加载了重建产物，它却去验收另一个端口上的替代 `oh-my-tianshu web` 服务器。修复让当前 URL 和运行模式对模型可见且可由 shell 查询，在独立 Vite 开始监听前拒绝启动，并依据外部状态验收生产模式刷新与开发模式 HMR（热模块替换）。
 
 ## 概述
 
-该会话运行在端口 3081 的 Tianshu Harness Web GUI 中，而用户选择的 Workspace 是空的 `test/` 目录。模型请求既未指明该 GUI，也未提供它的源码检出目录、URL、进程或更新模式。仓库在 `apps/web` 中提供了 Vite 开发脚本，完整的浏览器组合则由 `tianshu web` 提供。
+该会话运行在端口 3081 的 Tianshu Harness Web GUI 中，而用户选择的 Workspace 是空的 `test/` 目录。模型请求既未指明该 GUI，也未提供它的源码检出目录、URL、进程或更新模式。仓库在 `apps/web` 中提供了 Vite 开发脚本，完整的浏览器组合则由 `oh-my-tianshu web` 提供。
 
 由此产生的各个动作单看都合理，却没有指向同一个验收目标。源码修改、成功构建、HTTP 200、注入的启动 manifest（元数据清单）和用户原本打开的页面，被当成了可以相互替代的事实。
 
@@ -26,7 +26,7 @@ Web agent 修改了 GUI 源码，却不知道由哪个 URL 和进程承载当前
 
 - 在第 2 个轮次中，agent 修改主题后，在序列 30939 的消息中让用户运行 `pnpm run demo:tui` 或打开一个未明确指定的 Web 应用。它没有对组装后的 Web 应用执行任何验收。
 - 在第 3 个轮次中，agent 读取 `apps/web/package.json`，在序列 31865 于端口 5173 上启动裸 Vite，观察到 HTTP 200 后便宣布成功。浏览器却抛出 `client-modules: window.__DSH_BOOT__ is missing or not an object`，并显示白屏。
-- 在第 4 个轮次中，agent 找到了完整的 `tianshu web` 启动路径，重新构建 shell，在序列 34309 于端口 3334 上启动一个不受管理的进程，并且只在序列 34441 检查了这个替代服务是否返回 200 和启动 manifest。它从未探测端口 3081。
+- 在第 4 个轮次中，agent 找到了完整的 `oh-my-tianshu web` 启动路径，重新构建 shell，在序列 34309 于端口 3334 上启动一个不受管理的进程，并且只在序列 34441 检查了这个替代服务是否返回 200 和启动 manifest。它从未探测端口 3081。
 - 在第 5 个轮次中，用户在序列 34556 报告 3081 已经显示新主题。直到序列 34681，agent 才检查既有进程并移除冗余服务器。
 
 ## 根因
@@ -40,7 +40,7 @@ agent 还通过 shell `&` 绕过了后台进程语义，因此任务身份、完
 ## 已添加的防护措施
 
 - Web 启动器在记录到日志的 `app:web-surface` 提示词区段，以及受管的 `$DSH_WEB_URL`/`$DSH_WEB_MODE` 环境变量中，发布规范环回 URL 和实际的生产／开发模式。
-- 生产模式指南要求重新构建产物，并在刷新后验证既有 URL。开发模式指南说明，`tianshu web --dev` 只挂载 HMR 接收端；同一源码检出目录中的 `pnpm run dev:web` 还必须重新构建客户端插件 bundle，而 Web shell 和普通包的改动仍然需要刷新页面。
+- 生产模式指南要求重新构建产物，并在刷新后验证既有 URL。开发模式指南说明，`oh-my-tianshu web --dev` 只挂载 HMR 接收端；同一源码检出目录中的 `pnpm run dev:web` 还必须重新构建客户端插件 bundle，而 Web shell 和普通包的改动仍然需要刷新页面。
 - `apps/web` 的独立 Vite 服务模式会在配置阶段拒绝启动。其子进程测试验证进程自然退出，并插桩 `Server.listen()`，确保短暂绑定端口也不会漏检。
 - 分层的真实路径测试覆盖 CLI（命令行界面）请求、精确的生产／开发模式提示词、shell 运行时事实、同端口静态产物替换、源码 watcher 重建、宿主 stat 轮询，以及页面 identity 不变的浏览器 HMR。
 - PR（Pull Request）证据保留了原始 3081 会话的截图，以及真实模型驱动的 GUI 修改前后对比；验收以外部浏览器、HTTP、进程和会话日志的观测结果为准。

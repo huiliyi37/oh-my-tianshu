@@ -1,6 +1,6 @@
-# tianshu Badge
+# oh-my-tianshu Badge
 
-Add the official “powered by tianshu” badge without recreating or restyling it.
+Add the official “powered by oh-my-tianshu” badge without recreating or restyling it.
 
 ## Assets
 

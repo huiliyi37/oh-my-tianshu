@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-天枢 Harness(`tianshu`)是一款完全体开源 coding agent:在 agent harness 之上带视觉、跨会话记忆、验证门、agent 路由、语义 + 图谱代码检索、文件回滚和全屏终端 UI——全部以插件组合。
+天枢 Harness(`oh-my-tianshu`)是一款完全体开源 coding agent:在 agent harness 之上带视觉、跨会话记忆、验证门、agent 路由、语义 + 图谱代码检索、文件回滚和全屏终端 UI——全部以插件组合。
 
 它是 [DeepSeek Harness](https://github.com/deepseek-ai)(`dsh`,MIT)的友好 fork,以 **Apache License 2.0** 发布;分叉点为 2026-08 基线;本线独立演进,不追踪上游。完整署名见 [NOTICE](NOTICE)。
 
@@ -15,14 +15,14 @@
 已发布到 npm,一条命令直接运行:
 
 ```sh
-npx @huiliyi37/dsh-tianshu tui
+npx @huiliyi37/oh-my-tianshu tui
 ```
 
 或全局安装:
 
 ```sh
-npm i -g @huiliyi37/dsh-tianshu
-tianshu tui
+npm i -g @huiliyi37/oh-my-tianshu
+oh-my-tianshu tui
 ```
 
 **API key**:启动前导出,或写入用户环境文件一次(每次启动自动加载):
@@ -43,11 +43,11 @@ git clone https://github.com/huiliyi37/oh-my-tianshu.git
 cd oh-my-tianshu
 pnpm install
 pnpm run build
-pnpm tianshu tui
-pnpm tianshu web
+pnpm oh-my-tianshu tui
+pnpm oh-my-tianshu web
 ```
 
-`pnpm tianshu tui` 从源码跑全屏终端 UI;`pnpm tianshu web` 在 `http://127.0.0.1:3080` 起 Web UI。
+`pnpm oh-my-tianshu tui` 从源码跑全屏终端 UI;`pnpm oh-my-tianshu web` 在 `http://127.0.0.1:3080` 起 Web UI。
 
 ## 完全体新增什么
 
@@ -72,23 +72,23 @@ pnpm tianshu web
 
 ### Web UI
 
-推荐在本地使用 Web UI;可从 npm 安装直接启动(`tianshu web`),或从构建好的检出启动:
+推荐在本地使用 Web UI;可从 npm 安装直接启动(`oh-my-tianshu web`),或从构建好的检出启动:
 
 ```sh
 pnpm run build
-pnpm tianshu web
+pnpm oh-my-tianshu web
 ```
 
 Web UI 默认通过 `http://127.0.0.1:3080` 提供服务。
 
 ### Profile
 
-`tianshu` 启动 profile:按序叠放的插件组合包 patch 层,之上再叠加你在 `$DSH_HOME/profiles/<name>` 中的自有覆盖层:
+`oh-my-tianshu` 启动 profile:按序叠放的插件组合包 patch 层,之上再叠加你在 `$DSH_HOME/profiles/<name>` 中的自有覆盖层:
 
 ```sh
-tianshu --profile web                       # the browser UI (same as: tianshu web)
-tianshu plugin --profile tui add <package>  # install a plugin into a custom profile
-tianshu --profile tui                       # boot it
+oh-my-tianshu --profile web                       # the browser UI (same as: oh-my-tianshu web)
+oh-my-tianshu plugin --profile tui add <package>  # install a plugin into a custom profile
+oh-my-tianshu --profile tui                       # boot it
 ```
 
 profile 布局、层语义与配置输出命令详见 [CLI(命令行界面)约定](apps/cli/README.md#profiles)。
@@ -98,7 +98,7 @@ profile 布局、层语义与配置输出命令详见 [CLI(命令行界面)约�
 启动全屏终端界面:
 
 ```sh
-tianshu tui          # or: tianshu --profile tui
+oh-my-tianshu tui          # or: oh-my-tianshu --profile tui
 ```
 
 TUI 是天枢(opencode-tui)渲染核心适配 harness 接缝的移植,界面对标 oh-my-pi:边框欢迎卡 + 渐变 logo、嵌入输入框顶边的段式状态栏、消息面整宽底色(用户气泡、按状态着色的工具块)、17 个主题(琥珀色 `omp` 为默认,`graphite` 等可经 `/theme` 切换)。输入 `/` 打开命令菜单——↑↓ 选择、Tab 接受、Enter 提交、Esc 关闭;随时按 `Ctrl+.` 查看键位表。
@@ -197,7 +197,7 @@ llm-deepseek:
 运行一项任务,打印最终答案后退出:
 
 ```sh
-tianshu run "summarize this workspace"
+oh-my-tianshu run "summarize this workspace"
 ```
 
 ### 自动化与 SDK
@@ -224,7 +224,7 @@ pnpm run demo:acp
 ## 与上游 `dsh` 的关系与共存
 
 本项目于 2026-08 基线从 DeepSeek Harness(MIT)分叉,独立演进——不追踪上游发布;
-包发布在 `@huiliyi37/*` npm scope 下(CLI:`@huiliyi37/dsh-tianshu`,bin 名 `tianshu`)。
+包发布在 `@huiliyi37/*` npm scope 下(CLI:`@huiliyi37/oh-my-tianshu`,bin 名 `oh-my-tianshu`)。
 本仓库以 Apache License 2.0 发布;上游署名保留在 [NOTICE](NOTICE),TUI 包携带自己的
 Apache-2.0 来源链([LICENSE](packages/tui/tui/LICENSE) / [NOTICE](packages/tui/tui/NOTICE) /
 [SOURCE-MAP](packages/tui/tui/SOURCE-MAP.md))。
@@ -234,16 +234,16 @@ Apache-2.0 来源链([LICENSE](packages/tui/tui/LICENSE) / [NOTICE](packages/tui
 | 发行线 | 定位 | 数据 home |
 |---|---|---|
 | 官方 `dsh` + [`dsh-tianshu-tui`](https://github.com/huiliyi37/dsh-tianshu-tui)(插件) | 官方 DeepSeek Harness 的 TUI 插件,装进官方 profile | `~/.dsh`(官方固定) |
-| 本仓库(oh-my-tianshu,原 tianshu-public) | 独立集成发行,自带 CLI(`tianshu`) | 独立 `$DSH_HOME`(默认值独立化计划中,将不再默认 `~/.dsh`) |
+| 本仓库(oh-my-tianshu,原 tianshu-public) | 独立集成发行,自带 CLI(`oh-my-tianshu`) | 独立 `$DSH_HOME`(默认值独立化计划中,将不再默认 `~/.dsh`) |
 
 - 本仓库完全尊重 `$DSH_HOME`(优先级:显式配置 > `$DSH_HOME` > 默认 home):
   与官方 dsh 共存时设 `export DSH_HOME=~/.dsh-tianshu`(默认值独立化落地后无需手动设置)。
   会话 / profile / settings 各自独立,互不覆盖。
 - **命名备忘(防止混淆)**:`dsh-tianshu-tui` = 官方 dsh 的 TUI 插件;
-  `oh-my-tianshu` / `@huiliyi37/dsh-tianshu` = 独立集成发行;`Tianshu-Tui` = 上游渲染核心
+  `oh-my-tianshu` / `@huiliyi37/oh-my-tianshu` = 独立集成发行;`Tianshu-Tui` = 上游渲染核心
   来源(Apache-2.0,天枢)。
 - **更名计划(第二批)**:仓库名统一为 `oh-my-tianshu`,启动命令与 npm 包名同步改名
-  (`tianshu` → 新命令名),消除与插件名 `dsh-tianshu-tui` 的语义混淆;本说明届时同步更新。
+  (`oh-my-tianshu` → 新命令名),消除与插件名 `dsh-tianshu-tui` 的语义混淆;本说明届时同步更新。
 
 ## 开发
 

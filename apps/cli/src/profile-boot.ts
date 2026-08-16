@@ -4,7 +4,7 @@
  * `cordis.patch.yml`, `--patch` overlays, flag-derived patches, the telemetry
  * switch), mount the tree over the profile's empty root config, keep the
  * profile patch layer live, and wire fail-loud plus bounded shutdown.
- * @module @huiliyi37/dsh-tianshu/profile-boot
+ * @module @huiliyi37/oh-my-tianshu/profile-boot
  */
 
 import { writeFileSync } from 'node:fs'

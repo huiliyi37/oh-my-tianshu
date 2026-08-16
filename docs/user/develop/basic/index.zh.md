@@ -56,7 +56,7 @@ export function apply(ctx: Context) {
 使用该覆盖层启动 Web UI：
 
 ```sh
-pnpm run tianshu web --patch ./scratch-plugin/cordis.yml
+pnpm run oh-my-tianshu web --patch ./scratch-plugin/cordis.yml
 ```
 
 打开 `http://127.0.0.1:3080`。启动期间，终端会打印 `[hello-plugin] plugin loaded!`。

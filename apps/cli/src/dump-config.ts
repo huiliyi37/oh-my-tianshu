@@ -1,9 +1,9 @@
 /**
- * Config-dump entry for `tianshu --profile <name> --dump-config`: compose the
+ * Config-dump entry for `oh-my-tianshu --profile <name> --dump-config`: compose the
  * profile's patch layers through the include plugin's patch algorithm without
  * booting or evaluating `!!js`, with one source layer per bundle, the
  * profile's own patch file, and each `--patch` overlay.
- * @module @huiliyi37/dsh-tianshu/dump-config
+ * @module @huiliyi37/oh-my-tianshu/dump-config
  */
 
 import { existsSync } from 'node:fs'

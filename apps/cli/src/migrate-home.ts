@@ -7,7 +7,7 @@
  * the official `dsh` CLI + plugins (`dsh-tianshu-tui`) without sharing user
  * data. One-time migration for installs that predate the change.
  *
- * @module @huiliyi37/dsh-tianshu/migrate-home
+ * @module @huiliyi37/oh-my-tianshu/migrate-home
  */
 
 import { cpSync, existsSync } from 'node:fs'
@@ -37,6 +37,6 @@ export function runMigrateHome(): number {
   cpSync(legacy, next, { recursive: true })
   console.log(`已把 ${legacy} 复制到 ${next}`)
   console.log('旧 home 保留未删；确认新 home 正常后自行清理。')
-  console.log(`本次启动生效需用新 home：tianshu 现在默认读 ${dshHomeDisplay(next)}（$DSH_HOME 可覆盖）`)
+  console.log(`本次启动生效需用新 home：oh-my-tianshu 现在默认读 ${dshHomeDisplay(next)}（$DSH_HOME 可覆盖）`)
   return 0
 }

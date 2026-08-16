@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-交互式终端 UI：`tianshu --profile` 的 TUI 层，经 bundle patch 骑在 dsh-base 之上（稳定插件 id `tui-runner`）。渲染核心移植自天枢（Tianshu）终端引擎（Apache-2.0，逐文件溯源见 [SOURCE-MAP.md](SOURCE-MAP.md)），代理状态一律经 session 事件与投影总线到达——引擎是纯展示层，不含 agent 逻辑。
+交互式终端 UI：`oh-my-tianshu --profile` 的 TUI 层，经 bundle patch 骑在 dsh-base 之上（稳定插件 id `tui-runner`）。渲染核心移植自天枢（Tianshu）终端引擎（Apache-2.0，逐文件溯源见 [SOURCE-MAP.md](SOURCE-MAP.md)），代理状态一律经 session 事件与投影总线到达——引擎是纯展示层，不含 agent 逻辑。
 
 ## 装配
 

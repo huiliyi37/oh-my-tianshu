@@ -12,7 +12,7 @@ The TUI's visual identity predates the product's public positioning: the welcome
 
 Wave one of the omp alignment (identity layer only), plus the repository rename:
 
-- **Brand**: `formatBrandWelcome` defaults become `Oh My Tianshu` / `Tianshu Harness` (`packages/tui/tui/src/format/welcome.ts`). Package names (`@huiliyi37/dsh-*`) and the CLI name (`tianshu`) stay unchanged — the rename is repo + product-brand only.
+- **Brand**: `formatBrandWelcome` defaults become `Oh My Tianshu` / `Tianshu Harness` (`packages/tui/tui/src/format/welcome.ts`). Package names (`@huiliyi37/dsh-*`) and the CLI name (`oh-my-tianshu`) stay unchanged — the rename is repo + product-brand only.
 - **`omp` theme, the new default**: a new amber-accent palette (`packages/tui/tui/src/theme-palettes.ts`: primary `#febc38`, slate grays, warm user rail) registered first in `THEME_PALETTES`; `autoThemeFor` maps dark backgrounds to `omp` (light keeps `paper`), and the `theme.ts` initial value follows. `graphite` and every other palette remain selectable via `/theme`.
 - **Welcome card**: `formatWelcomeCard` wraps the existing responsive hero in a rounded box with the brand embedded in the left of the top border (`╭─ Oh My Tianshu ───╮`); the whale gains an opt-in diagonal body gradient (`bodyGradient`, truecolor track only — belly/eye/blush keep their brand colors, the 16-color track is unchanged); a random italic dim `Tip:` line (`WELCOME_TIPS` / `pickWelcomeTip`) lands below the card. The hero itself is untouched, so existing hero specs keep their meaning.
 - **Rename**: GitHub repo `huiliyi37/dsh-tianshu-build` → `huiliyi37/oh-my-tianshu`; every tracked hardcoded URL swept (`git grep dsh-tianshu-build` = 0), including `repository.url` fields, doc links, and the doc-site/verification scripts that assert the canonical identity.
@@ -25,7 +25,7 @@ Deferred with reasons: the gradient-sweep logo intro needs the welcome card held
 
 ## Alternatives considered
 
-- **Full rename (packages + CLI)**: `@huiliyi37/dsh-*` and the `tianshu` binary touch hundreds of references, the publish chain, and installed profiles — a separate engineering track. Rejected for this wave; the user-facing brand and repo name carry the identity.
+- **Full rename (packages + CLI)**: `@huiliyi37/dsh-*` and the `oh-my-tianshu` binary touch hundreds of references, the publish chain, and installed profiles — a separate engineering track. Rejected for this wave; the user-facing brand and repo name carry the identity.
 - **Recoloring `graphite` in place**: would silently change every existing install's look and steal the name users may have pinned. A new registered palette keeps `/theme graphite` intact.
 - **Gradient as the whale default**: the flat brand blue is asserted by the baseline spec and remains the right rendering for 256/16-color tracks, so the gradient is an explicit `bodyGradient` option used by the welcome path only.
 - **Renaming the local checkout directory**: cosmetic and session-disruptive; the directory keeps its name while the remote identity changes.

@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Optional bundled skill provider that contributes `dsh-badge` to `ctx.skills`. The skill supplies the official “powered by tianshu” Markdown badge snippets.
+Optional bundled skill provider that contributes `dsh-badge` to `ctx.skills`. The skill supplies the official “powered by oh-my-tianshu” Markdown badge snippets.
 
 Mount the plugin to enable the provider. It has no configuration. The shipped CLI composition includes the plugin as `disabled: true`; users must explicitly enable its `skill-badge` row before the skill enters a catalog.
 

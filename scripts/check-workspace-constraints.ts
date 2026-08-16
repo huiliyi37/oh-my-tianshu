@@ -44,7 +44,7 @@ const repositoryUrl = 'git+https://github.com/huiliyi37/oh-my-tianshu.git'
 
 const localArtifactDirs = new Set(['node_modules'])
 const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
-  '@huiliyi37/dsh-tianshu': ['lib/*.js', 'config'],
+  '@huiliyi37/oh-my-tianshu': ['lib/*.js', 'config'],
   '@huiliyi37/dsh-frontend': ['dist'],
 }
 

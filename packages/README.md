@@ -36,7 +36,7 @@ Groups hold `packages/<group>/<pkg>/`; names stay `@huiliyi37/dsh-<pkg>`. **Grou
 | [`todo/`](todo/README.md) | The model-facing `todo_write` tool | Product — stable surface |
 | [`plan/`](plan/README.md) | Plan collaboration state with a direct entry command and reviewed exit | Product — stable surface |
 | [`guard/`](guard/README.md) | Loop-hygiene guards: advisory repeat-call reminders + the `tools/execute` deadline enforcer | Product — stable surface |
-| [`bundle/`](bundle/README.md) | Installable `tianshu --profile` patch layers | Product — stable surface |
+| [`bundle/`](bundle/README.md) | Installable `oh-my-tianshu --profile` patch layers | Product — stable surface |
 | [`self-modification/`](self-modification/README.md) | Self-modifying runtime: inspect live plugins/services, mount/unmount model-written plugins ([design](../.agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md)), restricted repository Plugin loading | Product — stable surface |
 | [`hooks/`](hooks/README.md) | Hook bridges + the shared Claude Code / Codex wire-protocol library | Product — stable surface |
 | [`session/`](session/README.md) | Durable session data plane: persistence seam + JSONL/SQLite backends, projections, log-backed titles, reporting | Product — stable surface |

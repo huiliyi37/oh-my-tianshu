@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Tianshu Harness (`tianshu`) is a full-capability open-source coding agent: an agent harness with vision, cross-session memory, verification gates, agent routing, semantic + graph code retrieval, file rewind, and a full-screen terminal UI — all composed as plugins.
+Tianshu Harness (`oh-my-tianshu`) is a full-capability open-source coding agent: an agent harness with vision, cross-session memory, verification gates, agent routing, semantic + graph code retrieval, file rewind, and a full-screen terminal UI — all composed as plugins.
 
 It is a friendly fork of [DeepSeek Harness](https://github.com/deepseek-ai) (`dsh`, MIT) released under the **Apache License 2.0**. The fork point is the 2026-08 baseline; this line evolves independently and does not track upstream. See [NOTICE](NOTICE) for the full attribution.
 
@@ -15,14 +15,14 @@ Requirements: Node `^22.19 || >=24`, and a DeepSeek API key (`DEEPSEEK_API_KEY`)
 Run it straight from npm:
 
 ```sh
-npx @huiliyi37/dsh-tianshu tui
+npx @huiliyi37/oh-my-tianshu tui
 ```
 
 Or install globally:
 
 ```sh
-npm i -g @huiliyi37/dsh-tianshu
-tianshu tui
+npm i -g @huiliyi37/oh-my-tianshu
+oh-my-tianshu tui
 ```
 
 **API key**: export it before starting, or drop it in the user env file once (loaded automatically on every boot):
@@ -43,11 +43,11 @@ git clone https://github.com/huiliyi37/oh-my-tianshu.git
 cd oh-my-tianshu
 pnpm install
 pnpm run build
-pnpm tianshu tui
-pnpm tianshu web
+pnpm oh-my-tianshu tui
+pnpm oh-my-tianshu web
 ```
 
-`pnpm tianshu tui` runs the full-screen terminal UI from source; `pnpm tianshu web` serves the Web UI at `http://127.0.0.1:3080`.
+`pnpm oh-my-tianshu tui` runs the full-screen terminal UI from source; `pnpm oh-my-tianshu web` serves the Web UI at `http://127.0.0.1:3080`.
 
 ## What the full build adds
 
@@ -72,23 +72,23 @@ Beyond the upstream baseline (files, shell/PTY, skills, tasks/goals/plans, subag
 
 ### Web UI
 
-For the recommended local interface, start the Web UI from the npm install (`tianshu web`) or from a built checkout:
+For the recommended local interface, start the Web UI from the npm install (`oh-my-tianshu web`) or from a built checkout:
 
 ```sh
 pnpm run build
-pnpm tianshu web
+pnpm oh-my-tianshu web
 ```
 
 The Web UI is served at `http://127.0.0.1:3080` by default.
 
 ### Profiles
 
-`tianshu` boots profiles — ordered stacks of plugin-bundle patch layers under your own overrides in `$DSH_HOME/profiles/<name>`:
+`oh-my-tianshu` boots profiles — ordered stacks of plugin-bundle patch layers under your own overrides in `$DSH_HOME/profiles/<name>`:
 
 ```sh
-tianshu --profile web                       # the browser UI (same as: tianshu web)
-tianshu plugin --profile tui add <package>  # install a plugin into a custom profile
-tianshu --profile tui                       # boot it
+oh-my-tianshu --profile web                       # the browser UI (same as: oh-my-tianshu web)
+oh-my-tianshu plugin --profile tui add <package>  # install a plugin into a custom profile
+oh-my-tianshu --profile tui                       # boot it
 ```
 
 The [CLI contract](apps/cli/README.md#profiles) describes profile layout, layer semantics, and config dump commands.
@@ -98,7 +98,7 @@ The [CLI contract](apps/cli/README.md#profiles) describes profile layout, layer 
 Start the full-screen terminal interface:
 
 ```sh
-tianshu tui          # or: tianshu --profile tui
+oh-my-tianshu tui          # or: oh-my-tianshu --profile tui
 ```
 
 The TUI is a port of the Tianshu (opencode-tui) render core adapted to the harness seams, with an oh-my-pi-aligned interface: a bordered welcome card with a gradient logo, a segmented status bar embedded in the composer's top border, full-width message-surface tints (user bubble, per-status tool blocks), and 17 themes (the amber `omp` is the default, `graphite` and friends remain via `/theme`). Type `/` to open the command menu — ↑↓ to select, Tab to accept, Enter to submit, Esc to close. Press `Ctrl+.` any time for the shortcut map.
@@ -197,7 +197,7 @@ then switch with `/model spark-flash` or `/model spark-pro` (aliases for `deepse
 Run one task, print the final answer, and exit:
 
 ```sh
-tianshu run "summarize this workspace"
+oh-my-tianshu run "summarize this workspace"
 ```
 
 ### Automation and SDKs
@@ -223,23 +223,23 @@ Disabled by default — nothing is uploaded anywhere. To stream session telemetr
 
 ## Relationship with upstream `dsh` and coexistence
 
-This project forked from DeepSeek Harness (MIT) at the 2026-08 baseline and evolves independently — it does not track upstream releases, and its packages live under the `@huiliyi37/*` npm scope (CLI: `@huiliyi37/dsh-tianshu`, bin `tianshu`). The repository is licensed under the Apache License 2.0; upstream attribution is preserved in [NOTICE](NOTICE), and the TUI package carries its own Apache-2.0 provenance chain ([LICENSE](packages/tui/tui/LICENSE) / [NOTICE](packages/tui/tui/NOTICE) / [SOURCE-MAP](packages/tui/tui/SOURCE-MAP.md)).
+This project forked from DeepSeek Harness (MIT) at the 2026-08 baseline and evolves independently — it does not track upstream releases, and its packages live under the `@huiliyi37/*` npm scope (CLI: `@huiliyi37/oh-my-tianshu`, bin `oh-my-tianshu`). The repository is licensed under the Apache License 2.0; upstream attribution is preserved in [NOTICE](NOTICE), and the TUI package carries its own Apache-2.0 provenance chain ([LICENSE](packages/tui/tui/LICENSE) / [NOTICE](packages/tui/tui/NOTICE) / [SOURCE-MAP](packages/tui/tui/SOURCE-MAP.md)).
 
 **Two distribution lines, installable side by side without conflicts:**
 
 | Line | What it is | Data home |
 |---|---|---|
 | Official `dsh` + [`dsh-tianshu-tui`](https://github.com/huiliyi37/dsh-tianshu-tui) (plugin) | A TUI plugin for the official DeepSeek Harness, installed into an official profile | `~/.dsh` (fixed by the official CLI) |
-| This repo (oh-my-tianshu, formerly tianshu-public) | A standalone integrated distribution with its own CLI (`tianshu`) | A dedicated `$DSH_HOME` (default-home isolation planned; will no longer default to `~/.dsh`) |
+| This repo (oh-my-tianshu, formerly tianshu-public) | A standalone integrated distribution with its own CLI (`oh-my-tianshu`) | A dedicated `$DSH_HOME` (default-home isolation planned; will no longer default to `~/.dsh`) |
 
 - This repo fully honors `$DSH_HOME` (precedence: explicit config > `$DSH_HOME` > default home).
   When coexisting with the official dsh, set `export DSH_HOME=~/.dsh-tianshu` (no manual setup
   needed once the default-home isolation lands). Sessions / profiles / settings stay separate.
 - **Naming memo (avoid confusion)**: `dsh-tianshu-tui` = the TUI plugin for official dsh;
-  `oh-my-tianshu` / `@huiliyi37/dsh-tianshu` = the standalone integrated distribution;
+  `oh-my-tianshu` / `@huiliyi37/oh-my-tianshu` = the standalone integrated distribution;
   `Tianshu-Tui` = the upstream render-core source (Apache-2.0).
 - **Renaming plan (phase 2)**: the repo will be uniformly named `oh-my-tianshu`, and the
-  launch command plus npm package name will follow (`tianshu` → new command name) to eliminate
+  launch command plus npm package name will follow (`oh-my-tianshu` → new command name) to eliminate
   semantic confusion with the plugin name `dsh-tianshu-tui`; this section will be updated then.
 
 ## Development

@@ -6,49 +6,49 @@ This reference defines the profile, one-shot run, web-alias, plugin-management, 
 
 ## Profile boot
 
-`tianshu --profile <name>` boots the profile at `$DSH_HOME/profiles/<name>`. The effective tree is composed over an empty root by applying, in order: each bundle patch named in the profile manifest's `dsh.profile.bundles` list, the profile's own `cordis.patch.yml`, the home-level `$DSH_HOME/cordis.patch.yml` (machine-local preferences shared by every profile, so it outranks the per-profile layer), each `--patch <path>` overlay in argv order, and launcher flag patches. Later layers win per row; a patch replaces the targeted row's complete `config` value rather than deep-merging keys, and may insert new rows. A parse, schema, resolution, or plugin boot failure is reported and exits nonzero. SIGINT and SIGTERM dispose the mounted root before exit.
+`oh-my-tianshu --profile <name>` boots the profile at `$DSH_HOME/profiles/<name>`. The effective tree is composed over an empty root by applying, in order: each bundle patch named in the profile manifest's `dsh.profile.bundles` list, the profile's own `cordis.patch.yml`, the home-level `$DSH_HOME/cordis.patch.yml` (machine-local preferences shared by every profile, so it outranks the per-profile layer), each `--patch <path>` overlay in argv order, and launcher flag patches. Later layers win per row; a patch replaces the targeted row's complete `config` value rather than deep-merging keys, and may insert new rows. A parse, schema, resolution, or plugin boot failure is reported and exits nonzero. SIGINT and SIGTERM dispose the mounted root before exit.
 
 Bundle names resolve from the dsh installation first, then from the profile directory. In-box bundles (`@huiliyi37/dsh-base`, `@huiliyi37/dsh-web-app`, `@huiliyi37/dsh-headless`) therefore always come from the same installation as the running `dsh`; out-of-tree bundles come from the profile's pnpm-managed `node_modules`. A bare plugin `name` in any patch row resolves through the profile directory's Node parent-walk, which reaches the maintained installation fallback `$DSH_HOME/profiles/node_modules` (one symlink per package the installation's app and bundles depend on, healed on every launch).
 
-The `web` and `headless` profiles auto-initialize from shipped templates on first use (`web`: base + web-app; `headless`: base + headless). On load, the exact installation-owned headless tuple (base + web-app + headless) normalizes to the shipped template; extra, missing, or reordered bundle lists are user-owned and remain untouched. Any other missing profile fails loud with a hint to run `tianshu plugin --profile <name> add <package>`.
+The `web` and `headless` profiles auto-initialize from shipped templates on first use (`web`: base + web-app; `headless`: base + headless). On load, the exact installation-owned headless tuple (base + web-app + headless) normalizes to the shipped template; extra, missing, or reordered bundle lists are user-owned and remain untouched. Any other missing profile fails loud with a hint to run `oh-my-tianshu plugin --profile <name> add <package>`.
 
-Profile boot accepts no positional task. A profile that mounts the one-shot runner row (`headless-runner`) therefore fails loud with the canonical `tianshu run --profile <name> "<task>"` command instead of reaching the row's raw required-field error.
+Profile boot accepts no positional task. A profile that mounts the one-shot runner row (`headless-runner`) therefore fails loud with the canonical `oh-my-tianshu run --profile <name> "<task>"` command instead of reaching the row's raw required-field error.
 
 Inspect the composed tree without booting it:
 
 ```sh
-tianshu --profile web --dump-default-config
-tianshu --profile web --patch ./extra.yml --dump-config
+oh-my-tianshu --profile web --dump-default-config
+oh-my-tianshu --profile web --patch ./extra.yml --dump-config
 ```
 
 `--dump-default-config` prints only the bundle layers; `--dump-config` adds the profile's `cordis.patch.yml`, the home-level `$DSH_HOME/cordis.patch.yml`, and `--patch` overlays. Both print comments naming the file that supplied each row and every overlay that changed it; `!!js` expressions remain unevaluated, and unmatched patch targets are reported on stderr.
 
 ## One-shot run
 
-`tianshu run [--profile <name>] [--patch <path>...] <task...>` joins the task arguments with spaces, rejects a missing or blank task, and defaults `--profile` to `headless`. Repeatable `--patch` overlays occupy the same layer position as profile-boot overlays. A custom selected profile must mount `headless-runner`; otherwise launch fails before boot with a diagnostic naming that missing row.
+`oh-my-tianshu run [--profile <name>] [--patch <path>...] <task...>` joins the task arguments with spaces, rejects a missing or blank task, and defaults `--profile` to `headless`. Repeatable `--patch` overlays occupy the same layer position as profile-boot overlays. A custom selected profile must mount `headless-runner`; otherwise launch fails before boot with a diagnostic naming that missing row.
 
 The launcher patches the task text into the runner row. After Loader settlement, the runner reads the shared `ctx.agentDefaultModel` default, creates one fresh persisted Agent through `ctx.agents`, submits the task, waits for quiescence, and flushes the Session before deriving the last non-empty assistant text and final `turn/end` reason from its durable interval. It prints the text on stdout and exits 0 for `completed`, else 1. The shipped headless profile mounts no ApiProxy, Host, HTTP server, Web runtime, or browser client; a successful run writes nothing to stderr and opens no listening port.
 
 ## Plugin management
 
-`tianshu plugin --profile <name> <args...>` initializes the profile when missing (shipped template, or `@huiliyi37/dsh-base` alone for other names), then forwards `<args...>` to `pnpm` with the profile directory as working directory — `add`, `remove`, `why`, `update`, and every other pnpm verb work unchanged; pnpm must be on PATH. Relative path specs (`.`, `../plugin`, and their `file:`/`link:` forms) are anchored to the invoking directory first, so `add .` from a plugin checkout installs that checkout, not the profile. After every successful run, `dsh.profile.bundles` is reconciled against the installed state: each dependency resolving to a package whose manifest declares `"dsh": { "bundle": { "patch": "./cordis.patch.yml" } }` joins the layer stack (so an `update` that gains the declaration activates it), a bundle-less dependency stays plain with a one-time warning, and a removed dependency leaves the stack.
+`oh-my-tianshu plugin --profile <name> <args...>` initializes the profile when missing (shipped template, or `@huiliyi37/dsh-base` alone for other names), then forwards `<args...>` to `pnpm` with the profile directory as working directory — `add`, `remove`, `why`, `update`, and every other pnpm verb work unchanged; pnpm must be on PATH. Relative path specs (`.`, `../plugin`, and their `file:`/`link:` forms) are anchored to the invoking directory first, so `add .` from a plugin checkout installs that checkout, not the profile. After every successful run, `dsh.profile.bundles` is reconciled against the installed state: each dependency resolving to a package whose manifest declares `"dsh": { "bundle": { "patch": "./cordis.patch.yml" } }` joins the layer stack (so an `update` that gains the declaration activates it), a bundle-less dependency stays plain with a one-time warning, and a removed dependency leaves the stack.
 
 ```sh
-tianshu plugin --profile tui add github:<owner>/<plugin-repo>
-tianshu plugin --profile tui remove <plugin-repo>
-tianshu --profile tui
+oh-my-tianshu plugin --profile tui add github:<owner>/<plugin-repo>
+oh-my-tianshu plugin --profile tui remove <plugin-repo>
+oh-my-tianshu --profile tui
 ```
 
 Git-hosted plugins that ship sources build during install through their `prepare` script, which pnpm ≥10 blocks until the consumer allows it: the first `add` fails with pnpm's `allowBuilds` hint (and a dsh pointer at the profile's `pnpm-workspace.yaml`); copy the printed key there and re-run. Installing a built tarball or a local checkout needs no allowance.
 
 ## Web alias
 
-`tianshu web` is a hardcoded alias for `--profile web` that additionally accepts the Web flag family. `--host`, `--port`, `--workspace-root`, and repeatable `--trusted-host` values become patches over the composed rows; their owning plugin schemas validate them at boot. `--dev` switches the web-runtime row to development mode and inserts the client-plugin HMR receiver; it expects a separate `pnpm run dev:web` watcher for no-refresh client bundle updates.
+`oh-my-tianshu web` is a hardcoded alias for `--profile web` that additionally accepts the Web flag family. `--host`, `--port`, `--workspace-root`, and repeatable `--trusted-host` values become patches over the composed rows; their owning plugin schemas validate them at boot. `--dev` switches the web-runtime row to development mode and inserts the client-plugin HMR receiver; it expects a separate `pnpm run dev:web` watcher for no-refresh client bundle updates.
 
 ```sh
-tianshu web
-tianshu web --patch ./extra.cordis.yml
-tianshu web --dump-config
+oh-my-tianshu web
+oh-my-tianshu web --patch ./extra.cordis.yml
+oh-my-tianshu web --dump-config
 ```
 
 The production Web runner needs built package and frontend artifacts (`pnpm run build`). It serves `http://127.0.0.1:3080` by default. Binding all interfaces also trusts the machine's discovered LAN IP literals; `--trusted-host` adds named authorities accepted by the `/api` browser-trust fence.

@@ -1,5 +1,5 @@
 {
-  "name": "@huiliyi37/dsh-tianshu",
+  "name": "@huiliyi37/oh-my-tianshu",
   "description": "dsh CLI: profile boot, plugin management, and the browser UI alias",
   "version": "0.2.1",
   "publishConfig": {
@@ -12,7 +12,7 @@
   },
   "type": "module",
   "bin": {
-    "tianshu": "lib/bin.js"
+    "oh-my-tianshu": "lib/bin.js"
   },
   "files": [
     "lib/*.js",

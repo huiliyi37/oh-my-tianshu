@@ -5,7 +5,7 @@
  * tree. All web runtime glue (dist serving, prompt section, URL line) lives
  * in the `@huiliyi37/dsh-web-app` bundle; this launcher only derives
  * flag patches and the LAN-trust snapshot.
- * @module @huiliyi37/dsh-tianshu/web
+ * @module @huiliyi37/oh-my-tianshu/web
  */
 
 import { networkInterfaces } from 'node:os'
