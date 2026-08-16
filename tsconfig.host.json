@@ -80,6 +80,8 @@
   ],
   "exclude": [
     "packages/client/**",
+    "packages/self-modification/cordis-client-runner/**",
+    "packages/self-modification/ui-cordis/**",
     "packages/host/directory-picker-browse/**",
     "packages/host/directory-picker-native/**",
     "scripts/client-bundle-css.spec.ts",

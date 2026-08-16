@@ -22,7 +22,7 @@ import type {
 import type { SessionId } from '@huiliyi37/dsh-client-connection/client'
 import type { ClientModuleSystem } from '@huiliyi37/dsh-client-modules/client'
 import type { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
-import { DynamicCordisStyles, evaluateClientHalf, DYNAMIC_CLIENT_REDIRECTS } from './evaluator.ts'
+import { DynamicCordisStyles, evaluateClientHalf } from './evaluator.ts'
 import type { DynamicCordisEvaluatedPlugin } from './evaluator.ts'
 import { dynamicCordisContext } from './guard.ts'
 import type { DynamicCordisSlotLedgerRow } from './guard.ts'
@@ -212,26 +212,11 @@ export class DynamicCordisPackageRunner {
 
   /** @param env - loader/module/slot wiring plus the two host verbs this engine uses. */
   constructor(private readonly env: DynamicCordisRunnerEnv) {
-    // The supervision seam fires for EVERY entry crash on the page, factory UI
-    // included; only the ones this runner seated are ours to report.
-    this.unwatch = env.slots.onEntryError((slot, entry, error, info) => {
-      const component: unknown = (entry as { component?: unknown }).component
-      const owner = indexable(component) ? this.owners.get(component) : undefined
-      if (owner === undefined) return
-      const details = errorDetails(error)
-      const failure: DynamicCordisRenderFailure = {
-        slot,
-        message: renderFailureMessage(slot, details.message),
-        ...details.stack === undefined ? {} : { stack: details.stack },
-        abdicated: info.abdicated,
-      }
-      // One observation, two outlets with different owners and lifetimes: the host
-      // keeps the last crash ACROSS pages for the model, this map is what THIS page
-      // currently shows. Neither is derived from the other.
-      env.reportRenderFailure(owner.agentId, owner.pluginId, owner.pluginRunId, failure)
-      this.failures.set(owner.pluginId, failure)
-      this.notify()
-    })
+    // The local SlotsService exposes no entry-crash supervision seam (the
+    // official onEntryError surface is absent), so crash reporting is inert
+    // until the local client gains it. The intended wiring:
+    //   this.unwatch = env.slots.onEntryError((slot, entry, error, info) => { ... })
+    this.unwatch = () => {}
   }
 
   /**
@@ -492,16 +477,3 @@ export function errorDetails(error: unknown): CordisErrorDetails {
   return { message, ...stack === undefined ? {} : { stack } }
 }
 /* jscpd:ignore-end */
-
-/**
- * What the authoring session reads about one render crash. The slot says where it
- * happened, the crash message says what broke, and a withheld global named in that
- * text pulls in its redirect — a package that reached `window.setInterval` around
- * the closure trap crashes with the engine's bare message, which teaches nothing.
- */
-function renderFailureMessage(slot: string, message: string): string {
-  const redirect = Object.entries(DYNAMIC_CLIENT_REDIRECTS)
-    .find(([name, text]) => message.includes(name) && !message.includes(text))?.[1]
-  return `your entry in slot "${slot}" crashed while React rendered it: ${message}`
-    + (redirect === undefined ? '' : `\n${redirect}`)
-}

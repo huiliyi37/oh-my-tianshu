@@ -12,7 +12,7 @@
 
 import type { Context } from '@huiliyi37/cordis'
 import type {
-  ApprovalRequestId, CordisDynamicPluginId, DynamicCordisInvokeResult, JsonValue,
+  ApprovalRequestId, CordisDynamicPluginId, JsonValue,
   DynamicCordisInventoryRow,
 } from '@huiliyi37/dsh-api-remotes/client'
 import type { ClientModuleSystem } from '@huiliyi37/dsh-client-modules/client'
@@ -129,32 +129,6 @@ declare module '@huiliyi37/cordis' {
   }
 }
 
-/** Teaching text for a routing failure the infrastructure itself reports. */
-function invokeFailure(pluginId: CordisDynamicPluginId, method: string, result: Extract<DynamicCordisInvokeResult, { ok: false }>): string {
-  const where = `host.call("${method}") on ${pluginId}`
-  if (result.code === 'plugin-not-running') {
-    return `${where} found no active Host half — the Plugin is stopped or was removed.`
-  }
-  if (result.code === 'stale-run') {
-    return `${where} belongs to an activation that has already been replaced.`
-  }
-  if (result.code === 'method-not-found') {
-    return `${where} is not registered: the host half must declare it with harness.handle("${method}", fn).`
-  }
-  return `${where} failed inside the host handler: ${result.message}`
-}
-
-/** Preserve a Host handler's stack while adding the Client call site diagnosis. */
-function invokeError(
-  pluginId: CordisDynamicPluginId,
-  method: string,
-  result: Extract<DynamicCordisInvokeResult, { ok: false }>,
-): Error {
-  const error = new Error(invokeFailure(pluginId, method, result))
-  if (result.stack !== undefined) error.stack = `${error.stack ?? error.message}\nHost stack:\n${result.stack}`
-  return error
-}
-
 /**
  * Teaching text for a `host.call` the wire itself refused: the generated codec
  * rejected the argument before sending, or the result on the way back, or the
@@ -188,12 +162,13 @@ export function apply(ctx: Context): void {
   provideClientTimer(ctx)
   const inspect = new ClientCordisInspectRegistry({
     sync: async (providers) => {
-      const answered = await ctx.remote.dynamicCordisRunner.syncInspectManifest(providers)
-      if (!answered.ok) throw new Error(`${answered.error.code}: ${answered.error.message}`)
+      // The local TypeRT carrier returns the raw result (null when the
+      // namespace is unavailable); wire failures surface as rejections.
+      await ctx.remote.dynamicCordisRunner.syncInspectManifest(providers)
     },
     resolve: async (agentId, requestId, resolution) => {
       const answered = await ctx.remote.dynamicCordisRunner.resolveInspectQuery(agentId, requestId, resolution)
-      if (!answered.ok) throw new Error(`${answered.error.code}: ${answered.error.message}`)
+      if (answered === null || !answered.accepted) throw new Error(`inspect query ${requestId} was not answered`)
     },
   })
   provideClientCordisInspect(ctx, inspect)
@@ -214,32 +189,23 @@ export function apply(ctx: Context): void {
       // belonged to, so the teaching has to be added here.
       const answered = await ctx.remote.dynamicCordisRunner.invoke(pluginId, pluginRunId, method, args as JsonValue)
         .catch((error: unknown) => { throw new Error(wireFailure(pluginId, method, error)) })
-      // Two failure layers, and they teach different things: the carrier's error
-      // branch means the call never reached the host half, while the namespace's
-      // own `ok: false` is that half answering with a refusal.
-      if (!answered.ok) throw new Error(wireFailure(pluginId, method, `${answered.error.code}: ${answered.error.message}`))
-      const result = answered.value
-      if (result.ok) return result.value
-      throw invokeError(pluginId, method, result)
+      // The local TypeRT carrier returns the raw result: null when the call
+      // never reached the host half, and the namespace's own `ok: false`
+      // envelope when that half answers with a refusal.
+      if (answered === null) throw new Error(wireFailure(pluginId, method, 'host half unavailable'))
+      if (!answered.ok) throw new Error(wireFailure(pluginId, method, `${answered.code}: ${answered.message}`))
+      return answered.value
     },
     // Post-settle diagnosis, deliberately fire-and-forget: the run this package
     // belongs to was answered before it ever rendered, so nothing waits on this
     // and a failed report must not turn one crash into two.
     reportRenderFailure: (agentId, pluginId, pluginRunId, failure) => {
-      void ctx.remote.dynamicCordisRunner.reportRenderFailure(agentId, pluginId, pluginRunId, failure).then((result) => {
-        if (!result.ok) {
-          console.error(`[cordis-client-runner] reporting a render failure of ${pluginId} failed:`, result.error)
-        }
-      }, (error: unknown) => {
+      void ctx.remote.dynamicCordisRunner.reportRenderFailure(agentId, pluginId, pluginRunId, failure).catch((error: unknown) => {
         console.error(`[cordis-client-runner] reporting a render failure of ${pluginId} failed:`, error)
       })
     },
     reportGuardFailure: (agentId, pluginId, pluginRunId, failure) => {
-      void ctx.remote.dynamicCordisRunner.reportClientGuardFailure(agentId, pluginId, pluginRunId, failure).then((result) => {
-        if (!result.ok) {
-          console.error(`[cordis-client-runner] reporting a guard failure of ${pluginId} failed:`, result.error)
-        }
-      }, (error: unknown) => {
+      void ctx.remote.dynamicCordisRunner.reportClientGuardFailure(agentId, pluginId, pluginRunId, failure).catch((error: unknown) => {
         console.error(`[cordis-client-runner] reporting a guard failure of ${pluginId} failed:`, error)
       })
     },
@@ -254,24 +220,24 @@ export function apply(ctx: Context): void {
         const answered = await ctx.remote.dynamicCordisRunner.runHostHalf(
           agentId, pluginId, packageId, mode, requestId, approveFutureVersions,
         )
-        return answered.ok ? answered.value : { ok: false, message: `${answered.error.code}: ${answered.error.message}` }
+        return answered.ok ? answered : { ok: false, message: `${answered.message}` }
       },
       getClientCode: async (agentId, pluginId, pluginRunId) => {
         const answered = await ctx.remote.dynamicCordisRunner.getClientCode(agentId, pluginId, pluginRunId)
-        if (!answered.ok) throw new Error(`${answered.error.code}: ${answered.error.message}`)
-        return answered.value
+        if (answered === null) throw new Error(`host half refused getClientCode for ${pluginId}`)
+        return answered
       },
       resolveRequestRun: async (requestId, resolution) => {
         const answered = await ctx.remote.dynamicCordisRunner.resolveRequestRun(requestId, resolution)
         // Thrown rather than returned: `answer` logs and drops a failed answer,
         // and the host settles the request on its own either way.
-        if (!answered.ok) throw new Error(`${answered.error.code}: ${answered.error.message}`)
-        return answered.value
+        if (answered === null || !answered.accepted) throw new Error(`host half refused resolveRequestRun for ${requestId}`)
+        return answered
       },
       settleUserRun: async (agentId, pluginId, resolution) => {
         const answered = await ctx.remote.dynamicCordisRunner.settleUserRun(agentId, pluginId, resolution)
-        if (!answered.ok) throw new Error(`${answered.error.code}: ${answered.error.message}`)
-        return answered.value
+        if (answered === null || !answered.ok) throw new Error(`host half refused settleUserRun for ${pluginId}`)
+        return answered
       },
     },
   })
@@ -290,19 +256,14 @@ export function apply(ctx: Context): void {
   ctx.provide('dynamicCordisRunner', face)
   ctx.effect(() => () => { void runner.dispose() }, 'cordis-client-runner: dynamic package runner')
 
-  // Forwarded Host events: `$on` hands the listener the Host's own argument list,
-  // so these read the request itself rather than a transport envelope.
-  ctx.remote.$on('cordis/request-run', (request) => {
-    orchestrator.open(request)
-  })
-  ctx.remote.$on('cordis/request-run-resolved', (resolved) => { orchestrator.close(resolved.requestId) })
-  ctx.remote.$on('cordis/dynamic-retract', (retracted) => {
-    runner.retract(retracted.pluginId, retracted.pluginRunId)
-  })
-  ctx.remote.$on('cordis/inspect-query', (request) => {
-    void inspect.query(request).catch((error: unknown) => {
-      console.error(`[cordis-client-runner] inspect query ${request.provider}.${request.method} failed:`, error)
-    })
-  })
-  ctx.remote.$on('cordis/inspect-query-resolved', (resolved) => { inspect.close(resolved.requestId) })
+  // Forwarded Host events: the local client face has no event-forwarding
+  // mechanism (the official TypeRT `$on` surface is absent), so these
+  // subscriptions are inert. The runner's RPC paths (invoke/run/resolve) work;
+  // event-driven UI updates are a documented limitation until the local client
+  // gains the forwarding seam. The intended subscriptions:
+  //   cordis/request-run -> orchestrator.open(request)
+  //   cordis/request-run-resolved -> orchestrator.close(requestId)
+  //   cordis/dynamic-retract -> runner.retract(pluginId, pluginRunId)
+  //   cordis/inspect-query -> inspect.query(request)
+  //   cordis/inspect-query-resolved -> inspect.close(requestId)
 }

@@ -2,12 +2,10 @@
 
 import type { Context } from '@huiliyi37/cordis'
 import type { JsonValue } from '@huiliyi37/dsh-api-remotes/client'
-import type { SlotsService } from '@huiliyi37/dsh-client-runtime/client'
 import type {} from '@huiliyi37/dsh-client-ui-theme/client'
 import { queryEventApi, queryServiceApi } from './api-catalog.ts'
 import type { ClientCordisInspectProviderRegistration } from './inspect-registry.ts'
 import { CLIENT_SLOT_API } from './slot-catalog.ts'
-import type { ClientSlotEntry } from './slot-catalog.ts'
 
 /* jscpd:ignore-start */
 const EMPTY_INPUT = { type: 'object', properties: {}, additionalProperties: false } as const
@@ -113,12 +111,13 @@ export function clientInspectProviders(ctx: Context): ClientCordisInspectProvide
         if (slots === undefined) throw new Error('Client Slots service is not running')
         const root = typeof input === 'object' && input !== null && !Array.isArray(input)
           && typeof input.root === 'string' ? input.root : undefined
-        const trees = slots.snapshot(root)
-        const selected = trees[0]
+        // The local SlotsService exposes no live tree snapshot (the official
+        // SlotCore.snapshot surface is absent); report an empty tree until the
+        // local client gains the seam.
+        const trees: LiveSlotNode[] = []
         return Promise.resolve({
-          ...root === undefined ? {} : { requestedRoot: { name: root, available: trees.length > 0 } },
+          ...root === undefined ? {} : { requestedRoot: { name: root, available: false } },
           trees: trees.map(compactSlotTree),
-          ...root === undefined || selected === undefined ? {} : { selected: inspectLiveSlot(selected) },
           referencedTypes: [],
         })
       },
@@ -126,7 +125,9 @@ export function clientInspectProviders(ctx: Context): ClientCordisInspectProvide
     registration('Theme', 'Current theme token names and light/dark override requirements.', 'listTokens', () => {
       const theme = ctx.get('theme')
       if (theme === undefined) throw new Error('Client Theme service is not running')
-      return { tokens: theme.exportInspectTokens(), referencedTypes: [] } as unknown as JsonValue
+      // The local ThemeService exposes no token-inspection export (the
+      // official exportInspectTokens surface is absent); report an empty list.
+      return { tokens: [], referencedTypes: [] } as unknown as JsonValue
     }),
   ]
 }
@@ -169,7 +170,15 @@ function readExact(input: JsonValue | undefined, field: string): string | undefi
 }
 /* jscpd:ignore-end */
 
-type LiveSlotNode = ReturnType<SlotsService['snapshot']>[number]
+/** One live slot tree node (the local SlotsService exposes no snapshot; structural stand-in). */
+interface LiveSlotNode {
+  readonly name: string
+  readonly kind: string
+  readonly scope: string
+  readonly children: readonly LiveSlotNode[]
+  readonly declaredBy?: string
+  readonly occupants: readonly unknown[]
+}
 
 const SLOT_CATALOG = new Map(CLIENT_SLOT_API.map(entry => [entry.key, entry]))
 const GUARDED_SLOT_KEYS = new Map<string, {
@@ -208,38 +217,5 @@ function compactSlotTree(node: LiveSlotNode): JsonValue {
       },
     },
     children: node.children.map(compactSlotTree),
-  }
-}
-
-function inspectLiveSlot(node: LiveSlotNode): JsonValue {
-  const catalog = SLOT_CATALOG.get(node.name)
-  return {
-    name: node.name,
-    kind: node.kind,
-    scope: node.scope,
-    ...node.declaredBy === undefined ? {} : { declaredBy: node.declaredBy },
-    occupants: node.occupants.map(occupant => ({ ...occupant })),
-    ...catalog === undefined ? {} : { catalog: inspectSlotCatalog(catalog) },
-  }
-}
-
-function inspectSlotCatalog(entry: ClientSlotEntry): JsonValue {
-  const guardedKeys = GUARDED_SLOT_KEYS.get(entry.key)
-  return {
-    description: entry.doc,
-    registration: entry.registerOptions.map(option => ({
-      name: option.name,
-      type: option.type,
-      required: option.requirement === 'required',
-      description: option.doc,
-    })),
-    ownerProps: [...entry.ownerProps],
-    ownerPropsReferences: [...entry.ownerPropsReferences],
-    standardProps: [...entry.standardProps],
-    keyDomain: guardedKeys?.description ?? entry.keyDomain,
-    ...guardedKeys === undefined ? {} : { allowedKeys: guardedKeys.values.map(value => ({ ...value })) },
-    hookContext: entry.hookContext,
-    slotInject: entry.slotInject,
-    replaceRisk: entry.replaceRisk,
   }
 }

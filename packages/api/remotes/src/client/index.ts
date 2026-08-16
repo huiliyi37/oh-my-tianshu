@@ -48,9 +48,19 @@ export type {
   CordisDynamicPackageId,
   CordisDynamicPluginId,
   CordisDynamicPluginRunId,
+  CordisDynamicRunMode,
+  CordisInspectProviderManifest,
+  CordisInspectQueryRequest,
+  CordisInspectQueryResolution,
+  CordisInspectRequestId,
+  DynamicCordisClientSource,
+  DynamicCordisHostHalfResult,
   DynamicCordisInventoryRow,
   DynamicCordisInvokeResult,
   DynamicCordisPackage,
+  DynamicCordisResolveAck,
+  DynamicCordisRunResolution,
+  DynamicCordisRunResponse,
 } from '@huiliyi37/dsh-cordis-host-runner/types'
 export type {} from '@huiliyi37/dsh-cordis-host-runner/remote'
 export type { JsonValue } from '@huiliyi37/dsh-session/types'

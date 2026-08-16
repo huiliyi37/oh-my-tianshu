@@ -757,6 +757,9 @@ importers:
 
   packages/api/remotes:
     dependencies:
+      '@huiliyi37/dsh-cordis-host-runner':
+        specifier: workspace:^
+        version: link:../../self-modification/cordis-host-runner
       '@huiliyi37/dsh-type-meta':
         specifier: workspace:^
         version: link:../../typert/type-meta
