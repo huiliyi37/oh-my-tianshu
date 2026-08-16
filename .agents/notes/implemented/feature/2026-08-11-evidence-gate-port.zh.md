@@ -49,7 +49,7 @@ L3 worker 交付门、CMV（behavior-mirror 天枢侧是死代码）、predictio
 - 包级端到端（integration.spec，真实 cordis Context + 真实事件对象，不 mock 中间层）：create→编辑被拦（消息含探针建议）→测试 failed 记 red→编辑放行→passed→satisfied→final allow。
 - **真实装配 e2e**（evidence-gate.e2e.ts，真实 Loader 子进程 + mock LLM）：`str_replace_editor create` 被 L1 门拦截（tool/result isError 文本含 evidence gate）；无义务路径不误拦；keyless-smoke 基线无回归。
 - 测试驱动修正的问题：blocked 归账状态（attempted 非 open）、无关 failed 不归账、extractResultText 传参错位、once latch 与多命令测试的期望冲突（独立义务避开）、词干过短（'a'）防误判跳过。
-- **Cordis 4 注入代理已三实例**（T4 任务窗格 `17e5129`、/compact、evidence-gate tools）：可选服务属性访问抛 "without inject" → `ctx.reflect.get(name, false)`；**服务就绪时序问题用 `ctx.inject([...])` 声明依赖**（tui-runner 同款）。
+- **Cordis 4 注入代理已四实例**（T4 任务窗格 `17e5129`、/compact、evidence-gate tools、/preset 命令——`84e488a3` 移植时用属性访问读可选 `agentPresets` 服务，真实运行时抛 "without inject" 崩溃，已改回 `reflect.get` 并补模拟注入代理的回归测试）：可选服务属性访问抛 "without inject" → `ctx.reflect.get(name, false)`；**服务就绪时序问题用 `ctx.inject([...])` 声明依赖**（tui-runner 同款）。
 
 ## 验证命令
 

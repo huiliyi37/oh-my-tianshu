@@ -841,9 +841,20 @@ describe('内置命令 — /preset（agent 预设模式切换）', () => {
     expect(echo).toHaveBeenCalledWith(expect.stringContaining('无会话'))
   })
 
-  it('agent-presets 服务缺失时回显不可用（fails loud）', async () => {
+  it('agent-presets 服务缺失时回显不可用（fails loud；模拟 Cordis 注入代理）', async () => {
     const { cmd } = presetByName()
-    const { args, echo } = makeArgs({ text: '' })
+    // 模拟真实 Cordis 4 注入代理：未声明属性访问抛 "without inject"（makeCtx
+    // 平对象属性访问返回 undefined，掩盖了该行为——回归：/preset 曾用属性访问
+    // 读可选服务，真实运行时在 degrade 分支前先抛错，runSlash 回显
+    // "命令执行失败: cannot get property ... without inject"）。
+    const base = makeCtx()
+    const ctx = new Proxy(base, {
+      get(target, prop) {
+        if (Reflect.has(target, prop)) return Reflect.get(target, prop)
+        throw new Error(`cannot get property "${String(prop)}" without inject`)
+      },
+    }) as Context
+    const { args, echo } = makeArgs({ text: '', ctx })
     await cmd.run(args)
     expect(echo).toHaveBeenCalledWith(expect.stringContaining('不可用'))
   })
