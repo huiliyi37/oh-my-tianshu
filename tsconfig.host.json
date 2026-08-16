@@ -219,6 +219,7 @@
     { "path": "./packages/spill/spill-policy" },
     { "path": "./packages/guard/timeout-policy" },
     { "path": "./packages/support/invariants" },
+    { "path": "./packages/identity/anonymous-user-id" },
     { "path": "./packages/support/agent-loop-testkit" },
     { "path": "./packages/acp/acp" },
     { "path": "./packages/examples/acp-demo" },

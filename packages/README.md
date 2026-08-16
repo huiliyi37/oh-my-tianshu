@@ -15,6 +15,7 @@ Groups hold `packages/<group>/<pkg>/`; names stay `@huiliyi37/dsh-<pkg>`. **Grou
 | [`typert/`](typert/README.md) | Type graph generation, artifact loading, and runtime registry | Product — stable surface |
 | [`goal/`](goal/README.md) | Same-session goal persistence and lifecycle | Product — stable surface |
 | [`feedback/`](feedback/README.md) | Human feedback | Product — stable surface |
+| [`identity/`](identity/README.md) | Shared anonymous identity | Product — stable surface |
 | [`llm/`](llm/README.md) | LLM capability family: the abstract service + provider adapters | Product — stable surface |
 | [`e2b/`](e2b/README.md) | E2B providers | POC |
 | [`subprocess/`](subprocess/README.md) | Subprocess capability family: Service Definition + local process-tree provider | Product — stable surface |

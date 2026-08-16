@@ -25,7 +25,7 @@ import {
   type TelemetrySeverity,
 } from '@huiliyi37/dsh-session-telemetry'
 import { APP_IDENTITY } from '@huiliyi37/dsh-llm'
-import { getOrCreateAnonymousUserId } from './user-id.ts'
+import { getOrCreateAnonymousUserId } from '@huiliyi37/dsh-anonymous-user-id'
 import {
   BatchLogRecordProcessor,
   LoggerProvider,

@@ -43,6 +43,7 @@
   "peerDependencies": {
     "@huiliyi37/dsh-command-feedback": "^0.2.0",
     "@huiliyi37/dsh-brand": "^0.2.0",
+    "@huiliyi37/dsh-anonymous-user-id": "^0.2.0",
     "@huiliyi37/dsh-invariants": "^0.2.0",
     "@huiliyi37/dsh-llm": "^0.2.0",
     "@huiliyi37/dsh-paths": "^0.2.0",
@@ -54,6 +55,7 @@
     "@huiliyi37/cordis-plugin-loader": "workspace:^",
     "@huiliyi37/dsh-command-feedback": "workspace:^",
     "@huiliyi37/dsh-brand": "workspace:^",
+    "@huiliyi37/dsh-anonymous-user-id": "workspace:^",
     "@huiliyi37/dsh-invariants": "workspace:^",
     "@huiliyi37/dsh-llm": "workspace:^",
     "@huiliyi37/dsh-paths": "workspace:^",

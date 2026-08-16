@@ -15,6 +15,7 @@
 | [`typert/`](typert/README.md) | 类型图生成、产物加载与运行时注册表 | 产品：稳定接口 |
 | [`goal/`](goal/README.md) | 同会话 goal 的持久化与生命周期 | 产品：稳定接口 |
 | [`feedback/`](feedback/README.md) | 人类反馈 | 产品：稳定接口 |
+| [`identity/`](identity/README.md) | 共享匿名身份 | 产品：稳定接口 |
 | [`llm/`](llm/README.md) | LLM（大语言模型）能力系列：抽象服务 + 提供方适配器 | 产品：稳定接口 |
 | [`e2b/`](e2b/README.md) | E2B 提供方 | POC |
 | [`subprocess/`](subprocess/README.md) | 进程管理能力系列：Service Definition + 本地进程树提供方 | 产品：稳定接口 |

@@ -850,10 +850,10 @@ describe('内置命令 — /preset（agent 预设模式切换）', () => {
     const base = makeCtx()
     const ctx = new Proxy(base, {
       get(target, prop) {
-        if (Reflect.has(target, prop)) return Reflect.get(target, prop)
+        if (Reflect.has(target, prop)) return Reflect.get(target, prop) as unknown
         throw new Error(`cannot get property "${String(prop)}" without inject`)
       },
-    }) as Context
+    })
     const { args, echo } = makeArgs({ text: '', ctx })
     await cmd.run(args)
     expect(echo).toHaveBeenCalledWith(expect.stringContaining('不可用'))
