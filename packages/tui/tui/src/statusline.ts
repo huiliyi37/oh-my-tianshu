@@ -277,6 +277,7 @@ export class WorkflowStatusLine {
   private approvalPolicy: 'ask' | 'never' | null = null
   /** 会话内最后一条 permission/preset 折叠值（permission 服务装配时；null = 未记录）。 */
   private permissionPreset: string | null = null
+  private agentIdle = true
   private lastText: string | null = null
   private readonly onUpdate: (text: string | null) => void
   private readonly disposers: (() => void)[]
@@ -286,6 +287,7 @@ export class WorkflowStatusLine {
     this.onUpdate = onUpdate
     const onStatus = (_payload: { agent: { id: SessionId }; status: AgentStatus }): void => {
       if (_payload.agent.id !== sessionId) return
+      this.agentIdle = _payload.status !== 'running'
       // 状态变化本身不改变阶段/活动，仅触发一次重渲染（保持 current 新鲜）。
       this.emit()
     }
@@ -337,6 +339,15 @@ export class WorkflowStatusLine {
   }
 
   private emit(): void {
+    // turn/end completed 把相位留在 wrapup（收尾）是工作流事实；agent 已 idle
+    // 时继续展示会让状态行永远停在 ◆ 收尾，像请求还在途。空闲不占位。
+    if (this.agentIdle && this.view.phase === 'wrapup') {
+      if (this.lastText !== null) {
+        this.lastText = null
+        this.onUpdate(null)
+      }
+      return
+    }
     const text = formatStatusLine(
       this.view,
       this.planState.active,

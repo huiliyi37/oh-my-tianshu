@@ -412,6 +412,8 @@ export class LiveEngine {
    * @param opts - reservedTail：超预算截断时恒保留的尾部行数（chrome 保护）
    */
   render(lines: readonly LiveRegionLine[], opts?: { reservedTail?: number }): void {
+    // alt screen 期间主屏 live 区是冻结快照：不写 stdout，也不更新几何。
+    if (this.probeSuppressed) return
     const bounded = this.applyRowBudget(this.normalizeLines(lines), opts?.reservedTail)
     const parking = this.computeParking(bounded)
 
@@ -685,6 +687,7 @@ export class LiveEngine {
    * 区域起始处。后续 append/commit 从这里开始写，干净无空白带。
    */
   clear(): void {
+    if (this.probeSuppressed) return
     this.reconcileWidth()
     if (this.lastDisplayRows === 0) return
     this.stdout.write(ANSI.HIDE_CURSOR + this.moveToTop(this.lastDisplayRows - this.parkedRowsUp) + '\r' + ANSI.ERASE_SCREEN_END)

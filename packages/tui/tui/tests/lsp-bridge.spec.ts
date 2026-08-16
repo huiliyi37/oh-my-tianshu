@@ -5,6 +5,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PassThrough } from 'node:stream'
+import { join, resolve } from 'node:path'
 import type { ChildProcess } from 'node:child_process'
 import { createLspBridge, officialLspSource, type LspBridge } from '../src/lsp/lsp-bridge.js'
 import type { LspServerDef } from '../src/lsp/server-registry.js'
@@ -68,7 +69,10 @@ function tsError(message: string, line = 2): LspDiagnostic {
 }
 
 describe('LspBridge', () => {
-  const cwd = '/work'
+  // Platform-neutral workspace root: `resolve('/work')` yields a real absolute
+  // dir on every OS (win32: D:\work; posix: /work), so relative and absolute
+  // touch keys normalize to the same absolute path.
+  const cwd = resolve('/work')
   let server: FakeLspServer
   let spawnFor: (def: LspServerDef, cwd: string) => ChildProcess
   let bridge: LspBridge
@@ -189,9 +193,9 @@ describe('LspBridge', () => {
 
   it('绝对路径与相对路径等价查询', async () => {
     server.diagnosticItems = [tsError('e')]
-    bridge.touchFile('/work/src/a.ts')
+    bridge.touchFile(join(cwd, 'src/a.ts'))
     await vi.waitFor(() => {
-      expect(bridge.diagnosticsFor('/work/src/a.ts')).toHaveLength(1)
+      expect(bridge.diagnosticsFor(join(cwd, 'src/a.ts'))).toHaveLength(1)
     })
     // 同一文件，相对路径读到同一缓存（显示为相对路径）
     expect(bridge.diagnosticsFor('src/a.ts')?.[0]?.file).toBe('src/a.ts')
@@ -199,7 +203,10 @@ describe('LspBridge', () => {
 })
 
 describe('LspBridge 外部源（伴生插件 provide lsp 服务）', () => {
-  const cwd = '/work'
+  // Platform-neutral workspace root: `resolve('/work')` yields a real absolute
+  // dir on every OS (win32: D:\work; posix: /work), so relative and absolute
+  // touch keys normalize to the same absolute path.
+  const cwd = resolve('/work')
 
   it('source 存在时消费服务而非内置 manager（不 spawn）', async () => {
     const sourceDispose = vi.fn()
@@ -215,7 +222,7 @@ describe('LspBridge 外部源（伴生插件 provide lsp 服务）', () => {
     await vi.waitFor(() => {
       expect(bridge.diagnosticsFor('src/a.ts')?.length).toBe(1)
     })
-    expect(source.getDiagnostics).toHaveBeenCalledWith('/work/src/a.ts', 200)
+    expect(source.getDiagnostics).toHaveBeenCalledWith(join(cwd, 'src/a.ts'), 200)
     expect(bridge.diagnosticsFor('src/a.ts')?.[0]?.message).toBe('服务诊断')
     expect(bridge.diagnosticsFor('src/a.ts')?.[0]?.file).toBe('src/a.ts')
     // 外部源所有权归提供方：bridge.dispose 不 dispose source，只解绑
@@ -236,7 +243,10 @@ describe('LspBridge 外部源（伴生插件 provide lsp 服务）', () => {
 })
 
 describe('officialLspSource（官方 ctx.lsp 服务适配）', () => {
-  const cwd = '/work'
+  // Platform-neutral workspace root: `resolve('/work')` yields a real absolute
+  // dir on every OS (win32: D:\work; posix: /work), so relative and absolute
+  // touch keys normalize to the same absolute path.
+  const cwd = resolve('/work')
 
   it('把官方 query(getDiagnostics) 结果适配为诊断源', async () => {
     const query = vi.fn(async () => ({

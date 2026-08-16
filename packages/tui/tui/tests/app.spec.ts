@@ -5569,3 +5569,73 @@ describe('LSP 诊断桥（黑盒：假 server 注入）', () => {
     await app.dispose()
   })
 })
+describe('TuiApp 首帧渲染等待 settings/credentials 服务（A1/A2）', () => {
+  it('服务已注册但未激活时，attach 等待激活后再创建会话/渲染（API Key ✓ + settings 模型生效）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('svc-1')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.sessions.list.mockReturnValue([])
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+
+    // 模拟 dsh-base 的 credentials/settings：已注册（非严格可取）但 fiber 未激活
+    // （严格取不到），随后在 attach 进行中完成激活。currentSelection 在激活前
+    // 返回 config 默认值、激活后返回 settings 值（真实行为）。
+    let activated = false
+    const credentials = { describe: vi.fn(async () => ({ configured: true, source: 'file' as const, writable: true })) }
+    ctx.agentDefaultModel.currentSelection.mockImplementation(() => activated
+      ? { provider: 'deepseek-official', model: 'deepseek' }
+      : { provider: 'deepseek-official', model: 'deepseek-v4-flash' })
+    ctx.reflect.get.mockImplementation((name: string, strict = true) => {
+      if (name === 'settings') return strict ? (activated ? {} : undefined) : {}
+      if (name === 'credentials') return strict ? (activated ? credentials : undefined) : credentials
+      return undefined
+    })
+
+    const app = new TuiApp({ ctx, stdout, stdin })
+    const attachPromise = app.attach()
+    // 服务在 attach 等待窗口内激活（真实场景：文件读 + watcher 初始化，毫秒级）。
+    setTimeout(() => { activated = true }, 50)
+    await attachPromise
+
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    // 等待生效 → refreshApiKeyReady 经 credentials.describe 读到 configured → 欢迎页 ✓
+    expect(written).toContain('API Key ✓')
+    expect(written).not.toContain('API Key ✗')
+    // A2：会话创建时快照的是 settings 的模型（deepseek），而非 config 默认
+    // （deepseek-v4-flash）——等待发生在 newSession 之前。
+    const createArg = ctx.agents.create.mock.calls[0]?.[0] as { agentOptions?: { provider: string; model: string } } | undefined
+    expect(createArg?.agentOptions).toEqual({ provider: 'deepseek-official', model: 'deepseek' })
+    await app.dispose()
+  })
+
+  it('服务未注册（mock 缺省）时 attach 不被等待阻塞，走 env 回退（API Key ✗）', async () => {
+    // 显式清掉 DEEPSEEK_API_KEY：该用例断言 env 回退路径，宿主环境可能已设
+    // 该变量（setx 持久化等），避免测试环境相关的不稳定。
+    const prevKey = process.env.DEEPSEEK_API_KEY
+    delete process.env.DEEPSEEK_API_KEY
+    try {
+      const ctx = makeCtx()
+      const agent = makeAgent('svc-2')
+      const handle = makeHandle(agent)
+      ctx.agents.create.mockResolvedValue(handle)
+      ctx.sessions.get.mockReturnValue(agent.session)
+      ctx.sessions.list.mockReturnValue([])
+      const stdin = makeStdin()
+      const stdout = makeStdout()
+
+      const app = new TuiApp({ ctx, stdout, stdin })
+      await app.attach()
+
+      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      // 无 credentials 服务 → process.env 回退（已清空）→ ✗
+      expect(written).toContain('API Key ✗')
+      await app.dispose()
+    } finally {
+      if (prevKey !== undefined) process.env.DEEPSEEK_API_KEY = prevKey
+    }
+  })
+})
+

@@ -55,6 +55,18 @@ describe('computeFluencyPolicy', () => {
     expect(policy.staleMessage).toBeUndefined()
   })
 
+  it('A5：inFlight=false（回合已结束）时静默超时也不触发 stale', () => {
+    const policy = computeFluencyPolicy(base({ phase: 'idle', silentMs: 200_000, inFlight: false }))
+    expect(policy.staleMessage).toBeUndefined()
+    expect(policy.visibility).toBe('normal')
+  })
+
+  it('A5：inFlight 缺省（在途）时 idle 静默超时仍触发 stale（初始等待场景）', () => {
+    const policy = computeFluencyPolicy(base({ phase: 'idle', silentMs: 20_000 }))
+    expect(policy.staleMessage).toContain('Waiting for response')
+    expect(policy.staleLevel).toBe('info')
+  })
+
   it('大结果 / 高速率 → inspect 折叠 coalesce 1s', () => {
     const policy = computeFluencyPolicy(base({ resultLength: 60_000 }))
     expect(policy).toEqual({ visibility: 'inspect', foldRoutine: true, coalesceMs: 1000 })
@@ -206,6 +218,22 @@ describe('FluencyTracker', () => {
     tracker.setContextPressure(0)
     tracker.updateSilence(200_000)
     expect(tracker.getPolicy().staleMessage).toBeDefined()
+  })
+
+  it('A5：onTurnStart 置在途 → 静默提示生效；onTurnComplete 复位后不再触发', () => {
+    const tracker = new FluencyTracker()
+    // 初始不在途：静默再久也不提示（欢迎页/空闲场景）
+    tracker.updateSilence(200_000)
+    expect(tracker.getPolicy().staleMessage).toBeUndefined()
+    // 回合开始 → 在途 → 静默提示恢复
+    tracker.onTurnStart()
+    tracker.updateSilence(20_000)
+    expect(tracker.getPolicy().staleMessage).toContain('Waiting for response')
+    expect(tracker.getPolicy().staleLevel).toBe('info')
+    // 回合结束 → 复位 → 静默提示消失
+    tracker.onTurnComplete()
+    tracker.updateSilence(200_000)
+    expect(tracker.getPolicy().staleMessage).toBeUndefined()
   })
 
   it('onTurnComplete 复位全部信号', () => {
