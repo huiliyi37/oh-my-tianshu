@@ -20,6 +20,7 @@
  * @module @huiliyi37/dsh-tui/question-panel
  */
 
+import { useAsciiGlyphs } from './term-caps.js'
 import { displayWidth } from './width.js'
 
 /** 单个可选项（结构兼容 user-interaction 的 AskUserQuestionOption）。 */
@@ -68,8 +69,40 @@ export interface QuestionPanelOptions {
   width: number
 }
 
-/** 面板标题行。 */
-const TITLE = '❓ 提问'
+/** 面板字形集：Unicode 档（默认）与 legacy conhost 的 ASCII 降级档。 */
+interface QuestionGlyphs {
+  /** 面板标题行。 */
+  readonly title: string
+  /** 通用问题行前缀标记。 */
+  readonly question: string
+  /** plan-review 决策卡问题行前缀标记。 */
+  readonly plan: string
+  /** plan-review 批准项标记。 */
+  readonly approve: string
+  /** plan-review 否决项标记。 */
+  readonly reject: string
+}
+
+const UNICODE_GLYPHS = {
+  title: '❓ 提问',
+  question: '❓',
+  plan: '🧭',
+  approve: '✓',
+  reject: '✗',
+} as const satisfies QuestionGlyphs
+
+const ASCII_GLYPHS = {
+  title: '? 提问',
+  question: '?',
+  plan: '>',
+  approve: '+',
+  reject: 'x',
+} as const satisfies QuestionGlyphs
+
+/** 当前终端应使用的字形档（❓/🧭 是彩色 emoji，GBK conhost 下豆腐）。 */
+function questionGlyphs(): QuestionGlyphs {
+  return useAsciiGlyphs() ? ASCII_GLYPHS : UNICODE_GLYPHS
+}
 
 /** 多选标记（尾缀在通用问题行）。 */
 const MULTI_MARK = '（多选）'
@@ -80,12 +113,6 @@ const BOLD = '\x1B[1m'
 /** SGR 重置转义序列。 */
 const RESET = '\x1B[0m'
 
-/** plan-review 批准项标记。 */
-const APPROVE_MARK = '✓'
-
-/** plan-review 否决项标记。 */
-const REJECT_MARK = '✗'
-
 /**
  * 投影提问请求为面板行（标题 + 每个 question 一块，按输入顺序）。
  * @param request - 提问请求（只消费 questions 字段）。
@@ -93,7 +120,7 @@ const REJECT_MARK = '✗'
  * @returns 面板行数组（空 questions → 仅标题行）。
  */
 export function projectQuestionPanel(request: QuestionRequestInput, opts: QuestionPanelOptions): string[] {
-  const rows = [TITLE]
+  const rows = [questionGlyphs().title]
   for (const item of request.questions) {
     rows.push(...projectQuestion(item, opts.width))
   }
@@ -103,12 +130,13 @@ export function projectQuestionPanel(request: QuestionRequestInput, opts: Questi
 /** 渲染单个 question 块（header + 问题行 + detail + 选项行；形态由 intent 决定）。 */
 function projectQuestion(item: QuestionItemInput, width: number): string[] {
   const rows: string[] = []
+  const g = questionGlyphs()
   if (item.header !== undefined) {
     rows.push(truncateByWidth(`── ${item.header} ──`, width))
   }
   const intent = item.intent
   if (intent?.kind === 'plan-review') {
-    rows.push(truncateByWidth(`🧭 ${item.question}`, width))
+    rows.push(truncateByWidth(`${g.plan} ${item.question}`, width))
     if (item.detail !== undefined) {
       rows.push(...projectDetail(item.detail, width))
     }
@@ -117,7 +145,7 @@ function projectQuestion(item: QuestionItemInput, width: number): string[] {
     return rows
   }
   const multiMark = item.multiSelect === true ? MULTI_MARK : ''
-  rows.push(truncateByWidth(`❓ ${item.question}${multiMark}`, width))
+  rows.push(truncateByWidth(`${g.question} ${item.question}${multiMark}`, width))
   if (item.detail !== undefined) {
     rows.push(...projectDetail(item.detail, width))
   }
@@ -136,7 +164,8 @@ function projectPlanOptions(options: QuestionOptionInput[] | undefined, approve:
   const rows: string[] = []
   options.forEach((opt, i) => {
     const isApprove = opt.label === approve
-    const mark = isApprove ? APPROVE_MARK : REJECT_MARK
+    const g = questionGlyphs()
+    const mark = isApprove ? g.approve : g.reject
     const row = `  ${mark} ${i + 1}. ${opt.label}`
     const cut = truncateByWidth(row, width)
     rows.push(isApprove ? `${BOLD}${cut}${RESET}` : cut)

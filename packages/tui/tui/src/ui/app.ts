@@ -675,6 +675,8 @@ export class TuiApp {
   /** 进行中工具的 presentCall 标题覆盖（callId → title）；result/abort/换会话清理。 */
   private readonly pendingCallTitles = new Map<CallId, string>()
   private activeSessionId: SessionId | null = null
+  /** switchSession 代际号：连续切换时旧代作废，迟到的 resume 不再挂载。 */
+  private switchEpoch = 0
   private history: string[] = []
   private tick = 0
   private ticker: ReturnType<typeof setInterval> | null = null
@@ -1398,7 +1400,9 @@ export class TuiApp {
    * live store 没有时走 switchSession → resume。
    */
   private async restoreRecentOtherSession(): Promise<void> {
-    const others = (await listSessions(this.ctx)).filter(s => s.id !== this.activeSessionId)
+    // listSessions 失败静默降级（与 refreshSessionTabs 的 catch 对称）：
+    // 调用点为 void 触发（Ctrl+S），无 catch 会成为 unhandled rejection。
+    const others = (await listSessions(this.ctx).catch(() => [])).filter(s => s.id !== this.activeSessionId)
     const target = others[0]?.id
     if (target !== undefined) await this.switchSession(target)
   }
@@ -1860,9 +1864,14 @@ export class TuiApp {
    * @param id - 目标会话 id；必须是 live store 中已存在的会话。
    */
   async switchSession(id: SessionId): Promise<void> {
+    // 代际号：快速连续切换（Alt+数字连按）时旧代作废——resume 是异步的，
+    // 迟到完成的旧代不得再挂载（否则乱序完成会把旧目标的 transcript 挂到
+    // 新 active 上，tab 高亮与内容错位）。
+    const epoch = ++this.switchEpoch
     // P3 side conversation：切走时保留旧会话 agent（keepHandle 让渡 registry；
     // 切回时走下方 agents.get 兜底分支——不 create 不 resume，transcript 重放）。
     await this.detachProjections({ keepHandle: true })
+    if (epoch !== this.switchEpoch) return
     this.dynamicRowsHighWater = 0
     this.activeSessionId = id
     const agent = this.ctx.agents.get(id)
@@ -1890,6 +1899,10 @@ export class TuiApp {
           installModelSelection(agentCtx, ref)
         },
       })
+      // 迟到的旧代：更新的切换已接管（其 detach 已清理本代投影）。handle
+      // 让渡 registry（与 keepHandle 同语义：agent 保持 live，后续切回走
+      // agents.get 兜底；退出时 factory 统一清理）——不 mount 不改 active。
+      if (epoch !== this.switchEpoch) return
       this.ownedHandle = handle
       this.controls = controlsFromHandle(handle)
     }
@@ -2135,9 +2148,11 @@ export class TuiApp {
       this.delegationEntries = entries
       this.renderBatcher.schedule()
     }).catch(() => {
-      /* v8 ignore next -- dispose 后 reject 的竞态守卫（同步测试无法构造） */
+      // 非 dispose 原因的失败同样要重绘（置空清面板），否则滞留旧树直到
+      // 120ms ticker 自愈；与 then 分支对称调度。
       if (this.disposed) return
       this.delegationEntries = null
+      this.renderBatcher.schedule()
     })
   }
 
