@@ -556,7 +556,7 @@ class BaselinePackager {
     )
   }
 
-  pack(plan: BaselinePackPlan): ReleaseBundle {
+  pack(plan: BaselinePackPlan, skipSmoke = false): ReleaseBundle {
     const { artifactDirectory } = plan
     if (existsSync(artifactDirectory)) {
       throw new Error(`output already exists: ${artifactDirectory}`)
@@ -605,7 +605,11 @@ class BaselinePackager {
         plan.registry,
         this.runner,
       )
-      new InstalledBundleSmoke(bundle, this.runner).run()
+      if (skipSmoke) {
+        console.log('publish-npm-baseline: --skip-smoke set, skipping installed-bundle smoke (pty-less hosts)')
+      } else {
+        new InstalledBundleSmoke(bundle, this.runner).run()
+      }
       createdArtifactDirectory = false
       console.log(`publish-npm-baseline: packed ${bundle.manifest.packages.length} packages`)
       console.log(`  version:  ${bundle.manifest.version}`)
@@ -1119,6 +1123,7 @@ Pack/release options:
   --registry <url>      npm registry (default: ${DEFAULT_REGISTRY})
   --output-dir <path>   Artifact root (default: ${DEFAULT_OUTPUT_DIRECTORY})
   --stable              publish the workspace base version under the latest tag
+  --skip-smoke          skip the installed-bundle smoke (hosts without a pty; verify manually)
   --yes                 pack/release without waiting for Enter`)
 }
 
@@ -1144,6 +1149,7 @@ async function main(): Promise<void> {
         'output-dir': { type: 'string', default: resolve(repositoryRoot, DEFAULT_OUTPUT_DIRECTORY) },
         stable: { type: 'boolean', default: false },
         yes: { type: 'boolean', default: false },
+        'skip-smoke': { type: 'boolean', default: false },
       },
       strict: true,
     })
@@ -1155,7 +1161,7 @@ async function main(): Promise<void> {
       stable: values.stable,
     })
     await plan.confirm(values.yes)
-    const bundle = packager.pack(plan)
+    const bundle = packager.pack(plan, values['skip-smoke'])
     if (command === 'release') {
       await new RegistryPublication(bundle, runner).publish(values.yes)
     }
