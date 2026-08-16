@@ -185,6 +185,8 @@ flowchart LR
   pkg_connection["connection"]
   pkg_modules["modules"]
   pkg_hmr["hmr"]
+  pkg_message_feedback["message-feedback"]
+  svc_messageFeedback["ctx.messageFeedback<br/>Lifecycle-bound message feedback"]
   svc_workspaceRegistry["ctx.workspaceRegistry<br/>Workspace entity registry"]
   svc_httpServer["ctx.httpServer<br/>HTTP route registration"]
   svc_clientModuleHost["ctx.clientModuleHost<br/>Client plugin graph host"]
@@ -231,6 +233,7 @@ flowchart LR
   pkg_llm_deepseek --> svc_llm
   pkg_llm_pi_ai --> svc_llm
   pkg_llm_replay --> svc_llm
+  pkg_message_feedback --> svc_messageFeedback
   pkg_modules --> svc_clientModuleHost
   pkg_permission --> svc_permission
   pkg_plan_mode --> svc_planMode
@@ -462,6 +465,7 @@ flowchart LR
 | `ctx.cordisInspect` | `core` | [`cordis-host-runner`](../packages/self-modification/cordis-host-runner) | - | [`tool-cordis`](../packages/self-modification/tool-cordis) | - | Registers host inspect providers, mirrors the client provider manifest, and routes client queries through the dynamic Cordis transport. |
 | `ctx.dynamicCordisRunner` | `core` | [`cordis-host-runner`](../packages/self-modification/cordis-host-runner) | - | [`tool-cordis`](../packages/self-modification/tool-cordis) | - | Owns the in-memory definition registry, the vm sandbox for host halves, and the request-run round trip; browser pages reach the same service over the wire through its remote namespace. |
 | `ctx.webServer` | `core` | `webserver` | - | `connection`, `modules`, `hmr` | - | Plain node:http carrier: named-route registry, index transform taps, and the static dist fallback; web-transport plugins register their own routes. |
+| `ctx.messageFeedback` | `core` | [`message-feedback`](../packages/feedback/message-feedback) | - | - | - | Owns local per-assistant-message feedback, lifecycle and target validation, per-item compare-and-set, and the Host unary Remote contract without entering Session history or telemetry. |
 | `ctx.workspaceRegistry` | `core` | [`workspace`](../packages/workspace/workspace) | - | `apiproxy` | - | Owns WorkspaceId-branded records over the domain facility; stable sessionIds accounts drive Host RPC and GUI projections. |
 | `ctx.httpServer` | `core` | `webserver` | - | `connection`, `modules`, `hmr` | - | Plain node:http carrier: named-route registry, index transform taps, and the static dist fallback; web-transport plugins register their own routes. |
 | `ctx.clientModuleHost` | `core` | `modules` | - | `hmr` | - | Composes the __DSH_BOOT__ entry graph from an incremental dshClient scan, serves plugin bundles, and notifies rebuilt/graph-changed subscribers. |

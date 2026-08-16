@@ -538,6 +538,13 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Plain node:http carrier: named-route registry, index transform taps, and the static dist fallback; web-transport plugins register their own routes.',
   },
   {
+    key: 'messageFeedback',
+    pkg: 'message-feedback',
+    title: 'Lifecycle-bound message feedback',
+    mode: 'core',
+    note: 'Owns local per-assistant-message feedback, lifecycle and target validation, per-item compare-and-set, and the Host unary Remote contract without entering Session history or telemetry.',
+  },
+  {
     key: 'workspaceRegistry',
     pkg: 'workspace',
     title: 'Workspace entity registry',

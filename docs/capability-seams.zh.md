@@ -187,6 +187,8 @@ flowchart LR
   pkg_connection["connection"]
   pkg_modules["modules"]
   pkg_hmr["hmr"]
+  pkg_message_feedback["message-feedback"]
+  svc_messageFeedback["ctx.messageFeedback<br/>Lifecycle-bound message feedback"]
   svc_workspaceRegistry["ctx.workspaceRegistry<br/>Workspace entity registry"]
   svc_httpServer["ctx.httpServer<br/>HTTP route registration"]
   svc_clientModuleHost["ctx.clientModuleHost<br/>Client plugin graph host"]
@@ -233,6 +235,7 @@ flowchart LR
   pkg_llm_deepseek --> svc_llm
   pkg_llm_pi_ai --> svc_llm
   pkg_llm_replay --> svc_llm
+  pkg_message_feedback --> svc_messageFeedback
   pkg_modules --> svc_clientModuleHost
   pkg_permission --> svc_permission
   pkg_plan_mode --> svc_planMode
@@ -464,6 +467,7 @@ flowchart LR
 | `ctx.cordisInspect` | `core` | [`cordis-host-runner`](../packages/self-modification/cordis-host-runner) | - | [`tool-cordis`](../packages/self-modification/tool-cordis) | - | 注册 host 检查提供方，镜像 client 提供方清单，并经由动态 Cordis 传输路由 client 查询。 |
 | `ctx.dynamicCordisRunner` | `core` | [`cordis-host-runner`](../packages/self-modification/cordis-host-runner) | - | [`tool-cordis`](../packages/self-modification/tool-cordis) | - | 拥有内存定义注册表、宿主半的 vm 沙箱与 request-run 往返；浏览器页面经其 remote 命名空间在线上触达同一服务。 |
 | `ctx.webServer` | `core` | `webserver` | - | `connection`, `modules`, `hmr` | - | 纯 node:http 载体：命名路由注册表、index 变换挂接点与静态 dist 回退；web 传输插件注册自己的路由。 |
+| `ctx.messageFeedback` | `core` | [`message-feedback`](../packages/feedback/message-feedback) | - | - | - | 拥有本地逐助手消息反馈、生命周期与目标校验、逐项 CAS 与 Host unary Remote 契约,不进入 Session 历史或 telemetry。 |
 | `ctx.workspaceRegistry` | `core` | [`workspace`](../packages/workspace/workspace) | - | `apiproxy` | - | 在域设施之上拥有 WorkspaceId 标记的记录；稳定 sessionIds 账户驱动 Host RPC 与 GUI 投影。 |
 | `ctx.httpServer` | `core` | `webserver` | - | `connection`、`modules`、`hmr` | - | 普通的 node:http 载体：具名路由注册表、索引转换 tap，以及静态 dist 回退；Web 传输插件注册自己的路由。 |
 | `ctx.clientModuleHost` | `core` | `modules` | - | `hmr` | - | 通过增量 dshClient 扫描组合 __DSH_BOOT__ 入口图，提供插件组合包，并通知重建／图变更订阅方。 |
