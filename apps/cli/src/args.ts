@@ -71,8 +71,20 @@ interface TuiInvocation {
   patches: string[]
 }
 
+/** Migrate the old default home (`~/.dsh`) to the isolated default (`~/.dsh-tianshu`). */
+interface MigrateHomeInvocation {
+  mode: 'migrate-home'
+}
+
 /** The resolved `dsh` invocation. Help, version, and errors exit inside {@link parseDshArgs}. */
-export type DshInvocation = ProfileInvocation | RunInvocation | DumpConfigInvocation | WebInvocation | PluginInvocation | TuiInvocation
+export type DshInvocation =
+  | ProfileInvocation
+  | RunInvocation
+  | DumpConfigInvocation
+  | WebInvocation
+  | PluginInvocation
+  | TuiInvocation
+  | MigrateHomeInvocation
 
 /** Raw web-subcommand options straight from Commander. */
 interface WebOptions {
@@ -235,6 +247,12 @@ Examples:
       if (patches.includes('')) program.error('error: --patch needs a path')
       resolved = { mode: 'tui', patches }
     })
+
+  const migrateHome = program.command('migrate-home').description('copy the legacy default home (~/.dsh) to the isolated default (~/.dsh-tianshu); the old home is kept')
+  migrateHome.action(() => {
+    rejectParentOptions('migrate-home')
+    resolved = { mode: 'migrate-home' }
+  })
 
   const plugin = program.command('plugin').description('manage a profile\'s plugins by forwarding the remaining arguments to pnpm in the profile directory')
   plugin

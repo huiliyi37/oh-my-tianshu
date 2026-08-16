@@ -7,8 +7,15 @@
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 
-/** Directory name for the default Tianshu Harness home under the OS home. */
-export const DSH_HOME_DIR_NAME = '.dsh'
+/**
+ * Directory name for the default Tianshu Harness home under the OS home.
+ *
+ * Deliberately distinct from the official DeepSeek Harness home (`~/.dsh`):
+ * this distribution is an independent line and must not share user data
+ * (profiles/sessions/settings) with the official `dsh` CLI + its plugins
+ * (e.g. `dsh-tianshu-tui`). Coexistence = isolated homes.
+ */
+export const DSH_HOME_DIR_NAME = '.dsh-tianshu'
 
 /** Stable user-facing display form for the default Tianshu Harness home. */
 export const DEFAULT_DSH_HOME_DISPLAY = `~/${DSH_HOME_DIR_NAME}`

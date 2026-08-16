@@ -612,21 +612,20 @@ describe('workspace context instruction discovery', () => {
     }
   })
 
-  it('labels the default DSH home as ~/.dsh when HOME points at the configured default', async () => {
+  // 默认 home 的解析(dsh-paths)由 paths.spec 覆盖;此处显式传新默认目录名,
+  // 验证「新 home 目录名作为显式 home 可用 + displayPath 语义」。
+  it('discovers AGENTS.md under the isolated default home name (~/.dsh-tianshu)', async () => {
     const root = await tempRepo()
     const home = await tempRepo()
     try {
-      await write(join(home, '.dsh/AGENTS.md'), 'global default rule')
+      await write(join(home, '.dsh-tianshu/AGENTS.md'), 'global default rule')
 
-      vi.resetModules()
-      vi.doMock('node:os', () => ({ homedir: () => home }))
       const isolated = await import('@huiliyi37/dsh-workspace-context')
-      const files = await isolated.discoverBaselineInstructionFiles({ cwd: root })
+      const files = await isolated.discoverBaselineInstructionFiles({ cwd: root, dshHome: join(home, '.dsh-tianshu') })
 
-      expect(files.map(file => file.displayPath)).toEqual(['~/.dsh/AGENTS.md'])
+      // 显式 home(非默认)→ displayPath 标为 $DSH_HOME
+      expect(files).toEqual([{ absolutePath: join(home, '.dsh-tianshu/AGENTS.md'), displayPath: '$DSH_HOME/AGENTS.md' }])
     } finally {
-      vi.doUnmock('node:os')
-      vi.resetModules()
       await rm(root, { recursive: true, force: true })
       await rm(home, { recursive: true, force: true })
     }
@@ -643,7 +642,8 @@ describe('workspace context instruction discovery', () => {
       const isolated = await import('@huiliyi37/dsh-workspace-context')
       const files = await isolated.discoverBaselineInstructionFiles({ cwd: root, dshHome: '~/.dsh' })
 
-      expect(files).toEqual([{ absolutePath: join(home, '.dsh/AGENTS.md'), displayPath: '~/.dsh/AGENTS.md' }])
+      // 显式 ~/.dsh 不再是默认 home(默认为 ~/.dsh-tianshu)→ 标为 $DSH_HOME
+      expect(files).toEqual([{ absolutePath: join(home, '.dsh/AGENTS.md'), displayPath: '$DSH_HOME/AGENTS.md' }])
     } finally {
       vi.doUnmock('node:os')
       vi.resetModules()

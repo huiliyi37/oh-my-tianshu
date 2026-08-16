@@ -6,7 +6,9 @@ Shared filesystem path helpers for Tianshu Harness user data.
 
 ## DSH home
 
-`resolveDshHome()` resolves the single-root Tianshu Harness home. Precedence, highest first: an explicit configured path, `$DSH_HOME`, then `~/.dsh`. The harness keeps all user data under one root.
+`resolveDshHome()` resolves the single-root Tianshu Harness home. Precedence, highest first: an explicit configured path, `$DSH_HOME`, then `~/.dsh-tianshu` (the default). The harness keeps all user data under one root.
+
+The default home is deliberately distinct from the official DeepSeek Harness home (`~/.dsh`) — this distribution is an independent line, so user data stays fully isolated when coexisting with the official `dsh` CLI and its plugins (e.g. `dsh-tianshu-tui`).
 
 `dshHomePath(...segments)` joins child segments onto that resolved home with Node's platform path rules. With no segments it returns the home itself.
 

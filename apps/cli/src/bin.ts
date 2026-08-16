@@ -51,6 +51,11 @@ switch (invocation.mode) {
     await runWeb(invocation, loadLayeredEnv('dsh'))
     break
   }
+  case 'migrate-home': {
+    const { runMigrateHome } = await import('./migrate-home.ts')
+    process.exit(runMigrateHome())
+    break
+  }
   case 'tui': {
     const { runProfile } = await import('./profile-boot.ts')
     await runProfile({
