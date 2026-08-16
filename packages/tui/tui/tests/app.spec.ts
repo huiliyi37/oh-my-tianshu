@@ -279,6 +279,31 @@ describe('TuiApp agent-ensure 三分支', () => {
     await app.dispose()
   })
 
+  it('提交路径在 followup 前先画一帧：驱动同步阻塞不吞输入框（提交卡顿回归）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('order-1')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.newSession()
+    const write = stdout.write as ReturnType<typeof vi.fn>
+    write.mockClear()
+    // followup 触发时刻截屏：此刻 stdout 已写入的内容必须已含输入轨 chrome
+    //（❯ 提示符）——commitUserPrompt 擦除 live 区后、进入可能同步阻塞数秒的
+    // 驱动调用前，先画回一帧（2026-08-16 semantic-index 同步重建根修的防御层）。
+    let writtenAtFollowup = ''
+    agent.followup.mockImplementation(() => {
+      writtenAtFollowup = write.mock.calls.map(call => String(call[0])).join('')
+    })
+    app.handleSubmit('hello')
+    expect(agent.followup).toHaveBeenCalledTimes(1)
+    expect(writtenAtFollowup).toContain('❯')
+    await app.dispose()
+  })
+
   it('switchSession 旧会话无 agent → resume，controls 来自 handle', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('old-1')

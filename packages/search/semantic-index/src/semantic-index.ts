@@ -6,13 +6,18 @@
  * dsh adjustments over the upstream: no module-level index cache — the owning
  * tool package holds the instance and manages its lifecycle; the embedding
  * provider seam stays injectable with `NullEmbeddingProvider` as the offline
- * default (degradation to BM25 is the documented behavior).
+ * default (degradation to BM25 is the documented behavior); every filesystem
+ * walk and snapshot write goes through `node:fs/promises` so scans never block
+ * the host event loop — callers must use {@link SemanticIndex.refresh} rather
+ * than doing IO at prompt-assembly time (see
+ * `.agents/notes/implemented/bug-fix/2026-08-16-semantic-index-async-refresh.md`).
  *
  * @module @huiliyi37/dsh-semantic-index/semantic-index
  */
 
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 import { chunkByDefinitions } from './chunker.ts'
 import type { EmbeddingProvider } from './embedding-provider.ts'
@@ -27,8 +32,9 @@ import type { VectorIndexSnapshot } from './vector-index.ts'
 /** Cap on chunks embedded in one pass to bound first-search latency/cost. */
 const MAX_EMBED_CHUNKS = 4000
 
-/** `isStale()` verdict cache window — semantic_search can run at high
- *  frequency on the same event loop; avoid a full-repo rescan per call. */
+/** Default staleness-verdict cache window — `semantic_search` can run at high
+ *  frequency; a fresh `refresh()` verdict is reused for this long instead of
+ *  rescanning the whole workspace. */
 export const STALE_CHECK_TTL_MS = 30_000
 
 const INDEX_VERSION = 1
@@ -57,15 +63,27 @@ export interface SemanticIndexSnapshot {
   /** Lightweight chunk refs for cold-start restore (excludes terms — regenerated from text). */
   chunks?: Array<{ file: string; startLine: number; endLine: number; text: string }>
   /** Total source files seen at last rebuild/incremental update — may exceed
-   *  fileHashes.size when the maxFiles cap truncated indexing. Lets isStale()
-   *  distinguish "new file" from "file beyond the cap". */
+   *  fileHashes.size when the maxFiles cap truncated indexing. Lets staleness
+   *  detection distinguish "new file" from "file beyond the cap". */
   scannedTotal?: number
 }
 
 /** Constructor options for {@link SemanticIndex}. */
 export interface SemanticIndexOptions {
-  /** `isStale()` verdict cache window in ms. */
+  /** Staleness-verdict cache window in ms — {@link SemanticIndex.refresh} reuses a fresh verdict instead of rescanning. */
   staleTtlMs?: number
+}
+
+/** Outcome of one {@link SemanticIndex.refresh} pass. */
+export interface RefreshOutcome {
+  /** Whether the workspace was found stale (verdict cache applies). */
+  stale: boolean
+  /** Files re-indexed by the update (0 when not stale). */
+  reindexed: number
+  /** Files removed from the index (0 when not stale). */
+  removed: number
+  /** Whether >20% drift took the full-rebuild path instead of the incremental one. */
+  fallbackRebuild: boolean
 }
 
 /** File-level BM25 (and optionally vector) semantic index with JSON persistence. */
@@ -77,7 +95,7 @@ export class SemanticIndex {
   private vectors = new VectorIndex()
   /** Set when chunks change so the next hybrid search re-embeds lazily. */
   private vectorsDirty = false
-  /** Last `isStale()` verdict; reused for staleTtlMs to skip redundant rescans. */
+  /** Last staleness verdict; reused for staleTtlMs to skip redundant rescans. */
   private staleCache: { at: number; stale: boolean } | null = null
   /** Total source files on disk at the last rebuild/incremental update —
    *  may exceed fileHashes.size when indexing was capped by maxFiles.
@@ -85,11 +103,15 @@ export class SemanticIndex {
    *  hash-only checks, never a permanently-stale verdict. */
   private scannedTotal: number | undefined = undefined
   private readonly staleTtlMs: number
+  /** Single-flight guard: concurrent refresh() callers share one in-flight pass. */
+  private refreshInFlight: Promise<RefreshOutcome> | undefined
 
   constructor(cwd: string, provider: EmbeddingProvider = new NullEmbeddingProvider(), opts?: SemanticIndexOptions) {
     this.cwd = cwd
     this.provider = provider
     this.staleTtlMs = opts?.staleTtlMs ?? STALE_CHECK_TTL_MS
+    // Constructor-time loads stay synchronous on purpose: one bounded snapshot
+    // read each, before any caller can race an async refresh.
     this.loadMeta()
     this.loadVectors()
   }
@@ -107,7 +129,7 @@ export class SemanticIndex {
   }
 
   /** Load persisted snapshot on cold start. Restores fileHashes and chunks so
-   *  `isStale()` works immediately and searches succeed without a full rebuild. */
+   *  staleness checks work immediately and searches succeed without a full rebuild. */
   private loadMeta(): void {
     this.staleCache = null // reloaded state: any cached verdict no longer applies
     const path = this.indexPath()
@@ -130,17 +152,20 @@ export class SemanticIndex {
         }
       }
     } catch {
-      // Corrupt snapshot — rebuild on first ensureSemanticIndex call.
+      // Corrupt snapshot — rebuild on first refresh.
     }
   }
 
   /**
-   * Full rebuild of the semantic index from source tree.
+   * Full rebuild of the semantic index from source tree. All filesystem IO is
+   * asynchronous — a rebuild never blocks the host event loop. Callers own
+   * serialization against {@link refresh}: {@link refresh} itself never runs a
+   * concurrent rebuild.
    * @param maxFiles - cap on files indexed in one pass (default 500); source
    * files beyond the cap are still counted for staleness accounting.
    * @returns how many files were indexed and how many were skipped.
    */
-  rebuild(maxFiles = 500): { indexed: number; skipped: number } {
+  async rebuild(maxFiles = 500): Promise<{ indexed: number; skipped: number }> {
     this.index.clear()
     this.fileHashes.clear()
     this.vectors.clear()
@@ -150,11 +175,11 @@ export class SemanticIndex {
     let skipped = 0
 
     /* jscpd:ignore-start */
-    const walk = (dir: string, depth = 0): void => {
+    const walk = async (dir: string, depth = 0): Promise<void> => {
       if (depth > 8) return
       let entries: string[]
       try {
-        entries = readdirSync(dir)
+        entries = await readdir(dir)
       } catch {
         return
       }
@@ -162,15 +187,15 @@ export class SemanticIndex {
       for (const entry of entries) {
         if (SKIP_DIRS.has(entry)) continue
         const abs = join(dir, entry)
-        let st: ReturnType<typeof statSync>
+        let st: Awaited<ReturnType<typeof stat>>
         try {
-          st = statSync(abs)
+          st = await stat(abs)
         } catch {
           continue
         }
 
         if (st.isDirectory()) {
-          walk(abs, depth + 1)
+          await walk(abs, depth + 1)
         } else if (st.isFile()) {
           const ext = entry.slice(entry.lastIndexOf('.'))
           if (!SOURCE_EXT.has(ext)) {
@@ -179,15 +204,15 @@ export class SemanticIndex {
             continue
           }
           // Count every source file for staleness accounting, even beyond the
-          // maxFiles cap — otherwise scanIsStale() would compare diskCount
+          // maxFiles cap — otherwise the staleness scan would compare diskCount
           // against a truncated fileHashes.size and report the index stale
-          // forever (each semantic_search then triggers a full rebuild).
+          // forever (each refresh then triggers a full rebuild).
           this.scannedTotal = (this.scannedTotal ?? 0) + 1
           if (indexed >= maxFiles) continue
           const rel = relative(this.cwd, abs)
           let content: string
           try {
-            content = readFileSync(abs, 'utf-8')
+            content = await readFile(abs, 'utf-8')
           } catch {
             skipped++
             continue
@@ -207,11 +232,35 @@ export class SemanticIndex {
       }
     }
 
-    walk(this.cwd)
-    this.persistMeta()
+    await walk(this.cwd)
+    await this.persistMeta()
     // Index just synced with disk — record an accurate fresh verdict.
     this.staleCache = { at: Date.now(), stale: false }
     return { indexed, skipped }
+  }
+
+  /**
+   * Check the index against the filesystem and, when stale, run the incremental
+   * update — one single-flight pass: concurrent callers share the in-flight
+   * promise instead of racing duplicate scans. All filesystem IO is
+   * asynchronous, so this never blocks the host event loop.
+   * @returns the staleness verdict and the update's reindex/remove counts.
+   */
+  refresh(): Promise<RefreshOutcome> {
+    if (this.refreshInFlight !== undefined) return this.refreshInFlight
+    const flight = this.refreshUncached().finally(() => {
+      if (this.refreshInFlight === flight) this.refreshInFlight = undefined
+    })
+    this.refreshInFlight = flight
+    return flight
+  }
+
+  /** One refresh pass without the single-flight guard. */
+  private async refreshUncached(): Promise<RefreshOutcome> {
+    const stale = await this.isStale()
+    if (!stale) return { stale: false, reindexed: 0, removed: 0, fallbackRebuild: false }
+    const { reindexed, removed, fallbackRebuild } = await this.incrementalUpdate()
+    return { stale: true, reindexed, removed, fallbackRebuild }
   }
 
   /**
@@ -220,51 +269,51 @@ export class SemanticIndex {
    * every search.
    * @returns true when the index no longer reflects the workspace.
    */
-  isStale(): boolean {
+  private async isStale(): Promise<boolean> {
     const now = Date.now()
     if (this.staleCache !== null && now - this.staleCache.at < this.staleTtlMs) return this.staleCache.stale
-    const stale = this.scanIsStale()
+    const stale = await this.scanIsStale()
     this.staleCache = { at: now, stale }
     return stale
   }
 
-  /** Full filesystem scan backing isStale() — synchronous, like its caller. */
-  private scanIsStale(): boolean {
+  /** Full asynchronous filesystem scan backing isStale(). */
+  private async scanIsStale(): Promise<boolean> {
     // Quick count check: new files added since last index. Compared against
     // scannedTotal (all source files seen at last update) rather than
     // fileHashes.size so a maxFiles-truncated rebuild does not read as
     // permanently stale. Falls back to fileHashes.size on legacy snapshots
     // (self-heals after the next persistMeta) and reads as stale on a fresh
-    // instance (baseline 0) so the first search builds the index.
+    // instance (baseline 0) so the first refresh builds the index.
     let diskCount = 0
     const baseline = this.scannedTotal ?? this.fileHashes.size
     try {
-      const walk = (dir: string, depth = 0): void => {
+      const walk = async (dir: string, depth = 0): Promise<void> => {
         if (depth > 8 || diskCount > baseline + 10) return
         let entries: string[]
         try {
-          entries = readdirSync(dir)
+          entries = await readdir(dir)
         } catch {
           return
         }
         for (const entry of entries) {
           if (SKIP_DIRS.has(entry)) continue
           const abs = join(dir, entry)
-          let st: ReturnType<typeof statSync>
+          let st: Awaited<ReturnType<typeof stat>>
           try {
-            st = statSync(abs)
+            st = await stat(abs)
           } catch {
             continue
           }
           if (st.isDirectory()) {
-            walk(abs, depth + 1)
+            await walk(abs, depth + 1)
           } else if (st.isFile()) {
             const ext = entry.slice(entry.lastIndexOf('.'))
             if (SOURCE_EXT.has(ext)) diskCount++
           }
         }
       }
-      walk(this.cwd)
+      await walk(this.cwd)
     } catch {
       // Count failure → fall through to hash check.
     }
@@ -272,12 +321,11 @@ export class SemanticIndex {
 
     for (const [relPath, storedHash] of this.fileHashes) {
       const absPath = join(this.cwd, relPath)
-      if (!existsSync(absPath)) return true // file deleted
       try {
-        const content = readFileSync(absPath, 'utf-8')
+        const content = await readFile(absPath, 'utf-8')
         if (this.hashContent(content) !== storedHash) return true
       } catch {
-        return true // unreadable
+        return true // deleted or unreadable
       }
     }
     return false
@@ -286,38 +334,39 @@ export class SemanticIndex {
   /**
    * Incrementally update the index: detect changed/new/deleted files and
    * re-index. Falls back to a full rebuild when more than 20% of files changed.
+   * All filesystem IO is asynchronous.
    * @returns files re-indexed, files removed, and whether a full rebuild was
    * taken instead of the incremental path.
    */
-  incrementalUpdate(): { reindexed: number; removed: number; fallbackRebuild: boolean } {
+  private async incrementalUpdate(): Promise<{ reindexed: number; removed: number; fallbackRebuild: boolean }> {
     const currentFiles = new Set<string>()
     const toReindex: string[] = []
     const toRemove: string[] = []
 
     // Collect current source files. Full traversal — no maxFiles cap here:
     // a truncated scan would miss changes beyond the cap and also record a
-    // truncated scannedTotal below, keeping isStale() true forever (each
-    // semantic_search then re-runs this update).
-    const walk = (dir: string, depth = 0): void => {
+    // truncated scannedTotal below, keeping staleness checks true forever
+    // (each semantic_search then re-runs this update).
+    const walk = async (dir: string, depth = 0): Promise<void> => {
       /* jscpd:ignore-start */
       if (depth > 8) return
       let entries: string[]
       try {
-        entries = readdirSync(dir)
+        entries = await readdir(dir)
       } catch {
         return
       }
       for (const entry of entries) {
         if (SKIP_DIRS.has(entry)) continue
         const abs = join(dir, entry)
-        let st: ReturnType<typeof statSync>
+        let st: Awaited<ReturnType<typeof stat>>
         try {
-          st = statSync(abs)
+          st = await stat(abs)
         } catch {
           continue
         }
         if (st.isDirectory()) {
-          walk(abs, depth + 1)
+          await walk(abs, depth + 1)
         } else if (st.isFile()) {
           const ext = entry.slice(entry.lastIndexOf('.'))
           if (!SOURCE_EXT.has(ext)) continue
@@ -327,7 +376,7 @@ export class SemanticIndex {
         }
       }
     }
-    walk(this.cwd)
+    await walk(this.cwd)
     this.scannedTotal = currentFiles.size
 
     // Find deleted files (in index but not on disk).
@@ -339,7 +388,7 @@ export class SemanticIndex {
     for (const relPath of currentFiles) {
       const absPath = join(this.cwd, relPath)
       try {
-        const content = readFileSync(absPath, 'utf-8')
+        const content = await readFile(absPath, 'utf-8')
         if (content.length > 200_000) continue
         const hash = this.hashContent(content)
         if (this.fileHashes.get(relPath) !== hash) toReindex.push(relPath)
@@ -352,7 +401,7 @@ export class SemanticIndex {
     const totalChanged = toRemove.length + toReindex.length
     const totalIndexed = this.fileHashes.size
     if (totalChanged >= Math.max(2, totalIndexed * 0.2)) {
-      const result = this.rebuild()
+      const result = await this.rebuild()
       return { reindexed: result.indexed, removed: 0, fallbackRebuild: true }
     }
 
@@ -374,7 +423,7 @@ export class SemanticIndex {
 
       const absPath = join(this.cwd, relPath)
       try {
-        const content = readFileSync(absPath, 'utf-8')
+        const content = await readFile(absPath, 'utf-8')
         const hash = this.hashContent(content)
         this.fileHashes.set(relPath, hash)
         const ext = relPath.slice(relPath.lastIndexOf('.'))
@@ -387,7 +436,7 @@ export class SemanticIndex {
       }
     }
 
-    this.persistMeta()
+    await this.persistMeta()
     // Index just synced with disk — record an accurate fresh verdict.
     this.staleCache = { at: Date.now(), stale: false }
     return { reindexed, removed: toRemove.length, fallbackRebuild: false }
@@ -448,7 +497,7 @@ export class SemanticIndex {
         this.vectors.add(item.id, vec)
         n++
       }
-      if (n > 0) this.persistVectors()
+      if (n > 0) await this.persistVectors()
       this.vectorsDirty = false
       return n
     } catch {
@@ -469,12 +518,12 @@ export class SemanticIndex {
     }
   }
 
-  private persistVectors(): void {
+  private async persistVectors(): Promise<void> {
     if (this.vectors.size === 0) return
     const dir = join(this.cwd, '.rivet')
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
     try {
-      writeFileSync(this.vectorIndexPath(), JSON.stringify(this.vectors.toSnapshot()), 'utf-8')
+      await mkdir(dir, { recursive: true })
+      await writeFile(this.vectorIndexPath(), JSON.stringify(this.vectors.toSnapshot()), 'utf-8')
     } catch {
       // Best-effort.
     }
@@ -545,12 +594,12 @@ export class SemanticIndex {
     }
   }
 
-  /** Persist the meta snapshot (file hashes + chunk refs) to `.rivet/semantic-index.json`. */
-  persistMeta(): void {
+  /** Persist the meta snapshot (file hashes + chunk refs) asynchronously to `.rivet/semantic-index.json`. */
+  private async persistMeta(): Promise<void> {
     // Persisted state may differ from a previously cached verdict — invalidate.
     this.staleCache = null
     const dir = join(this.cwd, '.rivet')
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+    await mkdir(dir, { recursive: true })
     const snapshot: SemanticIndexSnapshot = {
       version: INDEX_VERSION,
       fileHashes: Object.fromEntries(this.fileHashes),
@@ -559,6 +608,6 @@ export class SemanticIndex {
       chunks: this.index.getChunkRefs(),
       ...(this.scannedTotal !== undefined ? { scannedTotal: this.scannedTotal } : {}),
     }
-    writeFileSync(this.indexPath(), JSON.stringify(snapshot, null, 2), 'utf-8')
+    await writeFile(this.indexPath(), JSON.stringify(snapshot, null, 2), 'utf-8')
   }
 }

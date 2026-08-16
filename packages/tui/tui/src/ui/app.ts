@@ -2313,6 +2313,12 @@ export class TuiApp {
     // 异步 prepare 后在同一写窗口追加终端图片（见 commitUserPrompt 时序说明）。
     this.commitUserPrompt(expanded, images)
     this.inputLine.clearImages()
+    // 提交前先同步画一帧：commitUserPrompt 已把 live 区（含输入框）整体擦除，
+    // 而 followup 的同步前缀（inbox 事件 + prompt 组装 + pre-step 监听者的同步段）
+    // 可能耗时数秒——期间无帧可画、ticker 也不触发，输入框就"消失"到驱动返回。
+    // 先画回输入框（空闲态），再进入可能阻塞的驱动调用（防御性不变量，见
+    // .agents/notes/implemented/bug-fix/2026-08-16-semantic-index-async-refresh.md）。
+    this.flushLiveRender()
     // 图片不可达时不发送（气泡已警告「图片未发送」）；可达时直发或经视觉桥转描述。
     this.controls?.followup(expanded, imagesReachable ? images : undefined)
     this.flushLiveRender()
@@ -2463,6 +2469,8 @@ export class TuiApp {
     this.history = [trimmed, ...this.history.filter(h => h !== trimmed)].slice(0, 100)
     this.inputLine.setHistory(this.history)
     this.commitToScrollback({ text: formatSteerMessage({ content: trimmed, width: this.stdout.columns }, this.theme).join('\n'), trailingNewline: true })
+    // 与 handleSubmit 同一防御：擦除 live 区后、进入可能阻塞的驱动调用前先画一帧。
+    this.flushLiveRender()
     this.controls?.steer(trimmed)
     this.flushLiveRender()
   }

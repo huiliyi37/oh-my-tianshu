@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-语义工作区索引：文件级 BM25（中文 bigram 感知）作用于定义对齐分块，可选向量层经 RRF 融合，支持增量更新与 `.rivet/` 下 JSON 持久化。供 `semantic_search` 工具使用，也可被其他检索插件消费。
+语义工作区索引：文件级 BM25（中文 bigram 感知）作用于定义对齐分块，可选向量层经 RRF 融合，支持增量更新与 `.rivet/` 下 JSON 持久化。供 `semantic_search` 工具使用，也可被其他检索插件消费。全部文件系统操作——陈旧扫描、增量更新、快照写盘——都走 `node:fs/promises`，`refresh()` 绝不阻塞宿主事件循环。
 
 ## Model Experience
 

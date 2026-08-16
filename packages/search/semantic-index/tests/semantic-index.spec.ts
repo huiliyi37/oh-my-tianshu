@@ -47,7 +47,7 @@ describe('SemanticIndex rebuild', () => {
   beforeEach(() => { fx = makeFixture() })
   afterEach(() => { fx.cleanup() })
 
-  it('indexes source files and skips noise (node_modules, non-source, oversized)', () => {
+  it('indexes source files and skips noise (node_modules, non-source, oversized)', async () => {
     writeTree(fx.root, {
       'src/a.ts': 'export function alpha() { return 1 }',
       'src/b.py': 'def helper():\n    return 2',
@@ -58,7 +58,7 @@ describe('SemanticIndex rebuild', () => {
       'huge.py': `x = ${'y'.repeat(200_001)}`,
     })
     const index = new SemanticIndex(fx.root)
-    const result = index.rebuild()
+    const result = await index.rebuild()
     // a.ts + b.py + README.md (md is in SOURCE_EXT); node_modules/dist/txt/oversized skipped.
     expect(result.indexed).toBe(3)
     expect(result.skipped).toBeGreaterThanOrEqual(1)
@@ -67,31 +67,30 @@ describe('SemanticIndex rebuild', () => {
     expect(hits[0]?.file).toBe('src/a.ts')
   })
 
-  it('stays fresh: isStale detects file edits, additions, and deletions', () => {
+  it('stays fresh: refresh detects file edits, additions, and deletions', async () => {
     writeTree(fx.root, { 'src/a.ts': 'export function alpha() { return 1 }' })
     const index = new SemanticIndex(fx.root, undefined, { staleTtlMs: 0 })
-    index.rebuild()
-    expect(index.isStale()).toBe(false)
+    await index.rebuild()
+    expect((await index.refresh()).stale).toBe(false)
 
     writeFileSync(join(fx.root, 'src/a.ts'), 'export function alpha() { return 2 }', 'utf-8')
-    expect(index.isStale()).toBe(true)
+    expect((await index.refresh()).stale).toBe(true)
 
-    index.incrementalUpdate()
-    expect(index.isStale()).toBe(false)
+    expect((await index.refresh()).stale).toBe(false)
     expect(index.search('alpha')[0]?.text).toContain('return 2')
 
     writeTree(fx.root, { 'src/new.ts': 'export const added = 1' })
-    expect(index.isStale()).toBe(true)
-    index.incrementalUpdate()
+    expect((await index.refresh()).stale).toBe(true)
+    await index.refresh()
     expect(index.search('added').length).toBeGreaterThan(0)
 
     rmSync(join(fx.root, 'src/a.ts'))
-    expect(index.isStale()).toBe(true)
-    index.incrementalUpdate()
+    expect((await index.refresh()).stale).toBe(true)
+    await index.refresh()
     expect(index.search('alpha')).toEqual([])
   })
 
-  it('falls back to a full rebuild when more than 20% of files changed', () => {
+  it('falls back to a full rebuild when more than 20% of files changed', async () => {
     writeTree(fx.root, {
       'src/a.ts': 'export const a = 1',
       'src/b.ts': 'export const b = 2',
@@ -100,35 +99,56 @@ describe('SemanticIndex rebuild', () => {
       'src/e.ts': 'export const e = 5',
     })
     const index = new SemanticIndex(fx.root, undefined, { staleTtlMs: 0 })
-    index.rebuild()
+    await index.rebuild()
     // Rewrite every file except one: 4/5 changed ≥ 20% → fallback rebuild.
     for (const name of ['a', 'b', 'c', 'd']) {
       writeFileSync(join(fx.root, `src/${name}.ts`), `export const ${name} = ${Math.random()}`, 'utf-8')
     }
-    const result = index.incrementalUpdate()
+    const result = await index.refresh()
     expect(result.fallbackRebuild).toBe(true)
   })
 
-  it('persists meta and restores chunks on cold start', () => {
+  it('persists meta and restores chunks on cold start', async () => {
     writeTree(fx.root, { 'src/a.ts': 'export function alpha() { return 1 }' })
     const first = new SemanticIndex(fx.root)
-    first.rebuild()
+    await first.rebuild()
     expect(first.search('alpha').length).toBeGreaterThan(0)
 
     // A second instance cold-starts from the persisted snapshot — searches work without a rebuild.
     const second = new SemanticIndex(fx.root)
     expect(second.search('alpha').length).toBeGreaterThan(0)
-    expect(second.isStale()).toBe(false)
+    expect((await second.refresh()).stale).toBe(false)
   })
 
-  it('ignores a corrupt snapshot and rebuilds on demand', () => {
+  it('ignores a corrupt snapshot and rebuilds on demand', async () => {
     writeTree(fx.root, { 'src/a.ts': 'export function alpha() { return 1 }' })
     mkdirSync(join(fx.root, '.rivet'), { recursive: true })
     writeFileSync(join(fx.root, '.rivet', 'semantic-index.json'), '{ not json', 'utf-8')
     const index = new SemanticIndex(fx.root)
     expect(index.chunkCount).toBe(0)
-    index.rebuild()
+    await index.rebuild()
     expect(index.search('alpha').length).toBeGreaterThan(0)
+  })
+
+  it('refresh never blocks the event loop (async IO contract)', async () => {
+    writeTree(fx.root, { 'src/a.ts': 'export function alpha() { return 1 }' })
+    const index = new SemanticIndex(fx.root, undefined, { staleTtlMs: 0 })
+    // A macrotask scheduled before refresh must run before refresh settles:
+    // if the scan blocked the loop synchronously, the awaiting microtask would
+    // resume first and `ticked` would still be false after `await`.
+    let ticked = false
+    setTimeout(() => { ticked = true }, 0)
+    const outcome = await index.refresh()
+    expect(ticked).toBe(true)
+    expect(outcome.stale).toBe(true) // empty index on a non-empty workspace
+  })
+
+  it('concurrent refreshes share one in-flight pass (single flight)', async () => {
+    writeTree(fx.root, { 'src/a.ts': 'export function alpha() { return 1 }' })
+    const index = new SemanticIndex(fx.root, undefined, { staleTtlMs: 0 })
+    const [first, second] = await Promise.all([index.refresh(), index.refresh()])
+    expect(first).toEqual(second)
+    expect(first.stale).toBe(true)
   })
 })
 
@@ -141,7 +161,7 @@ describe('SemanticIndex searchHybrid', () => {
   it('degrades to BM25 when no embedding provider is available', async () => {
     writeTree(fx.root, { 'src/a.ts': 'export function alpha() { return 1 }' })
     const index = new SemanticIndex(fx.root)
-    index.rebuild()
+    await index.rebuild()
     const result = await index.searchHybrid('alpha')
     expect(result.backend).toBe('bm25')
     expect(result.hits[0]?.file).toBe('src/a.ts')
@@ -153,7 +173,7 @@ describe('SemanticIndex searchHybrid', () => {
       'src/b.ts': 'export function beta() { return 2 }',
     })
     const index = new SemanticIndex(fx.root, new FakeEmbeddingProvider())
-    index.rebuild()
+    await index.rebuild()
     expect(index.hasEmbeddings).toBe(true)
     const result = await index.searchHybrid('alpha', 10)
     expect(result.backend).toBe('hybrid')
@@ -162,13 +182,13 @@ describe('SemanticIndex searchHybrid', () => {
     expect(result.hits.length).toBeGreaterThan(0)
   })
 
-  it('limits hits and re-ranks by path salience', () => {
+  it('limits hits and re-ranks by path salience', async () => {
     writeTree(fx.root, {
       'src/impl.ts': 'export function auth() {}',
       'src/impl.test.ts': 'describe("auth", () => {})',
     })
     const index = new SemanticIndex(fx.root)
-    index.rebuild()
+    await index.rebuild()
     const hits = index.search('auth', 1)
     expect(hits.length).toBeLessThanOrEqual(1)
     expect(hits[0]?.file).toBe('src/impl.ts')
@@ -202,7 +222,7 @@ describe('SemanticIndex vector top-up (regression: partial embeddings must be re
       writeTree(fx.root, { [`src/${name}.ts`]: `export function ${name}() { return ${name} }` })
     }
     const index = new SemanticIndex(fx.root, new PartialEmbeddingProvider())
-    index.rebuild()
+    await index.rebuild()
     expect(index.chunkCount).toBe(5)
 
     // First search embeds only the first 2 chunks; the rest stay unembedded.
@@ -223,41 +243,41 @@ describe('SemanticIndex staleness under maxFiles truncation (regression)', () =>
   beforeEach(() => { fx = makeFixture() })
   afterEach(() => { fx.cleanup() })
 
-  it('is not permanently stale when the rebuild was truncated by maxFiles', () => {
+  it('is not permanently stale when the rebuild was truncated by maxFiles', async () => {
     writeTree(fx.root, {
       'src/a.ts': 'export function alpha() { return 1 }',
       'src/b.ts': 'export function beta() { return 2 }',
       'src/c.ts': 'export function gamma() { return 3 }',
     })
     const index = new SemanticIndex(fx.root, undefined, { staleTtlMs: 0 })
-    index.rebuild(2) // truncated: only 2 of 3 files indexed
+    await index.rebuild(2) // truncated: only 2 of 3 files indexed
     expect(index.listFiles()).toHaveLength(2)
 
-    // Was: diskCount(3) > fileHashes.size(2) → isStale() forever true.
-    expect(index.isStale()).toBe(false)
-    expect(index.isStale()).toBe(false)
+    // Was: diskCount(3) > fileHashes.size(2) → stale forever.
+    expect((await index.refresh()).stale).toBe(false)
+    expect((await index.refresh()).stale).toBe(false)
   })
 
-  it('still detects new files after a truncated rebuild', () => {
+  it('still detects new files after a truncated rebuild', async () => {
     writeTree(fx.root, {
       'src/a.ts': 'export function alpha() { return 1 }',
       'src/b.ts': 'export function beta() { return 2 }',
       'src/c.ts': 'export function gamma() { return 3 }',
     })
     const index = new SemanticIndex(fx.root, undefined, { staleTtlMs: 0 })
-    index.rebuild(2)
-    expect(index.isStale()).toBe(false)
+    await index.rebuild(2)
+    expect((await index.refresh()).stale).toBe(false)
 
     writeTree(fx.root, { 'src/new.ts': 'export const added = 1' })
-    expect(index.isStale()).toBe(true)
-    index.incrementalUpdate()
-    expect(index.isStale()).toBe(false)
+    expect((await index.refresh()).stale).toBe(true)
+    await index.refresh()
+    expect((await index.refresh()).stale).toBe(false)
   })
 
-  it('reads as stale on a fresh instance so the first search builds the index', () => {
+  it('reads as stale on a fresh instance so the first refresh builds the index', async () => {
     writeTree(fx.root, { 'src/a.ts': 'export function alpha() { return 1 }' })
     const index = new SemanticIndex(fx.root, undefined, { staleTtlMs: 0 })
     // No snapshot yet, no files indexed — the count baseline is 0.
-    expect(index.isStale()).toBe(true)
+    expect((await index.refresh()).stale).toBe(true)
   })
 })
