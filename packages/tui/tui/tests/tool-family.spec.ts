@@ -35,13 +35,15 @@ describe('getToolColorFamily', () => {
 
   it('bash → shell；检索系 → search', () => {
     expect(getToolColorFamily('bash')).toBe('shell')
+    // PTC/Code Mode 单一执行工具与 bash 同族（执行型，wire 上模型直呼 run_code）。
+    expect(getToolColorFamily('run_code')).toBe('shell')
     for (const name of ['grep', 'ast_grep', 'semantic_search', 'related_tests']) {
       expect(getToolColorFamily(name)).toBe('search')
     }
   })
 
   it('补丁编辑系 → edit；网络系 → network', () => {
-    for (const name of ['apply_patch', 'hash_edit', 'str_replace']) {
+    for (const name of ['apply_patch', 'hash_edit', 'str_replace', 'str_replace_editor']) {
       expect(getToolColorFamily(name)).toBe('edit')
     }
     for (const name of ['web_fetch', 'web_search']) {

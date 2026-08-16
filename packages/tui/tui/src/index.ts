@@ -13,6 +13,7 @@ import type { Context } from '@huiliyi37/cordis'
 import type { ReadStream, WriteStream } from 'node:tty'
 import type { SessionId } from '@huiliyi37/dsh-session'
 import type { KeyName } from './engine/input-handler.ts'
+import { spawnSelfRestart } from './restart.ts'
 import { TuiApp } from './ui/app.ts'
 
 /** Stable Cordis plugin name the bundle patch inserts. */
@@ -86,8 +87,18 @@ export function apply(ctx: Context, config: TuiRunnerConfig = {}): void {
       if (typeof exit === 'function') exit(0)
       else process.exit(0)
     }
-    const teardown = async (quit: boolean): Promise<void> => {
+    const teardown = async (quit: boolean, restart = false): Promise<void> => {
       await app.dispose()
+      if (restart) {
+        // 重启：dispose（恢复终端）后以相同命令行 spawn 新进程，成功即退出当前进程。
+        // 新进程 stdio inherit 同一 TTY（POSIX detached 防 SIGHUP/SIGTTIN）。
+        const ok = await spawnSelfRestart()
+        if (!ok) {
+          console.error('[tui-runner] 重启失败：无法重新启动当前命令，请手动运行启动命令')
+        }
+        requestHostExit()
+        return
+      }
       if (quit) requestHostExit()
     }
     const onSigint = (): void => { void teardown(true) }
@@ -96,6 +107,7 @@ export function apply(ctx: Context, config: TuiRunnerConfig = {}): void {
       stdin,
       stdout,
       onExit: () => { void teardown(true) },
+      onRestart: () => { void teardown(true, true) },
       ...(config.initialSessionId === undefined ? {} : { initialSessionId: config.initialSessionId }),
       ...(config.editorKey === undefined ? {} : { editorKey: config.editorKey }),
       ...(config.vimEnabled === undefined ? {} : { vimEnabled: config.vimEnabled }),

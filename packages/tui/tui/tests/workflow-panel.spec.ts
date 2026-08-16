@@ -142,6 +142,43 @@ describe('展开行（roster）', () => {
   })
 })
 
+describe('叙述行（logs）', () => {
+  const loggedRun: WorkflowRunView = {
+    ...runningRun,
+    logs: ['第一批任务完成', '第二批任务完成'],
+  }
+
+  it('expanded 含 id → 叙述行在 roster 之前按序渲染（⤷ 前缀）', () => {
+    const rows = projectWorkflow([loggedRun], { width: 80, expanded: ['run-live'] })
+    const log1 = rows.findIndex(r => r.includes('⤷ 第一批任务完成'))
+    const log2 = rows.findIndex(r => r.includes('⤷ 第二批任务完成'))
+    expect(log1).toBeGreaterThanOrEqual(0)
+    expect(log2).toBe(log1 + 1)
+    expect(rows[log1]).toBe('  ⤷ 第一批任务完成')
+  })
+
+  it('logs 缺省 → 不渲染叙述行', () => {
+    expect(projectWorkflow([runningRun], { width: 80, expanded: ['run-live'] }).some(r => r.includes('⤷'))).toBe(false)
+  })
+
+  it('logs 空数组 → 不渲染叙述行', () => {
+    const view: WorkflowRunView = { ...runningRun, logs: [] }
+    expect(projectWorkflow([view], { width: 80, expanded: ['run-live'] }).some(r => r.includes('⤷'))).toBe(false)
+  })
+
+  it('长叙述行窄宽截断补 …', () => {
+    const view: WorkflowRunView = { ...loggedRun, logs: ['这一行叙述非常长一定会超出面板宽度预算被截断'] }
+    const rows = projectWorkflow([view], { width: 20, expanded: ['run-live'] })
+    const row = rows.find(r => r.includes('…'))
+    expect(row).toBeDefined()
+    expect(displayWidth(row!)).toBeLessThanOrEqual(20)
+  })
+
+  it('未展开（expanded 缺省）→ 叙述行不渲染', () => {
+    expect(projectWorkflow([loggedRun], { width: 80 }).some(r => r.includes('⤷'))).toBe(false)
+  })
+})
+
 describe('终态汇总', () => {
   it('completed → 终态：已完成 · 启动 N 个 agent', () => {
     const rows = projectWorkflow([doneRun], { width: 80, expanded: ['run-done'] })

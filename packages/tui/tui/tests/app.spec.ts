@@ -541,6 +541,380 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     await app.dispose()
   })
 
+  it('agent running 时 Esc → handleAbort（对齐 Claude Code 单次 Esc 打断）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('abort-esc')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const onExit = vi.fn()
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin, onExit })
+    await app.attach()
+    const id = app.sessionId
+    if (id === null) throw new Error('sessionId missing after attach')
+    const statusHandlers = ctx.on.mock.calls
+      .filter((call: unknown[]) => call[0] === 'agent/status')
+      .map(call => call[1] as (payload: { agent: { id: SessionId }; status: string }) => void)
+    for (const handler of statusHandlers) handler({ agent: { id }, status: 'running' })
+
+    // lone ESC 走 80ms 防误触超时才派发
+    stdin.emit('data', '\x1b')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    expect(onExit).not.toHaveBeenCalled()
+    expect(agent.cancel).toHaveBeenCalledTimes(1)
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('已取消')
+    await app.dispose()
+  })
+
+  it('空闲时 Esc → 无操作（不退出、不打断）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('idle-esc')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const onExit = vi.fn()
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin, onExit })
+    await app.attach()
+    const written0 = stdout.write.mock.calls.length
+    stdin.emit('data', '\x1b')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    expect(onExit).not.toHaveBeenCalled()
+    expect(agent.cancel).not.toHaveBeenCalled()
+    const written = stdout.write.mock.calls.slice(written0).map(c => `${c[0]}`).join('')
+    expect(written).not.toContain('已取消')
+    await app.dispose()
+  })
+
+  it('slash 菜单打开 + running + Esc → 关菜单不打断', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('slash-esc')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    const id = app.sessionId
+    if (id === null) throw new Error('sessionId missing after attach')
+    const statusHandlers = ctx.on.mock.calls
+      .filter((call: unknown[]) => call[0] === 'agent/status')
+      .map(call => call[1] as (payload: { agent: { id: SessionId }; status: string }) => void)
+    for (const handler of statusHandlers) handler({ agent: { id }, status: 'running' })
+    // 打开 slash 菜单（输入 / 触发）
+    stdin.emit('data', '/')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    stdin.emit('data', '\x1b')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    expect(agent.cancel).not.toHaveBeenCalled() // 关菜单优先,不打断
+    await app.dispose()
+  })
+
+  it('空闲双击 Esc → 打开 rewind overlay（CC 的 Esc+Esc 时间回溯）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('dbl-esc')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    // session.id 同步:transcript 过滤 owner.id === session.id
+    ;(agent.session as { id: SessionId }).id = app.sessionId ?? SessionId('dbl-esc')
+    // 会话需有消息（rewindSession 空消息不打开）
+    const bus = sessionEventBus(ctx)
+    const id = app.sessionId
+    if (id === null) throw new Error('sessionId missing')
+    bus(id, {
+      seq: 1, time: 1, type: 'assistant/message',
+      data: { turn: 1, step: 0, message: { role: 'assistant', content: [{ type: 'text', text: 'hi' }] }, usage: { inputTokens: 10, outputTokens: 5 } },
+    })
+    // 单次 Esc → 不打开
+    stdin.emit('data', '\x1b')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    let written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).not.toContain('rewind')
+    // 非 Esc 键清除待定双击窗口（避免单次检查污染下面的双击）
+    stdin.emit('data', 'x')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    // 窗口内双击 Esc → 打开（两次间隔 200ms < 1s 窗口；lone ESC 各走 80ms 派发）
+    stdin.emit('data', '\x1b')
+    await new Promise(resolve => setTimeout(resolve, 200))
+    stdin.emit('data', '\x1b')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('⟲ rewind 回退')
+    await app.dispose()
+  })
+
+  it('空闲双击 Esc：窗口外（>1s）第二次不触发 rewind', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('dbl-esc-out')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    ;(agent.session as { id: SessionId }).id = app.sessionId ?? SessionId('dbl-esc-out')
+    const bus = sessionEventBus(ctx)
+    const id = app.sessionId
+    if (id === null) throw new Error('sessionId missing')
+    bus(id, {
+      seq: 1, time: 1, type: 'assistant/message',
+      data: { turn: 1, step: 0, message: { role: 'assistant', content: [{ type: 'text', text: 'hi' }] }, usage: { inputTokens: 10, outputTokens: 5 } },
+    })
+    // 第一次 Esc → 记时间戳
+    stdin.emit('data', '\x1b')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    // 等窗口过期(1s)后再按第二次
+    await new Promise(resolve => setTimeout(resolve, 1100))
+    stdin.emit('data', '\x1b')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).not.toContain('⟲ rewind 回退')
+    await app.dispose()
+  })
+
+  describe('/cost 会话成本汇总', () => {
+    async function costSetup(agentId: string) {
+      const ctx = makeCtx()
+      const agent = makeAgent(agentId)
+      ctx.agents.create.mockResolvedValue(makeHandle(agent))
+      ctx.sessions.get.mockReturnValue(agent.session)
+      const stdout = makeStdout()
+      const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+      await app.attach()
+      return { ctx, stdout, app }
+    }
+
+    it('usage 事件按模型累计；/cost 输出明细与合计', async () => {
+      const { ctx, stdout, app } = await costSetup('cost-1')
+      const bus = sessionEventBus(ctx)
+      const id = app.sessionId
+      if (id === null) throw new Error('no active session')
+      // 模型 A 两次请求(累计)
+      bus(id, {
+        seq: 1, time: 1, type: 'request/header',
+        data: { header: { config: { provider: 'mock', model: 'deepseek-v4-flash' } }, reason: 'initial' },
+      })
+      bus(id, {
+        seq: 2, time: 2, type: 'assistant/message',
+        data: { turn: 1, step: 0, message: { role: 'assistant', content: [{ type: 'text', text: 'a' }] }, usage: { inputTokens: 1_000_000, outputTokens: 200_000 } },
+      })
+      bus(id, {
+        seq: 3, time: 3, type: 'assistant/message',
+        data: { turn: 1, step: 1, message: { role: 'assistant', content: [{ type: 'text', text: 'b' }] }, usage: { inputTokens: 500_000, outputTokens: 100_000 } },
+      })
+      // 模型 B 一次请求
+      bus(id, {
+        seq: 4, time: 4, type: 'request/header',
+        data: { header: { config: { provider: 'mock', model: 'deepseek-v4-pro' } }, reason: 'change' },
+      })
+      bus(id, {
+        seq: 5, time: 5, type: 'assistant/message',
+        data: { turn: 1, step: 2, message: { role: 'assistant', content: [{ type: 'text', text: 'c' }] }, usage: { inputTokens: 500_000, outputTokens: 100_000 } },
+      })
+      app.handleSubmit('/cost')
+      await new Promise(resolve => setImmediate(resolve))
+      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('会话成本统计')
+      expect(written).toContain('deepseek-v4-flash')
+      expect(written).toContain('输入 1.50M')
+      expect(written).toContain('输出 300k')
+      expect(written).toContain('deepseek-v4-pro')
+      expect(written).toContain('合计:输入 2.00M')
+      await app.dispose()
+    })
+
+    it('/cost 无用量数据 → 占位提示', async () => {
+      const { stdout, app } = await costSetup('cost-empty')
+      app.handleSubmit('/cost')
+      await new Promise(resolve => setImmediate(resolve))
+      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('（本会话尚无用量数据）')
+      await app.dispose()
+    })
+  })
+
+  it('会话 tab 栏：多会话 attach 渲染（当前 ●）；Ctrl+X 切下一个；Alt+2 跳转', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('tab-1')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const s1 = SessionId('session-tab-one')
+    const s2 = SessionId('session-tab-two')
+    const s3 = SessionId('session-tab-three')
+    const headerOf = (id: SessionId, createdAt: number) => ({
+      id, createdAt, version: 0, cwd: undefined, parentSession: undefined,
+    })
+    // listSessions 按 createdAt 降序（新→旧）——s1 最新保证 tab 序 [s1,s2,s3]
+    ctx.sessions.list.mockReturnValue([
+      { id: s1, header: headerOf(s1, Date.now() - 1_000), events: [] },
+      { id: s2, header: headerOf(s2, Date.now() - 2_000), events: [] },
+      { id: s3, header: headerOf(s3, Date.now() - 3_000), events: [] },
+    ])
+    ctx.agents.get.mockReturnValue(agent)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    expect(app.sessionId).toBe(s1)
+    // tab 栏渲染：短 id + 当前 ●（s1 当前）
+    await new Promise(resolve => setTimeout(resolve, 50))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('session-tab-one'.slice(0, 8) + '●')
+    // Ctrl+X → 下一个（s2）
+    stdin.emit('data', '\x18')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(app.sessionId).toBe(s2)
+    // Alt+3 → 跳第 3 个（s3）
+    stdin.emit('data', '\x1b3')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(app.sessionId).toBe(s3)
+    // Alt+9 越界 → 无操作（仍 s3）
+    stdin.emit('data', '\x1b9')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(app.sessionId).toBe(s3)
+    await app.dispose()
+  })
+
+  it('会话 tab 栏：仅一个会话时不渲染 tab 行', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('tab-1')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const only = SessionId('session-tab-only')
+    ctx.sessions.list.mockReturnValue([
+      { id: only, header: { id: only, createdAt: Date.now(), version: 0, cwd: undefined, parentSession: undefined }, events: [] },
+    ])
+    ctx.agents.get.mockReturnValue(agent)
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.attach()
+    await new Promise(resolve => setTimeout(resolve, 50))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    // 单会话：tab 行不渲染（避免占一行）
+    expect(written).not.toContain('session-tab-only'.slice(0, 8) + '●')
+    await app.dispose()
+  })
+
+  describe('Issue #31 交互式选择器（/model /theme /session 无参打开）', () => {
+    /** attach 模式 boot（键盘链路在 attach 注册）。 */
+    async function bootPicker() {
+      const ctx = makeCtx()
+      const handlers = new Map<string, Array<(...args: unknown[]) => void>>()
+      ctx.on.mockImplementation((name: string, h: (...args: unknown[]) => void) => {
+        const list = handlers.get(name) ?? []
+        list.push(h)
+        handlers.set(name, list)
+        return () => { }
+      })
+      ctx.agents.create.mockImplementation(({ sessionId }: { sessionId: string }) => {
+        const agent = makeAgent(sessionId)
+        ctx.sessions.get.mockReturnValue(agent.session)
+        return makeHandle(agent)
+      })
+      const stdin = makeStdin()
+      const stdout = makeStdout()
+      const app = new TuiApp({ ctx, stdout, stdin })
+      await app.attach()
+      const written = () => stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      const type = async (text: string) => {
+        for (const ch of text) stdin.emit('data', ch)
+        stdin.emit('data', '\r')
+        await new Promise(resolve => setTimeout(resolve, 30))
+      }
+      return { ctx, stdin, stdout, app, written, type }
+    }
+
+    it('/theme 无参 → 选择器打开（当前 ● 高亮）；↑ 选择 + Enter 切换主题', async () => {
+      const { stdin, app, written, type } = await bootPicker()
+      // attach 的 autoTheme 会覆盖测试预设主题——在 attach 后固定。
+      setTheme('graphite')
+      await type('/theme')
+      expect(written()).toContain('选择主题')
+      expect(written()).toContain('graphite（当前）')
+      // graphite 前一档是 cobalt（THEME_PALETTES 键序）；↑ 选中 + Enter 确认
+      stdin.emit('data', '\x1b[A')
+      stdin.emit('data', '\r')
+      await new Promise(resolve => setTimeout(resolve, 30))
+      expect(getActiveThemeName()).toBe('cobalt')
+      await app.dispose()
+    })
+
+    it('/theme 打开后 Esc 关闭选择器（不切换）', async () => {
+      const { stdin, stdout, app, written, type } = await bootPicker()
+      // attach 的 autoTheme 会覆盖测试预设主题——在 attach 后固定。
+      setTheme('graphite')
+      await type('/theme')
+      expect(written()).toContain('选择主题')
+      stdin.emit('data', '\x1b') // Esc
+      await new Promise(resolve => setTimeout(resolve, 30))
+      const before = stdout.write.mock.calls.length
+      stdin.emit('data', '\r') // 空输入 Enter：选择器已关闭，无操作
+      await new Promise(resolve => setTimeout(resolve, 30))
+      const after = stdout.write.mock.calls.slice(before).map(c => `${c[0]}`).join('')
+      expect(after).not.toContain('选择主题')
+      expect(getActiveThemeName()).toBe('graphite')
+      await app.dispose()
+    })
+
+    it('/model 无参 → 模型选择器（llm 目录 + 当前 ● 高亮）；Enter 确认持久化 + 热切', async () => {
+      const { ctx, stdin, app, written, type } = await bootPicker()
+      const currentSelection = vi.fn(() => ({ provider: 'deepseek-official', model: 'deepseek-v4-pro' }))
+      const saveSelection = vi.fn(async () => {})
+      ctx.agentDefaultModel = { currentSelection, saveSelection } as never
+      ctx.reflect.get.mockImplementation((name: string) => {
+        if (name === 'llm') {
+          return {
+            listProviders: () => [{ id: 'deepseek-official', name: 'DeepSeek' }],
+            listModels: async () => [
+              { id: 'deepseek-v4-flash', name: 'Flash' },
+              { id: 'deepseek-v4-pro', name: 'Pro' },
+            ],
+            // switchLiveModel → refreshVisionForSelection 会查模型模态
+            resolveModelInfo: async () => ({ inputModalities: undefined }),
+          }
+        }
+        return undefined
+      })
+      await type('/model')
+      expect(written()).toContain('选择模型')
+      expect(written()).toContain('deepseek-official/deepseek-v4-pro（当前）')
+      // 当前 pro 已选中；Enter 确认 → saveSelection + 热切（不重新选择）
+      stdin.emit('data', '\r')
+      await new Promise(resolve => setTimeout(resolve, 30))
+      expect(saveSelection).toHaveBeenCalledWith({ provider: 'deepseek-official', model: 'deepseek-v4-pro' })
+      await app.dispose()
+    })
+
+    it('/session 无参 → 会话选择器（列表渲染 + 当前 ● 高亮）', async () => {
+      const { ctx, app, written, type } = await bootPicker()
+      const headerOf = (id: string, createdAt: number) => ({
+        id: SessionId(id), createdAt, version: 0, cwd: undefined, parentSession: undefined,
+      })
+      ctx.sessions.list.mockReturnValue([
+        { id: 's-1', header: headerOf('s-1', 1_000) },
+        { id: 's-2', header: headerOf('s-2', 2_000) },
+      ])
+      await type('/session')
+      expect(written()).toContain('选择会话')
+      expect(written()).toContain('s-1')
+      expect(written()).toContain('s-2')
+      await app.dispose()
+    })
+  })
+
   it('dispose 先 flushAll 再释放 owned handle', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('order-1')
@@ -1787,11 +2161,11 @@ describe('TuiApp Phase 6.1 slash 命令系统', () => {
 
     const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
     await app.newSession()
-    app.handleSubmit('/help')
+    app.handleSubmit('/zzz')
     await new Promise(resolve => setImmediate(resolve))
 
     expect(agent.followup).not.toHaveBeenCalled()
-    expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('未知命令: /help')
+    expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('未知命令: /zzz')
     await app.dispose()
   })
 
@@ -2460,7 +2834,7 @@ describe('TuiApp T2.1/T2.2 多 agent 面板接线（委派树 + workflow 运行�
     await app.dispose()
   })
 
-  it('/workflow 事件订阅驱动面板渲染（start/agent-start/end → 缓存行）', async () => {
+  it('/workflow 事件订阅驱动面板渲染（start 带 meta/agent-start/end → 缓存行）', async () => {
     const ctx = makeCtx()
     ctx.agents.create.mockImplementation(({ sessionId }: { sessionId: string }) => {
       const agent = makeAgent(sessionId)
@@ -2478,7 +2852,10 @@ describe('TuiApp T2.1/T2.2 多 agent 面板接线（委派树 + workflow 运行�
     const app = new TuiApp({ ctx, stdout, stdin })
     await app.attach()
     const fire = (name: string, ...args: unknown[]) => { listeners.get(name)?.(...args) }
-    fire('workflow/start', { id: 'wf-1' })
+    fire('workflow/start', {
+      id: 'wf-1',
+      meta: { name: '调研脚本', description: '多 agent 调研', phases: [{ title: '准备' }, { title: '调研' }, { title: '收尾' }] },
+    })
     fire('workflow/phase', { id: 'wf-1' }, '调研') // 属主第二参为裸 string（dsh-workflow Events）
     fire('workflow/agent-start', { id: 'wf-1' }, { seq: 1, label: '调研员' })
     fire('workflow/agent-end', { id: 'wf-1' }, { seq: 1, label: '调研员', outcome: 'completed' })
@@ -2489,9 +2866,12 @@ describe('TuiApp T2.1/T2.2 多 agent 面板接线（委派树 + workflow 运行�
     await new Promise(resolve => setImmediate(resolve))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('📜 工作流')
-    // 终态 run 折叠进缓存：列表行含 phase 标题（[调研]）与 agent 计数。
-    expect(written).toContain('[调研]')
+    // 终态 run 折叠进缓存：列表行含真实 run 名（meta.name，非 phase）、阶段数、
+    // 描述（含注入的 run id 后缀）与 agent 计数。
+    expect(written).toContain('[调研脚本]')
+    expect(written).toContain('3 阶段')
     expect(written).toContain('1 个 agent')
+    expect(written).toContain('多 agent 调研 (wf-1)')
     await app.dispose()
   })
 })
@@ -3934,7 +4314,7 @@ describe('TuiApp subagent / workflow / tasks 服务接线', () => {
     await app.dispose()
   })
 
-  it('/workflow 渲染运行中 run（phase null → id）与终态 error 折叠', async () => {
+  it('/workflow 渲染运行中 run（meta 缺省 → name 回退 id）与终态 error 折叠', async () => {
     const ctx = makeCtx()
     const handlers = new Map<string, Array<(...args: unknown[]) => void>>()
     ctx.on.mockImplementation((name: string, h: (...args: unknown[]) => void) => {
@@ -3956,8 +4336,8 @@ describe('TuiApp subagent / workflow / tasks 服务接线', () => {
     // 运行中：start + agent-start（无 agent-end）→ outcome 缺省 completed
     fire('workflow/start', { id: 'wf-running' })
     fire('workflow/agent-start', { id: 'wf-running' }, { seq: 1, label: '研究员' })
-    // 终态：start + agent-start + end（无 phase、带 error）→ phase ?? id + error 进
-    // meta；agent 无 outcome → 折叠视图 outcome 缺省 completed（?? 右侧）
+    // 终态：start + agent-start + end（无 meta/phase、带 error）→ name 回退 id、
+    // error 进汇总；agent 无 outcome → 折叠视图 outcome 缺省 completed（?? 右侧）
     fire('workflow/start', { id: 'wf-done' })
     fire('workflow/agent-start', { id: 'wf-done' }, { seq: 1, label: '助手' })
     fire('workflow/end', { id: 'wf-done' }, { stopReason: 'error', error: '网络失败' })
@@ -3966,6 +4346,79 @@ describe('TuiApp subagent / workflow / tasks 服务接线', () => {
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('wf-running')
     expect(written).toContain('wf-done')
+    await app.dispose()
+  })
+
+  it('workflow run 时长渲染真实流逝（startedAt 差值,非时间戳）', async () => {
+    const ctx = makeCtx()
+    const handlers = new Map<string, Array<(...args: unknown[]) => void>>()
+    ctx.on.mockImplementation((name: string, h: (...args: unknown[]) => void) => {
+      const list = handlers.get(name) ?? []
+      list.push(h)
+      handlers.set(name, list)
+      return () => { }
+    })
+    const agent = makeAgent('wf-elapsed')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+    // 只 fake Date（不动 setTimeout/setImmediate——ticker 与渲染调度保持真实，
+    // 避免 runAllTimers 无限 flush setInterval）：startedAt 与渲染时点都在
+    // fake 时钟下取值，差值可精确断言。
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    try {
+      await app.attach()
+      const fire = (name: string, ...args: unknown[]) => {
+        for (const h of handlers.get(name) ?? []) h(...args)
+      }
+      vi.setSystemTime(1_000_000)
+      fire('workflow/start', { id: 'wf-live' })
+      fire('workflow/start', { id: 'wf-settled' })
+      vi.setSystemTime(1_080_000) // +80s
+      fire('workflow/end', { id: 'wf-settled' }, { stopReason: 'completed' })
+      app.handleSubmit('/workflow')
+      await new Promise(resolve => setImmediate(resolve))
+      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      // 运行中与已结算 run 都按 startedAt 差值渲染（此前误填时间戳 → 数十万年，
+      // 绝不可能出现 '1m20s'）——两个 run 各一段时长
+      expect(written.match(/1m20s/g)).toHaveLength(2)
+    } finally {
+      vi.useRealTimers()
+    }
+    await app.dispose()
+  })
+
+  it('workflow/log 叙述行进运行中 run 展开视图（⤷ 行 + roster 自动展开）', async () => {
+    const ctx = makeCtx()
+    ctx.agents.create.mockImplementation(({ sessionId }: { sessionId: string }) => {
+      const agent = makeAgent(sessionId)
+      ctx.sessions.get.mockReturnValue(agent.session)
+      return makeHandle(agent)
+    })
+    const listeners = new Map<string, (...args: unknown[]) => void>()
+    ctx.on.mockImplementation((name: string, handler: (...args: unknown[]) => void) => {
+      listeners.set(name, handler)
+      return () => { listeners.delete(name) }
+    })
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    const fire = (name: string, ...args: unknown[]) => { listeners.get(name)?.(...args) }
+    fire('workflow/start', { id: 'wf-log', meta: { name: '日志脚本' } })
+    fire('workflow/log', { id: 'wf-log' }, '第一批任务完成') // 属主第二参为裸 string
+    fire('workflow/log', { id: 'wf-log' }, '第二批任务完成')
+    fire('workflow/agent-start', { id: 'wf-log' }, { seq: 1, label: '执行员' })
+    await new Promise(resolve => setImmediate(resolve))
+    for (const ch of '/workflow') stdin.emit('data', ch)
+    stdin.emit('data', '\r')
+    await new Promise(resolve => setImmediate(resolve))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    // 运行中 run 自动展开：叙述行与 roster 行可见
+    expect(written).toContain('⤷ 第一批任务完成')
+    expect(written).toContain('⤷ 第二批任务完成')
+    expect(written).toContain('1. 执行员')
     await app.dispose()
   })
 
@@ -4540,9 +4993,9 @@ describe('TuiApp 监听器生命周期（?? 短路 + 泄漏回归）', () => {
       .map((c, i) => ({ name: `${c[0]}`, i }))
       .filter(x => x.name.startsWith('workflow/'))
       .map(x => x.i)
-    expect(wfIdx.length).toBe(5) // start/phase/agent-start/agent-end/end
+    expect(wfIdx.length).toBe(6) // start/phase/log/agent-start/agent-end/end
     const disposers = wfIdx.map(i => ctx.on.mock.results[i]!.value as () => boolean)
-    // 切换会话 → detachProjections 应注销全部五个（当前实现只保存 start 的）
+    // 切换会话 → detachProjections 应注销全部六个（当前实现只保存 start 的）
     const second = makeAgent('wf-leak-2')
     ctx.agents.resume.mockResolvedValue(makeHandle(second))
     ctx.sessions.get.mockReturnValue(second.session)
@@ -4624,6 +5077,16 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
     app.handleSubmit('/exit')
     await new Promise(resolve => setImmediate(resolve))
     expect(onExit).toHaveBeenCalledTimes(1)
+    await app.dispose()
+  })
+
+  it('/restart 触发 onRestart（#34：dispose + 同命令重启装配方回调）', async () => {
+    const onRestart = vi.fn()
+    const { app } = boot({ onRestart })
+    await app.attach()
+    app.handleSubmit('/restart')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onRestart).toHaveBeenCalledTimes(1)
     await app.dispose()
   })
 
@@ -4866,14 +5329,14 @@ describe('slash 命令菜单接线（grok slash_dropdown 移植）', () => {
   it('Enter 精确命令：菜单关闭、提交且输入行清空', async () => {
     const { stdin, stdout, app } = boot()
     await app.attach()
-    for (const ch of ['/', 't', 'h', 'e', 'm', 'e']) stdin.emit('data', ch)
+    // /theme 无参现会打开选择器（#31）——用无回显的 /effort 测「精确命令 Enter 提交」
+    for (const ch of ['/', 'e', 'f', 'f', 'o', 'r', 't']) stdin.emit('data', ch)
     await writtenOf(stdout)
     stdout.write.mockClear() // 只统计 Enter 后的渲染
     stdin.emit('data', '\r')
     const written = await writtenOf(stdout)
-    expect(written).not.toContain('切换主题')
-    // 输入行清空（对齐正常提交路径；菜单提交不清空会残留 /theme）
-    expect(written).not.toContain('❯ /theme')
+    expect(written).not.toContain('❯ /effort')
+    // 输入行清空（对齐正常提交路径；菜单提交不清空会残留 /effort）
     expect(written.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '')).toContain('❯ █')
     expect(written).not.toContain('询问任何事')
     await app.dispose()
@@ -4941,15 +5404,16 @@ describe('slash 菜单阶段 2 接线（ghost 预览 / 参数模式 / MRU）', (
   it('参数模式：/cmd + 尾空格 → ghost 显示参数占位，Enter 提交完整行', async () => {
     const { stdin, stdout, app } = boot()
     await app.attach()
-    for (const ch of ['/', 't', 'h', 'e', 'm', 'e', ' ']) stdin.emit('data', ch)
+    // /theme 无参现会打开选择器（#31）——用带 argsHint 且无参安全的 /effort
+    for (const ch of ['/', 'e', 'f', 'f', 'o', 'r', 't', ' ']) stdin.emit('data', ch)
     await writtenOf(stdout)
-    // ghost 显示 argsHint 参数占位（/theme 的 argsHint 为 <name>）
+    // ghost 显示 argsHint 参数占位（/effort 的 argsHint 为 [off|high|max|auto]）
     const before = await writtenOf(stdout)
-    expect(before).toContain('\x1B[2m<name>\x1B[22m')
+    expect(before).toContain('\x1B[2m[off|high|max|auto]\x1B[22m')
     stdout.write.mockClear()
     stdin.emit('data', '\r')
     const after = await writtenOf(stdout)
-    // 提交后输入行清空（命令执行走 /theme 切换）
+    // 提交后输入行清空（命令执行走 /effort 无参回显）
     expect(after.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '')).toContain('❯ █')
     expect(after).not.toContain('询问任何事')
     await app.dispose()

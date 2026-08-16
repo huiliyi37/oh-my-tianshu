@@ -19,6 +19,7 @@ import type { Context } from '@huiliyi37/cordis'
 import type { SessionId } from '@huiliyi37/dsh-session'
 import type { Agent } from '@huiliyi37/dsh-agent'
 import { getActiveThemeName, setTheme, THEME_NAMES } from '../theme.js'
+import { formatWireSurface, wirePhaseLabel, wireToolNames } from '../preset-surface.js'
 import { listSessions, loadHistory } from '../adapter/sessions.js'
 import { sessionTitleFor } from '../adapter/session-title.js'
 import { collectDoctorReport, getDoctorFixGuidance } from '../format/doctor-report.js'
@@ -81,7 +82,7 @@ interface CompactFacet {
 }
 
 /** /model 所需的最小 agent-default-model 服务面（不引入 dsh-agent-default-model 依赖）。 */
-interface ModelFacet {
+export interface ModelFacet {
   currentSelection(): { provider: string; model: string; reasoningEffort?: string }
   saveSelection(next: { provider: string; model: string; reasoningEffort?: string }): Promise<void>
 }
@@ -144,7 +145,7 @@ interface MemoryFacet {
  * /subagents、/workflow、/tasks 的命令定义在 createBuiltinCommands（deps 注入
  * TuiApp 的显隐切换）；/status 保持 TuiApp 内注册。
  */
-export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'preset', 'tasks', 'density', 'goal', 'status', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'export', 'exit', 'yolo'] as const
+export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'preset', 'tasks', 'density', 'goal', 'status', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'export', 'exit', 'yolo', 'cost', 'help', 'restart'] as const
 
 /**
  * /model 一键切换别名（TUI 便捷层）：展开为 deepseek-spark route 的
@@ -288,12 +289,22 @@ export interface BuiltinCommandDeps {
   exportTranscript(path?: string): Promise<string>
   /** /exit：请求退出 TUI（与 Ctrl+Q 同一 onExit 路径）。 */
   requestExit(): void
+  /** /restart：以相同命令重启当前 dsh 进程（dispose → spawn 同 argv → 退出）。 */
+  requestRestart(): void
   /** /preset：当前会话的 agent（recompose/composedPreset 的 agentCtx 来源；无会话为 null）。 */
   currentAgent(): Agent | null
   /** /preset：当前会话是否 blank（无消息且无进行中工具调用）——recompose 的调用方契约。 */
   isBlankSession(): boolean
   /** /yolo：开启/关闭全放行模式（approval always-approve 快捷入口）。 */
   setYoloMode(flag: boolean): void
+  /** /cost：当前会话累计用量与成本报告行（app 侧汇总；无数据时返回占位行）。 */
+  sessionCostReport(): string[]
+  /** #31：打开模型选择器（上下键选择替代命令参数输入）。 */
+  openModelPicker(): void
+  /** #31：打开主题选择器。 */
+  openThemePicker(): void
+  /** #31：打开会话选择器。 */
+  openSessionPicker(): void
 }
 
 /**
@@ -311,7 +322,8 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
       run: ({ text, echo }) => {
         const name = text.trim()
         if (name === '') {
-          echo(`用法: /theme <name>。可用: ${THEME_NAMES.join(', ')}`)
+          // #31：无参打开主题选择器（上下键选择替代命令输入）。
+          deps.openThemePicker()
           return
         }
         if (setTheme(name)) echo(`主题已切换: ${name}`)
@@ -325,6 +337,11 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
       run: async ({ text, echo, ctx }) => {
         /* v8 ignore next -- split(/\s+/) 恒返回非空数组，[0] 必有值；noUncheckedIndexedAccess 收窄防御 */
         const sub = text.split(/\s+/)[0] ?? ''
+        if (sub === '') {
+          // #31：无参打开会话选择器（上下键选择替代命令输入；当前会话 ● 高亮）。
+          deps.openSessionPicker()
+          return
+        }
         if (sub === 'new') {
           const id = await deps.newSession()
           echo(`已新建会话: ${id}`)
@@ -404,10 +421,8 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
         const current = facet.currentSelection()
         const raw = text.trim()
         if (raw === '') {
-          const effortPart = current.reasoningEffort === undefined
-            ? ''
-            : ` (effort: ${current.reasoningEffort})`
-          echo(`当前模型: ${current.provider}/${current.model}${effortPart}`)
+          // #31：无参打开模型选择器（上下键选择替代命令输入；当前值 ● 高亮）。
+          deps.openModelPicker()
           return
         }
         // 解析：目标（别名或 provider/model）与可选 effort（空格分隔，grok 同款形状）。
@@ -512,7 +527,19 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
               : ` — ${preset.description}`
             echo(` ${mark} ${name} (${preset.id})${desc}`)
           }
-          echo(current === undefined ? '当前: 未装配（host 默认）' : `当前: ${current}`)
+          // 当前预设行追加 wire 工具面（最近 request/header 的实际工具 schema，
+          // 含 preset 过滤器作用后的最终面——日志事实，非插件内部状态）。
+          // 梁神类两阶段 preset 下：双工具面 = 锚定面，run_code = PTC 面。
+          let currentLine = current === undefined ? '当前: 未装配（host 默认）' : `当前: ${current}`
+          if (agent !== null) {
+            const wire = wireToolNames(agent.session.events)
+            const surface = formatWireSurface(wire)
+            if (surface !== undefined) {
+              const phase = wirePhaseLabel(wire)
+              currentLine += ` · wire: ${surface}${phase === undefined ? '' : `（${phase}）`}`
+            }
+          }
+          echo(currentLine)
           return
         }
         const agent = deps.currentAgent()
@@ -872,6 +899,11 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
       run: () => { deps.requestExit() },
     },
     {
+      name: 'restart',
+      description: '重启当前 dsh 进程（同命令重新启动）',
+      run: () => { deps.requestRestart() },
+    },
+    {
       name: 'yolo',
       description: '全放行模式：审批不再逐项询问（on 开启 / off 关闭；等价 Shift+Tab 进 always-approve）',
       argsHint: 'on|off',
@@ -891,6 +923,44 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
         }
         deps.setYoloMode(true)
         echo('全放行模式已开启：后续审批请求自动放行（/yolo off 关闭，退出会话复位）')
+      },
+    },
+    {
+      name: 'cost',
+      description: '当前会话累计用量与成本估算（按模型分桶）',
+      argsHint: '',
+      run: ({ echo }) => {
+        for (const line of deps.sessionCostReport()) echo(line)
+      },
+    },
+    {
+      name: 'help',
+      description: '列出全部命令与用法（/help <cmd> 查看单条详情）',
+      argsHint: '[cmd]',
+      run: ({ text, echo, ctx }) => {
+        // 注册表经 ctx.provide('tui.commands') 暴露（app.ts）；取不到时 fails loud。
+        const registry = (ctx as unknown as { tui?: { commands?: { list(): SlashCommand[] } } })
+          .tui?.commands
+        if (registry === undefined) {
+          echo('⚠ 命令注册表服务不可用')
+          return
+        }
+        const all = registry.list()
+        const target = text.trim()
+        if (target !== '') {
+          const command = all.find(c => c.name === target)
+          if (command === undefined) {
+            echo(`未知命令: /${target}（/help 查看全部命令）`)
+            return
+          }
+          echo(`/${command.name}${command.argsHint === undefined ? '' : ` ${command.argsHint}`} — ${command.description}`)
+          return
+        }
+        echo(`全部命令（${all.length} 条）:`)
+        for (const command of all) {
+          echo(`  /${command.name}${command.argsHint === undefined ? '' : ` ${command.argsHint}`} — ${command.description}`)
+        }
+        echo('快捷键见 Ctrl+. 键位表')
       },
     },
   ]

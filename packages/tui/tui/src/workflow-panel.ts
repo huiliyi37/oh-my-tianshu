@@ -64,6 +64,8 @@ export interface WorkflowRunView {
   result?: WorkflowResultInfoInput
   /** 已运行时长（毫秒）；缺省不渲染时间段。 */
   elapsedMs?: number
+  /** 脚本叙述行（workflow/log 回放；缺省/空数组不渲染）。 */
+  logs?: string[]
 }
 
 /** 面板选项。 */
@@ -167,6 +169,18 @@ function projectRosterRows(view: WorkflowRunView, width: number): string[] {
 }
 
 /**
+ * 脚本叙述行（workflow/log 回放）：缩进 + 截断；logs 缺省/空数组不渲染。
+ * @param view - run 运行态视图。
+ * @param width - 行截断预算。
+ * @returns 叙述行数组（无 logs 时为空数组）。
+ */
+function projectLogRows(view: WorkflowRunView, width: number): string[] {
+  const logs = view.logs
+  if (logs === undefined || logs.length === 0) return []
+  return logs.map(line => truncateByWidth(`  ⤷ ${line}`, width))
+}
+
+/**
  * 终态汇总行：消费 stopReason/agentsStarted，error 消息可选。
  * @param view - run 运行态视图。
  * @param width - 行截断预算。
@@ -195,6 +209,7 @@ export function projectWorkflow(runs: WorkflowRunView[], opts: WorkflowPanelOpti
   for (const view of runs) {
     rows.push(projectListRow(view, opts.width))
     if (expanded !== undefined && expanded.includes(view.info.id)) {
+      rows.push(...projectLogRows(view, opts.width))
       rows.push(...projectRosterRows(view, opts.width))
       rows.push(...projectResultRow(view, opts.width))
     }

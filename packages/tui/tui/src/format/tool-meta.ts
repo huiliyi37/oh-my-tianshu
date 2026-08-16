@@ -25,9 +25,13 @@ const TOOL_MAP: Record<string, ToolFamilyInfo> = {
   glob:            { family: 'find',  verb: 'find'   },
   grep:            { family: 'find',  verb: 'search' },
   bash:            { family: 'run',   verb: 'run'    },
+  // PTC/Code Mode 单一执行工具（wire 上模型直呼 run_code；标题走 run 族）。
+  run_code:        { family: 'run',   verb: 'run'    },
   edit_file:       { family: 'write', verb: 'patch'  },
   write_file:      { family: 'write', verb: 'write'  },
   apply_patch:     { family: 'write', verb: 'patch'  },
+  // Minimal/极简锚定 phase 的文件编辑工具（继承宿主沙箱；标题走 write 族）。
+  str_replace_editor: { family: 'write', verb: 'patch' },
   run_tests:       { family: 'run',   verb: 'test'   },
   delegate_task:   { family: 'run',   verb: 'delegate' },
   delegate_batch:  { family: 'run',   verb: 'batch'  },
@@ -82,6 +86,14 @@ export function toolArgSummary(name: string, input: Record<string, unknown>): st
     case 'bash':
       /* v8 ignore next -- split('\n') 恒返回非空数组，[0] 恒存在；noUncheckedIndexedAccess 收窄防御 */
       return truncate(textOf(input.command).split('\n')[0] ?? '', 55)
+    case 'run_code':
+      // PTC 单一执行工具：schema 必填 code（执行代码）与 description；摘录
+      // code 首行（与 bash command 同模式），description 兜底。
+      return truncate(
+        (textOf(input.code).split('\n')[0] ?? '')
+          || textOf(input.description),
+        55,
+      )
     case 'grep':
     case 'glob':
     case 'semantic_search':

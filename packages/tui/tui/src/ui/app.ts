@@ -19,7 +19,8 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { execSync } from 'node:child_process'
+import { execFileSync, execSync } from 'node:child_process'
+import { estimateCost } from '../format/pricing.js'
 import { readFileSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
@@ -56,8 +57,9 @@ import { trackAgent, type LiveAgent } from '../adapter/live.js'
 import { controlsFromHandle, controlsFromRegistry, type AgentControls } from '../adapter/send.js'
 import { listSessions, flushAll, getSession, type SessionSummary } from '../adapter/sessions.js'
 import { supportsOsc52 } from '../term-caps.js'
-import { getTheme, getActiveThemeName, setTheme, type RivetTheme } from '../theme.js'
+import { getTheme, getActiveThemeName, setTheme, THEME_NAMES, type RivetTheme, type ThemeName } from '../theme.js'
 import { displayWidth, ambiguousWideEnabled } from '../width.js'
+import { PickerController, type PickerItem } from '../picker.js'
 import { detectTerminalBackground, autoThemeFor } from '../theme-detect.js'
 import { formatUserMessage } from '../format/user-message.js'
 import { formatSteerMessage } from '../format/steer-message.js'
@@ -65,6 +67,8 @@ import { formatToolCardLive, toolCardTitle } from '../format/tool-card.js'
 import { lspBadgeText } from '../format/lsp-diagnostics.js'
 import { formatToolViewCard } from '../format/tool-view-card.js'
 import { formatReasoningBlock, formatReasoningLive, reasoningTailBudget } from '../format/reasoning.js'
+import { accumulateUsage, formatSessionCostReport, type SessionCostBucket } from '../format/session-cost.js'
+import { formatSessionTabs, type SessionTab } from '../format/session-tabs.js'
 import { renderKeymapPanel } from '../format/keymap-panel.js'
 import { renderSessionExport } from '../format/export.js'
 import type { TaskItem } from '../format/task-panel.js'
@@ -157,9 +161,22 @@ interface TaskSnapshotView {
   readonly startedAt: number
 }
 
-/** T2.2：workflow/start|phase|agent-start|agent-end|end 事件 payload 的最小 wire 形状。 */
+/** T2.2：workflow/start|phase|log|agent-start|agent-end|end 事件 payload 的最小 wire 形状。 */
 interface WorkflowRunInfoWire {
   readonly id: string
+  /** run 的 meta 块（workflow/start 携带；可选——旧形状事件无 meta 时回退 id）。 */
+  readonly meta?: WorkflowMetaWire
+}
+interface WorkflowMetaWire {
+  readonly name: string
+  readonly description?: string
+  readonly phases?: { title: string }[]
+}
+/** 规范化后的 run meta（创建时 name/description 必有值；与 WorkflowMetaInput 形状一致）。 */
+interface WorkflowMetaNormalized {
+  readonly name: string
+  readonly description: string
+  readonly phases?: { title: string }[]
 }
 interface WorkflowAgentWire {
   readonly seq: number
@@ -174,13 +191,22 @@ interface WorkflowResultWire {
   readonly error?: string
 }
 
+/** 单个 run 保留的最近叙述行上限（workflow/log drop-oldest 防刷屏）。 */
+const WORKFLOW_LOG_CAP = 20
+
 /** T2.2：运行中 workflow 缓存项（key = payload.id；随 start 建、end 移除）。 */
 interface WorkflowRunState {
   readonly id: string
+  /** run 的 meta 块（start 事件携带，创建时规范化——name 缺省回退 id，description 缺省空串）。 */
+  readonly meta: WorkflowMetaNormalized
+  /** run 开始时间（start 事件落地；elapsedMs 数据源）。 */
+  readonly startedAt: number
   /** 最近一次 workflow/phase 标题；无 phase 事件时为 null。 */
   phase: string | null
   /** 已建立的 agent() 调用（agent-start 追加，agent-end 标记 outcome）。 */
   agents: { seq: number; label: string; outcome?: 'completed' | 'failed' | 'cancelled' }[]
+  /** 脚本叙述行（workflow/log；cap 20 drop-oldest 防刷屏）。 */
+  logs: string[]
 }
 import { WorkflowStatusLine } from '../statusline.js'
 import {
@@ -188,6 +214,7 @@ import {
   SlashCommandRegistry,
   createBuiltinCommands,
   resolveSlashCommand,
+  type ModelFacet,
 } from '../commands/registry.js'
 import { renderTranscript, parseToolArguments, toolResultText, type RenderedRow } from './render.js'
 import { CommandPalette } from '../command-palette.js'
@@ -282,6 +309,8 @@ export interface TuiAppOptions {
   theme?: string
   /** 输入行为空时 Ctrl+C 连按两次的退出回调（raw-mode 下 Ctrl+C 是数据字节非 SIGINT；窗口内第二次触发）。 */
   onExit?: () => void
+  /** /restart：请求重启当前 dsh 进程（装配方负责 dispose + spawn 同 argv + 退出）。 */
+  onRestart?: () => void
   /** 外部编辑器触发键（KeyName）；缺省 'ctrl_e'（ctrl+o 已恢复为推理展开，Phase 6.4）。 */
   editorKey?: KeyName
   /** 外部编辑器命令；缺省 $VISUAL/$EDITOR/平台缺省（测试注入点）。 */
@@ -317,6 +346,10 @@ export interface TuiAppOptions {
 /** live 区预留行（顶轨 + 输入 + 底轨 + footer）。 */
 const LIVE_RESERVED_ROWS = 4
 
+/** 双击 Esc 触发 rewind 的窗口（ms；对齐 Claude Code 的 Esc+Esc 时间回溯）。
+ *  比 Ctrl+C 双击退出的 2s 短——rewind 是高频操作，双击节奏更跟手。 */
+const REWIND_DOUBLE_ESC_MS = 1000
+
 /** C3 项 3：写工具名判定（与 fs-snapshot 的 trackEdit 钩子同一集合）。 */
 function isWriteToolCall(name: string): boolean {
   return name === 'write' || name === 'edit' || name === 'str_replace_editor'
@@ -337,7 +370,7 @@ function normalizeSubmitImages(images?: string[]): string[] | undefined {
 /** 检测当前目录是否为 git 仓库（静默，失败返回 false）。 */
 function isGitRepo(): boolean {
   try {
-    execSync('git rev-parse --is-inside-work-tree', { stdio: 'pipe', encoding: 'utf-8' })
+    execFileSync('git', ['rev-parse', '--is-inside-work-tree'], { stdio: 'pipe', encoding: 'utf-8' })
     return true
   } catch {
     return false
@@ -350,13 +383,30 @@ function isGitRepo(): boolean {
  */
 function gitBranch(): string | undefined {
   try {
-    const out = execSync('git rev-parse --abbrev-ref HEAD', {
+    const out = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
       stdio: ['ignore', 'pipe', 'ignore'],
       encoding: 'utf-8',
     }).trim()
     return out === '' || out === 'HEAD' ? undefined : out
   } catch {
     return undefined
+  }
+}
+
+/**
+ * git 未提交改动文件数（`git status --short` 非空行计数；footer ●N 数据源）。
+ * 非仓库/命令失败返回 0（静默降级，同 gitBranch）。
+ * @returns 未提交文件数；0 = 干净或不可检测。
+ */
+function gitDirtyCount(): number {
+  try {
+    const out = execSync('git status --short', {
+      stdio: ['ignore', 'pipe', 'ignore'],
+      encoding: 'utf-8',
+    })
+    return out.split('\n').filter(l => l.trim() !== '').length
+  } catch {
+    return 0
   }
 }
 
@@ -446,6 +496,18 @@ export class TuiApp {
   private deferredScrollback: Array<{ text: string; trailingNewline?: boolean }> = []
   /** C3 项 3：rewind overlay（/rewind 双阶段回退面板）。 */
   private rewindOverlay: RewindOverlay | null = null
+  /** #31：交互式选择器 overlay（/model /theme /session 无参打开；上下键选择）。 */
+  private picker: PickerController | null = null
+  /** 双击 Esc 触发 rewind：第一次 Esc 的时间戳（0 = 无待定；窗口内第二次 Esc
+   *  打开 rewind overlay，对齐 Claude Code 的 Esc+Esc 时间回溯）。 */
+  private escRewindPendingSince = 0
+  /** git 未提交改动文件数（gitDirtyCount 快照；attach + turn/end 刷新，0 = 干净/非仓库）。 */
+  private gitDirty = 0
+  /** A5：手动展开的进行中工具卡 callId（空输入 Enter 切换；turn/end 复位）。 */
+  private expandedToolCallId: string | null = null
+  /** 会话 tab 栏缓存（attach/newSession/switchSession 后经 listSessions 刷新；
+   *  >1 会话时在 chrome 段渲染一行；Ctrl+X / Alt+数字 切换）。 */
+  private sessionTabs: SessionTab[] = []
   /** P2：memory 浏览器 overlay（/memory 记忆列表/过滤/删除）。 */
   private memoryOverlay: MemoryBrowserOverlay | null = null
   /** Phase 9d：流利度追踪（tool 事件 → 渲染策略；stale 提示消费于 renderLive）。 */
@@ -462,6 +524,9 @@ export class TuiApp {
   /** 会话内最后一条 assistant/message 的 usage（缓存命中/上下文占比数据源；
    *  streamFeed 折叠，随会话挂载/卸载）。 */
   private usageFold: TokenUsage | null = null
+  /** 会话成本累计（assistant/message usage 按模型分桶；/cost 数据源，
+   *  随会话卸载复位）。 */
+  private sessionCosts = new Map<string, SessionCostBucket>()
   /** 当前模型路由的上下文窗口（request/context 事件折叠；adapter 未报时 null）。 */
   private contextWindow: number | null = null
 
@@ -478,6 +543,7 @@ export class TuiApp {
   private readonly initialSessionId: SessionId | undefined
   private readonly themeName: string
   private readonly onExit: (() => void) | undefined
+  private readonly onRestart: (() => void) | undefined
   /** 外部编辑器触发键（Phase 6.4）；缺省 ctrl_e（ctrl+o 已恢复为推理展开）。 */
   private readonly editorKey: KeyName
   /** 外部编辑器命令注入（测试用）；缺省走环境变量/平台缺省。 */
@@ -604,6 +670,7 @@ export class TuiApp {
     this.initialSessionId = options.initialSessionId
     this.themeName = options.theme ?? 'auto'
     this.onExit = options.onExit
+    this.onRestart = options.onRestart
     this.editorKey = options.editorKey ?? 'ctrl_e'
     this.editorCommand = options.editorCommand
     this.vimEnabled = options.vimEnabled ?? false
@@ -626,7 +693,20 @@ export class TuiApp {
     this.inputLine = new InputLine({
       history: this.history,
       vimEnabled: this.vimEnabled,
-      onSubmit: (text, images) => { this.handleSubmit(text, images) },
+      onSubmit: (text, images) => {
+        // A5：空输入 Enter 切换最后一张进行中工具卡的展开/收起（Claude Code
+        // 同款；非空输入仍是提交路径）。工具卡已结算时 callId 不匹配自然失效。
+        if (text === '' && (images === undefined || images.length === 0)) {
+          const pending = this.transcript?.view.tools.filter(t => t.result === undefined) ?? []
+          const latest = pending[pending.length - 1]
+          if (latest !== undefined) {
+            this.expandedToolCallId = this.expandedToolCallId === latest.callId ? null : latest.callId
+            this.flushLiveRender()
+            return
+          }
+        }
+        this.handleSubmit(text, images)
+      },
       onTabComplete: () => this.handleTabComplete(),
       // slash 菜单状态随输入变化刷新（键入/粘贴/外部 setValue 统一入口；
       // 渲染由各调用路径 flushLiveRender 承担，此处不触发重绘）。
@@ -704,6 +784,7 @@ export class TuiApp {
       switchSession: id => this.switchSession(SessionId(id)),
       exportTranscript: path => this.exportTranscript(path),
       requestExit: () => { this.onExit?.() },
+      requestRestart: () => { this.onRestart?.() },
       setYoloMode: (flag) => { this.setYoloMode(flag) },
       // /preset：当前会话 agent（recompose/composedPreset 的 agentCtx 来源）；
       // activeSessionId 为 null（未 attach）时返回 null，命令层拒绝切换。
@@ -714,11 +795,13 @@ export class TuiApp {
       },
       // /preset：blank 判定（recompose 调用方契约——换工具集会留下历史
       // tool call 与新组成不匹配）：无消息且无未结算工具调用。
-      isBlankSession: () => {
-        const view = this.transcript?.view
-        return (view?.messages ?? []).length === 0
-          && (view?.tools ?? []).every(t => t.result !== undefined)
-      },
+      isBlankSession: () => this.isBlankSession(),
+      // /cost：当前会话累计用量与成本报告（Map 保持首次出现序）。
+      sessionCostReport: () => formatSessionCostReport([...this.sessionCosts.values()]),
+      // #31：交互式选择器（/model /theme /session 无参打开）。
+      openModelPicker: () => { void this.openModelPicker() },
+      openThemePicker: () => { this.openThemePicker() },
+      openSessionPicker: () => { void this.openSessionPicker() },
     })) {
       this.slash.register(command)
     }
@@ -877,6 +960,10 @@ export class TuiApp {
     // Phase 9b：会话恢复面板——启动时把可恢复会话列表写进 scrollback
     // （当前会话除外；无其他可恢复会话时静默）。live 标注取 live store。
     await this.renderRestorableSessions()
+    // 会话 tab 栏初始快照（attach 后；后续 newSession/switchSession 刷新）。
+    void this.refreshSessionTabs()
+    // git 未提交计数快照（footer ●N 数据源）：attach 一次 + 每 turn/end 刷新。
+    this.gitDirty = gitDirtyCount()
 
     this.resize.onResize(() => {
       this.live.setMaxRows(liveMaxRowsFor(this.stdout.rows))
@@ -923,6 +1010,9 @@ export class TuiApp {
     // C3 项 3：rewind overlay（/rewind）——消息快照 + 执行回调在激活时提供。
     this.rewindOverlay = new RewindOverlay()
     this.overlay.register('rewind', this.rewindOverlay)
+    // #31：交互式选择器 overlay（/model /theme /session 无参打开；上下键选择）。
+    this.picker = new PickerController({ getTheme: () => this.theme })
+    this.overlay.register('picker', this.picker)
     // P2：memory 浏览器 overlay（/memory）——条目快照 + 数据源在激活时注入。
     this.memoryOverlay = new MemoryBrowserOverlay()
     this.overlay.register('memory', this.memoryOverlay)
@@ -1243,6 +1333,29 @@ export class TuiApp {
     if (target !== undefined) await this.switchSession(target)
   }
 
+  /** 会话 tab 栏缓存刷新：listSessions → 短 id + 当前标记 → 缓存并调度重绘。 */
+  private async refreshSessionTabs(): Promise<void> {
+    const rows = await listSessions(this.ctx).catch(() => [])
+    if (this.disposed) return
+    const active = this.activeSessionId
+    this.sessionTabs = rows.map(row => ({
+      id: row.id,
+      label: row.id.slice(0, 8),
+      current: row.id === active,
+    }))
+    this.renderBatcher.schedule()
+  }
+
+  /** 会话 tab 栏：Ctrl+X 切到下一个会话（循环；仅一个会话时无操作）。 */
+  private switchToNextTab(): void {
+    const tabs = this.sessionTabs
+    const active = this.activeSessionId
+    if (tabs.length <= 1) return
+    const idx = tabs.findIndex(t => t.id === active)
+    const next = tabs[(idx + 1) % tabs.length]
+    if (next !== undefined && next.id !== active) void this.switchSession(SessionId(next.id))
+  }
+
   /**
    * Phase 9b：把可恢复会话列表写进 scrollback（启动时）。
    * 排除当前活跃会话；无其他可恢复会话时静默（不占位）。
@@ -1358,6 +1471,8 @@ export class TuiApp {
     this.controls = controlsFromHandle(handle)
     this.activeSessionId = id
     this.mountSession(id)
+    // 会话 tab 栏刷新（新会话出现在 tab 栏并成为当前）。
+    void this.refreshSessionTabs()
     return id
   }
 
@@ -1411,6 +1526,107 @@ export class TuiApp {
     rewind.setMessages(messages, (mode, atSeq) => this.executeRewind(mode, atSeq))
     overlay.activate('rewind')
     return true
+  }
+
+  /**
+   * #31：打开模型选择器。数据源 = llm 服务的 provider/model 目录（动态现取）；
+   * llm 服务缺失时 fails loud（不静默）。确认后走 /model 同路径
+   * （saveSelection + switchLiveModel 热切）。
+   */
+  private async openModelPicker(): Promise<void> {
+    const overlay = this.overlay
+    const picker = this.picker
+    if (overlay === null || picker === null) return
+    const llm = this.ctx.reflect.get('llm', false) as
+      | { listProviders(): Array<{ id: string; name: string }>; listModels(provider: string): Promise<Array<{ id: string; name: string }>> }
+      | undefined
+    if (llm === undefined) {
+      this.echoWarn('⚠ llm 服务不可用（未装配 llm 插件），模型选择器不可用')
+      return
+    }
+    const current = (this.ctx as unknown as { agentDefaultModel?: ModelFacet }).agentDefaultModel
+      ?.currentSelection()
+    const currentKey = current === undefined ? null : `${current.provider}/${current.model}`
+    const items: PickerItem[] = []
+    let selectedIndex = 0
+    for (const provider of llm.listProviders()) {
+      // listModels 为 adapter 通告目录（advisory）；失败/空目录跳过该 provider。
+      const models = await llm.listModels(provider.id).catch(() => [])
+      for (const model of models) {
+        const key = `${provider.id}/${model.id}`
+        const item: PickerItem = {
+          label: key === currentKey ? `${key}（当前）` : key,
+          value: key,
+          current: key === currentKey,
+        }
+        if (key === currentKey) selectedIndex = items.length
+        items.push(item)
+      }
+    }
+    if (items.length === 0) {
+      this.echoWarn('⚠ 无可用模型（llm 目录为空），模型选择器不可用')
+      return
+    }
+    picker.open('选择模型', items, (item) => {
+      const [provider, model] = item.value.split('/')
+      /* v8 ignore next -- split('/') 恒非空，[0] 必有值；noUncheckedIndexedAccess 防御 */
+      if (provider === undefined || model === undefined) return
+      const selection = { provider, model }
+      this.switchLiveModel(selection)
+      void this.ctx.agentDefaultModel.saveSelection(selection)
+      this.commitToScrollback({ text: `模型已切换: ${selection.provider}/${selection.model}`, trailingNewline: true })
+    }, selectedIndex)
+    overlay.activate('picker')
+  }
+
+  /** #31/#33：打开主题选择器（THEME_NAMES + 当前主题 ● 高亮）。
+   *  实时预览：↑↓ 移动即 setTheme 生效；Enter 落定；Esc/q 还原打开前主题。 */
+  private openThemePicker(): void {
+    const overlay = this.overlay
+    const picker = this.picker
+    if (overlay === null || picker === null) return
+    const prev = getActiveThemeName()
+    const items: PickerItem[] = THEME_NAMES.map(name => ({
+      label: name === prev ? `${name}（当前）` : name,
+      value: name,
+      current: name === prev,
+    }))
+    const selectedIndex = Math.max(0, THEME_NAMES.indexOf(prev as ThemeName))
+    picker.open('选择主题', items, (item) => {
+      // 确认：主题已在预览中生效，此处只落提示。
+      this.commitToScrollback({ text: `主题已切换: ${item.value}`, trailingNewline: true })
+    }, selectedIndex, {
+      // ↑↓ 移动即切换（实时预览，overlay 渲染随主题色即时变化）。
+      onPreview: (item) => { setTheme(item.value) },
+      // Esc/q 关闭还原打开前主题。
+      onCancel: () => { setTheme(prev) },
+    })
+    overlay.activate('picker')
+  }
+
+  /** #31：打开会话选择器（listSessions 同源；当前会话 ● 高亮）。 */
+  private async openSessionPicker(): Promise<void> {
+    const overlay = this.overlay
+    const picker = this.picker
+    if (overlay === null || picker === null) return
+    const rows = await listSessions(this.ctx)
+    if (rows.length === 0) {
+      this.echoWarn('⚠ 当前无会话，会话选择器不可用')
+      return
+    }
+    const active = this.activeSessionId
+    const items: PickerItem[] = []
+    let selectedIndex = 0
+    for (const row of rows) {
+      const label = `${row.id}${row.id === active ? '（当前）' : ''}`
+      const item: PickerItem = { label, value: row.id, current: row.id === active }
+      if (row.id === active) selectedIndex = items.length
+      items.push(item)
+    }
+    picker.open('选择会话', items, (item) => {
+      void this.switchSession(SessionId(item.value))
+    }, selectedIndex)
+    overlay.activate('picker')
   }
 
   /**
@@ -1587,6 +1803,8 @@ export class TuiApp {
       this.controls = controlsFromHandle(handle)
     }
     this.mountSession(id)
+    // 会话 tab 栏刷新（切换后当前标记跟随）。
+    void this.refreshSessionTabs()
   }
 
   /**
@@ -1729,19 +1947,42 @@ export class TuiApp {
     })
     this.subagentDisposer = () => { onSubStart(); onSubEnd(); onRunStart(); onRunEnd() }
     this.refreshDelegationTree(id)
-    // T2.2：workflow 事件订阅（start/phase/agent-start/agent-end/end → 缓存；
-    // 跨会话运行，attach 订阅 dispose 释放）。五个 disposer 全部收集——
-    // 只存 start 会让其余四个在每次挂载时泄漏。
+    // T2.2：workflow 事件订阅（start/phase/log/agent-start/agent-end/end → 缓存；
+    // 跨会话运行，attach 订阅 dispose 释放）。六个 disposer 全部收集——
+    // 只存 start 会让其余五个在每次挂载时泄漏。
     this.workflowDisposer?.()
     this.workflowRuns.clear()
     const workflowListeners = [
       this.ctx.on('workflow/start', (info: WorkflowRunInfoWire) => {
-        this.workflowRuns.set(info.id, { id: info.id, phase: null, agents: [] })
+        // meta 创建时规范化：旧形状事件无 meta 时 name 回退 id、description 空串，
+        // 消费点直接透传不再判空。
+        const meta = info.meta
+        this.workflowRuns.set(info.id, {
+          id: info.id,
+          meta: {
+            name: meta?.name ?? info.id,
+            description: meta?.description ?? '',
+            ...meta?.phases === undefined ? {} : { phases: meta.phases },
+          },
+          startedAt: Date.now(),
+          phase: null,
+          agents: [],
+          logs: [],
+        })
         this.flushLiveRender()
       }),
       this.ctx.on('workflow/phase', (info: WorkflowRunInfoWire, title: string) => {
         const run = this.workflowRuns.get(info.id)
         if (run !== undefined) { run.phase = title; this.renderBatcher.schedule() }
+      }),
+      this.ctx.on('workflow/log', (info: WorkflowRunInfoWire, message: string) => {
+        const run = this.workflowRuns.get(info.id)
+        if (run !== undefined) {
+          // cap 20 drop-oldest：脚本刷屏只保留最近叙述，面板不被淹没。
+          run.logs.push(message)
+          if (run.logs.length > WORKFLOW_LOG_CAP) run.logs.splice(0, run.logs.length - WORKFLOW_LOG_CAP)
+          this.renderBatcher.schedule()
+        }
       }),
       this.ctx.on('workflow/agent-start', (info: WorkflowRunInfoWire, agent: WorkflowAgentWire) => {
         const run = this.workflowRuns.get(info.id)
@@ -1812,7 +2053,7 @@ export class TuiApp {
   /** T2.2：运行态缓存项 → 面板视图（终态含 stopReason/agentsStarted）。 */
   private toWorkflowRunView(run: WorkflowRunState, result: WorkflowResultWire): WorkflowRunView {
     return {
-      info: { id: run.id, meta: { name: run.phase ?? run.id, description: '' } },
+      info: { id: run.id, meta: run.meta },
       agents: run.agents.map(a => ({
         seq: a.seq,
         label: a.label,
@@ -1824,7 +2065,8 @@ export class TuiApp {
         ...(result.error === undefined ? {} : { error: result.error }),
         agentsStarted: run.agents.length,
       },
-      elapsedMs: Date.now(),
+      elapsedMs: Date.now() - run.startedAt,
+      ...(run.logs.length === 0 ? {} : { logs: [...run.logs] }),
     }
   }
 
@@ -1922,6 +2164,16 @@ export class TuiApp {
       this.live.clearForCommit()
       this.commit.write(entry)
     }
+  }
+
+  /**
+   * 当前会话是否 blank：无消息且无未结算工具调用。
+   * /preset recompose 与更新后自动重启的守卫共用（非空白不打断会话）。
+   */
+  isBlankSession(): boolean {
+    const view = this.transcript?.view
+    return (view?.messages ?? []).length === 0
+      && (view?.tools ?? []).every(t => t.result !== undefined)
   }
 
   /**
@@ -2337,6 +2589,10 @@ export class TuiApp {
       this.inputController.ctrlCPendingSince = 0
       this.clearCtrlCExitHint()
     }
+    // 双击 Esc 待定窗口：任何非 Esc 键打断（与 Ctrl+C 双击退出同模式）。
+    if (key.name !== 'escape' && this.escRewindPendingSince !== 0) {
+      this.escRewindPendingSince = 0
+    }
     // C3 项 4：Shift+Tab 三态循环（Normal → Plan → Always-Approve → Normal）。
     if (key.name === 'shift_tab') {
       this.cycleMode()
@@ -2353,6 +2609,19 @@ export class TuiApp {
     }
     if (key.name === 'ctrl_s') {
       void this.restoreRecentOtherSession()
+      return
+    }
+    // 会话 tab 栏：Ctrl+X 循环下一个（Ctrl+Tab 终端编码不可靠，不用）。
+    if (key.name === 'ctrl_x') {
+      this.switchToNextTab()
+      return
+    }
+    // 会话 tab 栏：Alt+1..9 直接跳第 N 个（ESC+digit 解析为 meta+char）。
+    if (key.meta && key.char >= '1' && key.char <= '9') {
+      const target = this.sessionTabs[Number(key.char) - 1]
+      if (target !== undefined && target.id !== this.activeSessionId) {
+        void this.switchSession(SessionId(target.id))
+      }
       return
     }
     if (key.name === 'ctrl_q') {
@@ -2417,6 +2686,31 @@ export class TuiApp {
       } else if (key.char !== '') {
         this.searchOverlay.type(key.char)
         this.overlay.rerender()
+      }
+      return
+    }
+    // #31：选择器 overlay 打开：↑/↓（j/k）移动、PageUp/PageDown 翻页、
+    // Enter 确认、Esc/Ctrl+C/q 关闭。优先于输入行（overlay 独占焦点）。
+    if (this.overlay?.activeId() === 'picker' && this.picker !== null) {
+      const picker = this.picker
+      if (key.name === 'escape' || key.name === 'ctrl_c' || key.char === 'q') {
+        picker.close()
+        this.overlay.deactivate()
+      } else if (key.name === 'up' || key.char === 'k') {
+        picker.move(-1)
+        this.overlay.rerender()
+      } else if (key.name === 'down' || key.char === 'j') {
+        picker.move(1)
+        this.overlay.rerender()
+      } else if (key.name === 'pageup') {
+        picker.move(-10)
+        this.overlay.rerender()
+      } else if (key.name === 'pagedown') {
+        picker.move(10)
+        this.overlay.rerender()
+      } else if (key.name === 'return') {
+        picker.commit()
+        this.overlay.deactivate()
       }
       return
     }
@@ -2521,6 +2815,26 @@ export class TuiApp {
         this.settleApproval('cancelled')
       }
       return
+    }
+    // Esc 打断：对齐 Claude Code 单次 Esc 停止输出。位于挂起交互分支之后——
+    // overlay/菜单打开时 Esc 仍先关面板；仅「无挂起交互 + running」才打断；
+    // 空闲不动作（不退出、不触发任何东西）。lone ESC 走 80ms 防误触派发，
+    // 与 Ctrl+C 的即时打断形成互补。
+    if (key.name === 'escape' && !this.inputController.slashMenu.open) {
+      if (this.liveAgent?.state.status === 'running') {
+        this.handleAbort()
+        return
+      }
+      // 空闲：双击 Esc（窗口内第二次）触发 rewind（CC 的 Esc+Esc 时间回溯）；
+      // 第一次只记时间戳并继续流向后续分支（vim 等空闲 Esc 语义保留），
+      // 窗口过期后第二次仅刷新时间戳。
+      const now = Date.now()
+      if (this.escRewindPendingSince !== 0 && now - this.escRewindPendingSince < REWIND_DOUBLE_ESC_MS) {
+        this.escRewindPendingSince = 0
+        this.rewindSession()
+        return
+      }
+      this.escRewindPendingSince = now
     }
     if (key.name === 'ctrl_c') {
       // raw-mode 下 Ctrl+C 是 0x03 数据字节而非 SIGINT。
@@ -2664,6 +2978,9 @@ export class TuiApp {
           input.contextRatio = Math.min(1, billed / this.contextWindow)
           input.tokens = { used: billed, max: this.contextWindow }
         }
+        // 成本估算：定价表命中才显示（未知模型不猜价，与缓存% 诚实降级同款）。
+        const cost = estimateCost(this.glanceModelName ?? 'unknown', usage)
+        if (cost !== undefined) input.cost = cost
       }
     }
     if (view.turn >= 0) {
@@ -2719,7 +3036,12 @@ export class TuiApp {
         this.commitReasoningBlock()
         // 最后一次请求的 token 计量（缓存命中率/上下文占比数据源；适配器未报
         // usage 时保持上一次折叠——同一会话内后续段仍可用）。
-        if (event.data.usage !== undefined) this.usageFold = event.data.usage
+        if (event.data.usage !== undefined) {
+          this.usageFold = event.data.usage
+          // /cost 会话累计：按最近一次 request/header 的模型分桶累加。
+          const model = this.glanceModelName ?? 'unknown'
+          this.sessionCosts.set(model, accumulateUsage(this.sessionCosts.get(model), event.data.usage, model))
+        }
         void this.flushStream()
         break
       }
@@ -2773,6 +3095,10 @@ export class TuiApp {
       case 'turn/end': {
         // Phase 9d：turn 边界复位流利度信号
         this.fluency.onTurnComplete()
+        // A3：回合边界刷新 git 未提交计数（footer ●N；不逐帧 spawn）。
+        this.gitDirty = gitDirtyCount()
+        // A5：回合结束复位工具卡展开态（工具已结算，展开无意义）。
+        this.expandedToolCallId = null
         if (event.data.reason.kind !== 'aborted') {
           // 错误终止的 turn 可能没有 assistant/message——落底已累积的推理
           //（durable log 已含这些 chunk，与「模型可见 ⟺ 已记录」一致）。
@@ -2964,14 +3290,15 @@ export class TuiApp {
     const workflowRuns: WorkflowRunView[] = []
     for (const state of this.workflowRuns.values()) {
       workflowRuns.push({
-        info: { id: state.id, meta: { name: state.phase ?? state.id, description: '' } },
+        info: { id: state.id, meta: state.meta },
         agents: state.agents.map(a => ({
           seq: a.seq,
           label: a.label,
           childId: '',
           outcome: a.outcome ?? 'completed',
         })),
-        elapsedMs: Date.now(),
+        elapsedMs: Date.now() - state.startedAt,
+        ...(state.logs.length === 0 ? {} : { logs: [...state.logs] }),
       })
     }
     workflowRuns.push(...this.completedWorkflowRuns.values())
@@ -3142,6 +3469,8 @@ export class TuiApp {
         title,
         columns: cols,
         elapsedMs: Math.max(0, Date.now() - tool.time),
+        // A5：手动展开的进行中工具卡（空输入 Enter 切换）。
+        expanded: this.expandedToolCallId === tool.callId,
         // oxlint-disable-next-line no-unnecessary-condition -- oxlint 类型面把 latest 误判为恒 false;entries() 循环里 i 取 0..len-1,latest 在末位为 true
         tailLines: compactLive ? 0 : latest ? (tightViewport ? 1 : 3) : 0,
         tick: this.tick,
@@ -3168,6 +3497,13 @@ export class TuiApp {
     // chrome 起点：提问/审批贴输入轨（列入 chrome，小窗口也不会被从顶裁掉），
     // 其后是 slash / vim / 图片 / 输入轨 / footer。溢出裁剪只作用在动态段。
     const chromeStart = lines.length
+
+    // 会话 tab 栏（chrome 段：不参与动态裁剪；>1 会话时显示；Ctrl+X/Alt+数字切换）。
+    if (this.sessionTabs.length > 1) {
+      for (const line of formatSessionTabs(this.sessionTabs, cols, this.theme)) {
+        lines.push(line)
+      }
+    }
 
     // 提问 / 审批紧挨输入轨。
     const questionPeek = this.question.peek()
@@ -3258,7 +3594,8 @@ export class TuiApp {
     const topLine = formatTopStatusBar({
       width: cols,
       left: allSegs.slice(0, leftCount),
-      right: [...allSegs.slice(leftCount), `API ${this.apiKeyReady ? '✓' : '✗'}`],
+      // A3：git 未提交 ●N 段置于右段末尾（丢段从右丢 → ●N 最次要先丢，不挤 metrics）。
+      right: [...allSegs.slice(leftCount), `API ${this.apiKeyReady ? '✓' : '✗'}`, ...(this.gitDirty > 0 ? [`●${this.gitDirty}`] : [])],
       borderColor: promptBorderColor(modeFlags, theme),
     }, theme)
     const frame = formatInputFrame({
@@ -3356,6 +3693,7 @@ export class TuiApp {
     this.taskNotice = null
     // glance 数据（usage/effort/contextWindow）随会话卸载复位——新会话重挂载重折叠。
     this.usageFold = null
+    this.sessionCosts.clear()
     this.glanceEffort = null
     this.contextWindow = null
     this.projectionCache = null

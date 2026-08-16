@@ -26,6 +26,9 @@ describe('getToolFamily', () => {
     expect(getToolFamily('write_file')).toEqual({ family: 'write', verb: 'write' })
     expect(getToolFamily('grep')).toEqual({ family: 'find', verb: 'search' })
     expect(getToolFamily('delegate_task')).toEqual({ family: 'run', verb: 'delegate' })
+    // PTC 单一执行工具与 Minimal 锚定编辑工具（梁神/官方极简 preset 的工具面）。
+    expect(getToolFamily('run_code')).toEqual({ family: 'run', verb: 'run' })
+    expect(getToolFamily('str_replace_editor')).toEqual({ family: 'write', verb: 'patch' })
   })
 
   it('未知名工具落 other/tool', () => {
@@ -49,6 +52,15 @@ describe('toolArgSummary', () => {
 
   it('bash 取 command 首行', () => {
     expect(toolArgSummary('bash', { command: 'npm test\n--watch' })).toBe('npm test')
+  })
+
+  it('run_code 取 code 首行；缺失 code 回退 description', () => {
+    expect(toolArgSummary('run_code', { code: 'console.log(1)\n// more', description: 'run it' })).toBe('console.log(1)')
+    expect(toolArgSummary('run_code', { description: 'run it' })).toBe('run it')
+  })
+
+  it('run_code 缺失 code 与 description 回退空串', () => {
+    expect(toolArgSummary('run_code', {})).toBe('')
   })
 
   it('bash 缺失 command 回退空串', () => {

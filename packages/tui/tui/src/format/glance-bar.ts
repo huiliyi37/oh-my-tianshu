@@ -41,9 +41,12 @@ export interface FormatGlanceBarInput {
   ascii?: boolean
 }
 
+/** 上下文占用警告阈值（≥ 此比例前缀 ⚠ 提示近满；与 Claude Code context 高水位对齐）。 */
+export const CONTEXT_WARN_RATIO = 0.95
+
 /**
  * 段组装（纯函数；返回 ANSI 段列表，外层按 ` · ` 拼接）。
- * @param input - metrics 输入；仅组装已提供的段（turn/cost 只在 density full 档）。
+ * @param input - metrics 输入；仅组装已提供的段（cost 有值即显示；turn 只在 density full 档）。
  * @returns 无色段文本列表，按固定顺序。
  */
 export function glanceBarSegments(input: FormatGlanceBarInput): string[] {
@@ -51,16 +54,17 @@ export function glanceBarSegments(input: FormatGlanceBarInput): string[] {
   if (input.modelName !== undefined) segs.push(input.modelName)
   if (input.effort !== undefined) segs.push(`◎${input.effort}`)
   if (input.cacheHitRate !== undefined) segs.push(`缓存 ${Math.round(input.cacheHitRate * 100)}%`)
-  if (input.contextRatio !== undefined) segs.push(`上下文 ${Math.round(input.contextRatio * 100)}%`)
+  if (input.contextRatio !== undefined) {
+    const warn = input.contextRatio >= CONTEXT_WARN_RATIO
+    segs.push(`${warn ? '⚠' : ''}上下文 ${Math.round(input.contextRatio * 100)}%`)
+  }
   if (input.tokens !== undefined) {
     const t = `${formatTokenCount(input.tokens.used)}/${formatTokenCount(input.tokens.max)}`
     segs.push(input.ascii ? `[${t}]` : `◧ ${t}`)
   }
   if (input.elapsedMs !== undefined) segs.push(formatElapsedHuman(input.elapsedMs))
-  if (input.density === 'full') {
-    if (input.turnCount !== undefined) segs.push(`#${input.turnCount}`)
-    if (input.cost !== undefined) segs.push(`$${input.cost}`)
-  }
+  if (input.cost !== undefined) segs.push(`$${input.cost}`)
+  if (input.density === 'full' && input.turnCount !== undefined) segs.push(`#${input.turnCount}`)
   if (input.stalled) segs.push('停滞')
   return segs
 }

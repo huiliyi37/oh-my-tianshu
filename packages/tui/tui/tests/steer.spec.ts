@@ -33,7 +33,7 @@ describe('parseSlashCommand — /steer 最小前缀解析', () => {
   })
 
   it('未知名命令返回 null', () => {
-    expect(parseSlashCommand('/help')).toBeNull()
+    expect(parseSlashCommand('/zzz')).toBeNull()
   })
 
   it('前缀歧义返回 null（不猜命令）', () => {

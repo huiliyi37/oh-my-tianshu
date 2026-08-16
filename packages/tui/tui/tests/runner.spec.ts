@@ -5,6 +5,13 @@ import type { WriteStream } from 'node:tty'
 import type { Session } from '@huiliyi37/dsh-session'
 import { apply } from '../src/index.js'
 import { TuiApp } from '../src/ui/app.js'
+import { spawnSelfRestart } from '../src/restart.js'
+
+// 重启装配测试：spawnSelfRestart 缺省 mock 为成功（不真 spawn 新进程——
+// 会重放 vitest 自身 argv）；断言其被调用而非真的重启。
+vi.mock('../src/restart.js', () => ({
+  spawnSelfRestart: vi.fn(async () => true),
+}))
 
 /** 最小可渲染 stdout 替身：宽/高/写入记录，以及 ResizeHandler 需要的 on/removeListener。 */
 function makeStdout(): WriteStream {
@@ -197,5 +204,55 @@ describe('index apply() 装配与退出生命周期', () => {
     const cleanup = ctx.effect.mock.results[0]?.value as (() => void) | undefined
     cleanup?.()
     expect(disposeResolved).toBe(true)
+  })
+})
+
+describe('index apply() — /restart 重启装配（#34）', () => {
+  beforeEach(() => {
+    vi.mocked(spawnSelfRestart).mockReset().mockResolvedValue(true)
+  })
+
+  /** 捕获 apply 内部构造的 app 实例（attach mock 的 this 即实例），经 /restart 触发 onRestart 链路。 */
+  function bootWithAppRef(ctx: Context) {
+    let appRef: TuiApp | undefined
+    // no-this-alias：不把 this 存局部变量，经回调参数捕获实例。
+    const hold = (app: TuiApp): void => { appRef = app }
+    vi.spyOn(TuiApp.prototype, 'attach').mockImplementation(function (this: TuiApp) {
+      hold(this)
+      return Promise.resolve(undefined)
+    })
+    vi.spyOn(TuiApp.prototype, 'dispose').mockResolvedValue(undefined)
+    apply(ctx, { stdin: makeStdin(), stdout: makeStdout() })
+    if (appRef === undefined) throw new Error('apply 未构造 app（attach 未被调用）')
+    return appRef
+  }
+
+  it('/restart teardown：dispose 后 spawn 同 argv 并退出宿主（appExit(0)）', async () => {
+    const ctx = makeCtx()
+    const appExit = vi.fn()
+    ctx.reflect.get.mockImplementation((name: string) => name === 'appExit' ? appExit : undefined)
+    const disposeSpy = vi.spyOn(TuiApp.prototype, 'dispose').mockResolvedValue(undefined)
+
+    const app = bootWithAppRef(ctx)
+    app.handleSubmit('/restart')
+
+    // teardown(true, true)：dispose → spawnSelfRestart（同命令重启）→ 退出宿主
+    await vi.waitFor(() => { expect(spawnSelfRestart).toHaveBeenCalledTimes(1) })
+    await vi.waitFor(() => { expect(appExit).toHaveBeenCalledWith(0) })
+    expect(disposeSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('重启 spawn 失败：仍退出宿主（fails loud——console.error 上报，不阻塞退出）', async () => {
+    const ctx = makeCtx()
+    const appExit = vi.fn()
+    ctx.reflect.get.mockImplementation((name: string) => name === 'appExit' ? appExit : undefined)
+    vi.mocked(spawnSelfRestart).mockResolvedValue(false)
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => { })
+
+    const app = bootWithAppRef(ctx)
+    app.handleSubmit('/restart')
+
+    await vi.waitFor(() => { expect(appExit).toHaveBeenCalledWith(0) })
+    expect(errSpy).toHaveBeenCalledWith(expect.stringContaining('重启失败'))
   })
 })

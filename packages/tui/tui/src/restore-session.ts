@@ -14,6 +14,8 @@ export interface RestorableSession {
   cwd: string | undefined
   parentSession: SessionId | undefined
   live: boolean
+  /** Agent preset id（创建值 + 切换值 fold；未记录时 undefined）。 */
+  agentPreset: string | undefined
 }
 
 /** 投影/格式化选项。 */
@@ -43,6 +45,7 @@ export function projectRestorableSessions(
     cwd: s.cwd,
     parentSession: s.parentSession,
     live: liveIds !== undefined && liveIds.has(s.id),
+    agentPreset: s.agentPreset,
   }))
 }
 
@@ -98,6 +101,8 @@ export function formatRestorableSessions(
     if (base !== undefined) parts.push(base)
     parts.push(`#${shortId(r.id)}`)
     if (!r.live && r.parentSession !== undefined) parts.push(`fork #${shortId(r.parentSession)}`)
+    // agent preset 标注（恢复语义：preset 决定会话工具面，恢复时需知情）。
+    if (r.agentPreset !== undefined && r.agentPreset !== '') parts.push(`preset:${r.agentPreset}`)
     return parts.join(' · ')
   })
   const hidden = rows.length - shown.length

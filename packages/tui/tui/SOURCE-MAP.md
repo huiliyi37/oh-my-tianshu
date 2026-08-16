@@ -57,6 +57,8 @@
 | src/engine/write-batcher.ts | engine/write-batcher.ts | ported |
 | src/external-editor.ts | external-editor.ts | modified |
 | src/fluency-hook.ts | fluency-hook.ts | modified |
+| src/picker.ts | — | new（#31 交互式选择器：纯状态机 + 渲染 + 控制器，overlay 契约） |
+| src/preset-surface.ts | — | new（preset 展示面纯投影：resolvePresetId/wireToolNames/阶段标签，日志事实） |
 | src/format/activity-labels.ts | format/activity-labels.ts | modified |
 | src/format/approval-card.ts | — | new（审批卡：圆角轨 + diff 体 + y/n/a/esc 键位，纯渲染） |
 | src/format/btw-panel.ts | — | new |
@@ -77,7 +79,10 @@
 | src/format/memory-overlay.ts | — | new |
 | src/format/permission-diff.ts | format/permission-diff.ts | modified |
 | src/format/prompt-footer.ts | — | new（C4 概念稿底部 footer：模式徽标 + 快捷键提示，纯渲染） |
+| src/format/pricing.ts | — | new（模型 → $/MTok 定价表 + estimateCost：缓存读/写分项计价，未知模型不猜价，纯函数） |
 | src/format/reasoning.ts | — | new（think 推理两态渲染：live shimmer 头行 + 尾巴、结算全文块，纯渲染） |
+| src/format/session-cost.ts | — | new（/cost 会话成本汇总：usage 按模型分桶累计 + 报告渲染，纯函数） |
+| src/format/session-tabs.ts | — | new（会话 tab 栏：短 id 列表 + 当前 ● 高亮 + 窄宽折叠，纯渲染） |
 | src/format/rewind-overlay.ts | — | new |
 | src/format/separator.ts | separator.ts | modified（目录重排：上游根 → src/format/） |
 | src/format/shimmer.ts | — | new（光带扫过动画：tick 驱动逐字符插值，样式源用户提供的 deep-diving.gif） |
@@ -114,6 +119,7 @@
 | src/question-panel.ts | — | new |
 | src/render/live-panels.ts | — | new |
 | src/render/live-snapshot.ts | — | new |
+| src/restart.ts | — | new（/restart 的进程重启原语：dispose 后重放 process.argv，stdio inherit + POSIX detached 防 SIGHUP/SIGTTIN） |
 | src/restore-session.ts | restore-session.ts | modified |
 | src/ring-buffer.ts | ring-buffer.ts | modified |
 | src/scrollback-transcript.ts | scrollback-transcript.ts | modified |

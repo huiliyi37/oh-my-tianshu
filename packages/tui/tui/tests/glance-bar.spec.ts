@@ -78,6 +78,18 @@ describe('glanceBarSegments', () => {
     expect(text).toContain('$0.42')
   })
 
+  it('cost 有值即显示（不依赖 density full——footer 组装无 density）', () => {
+    const text = plain(glanceBarSegments(base({ cost: 0.42 }))).join(' · ')
+    expect(text).toContain('$0.42')
+    expect(text).not.toContain('#')
+  })
+
+  it('上下文 ≥95% → ⚠ 前缀；<95% 无警告', () => {
+    expect(plain(glanceBarSegments(base({ contextRatio: 0.94 }))).join(' · ')).toContain('上下文 94%')
+    expect(plain(glanceBarSegments(base({ contextRatio: 0.95 }))).join(' · ')).toContain('⚠上下文 95%')
+    expect(plain(glanceBarSegments(base({ contextRatio: 1 }))).join(' · ')).toContain('⚠上下文 100%')
+  })
+
   it('stalled：追加停滞标记', () => {
     const text = plain(glanceBarSegments(base({ stalled: true }))).join(' · ')
     expect(text).toContain('停滞')

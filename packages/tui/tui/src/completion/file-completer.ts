@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 
 /**
  * Adapted for the dsh-tui port seam (Apache License 2.0, section 4(b)):
@@ -43,7 +43,7 @@ const GIT_LS_FILES_TIMEOUT_MS = 500
  */
 export function getCompletions(partial: string, cwd: string, limit: number, timeoutMs = GIT_LS_FILES_TIMEOUT_MS): string[] {
   try {
-    const output = execSync('git ls-files --cached --others --exclude-standard', {
+    const output = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], {
       cwd,
       encoding: 'utf-8',
       timeout: timeoutMs,

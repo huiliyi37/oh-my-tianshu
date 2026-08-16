@@ -13,11 +13,16 @@ import { color } from '../engine/ansi.js'
 import type { RivetTheme } from '../theme.js'
 import { getTheme } from '../theme.js'
 import { truncateToDisplayWidth } from '../width.js'
+import { formatElapsedHuman } from './spinner-status.js'
 
 /** rewind 可回退的消息最小形状（transcript.view.messages 满足它）。 */
 export interface RewindableMessage {
   readonly seq: number
   readonly turn: number
+  /** 消息归属（用户/助手；时间线类型标记）。 */
+  readonly kind: 'user' | 'assistant'
+  /** Unix epoch 毫秒（相对时间显示）。 */
+  readonly time: number
   readonly text: string
 }
 
@@ -157,18 +162,33 @@ export class RewindOverlay implements OverlayRenderer {
     const bodyHeight = Math.max(1, height - 3)
 
     if (this.phase === 'list') {
-      const shown = this.messages.slice(-bodyHeight)
-      const offset = this.messages.length - shown.length
-      shown.forEach((m, i) => {
-        const idx = offset + i
-        const sel = idx === this.selected
+      // 时间线（参考 Claude Code checkpoint 浏览器）：
+      // - turn 变化时输出 dim 分隔线（回合边界可视化）
+      // - 类型标记：用户 ❯ / 助手 ✦（语义色）
+      // - 相对时间（如 3m 前）
+      // - 滚动窗口跟随选中（可滚到更早消息，此前固定渲染末尾 N 条）
+      const sel = Math.max(0, Math.min(this.selected, this.messages.length - 1))
+      const start = Math.max(0, sel - bodyHeight + 1)
+      const window = this.messages.slice(start, start + bodyHeight)
+      let lastTurn = -1
+      window.forEach((m, i) => {
+        const idx = start + i
+        const isSel = idx === this.selected
+        // turn 分隔线（换 turn 时插入，紧跟在前一行后）
+        if (m.turn !== lastTurn) {
+          rows.push(color(`── turn ${m.turn} ──`, theme.muted))
+          lastTurn = m.turn
+        }
+        const mark = m.kind === 'user' ? '❯' : '✦'
+        const markColor = m.kind === 'user' ? theme.userColor : theme.assistantColor
+        const age = formatElapsedHuman(Date.now() - m.time)
         const line = truncateToDisplayWidth(
-          `[turn ${m.turn}] ${m.text.replace(/\n/g, ' ')}`,
+          `${color(mark, markColor)} ${age} 前 ${m.text.replace(/\n/g, ' ')}`,
           contentWidth - 2,
         )
-        rows.push(sel ? color(`▸ ${line}`, theme.success) : `  ${line}`)
+        rows.push(isSel ? color(`▸ ${line}`, theme.success) : `  ${color(line, theme.dim)}`)
       })
-      rows.push(color('↑↓/j k 选择 · Enter 确认 · Esc 取消', theme.muted))
+      rows.push(color('↑↓/j k 选择 · Enter 回退到此处 · Esc 取消', theme.muted))
       return rows
     }
 
