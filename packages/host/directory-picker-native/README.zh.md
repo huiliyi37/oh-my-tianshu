@@ -18,3 +18,4 @@
 
 - **Linux 依赖桌面工具**——Zenity 与 KDialog 均未安装时，`pick` 以包含解决建议的错误拒绝；它不会回退为手输路径提示（组合层面的回退是 browse 后端）。
 - **Windows 没有机制级回退**——通过打包依赖 koffi 运行的子进程选择器是唯一原生层级，因此 COM 拒绝或对话框崩溃会直接上报失败。组合层面的回退仍是 browse 后端。
+- **koffi 是可选依赖（仅 Windows 需要）**——声明为 `optionalDependencies`，使从不加载它的平台（Android，以及任何拿不到 prebuilt 的主机）安装不会失败；只有 Windows 在运行时解析它，且其 prebuilt 存在。

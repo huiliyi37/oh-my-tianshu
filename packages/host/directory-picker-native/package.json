@@ -43,7 +43,9 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@huiliyi37/dsh-host-directory-picker": "workspace:^",
-    "@huiliyi37/dsh-native-command": "workspace:^",
+    "@huiliyi37/dsh-native-command": "workspace:^"
+  },
+  "optionalDependencies": {
     "koffi": "^3.1.0"
   },
   "peerDependencies": {

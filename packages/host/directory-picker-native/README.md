@@ -18,3 +18,4 @@ None; this package neither assembles nor sends a provider request.
 
 - **Linux requires desktop tooling** — with neither Zenity nor KDialog installed, `pick` rejects with an actionable error; it does not fall back to a typed-path prompt (the browse backend is that fallback at the composition level).
 - **Windows has no mechanism fallback** — the child-process picker through packaged koffi is the only native tier, so a COM refusal or dialog crash surfaces the failure. The browse backend remains the fallback at the composition level.
+- **koffi is an optional dependency (Windows-only need)** — it is declared `optionalDependencies` so installs on platforms that never load it (Android, and any host where the prebuilt is unavailable) do not fail the tree; only Windows resolves it at runtime, where its prebuilt exists.
