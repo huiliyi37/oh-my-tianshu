@@ -62,6 +62,7 @@ switch (invocation.mode) {
       environment: loadLayeredEnv('dsh'),
       profile: 'tui',
       patchFiles: invocation.patches,
+      innerArgs: invocation.args,
     })
     break
   }

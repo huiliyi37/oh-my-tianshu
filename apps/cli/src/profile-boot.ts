@@ -162,6 +162,8 @@ export interface RunProfileOptions {
   deriveFlagPatches?: (rows: ProfileRows) => PatchOptions[]
   /** `tianshu run` task text; requires the composition to mount the headless runner row. */
   task?: string
+  /** Inner launcher arguments forwarded to the booted app (tui --help/--version/positional prompt). */
+  innerArgs?: string[]
   /** Surface setup registered after Loader installation and before any config-tree entry mounts. */
   prepare?: (ctx: Context, rows: ProfileRows) => Promise<void> | void
   /** This run's frozen environment snapshot, provided to the tree before any entry mounts. */
@@ -232,6 +234,11 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
     // Before any config-tree entry mounts, so a plugin that resolves a
     // user-facing value at construction already sees this run's layers.
     hostCtx.provide(DSH_ENVIRONMENT_KEY, options.environment)
+    // Forward launcher inner args to the tree: the TUI consumes them via
+    // ctx.reflect.get('cmdlineArgs') (--help/--version/initial prompt; port of dsh-tianshu-tui#21).
+    if (options.innerArgs !== undefined) {
+      hostCtx.reflect.set('cmdlineArgs', { get: () => options.innerArgs })
+    }
     if (options.task !== undefined) {
       const io: HeadlessIo = {
         stdout: process.stdout,
