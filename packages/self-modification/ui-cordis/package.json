@@ -1,0 +1,85 @@
+{
+  "name": "@huiliyi37/dsh-ui-cordis",
+  "description": "Browser surfaces for model-authored dynamic cordis packages: the frame-wide panel that operates every definition, and the read-only define card",
+  "version": "0.2.6",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/oh-my-tianshu.git",
+    "directory": "packages/self-modification/ui-cordis"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/client.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "Apache-2.0",
+  "dependencies": {},
+  "peerDependencies": {
+    "@huiliyi37/dsh-api-remotes": "^0.2.0",
+    "@huiliyi37/dsh-client-connection": "^0.2.0",
+    "@huiliyi37/dsh-cordis-client-runner": "^0.2.0",
+    "@huiliyi37/dsh-client-locale": "^0.2.0",
+    "@huiliyi37/dsh-client-runtime": "^0.2.0",
+    "@huiliyi37/dsh-client-ui-primitives": "^0.2.0",
+    "@huiliyi37/dsh-client-ui-sidebar": "^0.2.0",
+    "@huiliyi37/dsh-client-ui-input-trigger": "^0.2.0",
+    "@huiliyi37/dsh-client-ui-slots": "^0.2.0",
+    "@huiliyi37/dsh-client-ui-tool": "^0.2.0",
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.7",
+    "react": "^18.0.0"
+  },
+  "devDependencies": {
+    "@huiliyi37/dsh-api-remotes": "workspace:^",
+    "@huiliyi37/dsh-client-connection": "workspace:^",
+    "@huiliyi37/dsh-cordis-client-runner": "workspace:^",
+    "@huiliyi37/dsh-client-locale": "workspace:^",
+    "@huiliyi37/dsh-client-runtime": "workspace:^",
+    "@huiliyi37/dsh-client-ui-primitives": "workspace:^",
+    "@huiliyi37/dsh-client-ui-sidebar": "workspace:^",
+    "@huiliyi37/dsh-client-ui-input-trigger": "workspace:^",
+    "@huiliyi37/dsh-client-ui-slots": "workspace:^",
+    "@huiliyi37/dsh-client-ui-tool": "workspace:^",
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/cordis": "workspace:^",
+    "@types/react": "~18.3.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "dshClient": {
+    "inject": [
+      "@huiliyi37/dsh-client-runtime",
+      "@huiliyi37/dsh-client-connection",
+      "@huiliyi37/dsh-cordis-client-runner",
+      "@huiliyi37/dsh-api-remotes",
+      "@huiliyi37/dsh-client-locale",
+      "@huiliyi37/dsh-client-ui-input-trigger",
+      "@huiliyi37/dsh-client-ui-tool",
+      "@huiliyi37/dsh-client-ui-sidebar"
+    ],
+    "platform": "web"
+  }
+}
