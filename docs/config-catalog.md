@@ -1461,7 +1461,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/sandbox/sandbox-local/src/index.ts:24`](../packages/sandbox/sandbox-local/src/index.ts)
+Source: [`packages/sandbox/sandbox-local/src/index.ts:30`](../packages/sandbox/sandbox-local/src/index.ts)
 
 ## `@huiliyi37/dsh-sandbox-policy`
 
@@ -3207,6 +3207,7 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
 - `@huiliyi37/dsh-paths` ([`packages/util/paths/src/index.ts`](../packages/util/paths/src/index.ts))
 - `@huiliyi37/dsh-pheromone` ([`packages/guard/pheromone/src/index.ts`](../packages/guard/pheromone/src/index.ts))
 - `@huiliyi37/dsh-retention` ([`packages/util/retention/src/index.ts`](../packages/util/retention/src/index.ts))
+- `@huiliyi37/dsh-sandbox-windows-acl` ([`packages/sandbox/sandbox-windows-acl/src/index.ts`](../packages/sandbox/sandbox-windows-acl/src/index.ts))
 - `@huiliyi37/dsh-scope` ([`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.ts))
 - `@huiliyi37/dsh-sdk-client` ([`packages/scaffold/client/src/index.ts`](../packages/scaffold/client/src/index.ts))
 - `@huiliyi37/dsh-sdk-protocol` ([`packages/scaffold/protocol/src/index.ts`](../packages/scaffold/protocol/src/index.ts))

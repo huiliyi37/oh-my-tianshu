@@ -82,6 +82,15 @@ Only a confined execution reaches `ctx.sandbox`; its provider policy narrows the
 interface SandboxPolicy extends SandboxExecutionPolicy {
   /** The file-effect mode this execution runs under. */
   mode: ConfinedSandboxMode
+  /**
+   * The calling session, when any: a per-session private temp capability is
+   * materialized under it (the windows-acl rung grants a revocable
+   * session/workspace-pair temp authority, so sibling sessions do not share
+   * temp write access — while the workspace SID and standing grant remain
+   * per-workspace); absent for agentless calls, which fall back to per-call
+   * backend state.
+   */
+  sessionId?: SessionId
 }
 ```
 
@@ -176,7 +185,7 @@ Abstract process-sandbox service. confine must return enforcing argv or fail clo
 abstract confine(argv: readonly string[], policy: SandboxPolicy): ConfinedArgv
 ```
 
-Source: [`packages/sandbox/sandbox/src/index.ts:148`](../../packages/sandbox/sandbox/src/index.ts)
+Source: [`packages/sandbox/sandbox/src/index.ts:158`](../../packages/sandbox/sandbox/src/index.ts)
 
 <a id="ctxsandboxpolicy--sandboxpolicyservice"></a>
 

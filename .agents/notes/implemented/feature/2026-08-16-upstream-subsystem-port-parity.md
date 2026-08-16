@@ -42,8 +42,9 @@ oh-my-tianshu 是 deepseek-ai/deepseek-harness 的独立 fork（2026-08-14 公�
 
 ## 第二轮内核盘点（2026-08-17）
 
-官方 226 包 vs 本地 229 包全量 diff：74 个官方路径中除改名组外，真差距 7 个 host 候选 + 13 个 client 面板。已排除（本地已覆盖）：goal-round-driver（goal-session 内已实现 race-fenced 轮驱动）、repeat-tool-reminder（repeat-tool-guard 即提醒实现）、lsp-stdio（lsp-local）、code-runtime-worker-thread（code-runtime-worker）等。已移植 4 个：
+官方 226 包 vs 本地 229 包全量 diff：74 个官方路径中除改名组外，真差距 7 个 host 候选 + 13 个 client 面板。已排除（本地已覆盖）：goal-round-driver（goal-session 内已实现 race-fenced 轮驱动）、repeat-tool-reminder（repeat-tool-guard 即提醒实现）、lsp-stdio（lsp-local）、code-runtime-worker-thread（code-runtime-worker）等。已移植 5 个：
 
+- **sandbox-windows-acl**（b44b7ea3）：Windows 受限令牌写限制后端（koffi FFI、WRITE_RESTRICTED token、workspace/temp 写 SID）；sandbox-local 补 win32 rung（SelectedRunner union、partial 强制执行声明、denial/runner-failure 契约、materializeAclGrant 的 standing workspace ACE + revocable per-session temp ACE）；dsh-sandbox SandboxPolicy 补 sessionId。typert/protocol 复核：本地 type-meta 与官方一一对应（TypeRT* 词汇改名），完全覆盖。code preset（PTC 模式）入 roster：本地 standard + tool-presentation 行（mode: code），web-app 默认装配 codeRuntime 支撑。
 - **agent-tool-presentation**（acde9c1d）：per-agent 工具呈现行。dsh-tools 核心升级 presentAs()/modeFor 链感知（ToolLayer.mode、codeTransport 按需构建、tools:code-only collapse 段、register/restrict 无条件保留 run_code）；新包 config.mode 必填行，code 模式经 ctx.inject(['codeRuntime']) 挂起。code preset 依赖解除，可入 roster。
 - **session-stats**（4dfdd94c）：sessionStats 投影单元（step/end 计数、turn 去重、llmMs/toolMs/ttftMs/decodeMs 折叠）经本地 session-projection seam 注册；dsh-llm/message 补 isTokenDelta。
 - **message-feedback**（673c69f5）：MessageFeedbackService(GatewayService)+@Remote list/put/delete，storage-domain sidecar、Session 头身份围栏、持久化屏障、CAS、per-Session 队列；typert-protocol→type-meta（typertRemote→typertGateway）。
