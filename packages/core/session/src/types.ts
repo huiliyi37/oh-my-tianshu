@@ -13,6 +13,8 @@ import type {
 } from '@huiliyi37/dsh-llm'
 import type { JsonValue } from './json.ts'
 
+export type { JsonValue } from './json.ts'
+
 /** Identifies one session in the store (and its persistence artifacts). */
 export type SessionId = Branded<'SessionId'>
 

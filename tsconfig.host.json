@@ -266,6 +266,7 @@
     { "path": "./packages/guard/agent-router" },
     { "path": "./packages/guard/pheromone" },
     { "path": "./packages/self-modification/tool-cordis" },
+    { "path": "./packages/self-modification/cordis-host-runner" },
     { "path": "./packages/hooks/hook-protocol" },
     { "path": "./packages/hooks/hooks-claude" },
     { "path": "./packages/hooks/hooks-codex" },

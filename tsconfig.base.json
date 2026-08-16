@@ -41,6 +41,7 @@
       "@huiliyi37/dsh-invariants": ["./packages/support/invariants/src/index.ts"],
       "@huiliyi37/dsh-paths": ["./packages/util/paths/src/index.ts"],
       "@huiliyi37/dsh-agent-presets/types": ["./packages/preset/agent-presets/src/types.ts"],
+      "@huiliyi37/dsh-cordis-host-runner/types": ["./packages/self-modification/cordis-host-runner/src/types.ts"],
       "@huiliyi37/dsh-typert-registry": ["./packages/typert/registry/src/index.ts"],
       "@huiliyi37/dsh-typert-registry/client": ["./packages/typert/registry/src/client/index.ts"],
       "@huiliyi37/dsh-api-gateway": ["./packages/api/gateway/src/index.ts"],
