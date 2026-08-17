@@ -1,0 +1,11 @@
+[
+  {
+    "kind": "chunks",
+    "chunks": [
+      { "type": "block-start", "index": 0, "blockType": "text" },
+      { "type": "text-delta", "index": 0, "text": "Understood the card: refactor the login flow now." },
+      { "type": "block-end", "index": 0, "block": { "type": "text", "text": "Understood the card: refactor the login flow now." } },
+      { "type": "finish", "reason": { "kind": "stop" } }
+    ]
+  }
+]

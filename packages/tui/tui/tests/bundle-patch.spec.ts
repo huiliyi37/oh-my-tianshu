@@ -26,7 +26,7 @@ describe('dsh-tui bundle', () => {
     expect(ids).toEqual(expect.arrayContaining([
       'tui-runner', 'spark-anchors', 'vision-bridge',
       'fs-snapshot', 'memory', 'tool-memory', 'tool-session-query',
-      'evidence-gate', 'zen', 'agent-router', 'agent-presets',
+      'evidence-gate', 'zen', 'task-card', 'agent-router', 'agent-presets',
     ]))
     // The shipped read-only preset root is injected by composeProfile keyed on
     // this exact row id; the row itself carries only the default preset.
@@ -40,5 +40,9 @@ describe('dsh-tui bundle', () => {
     expect(zen?.promoteDeny).toEqual([...BASH_OVERLAP_TOOLS])
     expect(zen?.diet).toEqual({ maxDescriptionChars: 80 })
     expect(Object.keys(zen ?? {}).sort()).toEqual(['diet', 'face', 'promoteDeny', 'section'])
+    // The task-card row ships template mode: the bundle has no provider
+    // default, so llm mode would fail loud at load; deployments opt in.
+    const taskCard = rows.find(row => row.id === 'task-card')?.config as Record<string, unknown> | undefined
+    expect(taskCard).toEqual({ mode: 'template' })
   })
 })

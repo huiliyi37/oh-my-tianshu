@@ -69,6 +69,14 @@
           If the request is trivial (1-2 steps), do it directly with the
           reduced toolset — anchoring is not required for answers.
 
+    # 首条消息任务卡：改写为结构化卡片（标题/目标/约束/验收 + 逐字原文）。
+    # bundle 无 provider 默认，template 零成本开箱即用；部署方可在 cordis.yml
+    # 覆写 mode: llm + provider/model 获得语义增强。
+    - id: task-card
+      name: '@huiliyi37/dsh-task-card'
+      config:
+        mode: template
+
     # 失败预测路由：tool/result 成败喂预测累计器，越阈值派发子代理验证
     # （provider/model 缺省随子代理默认路由；evidence 服务在场时并入指标）。
     - id: agent-router
