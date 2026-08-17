@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-17-tui-esc-csi-u-and-compose-newline.md
-2026-08-17-tui-esc-csi-u-and-compose-newline.md: b9599cee208abfb9927c83b8e063d4ceae62190a
-2026-08-17-tui-esc-csi-u-and-compose-newline.zh.md: a262d716a3bbe071d65bdde25eca8e2a59700b09
+2026-08-17-tui-esc-csi-u-and-compose-newline.md: 4082076441b9f0dc72ba9fc9e3cfded9e9c3bea1
+2026-08-17-tui-esc-csi-u-and-compose-newline.zh.md: bd2ecaa63f8471db66753337ed197b3adf20865b

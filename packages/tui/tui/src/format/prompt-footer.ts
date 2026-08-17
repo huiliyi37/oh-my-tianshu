@@ -50,7 +50,7 @@ export function formatPromptFooter(input: FormatPromptFooterInput, theme: RivetT
     : input.agentBusy === true
       ? ['esc 打断', 'ctrl+c 打断']
       : input.newlineMode === true
-        ? ['换行中', 'enter 换行', 'shift+enter 退出']
+        ? ['换行中', 'enter 换行', 'shift+enter 退出', 'pgup 翻页']
         : ['/ 命令', 'ctrl+j 换行', 'ctrl+p 面板']
   // 从后往前丢段直到放得下（mode 恒保留）。
   let segs = hints

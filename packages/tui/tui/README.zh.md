@@ -28,7 +28,7 @@
 
 **输入框剪贴板与图片粘贴**（移植自 opencode-tui 输入面）：`Ctrl+V` 读系统剪贴板图片（无图 fallback 剪贴板文本）；右键/终端菜单粘贴先识别剪贴板图片（命中则附图并吞掉图片字节乱码），粘贴内容像图片路径时加载为附件；附件以 `📎 N images` 标记显示在输入行上方，提交后在用户气泡下方以终端内联图形渲染（kitty / iTerm2）。vim yank / `Alt+W` 选区复制经 OSC52 写系统剪贴板。用户气泡携带识图提示——图片直发 / 经识图桥转描述 / 未发送（无识图桥）。
 
-**输入键。** 忙碌时 Esc 与 Ctrl+C 打断当前回合（`⏹ 已取消`）；空闲 Esc 不退出，空输入行需连按两次 Ctrl+C 才退出。`Ctrl+J`、Alt+Enter、以及行尾 `\`+Enter 插入换行。终端发出 Kitty/xterm 增强键时（attach 打开协议 flag 1），Shift+Enter 切换粘滞换行模式；开启后 Enter 插入换行，再按 Shift+Enter 退出该模式。bracketed paste 整段插入；满 10 行或 1000 字的粘贴收纳为 `[paste #N +M lines]`，提交时展开。输入视窗最多约占终端高度三分之一（3–12 行）。会话 tab 标签剥掉 `session-` 前缀。
+**输入键。** 忙碌时 Esc 与 Ctrl+C 打断当前回合（`⏹ 已取消`）；2 秒窗口内再按一次 Ctrl+C 即退出（即使回合仍标为忙碌）。空闲 Esc 不退出。空输入行需连按两次 Ctrl+C 才退出；非空输入行清草稿。Kitty 键盘协议 flag 1 把 Ctrl+字母编成 CSI u（Ctrl+C 为 `CSI 99;5u`），输入解码把它映射到与传统 C0 字节相同的 `ctrl_*` 名。`Ctrl+J`、Alt+Enter、以及行尾 `\`+Enter 插入换行。终端发出 Kitty/xterm 增强键时（attach 打开协议 flag 1），Shift+Enter 切换粘滞换行模式；开启后 Enter 插入换行，再按 Shift+Enter 退出该模式。bracketed paste 整段插入；满 100 行或 10000 字的粘贴收纳为 `[paste #N +M lines]`，提交时展开（阈值以下保持原文可编辑）。输入视窗最多约占终端高度三分之一（3–16 行），超出时显示 `… 上 N 行` / `… 下 N 行`；↑↓ 按软折行移动，PageUp/PageDown 翻页。会话 tab 标签剥掉 `session-` 前缀。
 
 **会话渲染面**（对标 Claude Code）：已结算工具卡在 `tool/result` 时实时提交进 scrollback，经软降级桥（`adapter/tool-view.ts`）消费 harness 的 presenter 渲染意图（`presentCall`/`presentResult`）——`diff` 结果渲染结构化红绿文件 diff（与审批预览共享 `renderFileDiff`），`terminal` 结果渲染命令标题 + cwd + exit/signal 徽标，其余回落文本折叠卡。think 推理通道流式期在 live 区渲染 shimmer 头行（`✻ 思考中…`，tick 驱动光带扫过，16 色终端静态降级）+ 暗色尾巴，段结束时以折叠头行落底进 scrollback（`✻ 思考 (3.2s) · 12 行`）——正文默认收起（对标竞品），`Ctrl+O` 在 live 区按需展开查看（scrollback append-only，展开不重复落底；中止的 turn 丢弃缓冲；紧凑模式只留头行）。resume/attach 经同一条桥重放，消息与工具卡按事件 seq 交错——live 与恢复转录渲染完全一致。
 

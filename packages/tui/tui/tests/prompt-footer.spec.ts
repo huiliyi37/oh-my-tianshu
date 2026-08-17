@@ -173,5 +173,6 @@ describe('formatPromptFooter', () => {
     expect(line).toContain('换行中')
     expect(line).toContain('enter 换行')
     expect(line).toContain('shift+enter 退出')
+    expect(line).toContain('pgup 翻页')
   })
 })

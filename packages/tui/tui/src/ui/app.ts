@@ -360,7 +360,7 @@ const USAGE_TEXT = `oh-my-tianshu tui — oh-my-tianshu 交互式终端界面 / 
   oh-my-tianshu tui --help            显示本帮助 / show this help
   oh-my-tianshu tui --version         输出版本 / print the version
 
-快捷键 / Keys: ctrl+n 新会话 · ctrl+s 恢复 · ctrl+p 命令面板 · / slash 命令 · esc 打断 · shift+enter 换行模式 · ctrl+j 换行 · ctrl+o 展开推理 · shift+tab 模式循环
+快捷键 / Keys: ctrl+n 新会话 · ctrl+s 恢复 · ctrl+p 命令面板 · / slash 命令 · esc 打断 · shift+enter 换行模式 · ctrl+j 换行 · ctrl+o 展开推理 · shift+tab 模式循环 · ctrl+c 空闲双击退出
 `
 
 /** C3 项 3：写工具名判定（与 fs-snapshot 的 trackEdit 钩子同一集合）。 */
@@ -2534,29 +2534,30 @@ export class TuiApp {
     this.flushLiveRender()
   }
 
-  /** 连按退出提示占位的恢复定时器；null = 未激活。 */
+  /** 连按退出提示的恢复定时器；null = 未激活。 */
   private ctrlCExitHintTimer: ReturnType<typeof setTimeout> | null = null
 
-  /** 第一次空闲 Ctrl+C：输入行显示连按退出提示，窗口超时自动复位。 */
+  /**
+   * 第一次空闲 Ctrl+C：进入连按退出窗口（输入轨上方渲染提示行，窗口超时
+   * 自动复位）。提示行渲染而非 placeholder——输入行有草稿时 placeholder 不可见，
+   * 而连按退出对「有草稿也想退出」的用户同样生效。
+   */
   private showCtrlCExitHint(): void {
-    this.inputLine.setPlaceholder('再按 Ctrl+C 退出 · Ctrl+Q 立即退出')
     if (this.ctrlCExitHintTimer !== null) clearTimeout(this.ctrlCExitHintTimer)
     this.ctrlCExitHintTimer = setTimeout(() => {
       this.ctrlCExitHintTimer = null
       this.inputController.ctrlCPendingSince = 0
-      this.inputLine.setPlaceholder('')
       this.flushLiveRender()
     }, InputController.EXIT_WINDOW_MS)
     this.flushLiveRender()
   }
 
-  /** 终止连按窗口：复位提示占位与恢复定时器。 */
+  /** 终止连按窗口：复位提示与恢复定时器。 */
   private clearCtrlCExitHint(): void {
     if (this.ctrlCExitHintTimer !== null) {
       clearTimeout(this.ctrlCExitHintTimer)
       this.ctrlCExitHintTimer = null
     }
-    if (this.inputLine.placeholder !== '') this.inputLine.setPlaceholder('')
   }
 
   /**
@@ -2959,40 +2960,65 @@ export class TuiApp {
       // 空闲：双击 Esc（窗口内第二次）触发 rewind（CC 的 Esc+Esc 时间回溯）；
       // 第一次只记时间戳并继续流向后续分支（vim 等空闲 Esc 语义保留），
       // 窗口过期后第二次仅刷新时间戳。
-      const now = Date.now()
-      if (this.escRewindPendingSince !== 0 && now - this.escRewindPendingSince < REWIND_DOUBLE_ESC_MS) {
-        this.escRewindPendingSince = 0
-        this.rewindSession()
-        return
+      // vim normal 下 Esc 是空操作：布防/触发都跳过——vim 用户离开 insert 后
+      // 习惯性补按 Esc，不该弹出 rewind overlay（busy 打断不受影响，在忙分支）。
+      const vimEscNoop = this.vimEnabled && this.inputLine.vimMode === 'normal'
+      if (!vimEscNoop) {
+        const now = Date.now()
+        if (this.escRewindPendingSince !== 0 && now - this.escRewindPendingSince < REWIND_DOUBLE_ESC_MS) {
+          this.escRewindPendingSince = 0
+          this.rewindSession()
+          return
+        }
+        this.escRewindPendingSince = now
       }
-      this.escRewindPendingSince = now
     }
     if (key.name === 'ctrl_c') {
       // Windows 控制台（PowerShell/conhost）下 Ctrl+C 可能同时产生 0x03 字节
       // 与 SIGINT：记录字节处理时间，供 index.ts 的 SIGINT 防抖（双触发时
       // SIGINT 忽略，避免刚打断的 TUI 被 teardown 拆掉——「输入框消失」）。
-      this.lastCtrlCAt = Date.now()
-      // raw-mode 下 Ctrl+C 是 0x03 数据字节而非 SIGINT。
-      // 在途：打断当前 turn（连按窗口一并复位）；空闲空输入：连按两次才
-      // onExit——单次误触不拆 TUI，第一次提示、窗口内第二次才退出
-      // （Claude Code 同款；Ctrl+Q 仍立即退出）。
-      if (this.isAgentBusy()) {
+      // Kitty flag 1 下 Ctrl+C 是 CSI 99;5u 而不是 0x03，同样走此分支。
+      const now = Date.now()
+      this.lastCtrlCAt = now
+      const empty = this.inputLine.value === ''
+      const pending = this.inputController.ctrlCPendingSince
+      const within = pending !== 0 && now - pending < InputController.EXIT_WINDOW_MS
+      // 窗口内第二次 Ctrl+C 恒退出（不要求空输入）：第一次（无论打断、清空还是
+      // 布防提示）已表达退出意图，草稿/在途不再拦路——「连按两次退出」对
+      // 「有草稿想退出」与「打断后立刻退出」同样成立。
+      if (this.onExit !== undefined && within) {
         this.inputController.ctrlCPendingSince = 0
         this.clearCtrlCExitHint()
-        this.handleAbort()
+        this.onExit()
         return
       }
-      if (this.inputLine.value === '' && this.onExit !== undefined) {
-        const now = Date.now()
-        const pending = this.inputController.ctrlCPendingSince
-        if (pending !== 0 && now - pending < InputController.EXIT_WINDOW_MS) {
+      if (this.isAgentBusy()) {
+        this.handleAbort()
+        // 打断同时布防连按窗口（有草稿也布防）：agent 落定前第二次 Ctrl+C
+        // 直接退出（within 分支先行），不再要求等 agent 变 idle 后重按。
+        if (this.onExit !== undefined) {
+          this.inputController.ctrlCPendingSince = now
+          this.showCtrlCExitHint()
+        } else {
           this.inputController.ctrlCPendingSince = 0
           this.clearCtrlCExitHint()
-          this.onExit()
-          return
         }
+        return
+      }
+      if (empty && this.onExit !== undefined) {
         this.inputController.ctrlCPendingSince = now
         this.showCtrlCExitHint()
+        return
+      }
+      if (!empty) {
+        // 空闲草稿：清空输入行（shell 语义；setValue 记 undo，Ctrl+Z 可恢复）
+        // 并布防连按窗口——第二次 Ctrl+C 即退出，无「已取消」噪音。
+        this.inputLine.setValue('')
+        this.flushLiveRender()
+        if (this.onExit !== undefined) {
+          this.inputController.ctrlCPendingSince = now
+          this.showCtrlCExitHint()
+        }
         return
       }
       this.inputController.ctrlCPendingSince = 0
@@ -3722,6 +3748,10 @@ export class TuiApp {
     }
     // 阶段 2：slash 菜单选中命令 → 输入行 ghost 预览（补全剩余/参数占位）。
     this.inputLine.setGhost(this.slashGhostText())
+    // Ctrl+C 连按退出窗口激活中：输入轨上方渲染提示行（窗口由定时器复位）。
+    if (this.inputController.ctrlCPendingSince !== 0) {
+      lines.push({ text: color('再按 Ctrl+C 退出 · Ctrl+Q 立即退出', theme.muted) })
+    }
     // CC PromptInput marginTop={1}：轨前 1 行呼吸，不填视口。
     lines.push({ text: '' })
     // 输入轨（Claude Code 形态）：上下圆角横线、左右不封。顶轨嵌 omp 风格

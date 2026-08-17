@@ -163,6 +163,45 @@ export function displayWidth(text: string, opts: DisplayWidthOptions = {}): numb
   return base + ambiguousExtra(plain)
 }
 
+/** 单字符宽度缓存条目上限（超出整体清空——常见文档字符集远小于此）。 */
+const CHAR_WIDTH_CACHE_LIMIT = 20_000
+
+/** narrow 档（不加宽）单字符宽度缓存：code point → cell 数。 */
+const charWidthCacheNarrow = new Map<string, number>()
+/** wide/full 档（加宽）单字符宽度缓存：code point → cell 数。 */
+const charWidthCacheWide = new Map<string, number>()
+
+/**
+ * 单个 code point 的显示宽度（= displayWidth(ch) 的结果缓存版）。
+ *
+ * 热路径专用：输入框折行对每个字符调用一次宽度度量，而 string-width v8
+ * 每次调用都新建 Intl.Segmenter 并跑若干 Unicode 属性正则（单字符 ~0.1ms）。
+ * 长草稿（万级字符）下逐字符直调 displayWidth 会让每次按键渲染上百毫秒。
+ * 按字符缓存后热路径退化为 Map 命中（~0.1µs）；两档（加宽/不加宽）分开缓存
+ * ——同字符在不同档位下宽度不同。只缓存结果、不改算法，宽度与 displayWidth
+ * 逐字符求和恒等（折行点不因缓存漂移）。
+ *
+ * @param ch - 单个 code point（1–2 个 UTF-16 code unit；多 code point 串
+ *   会得到与 displayWidth 不一致的结果，调用方须按 code point 迭代）。
+ * @param ambiguousAsWide - 是否按加宽档位度量（与 displayWidth 同口径）。
+ * @returns 显示宽度（cell 数）。
+ */
+export function charDisplayWidth(ch: string, ambiguousAsWide: boolean): number {
+  const cache = ambiguousAsWide ? charWidthCacheWide : charWidthCacheNarrow
+  const hit = cache.get(ch)
+  if (hit !== undefined) return hit
+  const w = displayWidth(ch, { ambiguousAsWide })
+  if (cache.size >= CHAR_WIDTH_CACHE_LIMIT) cache.clear()
+  cache.set(ch, w)
+  return w
+}
+
+/** 测试钩子：清空单字符宽度缓存。 */
+export function resetCharWidthCache(): void {
+  charWidthCacheNarrow.clear()
+  charWidthCacheWide.clear()
+}
+
 /**
  * 按显示宽度截断（ANSI 安全：转义序列原样保留、不计宽；截断发生时补一个 RESET
  * 防止颜色泄漏到后续行）。已在预算内则原样返回。

@@ -581,7 +581,7 @@ export class InputHandler {
       if (data.length === 1) return { key: null, consumed: 0 }
 
       // CSI 序列（方向键、功能键、带修饰键的序列等）
-      const csiMatch = data.match(/^\x1B\[[0-9;]*[A-Za-z~]/)
+      const csiMatch = data.match(/^\x1B\[[0-9;:]*[A-Za-z~]/)
       if (csiMatch) {
         const seq = csiMatch[0]
         // CPR（DSR 响应 `\x1B[{row};{col}R`）：不是按键——路由给 cprHandlers，
@@ -593,10 +593,11 @@ export class InputHandler {
         }
         const enhanced = decodeEnhancedKey(seq)
         if (enhanced !== null) {
+          if ('skip' in enhanced) return { key: null, consumed: seq.length }
           return {
             key: {
               raw: seq,
-              char: '',
+              char: enhanced.char,
               name: enhanced.name,
               ctrl: enhanced.ctrl,
               meta: enhanced.meta,
@@ -639,7 +640,7 @@ export class InputHandler {
       }
 
       // 看起来是未完整的 CSI/SS3 序列，等待后续字节
-      if (/^\x1B(\[([0-9;]*)|O)$/.test(data)) {
+      if (/^\x1B(\[([0-9;:]*)|O)$/.test(data)) {
         return { key: null, consumed: 0 }
       }
 
@@ -714,14 +715,16 @@ export class InputHandler {
   }
 }
 
-/** Kitty CSI u / xterm modifyOtherKeys 编码的 Esc、Enter、Tab、Backspace。 */
-function decodeEnhancedKey(seq: string): { name: KeyName; ctrl: boolean; meta: boolean; shift: boolean } | null {
+/** Kitty CSI u / xterm modifyOtherKeys：功能键、Ctrl+字母、带修饰的可打印键。 */
+function decodeEnhancedKey(
+  seq: string,
+): { skip: true } | { name: KeyName; ctrl: boolean; meta: boolean; shift: boolean; char: string } | null {
   const body = seq.startsWith('\x1B') ? seq.slice(1) : seq
-  const kitty = body.match(/^\[(\d+)(?:;(\d+))?u$/)
+  const kitty = body.match(/^\[(\d+)(?::[^;]*)?(?:;(\d+)(?::(\d+))?)?(?:;(\d+))?(?:;[^u]*)?u$/)
   if (kitty !== null) {
-    const code = Number(kitty[1])
-    const mod = kitty[2] === undefined ? 1 : Number(kitty[2])
-    return enhancedKeyFromCode(code, mod)
+    const event = kitty[3] !== undefined ? Number(kitty[3]) : kitty[4] !== undefined ? Number(kitty[4]) : 1
+    if (event === 3) return { skip: true }
+    return enhancedKeyFromCode(Number(kitty[1]), kitty[2] === undefined ? 1 : Number(kitty[2]))
   }
   const xterm = body.match(/^\[27;(\d+);(\d+)~$/)
   if (xterm !== null) {
@@ -730,22 +733,34 @@ function decodeEnhancedKey(seq: string): { name: KeyName; ctrl: boolean; meta: b
   return null
 }
 
-/** Kitty 修饰键：1 + shift + alt*2 + ctrl*4。 */
+/** Kitty 修饰键：1 + shift + alt*2 + ctrl*4。flag 1 下 Ctrl+C 是 code 99（'c'）+ mod 5。 */
 function enhancedKeyFromCode(
   code: number,
   mod: number,
-): { name: KeyName; ctrl: boolean; meta: boolean; shift: boolean } | null {
+): { name: KeyName; ctrl: boolean; meta: boolean; shift: boolean; char: string } | null {
   const bits = Math.max(0, mod - 1)
   const shift = (bits & 1) !== 0
   const meta = (bits & 2) !== 0
   const ctrl = (bits & 4) !== 0
   let name: KeyName | null = null
+  let char = ''
   if (code === 27) name = 'escape'
   else if (code === 13) name = 'return'
   else if (code === 9) name = shift ? 'shift_tab' : 'tab'
-  else if (code === 127) name = 'backspace'
+  else if (code === 127 || code === 8) name = 'backspace'
+  else if (ctrl && code >= 97 && code <= 122) name = CTRL_CODES[code - 96] ?? 'unknown'
+  else if (ctrl && code >= 65 && code <= 90) name = CTRL_CODES[code - 64] ?? 'unknown'
+  else if (code >= 1 && code <= 26) name = CTRL_CODES[code] ?? 'unknown'
+  else if (ctrl && code === 46) name = 'ctrl_.'
+  else if (ctrl && (code === 45 || code === 95)) name = 'ctrl_minus'
+  else if (ctrl && code === 93) name = 'ctrl_]'
+  else if (ctrl && code === 91) name = 'escape'
+  if (name === null && code >= 32 && code !== 127) {
+    char = String.fromCodePoint(code)
+    name = char === ' ' ? 'space' : 'unknown'
+  }
   if (name === null) return null
-  return { name, ctrl, meta, shift }
+  return { name, ctrl, meta, shift, char }
 }
 
 /** 返回 `buf` 后缀中是 `marker` 前缀的最长长度（0 表示没有）。

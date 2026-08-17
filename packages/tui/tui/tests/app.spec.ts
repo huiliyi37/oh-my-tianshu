@@ -511,6 +511,58 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     await app.dispose()
   })
 
+  it('Kitty CSI 99;5u 空闲空输入：窗口内第二次才 onExit', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('exit-csi-c')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const onExit = vi.fn()
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin, onExit })
+    await app.attach()
+
+    stdin.emit('data', '\x1b[99;5u')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).not.toHaveBeenCalled()
+    expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('再按 Ctrl+C 退出')
+
+    stdin.emit('data', '\x1b[99;5u')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).toHaveBeenCalledTimes(1)
+    await app.dispose()
+  })
+
+  it('ctrl_c 空闲非空：清输入行，不退出、不打印已取消', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('clear-line')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const onExit = vi.fn()
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin, onExit })
+    await app.attach()
+    stdin.emit('data', 'hello')
+    await new Promise(resolve => setImmediate(resolve))
+    stdout.write.mockClear()
+    stdin.emit('data', '\x03')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).not.toHaveBeenCalled()
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).not.toContain('已取消')
+    expect(written).not.toContain('hello')
+    // 清空草稿同时布防连按窗口：窗口内第二次 Ctrl+C 即退出
+    stdin.emit('data', '\x03')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).toHaveBeenCalledTimes(1)
+    await app.dispose()
+  })
+
   it('ctrl_c 空闲空输入：超过连按窗口的第二次仍不退出', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('exit-window')
@@ -563,6 +615,68 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     expect(onExit).not.toHaveBeenCalled()
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('已取消')
+    await app.dispose()
+  })
+
+  it('agent running 时空输入连按两次 Ctrl+C：第一次打断，窗口内第二次 onExit', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('abort-then-exit')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const onExit = vi.fn()
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin, onExit })
+    await app.attach()
+    const id = app.sessionId
+    if (id === null) throw new Error('sessionId missing after attach')
+    const statusHandlers = ctx.on.mock.calls
+      .filter((call: unknown[]) => call[0] === 'agent/status')
+      .map(call => call[1] as (payload: { agent: { id: SessionId }; status: string }) => void)
+    for (const handler of statusHandlers) handler({ agent: { id }, status: 'running' })
+
+    stdin.emit('data', '\x03')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).not.toHaveBeenCalled()
+    expect(agent.cancel).toHaveBeenCalledTimes(1)
+
+    stdin.emit('data', '\x03')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).toHaveBeenCalledTimes(1)
+    await app.dispose()
+  })
+
+  it('agent running 且输入行有草稿：第一次打断并布防，窗口内第二次仍 onExit', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('abort-draft-exit')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const onExit = vi.fn()
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin, onExit })
+    await app.attach()
+    stdin.emit('data', 'draft')
+    await new Promise(resolve => setImmediate(resolve))
+    const id = app.sessionId
+    if (id === null) throw new Error('sessionId missing after attach')
+    const statusHandlers = ctx.on.mock.calls
+      .filter((call: unknown[]) => call[0] === 'agent/status')
+      .map(call => call[1] as (payload: { agent: { id: SessionId }; status: string }) => void)
+    for (const handler of statusHandlers) handler({ agent: { id }, status: 'running' })
+
+    stdin.emit('data', '\x03')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).not.toHaveBeenCalled()
+    expect(agent.cancel).toHaveBeenCalledTimes(1)
+
+    stdin.emit('data', '\x03')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).toHaveBeenCalledTimes(1)
     await app.dispose()
   })
 
@@ -729,6 +843,36 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     await new Promise(resolve => setTimeout(resolve, 150))
     // 等窗口过期(1s)后再按第二次
     await new Promise(resolve => setTimeout(resolve, 1100))
+    stdin.emit('data', '\x1b')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).not.toContain('⟲ rewind 回退')
+    await app.dispose()
+  })
+
+  it('vim 模式下双击 Esc 不触发 rewind（vim normal 的 Esc 是空操作，不布防）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('vim-dbl-esc')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin, vimEnabled: true })
+    await app.attach()
+    ;(agent.session as { id: SessionId }).id = app.sessionId ?? SessionId('vim-dbl-esc')
+    // 会话需有消息（rewindSession 空消息不打开）——确保窗口内双击本会触发
+    const bus = sessionEventBus(ctx)
+    const id = app.sessionId
+    if (id === null) throw new Error('sessionId missing')
+    bus(id, {
+      seq: 1, time: 1, type: 'assistant/message',
+      data: { turn: 1, step: 0, message: { role: 'assistant', content: [{ type: 'text', text: 'hi' }] }, usage: { inputTokens: 10, outputTokens: 5 } },
+    })
+    // 第一次 Esc：vim insert → normal（布防被 vim normal 空操作守卫跳过）
+    stdin.emit('data', '\x1b')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    // 第二次 Esc：vim normal 空操作，不触发 rewind
     stdin.emit('data', '\x1b')
     await new Promise(resolve => setTimeout(resolve, 150))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
@@ -5752,11 +5896,11 @@ describe('bracketed paste 接线（多行/长文本粘贴不逐行提交）', ()
     const { stdin, stdout, app } = boot()
     await app.attach()
     stdout.write.mockClear()
-    const longText = Array.from({ length: 20 }, (_, i) => `line-${i}`).join('\n')
+    const longText = Array.from({ length: 120 }, (_, i) => `line-${i}`).join('\n')
     stdin.emit('data', `\x1b[200~${longText}\x1b[201~`)
     await new Promise(resolve => setTimeout(resolve, 40))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('[paste #1 +20 lines]') // 折叠标记
+    expect(written).toContain('[paste #1 +120 lines]') // 折叠标记（阈值已抬至 100 行/10K 字符）
     await app.dispose()
   })
 })

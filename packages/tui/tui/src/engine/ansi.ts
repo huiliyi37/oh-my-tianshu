@@ -45,7 +45,8 @@ export const ANSI = {
   BRACKETED_PASTE_OFF: '\x1B[?2004l',
   /**
    * Kitty keyboard protocol flag 1（disambiguate escape codes）。
-   * Esc / Shift+Enter 变成 CSI u，可打印字符仍走原字节——不支持的终端静默忽略。
+   * Esc / Shift+Enter / Ctrl+字母变成 CSI u（Ctrl+C 是 `CSI 99;5u`，不再是 0x03 / SIGINT）；
+   * 无修饰的可打印字符仍走原字节。不支持的终端静默忽略。
    */
   KITTY_KEYBOARD_DISAMBIGUATE_ON: '\x1B[>1u',
   /** 弹出 Kitty keyboard protocol 栈（与 DISAMBIGUATE_ON 成对）。 */

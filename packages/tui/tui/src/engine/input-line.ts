@@ -50,10 +50,10 @@ export interface InputLineOptions {
 /**
  * 输入框可视行上限：长草稿不占满整屏。
  * @param rows - 终端行数。
- * @returns 至少 3、至多 12，约 `rows / 3`。
+ * @returns 至少 3、至多 16，约 `rows / 3`。
  */
 export function inputViewportMaxLines(rows: number): number {
-  return Math.max(3, Math.min(12, Math.floor(Math.max(1, rows) / 3)))
+  return Math.max(3, Math.min(16, Math.floor(Math.max(1, rows) / 3)))
 }
 
 /** displayLines / displayLinesWithCaret 的视窗裁剪参数。 */
@@ -111,13 +111,16 @@ const UNDO_TOTAL_CHARS_MAX = 2_000_000
 // ── 长粘贴自动收纳（2026-07-24，对齐 pi-tui 与 Mission Composer §12）────────
 // 命中阈值的粘贴不原文进 buffer，而是插入原子标记串 `[paste #N +M lines]`，
 // 原文存 _pastes 旁路——输入框不被长计划/日志淹没，提交时展开还原。
+// 阈值抬高（10 行/1000 字符 → 100 行/10000 字符）：折行缓存化后长文本渲染
+// 不再卡顿，常规长草稿（几段文字/贴代码片段）应保持可编辑，只有整页日志/
+// 计划这类超大粘贴才收纳成标记。
 /** 触发折叠的阈值（行数 或 字符数）。 */
-const PASTE_FOLD_MIN_LINES = 10
-const PASTE_FOLD_MIN_CHARS = 1000
+const PASTE_FOLD_MIN_LINES = 100
+const PASTE_FOLD_MIN_CHARS = 10_000
 /** 标记串形态（grapheme 原子化 / 提交展开 / 渲染着色共用）。 */
 const PASTE_MARKER_RE = /\[paste #(\d+) \+\d+ lines?\]/g
 
-import { ambiguousWideEnabled, displayWidth } from '../width.js'
+import { ambiguousWideEnabled, charDisplayWidth, displayWidth } from '../width.js'
 import { ANSI } from './ansi.js'
 
 /**
@@ -174,7 +177,6 @@ function pushWrappedSegment(
   /** 键盘选区（buffer 绝对偏移，start<end）：范围内字符反色渲染。 */
   sel?: { start: number; end: number } | null,
 ): void {
-  const chars = Array.from(segment)
   let current = ''
   let currentWidth = 0
   let currentHasCursor = false
@@ -189,7 +191,10 @@ function pushWrappedSegment(
     currentHasCursor = false
   }
 
-  for (const ch of chars) {
+  // 按 code point 迭代（for-of 直接走字符串迭代器，免 Array.from 全量数组）；
+  // 宽度用 charDisplayWidth 缓存版——长草稿逐字符直调 displayWidth（每次
+  // 重建 Intl.Segmenter）会让每次按键渲染上百毫秒（2026-08-17 长文本优化）。
+  for (const ch of segment) {
     const absOff = (segAbsStart ?? 0) + offset
     if (sel && inSel && absOff === sel.end) { current += ANSI.RESET; inSel = false }
     if (sel && !inSel && absOff === sel.start) { current += ANSI.REVERSE; inSel = true }
@@ -202,7 +207,7 @@ function pushWrappedSegment(
       currentHasCursor = true
     }
 
-    const chWidth = Math.max(1, inputDisplayWidth(ch, ambiguousAsWide))
+    const chWidth = Math.max(1, charDisplayWidth(ch, ambiguousAsWide))
     if (currentWidth > 0 && currentWidth + chWidth > maxContentWidth) flush()
     current += ch
     currentWidth += chWidth
@@ -350,8 +355,8 @@ function viewportWithCaret(lines: string[], cursorLine: number, maxLines?: numbe
   if (max === 1) return { lines: [cursorText], caretLine: 0 }
   if (max === 2) {
     return cursor < lines.length - 1
-      ? { lines: [cursorText, `… ${lines.length - cursor - 1} lines below`], caretLine: 0 }
-      : { lines: [`… ${cursor} lines above`, cursorText], caretLine: 1 }
+      ? { lines: [cursorText, `… 下 ${lines.length - cursor - 1} 行`], caretLine: 0 }
+      : { lines: [`… 上 ${cursor} 行`, cursorText], caretLine: 1 }
   }
 
   const hasAbove = cursor > 0
@@ -367,9 +372,9 @@ function viewportWithCaret(lines: string[], cursorLine: number, maxLines?: numbe
 
   return {
     lines: [
-      ...(hasAbove ? [`… ${start} lines above`] : []),
+      ...(hasAbove ? [`… 上 ${start} 行`] : []),
       ...visible,
-      ...(hasBelow ? [`… ${lines.length - (start + contentSlots)} lines below`] : []),
+      ...(hasBelow ? [`… 下 ${lines.length - (start + contentSlots)} 行`] : []),
     ],
     caretLine: (hasAbove ? 1 : 0) + (cursor - start),
   }
@@ -391,6 +396,10 @@ export class InputLine {
   private _maxLength: number
   /** 手工换行：Enter 插入 \\n 而不是提交（粘贴流结束的 return 仍提交）。 */
   private _newlineMode = false
+  /** 最近一次 displayLines 的折行宽度；↑↓/PgUp 按视觉行移动。 */
+  private _wrapWidth: number | undefined
+  /** 最近一次 displayLines 的可视行上限；PageUp/Down 按此翻页。 */
+  private _maxDisplayLines: number | undefined
   /** 图片附件 data URL 列表 */
   private _images: string[] = []
 
@@ -483,7 +492,7 @@ export class InputLine {
   setPlaceholder(value: string): void {
     this._placeholder = value
   }
-  /** 手工换行模式：Enter 插入换行；粘贴流合并提交不受影响。 */
+  /** 手工换行模式：Enter 插入换行；粘贴流（非 bracketed paste）结束时并入草稿不提交。 */
   get newlineMode(): boolean { return this._newlineMode }
   /**
    * 开关手工换行模式。
@@ -533,6 +542,8 @@ export class InputLine {
    * @returns 显示行数组 + 光标 cell 坐标（line 为数组下标，col 为 0-based cell）
    */
   displayLinesWithCaret(options: InputLineDisplayOptions = {}): { lines: string[]; caret: { line: number; col: number } } {
+    if (options.maxWidth !== undefined) this._wrapWidth = options.maxWidth
+    if (options.maxLines !== undefined) this._maxDisplayLines = options.maxLines
     const ambiguousAsWide = ambiguousWideEnabled()
     const prefixWidth = inputDisplayWidth('❯ ', ambiguousAsWide)
     if (!this._value) {
@@ -617,7 +628,7 @@ export class InputLine {
     if (lineCount > PASTE_FOLD_MIN_LINES || text.length > PASTE_FOLD_MIN_CHARS) {
       const id = ++this._pasteSeq
       this._pastes.set(id, text)
-      const marker = `[paste #${id} +${lineCount} lines]`
+      const marker = `[paste #${id} +${lineCount} ${lineCount === 1 ? 'line' : 'lines'}]`
       this.insertText(marker)
       return
     }
@@ -800,7 +811,17 @@ export class InputLine {
         this.onChangeCallback?.(this._value, this._cursor)
         return { type: 'change', value: this._value, cursor: this._cursor }
       }
-      if (this._newlineMode && !inline && this._inlinePasteLines.length === 0) {
+      if (this._newlineMode && !inline) {
+        // 换行模式（粘滞）下 Enter 语义是「插入换行」——粘贴流（inline return
+        // 累积）结束时同样不提交：整段并入草稿（换行模式 = 编辑长文，粘贴应进
+        // 草稿而非发送；bracketed paste 走 onPaste 直插，本就如此）。尾随 CR
+        // 视作一次换行输入，合并文本后补一个 \n 与用户 Enter 行为一致。
+        if (this._inlinePasteLines.length > 0) {
+          const merged = [...this._inlinePasteLines, this.expandPastes(this._value)].join('\n')
+          this._inlinePasteLines = []
+          this.setValue(merged + '\n', merged.length + 1)
+          return { type: 'change', value: this._value, cursor: this._cursor }
+        }
         return this.insertChar('\n')
       }
       const submitted = this.expandPastes(this._value)
@@ -879,6 +900,8 @@ export class InputLine {
       case 'end': return this.moveEnd()
       case 'up': return this.moveUpOrHistory()
       case 'down': return this.moveDownOrHistory()
+      case 'pageup': return this.movePage(-1)
+      case 'pagedown': return this.movePage(1)
 
       default: break
     }
@@ -994,6 +1017,9 @@ export class InputLine {
     this.sealUndo()
     this._draft = null
     this._pastes.clear()
+    // 注意：不能在此清 _inlinePasteLines——粘贴流累积发生在 clearAfterSubmit
+    // 之后（inline return 先清后推），清空会让每行覆盖上一行、合并提交退化。
+    // 流的收尾由 submitFlushingPasteLines / 换行模式并入分支负责清空。
     this._selAnchor = null // 内部剪贴板随会话保留（常规剪贴板语义）
     this._visualLineWise = false
   }
@@ -1050,18 +1076,23 @@ export class InputLine {
   }
 
   private deleteToStart(): InputLineEvent | null {
-    if (this._cursor <= 0) return null
+    const { line } = this.getLineCol(this._cursor)
+    const start = this.absolutePos(line, 0)
+    if (this._cursor <= start) return null
     this.recordUndo('delete')
-    this._value = this._value.slice(this._cursor)
-    this._cursor = 0
+    this._value = this._value.slice(0, start) + this._value.slice(this._cursor)
+    this._cursor = start
     this.onChangeCallback?.(this._value, this._cursor)
     return { type: 'change', value: this._value, cursor: this._cursor }
   }
 
   private deleteToEnd(): InputLineEvent | null {
-    if (this._cursor >= this._value.length) return null
+    const lines = this._value.split('\n')
+    const { line } = this.getLineCol(this._cursor)
+    const end = this.absolutePos(line, (lines[line] ?? '').length)
+    if (this._cursor >= end) return null
     this.recordUndo('delete')
-    this._value = this._value.slice(0, this._cursor)
+    this._value = this._value.slice(0, this._cursor) + this._value.slice(end)
     this.onChangeCallback?.(this._value, this._cursor)
     return { type: 'change', value: this._value, cursor: this._cursor }
   }
@@ -1131,16 +1162,21 @@ export class InputLine {
   }
 
   private moveHome(): InputLineEvent | null {
-    if (this._cursor === 0) return null
+    const { line } = this.getLineCol(this._cursor)
+    const pos = this.absolutePos(line, 0)
+    if (pos === this._cursor) return null
     this.sealUndo()
-    this._cursor = 0
+    this._cursor = pos
     return { type: 'change', value: this._value, cursor: this._cursor }
   }
 
   private moveEnd(): InputLineEvent | null {
-    if (this._cursor === this._value.length) return null
+    const lines = this._value.split('\n')
+    const { line } = this.getLineCol(this._cursor)
+    const pos = this.absolutePos(line, (lines[line] ?? '').length)
+    if (pos === this._cursor) return null
     this.sealUndo()
-    this._cursor = this._value.length
+    this._cursor = pos
     return { type: 'change', value: this._value, cursor: this._cursor }
   }
 
@@ -1188,36 +1224,116 @@ export class InputLine {
     return pos
   }
 
-  /** Up：多行且不在首行时上移一行，否则取上一条历史。 */
-  private moveUpOrHistory(): InputLineEvent | null {
-    if (this._value.includes('\n')) {
-      // 多行：方向键专注行间导航，到首行原地停，不翻历史（防误触——
-      // 多行编辑时光标频繁停在首行，按上想继续编辑却跳走）。
-      // 多行时翻历史用 Ctrl+P（historyPrev）/ Ctrl+N（historyNext）。
-      const { line, col } = this.getLineCol(this._cursor)
-      if (line > 0) {
-        this.sealUndo()
-        this._cursor = this.posFromLineCol(line - 1, col)
-        return { type: 'change', value: this._value, cursor: this._cursor }
-      }
-      return null
+  /** 逻辑行 `line` 内 code-unit 偏移 → 整段 buffer 偏移。 */
+  private absolutePos(line: number, offset: number): number {
+    const lines = this._value.split('\n')
+    let pos = 0
+    const last = Math.min(Math.max(line, 0), Math.max(0, lines.length - 1))
+    for (let i = 0; i < last; i++) {
+      pos += (lines[i]?.length ?? 0) + 1
     }
-    return this.historyPrev()
+    const logical = lines[last] ?? ''
+    return pos + Math.min(Math.max(0, offset), logical.length)
   }
 
-  /** Down：多行时专注行间导航（末行原地停，不翻历史）；单行取下一条历史。 */
-  private moveDownOrHistory(): InputLineEvent | null {
-    if (this._value.includes('\n')) {
-      const { line, col } = this.getLineCol(this._cursor)
-      const lastLine = this._value.split('\n').length - 1
-      if (line < lastLine) {
-        this.sealUndo()
-        this._cursor = this.posFromLineCol(line + 1, col)
-        return { type: 'change', value: this._value, cursor: this._cursor }
+  /**
+   * 按显示宽度把一行切成视觉行起点（不含自绘 █）。
+   * @param logical - 一条逻辑行（不含换行符）。
+   * @param maxContentWidth - 去掉 `❯ ` 前缀后的内容列数。
+   */
+  private visualRowStarts(logical: string, maxContentWidth: number): number[] {
+    const starts = [0]
+    if (logical.length === 0) return starts
+    const ambiguousAsWide = ambiguousWideEnabled()
+    const bounds = graphemeBoundaries(logical)
+    let width = 0
+    for (let g = 0; g < bounds.length - 1; g++) {
+      const start = bounds[g]
+      const end = bounds[g + 1]
+      if (start === undefined || end === undefined) continue
+      const cw = Math.max(1, inputDisplayWidth(logical.slice(start, end), ambiguousAsWide))
+      if (width > 0 && width + cw > maxContentWidth) {
+        starts.push(start)
+        width = cw
+      } else {
+        width += cw
       }
-      return null
     }
-    return this.historyNext()
+    return starts
+  }
+
+  /** 全部逻辑行展开后的视觉行（start/end 为该逻辑行内偏移）。 */
+  private collectVisualRows(): Array<{ line: number; start: number; end: number }> {
+    const prefixWidth = 2
+    const maxContent = Math.max(1, (this._wrapWidth ?? 80) - prefixWidth)
+    const lines = this._value.split('\n')
+    const rows: Array<{ line: number; start: number; end: number }> = []
+    for (let i = 0; i < lines.length; i++) {
+      const logical = lines[i] ?? ''
+      const starts = this.visualRowStarts(logical, maxContent)
+      for (let s = 0; s < starts.length; s++) {
+        const start = starts[s] ?? 0
+        const end = s + 1 < starts.length ? (starts[s + 1] ?? logical.length) : logical.length
+        rows.push({ line: i, start, end })
+      }
+    }
+    return rows
+  }
+
+  /**
+   * 在软折行与逻辑行之间移动。单视觉行且无换行时交给历史上翻。
+   * @param delta - 负上正下；越界夹到两端（不翻历史）。
+   */
+  private tryMoveVisual(delta: number): 'history' | 'edge' | 'moved' {
+    const rows = this.collectVisualRows()
+    const wrapped = rows.length > 1 || this._value.includes('\n')
+    if (!wrapped) return 'history'
+    const { line } = this.getLineCol(this._cursor)
+    const colOffset = this._cursor - this.absolutePos(line, 0)
+    let idx = 0
+    for (let r = 0; r < rows.length; r++) {
+      const row = rows[r]
+      if (row === undefined) continue
+      if (row.line < line || (row.line === line && row.start <= colOffset)) idx = r
+    }
+    const targetIdx = Math.min(rows.length - 1, Math.max(0, idx + delta))
+    if (targetIdx === idx) return 'edge'
+    const current = rows[idx]
+    const dest = rows[targetIdx]
+    if (current === undefined || dest === undefined) return 'edge'
+    this.sealUndo()
+    if (dest.line !== current.line) {
+      const { col } = this.getLineCol(this._cursor)
+      this._cursor = this.posFromLineCol(dest.line, col)
+      return 'moved'
+    }
+    const destOffset = Math.min(dest.end, dest.start + Math.max(0, colOffset - current.start))
+    this._cursor = this.absolutePos(dest.line, destOffset)
+    return 'moved'
+  }
+
+  /** Up：有折行或多行时上移视觉行，否则取上一条历史。 */
+  private moveUpOrHistory(): InputLineEvent | null {
+    const result = this.tryMoveVisual(-1)
+    if (result === 'history') return this.historyPrev()
+    if (result === 'moved') return { type: 'change', value: this._value, cursor: this._cursor }
+    return null
+  }
+
+  /** Down：有折行或多行时下移视觉行，否则取下一条历史。 */
+  private moveDownOrHistory(): InputLineEvent | null {
+    const result = this.tryMoveVisual(1)
+    if (result === 'history') return this.historyNext()
+    if (result === 'moved') return { type: 'change', value: this._value, cursor: this._cursor }
+    return null
+  }
+
+  /** PageUp/PageDown：按最近一次视窗行数翻页；单行短草稿不翻历史。 */
+  private movePage(direction: number): InputLineEvent | null {
+    const jump = Math.max(1, (this._maxDisplayLines ?? 8) - 2) * direction
+    const result = this.tryMoveVisual(jump)
+    if (result === 'moved') return { type: 'change', value: this._value, cursor: this._cursor }
+    return null
   }
 
   // ── History ──────────────────────────────────────────────────

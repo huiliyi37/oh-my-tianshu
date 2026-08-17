@@ -24,6 +24,10 @@ describe('KEYMAP_ENTRIES', () => {
     expect(KEYMAP_ENTRIES).toContainEqual({ keys: 'Ctrl+O', action: '展开/收起推理块' })
     expect(KEYMAP_ENTRIES).toContainEqual({ keys: 'Ctrl+E', action: '外部编辑器' })
   })
+
+  it('Shift+Enter 登记为切换换行模式', () => {
+    expect(KEYMAP_ENTRIES).toContainEqual({ keys: 'Shift+Enter', action: '切换换行模式' })
+  })
 })
 
 describe('renderKeymapPanel', () => {
