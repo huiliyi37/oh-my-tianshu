@@ -308,7 +308,7 @@ export interface TuiAppOptions {
   initialSessionId?: SessionId
   /** 主题名；'auto' 走系统终端配色探测，缺省 'auto'。 */
   theme?: string
-  /** 输入行为空时 Ctrl+C 连按两次的退出回调（raw-mode 下 Ctrl+C 是数据字节非 SIGINT；窗口内第二次触发）。 */
+  /** Ctrl+C 连按窗口内第二次的退出回调（不要求空输入；raw-mode 下 Ctrl+C 是数据字节非 SIGINT）。 */
   onExit?: () => void
   /** /restart：请求重启当前 dsh 进程（装配方负责 dispose + spawn 同 argv + 退出）。 */
   onRestart?: () => void
@@ -360,7 +360,7 @@ const USAGE_TEXT = `oh-my-tianshu tui — oh-my-tianshu 交互式终端界面 / 
   oh-my-tianshu tui --help            显示本帮助 / show this help
   oh-my-tianshu tui --version         输出版本 / print the version
 
-快捷键 / Keys: ctrl+n 新会话 · ctrl+s 恢复 · ctrl+p 命令面板 · / slash 命令 · esc 打断 · shift+enter 换行模式 · ctrl+j 换行 · ctrl+o 展开推理 · shift+tab 模式循环 · ctrl+c 空闲双击退出
+快捷键 / Keys: ctrl+n 新会话 · ctrl+s 恢复 · ctrl+p 命令面板 · / slash 命令 · esc 打断 · shift+enter 换行模式 · ctrl+j 换行 · ctrl+o 展开推理 · shift+tab 模式循环 · ctrl+c 连按退出进程
 `
 
 /** C3 项 3：写工具名判定（与 fs-snapshot 的 trackEdit 钩子同一集合）。 */
@@ -2538,9 +2538,9 @@ export class TuiApp {
   private ctrlCExitHintTimer: ReturnType<typeof setTimeout> | null = null
 
   /**
-   * 第一次空闲 Ctrl+C：进入连按退出窗口（输入轨上方渲染提示行，窗口超时
-   * 自动复位）。提示行渲染而非 placeholder——输入行有草稿时 placeholder 不可见，
-   * 而连按退出对「有草稿也想退出」的用户同样生效。
+   * 进入连按退出窗口（输入轨上方渲染提示行，窗口超时自动复位）。
+   * 忙碌打断与空闲清草稿都会走到这里；提示行而非 placeholder——
+   * 有草稿时 placeholder 不可见。
    */
   private showCtrlCExitHint(): void {
     if (this.ctrlCExitHintTimer !== null) clearTimeout(this.ctrlCExitHintTimer)
@@ -2711,7 +2711,7 @@ export class TuiApp {
 
   /** 键路由：Enter 提交 / Ctrl-C 取消或退出 / 上下键历史 / 其余交给 InputLine。 */
   private handleKey(key: KeyPress): void {
-    // 任何非 Ctrl+C 键都终止连按退出窗口（提示占位随窗口一起复位）。
+    // 任何非 Ctrl+C 键都终止连按退出窗口（提示行随窗口一起复位）。
     if (key.name !== 'ctrl_c' && this.inputController.ctrlCPendingSince !== 0) {
       this.inputController.ctrlCPendingSince = 0
       this.clearCtrlCExitHint()
@@ -2958,12 +2958,11 @@ export class TuiApp {
         return
       }
       // 空闲：双击 Esc（窗口内第二次）触发 rewind（CC 的 Esc+Esc 时间回溯）；
-      // 第一次只记时间戳并继续流向后续分支（vim 等空闲 Esc 语义保留），
-      // 窗口过期后第二次仅刷新时间戳。
-      // vim normal 下 Esc 是空操作：布防/触发都跳过——vim 用户离开 insert 后
-      // 习惯性补按 Esc，不该弹出 rewind overlay（busy 打断不受影响，在忙分支）。
-      const vimEscNoop = this.vimEnabled && this.inputLine.vimMode === 'normal'
-      if (!vimEscNoop) {
+      // 第一次只记时间戳并继续流向后续分支，窗口过期后第二次仅刷新时间戳。
+      // vim 开启时整段跳过：离开 insert 的那一次 Esc 当时仍是 insert，
+      // 若按 normal 才守卫，第一次会布防、习惯性补按就会弹出 overlay。
+      // 忙碌打断在本分支之前；时间回溯走 /rewind。
+      if (!this.vimEnabled) {
         const now = Date.now()
         if (this.escRewindPendingSince !== 0 && now - this.escRewindPendingSince < REWIND_DOUBLE_ESC_MS) {
           this.escRewindPendingSince = 0
@@ -3750,7 +3749,7 @@ export class TuiApp {
     this.inputLine.setGhost(this.slashGhostText())
     // Ctrl+C 连按退出窗口激活中：输入轨上方渲染提示行（窗口由定时器复位）。
     if (this.inputController.ctrlCPendingSince !== 0) {
-      lines.push({ text: color('再按 Ctrl+C 退出 · Ctrl+Q 立即退出', theme.muted) })
+      lines.push({ text: color('再按 Ctrl+C 退出进程 · Ctrl+Q 立即退出', theme.muted) })
     }
     // CC PromptInput marginTop={1}：轨前 1 行呼吸，不填视口。
     lines.push({ text: '' })

@@ -177,6 +177,20 @@ describe('InputLine 长草稿视窗与行内编辑', () => {
     expect(line.cursor).toBeLessThan(line.value.length)
   })
 
+  it('CJK 超宽单行：↑ 按与折行相同的 code point 量宽移动，不翻历史', () => {
+    const history = ['旧历史']
+    const line = new InputLine({
+      value: '中'.repeat(20),
+      history,
+    })
+    line.displayLines({ maxWidth: 10, maxLines: 8 })
+    line.setValue(line.value, line.value.length)
+    line.handleKey('up', '', false, false)
+    expect(line.value).toBe('中'.repeat(20))
+    expect(line.cursor).toBeLessThan(line.value.length)
+    expect(line.cursor).toBeGreaterThan(0)
+  })
+
   it('PageUp 在多行草稿中上跳，不提交', () => {
     const onSubmit = vi.fn()
     const line = new InputLine({

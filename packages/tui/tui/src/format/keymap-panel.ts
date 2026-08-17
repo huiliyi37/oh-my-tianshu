@@ -36,7 +36,7 @@ export const KEYMAP_ENTRIES: KeymapEntry[] = [
   { keys: 'Ctrl+T', action: '中轮转向' },
   { keys: 'Ctrl+V', action: '粘贴剪贴板图片/文本' },
   { keys: 'Ctrl+U', action: '删除到行首' },
-  { keys: 'Ctrl+C', action: '打断；再按退出' },
+  { keys: 'Ctrl+C', action: '打断；再按退出进程' },
   { keys: 'Shift+Tab', action: '模式循环 normal→plan→always-approve' },
   { keys: 'Tab', action: '@-路径补全 / 接受 slash 选中项' },
   { keys: '↑/↓', action: '历史；多行或折行时移光标' },

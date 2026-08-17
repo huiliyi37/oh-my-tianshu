@@ -502,7 +502,7 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     expect(onExit).not.toHaveBeenCalled()
     expect(agent.cancel).not.toHaveBeenCalled()
     const afterFirst = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(afterFirst).toContain('再按 Ctrl+C 退出')
+    expect(afterFirst).toContain('再按 Ctrl+C 退出进程')
 
     stdin.emit('data', '\x03')
     await new Promise(resolve => setImmediate(resolve))
@@ -527,7 +527,7 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     stdin.emit('data', '\x1b[99;5u')
     await new Promise(resolve => setImmediate(resolve))
     expect(onExit).not.toHaveBeenCalled()
-    expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('再按 Ctrl+C 退出')
+    expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('再按 Ctrl+C 退出进程')
 
     stdin.emit('data', '\x1b[99;5u')
     await new Promise(resolve => setImmediate(resolve))
@@ -850,7 +850,7 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     await app.dispose()
   })
 
-  it('vim 模式下双击 Esc 不触发 rewind（vim normal 的 Esc 是空操作，不布防）', async () => {
+  it('vim 开启时双击 Esc 不触发 rewind（含 insert→normal 的第一次 Esc）', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('vim-dbl-esc')
     const handle = makeHandle(agent)
@@ -869,10 +869,10 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
       seq: 1, time: 1, type: 'assistant/message',
       data: { turn: 1, step: 0, message: { role: 'assistant', content: [{ type: 'text', text: 'hi' }] }, usage: { inputTokens: 10, outputTokens: 5 } },
     })
-    // 第一次 Esc：vim insert → normal（布防被 vim normal 空操作守卫跳过）
+    // 默认 insert：第一次 Esc 切到 normal；vim 开启时空闲 Esc 不布防 rewind
     stdin.emit('data', '\x1b')
     await new Promise(resolve => setTimeout(resolve, 150))
-    // 第二次 Esc：vim normal 空操作，不触发 rewind
+    // 习惯性补按：仍不触发（若只守卫 normal，第一次会布防、这次会弹出）
     stdin.emit('data', '\x1b')
     await new Promise(resolve => setTimeout(resolve, 150))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')

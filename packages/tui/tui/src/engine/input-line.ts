@@ -486,7 +486,7 @@ export class InputLine {
   /** 占位符文本（value 为空时显示）。 */
   get placeholder(): string { return this._placeholder }
   /**
-   * 运行时替换空输入占位提示（如 Ctrl+C 连按退出的临时提示）。
+   * 运行时替换空输入占位提示。
    * @param value - 新占位符文本。
    */
   setPlaceholder(value: string): void {
@@ -1245,19 +1245,19 @@ export class InputLine {
     const starts = [0]
     if (logical.length === 0) return starts
     const ambiguousAsWide = ambiguousWideEnabled()
-    const bounds = graphemeBoundaries(logical)
     let width = 0
-    for (let g = 0; g < bounds.length - 1; g++) {
-      const start = bounds[g]
-      const end = bounds[g + 1]
-      if (start === undefined || end === undefined) continue
-      const cw = Math.max(1, inputDisplayWidth(logical.slice(start, end), ambiguousAsWide))
+    let offset = 0
+    // 与 pushWrappedSegment 同一口径（逐 code point + charDisplayWidth）：
+    // 导航折点才能对上渲染折点，长草稿 PageUp 也不再逐 grapheme 调 string-width。
+    for (const ch of logical) {
+      const cw = Math.max(1, charDisplayWidth(ch, ambiguousAsWide))
       if (width > 0 && width + cw > maxContentWidth) {
-        starts.push(start)
+        starts.push(offset)
         width = cw
       } else {
         width += cw
       }
+      offset += ch.length
     }
     return starts
   }
