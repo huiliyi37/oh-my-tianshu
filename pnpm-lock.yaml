@@ -5003,12 +5003,18 @@ importers:
       '@huiliyi37/dsh-invariants':
         specifier: workspace:^
         version: link:../../support/invariants
+      '@huiliyi37/dsh-llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
       '@huiliyi37/dsh-memory':
         specifier: workspace:^
         version: link:../memory
       '@huiliyi37/dsh-semantic-index':
         specifier: workspace:^
         version: link:../../search/semantic-index
+      '@huiliyi37/dsh-timeout':
+        specifier: workspace:^
+        version: link:../../util/timeout
       '@huiliyi37/schemastery':
         specifier: ^3.0.0-rc.3
         version: link:../../../vendor/schemastery
@@ -16270,7 +16276,7 @@ snapshots:
       obug: 2.1.4
       std-env: 4.2.0
       tinyrainbow: 3.1.1
-      vitest: 4.1.8(@opentelemetry/api@1.9.0)(@types/node@26.2.0)(@vitest/coverage-v8@4.1.8)(jsdom@30.0.1)(vite@8.0.16(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+      vitest: 4.1.8(@opentelemetry/api@1.9.0)(@types/node@22.20.0)(@vitest/coverage-v8@4.1.8)(jsdom@30.0.1)(vite@6.4.3(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.22.4)(yaml@2.9.0))
     optional: true
 
   '@vitest/expect@4.1.10':

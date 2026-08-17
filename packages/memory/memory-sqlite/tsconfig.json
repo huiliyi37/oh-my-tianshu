@@ -18,6 +18,12 @@
       "path": "../../memory/memory"
     },
     {
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../util/timeout"
+    },
+    {
       "path": "../../search/semantic-index"
     },
     {

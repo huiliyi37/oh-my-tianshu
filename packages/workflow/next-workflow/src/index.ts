@@ -705,10 +705,27 @@ function verifyFailureDetail(result: { exitCode: number | null; timedOut: boolea
   return `exited ${String(result.exitCode)}`
 }
 
+/** Parse `/next-workflow` input: an optional leading candidate count (1..5) followed by the objective. */
+export function parseInvocationInput(raw: string): { objective: string; planCandidates?: number } | { error: string } {
+  const text = raw.trim()
+  const match = /^(\d+)\s+([\s\S]+)$/.exec(text)
+  if (match === null) return text === '' ? { error: 'Usage: /next-workflow [candidates] <objective>' } : { objective: text }
+  const planCandidates = Number(match[1])
+  if (!Number.isSafeInteger(planCandidates) || planCandidates < 1 || planCandidates > 5) {
+    return { error: `/next-workflow: candidates must be an integer in 1..5 (got ${match[1] ?? ''})` }
+  }
+  return { objective: (match[2] ?? '').trim(), planCandidates }
+}
+
 /** Run the fixed phase machine for one `/next-workflow` invocation. */
 async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocation: CommandInvocation): Promise<CommandResult> {
-  const objective = invocation.rawInput.trim()
-  if (objective === '') return { kind: 'error', text: 'Usage: /next-workflow <objective>' }
+  const parsed = parseInvocationInput(invocation.rawInput)
+  if ('error' in parsed) return { kind: 'error', text: parsed.error }
+  const { objective } = parsed
+  // 命令行候选数覆盖 Config（/next-workflow 3 … = 本次开 3 方案；不带数字 = Config 值）。
+  const runConfig: ResolvedConfig = parsed.planCandidates === undefined
+    ? config
+    : { ...config, planCandidates: parsed.planCandidates }
   const { agent, signal } = invocation
 
   // Capability checks fail loud before any phase work starts.
@@ -791,7 +808,7 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
       const plannerPrompt = gaps.length === 0
         ? `# SPEC\n\n${spec}`
         : `# SPEC\n\n${spec}\n\n# Revision gaps to close\n\n${renderList(gaps)}`
-      if (config.planCandidates === 1) {
+      if (runConfig.planCandidates === 1) {
         plan = boundText(distillPlan(await runPhaseSubagent(subagents, config, agent, signal, {
           label: 'next-workflow planner',
           persona: PLANNER_PERSONA,
@@ -802,7 +819,7 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
         logPhase('plan', { artifact: planPath, ...round > 0 ? { detail: `revision ${round}` } : {} })
         transcript.push(round === 0 ? 'plan → PLAN written' : `plan → revision ${round} written`)
       } else {
-        const candidates = await Promise.all(Array.from({ length: config.planCandidates }, async () =>
+        const candidates = await Promise.all(Array.from({ length: runConfig.planCandidates }, async () =>
           boundText(distillPlan(await runPhaseSubagent(subagents, config, agent, signal, {
             label: 'next-workflow planner',
             persona: PLANNER_PERSONA,
@@ -811,9 +828,9 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
           })), config.maxCandidateChars)))
         for (const [index, candidate] of candidates.entries()) {
           const candidatePath = await writeArtifact(dir, `PLAN-${index + 1}.md`, candidate)
-          logPhase('plan', { artifact: candidatePath, detail: `candidate ${index + 1}/${config.planCandidates}${round > 0 ? ` (revision ${round})` : ''}` })
+          logPhase('plan', { artifact: candidatePath, detail: `candidate ${index + 1}/${runConfig.planCandidates}${round > 0 ? ` (revision ${round})` : ''}` })
         }
-        transcript.push(`plan → ${config.planCandidates} candidates written`)
+        transcript.push(`plan → ${runConfig.planCandidates} candidates written`)
         activePhase = 'select'
         const selection = distillSelection(await runPhaseSubagent(subagents, config, agent, signal, {
           label: 'next-workflow selector',
@@ -982,7 +999,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   ctx.commands.register({
     name: 'next-workflow',
     description: 'Run the fixed intent pipeline: INTENT → PLAN → CRITIQUE → IMPLEMENT → VERIFY → REVIEW',
-    input: { hint: '<objective>' },
+    input: { hint: '[candidates] <objective>' },
     handler: async (invocation) => {
       const key = String(invocation.agent.session.id)
       if (activeSessions.has(key)) {

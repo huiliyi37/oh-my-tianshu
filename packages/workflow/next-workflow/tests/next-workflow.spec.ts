@@ -38,7 +38,7 @@ import type { LlmCallConfig } from '@huiliyi37/dsh-llm'
 import type { UserMessage } from '@huiliyi37/dsh-llm'
 import { Session, SessionId } from '@huiliyi37/dsh-session'
 import type { SubagentCapabilities, SubagentResult, SubagentRun, SubagentStartRequest } from '@huiliyi37/dsh-subagent'
-import { apply, distillCritique, distillPlan, distillReview, distillSelection, distillSpec } from '../src/index.ts'
+import { apply, distillCritique, distillPlan, distillReview, distillSelection, distillSpec, parseInvocationInput } from '../src/index.ts'
 import type { Config } from '../src/index.ts'
 
 const FULL_CAPABILITIES: SubagentCapabilities = {
@@ -605,7 +605,7 @@ describe('/next-workflow command', () => {
     const h = makeHarness()
     apply(h.ctx, await makeConfig())
     const result = await runCommand(h, '')
-    expect(result).toEqual({ kind: 'error', text: 'Usage: /next-workflow <objective>' })
+    expect(result).toEqual({ kind: 'error', text: 'Usage: /next-workflow [candidates] <objective>' })
   })
 
   it('fails the run loud when a phase subagent returns malformed output', async () => {
@@ -616,6 +616,23 @@ describe('/next-workflow command', () => {
     expect(result.kind === 'error' ? result.text : '').toContain('goal')
     const end = workflowEvents(h).find(event => event.type === 'next-workflow/end')
     expect(end?.data['outcome']).toBe('failed')
+  })
+})
+
+describe('parseInvocationInput', () => {
+  it('plain objective keeps the Config default (no override)', () => {
+    expect(parseInvocationInput('fix the login bug')).toEqual({ objective: 'fix the login bug' })
+  })
+
+  it('a leading integer overrides planCandidates for this run', () => {
+    expect(parseInvocationInput('3 redesign the parser')).toEqual({ objective: 'redesign the parser', planCandidates: 3 })
+    expect(parseInvocationInput('1  plain run')).toEqual({ objective: 'plain run', planCandidates: 1 })
+  })
+
+  it('out-of-range counts and empty input fail loud', () => {
+    expect(parseInvocationInput('')).toEqual({ error: 'Usage: /next-workflow [candidates] <objective>' })
+    expect(parseInvocationInput('0 task')).toMatchObject({ error: expect.stringContaining('1..5') })
+    expect(parseInvocationInput('6 task')).toMatchObject({ error: expect.stringContaining('1..5') })
   })
 })
 

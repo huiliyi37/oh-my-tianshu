@@ -22,8 +22,8 @@
 
 | 输入 | 结果 |
 |---|---|
-| `/next-workflow <objective>` | 运行流水线；成功时汇总各相位、verdict 与产物路径。verify 重试耗尽时以指明 `failed-verification` 的错误收尾。 |
-| `/next-workflow`（空输入） | `Usage: /next-workflow <objective>`——不启动任何运行。 |
+| `/next-workflow [candidates] <objective>` | 运行流水线；前导整数（1–5）覆盖本次运行的 `planCandidates`（`/next-workflow 3 …` = 三方案选优），不带则用 Config 缺省值。成功时汇总各相位、verdict 与产物路径。verify 重试耗尽时以指明 `failed-verification` 的错误收尾。 |
+| `/next-workflow`（空输入） | `Usage: /next-workflow [candidates] <objective>`——不启动任何运行。 |
 | 能力缺失 | 指明缺失接缝的不可用错误：无 subagents 服务、provider 未注册或能力不足（需要结构化输出、persona、全新上下文）、或配置了 `verifyCommand` 但没有 bash 执行器。 |
 | 会话上已有活跃运行时再次运行 | `already running` 错误；每个会话同时只有一个运行。 |
 

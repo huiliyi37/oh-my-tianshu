@@ -173,3 +173,7 @@ LLM 抽取路径、程序性记忆（做法沉淀）与提速探针落地时（`
 - **向量通道对全量过滤候选排名，不只是 FTS 命中。** 只在 BM25 命中上融合会让词面零交叠的释义永远不可达——而召回释义正是嵌入的意义——因此 `search` 暴力扫描全部通过同一组 scope/topic/entities/excludeIds/status 过滤的事实（记忆规模下没问题；ANN 推迟）。结果集是两榜的 RRF 并集；空查询与空候选集不花嵌入调用。
 - **融合分以 `fused = rrfScore / (2/(k+1))` × statusWeight 映射到既有 `score` 字段**（k=60）：两榜双顶 = 1，单榜居首 = 0.5。状态分层仍排在融合分之前，置信度门与 `topicBoosts` 因此无感消费融合分——但语义变了（纯 BM25 单通道可达 1.0），启用嵌入时门阈值需要重新调参；已记入包 README 的 Known Limitations。
 - **换模型的重建是惰性的，不是命令。** `save` 在写事务前取一次向量（嵌入失败则什么都不落库；幂等重保存花掉并丢弃一次调用）；Markdown 导入与无 embedder 时期的写入从不嵌入，戳记不符意味着换了模型——两种情况都在检索时按批重嵌并以当前戳记回写。`embeddings` 表是 append-only 日志旁的派生数据（schema v3；v2 文件按 pre-release stance fail loud 拒绝，从 Markdown 源重建）。
+
+## 阶段二d 实现纪要
+
+零外部依赖的语义召回路径（`keywordExpansion`,`packages/memory/memory-sqlite/src/expander.ts`):chat 模型无法通过对话 API 产出向量，因此自包含的路线是文档侧关键词扩展——每次 `save` 花一次小型 chat 模型调用（路由对必填；save 路径没有会话路由可推导）生成 5–12 个同义/释义/跨语言扩展词，并入落库关键词、跟在原始 tags 之后（`tags[0]` 作为 topic 代理的契约不动）。扩展是增强而非正确性依赖：失败仅记 log-only 警告、按未扩展落库；缺省 `'off'` 保持零额外调用。调用装配原样复用巩固调用的教训：缺省 `reasoningEffort: 'off'`（否则推理模型把输出预算烧在思考 token 上——阶段三b 的实跑故障），并在适配器报告 `UNSUPPORTED_REASONING_EFFORT` 时做一次定向重试（该错误以失败 chunk 而非异常到达——llm 服务会归一化适配器边界错误）。扩展词不做加权：FTS5 的列权重只区分 text/keywords 两列，存储侧同样不留标记。

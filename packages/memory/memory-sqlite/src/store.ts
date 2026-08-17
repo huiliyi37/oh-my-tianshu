@@ -25,6 +25,15 @@
  *   每次 search 至多取一次（空查询或无候选不取）；候选向量缺失或戳记不符
  *   （换模型）时按批惰性重嵌——这是文档化的重建路径，一次 search 至多追加
  *   一次重嵌批量调用。未配置 embedder 时行为与 BM25-only 逐字节一致。
+ * - **可选关键词扩展（阶段二d）**：配置 keywordExpander 后，save 写库前
+ *   为条目取一次扩展词（内置 chat 模型生成的同义/释义/跨语言/相关术语——
+ *   不依赖 embedding provider 的语义召回路径），并入落库 keywords（原始
+ *   tags 在前保持 tags[0] topic 代理；扩展词在后精确去重），FTS 索引与事件
+ *   日志携带合并清单。扩展失败仅经 onExpansionError 记录、按未扩展落库——
+ *   扩展是召回增强，永不是正确性依赖。扩展开启时幂等判定只看原始 tags
+ *   前缀（扩展词由模型生成、不确定，不参与幂等）；幂等重保存不产生新版本，
+ *   本次扩展结果随之丢弃（与写时嵌入同款浪费，README 记录）。未配置
+ *   expander 时行为与今日逐字节一致。
  * - **冲突与退役（阶段三）**：`markUncertain` 把无明确 supersede 顺序的冲突
  *   事实降级为 uncertain（不删除、不取代；检索降权保留）；`retireStale` 按
  *   调用方注入的时间与阈值把超期 superseded 版本与跨巩固期未被检索命中的
@@ -62,6 +71,7 @@ import type {
 } from '@huiliyi37/dsh-memory'
 import { cosineSimilarity, reciprocalRankFusion } from '@huiliyi37/dsh-semantic-index'
 import type { EmbeddingProvider } from '@huiliyi37/dsh-semantic-index'
+import type { KeywordExpander, KeywordExpansionInput } from './expander.ts'
 import { buildFtsMatch, ftsNormalize } from './fts.ts'
 import { openMemoryDatabase } from './schema.ts'
 import type { JournalMode } from './schema.ts'
@@ -135,6 +145,10 @@ export interface SqliteMemoryStoreOptions {
   importMaxFileBytes: number
   /** 可选嵌入 provider（缺省 undefined = 禁用，检索为纯 BM25，零额外调用）。 */
   embedder?: EmbeddingProvider | undefined
+  /** 可选关键词扩展器（缺省 undefined = 禁用，落库关键词即原始 tags，零额外调用）。 */
+  keywordExpander?: KeywordExpander | undefined
+  /** 扩展失败的 log-only 通知（插件侧接 ctx.logger.warn；缺省静默丢弃）。 */
+  onExpansionError?: ((error: unknown) => void) | undefined
 }
 
 /** 校验 scope 形状：'global' 或 'session:<非空>'（与 dsh-memory 同一契约）。 */
@@ -152,6 +166,19 @@ function sessionIdOf(scope: MemoryScope): string | null {
 /** 两个字符串数组的顺序敏感相等。 */
 function arrayEqual(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((value, index) => value === b[index])
+}
+
+/** 合并落库关键词：原始 tags 在前（tags[0] 是消费侧 topic 代理），扩展词在后精确去重。 */
+function mergeKeywords(keywords: string[], expansion: string[]): string[] {
+  if (expansion.length === 0) return keywords
+  const seen = new Set(keywords)
+  const merged = [...keywords]
+  for (const term of expansion) {
+    if (seen.has(term)) continue
+    seen.add(term)
+    merged.push(term)
+  }
+  return merged
 }
 
 /** 数据库行 → 内存事实行（JSON 列反序列化）。 */
@@ -278,6 +305,8 @@ export class SqliteMemoryStore implements MemoryService {
   private readonly journalMode: JournalMode
   private readonly importMaxFileBytes: number
   private readonly embedder: EmbeddingProvider | undefined
+  private readonly keywordExpander: KeywordExpander | undefined
+  private readonly onExpansionError: ((error: unknown) => void) | undefined
   private db: DatabaseSync | undefined
   private opening: Promise<DatabaseSync> | undefined
   private importChain: Promise<void> = Promise.resolve()
@@ -291,6 +320,8 @@ export class SqliteMemoryStore implements MemoryService {
     this.journalMode = options.journalMode
     this.importMaxFileBytes = options.importMaxFileBytes
     this.embedder = options.embedder
+    this.keywordExpander = options.keywordExpander
+    this.onExpansionError = options.onExpansionError
   }
 
   async save(entry: MemorySaveInput): Promise<MemoryEntry> {
@@ -304,7 +335,7 @@ export class SqliteMemoryStore implements MemoryService {
     const predicate = entry.fact?.predicate ?? 'note'
     const value = entry.fact?.value ?? entry.text
     const topic = entry.topic ?? entry.tags[0] ?? DEFAULT_TOPIC
-    const keywords = [...entry.tags]
+    const baseKeywords = [...entry.tags]
     const entities = [...(entry.entities ?? [])]
     const kind: MemoryEventKind = entry.kind ?? (entry.fact === undefined ? 'observation' : 'fact')
     const confidence = entry.confidence ?? 1
@@ -312,6 +343,9 @@ export class SqliteMemoryStore implements MemoryService {
     // 写时嵌入：每次 save 至多一次 embedder 调用（在事务外取向量，失败则不落库）；
     // 幂等重保存不产生新版本，向量随之丢弃（README 记录该浪费）。
     const vector = this.embedder === undefined ? undefined : (await this.embed([entry.text]))[0] as number[]
+    // 写时关键词扩展（阶段二d）：每次 save 至多一次 expander 调用（事务外）；
+    // 失败 log-only 后按未扩展落库（增强而非正确性依赖），幂等重保存同样丢弃结果。
+    const keywords = mergeKeywords(baseKeywords, await this.expandKeywords({ text: entry.text, keywords: baseKeywords, topic }))
     return this.transact(() => {
       // uncertain 头也算"当前版本"：新证据到达即取代它（不确定性被新事实解决），
       // 物化视图里同一对只留一个当前版本。
@@ -321,7 +355,7 @@ export class SqliteMemoryStore implements MemoryService {
         && existing.status === 'active'
         && existing.value === value
         && existing.text === entry.text
-        && arrayEqual(existing.keywords, keywords)
+        && this.keywordsIdempotent(existing.keywords, baseKeywords)
         && arrayEqual(existing.entities, entities)) {
         // 幂等：同 (scope, subject, predicate) 的同内容重保存不产生新版本
         // （模型重试 memory_save / 导入重放均安全）。
@@ -544,9 +578,34 @@ export class SqliteMemoryStore implements MemoryService {
     }
   }
 
+  /**
+   * 取扩展词：无 expander 返回空；扩展失败（模型调用/输出校验）只经
+   * onExpansionError 记录并返回空——扩展是召回增强，save 绝不因它失败。
+   */
+  private async expandKeywords(input: KeywordExpansionInput): Promise<string[]> {
+    const expander = this.keywordExpander
+    if (expander === undefined) return []
+    try {
+      return await expander(input)
+    } catch (error) {
+      this.onExpansionError?.(error)
+      return []
+    }
+  }
+
+  /**
+   * 幂等判定的关键词比较：无 expander 时要求逐字节相等（缺省行为不变）；
+   * 有 expander 时落库 keywords = [原始 tags, ...扩展词]，扩展词由模型生成、
+   * 不确定，不参与幂等——只比原始 tags 前缀，同内容重保存（模型重试
+   * memory_save）不产生新版本。
+   */
+  private keywordsIdempotent(stored: string[], baseKeywords: readonly string[]): boolean {
+    if (this.keywordExpander === undefined) return arrayEqual(stored, baseKeywords)
+    return stored.length >= baseKeywords.length && arrayEqual(stored.slice(0, baseKeywords.length), baseKeywords)
+  }
+
   /** 调 embedder 并校验返回数量（provider 边界：数量不符 fail loud）。 */
-  private async embed(texts: string[]): Promise<number[][]> {
-    const embedder = this.embedder
+  private async embed(texts: string[]): Promise<number[][]> {    const embedder = this.embedder
     if (embedder === undefined) throw new Error('memory-sqlite: embedder not configured')
     const vectors = await embedder.embed(texts)
     if (vectors.length !== texts.length) {

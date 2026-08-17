@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-16-adaptive-memory-cache-contract.md
-2026-08-16-adaptive-memory-cache-contract.md: 2cc1cef0f34a6f63c7a4814ca01995328f5c6431
-2026-08-16-adaptive-memory-cache-contract.zh.md: 3da74fb01bbecaf2b6cd983a848423031f32f67e
+2026-08-16-adaptive-memory-cache-contract.md: 980a84e663a9bb371e398ce0f7a0d631e2559255
+2026-08-16-adaptive-memory-cache-contract.zh.md: 95d98397e97ef632a33a1c49864b01266f16c7f5

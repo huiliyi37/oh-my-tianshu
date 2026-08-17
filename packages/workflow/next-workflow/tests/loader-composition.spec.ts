@@ -70,7 +70,7 @@ describe('next-workflow real Loader composition', () => {
       {
         name: 'next-workflow',
         description: 'Run the fixed intent pipeline: INTENT → PLAN → CRITIQUE → IMPLEMENT → VERIFY → REVIEW',
-        input: { hint: '<objective>' },
+        input: { hint: '[candidates] <objective>' },
       },
     ])
     const execution = await context.commands.execute(agent, '/next-workflow add tests for foo', new AbortController().signal)
