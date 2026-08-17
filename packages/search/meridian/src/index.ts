@@ -2,7 +2,7 @@
 // 数据层：SQLite（node:sqlite DatabaseSync）files/symbols/edges/module_summaries/access_log/co_edits；
 // 解析层：web-tree-sitter（ts/tsx/js/jsx/py/go）；索引层：增量 + 删除复活 + 跨文件边匹配。
 
-export { MeridianDb, MERIDIAN_SCHEMA_VERSION } from './db.ts'
+export { MeridianDb, MERIDIAN_SCHEMA_VERSION, MERIDIAN_DB_FILENAME } from './db.ts'
 export { MeridianIndexer, isMeridianIndexablePath, queryFlow, isUnnamedSymbolId, reviveDeletedFile } from './indexer.ts'
 export type { FlowQueryOptions, FlowHit } from './indexer.ts'
 export { MeridianBehavior } from './behavior.ts'

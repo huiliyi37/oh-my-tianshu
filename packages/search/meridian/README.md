@@ -25,4 +25,4 @@ Prefix-stable while the tool view is unchanged; index/backfill growth affects re
 - **Three languages only** (TS/Python/Go) — other source languages are not parsed.
 - **Call edges are name-matched heuristics** — overloads degrade to `ambiguous`, dynamic callees are dropped.
 - **SQLite is single-writer** — concurrent indexer instances serialize on the DB file.
-- **Schema v1, monotonic** — older on-disk formats are rejected (fails loud).
+- **Schema v1 at `.rivet/dsh-meridian.db`** — this file is not 天枢's `.rivet/meridian.db` (schema 2, extra ecosystem tables). A mismatched `dsh-meridian.db` is rejected on query; the context summary omits the block instead of failing the turn.

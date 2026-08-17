@@ -13,6 +13,7 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { DatabaseSync } from 'node:sqlite'
 import type { Context } from '@huiliyi37/cordis'
 import { apply } from '../src/index.ts'
 
@@ -70,6 +71,18 @@ describe('tool-meridian', () => {
     expect(contexts[0]?.name).toBe('meridian:index')
     expect(contexts[0]?.order).toBe(120)
     expect(typeof contexts[0]?.text).toBe('function')
+  })
+
+  it('同目录天枢 meridian.db schema 2 时动态 context 不抛', () => {
+    mkdirSync(join(root, '.rivet'), { recursive: true })
+    const tianshu = new DatabaseSync(join(root, '.rivet', 'meridian.db'))
+    tianshu.exec('PRAGMA user_version = 2')
+    tianshu.close()
+    const { ctx, contexts } = makeCtx()
+    apply(ctx, resolvedConfig(root))
+    const text = contexts[0]?.text
+    expect(typeof text).toBe('function')
+    expect(() => (text as () => string)()).not.toThrow()
   })
 
   it('root 缺失 fails loud', () => {

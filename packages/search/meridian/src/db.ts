@@ -11,6 +11,12 @@ import type { ModuleSummaryEntry } from './types.ts'
 /** 当前 schema 版本（SQLite user_version，dsh 惯例：单调递增、拒绝旧格式）。 */
 export const MERIDIAN_SCHEMA_VERSION = 1
 
+/**
+ * 索引文件名。与天枢 `.rivet/meridian.db`（schema 2，含 physarum/immune 等生态表）分开，
+ * 避免本构建的 6 表 v1 去打开宿主上的天枢库。
+ */
+export const MERIDIAN_DB_FILENAME = 'dsh-meridian.db'
+
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS files (
   path TEXT PRIMARY KEY,
@@ -124,12 +130,12 @@ export class MeridianDb {
   private get db(): DatabaseSync {
     if (!this.conn) {
       if (!existsSync(this.stateDir)) mkdirSync(this.stateDir, { recursive: true })
-      const dbPath = join(this.stateDir, 'meridian.db')
+      const dbPath = join(this.stateDir, MERIDIAN_DB_FILENAME)
       const conn = new DatabaseSync(dbPath)
       try {
         conn.exec('PRAGMA journal_mode = WAL')
         conn.exec('PRAGMA busy_timeout = 3000')
-        this.assertSchemaVersion(conn)
+        this.assertSchemaVersion(conn, dbPath)
         conn.exec(SCHEMA)
         this.setSchemaVersion(conn)
         this.conn = conn
@@ -142,19 +148,21 @@ export class MeridianDb {
   }
 
   /** user_version 校验：0 且无对象 → 新库待初始化；0 且有对象 → 未版本化拒绝；非当前 → 拒绝。 */
-  private assertSchemaVersion(conn: DatabaseSync): void {
+  private assertSchemaVersion(conn: DatabaseSync, dbPath: string): void {
     const { user_version: onDisk } = conn.prepare('PRAGMA user_version').get() as { user_version: number }
     if (onDisk === 0) {
       const { count } = conn.prepare(
         "SELECT COUNT(*) AS count FROM sqlite_schema WHERE name NOT GLOB 'sqlite_*'",
       ).get() as { count: number }
       if (count > 0) {
-        throw new Error('meridian database has an unversioned schema (application created it without user_version)')
+        throw new Error(`meridian database at "${dbPath}" has an unversioned schema (application created it without user_version)`)
       }
       return // fresh database — initialization below
     }
     if (onDisk !== MERIDIAN_SCHEMA_VERSION) {
-      throw new Error(`meridian database has schema version ${onDisk}, incompatible with this build (${MERIDIAN_SCHEMA_VERSION})`)
+      throw new Error(
+        `meridian database at "${dbPath}" has schema version ${onDisk}, incompatible with this build (${MERIDIAN_SCHEMA_VERSION})`,
+      )
     }
   }
 

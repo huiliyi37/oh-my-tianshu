@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { MeridianDb } from '../src/db.ts'
+import { MeridianDb, MERIDIAN_DB_FILENAME } from '../src/db.ts'
 import type { ParseResult } from '../src/types.ts'
 
 let dir: string
@@ -14,7 +14,7 @@ function parseResult(filePath: string, symbols: ParseResult['symbols'] = [], edg
 }
 
 function rawOpen(): DatabaseSync {
-  return new DatabaseSync(join(dir, 'meridian.db'))
+  return new DatabaseSync(join(dir, MERIDIAN_DB_FILENAME))
 }
 
 beforeEach(() => {
@@ -46,6 +46,16 @@ describe('MeridianDb schema', () => {
       const legacy = new MeridianDb(dir)
       legacy.schemaVersion()
     }).toThrow(/version/)
+  })
+
+  it('同目录天枢 meridian.db schema 2 不挡住本构建的 dsh-meridian.db', () => {
+    const tianshu = new DatabaseSync(join(dir, 'meridian.db'))
+    tianshu.exec('PRAGMA user_version = 2')
+    tianshu.close()
+    expect(db.schemaVersion()).toBe(1)
+    const ours = rawOpen()
+    expect((ours.prepare('PRAGMA user_version').get() as { user_version: number }).user_version).toBe(1)
+    ours.close()
   })
 })
 

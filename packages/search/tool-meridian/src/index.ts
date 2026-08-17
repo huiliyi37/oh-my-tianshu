@@ -159,7 +159,15 @@ export function apply(ctx: Context, config: Config): void {
   ctx.systemPrompt.context({
     name: 'meridian:index',
     order: 120,
-    text: () => generateCodebaseIndexBlock(indexer.getDb()),
+    text: () => {
+      try {
+        return generateCodebaseIndexBlock(indexer.getDb())
+      } catch {
+        // 派生索引打不开（含误开天枢 meridian.db 的历史路径）：本回合不注入摘要，
+        // 避免把 schema 冲突渲染成 ✗ 工具失败。repo_graph 显式调用仍 fails loud。
+        return ''
+      }
+    },
   })
 }
 
