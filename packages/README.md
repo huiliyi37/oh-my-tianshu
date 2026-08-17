@@ -27,7 +27,7 @@ Groups hold `packages/<group>/<pkg>/`; names `@huiliyi37/dsh-<pkg>`. **Group REA
 | [`fs/`](fs/README.md) | Filesystem capability family: seam, local impl, file tools, bash-backed discovery tools | Product — stable surface |
 | [`git/`](git/README.md) | Git capability family: service + local CLI provider + model-facing git tools | Product — stable surface |
 | [`lsp/`](lsp/README.md) | LSP capability family: seam, generic stdio provider, and the `lsp` tool | Product — stable surface |
-| [`skill/`](skill/README.md) | Skill capability family: the provider registry, local provider, and model-facing catalog/loader | Product — stable surface |
+| [`skill/`](skill/README.md) | Skill capability family: provider registry, local provider, model-facing catalog/loader | Product — stable surface |
 | [`compact/`](compact/README.md) | Compaction capability family: Service Definition + basic provider + command Consumer | Product — stable surface |
 | [`context/`](context/README.md) | Model-visible request context: workspace instructions and time context | Product — stable surface |
 | [`subagent/`](subagent/README.md) | Subagent capability family: provider-registry contract + delegation tool | Product — stable surface |
@@ -41,17 +41,18 @@ Groups hold `packages/<group>/<pkg>/`; names `@huiliyi37/dsh-<pkg>`. **Group REA
 | [`preset/`](preset/README.md) | Per-session agent composition from preset cordis.yml files | Product — stable surface |
 | [`guard/`](guard/README.md) | Loop-hygiene guards: repeat-call reminders, tool deadlines, the zen first-face phase | Product — stable surface |
 | [`bundle/`](bundle/README.md) | Installable `oh-my-tianshu --profile` patch layers | Product — stable surface |
-| [`self-modification/`](self-modification/README.md) | Self-modifying runtime: inspect live plugins/services, mount/unmount model-written plugins ([design](../.agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md)), restricted repository Plugin loading | Product — stable surface |
-| [`hooks/`](hooks/README.md) | Hook bridges + the shared Claude Code / Codex wire-protocol library | Product — stable surface |
-| [`session/`](session/README.md) | Durable session data plane: persistence seam + backends, projections, titles, reporting | Product — stable surface |
-| [`session-query/`](session-query/README.md) | Session retrieval: bounded reads, lineage, relationships, semantic filtering, full-text search | Product — stable surface |
+| [`self-modification/`](self-modification/README.md) | Self-modifying runtime: inspect, mount/unmount model-written plugins ([design](../.agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md)), restricted Plugin loading | Product — stable surface |
+| [`hooks/`](hooks/README.md) | Hook bridges + shared Claude Code / Codex protocol library | Product — stable surface |
+| [`session/`](session/README.md) | Durable session data plane: persistence + backends, projections, titles, reporting | Product — stable surface |
+| [`session-query/`](session-query/README.md) | Session retrieval: bounded reads, lineage, semantic/full-text search | Product — stable surface |
+| [`memory/`](memory/README.md) | Project memory: Markdown or SQLite, save/search tools | Product — stable surface |
 | [`settings/`](settings/README.md) | User-settings seam + file-backed provider | Product — stable surface |
 | [`credentials/`](credentials/README.md) | Credential-reference seam + env-over-`.env` provider | Product — stable surface |
 | [`storage/`](storage/README.md) | Non-session storage hub + backends + domain form | Product — stable surface |
 | [`workspace/`](workspace/README.md) | Workspace entity | Product — stable surface |
 | [`scaffold/`](scaffold/README.md) | Create/launch/drive tooling: helper, launcher, initializer, wire protocol, telemetry | Product — stable surface |
 | [`acp/`](acp/README.md) | Automation-only Agent Client Protocol server | Product — stable surface |
-| [`interaction/`](interaction/README.md) | Human-collaboration plane: approval/interaction seams, permission preset, commands, ask-user tool | Product — stable surface |
+| [`interaction/`](interaction/README.md) | Human-collaboration plane: approval, permissions, commands, ask-user | Product — stable surface |
 | [`boot/`](boot/README.md) | Shared app-bin boot glue | Product — stable surface |
 | [`host/`](host/README.md) | Web-GUI host half: API gateway + route server | Product — stable surface |
 | [`client/`](client/README.md) | Web-GUI browser half: shell, wire, services, slots, `ui-*` plugins | Product — stable surface |
@@ -66,6 +67,6 @@ New packages join existing groups; new groups update this table.
 
 The dependency graph is generated: [docs/module-graph.md](../docs/module-graph.md) (`pnpm run gen-module-graph`, freshness-gated in CI).
 
-**Extension plugins depend on Service Definitions, never concrete providers.** `dsh-agent-loop` is swappable; UI, hook, and tool plugins use `dsh-agent`. Composition bundles, including `dsh-agent-spine-demo`, may depend on spine plugins. Capabilities separate Service Definition / Service provider / Consumer roles when they evolve independently; see [capability seams](../.agents/notes/implemented/architecture/2026-06-13-capability-seams.md).
+**Extension plugins depend on Service Definitions, never concrete providers.** `dsh-agent-loop` is swappable; UI, hook, and tool plugins use `dsh-agent`. Composition bundles may depend on spine plugins. Capabilities separate Service Definition / Service provider / Consumer roles when they evolve independently; see [capability seams](../.agents/notes/implemented/architecture/2026-06-13-capability-seams.md).
 
-Package READMEs cover purpose, APIs, extension points, and [Model Experience](../docs/cookbook/adding-a-package.md#4-write-the-package-readme) unless on the model-agnostic [omission allowlist](../scripts/verify-package-readme-model-experience.ts). They also carry `## Known Limitations and Deferred Work` or use its [allowlist](../scripts/verify-package-readme-limitations.ts).
+Package READMEs cover purpose, APIs, extension points, and [Model Experience](../docs/cookbook/adding-a-package.md#4-write-the-package-readme) unless on the [omission allowlist](../scripts/verify-package-readme-model-experience.ts). They also carry `## Known Limitations and Deferred Work` or use its [allowlist](../scripts/verify-package-readme-limitations.ts).

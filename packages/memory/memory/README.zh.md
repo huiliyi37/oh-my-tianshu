@@ -24,6 +24,6 @@
 
 - **子串检索**——无排序、BM25 或 FTS；本 Markdown provider 不设置 `score`。
 - **结构化 save 字段被忽略**——`kind` / `topic` / `entities` / `confidence` / `fact` / `sourceRefs` 不落入 Markdown 文件；`entities` / `topic` 检索过滤按 `tags` 精确匹配。
-- **可选 seam 方法缺席**——`topicVersions` / `markUncertain` / `retireStale` 未实现，消费方必须探测。
+- **可选 seam 方法缺席**——`topicVersions` / `markUncertain` / `retireStale` 未实现，消费方必须探测。排序、FTS 与这些方法由同组的 [`dsh-memory-sqlite`](../memory-sqlite/README.md) provider 实现，共用 `memory` 键；发货 TUI 继续挂本 Markdown provider。
 - **单进程写入**——两个 dsh 实例在同一 cwd 并发写不受保护；存储假定单事件循环。
 - **无按用户隔离**——存储按工作区作用域。

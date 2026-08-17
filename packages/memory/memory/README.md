@@ -24,6 +24,6 @@ No prompt structure contributed directly; the store's on-disk format is stable a
 
 - **Substring retrieval** — no ranking, BM25, or FTS; this Markdown provider does not set `score`.
 - **Structured save fields are ignored** — `kind` / `topic` / `entities` / `confidence` / `fact` / `sourceRefs` do not land in the Markdown file; `entities` / `topic` search filters match `tags` exactly.
-- **Optional seam methods are absent** — `topicVersions` / `markUncertain` / `retireStale` stay unimplemented so consumers must probe.
+- **Optional seam methods are absent** — `topicVersions` / `markUncertain` / `retireStale` stay unimplemented so consumers must probe. Ranking, FTS, and those methods live in the sibling [`dsh-memory-sqlite`](../memory-sqlite/README.md) provider, which shares the `memory` key; shipped TUI stays on this Markdown provider.
 - **Single-process writes** — concurrent writers from two dsh instances on one cwd are not guarded; the store assumes one event loop.
 - **No per-user isolation** — the store is workspace-scoped.

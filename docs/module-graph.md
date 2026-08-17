@@ -216,6 +216,7 @@ flowchart TD
     pkg_pheromone["pheromone"]
     pkg_repeat_tool_guard["repeat-tool-guard"]
     pkg_timeout_policy["timeout-policy"]
+    pkg_zen["zen"]
   end
   subgraph group_host["packages/host"]
     pkg_frontend_static["frontend-static"]
@@ -247,6 +248,7 @@ flowchart TD
   end
   subgraph group_memory["packages/memory"]
     pkg_memory["memory"]
+    pkg_memory_sqlite["memory-sqlite"]
     pkg_tool_memory["tool-memory"]
   end
   subgraph group_preset["packages/preset"]
@@ -472,6 +474,11 @@ flowchart TD
   pkg_lsp --> pkg_brand
   pkg_lsp --> pkg_invariants
   pkg_lsp --> pkg_llm
+  pkg_memory_sqlite --> pkg_invariants
+  pkg_memory_sqlite --> pkg_llm
+  pkg_memory_sqlite --> pkg_memory
+  pkg_memory_sqlite --> pkg_semantic_index
+  pkg_memory_sqlite --> pkg_timeout
   pkg_sandbox --> pkg_invariants
   pkg_sandbox --> pkg_llm
   pkg_meridian --> pkg_invariants
@@ -989,6 +996,12 @@ flowchart TD
   pkg_timeout_policy --> pkg_llm
   pkg_timeout_policy --> pkg_timeout
   pkg_timeout_policy --> pkg_tools
+  pkg_zen --> pkg_agent
+  pkg_zen --> pkg_invariants
+  pkg_zen --> pkg_llm
+  pkg_zen --> pkg_session
+  pkg_zen --> pkg_system_prompt
+  pkg_zen --> pkg_tools
   pkg_tool_ask_user --> pkg_agent
   pkg_tool_ask_user --> pkg_invariants
   pkg_tool_ask_user --> pkg_tools
@@ -1433,6 +1446,7 @@ flowchart TD
 | [`client-ui-trajectory`](../packages/client/ui-trajectory) | `client` | [`client-runtime`](../packages/client/runtime), [`client-ui-primitives`](../packages/client/ui-primitives), [`invariants`](../packages/support/invariants) |
 | [`credentials-local`](../packages/credentials/credentials-local) | `credentials` | [`atomic-write`](../packages/util/atomic-write), [`credentials`](../packages/credentials/credentials), [`environment`](../packages/util/environment), [`invariants`](../packages/support/invariants), [`paths`](../packages/util/paths) |
 | [`lsp`](../packages/lsp/lsp) | `lsp` | [`brand`](../packages/util/brand), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm) |
+| [`memory-sqlite`](../packages/memory/memory-sqlite) | `memory` | [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`memory`](../packages/memory/memory), [`semantic-index`](../packages/search/semantic-index), [`timeout`](../packages/util/timeout) |
 | [`sandbox`](../packages/sandbox/sandbox) | `sandbox` | [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm) |
 | [`meridian`](../packages/search/meridian) | `search` | [`invariants`](../packages/support/invariants), [`pheromone`](../packages/guard/pheromone) |
 | [`settings-local`](../packages/settings/settings-local) | `settings` | [`atomic-write`](../packages/util/atomic-write), [`invariants`](../packages/support/invariants), [`paths`](../packages/util/paths), [`settings`](../packages/settings/settings) |
@@ -1542,6 +1556,7 @@ flowchart TD
 | [`evidence-gate`](../packages/guard/evidence-gate) | `guard` | [`invariants`](../packages/support/invariants), [`session`](../packages/core/session), [`tools`](../packages/core/tools) |
 | [`repeat-tool-guard`](../packages/guard/repeat-tool-guard) | `guard` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`tools`](../packages/core/tools) |
 | [`timeout-policy`](../packages/guard/timeout-policy) | `guard` | [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`timeout`](../packages/util/timeout), [`tools`](../packages/core/tools) |
+| [`zen`](../packages/guard/zen) | `guard` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`system-prompt`](../packages/core/system-prompt), [`tools`](../packages/core/tools) |
 | [`tool-ask-user`](../packages/interaction/tool-ask-user) | `interaction` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`tools`](../packages/core/tools), [`user-interaction`](../packages/interaction/user-interaction) |
 | [`tool-lsp`](../packages/lsp/tool-lsp) | `lsp` | [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`lsp`](../packages/lsp/lsp), [`system-prompt`](../packages/core/system-prompt), [`timeout`](../packages/util/timeout), [`tools`](../packages/core/tools) |
 | [`mcp-client`](../packages/mcp/mcp-client) | `mcp` | [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`subprocess`](../packages/subprocess/subprocess), [`tools`](../packages/core/tools) |

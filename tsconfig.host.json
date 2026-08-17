@@ -279,6 +279,7 @@
     { "path": "./packages/hooks/hooks-codex" },
     { "path": "./packages/mcp/mcp-client" },
     { "path": "./packages/memory/memory" },
+    { "path": "./packages/memory/memory-sqlite" },
     { "path": "./packages/memory/tool-memory" },
     { "path": "./packages/host/apiproxy" },
     { "path": "./packages/host/directory-picker" },

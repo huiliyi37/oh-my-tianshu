@@ -3286,6 +3286,7 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
 - `@huiliyi37/dsh-llm-mock-server` ([`packages/support/llm-mock-server/src/index.ts`](../packages/support/llm-mock-server/src/index.ts))
 - `@huiliyi37/dsh-loader-smoke` ([`packages/support/loader-smoke/src/index.ts`](../packages/support/loader-smoke/src/index.ts))
 - `@huiliyi37/dsh-memory` ([`packages/memory/memory/src/index.ts`](../packages/memory/memory/src/index.ts))
+- `@huiliyi37/dsh-memory-sqlite` ([`packages/memory/memory-sqlite/src/index.ts`](../packages/memory/memory-sqlite/src/index.ts))
 - `@huiliyi37/dsh-meridian` ([`packages/search/meridian/src/index.ts`](../packages/search/meridian/src/index.ts))
 - `@huiliyi37/dsh-native-command` ([`packages/util/native-command/src/index.ts`](../packages/util/native-command/src/index.ts))
 - `@huiliyi37/dsh-paths` ([`packages/util/paths/src/index.ts`](../packages/util/paths/src/index.ts))

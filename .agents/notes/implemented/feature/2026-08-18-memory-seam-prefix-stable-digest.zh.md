@@ -24,4 +24,4 @@ Status: implemented
 
 ## Consequences
 
-消费方可以传入结构化 save 字段和 `excludeIds`，而不必在以后做类型破坏；Markdown 仍然只存储 `text` / `scope` / `tags` / `source`。缺省的 `tool-memory` 指引在 save 之间逐字节稳定，记忆写入不再使请求前缀失效。`digest: true` 仍可用来测量该成本。覆盖：`packages/memory/memory/tests/memory.spec.ts`（excludeIds / 退化为 tags 的过滤 / 被忽略的结构化字段 / 缺席的可选方法）与 `packages/memory/tool-memory/tests/tool-memory.spec.ts`（缺省静态 section / digest 刷新 / excludeIds 透传 / `searchLimit` 钳制）。
+消费方可以传入结构化 save 字段和 `excludeIds`，而不必在以后做类型破坏；Markdown 仍然只存储 `text` / `scope` / `tags` / `source`。缺省的 `tool-memory` 指引在 save 之间逐字节稳定，记忆写入不再使请求前缀失效。`digest: true` 仍可用来测量该成本。同组的 [sqlite provider](2026-08-18-memory-sqlite-structured-ltm.md) 随后消费这些字段，且不改变 TUI 的 Markdown 挂载。覆盖：`packages/memory/memory/tests/memory.spec.ts`（excludeIds / 退化为 tags 的过滤 / 被忽略的结构化字段 / 缺席的可选方法）与 `packages/memory/tool-memory/tests/tool-memory.spec.ts`（缺省静态 section / digest 刷新 / excludeIds 透传 / `searchLimit` 钳制）。
