@@ -19,3 +19,58 @@
       name: '@huiliyi37/dsh-vision-bridge'
       config:
         visionAutoBridge: true
+
+    # /rewind 的 code/both 粒度硬依赖：写工具执行前全文件备份
+    # （fsSnapshot.histories）。未装配时 TUI 文件回退 fail loud。
+    # backupDir 缺省 $TMPDIR/dsh-fs-snapshot。
+    - id: fs-snapshot
+      name: '@huiliyi37/dsh-fs-snapshot'
+
+    # 跨会话记忆服务（provide 'memory'）：/remember、/memory 命令与
+    # tool-memory 的共同后端。存储落工作区 `<cwd>/.dsh/memory/`。
+    - id: memory
+      name: '@huiliyi37/dsh-memory'
+
+    # memory_save / memory_search 模型工具 + 记忆摘要 system prompt 注入
+    # （digest 缺省开）。memory 服务缺席时降级为「未装配」占位，不阻塞装配。
+    - id: tool-memory
+      name: '@huiliyi37/dsh-tool-memory'
+
+    # 跨会话查询工具面（session_search 等五件）；后端 sessionQuery 服务
+    # 由 dsh-base 的 session-query-sqlite 提供，本行只挂模型工具。
+    - id: tool-session-query
+      name: '@huiliyi37/dsh-tool-session-query'
+
+    # 证据门（provide 'evidence'）：验证义务归账 + 编辑门。缺省温和——
+    # TDD 门 suggest 只提示不拦，编辑拦截仅命中模型自建的 high bugfix 义务。
+    - id: evidence-gate
+      name: '@huiliyi37/dsh-evidence-gate'
+
+    # 禅相位（provide 'zen'）：新顶层会话首步跑最小锚定面（官方评测配方
+    # bash + str_replace_editor + todo_write + zen_anchor），锚校验/超时/分诊
+    # 三谓词晋升全量面。子代理会话（parentSession）不参与。消融数据见
+    # examples/headless-agent/zen-ablation-results.json。
+    - id: zen
+      name: '@huiliyi37/dsh-zen'
+      config:
+        section: >-
+          Zen phase — the toolset is reduced while you anchor the task.
+          Before any modification: (1) restate the goal in one sentence;
+          (2) pick 2-4 landmarks (files, commands, acceptance checks);
+          (3) verify one landmark with a read-only probe (e.g. bash ls / cat /
+          git status); then call zen_anchor to unlock the full toolset.
+          If the request is trivial (1-2 steps), do it directly with the
+          reduced toolset — anchoring is not required for answers.
+
+    # 失败预测路由：tool/result 成败喂预测累计器，越阈值派发子代理验证
+    # （provider/model 缺省随子代理默认路由；evidence 服务在场时并入指标）。
+    - id: agent-router
+      name: '@huiliyi37/dsh-agent-router'
+
+    # preset roster（/preset 的服务端）。shipped 只读根由 apps/cli 的
+    # composeProfile 按「行 id 为 agent-presets」注入（与 profile 无关）；
+    # 可写根是插件自身的 includeUserRoot 缺省。
+    - id: agent-presets
+      name: '@huiliyi37/dsh-agent-presets'
+      config:
+        default: standard

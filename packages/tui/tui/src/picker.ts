@@ -46,7 +46,10 @@ export type PickerEvent =
   | { type: 'close' }
   | { type: 'move'; delta: number; count: number }
 
-/** 初始状态（关闭、选中 0、空标题）。 */
+/**
+ * 初始状态（关闭、选中 0、空标题）。
+ * @returns 关闭态的选择器状态。
+ */
 export function emptyPickerState(): PickerState {
   return { open: false, selected: 0, title: '' }
 }
@@ -143,7 +146,10 @@ export class PickerController {
     this.getTheme = opts.getTheme
   }
 
-  /** 选择器是否打开。 */
+  /**
+   * 选择器是否打开。
+   * @returns 打开返回 true。
+   */
   isOpen(): boolean {
     return this.state.open
   }

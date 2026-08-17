@@ -231,6 +231,7 @@
         "./packages/goal/*/src",
         "./packages/feedback/*/src",
         "./packages/guard/*/src",
+        "./packages/memory/*/src",
         "./packages/plan/*/src",
         "./packages/preset/*/src",
         "./packages/subagent/*/src",

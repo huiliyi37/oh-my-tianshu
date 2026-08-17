@@ -6,6 +6,7 @@
  * - wireToolNames：最近 request/header 的工具 schema 名（preset 过滤器作用后）
  * - formatWireSurface：`[a, b]` 展示文本
  * - wirePhaseLabel：双工具面 → 锚定面；run_code → PTC 面；其余不标注
+ * - zenPhaseLabel：zen/phase 折叠为 zen → 徽章；晋升/未布防/无日志 → undefined
  */
 
 import { describe, expect, it } from 'vitest'
@@ -15,6 +16,7 @@ import {
   resolvePresetId,
   wirePhaseLabel,
   wireToolNames,
+  zenPhaseLabel,
 } from '../src/preset-surface.js'
 
 /** 最小 request/header 事件（tools 可选；config 最小面）。 */
@@ -121,5 +123,30 @@ describe('wirePhaseLabel', () => {
   it('无工具面 → undefined', () => {
     expect(wirePhaseLabel(undefined)).toBe(undefined)
     expect(wirePhaseLabel([])).toBe(undefined)
+  })
+})
+
+/** zen/phase 事件（arm/晋升）。 */
+function zenEvent(seq: number, phase: 'zen' | 'full', reason: string): SessionEvent {
+  return { seq, time: seq, type: 'zen/phase', data: { phase, reason } } as SessionEvent
+}
+
+describe('zenPhaseLabel', () => {
+  it('布防中（最后 zen/phase 为 zen）→ 徽章', () => {
+    expect(zenPhaseLabel([zenEvent(1, 'zen', 'arm')])).toBe('禅')
+  })
+
+  it('晋升后（最后 zen/phase 为 full）→ undefined（徽章消失）', () => {
+    const events = [zenEvent(1, 'zen', 'arm'), zenEvent(2, 'full', 'anchor')]
+    expect(zenPhaseLabel(events)).toBe(undefined)
+  })
+
+  it('从未布防（无 zen/phase 事件）→ undefined', () => {
+    expect(zenPhaseLabel([headerEvent(1, undefined)])).toBe(undefined)
+    expect(zenPhaseLabel([])).toBe(undefined)
+  })
+
+  it('无日志句柄 → undefined（不抛错）', () => {
+    expect(zenPhaseLabel(undefined)).toBe(undefined)
   })
 })

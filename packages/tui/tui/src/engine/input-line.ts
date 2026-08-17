@@ -465,7 +465,10 @@ export class InputLine {
   get vimEnabled(): boolean { return this._vimEnabled }
   /** 占位符文本（value 为空时显示）。 */
   get placeholder(): string { return this._placeholder }
-  /** 运行时替换空输入占位提示（如 Ctrl+C 连按退出的临时提示）。 */
+  /**
+   * 运行时替换空输入占位提示（如 Ctrl+C 连按退出的临时提示）。
+   * @param value - 新占位符文本。
+   */
   setPlaceholder(value: string): void {
     this._placeholder = value
   }

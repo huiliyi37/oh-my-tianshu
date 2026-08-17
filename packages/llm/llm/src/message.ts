@@ -186,6 +186,11 @@ export function isTokenDelta(chunk: StreamChunk): boolean {
   }
 }
 
+/**
+ * Deep-freeze a message copy for publication (the caller's original stays mutable).
+ * @param message - message to clone and freeze.
+ * @returns an immutable deep clone of the message.
+ */
 export function freezeMessage<T extends Message>(message: T): T {
   return deepFreeze(structuredClone(message))
 }

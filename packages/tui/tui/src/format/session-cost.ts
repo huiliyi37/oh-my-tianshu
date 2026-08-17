@@ -23,7 +23,11 @@ export interface SessionCostBucket {
   reasoningTokens: number
 }
 
-/** 空桶(缺省值)。 */
+/**
+ * 空桶(缺省值)。
+ * @param model - 桶所属模型名。
+ * @returns 全零计量的新桶。
+ */
 export function emptyBucket(model: string): SessionCostBucket {
   return {
     model,
@@ -39,6 +43,7 @@ export function emptyBucket(model: string): SessionCostBucket {
  * 累加一次请求计量进桶(纯函数;usage 的缓存字段缺省按 0)。
  * @param bucket - 现有桶(undefined → 以 usage 建桶)。
  * @param usage - 本次请求的 TokenUsage。
+ * @param model - 建新桶时的模型名(已有桶时忽略;缺省 'unknown')。
  * @returns 新桶。
  */
 export function accumulateUsage(

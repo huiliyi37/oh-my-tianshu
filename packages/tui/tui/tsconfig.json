@@ -76,6 +76,9 @@
     },
     {
       "path": "../../preset/agent-presets"
+    },
+    {
+      "path": "../../guard/zen"
     }
   ]
 }

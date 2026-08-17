@@ -1,0 +1,69 @@
+# Agent Note: Zen phase — an anchored first-face lifecycle paradigm
+
+Status: implemented
+
+English | [中文](2026-08-17-zen-phase-engineering-paradigm.zh.md)
+
+## Problem
+
+Models degrade on the first turns of a task when the first request already carries the full deployment surface: tool selection quality drops as the candidate set grows (external evidence puts the knee near ~20 tools, hardest on small models), wasted calls land on plausible-but-wrong tools, and the schema block dominates first-request tokens. DeepSeek's own published evaluation harness runs a 2-tool minimal face (`bash` + `str_replace_editor`) — the product ships ~35 schemas. Skills that ask the model to "think first" (J-Space, deep-brainstorm) are model-side discipline: they cannot shrink the candidate set, cannot be enforced, and are invisible to the host when ignored. The user's framing: the first round needs a *zen mode* — an engineering paradigm in the harness, not another skill.
+
+## Decision
+
+The zen phase is a built-in agent-lifecycle phase owned by `packages/guard/zen` (`@huiliyi37/dsh-zen`, ctx key `zen`), mounted in the TUI bundle patch:
+
+- **Anchored first face.** At `agent/created` — the veto-capable seam before the driver and first assembly — a fresh top-level session gets `ctx.tools.restrict({ allow: face })` with the official-evaluation-recipe default (`bash`, `str_replace_editor`, `todo_write`) plus an agent-scoped `zen_anchor` tool, and logs `zen/phase {'zen', 'arm'}`. `request/header` already logs every face the model sees, so model-visible ⟺ logged holds for free.
+- **Host-verified promotion, never self-claimed.** Three predicates promote to the full face: a validated `zen_anchor` call (non-empty goal, 2–4 landmarks, pass level, and — by default — ≥1 successful non-bookkeeping tool result already in the log), a step-budget timeout with an injected narration, or first-message triage (trivially short single-line prompts skip the phase before the first request). Promotion appends `zen/phase {'full', reason}` first, then lifts the restriction; the section text folds to empty from the log, so resume/fork reconstruct the face with no live mirror.
+- **Fail loud on misconfiguration.** Config validation throws at plugin load; a face naming an unregistered tool throws inside the synchronous `agent/created` listener, which vetoes agent publication — the discovered constraint here is that `agent/session-start` listener errors are *contained* by the loop, so arming there would degrade misconfiguration into a silent skip.
+- **Defense in depth.** A `ctx.tools.guard` denies non-face execution whenever the *folded log* still says zen, independent of the live restrict bookkeeping; the `zen/phase` sequence itself is invariant-checked (shape at the durable boundary, arm-at-most-once, no re-log after full).
+- **Orthogonal composition.** Presets choose the session's roster (which tools exist), zen phases the roster's exposure over time, plan mode gates mutations by permission, skills remain model-side discipline. Subagent sessions (`header.parentSession` set) never arm — their dispatch prompt is the anchor and routers own their profiles.
+
+## Ablation evidence (Phase 0)
+
+Five arms, real DeepSeek API (`deepseek-v4-flash`), six real TUI-flavored tasks (3 simple / 3 multi-step), 21 distractor schemas with plausible names failing on execution; script `examples/headless-agent/zen-ablation.mts`, data `examples/headless-agent/zen-ablation-results.json`:
+
+| Arm | Face | Success | Wasted calls/task | Anchored-face first pick | Avg tokens |
+|---|---|---|---|---|---|
+| A wide-direct | 35 | 100% | 3.0 | 33% | 1446 |
+| B wide + zen guidance | 35 | 100% | 4.3 | 17% | 1672 |
+| C minimal-direct | 2 | 100% | **0** | **100%** | **561** |
+| D minimal + zen guidance | 2 | 100% | **0** | **100%** | 1251 |
+| E wide visible-but-denied | 35 | 100% | 4.0 | 17% | 954 |
+
+Verdict against the pre-registered criteria: C ≥ A with E not better than A ⇒ the *catalog axis* (physically shrinking the face) is the effective treatment, and visible-but-denied is not a substitute; B worse than A ⇒ guidance alone cannot rescue a wide face; D costing 2.2× C's tokens on simple tasks ⇒ triage skip is necessary, anchoring is for multi-step work. Sampling-hygiene side-check: the DeepSeek adapter sends `temperature` only when explicitly configured — the product pins nothing and rides the provider default.
+
+## Research fragments pool (5 scouts, condensed)
+
+- **Quantitative** — tool-selection accuracy knees near ~20 candidates and collapses hardest on small models (84%→43% reported); retrieval-restricted subsets recovered 13.6%→43% in external benchmarks; DeepSeek's official coding evaluation uses the 2-tool minimal recipe this phase adopts as its default face.
+- **Counter-evidence absorbed into the design** — "always plan first" is falsified (benefit crosses over at 3–6 step tasks) → triage skip; visible-but-denied tools produce spin incidents → physical face reduction, not soft permission; "the model says it anchored" is gameable → tool call + host validation as the predicate; DeepSeek has no cache breakpoints and an expansion re-fill costs ~$0.009 → caching is no argument against promotion.
+- **Prior art** — Anthropic Tool Search (defer-loading tool schemas), Claude Code plan mode (permission axis with a reviewed exit), OpenAI `allowed_tools` (per-request subset). OpenMythos is a loop-depth transformer replica; only its structural metaphor (resident core face / phase signal / frozen-input re-injection) carries over.
+- **Neuroscience mapping (naming, not mechanism)** — anchored face ≈ thalamic gating (filter before cortex); zen guidance ≈ task-set pre-pulse; promotion ≈ DMN→task-positive switch; anchor structure ≈ landmark-first spatial encoding with a 4±1 chunk budget.
+- **Seam survey** — `ctx.tools.restrict()` aligns all four exposure surfaces (wire/lookup/execute/SDK) and `request/header` change-logging makes every face auditable; `agent/created` is the only pre-first-assembly seam whose listener failure vetoes; pre-step runs after assembly, so its effects land next step.
+
+## Alternatives considered
+
+- **Permission axis (visible but denied)** — extinct: does not reduce first-request interference, and arm E plus external spin incidents show it is not a substitute; its two salvageable features (guard backstop, explicit unlock tool) are folded in.
+- **Retrieval axis (`tool_search` meta-tool + on-demand schema append)** — deferred to a later phase gated on deployments crossing ~50 tools; the ablation harness built here is its prerequisite.
+- **Sidecar triage model** — rejected for the MVP: a host heuristic costs zero extra requests; the predicate boundary admits a classifier later without redesign.
+- **Skill-only zen (J-Space/OpenMythos as SKILL.md)** — rejected as the primary mechanism: unenforceable, invisible to the host, and arm B shows guidance without face reduction is counterproductive.
+- **Arming at `agent/session-start`** — rejected after discovering its listeners are error-contained: a misconfigured face would silently skip the phase instead of failing creation.
+
+## Consequences
+
+- Fresh top-level sessions spend their first steps on ≤4 schemas + anchor instead of ~35: the ablation says zero wasted calls and ~61% first-phase token savings, at the cost of one prefix re-fill (~$0.009) per promoted session and one anchor round-trip on multi-step tasks.
+- The phase is deployment policy, fully config-owned (`section`, `face`, `timeoutSteps`, `requireEvidence`, `triage`, `enabled`) — a bundle that wants the old behavior sets `enabled: false`.
+- New durable event `zen/phase` joins the session vocabulary; consumers fold it (last-wins) rather than mirroring state.
+- The TUI's wired tool surface (memory, session-query, vision) hides during the zen phase of every fresh session; the triage heuristic and step budget bound how long.
+- The TUI top status bar renders a `禅` badge while the phase is armed (`zenPhaseLabel` over the logged `zen/phase` fold in `preset-surface.ts`; it disappears on promotion or compaction prune), and the shipped defaults encode the ablation verdict (official minimal recipe + `todo_write`, 4-step budget). The retrieval axis (Phase 3) remains deferred; see the README's Known Limitations.
+
+## Testing
+
+- `packages/guard/zen/tests/zen.spec.ts` — config fail-loud table, fold semantics, evidence predicate.
+- `packages/guard/zen/tests/integration.spec.ts` — scripted-model loop runs: first-header face snapshot, anchor/timeout/triage promotions with header change assertions, bare-anchor rejection, denial during zen, misconfig veto, subagent exclusion, armed/promoted seed folds, `enabled: false`.
+- `packages/guard/zen/tests/invariant.spec.ts` — payload shape and sequence invariants, live and on late registration.
+- `packages/tui/tui/tests/bundle-patch.spec.ts` — the TUI patch mounts the `zen` row with a non-empty section and default predicates.
+
+## Related
+
+- [TUI tianshu capability roster](../feature/2026-08-17-tui-bundle-tianshu-capability-roster.md) — the wiring wave this phase ships with.
+- [Repeat-tool-guard](../../archived/feature/2026-07-08-repeat-tool-guard.md) — the guard-family advisory tier this package's enforcing phase sits beside.

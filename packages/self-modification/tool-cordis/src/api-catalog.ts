@@ -1610,6 +1610,16 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
     ],
   },
+  {
+    key: 'zen',
+    summary: '`ctx.zen`: owns the logged zen phase, the anchored tool face, the `zen:policy` section, the `zen_anchor` tool, and the three promotion predicates (anchor, step-budget timeout, first-message triage).',
+    methods: [
+      {
+        signature: 'phase(agent: Agent): ZenPhase',
+        jsDoc: '/**\n * Read the folded zen phase of an agent\'s session.\n *\n * @param agent The agent to read.\n * @returns `\'zen\'` while the anchored face is in force, else `\'full\'`.\n */',
+      },
+    ],
+  },
 ]
 
 /** Every harness event, sorted by name. */
@@ -3984,6 +3994,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'Workspace',
     declaration: 'export interface Workspace {\n    readonly id: WorkspaceId;\n    readonly path: string;\n    readonly title: string;\n    readonly createdAt: string;\n    readonly updatedAt: string;\n    readonly sessionIds: readonly SessionId[];\n    setTitle(title: string): Promise<void>;\n    attachSession(sessionId: SessionId): Promise<void>;\n    insertSessionBefore(sessionId: SessionId, beforeSessionId?: SessionId): Promise<void>;\n    detachSession(sessionId: SessionId): Promise<void>;\n    status(): Promise<\'ok\' | \'missing-dir\'>;\n}',
+  },
+  {
+    name: 'ZenPhase',
+    declaration: 'export type ZenPhase = \'zen\' | \'full\';',
   },
 ]
 

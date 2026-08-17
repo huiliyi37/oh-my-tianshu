@@ -12,6 +12,8 @@
   name: '@huiliyi37/dsh-tui'
 ```
 
+发货 bundle patch（cordis.patch.yml）在 `tui-runner` 之外还挂载：spark-anchors、视觉桥，以及天枢侧能力 roster——fs-snapshot（`/rewind` 文件回退）、memory 服务与记忆工具、跨会话查询工具、evidence-gate、zen（锚定初始 face 相位；布防期间顶边状态栏显示 `禅` 徽章）、agent-router 与 agent-presets（`default: standard`；shipped 只读根由 `composeProfile` 注入）。
+
 `TuiRunnerConfig`（全部可选）：
 
 | 字段 | 语义 |
@@ -56,9 +58,9 @@ None directly; user input submitted through the TUI becomes ordinary logged mess
 ## Known Limitations and Deferred Work
 
 - **LSP 需要本地语言 server** — 诊断依赖按扩展名安装的语言 server（typescript 经 `npx -y` 视为可用；pyright/gopls/rust-analyzer/clangd/jdtls 需在 PATH）。官方 `ctx.lsp` seam（`dsh-lsp`）当前未暴露 `getDiagnostics` 操作，装配官方 seam 时会被探测到但诊断恒空，待官方落地该操作后自动生效；无任何 `lsp` 服务时内置桥自行 spawn。
-- **图片追问未移植** — opencode-tui 的 ask_image 工具、imageRegistry 与视觉描述缓存未移植：已发送的图片无法反复追问，同角度重复描述会重调视觉模型。视觉桥本身（`dsh-vision-bridge`）覆盖提交时一次性描述路径。
+- **图片追问为可选启用** — ask_image 工具与会话图片注册表已移植为独立插件 `dsh-vision-ask`，视觉模型必填（`model`/`baseUrl`/`apiKeyEnv`），因此组合中默认注释掉；视觉桥（`dsh-vision-bridge`）覆盖提交时一次性描述路径，同角度重复描述仍会重调视觉模型（无描述缓存）。
 - **app.ts 单体（约 2.2k 行）** — 挂起态状态机已 controller 化（question/approval），渲染组合与键仲裁仍在 app.ts；C4 拆分方案（面板段纯函数化）继续推进。dispose 已释放 interaction/taskDone/taskSurface/subagent/workflow disposer，切会话结算挂起审批/提问（fail-closed）。
 - **engine I/O 文件覆盖率豁免** — input-line/live-engine 等终端边界文件在 vitest.config.ts 的覆盖率豁免清单中（`TODO(tui)` 注释），随真实组合测试线成熟逐步消化。
 - **孤儿 controller 已收敛** — `engine/stream-render-controller.ts` 与 `engine/tool-group-controller.ts` 与 app.ts 内联逻辑逐 case 对比后语义不等（StreamRender 缺 tool/call·tool/result·turn/end 的 fluency 处理；ToolGroup 缺 compact 参数），按 C4 Wave 3 判据删除提取（保留 app.ts 内联）。底层原语（StreamRenderer/BlockStreamWriter/formatToolCard/format-tool-group）保留且有独立测试。
 - **用户级 TTY 验收受阻** — 代理沙箱无法驱动真实终端做人工验收；行为证据以单测与真实组合测试为准。
-- **投影模型未接线** — activity-status/activity-store/turn-summary/summary-state 四个纯 fold 模型已带 spec 落地，但 App 主体尚未驱动（仅 fluency 链消费 `ActivityPhase` 类型）；设计中的 cache-telemetry/cache-panel-source/history-replay/adapter-projections 未落地。现状记录在 [docs/projection-layer.md](docs/projection-layer.md)。
+- **投影模型部分接线** — turn-summary 与 summary-state 已由 App 主体驱动（turn 结束摘要行；`/compact` 直读 summary-state），activity-status/activity-store 已带 spec 落地为纯 fold 但尚无驱动方（仅 fluency 链消费 `ActivityPhase` 类型）；设计中的 cache-telemetry/cache-panel-source/history-replay/adapter-projections 未落地。现状记录在 [docs/projection-layer.md](docs/projection-layer.md)。

@@ -3102,6 +3102,54 @@ export interface Config {
 
 来源：[`packages/context/workspace-context/src/config.ts:18`](../packages/context/workspace-context/src/config.ts)
 
+## `@huiliyi37/dsh-zen`
+
+依赖：`tools` · `systemPrompt`
+
+```ts config-catalog
+/** Deployment-owned zen-phase policy. */
+export interface ZenConfig {
+  /** Guidance rendered as the `zen:policy` prompt section while the zen phase is active. */
+  section: string
+  /**
+   * Global tool names visible during the zen phase (the anchored face);
+   * `zen_anchor` is agent-scoped and always visible on top. Every name must
+   * be a registered global tool — an unknown name fails agent creation loud.
+   * Default: `['bash', 'str_replace_editor', 'todo_write']` (the official
+   * DeepSeek evaluation recipe plus plan bookkeeping).
+   */
+  face?: readonly string[]
+  /**
+   * The zen phase's step budget: promotion fires on the budget's final step
+   * (assembly precedes the boundary), so the full face is visible from the
+   * following step. Default 4.
+   */
+  timeoutSteps?: number
+  /**
+   * Whether `zen_anchor` requires ≥1 successful non-bookkeeping tool result
+   * (`todo_write` and `zen_anchor` do not count) before it promotes; a bare
+   * anchor is rejected back to the model with the probe-first instruction.
+   * Default true.
+   */
+  requireEvidence?: boolean
+  /** First-message triage heuristic: skip the zen phase for trivially short prompts. */
+  triage?: {
+    /** Whether triage runs at all. Default true. */
+    enabled?: boolean
+    /**
+     * A first user message at most this many characters, single-line and
+     * text-only, promotes to the full face before the first request.
+     * Default 80.
+     */
+    maxChars?: number
+  }
+  /** Master switch; `false` mounts the service with no behavior. Default true. */
+  enabled?: boolean
+}
+```
+
+来源：[`packages/guard/zen/src/index.ts:70`](../packages/guard/zen/src/index.ts)
+
 ## 无配置的可加载插件
 
 这些插件通过 `cordis.yml` 中不含 `config:` 块的条目加载；它们未声明任何配置接口。

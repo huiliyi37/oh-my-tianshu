@@ -9,7 +9,7 @@ Behavioral guard plugins watch the agent loop for unproductive patterns and enfo
 Guards turn rules that would otherwise be prompt guidance into enforced, event-accounted mechanisms on the agent loop. They reuse the extension points every other dsh capability uses — `ctx.tools.guard`, `tools/execute`, `tools/post-execute`, `agent/pre-step`, and `session/event` — and either enrich the model's next request or veto a call. Two tiers:
 
 - **Advisory** — `repeat-tool-guard` folds a reminder into the next request but never vetoes.
-- **Enforcing** — `evidence-gate`, `agent-router`, and `timeout-policy` veto or reroute work.
+- **Enforcing** — `evidence-gate`, `agent-router`, `timeout-policy`, and `zen` veto, reroute, or gate work.
 
 ## The verification-and-routing loop
 
@@ -32,6 +32,7 @@ Accounting rides the session event stream, so there are no new channels: a subag
 | [`agent-router/`](agent-router/README.md) | Failure-prediction routing with native subagent dispatch | `ctx.router` |
 | [`repeat-tool-guard/`](repeat-tool-guard/README.md) | Advisory reminders for repeated tool calls | listens on tool/agent events |
 | [`timeout-policy/`](timeout-policy/README.md) | Per-call tool deadlines as deployment policy | registers a `tools/execute` listener |
+| [`zen/`](zen/README.md) | Anchored minimal first-face with host-verified promotion | `ctx.zen` |
 | [`pheromone/`](pheromone/README.md) | File-level stigmergy signals | pure library |
 
 ### evidence-gate — RED-first verification
@@ -62,6 +63,10 @@ Per-agent chains of identical calls (arguments deep-key-sorted then stringified,
 ### timeout-policy — per-call deadlines
 
 A `tools/execute` wrapper arms the deadline a tool declares (`timeoutMs`) on `exec.signal` and replaces the result with a structured `TOOL_TIMEOUT` when its own timer wins — without racing or abandoning the tool promise. Details: [timeout-policy README](timeout-policy/README.md).
+
+### zen — anchored first-face
+
+A fresh top-level session's first steps run on a minimal anchored tool face (default: the official DeepSeek evaluation recipe plus `zen_anchor`) under a `zen:policy` prompt section; a host-verified predicate — validated anchor with probe evidence, step-budget timeout, or first-message triage — promotes to the full face by lifting an agent-scoped `tools.restrict`. Phase state is the durable `zen/phase` event, folded on read. Details: [zen README](zen/README.md).
 
 ### pheromone — file-level stigmergy
 

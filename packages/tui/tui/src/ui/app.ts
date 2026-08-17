@@ -263,6 +263,7 @@ import { formatSlashMenu, SLASH_MENU_MAX_ROWS } from '../format/slash-menu.js'
 import { formatSubagentRunning, formatSubagentDone } from '../format/subagent-line.js'
 import { glanceBarSegments } from '../format/glance-bar.js'
 import { MemoryBrowserOverlay } from '../format/memory-overlay.js'
+import { zenPhaseLabel } from '../preset-surface.js'
 
 /**
  * A1：CommandService 的最小消费面（不引入 dsh-commands 依赖）。
@@ -510,6 +511,10 @@ function readDistributionVersion(): string | undefined {
   return fallback
 }
 
+/**
+ * TUI 应用装配体：把渲染引擎（live/commit/输入行）、会话适配层与命令面
+ * 组装为一个可挂载/可 dispose 的终端应用（tui-runner 插件的宿主对象）。
+ */
 export class TuiApp {
   private readonly ctx: Context
   private readonly stdout: WriteStream
@@ -2262,6 +2267,7 @@ export class TuiApp {
   /**
    * 当前会话是否 blank：无消息且无未结算工具调用。
    * /preset recompose 与更新后自动重启的守卫共用（非空白不打断会话）。
+   * @returns blank 返回 true。
    */
   isBlankSession(): boolean {
     const view = this.transcript?.view
@@ -3724,9 +3730,13 @@ export class TuiApp {
       (bottomMetrics?.modelName !== undefined ? 1 : 0) + (bottomMetrics?.effort != null ? 1 : 0),
       allSegs.length,
     )
+    // 禅相位徽章：zen/phase 日志折叠（官方 foldZenPhase），布防中显示、晋升后消失。
+    const zenBadge = this.activeSessionId === null
+      ? undefined
+      : zenPhaseLabel(getSession(this.ctx, this.activeSessionId)?.events)
     const topLine = formatTopStatusBar({
       width: cols,
-      left: allSegs.slice(0, leftCount),
+      left: [...allSegs.slice(0, leftCount), ...(zenBadge === undefined ? [] : [zenBadge])],
       // A3：git 未提交 ●N 段置于右段末尾（丢段从右丢 → ●N 最次要先丢，不挤 metrics）。
       right: [...allSegs.slice(leftCount), `API ${this.apiKeyReady ? '✓' : '✗'}`, ...(this.gitDirty > 0 ? [`●${this.gitDirty}`] : [])],
       borderColor: promptBorderColor(modeFlags, theme),

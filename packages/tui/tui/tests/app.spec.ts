@@ -660,11 +660,12 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
       seq: 1, time: 1, type: 'assistant/message',
       data: { turn: 1, step: 0, message: { role: 'assistant', content: [{ type: 'text', text: 'hi' }] }, usage: { inputTokens: 10, outputTokens: 5 } },
     })
-    // 单次 Esc → 不打开
+    // 单次 Esc → 不打开（断言 overlay 标题而非裸 'rewind'——随机欢迎 Tip
+    // 可能抽中 "/rewind 回退到任意一条消息"，裸关键字会误伤）
     stdin.emit('data', '\x1b')
     await new Promise(resolve => setTimeout(resolve, 150))
     let written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).not.toContain('rewind')
+    expect(written).not.toContain('⟲ rewind 回退')
     // 非 Esc 键清除待定双击窗口（避免单次检查污染下面的双击）
     stdin.emit('data', 'x')
     await new Promise(resolve => setTimeout(resolve, 50))

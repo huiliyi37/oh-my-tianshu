@@ -811,3 +811,20 @@ Source: [`packages/core/session/src/types.ts:244`](../packages/core/session/src/
 ```
 
 Source: [`packages/web/web-search-deepseek/src/provider.ts:83`](../packages/web/web-search-deepseek/src/provider.ts)
+
+### `zen/*`
+
+#### `zen/phase` — log-only
+
+```ts persistence-catalog
+/**
+ * Which zen phase is in force from this point on: log-only, non-surface,
+ * whole-value replace. The last `zen/phase` wins; a log with none folds to
+ * `'full'` (never armed) through {@link foldZenPhase}. `reason` names the
+ * transition: `'arm'` (session start, always with phase `'zen'`) or one of
+ * the promotions `'anchor' | 'timeout' | 'triage'` (always with `'full'`).
+ */
+'zen/phase': { phase: ZenPhase; reason: ZenTransitionReason }
+```
+
+Source: [`packages/guard/zen/src/index.ts:50`](../packages/guard/zen/src/index.ts)

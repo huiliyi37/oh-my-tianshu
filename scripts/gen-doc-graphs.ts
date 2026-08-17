@@ -268,6 +268,13 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Folds logged plan/mode state, flushes user selections at turn boundaries, renders deployment-owned guidance, registers /plan, and keeps the plan-exit schema stable across transitions.',
   },
   {
+    key: 'zen',
+    pkg: 'zen',
+    title: 'Zen-phase first-face gate',
+    mode: 'core',
+    note: 'Folds logged zen/phase state, restricts new top-level sessions to the anchored tool face, and promotes to the full face on host-verified anchor, triage, or step-budget predicates.',
+  },
+  {
     key: 'commands',
     pkg: 'commands',
     title: 'Human command registry',

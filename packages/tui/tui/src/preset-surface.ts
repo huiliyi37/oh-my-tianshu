@@ -6,6 +6,8 @@
  *   事件（blank 窗口切换值），等价宿主 dsh-agent-presets 的 resolveSessionPreset。
  * - wire 工具面：`request/header` 快照是「最近一次请求实际使用的工具 schema」
  *   （含 preset 过滤器作用后的最终面），经官方 `foldRequestHeader` 折叠。
+ * - 禅相位：`zen/phase` 事件经官方 `foldZenPhase` 折叠（dsh-zen 的导出 fold，
+ *   非插件私有状态）；compaction 剪除后折回 'full'，徽章保守消失。
  *
  * 纪律：本模块不重放任何 preset 插件的私有晋升逻辑（decidePromotion 是
  * (日志 × 配置 × 代码版本) 的函数，配置与版本不在日志里）；只展示日志中
@@ -16,6 +18,7 @@
 
 import type { SessionEvent } from '@huiliyi37/dsh-session'
 import { foldRequestHeader } from '@huiliyi37/dsh-session'
+import { foldZenPhase } from '@huiliyi37/dsh-zen'
 
 /**
  * 会话当前 preset id：尾向找最后一个 `agent-preset/selected` 切换值，
@@ -77,4 +80,16 @@ export function wirePhaseLabel(names: readonly string[] | undefined): string | u
   // PTC 面：Code Mode 晋升后 wire 上模型只能直呼 run_code。
   if (set.has('run_code')) return 'PTC 面'
   return undefined
+}
+
+/**
+ * 禅相位徽章：`zen/phase` 日志折叠为 'zen'（已布防未晋升）时返回徽章文本，
+ * 晋升后 / 从未布防 / compaction 剪除后折回 'full' → undefined（徽章消失，
+ * 保守降级——无记录 ≠ 禅相位）。
+ * @param events - 会话事件日志（log 顺序）；undefined（无日志句柄）按无记录处理。
+ * @returns 徽章文本 `禅`；非禅相位为 undefined。
+ */
+export function zenPhaseLabel(events: readonly SessionEvent[] | undefined): string | undefined {
+  if (events === undefined) return undefined
+  return foldZenPhase(events) === 'zen' ? '禅' : undefined
 }
