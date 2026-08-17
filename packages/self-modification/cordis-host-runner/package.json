@@ -46,7 +46,8 @@
     "lib/typert.host.d.ts",
     "lib/typert.remote-client.js",
     "lib/typert.remote-client.d.ts",
-    "lib/typert.remote-client.d.ts.map"
+    "lib/typert.remote-client.d.ts.map",
+    "src"
   ],
   "license": "Apache-2.0",
   "dependencies": {
