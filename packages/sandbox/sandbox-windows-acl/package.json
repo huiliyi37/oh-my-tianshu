@@ -32,6 +32,8 @@
   "files": [
     "lib/index.js",
     "lib/invariant.js",
+    "lib/runner.js",
+    "lib/types-*.js",
     "lib/types/**/*.d.ts"
   ],
   "license": "Apache-2.0",
