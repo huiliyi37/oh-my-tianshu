@@ -28,6 +28,8 @@
 
 **输入框剪贴板与图片粘贴**（移植自 opencode-tui 输入面）：`Ctrl+V` 读系统剪贴板图片（无图 fallback 剪贴板文本）；右键/终端菜单粘贴先识别剪贴板图片（命中则附图并吞掉图片字节乱码），粘贴内容像图片路径时加载为附件；附件以 `📎 N images` 标记显示在输入行上方，提交后在用户气泡下方以终端内联图形渲染（kitty / iTerm2）。vim yank / `Alt+W` 选区复制经 OSC52 写系统剪贴板。用户气泡携带识图提示——图片直发 / 经识图桥转描述 / 未发送（无识图桥）。
 
+**输入键。** 忙碌时 Esc 与 Ctrl+C 打断当前回合（`⏹ 已取消`）；空闲 Esc 不退出，空输入行需连按两次 Ctrl+C 才退出。`Ctrl+J`、Alt+Enter、以及行尾 `\`+Enter 插入换行。终端发出 Kitty/xterm 增强键时（attach 打开协议 flag 1），Shift+Enter 切换粘滞换行模式；开启后 Enter 插入换行，再按 Shift+Enter 退出该模式。bracketed paste 整段插入；满 10 行或 1000 字的粘贴收纳为 `[paste #N +M lines]`，提交时展开。输入视窗最多约占终端高度三分之一（3–12 行）。会话 tab 标签剥掉 `session-` 前缀。
+
 **会话渲染面**（对标 Claude Code）：已结算工具卡在 `tool/result` 时实时提交进 scrollback，经软降级桥（`adapter/tool-view.ts`）消费 harness 的 presenter 渲染意图（`presentCall`/`presentResult`）——`diff` 结果渲染结构化红绿文件 diff（与审批预览共享 `renderFileDiff`），`terminal` 结果渲染命令标题 + cwd + exit/signal 徽标，其余回落文本折叠卡。think 推理通道流式期在 live 区渲染 shimmer 头行（`✻ 思考中…`，tick 驱动光带扫过，16 色终端静态降级）+ 暗色尾巴，段结束时以折叠头行落底进 scrollback（`✻ 思考 (3.2s) · 12 行`）——正文默认收起（对标竞品），`Ctrl+O` 在 live 区按需展开查看（scrollback append-only，展开不重复落底；中止的 turn 丢弃缓冲；紧凑模式只留头行）。resume/attach 经同一条桥重放，消息与工具卡按事件 seq 交错——live 与恢复转录渲染完全一致。
 
 **LSP 诊断**（移植自天枢 LSP 栈）：agent 触碰文件时，桥按扩展名懒启动语言 server（typescript 经 `npx -y` 默认可用；pyright/gopls/rust-analyzer/clangd/jdtls 按 PATH 探测）拉取诊断——live 工具卡标题带 `⚠ N错 M警` 徽标，`/lsp` 面板按文件分组展示。诊断只进 TUI 本地展示缓存：不写会话事件、不注册任何模型面，dispose 时 kill 全部 server。装配了 `getDiagnostics` 形状的外部服务（`provide('lsp')`，如 dsh-lsp 伴生插件）时直接消费、与模型工具面共享 server 集；官方 `ctx.lsp` seam 经 `query(getDiagnostics)` 操作适配，官方操作落地前恒空。

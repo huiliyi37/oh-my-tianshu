@@ -594,6 +594,33 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     await app.dispose()
   })
 
+  it('agent running 时 Kitty CSI 27 u Esc → handleAbort', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('abort-esc-csi')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const onExit = vi.fn()
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin, onExit })
+    await app.attach()
+    const id = app.sessionId
+    if (id === null) throw new Error('sessionId missing after attach')
+    const statusHandlers = ctx.on.mock.calls
+      .filter((call: unknown[]) => call[0] === 'agent/status')
+      .map(call => call[1] as (payload: { agent: { id: SessionId }; status: string }) => void)
+    for (const handler of statusHandlers) handler({ agent: { id }, status: 'running' })
+
+    stdin.emit('data', '\x1b[27u')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).not.toHaveBeenCalled()
+    expect(agent.cancel).toHaveBeenCalledTimes(1)
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('已取消')
+    await app.dispose()
+  })
+
   it('空闲时 Esc → 无操作（不退出、不打断）', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('idle-esc')
@@ -797,7 +824,7 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     // tab 栏渲染：短 id + 当前 ●（s1 当前）
     await new Promise(resolve => setTimeout(resolve, 50))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('session-tab-one'.slice(0, 8) + '●')
+    expect(written).toContain('tab-one●')
     // Ctrl+X → 下一个（s2）
     stdin.emit('data', '\x18')
     await new Promise(resolve => setTimeout(resolve, 50))
@@ -2331,7 +2358,7 @@ describe('TuiApp Phase 6.1 slash 命令系统', () => {
     const app = new TuiApp({ ctx, stdout, stdin, theme: 'paper' })
     await app.attach()
     stdin.emit('data', '/theme paper\r') // 键入命令 + 回车
-    await new Promise(resolve => setImmediate(resolve))
+    await new Promise(resolve => setTimeout(resolve, 40))
 
     expect(getActiveThemeName()).toBe('paper')
     expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('主题已切换: paper')
@@ -5667,9 +5694,29 @@ describe('bracketed paste 接线（多行/长文本粘贴不逐行提交）', ()
     await app.attach()
     let written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('\x1b[?2004h') // DECSET 2004 on
+    expect(written).toContain('\x1b[>1u') // Kitty disambiguate
     await app.dispose()
     written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('\x1b[?2004l') // DECSET 2004 off
+    expect(written).toContain('\x1b[<u')
+  })
+
+  it('Shift+Enter（CSI 13;2u）切换手工换行：Enter 插换行，再切回后提交', async () => {
+    const { agent, stdin, stdout, app } = boot()
+    await app.attach()
+    stdin.emit('data', '\x1b[13;2u')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('换行中')
+    stdin.emit('data', 'hello\r')
+    await new Promise(resolve => setTimeout(resolve, 40))
+    expect(agent.followup).not.toHaveBeenCalled()
+    stdin.emit('data', '\x1b[13;2u')
+    await new Promise(resolve => setImmediate(resolve))
+    stdin.emit('data', '\r')
+    await new Promise(resolve => setTimeout(resolve, 40))
+    expect(agent.followup).toHaveBeenCalledTimes(1)
+    expect(firstCallText(agent.followup)).toBe('hello')
+    await app.dispose()
   })
 
   it('非 bracketed paste 终端粘贴多行（\\r 逐行裸入）→ 合并为一次发送', async () => {

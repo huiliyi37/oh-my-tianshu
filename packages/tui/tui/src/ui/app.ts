@@ -37,7 +37,7 @@ import { ANSI, color, imageProtocol, osc52Clipboard } from '../engine/ansi.js'
 import { LiveEngine, LIVE_TOOL_CARD_MAX, liveMaxRowsFor, nextDynamicBudget, padDynamicRegion, type LiveRegionLine } from '../engine/live-engine.js'
 import { WriteBatcher } from '../engine/write-batcher.js'
 import { InputHandler, type KeyPress, type KeyName } from '../engine/input-handler.js'
-import { InputLine } from '../engine/input-line.js'
+import { InputLine, inputViewportMaxLines } from '../engine/input-line.js'
 import { InputController, type SlashHintEntry } from '../engine/input-controller.js'
 import { ResizeHandler } from '../engine/resize-handler.js'
 import { BlockStreamWriter } from '../block-stream-writer.js'
@@ -68,7 +68,7 @@ import { lspBadgeText } from '../format/lsp-diagnostics.js'
 import { formatToolViewCard } from '../format/tool-view-card.js'
 import { formatReasoningBlock, formatReasoningLive, reasoningTailBudget } from '../format/reasoning.js'
 import { accumulateUsage, formatSessionCostReport, type SessionCostBucket } from '../format/session-cost.js'
-import { formatSessionTabs, type SessionTab } from '../format/session-tabs.js'
+import { formatSessionTabs, sessionTabLabel, type SessionTab } from '../format/session-tabs.js'
 import { renderKeymapPanel } from '../format/keymap-panel.js'
 import { renderSessionExport } from '../format/export.js'
 import type { TaskItem } from '../format/task-panel.js'
@@ -360,7 +360,7 @@ const USAGE_TEXT = `oh-my-tianshu tui — oh-my-tianshu 交互式终端界面 / 
   oh-my-tianshu tui --help            显示本帮助 / show this help
   oh-my-tianshu tui --version         输出版本 / print the version
 
-快捷键 / Keys: ctrl+n 新会话 · ctrl+s 恢复 · ctrl+p 命令面板 · / slash 命令 · ctrl+o 展开推理 · shift+tab 模式循环
+快捷键 / Keys: ctrl+n 新会话 · ctrl+s 恢复 · ctrl+p 命令面板 · / slash 命令 · esc 打断 · shift+enter 换行模式 · ctrl+j 换行 · ctrl+o 展开推理 · shift+tab 模式循环
 `
 
 /** C3 项 3：写工具名判定（与 fs-snapshot 的 trackEdit 钩子同一集合）。 */
@@ -1011,6 +1011,7 @@ export class TuiApp {
     // bracketed paste：粘贴的多行文本被终端包裹为整段（行尾 CR 不再逐行触发
     // Enter 提交）；onPaste 处理器把整段插入输入行（超阈值折叠为标记）。
     this.stdout.write(ANSI.BRACKETED_PASTE_ON)
+    this.stdout.write(ANSI.KITTY_KEYBOARD_DISAMBIGUATE_ON)
     this.pasteDisposer?.()
     this.pasteDisposer = this.input.onPaste((text) => { void this.handlePaste(text) })
     // 目标 6：'auto' 才走系统终端配色探测（OSC 11 → dark/light）；显式主题直接生效。
@@ -1417,7 +1418,7 @@ export class TuiApp {
     const active = this.activeSessionId
     this.sessionTabs = rows.map(row => ({
       id: row.id,
-      label: row.id.slice(0, 8),
+      label: sessionTabLabel(row.id),
       current: row.id === active,
     }))
     this.renderBatcher.schedule()
@@ -2506,6 +2507,16 @@ export class TuiApp {
     this.approval.settle(outcome)
   }
 
+  /**
+   * 当前会话是否在跑（含工具执行中 / inbox 排队）：Esc 与 Ctrl+C 都应打断。
+   * 只看 status==='running' 会漏掉 tool/call 已发出、status 尚未翻成 running 的缝。
+   */
+  private isAgentBusy(): boolean {
+    const state = this.liveAgent?.state
+    if (state === undefined) return false
+    return state.status === 'running' || state.activity !== undefined || state.inbox.length > 0
+  }
+
   /** 取消当前运行（Esc/Ctrl+C）：cancel agent、丢弃未发出的流式/推理缓冲并重置流渲染。 */
   handleAbort(): void {
     // 防御：打断优先于 overlay——释放任何激活的全屏 overlay（palette/search/
@@ -2937,11 +2948,11 @@ export class TuiApp {
       return
     }
     // Esc 打断：对齐 Claude Code 单次 Esc 停止输出。位于挂起交互分支之后——
-    // overlay/菜单打开时 Esc 仍先关面板；仅「无挂起交互 + running」才打断；
-    // 空闲不动作（不退出、不触发任何东西）。lone ESC 走 80ms 防误触派发，
-    // 与 Ctrl+C 的即时打断形成互补。
+    // overlay/菜单打开时 Esc 仍先关面板；仅「无挂起交互 + 忙碌」才打断；
+    // 空闲不动作（不退出、不触发任何东西）。Kitty CSI u 的 Esc（CSI 27 u）
+    // 与 lone ESC 走同一 name；忙碌时 escapeImmediate，不跟 80ms 防误触。
     if (key.name === 'escape' && !this.inputController.slashMenu.open) {
-      if (this.liveAgent?.state.status === 'running') {
+      if (this.isAgentBusy()) {
         this.handleAbort()
         return
       }
@@ -2965,7 +2976,7 @@ export class TuiApp {
       // 在途：打断当前 turn（连按窗口一并复位）；空闲空输入：连按两次才
       // onExit——单次误触不拆 TUI，第一次提示、窗口内第二次才退出
       // （Claude Code 同款；Ctrl+Q 仍立即退出）。
-      if (this.liveAgent?.state.status === 'running') {
+      if (this.isAgentBusy()) {
         this.inputController.ctrlCPendingSince = 0
         this.clearCtrlCExitHint()
         this.handleAbort()
@@ -3037,7 +3048,7 @@ export class TuiApp {
         this.acceptSlashCompletion()
         return
       }
-      if (key.name === 'return') {
+      if (key.name === 'return' && !key.shift) {
         this.acceptSlashCompletion({ submit: true })
         return
       }
@@ -3046,6 +3057,11 @@ export class TuiApp {
         this.flushLiveRender()
         return
       }
+    }
+    if (key.name === 'return' && key.shift) {
+      this.inputLine.setNewlineMode(!this.inputLine.newlineMode)
+      this.flushLiveRender()
+      return
     }
     if (key.name === 'up' || key.name === 'down') {
       // 交给 InputLine 的历史导航（InputLineEvent 'history' 不消费即已处理）
@@ -3402,6 +3418,9 @@ export class TuiApp {
     // alternate screen buffer——跳过主屏 live 写屏，避免流式帧逐帧盖住面板；
     // overlay 退出后 120ms ticker 下一帧自然重绘，内部状态由事件驱动照常更新。
     if (this.overlay !== null && this.overlay.activeId() !== null) return
+    this.input.setEscapeImmediate(
+      this.question.isPending || this.approval.isPending || this.isAgentBusy(),
+    )
     const renderStart = performance.now()
     const theme = this.theme
     const termCols = this.stdout.columns
@@ -3718,7 +3737,10 @@ export class TuiApp {
       ? theme.warning
       : modeFlags.alwaysApprove ? theme.error : theme.secondary
     const promptColor = this.liveAgent?.state.status === 'running' ? theme.dim : modeColor
-    const inputView = this.inputLine.displayLinesWithCaret({ maxWidth: cols })
+    const inputView = this.inputLine.displayLinesWithCaret({
+      maxWidth: cols,
+      maxLines: inputViewportMaxLines(this.stdout.rows),
+    })
     const framedLines = inputView.lines.map(line => (
       line.startsWith('❯ ') ? `${color('❯', promptColor)}${line.slice(1)}` : line
     ))
@@ -3758,6 +3780,8 @@ export class TuiApp {
       width: cols,
       ...modeFlags,
       approvalPending: this.approval.isPending,
+      agentBusy: this.isAgentBusy(),
+      newlineMode: this.inputLine.newlineMode,
     }, theme)
     for (const line of footerLines) lines.push({ text: line })
 
@@ -3914,6 +3938,7 @@ export class TuiApp {
     // 终端会把用户留在备用屏。
     this.overlay?.deactivate()
     this.stdout.write(ANSI.BRACKETED_PASTE_OFF)
+    this.stdout.write(ANSI.KITTY_KEYBOARD_OFF)
     this.pasteDisposer?.()
     this.pasteDisposer = null
     this.input.dispose()

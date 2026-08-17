@@ -43,6 +43,13 @@ export const ANSI = {
   BRACKETED_PASTE_ON: '\x1B[?2004h',
   /** 关闭 bracketed paste（退出时恢复终端默认） */
   BRACKETED_PASTE_OFF: '\x1B[?2004l',
+  /**
+   * Kitty keyboard protocol flag 1（disambiguate escape codes）。
+   * Esc / Shift+Enter 变成 CSI u，可打印字符仍走原字节——不支持的终端静默忽略。
+   */
+  KITTY_KEYBOARD_DISAMBIGUATE_ON: '\x1B[>1u',
+  /** 弹出 Kitty keyboard protocol 栈（与 DISAMBIGUATE_ON 成对）。 */
+  KITTY_KEYBOARD_OFF: '\x1B[<u',
   /** 隐藏光标 */
   HIDE_CURSOR: '\x1B[?25l',
   /** 显示光标 */

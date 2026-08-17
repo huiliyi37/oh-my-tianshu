@@ -47,6 +47,15 @@ export interface InputLineOptions {
   onImagesChange?: (images: string[]) => void
 }
 
+/**
+ * 输入框可视行上限：长草稿不占满整屏。
+ * @param rows - 终端行数。
+ * @returns 至少 3、至多 12，约 `rows / 3`。
+ */
+export function inputViewportMaxLines(rows: number): number {
+  return Math.max(3, Math.min(12, Math.floor(Math.max(1, rows) / 3)))
+}
+
 /** displayLines / displayLinesWithCaret 的视窗裁剪参数。 */
 export interface InputLineDisplayOptions {
   /** Maximum display rows to return. When exceeded, keep the cursor line visible. */
@@ -380,6 +389,8 @@ export class InputLine {
   private _vimEnabled: boolean
   private _vimMode: VimMode
   private _maxLength: number
+  /** 手工换行：Enter 插入 \\n 而不是提交（粘贴流结束的 return 仍提交）。 */
+  private _newlineMode = false
   /** 图片附件 data URL 列表 */
   private _images: string[] = []
 
@@ -471,6 +482,15 @@ export class InputLine {
    */
   setPlaceholder(value: string): void {
     this._placeholder = value
+  }
+  /** 手工换行模式：Enter 插入换行；粘贴流合并提交不受影响。 */
+  get newlineMode(): boolean { return this._newlineMode }
+  /**
+   * 开关手工换行模式。
+   * @param enabled - true 时普通 Enter 插入 \\n。
+   */
+  setNewlineMode(enabled: boolean): void {
+    this._newlineMode = enabled
   }
   /** 图片附件 data URL 列表（防御性拷贝）。 */
   get images(): string[] { return [...this._images] }
@@ -779,6 +799,9 @@ export class InputLine {
         this._cursor = before.length + 1
         this.onChangeCallback?.(this._value, this._cursor)
         return { type: 'change', value: this._value, cursor: this._cursor }
+      }
+      if (this._newlineMode && !inline && this._inlinePasteLines.length === 0) {
+        return this.insertChar('\n')
       }
       const submitted = this.expandPastes(this._value)
       const submittedImages = [...this._images]
