@@ -10,7 +10,11 @@
  * - INTENT, PLAN, CRITIQUE, and REVIEW are one-shot structured-output subagents
  *   over `ctx.subagents`. The critic and reviewer are fresh contexts that see
  *   only the SPEC/PLAN artifacts (plus the review diff), never another phase's
- *   reasoning. Phase artifacts are files under the configured workflows root;
+ *   reasoning. When `planCandidates` exceeds 1, PLAN fans out to that many
+ *   parallel candidate planners over the same SPEC, and a SELECT phase between
+ *   PLAN and CRITIQUE runs an independent fresh-context judge over SPEC plus
+ *   the candidate texts — the planner never judges its own work. Phase
+ *   artifacts are files under the configured workflows root;
  *   they are the cross-phase handoff besides the bounded gap/finding lists.
  *   INTENT derives the SPEC with a structured-output subagent (rather than
  *   deterministic templating) because a verbatim objective dump adds no
@@ -56,14 +60,24 @@ export const name = 'next-workflow'
 /** Only the command registry is injected; every other capability is probed at handler time. */
 export const inject = ['commands']
 
-/** The fixed phase machine's phases, in execution order. */
-export type NextWorkflowPhase = 'intent' | 'plan' | 'critique' | 'implement' | 'verify' | 'review'
+/** The fixed phase machine's phases, in execution order (`select` runs only when `planCandidates` exceeds 1). */
+export type NextWorkflowPhase = 'intent' | 'plan' | 'select' | 'critique' | 'implement' | 'verify' | 'review'
 
 /** Every valid {@link NextWorkflowPhase}, used to reject unknown `phaseEfforts` keys at load. */
-const PHASE_IDS: readonly NextWorkflowPhase[] = ['intent', 'plan', 'critique', 'implement', 'verify', 'review']
+const PHASE_IDS: readonly NextWorkflowPhase[] = ['intent', 'plan', 'select', 'critique', 'implement', 'verify', 'review']
 
 /** Terminal outcome of one `/next-workflow` run, carried by `next-workflow/end`. */
 export type NextWorkflowOutcome = 'completed' | 'failed-verification' | 'failed'
+
+/** Audit payload a `select` phase event carries beyond the common phase fields. */
+export interface SelectionAudit {
+  /** Candidate plans the judge scored. */
+  candidates: number
+  /** 1-based index of the winning candidate. */
+  winner: number
+  /** Why the winner beat the other candidates against the rubric. */
+  rationale: string
+}
 
 declare module '@huiliyi37/dsh-session/types' {
   interface SessionEventMap {
@@ -71,9 +85,10 @@ declare module '@huiliyi37/dsh-session/types' {
      * One `/next-workflow` phase settled. Log-only (never the model surface or
      * derived history); `artifact` points at the on-disk phase handoff, which
      * survives compaction, and `detail` carries a short human summary such as
-     * the critique verdict or the verify outcome.
+     * the critique verdict or the verify outcome. A `select` phase additionally
+     * carries `selection`, so best-of-N plan selection is auditable from the log.
      */
-    'next-workflow/phase': { runId: string; phase: NextWorkflowPhase; artifact?: string; detail?: string }
+    'next-workflow/phase': { runId: string; phase: NextWorkflowPhase; artifact?: string; detail?: string; selection?: SelectionAudit }
     /**
      * A `/next-workflow` run settled. Log-only; pairs with its
      * `next-workflow/phase` records by `runId`. `detail` carries the verify
@@ -87,7 +102,8 @@ declare module '@huiliyi37/dsh-session/types' {
 export interface Config {
   /** One-shot structured-output provider for every subagent phase (default `spawn`). */
   provider?: string
-  /** Artifact root; one `<run-id>/SPEC.md|PLAN.md|REVIEW.md` directory per run (default `$DSH_HOME/workflows`). */
+  /** Artifact root; one `<run-id>` directory per run holding `SPEC.md`/`PLAN.md`/`REVIEW.md`
+   * (plus `PLAN-*.md`/`SELECTION.md` for best-of-N). Default `$DSH_HOME/workflows`. */
   workflowsRoot?: string
   /** Deterministic VERIFY gate command run through the bash executor (default unset: report `unverified`). */
   verifyCommand?: string
@@ -95,9 +111,13 @@ export interface Config {
   verifyTimeoutMs?: number
   /** Maximum critique-driven PLAN revisions (default 1). */
   maxCritiqueRounds?: number
+  /** Candidate plans per PLAN round; above 1 an independent fresh-context judge selects the winner (default 1: no selection; maximum 5). */
+  planCandidates?: number
+  /** Maximum characters of one candidate plan artifact (default 32768; bounds the judge prompt at `planCandidates` × this). */
+  maxCandidateChars?: number
   /** Maximum verify-failure retries steered back into IMPLEMENT (default 1). */
   maxVerifyRetries?: number
-  /** Per-phase reasoning effort for the main session's requests (default plan/critique/review `high`; unset phases inherit). */
+  /** Per-phase reasoning effort for main-session requests (default plan/critique/review `high`; unset inherit; select rides critique). */
   phaseEfforts?: Record<string, string>
   /** Maximum characters of one phase artifact (default 32768; longer subagent output is truncated). */
   maxArtifactChars?: number
@@ -116,6 +136,8 @@ export const Config: z<Config> = z.object({
   verifyCommand: z.string().default(''),
   verifyTimeoutMs: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).default(120_000),
   maxCritiqueRounds: z.number().step(1).min(0).max(Number.MAX_SAFE_INTEGER).default(1),
+  planCandidates: z.number().step(1).min(1).max(5).default(1),
+  maxCandidateChars: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).default(32_768),
   maxVerifyRetries: z.number().step(1).min(0).max(Number.MAX_SAFE_INTEGER).default(1),
   phaseEfforts: z.dict(z.string()).default({ plan: 'high', critique: 'high', review: 'high' }),
   maxArtifactChars: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).default(32_768),
@@ -130,6 +152,8 @@ interface ResolvedConfig {
   readonly verifyCommand: string | undefined
   readonly verifyTimeoutMs: number
   readonly maxCritiqueRounds: number
+  readonly planCandidates: number
+  readonly maxCandidateChars: number
   readonly maxVerifyRetries: number
   readonly phaseEfforts: Readonly<Partial<Record<NextWorkflowPhase, ReasoningEffortId>>>
   readonly maxArtifactChars: number
@@ -148,6 +172,7 @@ function resolveConfig(config: Config): ResolvedConfig {
   const bounds = {
     verifyTimeoutMs: config.verifyTimeoutMs ?? 120_000,
     maxCritiqueRounds: config.maxCritiqueRounds ?? 1,
+    maxCandidateChars: config.maxCandidateChars ?? 32_768,
     maxVerifyRetries: config.maxVerifyRetries ?? 1,
     maxArtifactChars: config.maxArtifactChars ?? 32_768,
     maxVerifyOutputChars: config.maxVerifyOutputChars ?? 8192,
@@ -157,6 +182,10 @@ function resolveConfig(config: Config): ResolvedConfig {
     if (!Number.isSafeInteger(value) || value < 1) {
       throw new TypeError(`next-workflow: ${key} must be a positive safe integer`)
     }
+  }
+  const planCandidates = config.planCandidates ?? 1
+  if (!Number.isSafeInteger(planCandidates) || planCandidates < 1 || planCandidates > 5) {
+    throw new TypeError('next-workflow: planCandidates must be an integer in 1..5')
   }
   const phaseEfforts: Partial<Record<NextWorkflowPhase, ReasoningEffortId>> = {}
   for (const [phase, effort] of Object.entries(config.phaseEfforts ?? { plan: 'high', critique: 'high', review: 'high' })) {
@@ -168,12 +197,16 @@ function resolveConfig(config: Config): ResolvedConfig {
     }
     phaseEfforts[phase as NextWorkflowPhase] = ReasoningEffortId(effort)
   }
+  // The selection judge rides the critique effort entry unless the deployment maps select itself.
+  const selectEffort = phaseEfforts.select ?? phaseEfforts.critique
+  if (selectEffort !== undefined) phaseEfforts.select = selectEffort
   const workflowsRoot = (config.workflowsRoot ?? '').trim()
   return {
     provider,
     workflowsRoot: workflowsRoot === '' ? dshHomePath('workflows') : workflowsRoot,
     verifyCommand,
     ...bounds,
+    planCandidates,
     phaseEfforts,
   }
 }
@@ -206,6 +239,16 @@ export interface ReviewResult {
   findings: string[]
 }
 
+/** Validated SELECT outcome: the 1-based winning candidate plus the judge's rationale. */
+export interface SelectionResult {
+  /** 1-based index of the winning candidate plan. */
+  winner: number
+  /** Why the winner beat the other candidates against the rubric. */
+  rationale: string
+  /** Strong parts of losing candidates worth folding in later; empty when the judge offered none. */
+  mergeHints: string[]
+}
+
 /** Static INTENT persona (byte-stable: the subagent's own prefix cache stays reusable). */
 const INTENT_PERSONA = [
   'You normalize a raw engineering objective into a specification. Return the structured result:',
@@ -231,6 +274,16 @@ const CRITIC_PERSONA = [
   'coverage, contradictions, unnamed integration points, scope creep. Return the structured result:',
   'verdict ("approve" when the plan is executable as written, else "revise") and gaps (the material',
   'gaps requiring revision; empty when approving).',
+].join(' ')
+
+/** Static SELECT persona (byte-stable); the judge is independent of every planner and sees only artifacts. */
+const SELECTOR_PERSONA = [
+  'You are a plan selector. You see only a SPEC and several candidate plans — never any planner\'s',
+  'reasoning or conversation. Score every candidate against this rubric: correctness against the',
+  'SPEC acceptance checks, feasibility, scope fit (no scope creep, no missing coverage), and risk.',
+  'Pick exactly one winner. Return the structured result: winner (the 1-based candidate index),',
+  'rationale (why the winner beats the other candidates against the rubric), and mergeHints',
+  '(strong parts of losing candidates worth folding in later; omit when none).',
 ].join(' ')
 
 /** Static REVIEW persona (byte-stable); findings are scope-limited so the reviewer cannot invent work. */
@@ -272,6 +325,18 @@ const CRITIQUE_OUTPUT_SCHEMA: ObjectJsonSchema = {
   properties: {
     verdict: { type: 'string' },
     gaps: { type: 'array', items: { type: 'string' } },
+  },
+}
+
+/** SELECT structured-output schema; the winner index is range-validated at the boundary. */
+const SELECTION_OUTPUT_SCHEMA: ObjectJsonSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['winner', 'rationale'],
+  properties: {
+    winner: { type: 'number' },
+    rationale: { type: 'string' },
+    mergeHints: { type: 'array', items: { type: 'string' } },
   },
 }
 
@@ -353,6 +418,27 @@ export function distillCritique(value: unknown): CritiqueResult {
 }
 
 /**
+ * Validate the SELECT subagent's structured output. The winner index is a
+ * model-produced pointer into the candidate array, so an out-of-range or
+ * non-integer value fails the run loud rather than selecting garbage.
+ * @param value - the raw structured value.
+ * @param candidates - the number of candidate plans the judge scored.
+ * @returns the validated selection: 1-based winner, rationale, merge hints.
+ */
+export function distillSelection(value: unknown, candidates: number): SelectionResult {
+  if (!isRecord(value)) throw new Error('next-workflow: selector subagent returned no structured result object')
+  const winner: unknown = value['winner']
+  if (typeof winner !== 'number' || !Number.isSafeInteger(winner) || winner < 1 || winner > candidates) {
+    throw new Error(`next-workflow: selector winner must be an integer in 1..${candidates}, got ${JSON.stringify(winner)}`)
+  }
+  const rationale = readText(value, 'rationale', 'selector')
+  const mergeHints = value['mergeHints'] === undefined
+    ? []
+    : readStringList(value, 'mergeHints', 'selector').filter(hint => hint.trim().length > 0)
+  return { winner, rationale, mergeHints }
+}
+
+/**
  * Validate the REVIEW subagent's structured output. Approval discards any
  * findings the reviewer emitted anyway, keeping the summary one-valued.
  * @param value - the raw structured value.
@@ -422,6 +508,30 @@ export function renderReview(review: ReviewResult): string {
     '## Findings',
     '',
     renderList(review.findings),
+    '',
+  ].join('\n')
+}
+
+/**
+ * Render the SELECTION artifact: the judge's decision record. Kept separate
+ * from PLAN.md so the winning plan stays the planner's own text.
+ * @param selection - the validated SELECT outcome.
+ * @param candidates - the number of candidate plans the judge scored.
+ * @returns the SELECTION.md content.
+ */
+export function renderSelection(selection: SelectionResult, candidates: number): string {
+  return [
+    '# SELECTION',
+    '',
+    `Winner: candidate ${selection.winner} of ${candidates}`,
+    '',
+    '## Rationale',
+    '',
+    selection.rationale,
+    '',
+    '## Merge hints',
+    '',
+    renderList(selection.mergeHints),
     '',
   ].join('\n')
 }
@@ -552,6 +662,14 @@ async function collectDiff(ctx: Context, cwd: string | undefined, signal: AbortS
   return '(no git diff available: the reviewer assessed the run record only)'
 }
 
+/** Compose the SELECT judge prompt: the SPEC plus every candidate plan, each bounded by `maxCandidateChars`. */
+function selectionPrompt(spec: string, candidates: readonly string[]): string {
+  return [
+    `# SPEC\n\n${spec}`,
+    ...candidates.map((candidate, index) => `# Candidate plan ${index + 1}\n\n${candidate}`),
+  ].join('\n\n')
+}
+
 /** Compose the IMPLEMENT steering message: the plan inline (it is the work order) plus artifact paths. */
 function implementMessage(specPath: string, planPath: string, spec: string, plan: string): string {
   return [
@@ -644,7 +762,7 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
     return { ...resolved, reasoningEffort: effort }
   })
 
-  const logPhase = (phase: NextWorkflowPhase, extra: { artifact?: string; detail?: string } = {}): void => {
+  const logPhase = (phase: NextWorkflowPhase, extra: { artifact?: string; detail?: string; selection?: SelectionAudit } = {}): void => {
     session.append('next-workflow/phase', { runId, phase, ...extra })
   }
 
@@ -662,7 +780,9 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
     logPhase('intent', { artifact: specPath })
     transcript.push('intent → SPEC normalized')
 
-    // PLAN ⇄ CRITIQUE (bounded by maxCritiqueRounds)
+    // PLAN ⇄ CRITIQUE (bounded by maxCritiqueRounds). planCandidates > 1 fans
+    // PLAN out to N parallel candidate planners and inserts SELECT: an
+    // independent fresh-context judge picks the winner, which becomes PLAN.md.
     let gaps: string[] = []
     let plan = ''
     let planPath = ''
@@ -671,15 +791,47 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
       const plannerPrompt = gaps.length === 0
         ? `# SPEC\n\n${spec}`
         : `# SPEC\n\n${spec}\n\n# Revision gaps to close\n\n${renderList(gaps)}`
-      plan = boundText(distillPlan(await runPhaseSubagent(subagents, config, agent, signal, {
-        label: 'next-workflow planner',
-        persona: PLANNER_PERSONA,
-        prompt: plannerPrompt,
-        schema: PLAN_OUTPUT_SCHEMA,
-      })), config.maxArtifactChars)
-      planPath = await writeArtifact(dir, 'PLAN.md', plan)
-      logPhase('plan', { artifact: planPath, ...round > 0 ? { detail: `revision ${round}` } : {} })
-      transcript.push(round === 0 ? 'plan → PLAN written' : `plan → revision ${round} written`)
+      if (config.planCandidates === 1) {
+        plan = boundText(distillPlan(await runPhaseSubagent(subagents, config, agent, signal, {
+          label: 'next-workflow planner',
+          persona: PLANNER_PERSONA,
+          prompt: plannerPrompt,
+          schema: PLAN_OUTPUT_SCHEMA,
+        })), config.maxArtifactChars)
+        planPath = await writeArtifact(dir, 'PLAN.md', plan)
+        logPhase('plan', { artifact: planPath, ...round > 0 ? { detail: `revision ${round}` } : {} })
+        transcript.push(round === 0 ? 'plan → PLAN written' : `plan → revision ${round} written`)
+      } else {
+        const candidates = await Promise.all(Array.from({ length: config.planCandidates }, async () =>
+          boundText(distillPlan(await runPhaseSubagent(subagents, config, agent, signal, {
+            label: 'next-workflow planner',
+            persona: PLANNER_PERSONA,
+            prompt: plannerPrompt,
+            schema: PLAN_OUTPUT_SCHEMA,
+          })), config.maxCandidateChars)))
+        for (const [index, candidate] of candidates.entries()) {
+          const candidatePath = await writeArtifact(dir, `PLAN-${index + 1}.md`, candidate)
+          logPhase('plan', { artifact: candidatePath, detail: `candidate ${index + 1}/${config.planCandidates}${round > 0 ? ` (revision ${round})` : ''}` })
+        }
+        transcript.push(`plan → ${config.planCandidates} candidates written`)
+        activePhase = 'select'
+        const selection = distillSelection(await runPhaseSubagent(subagents, config, agent, signal, {
+          label: 'next-workflow selector',
+          persona: SELECTOR_PERSONA,
+          prompt: selectionPrompt(spec, candidates),
+          schema: SELECTION_OUTPUT_SCHEMA,
+        }), candidates.length)
+        const selectionPath = await writeArtifact(dir, 'SELECTION.md', renderSelection(selection, candidates.length))
+        logPhase('select', {
+          artifact: selectionPath,
+          detail: `candidate ${selection.winner} of ${candidates.length}`,
+          selection: { candidates: candidates.length, winner: selection.winner, rationale: selection.rationale },
+        })
+        transcript.push(`select → candidate ${selection.winner} of ${candidates.length}`)
+        // distillSelection bounds the winner to 1..candidates.length.
+        plan = boundText(candidates[selection.winner - 1] as string, config.maxArtifactChars)
+        planPath = await writeArtifact(dir, 'PLAN.md', plan)
+      }
       if (round >= config.maxCritiqueRounds) break
       activePhase = 'critique'
       const critique = distillCritique(await runPhaseSubagent(subagents, config, agent, signal, {

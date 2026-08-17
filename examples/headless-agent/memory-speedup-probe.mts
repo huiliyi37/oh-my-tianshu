@@ -11,9 +11,9 @@
 // 每臂报告：turns、input+cacheRead+output tokens、wall time、会话 2 的 STM 刷新
 // 与 memory_* 工具调用。无 DEEPSEEK_API_KEY 时打印 skipped 并以 0 退出（同
 // baseline-probe 的 keyless 约定）。任务刻意小（各 3–6 轮）以控制成本。
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { createUserMessage } from '@huiliyi37/dsh-llm'
 import type { SessionEvent } from '@huiliyi37/dsh-session'
 import { SessionId } from '@huiliyi37/dsh-session'
@@ -28,22 +28,75 @@ import { codingHarness, waitForIdle, SYSTEM_PROMPT } from './tests/harness.ts'
 /** 探针臂：mem = 全记忆栈；nomem = 无记忆插件。 */
 export type ProbeArm = 'mem' | 'nomem'
 
-/** 会话 1 任务 T：新建小模块 + 修种子 bug（确定性任务文本）。 */
+/**
+ * 硬任务对的种子工作区：一个带「隐藏约定」的命令注册表项目。
+ * 约定只能从现有样例（ping.ts）里读出来：新命令必须用 defineCommand、
+ * 必须 registry.push、文件必须在 src/commands/ 下，否则 check.mjs 失败。
+ * 会话 2 没有会话 1 的知识就必须重新发现这套约定——这是记忆提速的测点。
+ */
+export function seedWorkspace(workdir: string): void {
+  const files: Record<string, string> = {
+    // type:module 决定 .ts 按 ESM 解析（缺省 CJS 会让 named import 全部失败）。
+    'package.json': '{ "type": "module" }\n',
+    'src/contract.ts': [
+      'export interface Command { name: string; run: () => string }',
+      'export function defineCommand(c: Command): Command {',
+      "  if (!c.name || typeof c.run !== 'function') throw new Error('CONTRACT_VIOLATION')",
+      '  return c',
+      '}',
+      '',
+    ].join('\n'),
+    'src/registry.ts': [
+      "import type { Command } from './contract.ts'",
+      'export const registry: Command[] = []',
+      '',
+    ].join('\n'),
+    'src/commands/ping.ts': [
+      "import { defineCommand } from '../contract.ts'",
+      "import { registry } from '../registry.ts'",
+      "export const ping = defineCommand({ name: 'ping', run: () => 'pong' })",
+      'registry.push(ping)',
+      '',
+    ].join('\n'),
+    'check.mjs': [
+      '// 项目自检：src/commands/ 下每个模块都必须导出一个经 defineCommand 定义、',
+      '// 且已 push 进 registry 的命令。输出仅供人读；退出码 0/1 是机器信号。',
+      "import { readdirSync } from 'node:fs'",
+      "import { registry } from './src/registry.ts'",
+      "const files = readdirSync('src/commands').filter(f => f.endsWith('.ts'))",
+      'let failed = false',
+      'for (const f of files) {',
+      "  const mod = await import('./src/commands/' + f)",
+      '  for (const value of Object.values(mod)) {',
+      "    if (value && typeof value === 'object' && 'name' in value && !registry.includes(value)) {",
+      "      console.error('UNREGISTERED_COMMAND', f)",
+      '      failed = true',
+      '    }',
+      '  }',
+      '}',
+      "console.log(failed ? 'CHECK FAILED' : `CHECK OK (${registry.length} commands)`)",
+      'process.exit(failed ? 1 : 0)',
+      '',
+    ].join('\n'),
+  }
+  for (const [rel, content] of Object.entries(files)) {
+    const path = join(workdir, rel)
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, content)
+  }
+}
+
+/** 会话 1 任务 T：在带隐藏约定的项目里加一个 time 命令（须发现约定才能过检）。 */
 export const TASK_ONE = [
-  'Create src/format.ts with exactly this content:',
-  'export function padLeft(s: string, width: number): string { return s.padEnd(width) } // BUG: should padStart',
-  'export function shout(s: string): string { return s.toUpperCase() }',
-  'Then run `node --experimental-strip-types -e "import(\'./src/format.ts\').then(m => console.log(m.padLeft(\'ab\', 5)))"`',
-  '(or plain node with a dynamic import if strip-types is unavailable), notice the output is NOT padded on the left,',
-  'fix the bug so padLeft actually left-pads, and re-run to verify the fix.',
+  'This workspace is a small command-registry project. Add a `time` command that returns the current time',
+  'as an ISO string, following the project conventions. Then run `node check.mjs` and make it pass.',
+  'If the check fails, read the project files to figure out why and fix it.',
 ].join(' ')
 
-/** 会话 2 任务 T'：同一模块族（src/format.ts 风格的字符串工具），不同细节。 */
+/** 会话 2 任务 T'：同族任务（加一个 uuid 命令）——有会话 1 的约定知识就该直接写对。 */
 export const TASK_TWO = [
-  'Create src/format-extra.ts in the same style as the existing string-formatting utilities:',
-  'export function padRight(s: string, width: number): string that right-pads with spaces,',
-  'and export function whisper(s: string): string that lowercases.',
-  'Verify both with a quick node -e run and report the results.',
+  'Add a `uuid` command to this same project that returns a random UUID (crypto.randomUUID()).',
+  'Run `node check.mjs` and make it pass.',
 ].join(' ')
 
 /** 解析臂参数（无效臂 fail loud；供无 key 单测覆盖参数形状）。 */
@@ -154,6 +207,7 @@ async function main(): Promise<void> {
   }
 
   const workdir = mkdtempSync(join(tmpdir(), 'dsh-memory-speedup-'))
+  seedWorkspace(workdir)
   const ctx = await codingHarness(workdir, { persona: SYSTEM_PROMPT })
   // mem 臂：全记忆栈。adaptive-memory 的门阈值在此刻意放宽（confidenceMedium: 0
   // 让小语料的 BM25 低分也进索引行；topicBoosts 抬升 procedure 做法条目进

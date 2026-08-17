@@ -6,6 +6,9 @@
  */
 
 import { execFileSync } from 'node:child_process'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { CallId, createAssistantMessage, createUserMessage } from '@huiliyi37/dsh-llm'
 import { Session, SessionId } from '@huiliyi37/dsh-session'
@@ -14,6 +17,7 @@ import {
   TASK_TWO,
   collectSessionReport,
   parseArm,
+  seedWorkspace,
 } from '../memory-speedup-probe.mts'
 
 describe('memory-speedup-probe（无 key 形状）', () => {
@@ -23,11 +27,24 @@ describe('memory-speedup-probe（无 key 形状）', () => {
     expect(() => parseArm('bogus')).toThrow('unknown arm')
   })
 
-  it('任务文本确定性：T 建模块+修种子 bug，T\' 同族不同细节', () => {
-    expect(TASK_ONE).toContain('src/format.ts')
-    expect(TASK_ONE).toContain('BUG')
-    expect(TASK_TWO).toContain('src/format-extra.ts')
+  it('任务文本确定性：T 加 time 命令过项目自检，T\' 同族（uuid）不同细节', () => {
+    expect(TASK_ONE).toContain('time')
+    expect(TASK_ONE).toContain('node check.mjs')
+    expect(TASK_TWO).toContain('uuid')
     expect(TASK_TWO).not.toBe(TASK_ONE)
+  })
+
+  it('seedWorkspace：种子出带隐藏约定的项目（contract/registry/样例/自检脚本）', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'dsh-speedup-seed-'))
+    try {
+      seedWorkspace(dir)
+      for (const rel of ['src/contract.ts', 'src/registry.ts', 'src/commands/ping.ts', 'check.mjs']) {
+        expect(existsSync(join(dir, rel)), rel).toBe(true)
+      }
+      expect(readFileSync(join(dir, 'src/commands/ping.ts'), 'utf8')).toContain('registry.push')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 
   it('collectSessionReport：折算 turns/tokens/STM 刷新/memory_* 工具调用', () => {

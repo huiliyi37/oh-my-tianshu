@@ -507,7 +507,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'next-workflow/end': { runId: string; outcome: NextWorkflowOutcome; detail?: string }
 ```
 
-来源：[`packages/workflow/next-workflow/src/index.ts:82`](../packages/workflow/next-workflow/src/index.ts)
+来源：[`packages/workflow/next-workflow/src/index.ts:97`](../packages/workflow/next-workflow/src/index.ts)
 
 #### `next-workflow/phase` — log-only
 
@@ -516,12 +516,13 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
  * One `/next-workflow` phase settled. Log-only (never the model surface or
  * derived history); `artifact` points at the on-disk phase handoff, which
  * survives compaction, and `detail` carries a short human summary such as
- * the critique verdict or the verify outcome.
+ * the critique verdict or the verify outcome. A `select` phase additionally
+ * carries `selection`, so best-of-N plan selection is auditable from the log.
  */
-'next-workflow/phase': { runId: string; phase: NextWorkflowPhase; artifact?: string; detail?: string }
+'next-workflow/phase': { runId: string; phase: NextWorkflowPhase; artifact?: string; detail?: string; selection?: SelectionAudit }
 ```
 
-来源：[`packages/workflow/next-workflow/src/index.ts:76`](../packages/workflow/next-workflow/src/index.ts)
+来源：[`packages/workflow/next-workflow/src/index.ts:91`](../packages/workflow/next-workflow/src/index.ts)
 
 ### `permission/*`
 

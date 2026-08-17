@@ -1238,7 +1238,8 @@ Requires: `commands`
 export interface Config {
   /** One-shot structured-output provider for every subagent phase (default `spawn`). */
   provider?: string
-  /** Artifact root; one `<run-id>/SPEC.md|PLAN.md|REVIEW.md` directory per run (default `$DSH_HOME/workflows`). */
+  /** Artifact root; one `<run-id>` directory per run holding `SPEC.md`/`PLAN.md`/`REVIEW.md`
+   * (plus `PLAN-*.md`/`SELECTION.md` for best-of-N). Default `$DSH_HOME/workflows`. */
   workflowsRoot?: string
   /** Deterministic VERIFY gate command run through the bash executor (default unset: report `unverified`). */
   verifyCommand?: string
@@ -1246,9 +1247,13 @@ export interface Config {
   verifyTimeoutMs?: number
   /** Maximum critique-driven PLAN revisions (default 1). */
   maxCritiqueRounds?: number
+  /** Candidate plans per PLAN round; above 1 an independent fresh-context judge selects the winner (default 1: no selection; maximum 5). */
+  planCandidates?: number
+  /** Maximum characters of one candidate plan artifact (default 32768; bounds the judge prompt at `planCandidates` × this). */
+  maxCandidateChars?: number
   /** Maximum verify-failure retries steered back into IMPLEMENT (default 1). */
   maxVerifyRetries?: number
-  /** Per-phase reasoning effort for the main session's requests (default plan/critique/review `high`; unset phases inherit). */
+  /** Per-phase reasoning effort for main-session requests (default plan/critique/review `high`; unset inherit; select rides critique). */
   phaseEfforts?: Record<string, string>
   /** Maximum characters of one phase artifact (default 32768; longer subagent output is truncated). */
   maxArtifactChars?: number
@@ -1259,7 +1264,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/workflow/next-workflow/src/index.ts:87`](../packages/workflow/next-workflow/src/index.ts)
+Source: [`packages/workflow/next-workflow/src/index.ts:102`](../packages/workflow/next-workflow/src/index.ts)
 
 ## `@huiliyi37/dsh-permission`
 

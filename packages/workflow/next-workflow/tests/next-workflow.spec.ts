@@ -14,6 +14,11 @@
  *   bash for a configured verifyCommand) fail loud before phase work.
  * - The effort listener rewrites reasoningEffort for mapped phases, passes
  *   unmapped phases through, and restores the pre-run header afterwards.
+ * - planCandidates > 1 fans PLAN out to N parallel candidate planners
+ *   (PLAN-1.md…PLAN-N.md), an independent selector subagent picks the winner
+ *   (PLAN.md + SELECTION.md), and CRITIQUE receives the winning plan; a bad
+ *   winner index fails the run loud. planCandidates = 1 keeps the single-plan
+ *   path byte-identical.
  *
  * @module @huiliyi37/dsh-next-workflow/tests/next-workflow
  */
@@ -33,7 +38,7 @@ import type { LlmCallConfig } from '@huiliyi37/dsh-llm'
 import type { UserMessage } from '@huiliyi37/dsh-llm'
 import { Session, SessionId } from '@huiliyi37/dsh-session'
 import type { SubagentCapabilities, SubagentResult, SubagentRun, SubagentStartRequest } from '@huiliyi37/dsh-subagent'
-import { apply, distillCritique, distillPlan, distillReview, distillSpec } from '../src/index.ts'
+import { apply, distillCritique, distillPlan, distillReview, distillSelection, distillSpec } from '../src/index.ts'
 import type { Config } from '../src/index.ts'
 
 const FULL_CAPABILITIES: SubagentCapabilities = {
@@ -44,10 +49,11 @@ const FULL_CAPABILITIES: SubagentCapabilities = {
   sandboxMode: true,
 }
 
-/** Scripted structured outputs, keyed by phase; planner/critic queues are consumed in order. */
+/** Scripted structured outputs, keyed by phase; planner/critic/selector queues are consumed in order. */
 interface Script {
   intent?: unknown
   plans?: unknown[]
+  selections?: unknown[]
   critiques?: unknown[]
   review?: unknown
 }
@@ -106,6 +112,7 @@ function makeHarness(opts: {
 } = {}): Harness {
   const script = opts.script ?? HAPPY_SCRIPT
   const plans = [...script.plans ?? []]
+  const selections = [...script.selections ?? []]
   const critiques = [...script.critiques ?? []]
   const commands: CommandDefinition[] = []
   const subagentRequests: SubagentStartRequest[] = []
@@ -135,6 +142,7 @@ function makeHarness(opts: {
   const structuredFor = (label: string): unknown => {
     if (label.includes('intent')) return script.intent
     if (label.includes('planner')) return plans.shift()
+    if (label.includes('selector')) return selections.shift()
     if (label.includes('critic')) return critiques.shift()
     return script.review
   }
@@ -313,6 +321,126 @@ describe('/next-workflow command', () => {
     ])
     expect(h.session.surface.nodes).toEqual([])
     expect(h.session.deriveMessages()).toEqual([])
+  })
+
+  it('planCandidates = 3 fans PLAN out, an independent selector picks the winner, and CRITIQUE receives it', async () => {
+    const h = makeHarness({
+      bashQueue: [{ exitCode: 0 }],
+      script: {
+        ...HAPPY_SCRIPT,
+        plans: [{ plan: '# Plan A\n\n1. Thin.' }, { plan: '# Plan B\n\n1. Covers the acceptance checks.' }, { plan: '# Plan C\n\n1. Scope creep.' }],
+        selections: [{ winner: 2, rationale: 'B is the only candidate covering every acceptance check.', mergeHints: ['A names the test helper'] }],
+      },
+    })
+    apply(h.ctx, await makeConfig({ verifyCommand: 'check', planCandidates: 3 }))
+    const result = await runCommand(h)
+
+    expect(result.kind).toBe('success')
+    // Subagent order: intent, three parallel planners, selector, critic, reviewer.
+    expect(h.subagentRequests.map(request => request.label)).toEqual([
+      'next-workflow intent',
+      'next-workflow planner',
+      'next-workflow planner',
+      'next-workflow planner',
+      'next-workflow selector',
+      'next-workflow critic',
+      'next-workflow reviewer',
+    ])
+    // Every candidate lands as its own artifact; the winner becomes PLAN.md.
+    const runId = h.session.events
+      .map(event => event.data as Record<string, unknown>)
+      .find(data => typeof data['runId'] === 'string')?.['runId'] as string
+    const runDir = join(roots[0]!, runId)
+    expect(await readFile(join(runDir, 'PLAN-1.md'), 'utf8')).toContain('# Plan A')
+    expect(await readFile(join(runDir, 'PLAN-2.md'), 'utf8')).toContain('# Plan B')
+    expect(await readFile(join(runDir, 'PLAN-3.md'), 'utf8')).toContain('# Plan C')
+    expect(await readFile(join(runDir, 'PLAN.md'), 'utf8')).toContain('# Plan B')
+    const selection = await readFile(join(runDir, 'SELECTION.md'), 'utf8')
+    expect(selection).toContain('Winner: candidate 2 of 3')
+    expect(selection).toContain('A names the test helper')
+
+    // The judge saw the SPEC plus all three candidates — never any planner context.
+    const selectorPrompt = (h.subagentRequests[4]?.prompt[0] as { text: string }).text
+    expect(selectorPrompt).toContain('# SPEC')
+    expect(selectorPrompt).toContain('# Candidate plan 1')
+    expect(selectorPrompt).toContain('# Candidate plan 3')
+    expect(selectorPrompt).toContain('# Plan C')
+
+    // CRITIQUE and IMPLEMENT receive the winning plan, not a loser.
+    const criticPrompt = (h.subagentRequests[5]?.prompt[0] as { text: string }).text
+    expect(criticPrompt).toContain('# Plan B')
+    expect(criticPrompt).not.toContain('# Plan A')
+    const steerText = (h.steers[0]?.content[0] as { text: string }).text
+    expect(steerText).toContain('# Plan B')
+
+    // The select phase is auditable from the log-only event stream.
+    const selectEvent = workflowEvents(h).find(event => event.data['phase'] === 'select')
+    expect(selectEvent?.data['selection']).toEqual({
+      candidates: 3,
+      winner: 2,
+      rationale: 'B is the only candidate covering every acceptance check.',
+    })
+    expect(String(selectEvent?.data['artifact'])).toContain('SELECTION.md')
+    const planEvents = workflowEvents(h).filter(event => event.data['phase'] === 'plan')
+    expect(planEvents.map(event => event.data['detail'])).toEqual(['candidate 1/3', 'candidate 2/3', 'candidate 3/3'])
+  })
+
+  it('fails the run loud when the selector returns an out-of-range winner', async () => {
+    const h = makeHarness({
+      script: {
+        ...HAPPY_SCRIPT,
+        plans: [{ plan: '# Plan A' }, { plan: '# Plan B' }, { plan: '# Plan C' }],
+        selections: [{ winner: 4, rationale: 'No such candidate.' }],
+      },
+    })
+    apply(h.ctx, await makeConfig({ planCandidates: 3 }))
+    const result = await runCommand(h)
+
+    expect(result.kind).toBe('error')
+    expect(result.kind === 'error' ? result.text : '').toContain('winner')
+    // The invalid winner never becomes PLAN.md, and the critic never runs.
+    expect(h.subagentRequests.some(request => request.label === 'next-workflow critic')).toBe(false)
+    const end = workflowEvents(h).find(event => event.type === 'next-workflow/end')
+    expect(end?.data['outcome']).toBe('failed')
+  })
+
+  it('bounds every candidate plan artifact and the selector prompt by maxCandidateChars', async () => {
+    const bloated = `# Plan\n\n${'x'.repeat(500)}`
+    const h = makeHarness({
+      script: {
+        ...HAPPY_SCRIPT,
+        plans: [{ plan: bloated }, { plan: bloated }],
+        selections: [{ winner: 1, rationale: 'First.' }],
+      },
+    })
+    apply(h.ctx, await makeConfig({ planCandidates: 2, maxCandidateChars: 64 }))
+    const result = await runCommand(h)
+
+    expect(result.kind).toBe('success')
+    const runId = h.session.events
+      .map(event => event.data as Record<string, unknown>)
+      .find(data => typeof data['runId'] === 'string')?.['runId'] as string
+    const runDir = join(roots[0]!, runId)
+    for (const file of ['PLAN-1.md', 'PLAN-2.md', 'PLAN.md']) {
+      const text = await readFile(join(runDir, file), 'utf8')
+      expect(text.length).toBeLessThanOrEqual(64)
+      expect(text).toContain('[truncated]')
+    }
+    // The judge prompt carries the SPEC plus two bounded candidates.
+    const selectorPrompt = (h.subagentRequests[3]?.prompt[0] as { text: string }).text
+    expect(selectorPrompt.length).toBeLessThanOrEqual(32_768 + 2 * 64 + 512)
+    expect(selectorPrompt).not.toContain('x'.repeat(500))
+  })
+
+  it('rejects invalid planCandidates at load', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'dsh-next-workflow-'))
+    roots.push(dir)
+    for (const planCandidates of [0, 6, 2.5]) {
+      const h = makeHarness()
+      expect(() => {
+        apply(h.ctx, { workflowsRoot: dir, planCandidates })
+      }).toThrow('planCandidates')
+    }
   })
 
   it('loops critique gaps back to PLAN, bounded by maxCritiqueRounds', async () => {
@@ -520,5 +648,19 @@ describe('structured-output validation', () => {
       .toEqual({ verdict: 'changes-requested', findings: ['bug'] })
     expect(() => distillReview({ verdict: 'changes-requested', findings: [] })).toThrow()
     expect(() => distillReview({ verdict: 'lgtm', findings: [] })).toThrow()
+  })
+
+  it('distillSelection range-validates the winner against the candidate count', () => {
+    expect(distillSelection({ winner: 2, rationale: 'B wins' }, 3))
+      .toEqual({ winner: 2, rationale: 'B wins', mergeHints: [] })
+    expect(distillSelection({ winner: 1, rationale: 'A wins', mergeHints: ['keep C’s rollback step', ''] }, 2))
+      .toEqual({ winner: 1, rationale: 'A wins', mergeHints: ['keep C’s rollback step'] })
+    expect(() => distillSelection(null, 3)).toThrow()
+    expect(() => distillSelection({ winner: 0, rationale: 'r' }, 3)).toThrow()
+    expect(() => distillSelection({ winner: 4, rationale: 'r' }, 3)).toThrow()
+    expect(() => distillSelection({ winner: 1.5, rationale: 'r' }, 3)).toThrow()
+    expect(() => distillSelection({ winner: '2', rationale: 'r' }, 3)).toThrow()
+    expect(() => distillSelection({ winner: 1, rationale: ' ' }, 3)).toThrow()
+    expect(() => distillSelection({ winner: 1, rationale: 'r', mergeHints: [1] }, 3)).toThrow()
   })
 })
