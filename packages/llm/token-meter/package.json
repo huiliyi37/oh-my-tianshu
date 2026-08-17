@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-token-meter",
   "description": "Replay-aware token measurement service (ctx.tokenMeter) for the Tianshu Harness",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },

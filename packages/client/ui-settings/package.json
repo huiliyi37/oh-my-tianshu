@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-client-ui-settings",
   "description": "Settings shell plugin: sidebar trigger, modal panel, feature sections, and an ordered full-page onboarding stage",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },

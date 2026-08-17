@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-client-ui-input-trigger",
   "description": "Browser-side input-trigger service: model- or UI-driven prompt slots armed on composer keystrokes",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },

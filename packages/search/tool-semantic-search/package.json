@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tool-semantic-search",
   "description": "semantic_search tool — workspace code retrieval over the dsh-semantic-index (Tianshu semantic_search port), with a bounded dynamic-context index summary",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },

@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-pwsh-local",
   "description": "Local PowerShell implementation of the Tianshu Harness bash executor seam",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },

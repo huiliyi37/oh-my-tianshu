@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-evidence-gate",
   "description": "Evidence gate — RED→GREEN discipline for bugfix tasks (minimal port of Tianshu evidence obligations)",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },

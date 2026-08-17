@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-vision-ask",
   "description": "Vision co-pilot plugin: session-scoped image registry + ask_image tool for the tianshu harness",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },

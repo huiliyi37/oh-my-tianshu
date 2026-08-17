@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tool-pty",
   "description": "Six model-facing persistent PTY tools with owner isolation and generic background-task integration",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },

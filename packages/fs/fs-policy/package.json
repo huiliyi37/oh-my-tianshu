@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-fs-policy",
   "description": "File-context policy plugin for the Tianshu Harness — observed-state, read-before-edit, and version-guarded write/edit added over the ctx.fs provider seam through the fs/* event gate (no service surface)",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },

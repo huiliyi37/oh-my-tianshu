@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-sandbox-windows-acl",
   "description": "Windows ACL write-restriction sandbox backend for the Tianshu Harness",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },

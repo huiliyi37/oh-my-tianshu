@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-workspace",
   "description": "Workspace entity registry (ctx.workspace): durable workspace records with validated session attachment over the domain data form for the Tianshu Harness",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },

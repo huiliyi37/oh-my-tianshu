@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-e2b",
   "description": "Shared E2B sandbox lifecycle for Tianshu Harness provider adapters",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },

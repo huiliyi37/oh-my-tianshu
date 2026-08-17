@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-base",
   "description": "The shared dsh core as a profile bundle: every profile's first patch layer, inserting the base plugin rows over the empty profile root",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },

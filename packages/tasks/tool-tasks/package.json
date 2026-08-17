@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tool-tasks",
   "description": "Model-facing background task control tools (task_output, task_list, task_kill) over the ctx.tasks registry",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },

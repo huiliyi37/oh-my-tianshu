@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/oh-my-tianshu",
   "description": "dsh CLI: profile boot, plugin management, and the browser UI alias",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },
@@ -48,7 +48,6 @@
     "@huiliyi37/dsh-tool-tasks": "workspace:^",
     "@huiliyi37/dsh-workspace-context": "workspace:^",
     "@huiliyi37/dsh-workflow-workerthread": "workspace:^",
-
     "@huiliyi37/dsh-tool-cordis": "workspace:^",
     "@huiliyi37/dsh-tui": "workspace:^",
     "@huiliyi37/dsh-web-app": "workspace:^",

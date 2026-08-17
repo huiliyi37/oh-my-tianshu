@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-agent-spine-demo",
   "description": "The default executor-less/UI-less agent spine with fallback session titles, provider-routed retry, and optional persisted goals",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },

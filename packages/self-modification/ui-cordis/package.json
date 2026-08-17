@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-ui-cordis",
   "description": "Browser surfaces for model-authored dynamic cordis packages: the frame-wide panel that operates every definition, and the read-only define card",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },

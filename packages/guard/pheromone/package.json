@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-pheromone",
   "description": "File-level stigmergy pheromones — exponential decay, LRU capacity, atomic JSON persistence (Tianshu stigmergy.ts port)",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publishConfig": {
     "access": "public"
   },
