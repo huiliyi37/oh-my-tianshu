@@ -17,6 +17,14 @@
  *   superseded 0.3）。时序有效性是硬排序：结果先按状态分层
  *   （active > uncertain > superseded），层内按 score 降序——当前事实恒排
  *   在被取代版本之前。
+ * - **可选向量层（阶段二c）**：配置 embedder 后，save 写库前为文本取一次向量
+ *   （写进 embeddings 表，带 embedder 模型戳记），search 把 BM25 名次与向量
+ *   余弦名次做 RRF 融合（k=60），`fused = rrfScore / (2/(k+1))`（两榜双顶 = 1，
+ *   单榜居首 = 0.5）后照常乘 statusWeight 流入 `score` 字段——置信度门与
+ *   topicBoosts 无感工作（阈值语义变化见 README Known Limitations）。查询向量
+ *   每次 search 至多取一次（空查询或无候选不取）；候选向量缺失或戳记不符
+ *   （换模型）时按批惰性重嵌——这是文档化的重建路径，一次 search 至多追加
+ *   一次重嵌批量调用。未配置 embedder 时行为与 BM25-only 逐字节一致。
  * - **冲突与退役（阶段三）**：`markUncertain` 把无明确 supersede 顺序的冲突
  *   事实降级为 uncertain（不删除、不取代；检索降权保留）；`retireStale` 按
  *   调用方注入的时间与阈值把超期 superseded 版本与跨巩固期未被检索命中的
@@ -52,6 +60,8 @@ import type {
   MemorySource,
   MemorySourceRef,
 } from '@huiliyi37/dsh-memory'
+import { cosineSimilarity, reciprocalRankFusion } from '@huiliyi37/dsh-semantic-index'
+import type { EmbeddingProvider } from '@huiliyi37/dsh-semantic-index'
 import { buildFtsMatch, ftsNormalize } from './fts.ts'
 import { openMemoryDatabase } from './schema.ts'
 import type { JournalMode } from './schema.ts'
@@ -69,6 +79,12 @@ const STATUS_WEIGHT: Record<MemoryFactStatus, number> = { active: 1, uncertain: 
 /** 状态分层序号（时序有效性的硬排序：active > uncertain > superseded > retired）。 */
 const STATUS_TIER: Record<MemoryFactStatus, number> = { active: 0, uncertain: 1, superseded: 2, retired: 3 }
 
+/** RRF 阻尼常数（混合检索的协议常量，取 canonical 缺省 60，非部署可调项）。 */
+const RRF_K = 60
+
+/** 两榜 RRF 的满分（两榜双顶 = 2/(k+1)）；归一化除数，使 fused score ∈ (0, 1]。 */
+const RRF_MAX = 2 / (RRF_K + 1)
+
 /** facts 的全部列（SELECT 清单与行映射共用）。 */
 const FACT_SELECT = [
   'f.version_id', 'f.id', 'f.scope', 'f.subject', 'f.predicate', 'f.value', 'f.text',
@@ -76,6 +92,13 @@ const FACT_SELECT = [
   'f.confidence', 'f.status', 'f.supersedes', 'f.source_event_id', 'f.created_at',
   'f.used_at_consolidation',
 ].join(', ')
+
+/** search 内部的打分中行（relevance 供 BM25 名次与无 embedder 的缺省 score 路径使用）。 */
+interface ScoredFact {
+  fact: MemoryFactRow
+  relevance: number
+  entry: MemoryEntry & { score: number }
+}
 
 /** facts 表的数据库行形状（snake_case 原始列）。 */
 interface DbFactRow {
@@ -110,6 +133,8 @@ export interface SqliteMemoryStoreOptions {
   journalMode: JournalMode
   /** 单个 Markdown 文件的导入字节上限（超限 fail loud）。 */
   importMaxFileBytes: number
+  /** 可选嵌入 provider（缺省 undefined = 禁用，检索为纯 BM25，零额外调用）。 */
+  embedder?: EmbeddingProvider | undefined
 }
 
 /** 校验 scope 形状：'global' 或 'session:<非空>'（与 dsh-memory 同一契约）。 */
@@ -231,6 +256,17 @@ function buildFactFilters(opts: MemorySearchOptions): { where: string; params: A
   return { where: clauses.join(' AND '), params }
 }
 
+/** number[] → Float32 BLOB（embeddings.vector 列的存储形状）。 */
+function encodeVector(vector: number[]): Uint8Array {
+  return new Uint8Array(Float32Array.from(vector).buffer)
+}
+
+/** embeddings.vector BLOB → number[]（slice 拷贝保证 Float32 视图 4 字节对齐）。 */
+function decodeVector(blob: Uint8Array): number[] {
+  const copy = blob.slice()
+  return Array.from(new Float32Array(copy.buffer, 0, copy.byteLength / Float32Array.BYTES_PER_ELEMENT))
+}
+
 /**
  * SQLite 结构化 LTM 存储：memory 服务的第二个 provider（第一个为
  * dsh-memory 的 MarkdownMemoryStore）。全部写操作在单事务内完成；
@@ -241,6 +277,7 @@ export class SqliteMemoryStore implements MemoryService {
   private readonly mdRoot: string | undefined
   private readonly journalMode: JournalMode
   private readonly importMaxFileBytes: number
+  private readonly embedder: EmbeddingProvider | undefined
   private db: DatabaseSync | undefined
   private opening: Promise<DatabaseSync> | undefined
   private importChain: Promise<void> = Promise.resolve()
@@ -253,6 +290,7 @@ export class SqliteMemoryStore implements MemoryService {
     this.mdRoot = options.mdRoot
     this.journalMode = options.journalMode
     this.importMaxFileBytes = options.importMaxFileBytes
+    this.embedder = options.embedder
   }
 
   async save(entry: MemorySaveInput): Promise<MemoryEntry> {
@@ -271,6 +309,9 @@ export class SqliteMemoryStore implements MemoryService {
     const kind: MemoryEventKind = entry.kind ?? (entry.fact === undefined ? 'observation' : 'fact')
     const confidence = entry.confidence ?? 1
     const sourceRefs = entry.sourceRefs ?? []
+    // 写时嵌入：每次 save 至多一次 embedder 调用（在事务外取向量，失败则不落库）；
+    // 幂等重保存不产生新版本，向量随之丢弃（README 记录该浪费）。
+    const vector = this.embedder === undefined ? undefined : (await this.embed([entry.text]))[0] as number[]
     return this.transact(() => {
       // uncertain 头也算"当前版本"：新证据到达即取代它（不确定性被新事实解决），
       // 物化视图里同一对只留一个当前版本。
@@ -295,6 +336,7 @@ export class SqliteMemoryStore implements MemoryService {
         id: logicalId, scope: entry.scope, subject, predicate, value, text: entry.text,
         keywords, entities, topic, source: entry.source, confidence,
       }, existing, now, eventId)
+      if (vector !== undefined) this.upsertEmbedding(fact.versionId, vector)
       this.bumpTopic(topic)
       if (existing !== null && existing.topic !== topic) this.bumpTopic(existing.topic)
       return toEntry(fact)
@@ -314,12 +356,17 @@ export class SqliteMemoryStore implements MemoryService {
         + ' JOIN facts f ON f.version_id = memory_fts.fact_version'
         + ` WHERE memory_fts MATCH ?${where === '' ? '' : ` AND ${where}`}`,
       ).all(match, ...params) as unknown as Array<DbFactRow & { rank: number }>
-    const scored = rows.map((row) => {
+    const scored: ScoredFact[] = rows.map((row) => {
       const fact = rowToFact(row)
       const raw = row.rank === null ? null : Math.max(0, -row.rank)
       const relevance = raw === null ? 1 : raw / (1 + raw)
-      return { fact, entry: { ...toEntry(fact), score: relevance * STATUS_WEIGHT[fact.status] } }
+      return { fact, relevance, entry: { ...toEntry(fact), score: 0 } }
     })
+    if (this.embedder !== undefined && match !== null) {
+      await this.applyVectorFusion(db, query, where, params, scored)
+    } else {
+      for (const item of scored) item.entry.score = item.relevance * STATUS_WEIGHT[item.fact.status]
+    }
     scored.sort((a, b) =>
       (STATUS_TIER[a.fact.status] - STATUS_TIER[b.fact.status])
       || (b.entry.score - a.entry.score)
@@ -494,6 +541,96 @@ export class SqliteMemoryStore implements MemoryService {
     } catch (error) {
       db.exec('ROLLBACK')
       throw error
+    }
+  }
+
+  /** 调 embedder 并校验返回数量（provider 边界：数量不符 fail loud）。 */
+  private async embed(texts: string[]): Promise<number[][]> {
+    const embedder = this.embedder
+    if (embedder === undefined) throw new Error('memory-sqlite: embedder not configured')
+    const vectors = await embedder.embed(texts)
+    if (vectors.length !== texts.length) {
+      throw new Error(`memory-sqlite: embedder "${embedder.id}" returned ${vectors.length} vector(s) for ${texts.length} text(s)`)
+    }
+    return vectors
+  }
+
+  /** 写入/更新一个事实版本的向量行（带当前 embedder 戳记；须在事务内调用）。 */
+  private upsertEmbedding(versionId: string, vector: number[]): void {
+    const embedder = this.embedder
+    if (embedder === undefined) return
+    this.requireDb().prepare(
+      'INSERT INTO embeddings (fact_version, embedder, dim, vector) VALUES (?, ?, ?, ?)'
+      + ' ON CONFLICT(fact_version) DO UPDATE SET embedder = excluded.embedder, dim = excluded.dim, vector = excluded.vector',
+    ).run(versionId, embedder.id, vector.length, encodeVector(vector))
+  }
+
+  /**
+   * 取候选版本的向量：戳记与当前 embedder 匹配的直接读库；缺失（Markdown 导入
+   * 路径不在写时嵌入）或戳记不符（换模型）的按批重嵌并回写——文档化的惰性
+   * 重建路径，一次 search 至多追加一次重嵌批量调用。
+   */
+  private async candidateVectors(candidates: Array<{ versionId: string; text: string }>): Promise<Map<string, number[]>> {
+    const embedder = this.embedder
+    if (embedder === undefined) return new Map()
+    const stmt = this.requireDb().prepare('SELECT embedder, dim, vector FROM embeddings WHERE fact_version = ?')
+    const vectors = new Map<string, number[]>()
+    const stale: Array<{ versionId: string; text: string }> = []
+    for (const candidate of candidates) {
+      const row = stmt.get(candidate.versionId) as unknown as
+        | { embedder: string; dim: number; vector: Uint8Array }
+        | undefined
+      if (row !== undefined && row.embedder === embedder.id) vectors.set(candidate.versionId, decodeVector(row.vector))
+      else stale.push(candidate)
+    }
+    if (stale.length > 0) {
+      const fresh = await this.embed(stale.map(item => item.text))
+      // 重嵌回写是派生数据的修复（与 used_at_consolidation 同为视图侧写），不动日志。
+      for (const [index, item] of stale.entries()) {
+        const vector = fresh[index]
+        if (vector === undefined) throw new Error('memory-sqlite: embedder returned fewer vectors than requested')
+        this.upsertEmbedding(item.versionId, vector)
+        vectors.set(item.versionId, vector)
+      }
+    }
+    return vectors
+  }
+
+  /**
+   * 向量通道（阶段二c）：对同一组过滤条件（scope/topic/entities/excludeIds/非
+   * retired）做全量候选的余弦名次，与 BM25 名次做 RRF 融合（名次融合而非分数
+   * 混合——BM25 与余弦量纲不可比），结果重写为融合全集（BM25 命中 ∪ 向量
+   * 命中）并回填 score。查询向量每次 search 至多取一次（无候选不取）；候选
+   * 向量缺失或戳记不符时按批惰性重嵌（candidateVectors）。
+   */
+  private async applyVectorFusion(
+    db: DatabaseSync,
+    query: string,
+    where: string,
+    params: Array<string | number>,
+    scored: ScoredFact[],
+  ): Promise<void> {
+    const allRows = db.prepare(`SELECT ${FACT_SELECT} FROM facts f${where === '' ? '' : ` WHERE ${where}`}`)
+      .all(...params) as unknown as DbFactRow[]
+    if (allRows.length === 0) return
+    const queryVector = (await this.embed([query]))[0] as number[]
+    const candidates = allRows.map(row => rowToFact(row))
+    const vectors = await this.candidateVectors(candidates.map(fact => ({ versionId: fact.versionId, text: fact.text })))
+    const bm25List = [...scored]
+      .sort((a, b) => b.relevance - a.relevance)
+      .map(item => ({ id: item.fact.versionId }))
+    const vectorList = candidates
+      .map(fact => ({ id: fact.versionId, cosine: cosineSimilarity(queryVector, vectors.get(fact.versionId) ?? []) }))
+      .filter(item => item.cosine > 0)
+      .sort((a, b) => b.cosine - a.cosine)
+      .map(item => ({ id: item.id }))
+    const byVersion = new Map(candidates.map(fact => [fact.versionId, fact]))
+    scored.length = 0
+    for (const hit of reciprocalRankFusion([bm25List, vectorList], RRF_K)) {
+      const fact = byVersion.get(hit.id)
+      if (fact === undefined) continue // FTS 行是全量候选的子集，不会缺；仅为类型收窄
+      // 归一化：两榜双顶 = 1，单榜居首 = 0.5——流入 score 字段供置信度门消费。
+      scored.push({ fact, relevance: 0, entry: { ...toEntry(fact), score: (hit.rrfScore / RRF_MAX) * STATUS_WEIGHT[fact.status] } })
     }
   }
 

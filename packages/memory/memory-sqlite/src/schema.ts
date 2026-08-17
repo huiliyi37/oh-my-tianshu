@@ -14,6 +14,9 @@
  * - `meta`：单行元数据（当前仅 `consolidations` 巩固期计数，驱动未使用退役）。
  * - `memory_fts`：FTS5 虚表（text + keywords），rowid 即 facts.version_id 的
  *   伴随行；事实文本不可变（更新 = 新版本行），故 FTS 只插不改。
+ * - `embeddings`：可选向量层（schema v3）——fact version_id → Float32 向量
+ *   BLOB + `embedder` 模型戳记；派生数据（可重建），不进 append-only 日志。
+ *   戳记与当前 embedder 不符 = 换模型，检索时惰性重嵌（见 store.ts）。
  * 退役（阶段三）：retired 事实退出检索与 list，但行与事件日志保留
  * （invalidate-don't-delete 延伸到生命周期末端）。
  *
@@ -28,8 +31,10 @@ import { mkdir, open } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 
 /** 当前 schema 版本（单调递增；旧版本拒绝打开）。v2：facts 增加 retired 状态、
- * used_at_consolidation 列与 meta 表（巩固期计数），支撑阶段三退役。 */
-export const MEMORY_SQLITE_SCHEMA_VERSION = 2
+ * used_at_consolidation 列与 meta 表（巩固期计数），支撑阶段三退役。
+ * v3：embeddings 表（fact version → Float32 向量 BLOB + embedder 戳记），
+ * 支撑可选嵌入混合检索（阶段二c）。 */
+export const MEMORY_SQLITE_SCHEMA_VERSION = 3
 
 /** SQLite application id（'DSHM'），防止误开其他应用的数据库文件。 */
 export const MEMORY_SQLITE_APPLICATION_ID = 0x4453484D
@@ -160,6 +165,14 @@ function ensureSchema(db: DatabaseSync): void {
       fact_version UNINDEXED,
       tokenize = 'unicode61'
     )
+  `)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS embeddings (
+      fact_version TEXT PRIMARY KEY REFERENCES facts(version_id),
+      embedder     TEXT NOT NULL,
+      dim          INTEGER NOT NULL,
+      vector       BLOB NOT NULL
+    ) STRICT
   `)
   db.exec(`PRAGMA user_version = ${MEMORY_SQLITE_SCHEMA_VERSION}`)
 }

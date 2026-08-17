@@ -18,6 +18,9 @@
       "path": "../../memory/memory"
     },
     {
+      "path": "../../search/semantic-index"
+    },
+    {
       "path": "../../support/invariants"
     }
   ]

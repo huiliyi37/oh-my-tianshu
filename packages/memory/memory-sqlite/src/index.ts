@@ -1,4 +1,6 @@
 export { buildFtsMatch, ftsNormalize, ftsTerms } from './fts.ts'
+export { createHttpEmbedder } from './embedder.ts'
+export type { HttpEmbedderOptions } from './embedder.ts'
 export { apply, Config, name } from './plugin.ts'
 export type { MemorySqliteConfig } from './plugin.ts'
 export {

@@ -3,8 +3,8 @@
  *
  * The structured store's core relations are enforced where they live: the
  * schema's partial unique index guarantees at most one active fact per
- * (scope, subject, predicate), and supersede/BM25/markdown-import behavior is
- * asserted by package tests over temp-dir databases. No cross-plugin
+ * (scope, subject, predicate), and supersede/BM25/embedding-fusion/markdown-import
+ * behavior is asserted by package tests over temp-dir databases. No cross-plugin
  * event/data relation is owned here.
  *
  * @module @huiliyi37/dsh-memory-sqlite/invariant

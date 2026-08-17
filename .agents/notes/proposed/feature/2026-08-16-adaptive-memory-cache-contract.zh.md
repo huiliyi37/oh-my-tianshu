@@ -163,3 +163,13 @@ LLM 抽取路径、程序性记忆（做法沉淀）与提速探针落地时（`
 - **提速探针复用 baseline-probe 的载体**（`codingHarness` + 对 `assistant/message` 事件的 usage 观察），两臂为 `mem`（memory-sqlite + tool-memory + adaptive-memory + memory-consolidate `extractor: 'llm'`）与 `nomem`。会话 1 执行确定性的「建模块 + 修种子 bug」任务，经 registry handle dispose（触发 `session/disposed` → 巩固），探针有界轮询（60 秒）store 里的 `session-summary` 条目落地后，会话 2 执行同族任务。每会话报告：轮数、input/cacheRead/output token、墙钟时间、STM 刷新原因、`memory_*` 工具调用。探针以刻意放宽的门阈值装配 `adaptive-memory`（`confidenceMedium: 0`、`topicBoosts: { procedure: 0.5 }`），因为缺省阈值是文档化的占位值，在小语料上几乎不注入。keyless 行为与 baseline-probe 一致（`skipped`，exit 0）；参数解析与报告形状由无 key spec 覆盖（import 脚本的纯导出，脚本因此用 `argv[1]` basename 检查把 `main()` 门在直接执行之后）。数据在有 key 的机器上采集后落入 docs 文件。
 - **发布组合不挂载任何新插件**；契约的阶段划分未被本次改动触及（阶段三纪要已声明阶段三范围完整——三b 是增量）。
 - **实跑修复（2026-08-17）：提取调用必须关思考。** 首轮真实 API 探针显示 `consolidated=false`：调用以 `max-tokens` 结束，因为推理模型把输出预算烧在思考 token 上（deepseek 路由缺省 effort `high`）。已新增 `llmEffort`（缺省 `'off'`）并把 `llmMaxOutputTokens` 提到 2000；修复后真实会话 2–3 秒巩固出 2–3 条条目（含 `session-summary`）。此前的回退路径掩盖了故障（对琐碎会话做启发式提取本来就产不出条目），探针的 `consolidated` 标志正是为让这类故障可见而存在。
+
+## 阶段二c 实现纪要
+
+可选嵌入 provider 落地时（`packages/memory/memory-sqlite`，复用 `packages/search/semantic-index`）与上文设计不一致的事实：
+
+- **seam 原样复用 semantic-index 的 `EmbeddingProvider`**（`id` 戳记 + `embed(texts)`），融合用其 `reciprocalRankFusion`；`vector-index.ts` 由此进入该包的公共导出，store 复用其 `cosineSimilarity` 而不是手写第二份。不引入任何代码分块机制——记忆 store 保有自己的 FTS5 候选模型。
+- **命名 provider 是扁平 Config 字段族，不是嵌套对象。** `embeddingProvider: '' | 'http'`（缺省 `''` = 禁用，即零额外调用的缺省）加 `embeddingUrl`/`embeddingModel`/`embeddingApiKey`/`embeddingTimeoutMs`；`http` 半配在装配时 fail loud。`http` provider 是 OpenAI 兼容 embeddings 端点，在 wire 边界校验（数量、有限数值分量）；戳记为 `http:<model>`。经插件 `apply` 第三参数的直接注入优先于 Config，与 memory-consolidate 的 extractor seam 同例。
+- **向量通道对全量过滤候选排名，不只是 FTS 命中。** 只在 BM25 命中上融合会让词面零交叠的释义永远不可达——而召回释义正是嵌入的意义——因此 `search` 暴力扫描全部通过同一组 scope/topic/entities/excludeIds/status 过滤的事实（记忆规模下没问题；ANN 推迟）。结果集是两榜的 RRF 并集；空查询与空候选集不花嵌入调用。
+- **融合分以 `fused = rrfScore / (2/(k+1))` × statusWeight 映射到既有 `score` 字段**（k=60）：两榜双顶 = 1，单榜居首 = 0.5。状态分层仍排在融合分之前，置信度门与 `topicBoosts` 因此无感消费融合分——但语义变了（纯 BM25 单通道可达 1.0），启用嵌入时门阈值需要重新调参；已记入包 README 的 Known Limitations。
+- **换模型的重建是惰性的，不是命令。** `save` 在写事务前取一次向量（嵌入失败则什么都不落库；幂等重保存花掉并丢弃一次调用）；Markdown 导入与无 embedder 时期的写入从不嵌入，戳记不符意味着换了模型——两种情况都在检索时按批重嵌并以当前戳记回写。`embeddings` 表是 append-only 日志旁的派生数据（schema v3；v2 文件按 pre-release stance fail loud 拒绝，从 Markdown 源重建）。
