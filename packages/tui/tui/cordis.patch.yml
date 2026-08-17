@@ -48,8 +48,8 @@
 
     # 禅相位（provide 'zen'）：新顶层会话首步跑最小锚定面（官方评测配方
     # bash + str_replace_editor + todo_write + zen_anchor），锚校验/超时/分诊
-    # 三谓词晋升全量面。子代理会话（parentSession）不参与。消融数据见
-    # examples/headless-agent/zen-ablation-results.json。
+    # 三谓词晋升全量面。子代理会话（parentSession）不参与。消融报告与数据见
+    # examples/headless-agent/zen-ablation-report.md（同目录 -results.json）。
     - id: zen
       name: '@huiliyi37/dsh-zen'
       config:

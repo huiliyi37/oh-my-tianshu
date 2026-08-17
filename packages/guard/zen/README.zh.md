@@ -4,7 +4,7 @@
 
 zen 阶段是内建的 agent（智能体）生命周期阶段，而非 skill（技能）：新建顶层会话的最初几个步骤运行在一个最小的锚定工具 face 上——官方 DeepSeek 评测配方（`bash`、`str_replace_editor`、`todo_write`）加 agent 作用域的 `zen_anchor`——同时一段 `zen:policy` 提示词段落指示模型锚定任务：重述目标，用只读探针验证一个地标，然后调用 `zen_anchor`。由宿主验证的谓词把会话晋升（promotion）到完整 face；绝不采信模型自称已就绪。决策记录与消融证据见 [zen 阶段 Agent Note](../../../.agents/notes/implemented/architecture/2026-08-17-zen-phase-engineering-paradigm.md)。
 
-消融实验依据（五组实验、真实 DeepSeek API、[结果数据](../../../examples/headless-agent/zen-ablation-results.json)）：双工具最小 face 完全消除了浪费的工具调用（每任务 0 次，对比 35 个 schema 的 face 上的 3.0 次），token 用量仅为宽 face 的 39%；而在宽 face 上叠加 zen 指引反而更糟——face 缩减才是起效成分，这正是该阶段物理收窄 face、而非好言相劝的原因。
+消融实验依据（五组实验、真实 DeepSeek API、[实验报告](../../../examples/headless-agent/zen-ablation-report.md)、[结果数据](../../../examples/headless-agent/zen-ablation-results.json)）：双工具最小 face 完全消除了浪费的工具调用（每任务 0 次，对比 35 个 schema 的 face 上的 3.0 次），token 用量仅为宽 face 的 39%；而在宽 face 上叠加 zen 指引反而更糟——face 缩减才是起效成分，这正是该阶段物理收窄 face、而非好言相劝的原因。
 
 ## 配置
 

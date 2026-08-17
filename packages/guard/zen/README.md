@@ -4,7 +4,7 @@ English | [中文](README.zh.md)
 
 The zen phase is a built-in agent-lifecycle phase, not a skill: a fresh top-level session's first steps run on a minimal anchored tool face — the official DeepSeek evaluation recipe (`bash`, `str_replace_editor`, `todo_write`) plus the agent-scoped `zen_anchor` — while a `zen:policy` prompt section directs the model to anchor the task: restate the goal, verify a landmark with a read-only probe, then call `zen_anchor`. A host-verified predicate promotes the session to the full face; the model's own claim of readiness is never trusted. Decision record and ablation evidence: [the zen-phase Agent Note](../../../.agents/notes/implemented/architecture/2026-08-17-zen-phase-engineering-paradigm.md).
 
-Ablation grounding (5-arm, real DeepSeek API, [results](../../../examples/headless-agent/zen-ablation-results.json)): the 2-tool minimal face eliminated wasted tool calls entirely (0 vs 3.0 per task on the 35-schema face) at 39% of the wide face's tokens, while zen guidance on a wide face made things worse — the face reduction is the active ingredient, which is why the phase physically shrinks the face instead of asking nicely.
+Ablation grounding (5-arm, real DeepSeek API, [report](../../../examples/headless-agent/zen-ablation-report.md), [results](../../../examples/headless-agent/zen-ablation-results.json)): the 2-tool minimal face eliminated wasted tool calls entirely (0 vs 3.0 per task on the 35-schema face) at 39% of the wide face's tokens, while zen guidance on a wide face made things worse — the face reduction is the active ingredient, which is why the phase physically shrinks the face instead of asking nicely.
 
 ## Config
 
