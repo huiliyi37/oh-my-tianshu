@@ -145,7 +145,9 @@ describe('activate / deactivate 生命周期', () => {
 function makeCaretRenderer(caret: OverlayRenderer['caret']) {
   return {
     render: () => ['filter: /th'],
-    caret,
+    // exactOptionalPropertyTypes: an explicit `undefined` violates the
+    // optional `caret` contract — omit the key instead.
+    ...(caret === undefined ? {} : { caret }),
     onActivate: vi.fn(),
     onDeactivate: vi.fn(),
   } satisfies OverlayRenderer
