@@ -566,7 +566,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       await ctx.plugin(ToolGit)
     },
     note:
-      'git_status / git_diff / git_log / git_commit consume the typed ctx.git seam (no subprocess contact in the tool layer); git_commit requires a message and runs exclusively (not concurrency-safe), and commits do not raise an approval card — file mutations still go through the fs approval surface.',
+      'git consumes the typed ctx.git seam (no subprocess contact in the tool layer) through one `operation` discriminator (status | diff | log | commit); commit requires a message and runs exclusively (not concurrency-safe), and commits do not raise an approval card — file mutations still go through the fs approval surface.',
   },
   {
     pkg: '@huiliyi37/dsh-tool-memory',

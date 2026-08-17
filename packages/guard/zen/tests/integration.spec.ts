@@ -206,6 +206,13 @@ describe('zen phase through the agent loop', () => {
       .toThrow(/unknown global tool/)
   })
 
+  it('promoteDeny naming an unregistered tool vetoes agent creation loud', async () => {
+    const adapter = new MockAdapter([])
+    const ctx = await harness(adapter, { ...BASE_CONFIG, promoteDeny: ['ghost'] })
+    expect(() => ctx.agentLoop.create(SessionId('zen-promote-deny-misconfig'), { provider: 'mock', model: 'mock' }))
+      .toThrow(/unknown global tool/)
+  })
+
   it('subagent sessions (parentSession) never arm', async () => {
     const adapter = new MockAdapter([textResponse('subagent reply')])
     const ctx = await harness(adapter)
@@ -272,5 +279,124 @@ describe('zen phase through the agent loop', () => {
     expect(zenPhases(log)).toEqual([])
     expect(headerFaces(log)).toEqual([{ reason: 'initial', tools: ['hammer', 'probe'] }])
     expect(adapter.requests[0]?.system).not.toContain(SECTION)
+  })
+
+  it('faceSelection freezes extras onto the first header and never promotes', async () => {
+    const adapter = new MockAdapter([
+      toolCallResponse('c1', 'probe', {}),
+      toolCallResponse('c2', 'probe', {}),
+      textResponse('still on the selected face'),
+    ])
+    const ctx = await harness(adapter, {
+      ...BASE_CONFIG,
+      faceSelection: { enabled: true },
+      timeoutSteps: 2,
+    })
+    ctx.tools.register(defineContentToolFixture({
+      name: 'subagent',
+      description: 'delegate',
+      parameters: {},
+      execute: () => Promise.resolve([{ type: 'text', text: 'ok' }]),
+    }))
+    const agent = ctx.agentLoop.create(SessionId('zen-oneshot'), { provider: 'mock', model: 'mock' })
+
+    ask(agent, 'Please delegate this exploration to a subagent.\nIt spans several files.')
+    await waitForIdle(ctx, agent)
+
+    const log = agent.session.events
+    expect(zenPhases(log)).toEqual([{ phase: 'zen', reason: 'arm' }])
+    const headers = headerFaces(log)
+    expect(headers[0]).toEqual({ reason: 'initial', tools: ['probe', 'subagent', 'zen_anchor'] })
+    expect(headers.every(header => !header.tools.includes('hammer'))).toBe(true)
+    expect(foldZenPhase(log)).toBe('zen')
+  })
+
+  it('faceSelection drops extras the deployment did not register', async () => {
+    const adapter = new MockAdapter([textResponse('no lsp here')])
+    const ctx = await harness(adapter, { ...BASE_CONFIG, faceSelection: { enabled: true } })
+    const agent = ctx.agentLoop.create(SessionId('zen-oneshot-drop'), { provider: 'mock', model: 'mock' })
+
+    ask(agent, 'Please use the language server to go to definition.\nThen edit the caller.')
+    await waitForIdle(ctx, agent)
+
+    expect(headerFaces(agent.session.events)).toEqual([
+      { reason: 'initial', tools: ['probe', 'zen_anchor'] },
+    ])
+  })
+
+  it('diet clips assembled descriptions without changing the registered catalog', async () => {
+    const adapter = new MockAdapter([textResponse('dieted')])
+    const ctx = await harness(adapter, { ...BASE_CONFIG, diet: { maxDescriptionChars: 8 } })
+    const agent = ctx.agentLoop.create(SessionId('zen-diet'), { provider: 'mock', model: 'mock' })
+
+    ask(agent, 'multi-step task: refactor the thing\nacross files')
+    await waitForIdle(ctx, agent)
+
+    expect(adapter.requests[0]?.tools.map(tool => [tool.name, tool.description])).toEqual([
+      ['probe', 'test'],
+      ['zen_anchor', 'Use'],
+    ])
+    expect(ctx.tools.schemas().find(schema => schema.name === 'probe')?.description).toBe('test tool probe')
+  })
+
+  it('promoteDeny hides the overlapping tool after promotion and on promoted resume', async () => {
+    const adapter = new MockAdapter([
+      toolCallResponse('c1', 'probe', {}, 'Probing a landmark.'),
+      toolCallResponse('c2', 'zen_anchor', { goal: 'refactor the thing', landmarks: ['src/a.ts', 'pnpm test'], pass: 'full' }),
+      toolCallResponse('c3', 'hammer', {}),
+      textResponse('done on the curated face'),
+    ])
+    const ctx = await harness(adapter, { ...BASE_CONFIG, promoteDeny: ['hammer'] })
+    const agent = ctx.agentLoop.create(SessionId('zen-promote-deny'), { provider: 'mock', model: 'mock' })
+
+    ask(agent, 'multi-step task: refactor the thing\nacross files')
+    await waitForIdle(ctx, agent)
+
+    const log = agent.session.events
+    expect(zenPhases(log)).toEqual([
+      { phase: 'zen', reason: 'arm' },
+      { phase: 'full', reason: 'anchor' },
+    ])
+    const headers = headerFaces(log)
+    expect(headers[0]).toEqual({ reason: 'initial', tools: ['probe', 'zen_anchor'] })
+    expect(headers.at(-1)).toEqual({ reason: 'change', tools: ['probe', 'zen_anchor'] })
+    const results = log.filter(event => event.type === 'tool/result')
+    expect(results.map(event => event.type === 'tool/result' ? event.data.message.content[0]?.isError ?? false : true))
+      .toEqual([false, false, true])
+
+    const resumed = new MockAdapter([textResponse('resumed curated')])
+    const resumedCtx = await harness(resumed, { ...BASE_CONFIG, promoteDeny: ['hammer'] })
+    const seed: SessionEvent[] = [
+      { type: 'zen/phase', seq: 0, time: 1, data: { phase: 'zen', reason: 'arm' } } as SessionEvent,
+      { type: 'zen/phase', seq: 1, time: 2, data: { phase: 'full', reason: 'anchor' } } as SessionEvent,
+    ]
+    const { agent: resumedAgent } = await resumedCtx.agents.create({
+      sessionId: SessionId('zen-promote-deny-resume'),
+      seed,
+      agentOptions: { provider: 'mock', model: 'mock' },
+    })
+    ask(resumedAgent, 'continue the multi-step task\nfrom the fork')
+    await waitForIdle(resumedCtx, resumedAgent)
+    expect(headerFaces(resumedAgent.session.events)).toEqual([{ reason: 'initial', tools: ['probe', 'zen_anchor'] }])
+  })
+
+  it('triage with promoteDeny never exposes the overlapping tool', async () => {
+    const adapter = new MockAdapter([textResponse('quick answer on the curated face')])
+    const ctx = await harness(adapter, {
+      section: SECTION,
+      face: ['probe'],
+      triage: { enabled: true, maxChars: 80 },
+      promoteDeny: ['hammer'],
+    })
+    const agent = ctx.agentLoop.create(SessionId('zen-triage-deny'), { provider: 'mock', model: 'mock' })
+
+    ask(agent, 'what time is it?')
+    await waitForIdle(ctx, agent)
+
+    expect(zenPhases(agent.session.events)).toEqual([
+      { phase: 'zen', reason: 'arm' },
+      { phase: 'full', reason: 'triage' },
+    ])
+    expect(headerFaces(agent.session.events)).toEqual([{ reason: 'initial', tools: ['probe', 'zen_anchor'] }])
   })
 })

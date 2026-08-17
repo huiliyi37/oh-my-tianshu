@@ -16,8 +16,8 @@ C6 综合复盘（`docs/dsh-能力复盘与对标-c6.md`）差距矩阵的前两
 
 **H1**：新建 `packages/git/` 组（两个包）：
 - `git/git`：`Git` 服务定义 + `GitLocal` CLI provider **合一包**——git CLI 是稳定外部接口的薄封装，provider 不与定义独立演化（fs 拆三包因其 provider 会独立演化，注释明示偏离理由）
-- `git/tool-git`：4 个结构化工具（`git_status`/`git_diff`/`git_log`/`git_commit`）消费 `ctx.git`（工具层零子进程接触）；cwd 三优先解析（workdir 参数 > session header > 进程 cwd）；`git_commit` message 必填 + 独占（`isConcurrencySafe: false`）；commit 不弹审批（与 Claude Code 同立场，文件变更仍走 fs 审批面）
-- 非目标：不做 approval 集成、不做事件词汇（YAGNI）、不做 git_show/branch/revert（首批 4 工具）
+- `git/tool-git`：一个结构化工具 `git`（`operation`：`status` / `diff` / `log` / `commit`）消费 `ctx.git`（工具层零子进程接触）；cwd 三优先解析（workdir 参数 > session header > 进程 cwd）；`commit` 操作 message 必填 + 独占（`isConcurrencySafe: false`）；commit 不弹审批（与 Claude Code 同立场，文件变更仍走 fs 审批面）
+- 非目标：不做 approval 集成、不做事件词汇（YAGNI）、不做 git show/branch/revert（首批四个 operation）
 
 ## Consequences
 

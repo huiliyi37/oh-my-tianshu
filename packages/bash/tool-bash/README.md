@@ -10,6 +10,8 @@ The package root exposes only the Cordis plugin contract (`name`, `inject`, `Con
 
 The plugin also contributes the `tool:bash` prompt section (order 105): check the `[exit code: N]` marker on every result and investigate failures before moving on.
 
+This plugin and [`@huiliyi37/dsh-tool-bash-persistent`](../../pty/tool-bash-persistent/README.md) both register the global name `bash`. They are alternative compositions, not a stacked pair: one agent catalog mounts exactly one of them.
+
 ## Tools
 
 ### `bash`

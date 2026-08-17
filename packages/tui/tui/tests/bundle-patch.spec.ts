@@ -11,6 +11,7 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import * as yaml from 'js-yaml'
 import { entryListSchema } from '@huiliyi37/cordis-plugin-include'
+import { BASH_OVERLAP_TOOLS } from '@huiliyi37/dsh-zen'
 
 describe('dsh-tui bundle', () => {
   it('declares a parseable patch list mounting the runner and the tianshu-side roster', () => {
@@ -32,9 +33,12 @@ describe('dsh-tui bundle', () => {
     expect(rows.find(row => row.id === 'agent-presets')?.config).toEqual({ default: 'standard' })
     // The zen row must ship its policy section (resolveConfig rejects a blank
     // one at load) and leave the face/predicates on package defaults.
-    const zen = rows.find(row => row.id === 'zen')?.config
+    const zen = rows.find(row => row.id === 'zen')?.config as Record<string, unknown> | undefined
     expect(typeof zen?.section).toBe('string')
     expect((zen?.section as string).length).toBeGreaterThan(0)
-    expect(Object.keys(zen ?? {})).toEqual(['section'])
+    expect(zen?.face).toEqual(['bash', 'str_replace_editor', 'todo_write', 'subagent'])
+    expect(zen?.promoteDeny).toEqual([...BASH_OVERLAP_TOOLS])
+    expect(zen?.diet).toEqual({ maxDescriptionChars: 80 })
+    expect(Object.keys(zen ?? {}).sort()).toEqual(['diet', 'face', 'promoteDeny', 'section'])
   })
 })

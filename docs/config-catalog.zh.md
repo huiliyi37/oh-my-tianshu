@@ -3143,12 +3143,42 @@ export interface ZenConfig {
      */
     maxChars?: number
   }
+  /**
+   * Task-conditioned one-shot face: classify the first user message and freeze
+   * the resulting tool face for the rest of the session. The selected face is
+   * always `face` plus extras bash cannot substitute; promotion (anchor,
+   * timeout, short-prompt triage) is disabled so the prefix is filled once.
+   * Default off — the binary skip-or-stay triage remains the shipped path.
+   */
+  faceSelection?: {
+    /** Whether the first message selects a frozen face. Default false. */
+    enabled?: boolean
+  }
+  /**
+   * Clip every assembled tool `description` to this many characters. Saves
+   * tokens; does not change which tool the model picks (H-arm: names without
+   * schemas did not induce calls). Omitted = no clipping. Applied at
+   * `system-prompt/assemble`, so the registered catalog is unchanged.
+   */
+  diet?: {
+    /** Inclusive character budget; a positive integer. */
+    maxDescriptionChars: number
+  }
+  /**
+   * Global tool names hidden after promotion (the curated top face). Empty
+   * (the default) lifts the zen restriction and exposes every registered
+   * global tool. Non-empty installs `restrict({ deny })` so overlapping
+   * stacks stay registered for subagent roles but leave the parent catalog.
+   * Unknown names fail at agent creation; a name that also appears in `face`
+   * fails at plugin load. The TUI ships {@link BASH_OVERLAP_TOOLS}.
+   */
+  promoteDeny?: readonly string[]
   /** Master switch; `false` mounts the service with no behavior. Default true. */
   enabled?: boolean
 }
 ```
 
-来源：[`packages/guard/zen/src/index.ts:70`](../packages/guard/zen/src/index.ts)
+来源：[`packages/guard/zen/src/index.ts:77`](../packages/guard/zen/src/index.ts)
 
 ## 无配置的可加载插件
 

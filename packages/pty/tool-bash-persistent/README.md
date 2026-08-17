@@ -4,6 +4,8 @@ English | [中文](README.zh.md)
 
 Model-facing `bash(command)` backed by one owner-scoped `ctx.pty` shell. The package owns the tool contract and shell reuse; deployments select the PTY backend and sandbox policy.
 
+This plugin and [`@huiliyi37/dsh-tool-bash`](../../bash/tool-bash/README.md) both register the global name `bash`. They are alternative compositions, not a stacked pair: one agent catalog mounts exactly one of them. The `minimal` preset mounts this plugin; `standard` mounts `dsh-tool-bash`.
+
 ## Config
 
 | Key | Default | Meaning |

@@ -177,6 +177,11 @@
         provider: spawn
         toolName: subagent
         backgroundMode: continuable
+        # Ceiling for every child: official minimal recipe ∪ the built-in
+        # explore role. A role allow-list is intersected with this; un-roled
+        # children do not inherit the parent's overlapping stacks.
+        toolFilter:
+          allow: [bash, str_replace_editor, todo_write, grep, read, glob, semantic_search]
 
     - id: tool-subagent-fork
       name: '@huiliyi37/dsh-tool-subagent'
@@ -184,6 +189,8 @@
         provider: fork
         toolName: subagent_fork
         backgroundMode: continuable
+        toolFilter:
+          allow: [bash, str_replace_editor, todo_write, grep, read, glob, semantic_search]
 
     # Product providers are host-plane singletons. Copy this preset, then
     # remove `disabled` from either ordinary tool row to expose that product

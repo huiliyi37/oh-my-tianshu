@@ -40,7 +40,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@huiliyi37/dsh-tool-workflow` | `workflow` | `ctx.tools`, `ctx.workflows`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents the script children)` | `tool/call`, `tool/result` | - | - |
 | `@huiliyi37/dsh-tool-web` | `web_fetch`, `web_search` | `ctx.tools`, `ctx.web`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps. |
 | `@huiliyi37/dsh-tool-file-info` | `file_info` | `ctx.tools`, `ctx.fs` | `tool/call`, `tool/result` | - | file_info reports metadata (size, kind, mtime) through ctx.fs without reading file contents into model context. |
-| `@huiliyi37/dsh-tool-git` | `git` | `ctx.tools`, `ctx.git`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | git_status / git_diff / git_log / git_commit consume the typed ctx.git seam (no subprocess contact in the tool layer); git_commit requires a message and runs exclusively (not concurrency-safe), and commits do not raise an approval card — file mutations still go through the fs approval surface. |
+| `@huiliyi37/dsh-tool-git` | `git` | `ctx.tools`, `ctx.git`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | git consumes the typed ctx.git seam (no subprocess contact in the tool layer) through one `operation` discriminator (status \| diff \| log \| commit); commit requires a message and runs exclusively (not concurrency-safe), and commits do not raise an approval card — file mutations still go through the fs approval surface. |
 | `@huiliyi37/dsh-tool-memory` | `memory_save`, `memory_search` | `ctx.tools`, `ctx.systemPrompt`, `ctx.memory (execution time)` | `tool/call`, `tool/result` | - | memory_save and memory_search reach the project-memory store lazily at execution time, so the schemas are independent of the memory backend. |
 | `@huiliyi37/dsh-tool-meridian` | `repo_graph` | `ctx.tools`, `ctx.systemPrompt`, `ctx.meridian (execution time)` | `tool/call`, `tool/result` | - | repo_graph queries the code-graph index (repo map, impact analysis, flow queries) lazily at execution time; its system-prompt section is injected by the runtime-context content-diff only when the index is present. |
 | `@huiliyi37/dsh-tool-semantic-search` | `semantic_search` | `ctx.tools`, `ctx.systemPrompt`, `ctx.semanticIndex (execution time)` | `tool/call`, `tool/result` | - | semantic_search runs workspace retrieval (definition-aligned BM25 with optional vector fusion) lazily at execution time; its system-prompt section is injected by the runtime-context content-diff only when the index is present. |
@@ -1733,7 +1733,7 @@ Run a git operation in the repository: status (branch + dirty), diff (uncommitte
 
 Source: [`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
 
-git_status / git_diff / git_log / git_commit consume the typed ctx.git seam (no subprocess contact in the tool layer); git_commit requires a message and runs exclusively (not concurrency-safe), and commits do not raise an approval card — file mutations still go through the fs approval surface.
+git consumes the typed ctx.git seam (no subprocess contact in the tool layer) through one `operation` discriminator (status | diff | log | commit); commit requires a message and runs exclusively (not concurrency-safe), and commits do not raise an approval card — file mutations still go through the fs approval surface.
 
 ## `@huiliyi37/dsh-tool-memory`
 

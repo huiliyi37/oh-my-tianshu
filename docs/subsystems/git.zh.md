@@ -2,7 +2,7 @@
 
 [English](git.md) | 中文
 
-[`@huiliyi37/dsh-git`](../../packages/git/git) 拥有的类型化 git 能力接缝：抽象 `Git` 服务定义四个仓库操作（显式收 `cwd` 与取消信号），同包的 `GitLocal` provider 通过外部 `git` CLI 执行，并把失败映射为类型化 `GitError`。面向模型的 `git_status` / `git_diff` / `git_log` / `git_commit` 工具面由[工具包](../../packages/git/tool-git/README.md)拥有；provider 行为与错误映射由包 [README](../../packages/git/git/README.md) 拥有。
+[`@huiliyi37/dsh-git`](../../packages/git/git) 拥有的类型化 git 能力接缝：抽象 `Git` 服务定义四个仓库操作（显式收 `cwd` 与取消信号），同包的 `GitLocal` provider 通过外部 `git` CLI 执行，并把失败映射为类型化 `GitError`。面向模型的 `git` 工具（`operation`：status | diff | log | commit）由[工具包](../../packages/git/tool-git/README.md)拥有；provider 行为与错误映射由包 [README](../../packages/git/git/README.md) 拥有。
 
 来源：[`packages/git/git/src/index.ts`](../../packages/git/git/src/index.ts)
 

@@ -47,12 +47,18 @@
       name: '@huiliyi37/dsh-evidence-gate'
 
     # 禅相位（provide 'zen'）：新顶层会话首步跑最小锚定面（官方评测配方
-    # bash + str_replace_editor + todo_write + zen_anchor），锚校验/超时/分诊
-    # 三谓词晋升全量面。子代理会话（parentSession）不参与。消融报告与数据见
-    # examples/headless-agent/zen-ablation-report.md（同目录 -results.json）。
+    # bash + str_replace_editor + todo_write + zen_anchor），并露出 subagent
+    # 以便收窄期能走到已按角色收窄的委派路径。锚校验/超时/分诊三谓词晋升
+    # 去重后的顶层面（promoteDeny 拿掉与 bash 抢意图的栈；插件仍注册，
+    # 供 explore 子代理的 allow 列表使用）。子代理会话（parentSession）
+    # 不参与。Phase 0 消融见 examples/headless-agent/zen-ablation-report.md。
     - id: zen
       name: '@huiliyi37/dsh-zen'
       config:
+        face: [bash, str_replace_editor, todo_write, subagent]
+        promoteDeny: [edit, file_info, git, glob, grep, read, write]
+        diet:
+          maxDescriptionChars: 80
         section: >-
           Zen phase — the toolset is reduced while you anchor the task.
           Before any modification: (1) restate the goal in one sentence;

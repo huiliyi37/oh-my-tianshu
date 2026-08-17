@@ -317,6 +317,11 @@
         backgroundMode: continuable
         # One instance owns the durable <available_agents> catalog.
         agentCatalog: true
+        # Ceiling for every child: official minimal recipe ∪ the built-in
+        # explore role. A role allow-list is intersected with this; un-roled
+        # children do not inherit the parent's full face.
+        toolFilter:
+          allow: [bash, str_replace_editor, todo_write, grep, read, glob, semantic_search]
 
     - id: tool-subagent-fork
       name: '@huiliyi37/dsh-tool-subagent'
@@ -324,6 +329,8 @@
         provider: fork
         toolName: subagent_fork
         backgroundMode: continuable
+        toolFilter:
+          allow: [bash, str_replace_editor, todo_write, grep, read, glob, semantic_search]
 
     # Optional direct-child return channel; absent from roots and one-shot agents.
     - id: tool-subagent-report

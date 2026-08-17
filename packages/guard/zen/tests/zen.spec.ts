@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest'
 import type { SessionEvent } from '@huiliyi37/dsh-session'
-import { foldZenPhase, hasAnchorEvidence, resolveConfig } from '@huiliyi37/dsh-zen'
+import { foldZenPhase, hasAnchorEvidence, resolveConfig, selectFaceExtras, selectedFace, clipDescription, BASH_OVERLAP_TOOLS } from '@huiliyi37/dsh-zen'
 
 describe('resolveConfig', () => {
   it('materializes every default around a section', () => {
@@ -16,6 +16,9 @@ describe('resolveConfig', () => {
       timeoutSteps: 4,
       requireEvidence: true,
       triage: { enabled: true, maxChars: 80 },
+      faceSelection: { enabled: false },
+      diet: undefined,
+      promoteDeny: [],
       enabled: true,
     })
   })
@@ -27,6 +30,9 @@ describe('resolveConfig', () => {
       timeoutSteps: 2,
       requireEvidence: false,
       triage: { enabled: false, maxChars: 10 },
+      faceSelection: { enabled: true },
+      diet: { maxDescriptionChars: 80 },
+      promoteDeny: ['read', 'grep'],
       enabled: false,
     })).toEqual({
       section: 'guide',
@@ -34,6 +40,9 @@ describe('resolveConfig', () => {
       timeoutSteps: 2,
       requireEvidence: false,
       triage: { enabled: false, maxChars: 10 },
+      faceSelection: { enabled: true },
+      diet: { maxDescriptionChars: 80 },
+      promoteDeny: ['read', 'grep'],
       enabled: false,
     })
   })
@@ -53,8 +62,21 @@ describe('resolveConfig', () => {
     [{ section: 'g', triage: { enabled: 1 } }, /`triage.enabled` must be a boolean/],
     [{ section: 'g', triage: { maxChars: 0 } }, /`triage.maxChars` must be a positive integer/],
     [{ section: 'g', enabled: 'yes' }, /`enabled` must be a boolean/],
+    [{ section: 'g', faceSelection: { bogus: 1 } }, /`faceSelection` has unknown key\(s\) bogus/],
+    [{ section: 'g', faceSelection: { enabled: 1 } }, /`faceSelection.enabled` must be a boolean/],
+    [{ section: 'g', diet: { bogus: 1, maxDescriptionChars: 8 } }, /`diet` has unknown key\(s\) bogus/],
+    [{ section: 'g', diet: { maxDescriptionChars: 0 } }, /`diet.maxDescriptionChars` must be a positive integer/],
+    [{ section: 'g', promoteDeny: [''] }, /`promoteDeny` must be a list of non-empty tool names/],
+    [{ section: 'g', promoteDeny: ['read', 'read'] }, /`promoteDeny` must not repeat tool names/],
+    [{ section: 'g', promoteDeny: ['zen_anchor'] }, /`promoteDeny` must not name 'zen_anchor'/],
+    [{ section: 'g', face: ['bash'], promoteDeny: ['bash'] }, /must not repeat a name from `face`/],
   ])('rejects malformed config %j', (config, pattern) => {
     expect(() => resolveConfig(config as never)).toThrow(pattern)
+  })
+
+  it('keeps BASH_OVERLAP_TOOLS off the default zen face', () => {
+    const face = resolveConfig({ section: 'guide' }).face
+    expect(BASH_OVERLAP_TOOLS.some(name => face.includes(name))).toBe(false)
   })
 })
 
@@ -112,5 +134,33 @@ describe('hasAnchorEvidence', () => {
       toolCall('c1', 'todo_write', 0), toolResult('c1', false, 1),
       toolCall('c2', 'zen_anchor', 2), toolResult('c2', false, 3),
     ])).toBe(false)
+  })
+})
+
+describe('selectFaceExtras', () => {
+  it('appends only non-bash-substitutable tools the first message names', () => {
+    expect(selectFaceExtras('delegate this to a subagent that explores the tree')).toEqual(['subagent'])
+    expect(selectFaceExtras('use the language server to go to definition')).toEqual(['lsp', 'semantic_search'])
+    expect(selectFaceExtras('remember this across sessions')).toEqual(['memory_save', 'memory_search'])
+    expect(selectFaceExtras('search the previous session for that decision')).toEqual(['session_search', 'session_trace'])
+  })
+
+  it('does not treat an ordinary coding task as needing extras', () => {
+    expect(selectFaceExtras('Rename add to sum across src/ and keep tests green.')).toEqual([])
+  })
+})
+
+describe('selectedFace', () => {
+  it('keeps the alt-0 base and drops extras the deployment did not register', () => {
+    const base = ['bash', 'todo_write']
+    expect(selectedFace(base, ['subagent', 'lsp'], new Set(['bash', 'todo_write', 'subagent'])))
+      .toEqual(['bash', 'todo_write', 'subagent'])
+  })
+})
+
+describe('clipDescription', () => {
+  it('leaves a short description alone and clips on a word boundary', () => {
+    expect(clipDescription('short', 80)).toBe('short')
+    expect(clipDescription('test tool probe', 8)).toBe('test')
   })
 })

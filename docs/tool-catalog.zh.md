@@ -42,7 +42,7 @@
 | `@huiliyi37/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflows`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
 | `@huiliyi37/dsh-tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
 | `@huiliyi37/dsh-tool-file-info` | `file_info` | `ctx.tools`、`ctx.fs` | `tool/call`、`tool/result` | - | file_info 通过 ctx.fs 报告元数据（大小、类型、修改时间），不会把文件内容读进模型上下文。 |
-| `@huiliyi37/dsh-tool-git` | `git` | `ctx.tools`、`ctx.git`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | git_status／git_diff／git_log／git_commit 消费有类型的 ctx.git seam（工具层不接触子进程）；git_commit 要求提供提交信息且独占运行（非并发安全），提交不会弹出审批卡——文件变更仍走 fs 审批面。 |
+| `@huiliyi37/dsh-tool-git` | `git` | `ctx.tools`、`ctx.git`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | git 通过一个 `operation` 判别（status \| diff \| log \| commit）消费有类型的 ctx.git seam（工具层不接触子进程）；commit 要求提供提交信息且独占运行（非并发安全），提交不会弹出审批卡——文件变更仍走 fs 审批面。 |
 | `@huiliyi37/dsh-tool-memory` | `memory_save`、`memory_search` | `ctx.tools`、`ctx.systemPrompt`、`ctx.memory (execution time)` | `tool/call`、`tool/result` | - | memory_save 与 memory_search 在执行时才惰性访问项目记忆存储，因此 schema 与记忆后端无关。 |
 | `@huiliyi37/dsh-tool-meridian` | `repo_graph` | `ctx.tools`、`ctx.systemPrompt`、`ctx.meridian (execution time)` | `tool/call`、`tool/result` | - | repo_graph 在执行时才惰性查询代码图索引（仓库地图、影响分析、流查询）；其系统提示词区段仅在索引存在时由 runtime-context 内容差异注入。 |
 | `@huiliyi37/dsh-tool-semantic-search` | `semantic_search` | `ctx.tools`、`ctx.systemPrompt`、`ctx.semanticIndex (execution time)` | `tool/call`、`tool/result` | - | semantic_search 在执行时才惰性执行工作区检索（定义对齐的 BM25，可选向量融合）；其系统提示词区段仅在索引存在时由 runtime-context 内容差异注入。 |
@@ -1738,7 +1738,7 @@ file_info 通过 ctx.fs 报告元数据（大小、类型、修改时间），�
 
 来源：[`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
 
-git_status／git_diff／git_log／git_commit 消费有类型的 ctx.git seam（工具层不接触子进程）；git_commit 要求提供提交信息且独占运行（非并发安全），提交不会弹出审批卡——文件变更仍走 fs 审批面。
+git 通过一个 `operation` 判别（status | diff | log | commit）消费有类型的 ctx.git seam（工具层不接触子进程）；commit 要求提供提交信息且独占运行（非并发安全），提交不会弹出审批卡——文件变更仍走 fs 审批面。
 
 ## `@huiliyi37/dsh-tool-memory`
 
