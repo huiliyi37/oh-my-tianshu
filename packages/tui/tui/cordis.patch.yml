@@ -31,8 +31,9 @@
     - id: memory
       name: '@huiliyi37/dsh-memory'
 
-    # memory_save / memory_search 模型工具 + 记忆摘要 system prompt 注入
-    # （digest 缺省开）。memory 服务缺席时降级为「未装配」占位，不阻塞装配。
+    # memory_save / memory_search 模型工具 + 静态记忆指引 system prompt section
+    # （digest 缺省关；开启会在每次 save 后刷新摘要、击穿前缀缓存）。
+    # memory 服务缺席时工具执行 fail loud；section 仍注册（静态指引不依赖服务）。
     - id: tool-memory
       name: '@huiliyi37/dsh-tool-memory'
 

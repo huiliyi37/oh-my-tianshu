@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-17-tui-bundle-tianshu-capability-roster.md
-2026-08-17-tui-bundle-tianshu-capability-roster.md: b321f22189c617bc466d0e2b05b5b2288a3a8d60
-2026-08-17-tui-bundle-tianshu-capability-roster.zh.md: 98c39e8d0c0f85e3f308b751e286d1068279f9f7
+2026-08-17-tui-bundle-tianshu-capability-roster.md: bdb537abb0fe51431bcdce7b85af21b77469dd24
+2026-08-17-tui-bundle-tianshu-capability-roster.zh.md: f1a7a2dad22774eb654a59148c4cadb49d3e88cd

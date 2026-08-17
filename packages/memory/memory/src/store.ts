@@ -24,6 +24,8 @@
  *
  * 并发约束：单进程串行调用（TUI 命令与工具调用都走同事件循环）；跨进程
  * 并发写（两个 dsh 实例同 cwd）不在此保证——文档化限制。
+ * save 忽略 MemorySaveInput 上的结构化字段；search 的 entities/topic 退化为
+ * tags 精确匹配，excludeIds 按 id 或非空前缀排除。
  *
  * @module @huiliyi37/dsh-memory/store
  */
@@ -31,7 +33,14 @@
 import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, readdir, rename, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import type { MemoryEntry, MemoryScope, MemoryService } from './types.js'
+import type {
+  MemoryEntry,
+  MemorySaveInput,
+  MemoryScope,
+  MemorySearchOptions,
+  MemorySearchResult,
+  MemoryService,
+} from './types.js'
 
 /** 文件格式版本标记（解析时忽略未知行，向前兼容）。 */
 const FILE_HEADER = '<!-- dsh-memory v1 -->'
@@ -156,7 +165,9 @@ export class MarkdownMemoryStore implements MemoryService {
     this.root = root
   }
 
-  async save(entry: Omit<MemoryEntry, 'id' | 'createdAt'> & { id?: string }): Promise<MemoryEntry> {
+  async save(entry: MemorySaveInput): Promise<MemoryEntry> {
+    // 结构化字段（kind/topic/entities/confidence/fact/sourceRefs）属结构化
+    // provider 的维度；Markdown 为纯文本存储，按契约忽略。
     assertScope(entry.scope)
     const all = await this.readAll(entry.scope)
     const existing = entry.id === undefined ? undefined : all.find(e => e.id === entry.id)
@@ -188,10 +199,19 @@ export class MarkdownMemoryStore implements MemoryService {
     return updated
   }
 
-  async search(query: string, opts: { scope?: string; limit?: number; offset?: number } = {}): Promise<MemoryEntry[]> {
+  async search(
+    query: string,
+    opts: MemorySearchOptions = {},
+  ): Promise<MemorySearchResult[]> {
+    const { excludeIds, entities, topic, ...listOpts } = opts
     const needle = query.toLowerCase()
-    return this.list(opts).then(all =>
-      all.filter(e => needle === '' || e.text.toLowerCase().includes(needle)),
+    return this.list(listOpts).then(all =>
+      all.filter(e =>
+        (needle === '' || e.text.toLowerCase().includes(needle))
+        && !isExcluded(e, excludeIds ?? [])
+        && (entities ?? []).every(entity => e.tags.includes(entity))
+        && (topic === undefined || e.tags.includes(topic)),
+      ),
     )
   }
 
@@ -270,6 +290,11 @@ export class MarkdownMemoryStore implements MemoryService {
     await writeFile(tmp, content)
     await rename(tmp, file)
   }
+}
+
+/** 空串前缀不排除任何条目（startsWith('') 否则会匹配全部 id）。 */
+function isExcluded(entry: MemoryEntry, excludeIds: string[]): boolean {
+  return excludeIds.some(excluded => excluded !== '' && entry.id.startsWith(excluded))
 }
 
 /** limit 截断（缺省不限）。 */

@@ -8,7 +8,9 @@
  * - 文件格式人类可读/可手动编辑：每条记忆 = 元数据注释行 + 文本 + 结束注释。
  * - save 新建（id 缺省）→ 生成 uuid + createdAt；save 更新（带 id）→ 覆盖 +
  *   updatedAt；delete → 移除。整文件原子重写（temp + rename）。
- * - list 按 createdAt 倒序；search 朴素子串匹配（大小写不敏感）。
+ * - list 按 createdAt 倒序；search 朴素子串匹配（大小写不敏感），excludeIds
+ *   按 id 或前缀排除；entities/topic 退化为 tags 精确匹配；结构化 save
+ *   字段被忽略，不进 Markdown。
  * - 新实例读同一目录可恢复全部记忆（重启可读）。
  *
  * @module @huiliyi37/dsh-memory/tests/memory
@@ -91,6 +93,58 @@ describe('MarkdownMemoryStore', () => {
     expect(miss).toHaveLength(0)
     const limited = await store.search('', { limit: 1 })
     expect(limited).toHaveLength(1)
+  })
+
+  it('search：excludeIds 按 id 或 id 前缀排除条目', async () => {
+    const store = await makeStore()
+    const keep = await store.save({ text: '保留的记忆', scope: 'global', tags: [], source: 'user' })
+    const drop = await store.save({ text: '已进 STM 的记忆', scope: 'global', tags: [], source: 'user' })
+    const exact = await store.search('', { excludeIds: [drop.id] })
+    expect(exact.map(e => e.id)).toEqual([keep.id])
+    const prefix = await store.search('', { excludeIds: [drop.id.slice(0, 8)] })
+    expect(prefix.map(e => e.id)).toEqual([keep.id])
+    const emptyPrefix = await store.search('', { excludeIds: [''] })
+    expect(emptyPrefix).toHaveLength(2)
+  })
+
+  it('search：entities / topic 退化为 tags 精确匹配', async () => {
+    const store = await makeStore()
+    await store.save({ text: '用 pnpm', scope: 'global', tags: ['tooling', 'pnpm'], source: 'user' })
+    await store.save({ text: '用 npm', scope: 'global', tags: ['tooling'], source: 'user' })
+    const byEntity = await store.search('', { entities: ['pnpm'] })
+    expect(byEntity).toHaveLength(1)
+    expect(byEntity[0]?.text).toBe('用 pnpm')
+    const byTopic = await store.search('', { topic: 'tooling' })
+    expect(byTopic).toHaveLength(2)
+    const miss = await store.search('', { topic: 'absent' })
+    expect(miss).toHaveLength(0)
+  })
+
+  it('save：结构化字段被忽略，落盘仍是纯文本条目', async () => {
+    const store = await makeStore()
+    const entry = await store.save({
+      text: '只用 Markdown',
+      scope: 'global',
+      tags: [],
+      source: 'agent',
+      kind: 'fact',
+      topic: 'architecture',
+      entities: ['store'],
+      confidence: 0.4,
+      fact: { subject: 'repo', predicate: 'uses', value: 'pnpm' },
+      sourceRefs: [{ sessionId: 's1', eventSeqs: [1] }],
+    })
+    expect(entry).toEqual({
+      id: entry.id,
+      text: '只用 Markdown',
+      scope: 'global',
+      tags: [],
+      createdAt: entry.createdAt,
+      source: 'agent',
+    })
+    expect(store.topicVersions).toBeUndefined()
+    expect(store.markUncertain).toBeUndefined()
+    expect(store.retireStale).toBeUndefined()
   })
 
   it('delete：移除条目；删除不存在的 id 静默 no-op', async () => {

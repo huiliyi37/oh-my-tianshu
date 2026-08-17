@@ -1771,7 +1771,7 @@ Source: [`packages/memory/tool-memory/src/index.ts`](../packages/memory/tool-mem
 
 ### `memory_search`
 
-在项目记忆中检索知识（关键词子串匹配，大小写不敏感；空 query 列出全部）。开始新任务、需要历史决策/项目约定/用户偏好时使用。
+在项目记忆中检索知识（关键词子串匹配，大小写不敏感；空 query 列出全部）。开始新任务、需要历史决策/项目约定/用户偏好时使用。已在当前上下文出现的条目用 excludeIds 排除，避免重复占用上下文。
 
 ```json
 {
@@ -1783,7 +1783,14 @@ Source: [`packages/memory/tool-memory/src/index.ts`](../packages/memory/tool-mem
     },
     "limit": {
       "type": "number",
-      "description": "返回条数上限（缺省 10）"
+      "description": "返回条数上限（缺省且封顶 10）"
+    },
+    "excludeIds": {
+      "type": "array",
+      "description": "要排除的记忆 id（完整 id 或已展示的短 id 前缀）",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "required": [

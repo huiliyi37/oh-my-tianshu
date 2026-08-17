@@ -2342,12 +2342,18 @@ Requires: `tools` · `systemPrompt`
 ```ts config-catalog
 /** 插件配置。 */
 export interface ToolMemoryConfig {
-  /** 摘要注入开关（缺省 true）。 */
+  /**
+   * 调试开关（缺省 false）：在 system prompt 追加最近 20 条记忆摘要。
+   * 摘要在每次 save 后刷新，会重写请求前缀并击穿 provider 前缀缓存——
+   * 仅供缓存对比实验使用，生产组合保持关闭。
+   */
   digest?: boolean
+  /** memory_search 单次调用的结果数预算（缺省 10；模型的 limit 参数被钳制到此值）。 */
+  searchLimit?: number
 }
 ```
 
-Source: [`packages/memory/tool-memory/src/index.ts:60`](../packages/memory/tool-memory/src/index.ts)
+Source: [`packages/memory/tool-memory/src/index.ts:63`](../packages/memory/tool-memory/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-meridian`
 

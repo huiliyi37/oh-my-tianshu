@@ -12,7 +12,7 @@ Status: implemented
 
 dsh-tui bundle patch（`packages/tui/tui/cordis.patch.yml`）现在在 dsh-base 之上多插入七行：`fs-snapshot`、`memory`、`tool-memory`、`tool-session-query`、`evidence-gate`、`agent-router`、`agent-presets`（`default: standard`，与 web-app bundle 一致）。`package.json` 把每个包声明为 workspace 依赖（patch 中 bare 插件的 resolver manifest 要求），并把 `dsh-agent-presets` 从 devDependencies 移入 dependencies。
 
-每行都以库默认值挂载，逐一读过各插件的配置契约后选定：fs-snapshot 备份落 `$TMPDIR/dsh-fs-snapshot`；memory 存储落 `<cwd>/.dsh/memory/`；tool-memory 的摘要注入默认开、服务缺席时渲染占位符；tool-session-query 复用 dsh-base 的 `session-query-sqlite` 已提供的 `sessionQuery` 服务；evidence-gate 默认温和（编辑拦截仅命中模型自建的 high bugfix 义务，TDD 门为 `suggest` 模式——只建议不拦截）；agent-router 派发跟随子代理默认路由。shipped 只读预置根由 `composeProfile` 按行 id `agent-presets` 注入、与 profile 无关，tui profile 无需改动应用即获得。
+每行都以库默认值挂载，逐一读过各插件的配置契约后选定：fs-snapshot 备份落 `$TMPDIR/dsh-fs-snapshot`；memory 存储落 `<cwd>/.dsh/memory/`；tool-memory 的摘要注入默认关（仅静态能力指引；`digest: true` 是调试开关，每次 save 后会重写请求前缀），memory 服务缺席时工具执行 fail loud；tool-session-query 复用 dsh-base 的 `session-query-sqlite` 已提供的 `sessionQuery` 服务；evidence-gate 默认温和（编辑拦截仅命中模型自建的 high bugfix 义务，TDD 门为 `suggest` 模式——只建议不拦截）；agent-router 派发跟随子代理默认路由。shipped 只读预置根由 `composeProfile` 按行 id `agent-presets` 注入、与 profile 无关，tui profile 无需改动应用即获得。
 
 ## Alternatives considered
 
@@ -24,4 +24,4 @@ dsh-tui bundle patch（`packages/tui/tui/cordis.patch.yml`）现在在 dsh-base 
 
 ## Consequences
 
-发货 TUI profile 获得模型可见面——`memory_save`/`memory_search` 工具与记忆摘要 prompt 段、五件会话查询工具、evidence/TDD 门禁消息——全部走既有的已日志化工具与请求词汇；无新事件类型。`/rewind` 文件回退、`/remember`、`/memory`、`/preset` 在发货产品中点亮而非降级。TUI README 在 Assembly 段记录了 bundle roster，同一改动修正了两条过时的 Known Limitations 条目（图片追问已作为 opt-in `dsh-vision-ask` 移植；turn-summary/summary-state 已由 App 主体驱动，见 docs/projection-layer.md），翻译配对已重录。
+发货 TUI profile 获得模型可见面——`memory_save`/`memory_search` 工具与静态记忆指引 prompt 段、五件会话查询工具、evidence/TDD 门禁消息——全部走既有的已日志化工具与请求词汇；无新事件类型。`/rewind` 文件回退、`/remember`、`/memory`、`/preset` 在发货产品中点亮而非降级。TUI README 在 Assembly 段记录了 bundle roster，同一改动修正了两条过时的 Known Limitations 条目（图片追问已作为 opt-in `dsh-vision-ask` 移植；turn-summary/summary-state 已由 App 主体驱动，见 docs/projection-layer.md），翻译配对已重录。
