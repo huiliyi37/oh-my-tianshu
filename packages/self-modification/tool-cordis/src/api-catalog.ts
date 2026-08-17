@@ -743,6 +743,24 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'messageFeedback',
+    summary: 'Storage-domain sidecar service.',
+    methods: [
+      {
+        signature: '@Remote(\'list\') async list(request: MessageFeedbackListRequest): Promise<MessageFeedbackListResult>',
+        jsDoc: '/**\n * Read feedback belonging to the current persisted Session lifecycle.\n * A stale row from a reused Session id is invisible.\n * @param request - Session identity to inspect and list.\n * @returns current immutable items or `session-not-found`.\n */',
+      },
+      {
+        signature: '@Remote(\'put\') put(request: MessageFeedbackPutRequest): Promise<MessageFeedbackPutResult>',
+        jsDoc: '/**\n * Create or replace feedback for one derived append-origin assistant\n * message. Every request must match the addressed item\'s current version;\n * a matching no-op returns the stored item without changing its revision.\n * @param request - target, desired value, and observed item version.\n * @returns the committed item or an explicit business failure.\n */',
+      },
+      {
+        signature: '@Remote(\'delete\') delete(request: MessageFeedbackDeleteRequest): Promise<MessageFeedbackDeleteResult>',
+        jsDoc: '/**\n * Delete one feedback item. Absence is successful regardless of the\n * supplied version; an existing item requires an exact version match.\n * @param request - Session, message, and observed item version.\n * @returns the stable absent postcondition, or an explicit failure.\n */',
+      },
+    ],
+  },
+  {
     key: 'permission',
     summary: 'Owns the deployment\'s permission presets and their write path.',
     methods: [
@@ -1378,6 +1396,10 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     key: 'tools',
     summary: 'Tool registry and execution pipeline.',
     methods: [
+      {
+        signature: 'presentAs(mode: ToolPresentationMode): () => void',
+        jsDoc: '/**\n * Present the calling scope\'s tools in `mode` instead of the deployment\n * default. Nearest scope on the chain wins, so a preset\'s standing\n * declaration covers every agent joined under it.\n *\n * Scoped only, and one declaration per scope: this is how an agent preset\n * composes Code Mode agents beside native ones in the same process, and a\n * process-global override would be the `mode` config field instead.\n * @param mode - the presentation the covered agents\' models see.\n * @returns the exact disposer that restores the deployment default.\n */',
+      },
       {
         signature: 'register(definition: ToolDefinition): () => void',
         jsDoc: '/**\n * Register globally or in the calling agent scope. Scoped tools shadow\n * globals; duplicates within one layer and the reserved `run_code` name fail.\n * @param definition - tool schema, execution, and optional finalization/presentation callbacks.\n * @returns the exact disposer that unregisters the tool.\n */',
@@ -2788,6 +2810,82 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface Message {\n    readonly id: MessageId;\n    readonly role: \'system\' | \'user\' | \'assistant\';\n    readonly content: ContentBlock[];\n    readonly source: MessageSource;\n}',
   },
   {
+    name: 'MessageFeedbackDeleteRequest',
+    declaration: 'export interface MessageFeedbackDeleteRequest {\n    readonly sessionId: SessionId;\n    readonly messageId: MessageId;\n    readonly ifVersion: MessageFeedbackVersion;\n}',
+  },
+  {
+    name: 'MessageFeedbackDeleteResult',
+    declaration: 'export type MessageFeedbackDeleteResult = MessageFeedbackSuccess<MessageFeedbackDeleteValue> | MessageFeedbackRejected<MessageFeedbackSessionNotFound | MessageFeedbackVersionConflict>;',
+  },
+  {
+    name: 'MessageFeedbackDeleteValue',
+    declaration: 'export interface MessageFeedbackDeleteValue {\n    readonly absent: true;\n}',
+  },
+  {
+    name: 'MessageFeedbackFailure',
+    declaration: 'export type MessageFeedbackFailure = MessageFeedbackSessionNotFound | MessageFeedbackTargetNotFound | MessageFeedbackVersionConflict | MessageFeedbackNoteBlank | MessageFeedbackNoteTooLarge;',
+  },
+  {
+    name: 'MessageFeedbackItem',
+    declaration: 'export interface MessageFeedbackItem {\n    readonly messageId: MessageId;\n    readonly rating: MessageFeedbackRating;\n    readonly note?: string;\n    readonly version: MessageFeedbackVersion;\n    readonly createdAt: number;\n    readonly updatedAt: number;\n}',
+  },
+  {
+    name: 'MessageFeedbackListRequest',
+    declaration: 'export interface MessageFeedbackListRequest {\n    readonly sessionId: SessionId;\n}',
+  },
+  {
+    name: 'MessageFeedbackListResult',
+    declaration: 'export type MessageFeedbackListResult = MessageFeedbackSuccess<MessageFeedbackListValue> | MessageFeedbackRejected<MessageFeedbackSessionNotFound>;',
+  },
+  {
+    name: 'MessageFeedbackListValue',
+    declaration: 'export interface MessageFeedbackListValue {\n    readonly items: readonly MessageFeedbackItem[];\n}',
+  },
+  {
+    name: 'MessageFeedbackNoteBlank',
+    declaration: 'export interface MessageFeedbackNoteBlank {\n    readonly code: \'note-blank\';\n}',
+  },
+  {
+    name: 'MessageFeedbackNoteTooLarge',
+    declaration: 'export interface MessageFeedbackNoteTooLarge {\n    readonly code: \'note-too-large\';\n    readonly maxBytes: number;\n    readonly actualBytes: number;\n}',
+  },
+  {
+    name: 'MessageFeedbackPutRequest',
+    declaration: 'export interface MessageFeedbackPutRequest {\n    readonly sessionId: SessionId;\n    readonly messageId: MessageId;\n    readonly rating: MessageFeedbackRating;\n    readonly note?: string;\n    readonly ifVersion: MessageFeedbackVersion | null;\n}',
+  },
+  {
+    name: 'MessageFeedbackPutResult',
+    declaration: 'export type MessageFeedbackPutResult = MessageFeedbackSuccess<MessageFeedbackItem> | MessageFeedbackRejected<MessageFeedbackSessionNotFound | MessageFeedbackTargetNotFound | MessageFeedbackVersionConflict | MessageFeedbackNoteBlank | MessageFeedbackNoteTooLarge>;',
+  },
+  {
+    name: 'MessageFeedbackRating',
+    declaration: 'export type MessageFeedbackRating = \'positive\' | \'negative\';',
+  },
+  {
+    name: 'MessageFeedbackRejected',
+    declaration: 'export interface MessageFeedbackRejected<E extends MessageFeedbackFailure> {\n    readonly ok: false;\n    readonly error: E;\n}',
+  },
+  {
+    name: 'MessageFeedbackSessionNotFound',
+    declaration: 'export interface MessageFeedbackSessionNotFound {\n    readonly code: \'session-not-found\';\n    readonly sessionId: SessionId;\n}',
+  },
+  {
+    name: 'MessageFeedbackSuccess',
+    declaration: 'export interface MessageFeedbackSuccess<T> {\n    readonly ok: true;\n    readonly value: T;\n}',
+  },
+  {
+    name: 'MessageFeedbackTargetNotFound',
+    declaration: 'export interface MessageFeedbackTargetNotFound {\n    readonly code: \'target-not-found\';\n    readonly sessionId: SessionId;\n    readonly messageId: MessageId;\n}',
+  },
+  {
+    name: 'MessageFeedbackVersion',
+    declaration: 'export type MessageFeedbackVersion = Branded<\'MessageFeedbackVersion\'>;',
+  },
+  {
+    name: 'MessageFeedbackVersionConflict',
+    declaration: 'export interface MessageFeedbackVersionConflict {\n    readonly code: \'version-conflict\';\n    readonly current: MessageFeedbackItem | null;\n}',
+  },
+  {
     name: 'MessageId',
     declaration: 'export type MessageId = Branded<\'MessageId\'>;',
   },
@@ -3037,7 +3135,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SandboxPolicy',
-    declaration: 'export interface SandboxPolicy extends SandboxExecutionPolicy {\n    mode: ConfinedSandboxMode;\n}',
+    declaration: 'export interface SandboxPolicy extends SandboxExecutionPolicy {\n    mode: ConfinedSandboxMode;\n    sessionId?: SessionId;\n}',
   },
   {
     name: 'SandboxPolicyRequest',
@@ -3674,6 +3772,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ToolOutputDefinition',
     declaration: 'export interface ToolOutputDefinition {\n    readonly schema: JsonSchemaNode;\n    render(args: unknown, value: JsonValue): ContentBlock[];\n    presentationMeta?(args: unknown, value: JsonValue): JsonValue;\n}',
+  },
+  {
+    name: 'ToolPresentationMode',
+    declaration: 'export type ToolPresentationMode = \'native\' | \'code\' | \'both\';',
   },
   {
     name: 'ToolProviderResult',
