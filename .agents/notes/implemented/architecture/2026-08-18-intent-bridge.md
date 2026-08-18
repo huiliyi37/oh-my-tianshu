@@ -35,10 +35,27 @@ The intent bridge (`packages/guard/intent-bridge`, `@huiliyi37/dsh-intent-bridge
 ## Testing
 
 - `tests/align.spec.ts` — alignment contract text + finalize argument validation table (15 tests).
-- `tests/intent-bridge.spec.ts` — full-loop scripted-model integration: multi-round alignment → finalize → main session task card → zen arm; rounds exhaustion force-finalizes a template card; malformed finalize rejected with no main session; disabled fails loud (4 tests).
+- `tests/intent-bridge.spec.ts` — full-loop scripted-model integration: multi-round alignment → finalize → main session task card → zen arm; rounds exhaustion force-finalizes a template card; malformed finalize rejected with no main session; disabled fails loud; per-call `cwd`/`exec` override honored (5 tests).
 - `tests/invariant.spec.ts` — handoff record invariants on live appends and late registration (8 tests).
 - Keyless snapshot (`examples/headless-agent/tests/intent-bridge.snapshot.ts`, real Loader + replay adapter with both provider routes): alignment in one round → task card in the main session's persisted log → handoff recorded → zen armed; alignment session seeded full and titled.
-- 27 package tests + snapshot green on macOS; zen (61), task-card (28), and TUI app (260) suites re-run without regression.
+- 28 package tests + snapshot green on macOS; zen (61), task-card (28), and TUI app (260) suites re-run without regression.
+
+## Execution record
+
+- `b4af3a63` — core package (align contract, finalize tool, pre-step wiring, invariants, 27 tests).
+- `08d0dbcf`/`9f35bf22` — TUI newSession alignment branch + handoff auto-switch + bundle wiring; tsconfig references.
+- `c3d50ead` — keyless snapshot; `d8c3f42d` — docs/index sync.
+- Follow-up (`意图链后续优化`): `createAlignedSession` accepts caller-owned `cwd` (session lands in the real project directory instead of `_no-cwd/`) and `exec` override (the main session follows the TUI's `/model` selection; config remains the headless default).
+
+## Retrospective (reusable patterns)
+
+- **Seed a completed lifecycle to skip it** — seeding `zen/phase {arm} → {full}` makes zen's resume branch treat the session as already promoted: no zen arm, zero zen changes.
+- **Agent-scoped tools bypass `restrict` allow lists** — zen's `zen_anchor` pattern; the alignment agent's single tool needs no face entry.
+- **Multi-round clarification is ordinary turns** — ask (text) → turn ends → user answers via `followup`; no hang machinery.
+- **Wait with `agent.whenIdle()`, not a status listener** — a listener registered after the agent already idled misses the event and hangs the test; `whenIdle` resolves immediately at quiescence.
+- **Bare plugin rows require the resolver manifest** — every `cordis.patch.yml`/snapshot row must be declared in the owning package's dependencies (`verify-cordis-config` enforces; bitten twice).
+- **Snapshot faces must reference registered tools** — a zen `face` naming an unregistered tool fails loud at main-session arm, not at config load.
+- **Contract constants must be exported from the package entry** — `ORIGINAL_MARKER` lived in `generate.ts` without a re-export; consumers got `undefined` silently.
 
 ## Related
 

@@ -35,10 +35,27 @@ Status: implemented
 ## 测试
 
 - `tests/align.spec.ts` — 对齐契约文本 + finalize 参数校验表（15 测试）。
-- `tests/intent-bridge.spec.ts` — 全链路 scripted-model 集成：多轮对齐 → finalize → 主会话任务卡 → zen arm；轮数耗尽强制模板卡；非法 finalize 拒绝且不建主会话；disabled 响亮失败（4 测试）。
+- `tests/intent-bridge.spec.ts` — 全链路 scripted-model 集成：多轮对齐 → finalize → 主会话任务卡 → zen arm；轮数耗尽强制模板卡；非法 finalize 拒绝且不建主会话；disabled 响亮失败；per-call `cwd`/`exec` override 生效（5 测试）。
 - `tests/invariant.spec.ts` — handoff 记录不变量（live append 与晚注册，8 测试）。
 - keyless 快照（`examples/headless-agent/tests/intent-bridge.snapshot.ts`，真实 Loader + 双 provider 路由的 replay 适配器）：单轮对齐 → 主会话持久化日志含任务卡 → handoff 记录 → zen arm；对齐会话 seed full 且带标题。
-- 27 包测试 + 快照 macOS 全绿；zen（61）、task-card（28）、TUI app（260）套件重跑无回归。
+- 28 包测试 + 快照 macOS 全绿；zen（61）、task-card（28）、TUI app（260）套件重跑无回归。
+
+## 执行记录
+
+- `b4af3a63` — 核心包（对齐契约、finalize 工具、pre-step 接线、不变量、27 测试）。
+- `08d0dbcf`/`9f35bf22` — TUI newSession 对齐分支 + handoff 自动切换 + bundle 装配；tsconfig references。
+- `c3d50ead` — keyless 快照；`d8c3f42d` — 文档/索引同步。
+- 后续优化（`意图链后续优化`）：`createAlignedSession` 接受调用方持有的 `cwd`（会话落入真实项目目录而非 `_no-cwd/`）与 `exec` override（主会话跟随 TUI `/model` 选择；配置仍是 headless 默认）。
+
+## 复盘（可复用模式）
+
+- **seed 完成的生命周期来跳过它** — seed `zen/phase {arm} → {full}` 让 zen 的 resume 分支视会话为已晋升：不 arm、zen 零改动。
+- **agent-scoped 工具绕过 `restrict` allow 列表** — zen 的 `zen_anchor` 模式；对齐 agent 的单一工具无需进 face 白名单。
+- **多轮澄清就是普通 turn** — 提问（文本）→ turn 结束 → 用户经 `followup` 回答；无需挂起机制。
+- **用 `agent.whenIdle()` 等待而非 status 监听** — 监听注册晚于 agent 已 idle 会错过事件并挂起测试；`whenIdle` 在静默时立即 resolve。
+- **裸插件行必须出现在 resolver manifest** — 每条 `cordis.patch.yml`/快照行必须在所属包 dependencies 声明（`verify-cordis-config` 强制；踩过两次）。
+- **快照 face 必须引用已注册工具** — zen `face` 命名未注册工具会在主会话 arm 时响亮失败，而非配置加载时。
+- **契约常量必须从包入口导出** — `ORIGINAL_MARKER` 只活在 `generate.ts` 未 re-export；消费方静默拿到 undefined。
 
 ## 相关
 
