@@ -905,11 +905,13 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
     } else {
       for (let attempt = 0; ; attempt += 1) {
         activePhase = 'verify'
+        // No per-request stdoutMaxBytes: collection follows the executor's
+        // deployment output cap, and maxVerifyOutputChars stays the single
+        // (character) bound on the gate output steered back to the model below.
         const request: BashExecRequest = {
           command: config.verifyCommand,
           timeoutMs: config.verifyTimeoutMs,
           signal,
-          stdoutMaxBytes: config.maxVerifyOutputChars,
         }
         if (cwd !== undefined) request.workdir = cwd
         // The capability check above proves bash is present on this branch.
