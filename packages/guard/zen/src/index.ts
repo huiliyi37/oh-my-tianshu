@@ -441,10 +441,11 @@ export class ZenPhaseService extends Service {
       if (hasZenEvents(events) || conversationStarted(events)) {
         // Promoted history or a mid-conversation fork: reinstall the curated
         // top face (deny list, or unrestricted when the list is empty).
+        const restrict = this.installPromoteRestrict(agent)
         this.installs.set(agent, {
           anchor,
           face: this.config.face,
-          restrict: this.installPromoteRestrict(agent),
+          ...(restrict === undefined ? {} : { restrict }),
         })
         return
       }
