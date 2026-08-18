@@ -107,6 +107,14 @@ export interface ResolvedIntentBridgeConfig {
   section: string
 }
 
+/** Per-call alignment-session options (caller-owned; all optional). */
+export interface CreateAlignedSessionOptions {
+  /** Session project directory (durable header.cwd); omitted lands in `_no-cwd/`. */
+  cwd?: string
+  /** Main-session route override for this alignment's handoff; default is the config exec route. */
+  exec?: { provider: string; model: string }
+}
+
 /**
  * Validate deployment-owned policy and materialize defaults. Unknown keys,
  * missing provider/model pairs, and non-positive budgets fail at plugin load.
@@ -172,6 +180,8 @@ interface AlignState {
   finalized: boolean
   /** The user's first message verbatim (recorded before any rewrite). */
   originalText: string | undefined
+  /** Per-session main-session route override; falls back to the config exec route. */
+  execRoute?: { provider: string; model: string }
 }
 
 /**
@@ -260,10 +270,14 @@ export class IntentBridgeService extends Service {
   /**
    * Create a fresh alignment session: seeded zen-completed (never arms),
    * tool face restricted to `finalize_alignment`, titled for the tab list.
+   * Caller-owned options: `cwd` lands the session in a real project directory
+   * (omitted → `_no-cwd/`), `exec` overrides the main-session route for this
+   * alignment's handoff (omitted → config exec route).
    *
+   * @param options - per-call options (all optional).
    * @returns the session id and the owned handle (drive it after resolve).
    */
-  async createAlignedSession(): Promise<{ sessionId: string; handle: AgentHandle }> {
+  async createAlignedSession(options: CreateAlignedSessionOptions = {}): Promise<{ sessionId: string; handle: AgentHandle }> {
     if (!this.config.enabled) throw new Error('intent-bridge: disabled')
     const sessionId = `session-${randomUUID()}`
     const seed: SessionEvent[] = [
@@ -273,6 +287,7 @@ export class IntentBridgeService extends Service {
     const handle = await this.ctx.agents.create({
       sessionId: SessionId(sessionId),
       seed,
+      ...(options.cwd === undefined ? {} : { meta: { cwd: options.cwd } }),
       agentOptions: { provider: this.alignRoute.provider, model: this.alignRoute.model },
     })
     const agent = handle.agent
@@ -282,7 +297,12 @@ export class IntentBridgeService extends Service {
     agent.ctx.tools.register(this.finalizeTool())
     agent.ctx.tools.restrict({ allow: [] })
     agent.session.append('session/title', { title: ALIGN_TITLE, messageSeqs: [], source: { kind: 'fallback' } })
-    this.aligns.set(sessionId, { rounds: 0, finalized: false, originalText: undefined })
+    this.aligns.set(sessionId, {
+      rounds: 0,
+      finalized: false,
+      originalText: undefined,
+      ...(options.exec === undefined ? {} : { execRoute: options.exec }),
+    })
     return { sessionId, handle }
   }
 
@@ -355,9 +375,10 @@ export class IntentBridgeService extends Service {
       ? renderTaskCard(templateCard(original), original)
       : renderTaskCard(parsed, original)
     const mainId = `session-${randomUUID()}-exec`
+    const route = state.execRoute ?? this.execRoute
     const { agent: main } = await this.ctx.agents.create({
       sessionId: SessionId(mainId),
-      agentOptions: { provider: this.execRoute.provider, model: this.execRoute.model },
+      agentOptions: { provider: route.provider, model: route.model },
     })
     main.followup(createUserMessage({ content: [{ type: 'text', text: cardText }], source: { kind: 'user' } }))
     main.session.append('intent-bridge/handoff', { alignSessionId: agent.session.id, reason })
@@ -381,9 +402,10 @@ export class IntentBridgeService extends Service {
       : (state.originalText ?? '')
     state.finalized = true
     const mainId = `session-${randomUUID()}-exec`
+    const route = state.execRoute ?? this.execRoute
     const { agent: main } = await this.ctx.agents.create({
       sessionId: SessionId(mainId),
-      agentOptions: { provider: this.execRoute.provider, model: this.execRoute.model },
+      agentOptions: { provider: route.provider, model: route.model },
     })
     main.followup(createUserMessage({ content: [{ type: 'text', text: original }], source: { kind: 'user' } }))
     main.session.append('intent-bridge/handoff', { alignSessionId: sessionId, reason: 'alignment-error' })

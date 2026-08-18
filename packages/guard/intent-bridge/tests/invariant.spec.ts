@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
 import { createUserMessage } from '@huiliyi37/dsh-llm'
 import SessionStore, { Session, SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
-import * as IntentBridgeInvariant from '@huiliyi37/dsh-intent-bridge/invariant'
+import * as IntentBridgeInvariant from '../src/invariant.ts'
 import InvariantService from '@huiliyi37/dsh-invariants'
 
 async function setup(): Promise<Context> {

@@ -20,7 +20,7 @@ import AgentRegistry, { type Agent } from '@huiliyi37/dsh-agent'
 import AgentLoop from '@huiliyi37/dsh-agent-loop'
 import ZenPhaseService, { foldZenPhase } from '@huiliyi37/dsh-zen'
 import TaskCardService from '@huiliyi37/dsh-task-card'
-import IntentBridgeService, { type IntentBridgeConfig } from '@huiliyi37/dsh-intent-bridge'
+import IntentBridgeService, { type IntentBridgeConfig } from '../src/index.ts'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 
 const BASE_CONFIG: IntentBridgeConfig = {
@@ -126,6 +126,7 @@ describe('intent-bridge through the agent loop', () => {
 
     // The main session received the rendered task card as its first message.
     const main = ctx.agents.get(SessionId(handoff!.mainSessionId))
+    if (main === undefined) throw new Error('intent-bridge: main session missing after handoff')
     await waitForIdle(ctx, main)
     const mainLog = main.session.events
     const firstUser = userMessages(mainLog)[0]
@@ -137,8 +138,9 @@ describe('intent-bridge through the agent loop', () => {
     // The main session arms zen (fresh top-level session) on the anchored face.
     expect(zenPhases(mainLog)).toEqual([{ phase: 'zen', reason: 'arm' }])
     expect(headerTools(mainLog)[0]).toEqual(['probe', 'zen_anchor'])
-    expect(adapter.requests.at(-1)?.messages[0].content[0].type === 'text'
-      && adapter.requests.at(-1)!.messages[0].content[0].text).toContain('—— 原始请求 ——')
+    const lastBlock = adapter.requests.at(-1)?.messages[0]?.content[0]
+    expect(lastBlock?.type === 'text' && (lastBlock as { text?: string }).text)
+      .toContain('—— 原始请求 ——')
   })
 
   it('forces a template card when the alignment rounds are exhausted', async () => {
@@ -162,6 +164,7 @@ describe('intent-bridge through the agent loop', () => {
 
     expect(handoff).toBeDefined()
     const main = ctx.agents.get(SessionId(handoff!.mainSessionId))
+    if (main === undefined) throw new Error('intent-bridge: main session missing after handoff')
     await waitForIdle(ctx, main)
     const firstUser = userMessages(main.session.events)[0]
     // Template card: title from the original first line, verbatim original kept.
@@ -189,6 +192,46 @@ describe('intent-bridge through the agent loop', () => {
     expect(JSON.stringify(result?.type === 'tool/result' ? result.data.message.content[0] : {}))
       .toContain('finalize_alignment: needs a non-empty `title`')
     expect(handoff).toBeUndefined()
+  })
+
+  it('honors per-call cwd and exec override on the alignment and main sessions', async () => {
+    const adapter = new MockAdapter([
+      toolCallResponse('f1', 'finalize_alignment', {
+        title: '重构登录逻辑',
+        goal: '重写 src/auth.ts 的登录流程。',
+        constraints: [],
+        acceptance: [],
+      }),
+      textResponse('对齐完成。'),
+      textResponse('主会话收到。'),
+    ])
+    const ctx = await harness(adapter)
+    let handoff: { mainSessionId: string } | undefined
+    ctx.on('intent-bridge/handoff', (payload) => { handoff = payload })
+
+    const align = await ctx.intentBridge.createAlignedSession({
+      // A real directory: the session boundary validates cwd existence.
+      cwd: process.cwd(),
+      // Distinct from the config exec route (deepseek-official/flash) so the
+      // override is provable from the request stream.
+      exec: { provider: 'mock', model: 'custom-model' },
+    })
+    ask(align.handle.agent, '帮我重构 src/auth.ts 的登录逻辑')
+    await waitForIdle(ctx, align.handle.agent)
+
+    // The alignment session's durable header carries the requested cwd.
+    expect(align.handle.agent.session.header.cwd).toBe(process.cwd())
+
+    // The main session used the per-call override, not the config exec route.
+    expect(handoff).toBeDefined()
+    const main = ctx.agents.get(SessionId(handoff!.mainSessionId))
+    if (main === undefined) throw new Error('intent-bridge: main session missing after handoff')
+    await waitForIdle(ctx, main)
+    const mainRequest = adapter.requests.find(request => request.provider === 'mock')
+    expect(mainRequest?.model).toBe('custom-model')
+    // The alignment request itself still used the config align route.
+    expect(adapter.requests[0]?.provider).toBe('minimax')
+    expect(adapter.requests[0]?.model).toBe('MiniMax-M3')
   })
 
   it('disabled: createAlignedSession fails loud and no alignment wiring exists', async () => {
