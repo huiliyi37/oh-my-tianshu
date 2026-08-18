@@ -1567,9 +1567,13 @@ export class TuiApp {
     const ref = this.modelRef
     // 意图对齐桥装配时，新会话先进对齐会话（辅模型多轮澄清）；主会话在对齐
     // 完成（intent-bridge/handoff）时由 bridge 创建并自动切回。对齐会话的
-    // 模型路由由 bridge 配置（alignProvider/alignModel），不走模型选择。
+    // 模型路由由 bridge 配置（alignProvider/alignModel）；主会话跟随当前
+    // 模型选择（exec override），cwd 与常规新会话一致（启动目录）。
     if (this.ctx.intentBridge !== undefined) {
-      const align = await this.ctx.intentBridge.createAlignedSession()
+      const align = await this.ctx.intentBridge.createAlignedSession({
+        cwd: process.cwd(),
+        exec: { provider: selection.provider, model: selection.model },
+      })
       this.ownedHandle = align.handle
       this.controls = controlsFromHandle(align.handle)
       this.activeSessionId = SessionId(align.sessionId)
