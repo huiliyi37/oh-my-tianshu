@@ -69,6 +69,7 @@
     "@huiliyi37/dsh-memory": "workspace:^",
     "@huiliyi37/dsh-permission": "workspace:^",
     "@huiliyi37/dsh-spark-anchors": "workspace:^",
+    "@huiliyi37/dsh-task-card": "workspace:^",
     "@huiliyi37/dsh-tool-memory": "workspace:^",
     "@huiliyi37/dsh-tool-session-query": "workspace:^",
     "@huiliyi37/dsh-vision-bridge": "workspace:^",

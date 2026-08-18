@@ -7599,6 +7599,9 @@ importers:
       '@huiliyi37/dsh-spark-anchors':
         specifier: workspace:^
         version: link:../../context/spark-anchors
+      '@huiliyi37/dsh-task-card':
+        specifier: workspace:^
+        version: link:../../guard/task-card
       '@huiliyi37/dsh-tool-memory':
         specifier: workspace:^
         version: link:../../memory/tool-memory
