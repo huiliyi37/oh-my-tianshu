@@ -24,6 +24,8 @@ import * as spawn from '@huiliyi37/dsh-subagent-spawn'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import * as nextWorkflow from '../src/index.ts'
 
+const { pendingRuns } = nextWorkflow
+
 type MockScript = ConstructorParameters<typeof MockAdapter>[0]
 
 const INTENT = { goal: 'Add tests for foo.', constraints: [], areas: ['src/foo.ts'], acceptance: ['foo tests pass'] }
@@ -117,8 +119,13 @@ describe('dsh-next-workflow over the real spawn stack', () => {
       new AbortController().signal,
     )
     if (execution === undefined) throw new Error('/next-workflow did not resolve')
+    // The command ack returns at once; the phase machine settles in the background.
     expect(execution.result.kind).toBe('success')
-    expect(execution.result.kind === 'success' ? execution.result.text ?? '' : '')
+    const run = pendingRuns.get(String(parent.session.id))
+    if (run === undefined) throw new Error('no background run registered')
+    const result = await run
+    expect(result.kind).toBe('success')
+    expect(result.kind === 'success' ? result.text ?? '' : '')
       .toContain('completed (verify: verified)')
 
     // Five model calls: intent, planner, critic, the parent's implement turn, reviewer.
@@ -131,9 +138,11 @@ describe('dsh-next-workflow over the real spawn stack', () => {
     expect(adapter.requests[0]?.reasoningEffort).toBeUndefined()
     expect(adapter.requests[4]?.reasoningEffort).toBeUndefined()
 
-    // The IMPLEMENT steer is a logged user-role message with the artifacts inline.
-    const implementMessage = parent.session.events.find(event => event.type === 'user/message')
-    expect(implementMessage !== undefined && JSON.stringify(implementMessage.data)).toContain('IMPLEMENT phase')
+    // The IMPLEMENT steer is a logged user-role message with the artifacts inline
+    // (progress notes are user/messages too — match the instructions form).
+    const implementMessage = parent.session.events.find(event =>
+      event.type === 'user/message' && JSON.stringify(event.data).includes('IMPLEMENT phase'))
+    expect(implementMessage !== undefined).toBe(true)
 
     // Artifacts landed under the configured root.
     const end = parent.session.events.find(event => event.type === 'next-workflow/end')
@@ -173,13 +182,16 @@ describe('dsh-next-workflow over the real spawn stack', () => {
       new AbortController().signal,
     )
     if (execution === undefined) throw new Error('/next-workflow did not resolve')
-    expect(execution.result.kind).toBe('error')
-    expect(execution.result.kind === 'error' ? execution.result.text : '').toContain('failed-verification')
+    const run = pendingRuns.get(String(parent.session.id))
+    if (run === undefined) throw new Error('no background run registered')
+    const result = await run
+    expect(result.kind).toBe('error')
+    expect(result.kind === 'error' ? result.text : '').toContain('failed-verification')
 
     // Intent, planner, critic, implement turn, retry turn; the reviewer never runs.
     expect(adapter.requests).toHaveLength(5)
     const steers = parent.session.events
-      .filter(event => event.type === 'user/message')
+      .filter(event => event.type === 'user/message' && JSON.stringify(event.data).includes('"form":"instructions"'))
       .map(event => JSON.stringify(event.data))
     expect(steers).toHaveLength(2)
     expect(steers[1]).toContain('GATE_FAIL')

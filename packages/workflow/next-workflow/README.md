@@ -22,7 +22,7 @@ While a run is active, an `agent/request` waterfall listener on the invoking age
 
 | Input | Result |
 |---|---|
-| `/next-workflow [candidates] <objective>` | Runs the pipeline; a leading integer (1–5) overrides `planCandidates` for this run (`/next-workflow 3 …` = best-of-3), omitting it keeps the Config default. Success summarizes phases, verdicts, and artifact paths. Verify exhaustion settles as an error naming `failed-verification`. |
+| `/next-workflow [candidates] <objective>` | Starts the pipeline **in the background** and answers at once with an acknowledgment — the conversation never blocks on a multi-minute run. Every phase transition lands in the conversation as an appended plugin notice message (`[next-workflow <run-id>] …`), including the final summary or failure; a leading integer (1–5) overrides `planCandidates` for this run (`/next-workflow 3 …` = best-of-3), omitting it keeps the Config default. The run's own result object carries the full summary; verify exhaustion settles it as an error naming `failed-verification`. |
 | `/next-workflow` (empty input) | `Usage: /next-workflow [candidates] <objective>` — nothing starts. |
 | Missing capabilities | An unavailable error naming the missing seam: no subagents service, unregistered or incapable provider (needs structured output, personas, fresh context), or a configured `verifyCommand` without a bash executor. |
 | A second run while one is active on the session | An `already running` error; one run per session at a time. |

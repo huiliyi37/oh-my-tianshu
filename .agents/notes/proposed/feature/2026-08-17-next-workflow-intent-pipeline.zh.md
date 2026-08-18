@@ -55,3 +55,7 @@ INTENT → PLAN → CRITIQUE → IMPLEMENT → VERIFY → REVIEW → DONE
 ## 实现纪要：多方案选优
 
 PLAN 可以就同一 SPEC 并行扇出 N 个候选规划者（`planCandidates`,1..5，缺省 1——单方案路径与原始状态机逐字节一致）。N > 1 时，PLAN 与 CRITIQUE 之间插入 SELECT 阶段：一个独立的全新上下文裁判只看到 SPEC.md 与候选文本——永远看不到任何规划者的推理——按固定评分量规（对照验收条件的正确性、可行性、范围契合、风险）打分，返回 `{winner, rationale, mergeHints?}`。选优从不由规划者自己完成：自评偏差正是全新上下文规则要消除的东西。候选落盘为 `PLAN-1.md … PLAN-N.md`（各以 `maxCandidateChars` 限界），胜出者成为 `PLAN.md`，裁判的裁决记录单独存为 `SELECTION.md` 而非追加进计划，保持 PLAN.md 是规划者自己的文本。winner 越界或非整数时在边界大声失败。`select` 阶段事件携带 `{candidates, winner, rationale}`，选优可从日志审计；裁判沿用 `critique` 的 effort 条目，除非部署方单独映射 `select`。CRITIQUE 随后照旧在选出的 PLAN.md 上运行，批评修订轮会重新扇出 N 个候选并重新选优。
+
+## 实现纪要：后台运行与会话内进度（2026-08-18）
+
+命令 handler 原本同步跑完整条流水线：调用界面会卡死数分钟，且阶段工作在最终结果前完全不可见。现在 handler 先同步做能力预检（配置错误仍在命令时即答），随后后台启动状态机并立即应答；每一行进展同时以追加的插件 notice 消息（`form: 'notice'`，尾部追加——缓存安全，model-visible ⟺ logged）落进会话，进度、最终汇总与失败在对话中实时可见。测试经导出的 `pendingRuns` 映射等待后台运行结束。

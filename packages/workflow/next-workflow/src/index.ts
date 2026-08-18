@@ -705,6 +705,34 @@ function verifyFailureDetail(result: { exitCode: number | null; timedOut: boolea
   return `exited ${String(result.exitCode)}`
 }
 
+/**
+ * Capability preflight for one run: returns the loud error text, or undefined when
+ * every required capability is in place. Runs synchronously in the command handler
+ * (misconfiguration answers at command time) and again inside the run (belt).
+ */
+function preflightNextWorkflow(ctx: Context, config: ResolvedConfig): string | undefined {
+  const subagents = ctx.get('subagents')
+  if (subagents === undefined) {
+    return '/next-workflow is unavailable: the subagents service is not mounted (load @huiliyi37/dsh-subagent and a provider)'
+  }
+  const provider = subagents.getProvider(config.provider)
+  if (provider === undefined) {
+    return `/next-workflow is unavailable: subagent provider "${config.provider}" is not registered`
+  }
+  for (const capability of ['outputSchema', 'persona'] as const) {
+    if (!provider.capabilities[capability]) {
+      return `/next-workflow is unavailable: subagent provider "${config.provider}" does not support the "${capability}" capability`
+    }
+  }
+  if (provider.inheritsParentContext) {
+    return `/next-workflow is unavailable: subagent provider "${config.provider}" inherits parent context; critique and review require a fresh-context provider`
+  }
+  if (config.verifyCommand !== undefined && ctx.get('bash') === undefined) {
+    return '/next-workflow is unavailable: verifyCommand is configured but no bash executor is mounted (load a ctx.bash provider)'
+  }
+  return undefined
+}
+
 /** Parse `/next-workflow` input: an optional leading candidate count (1..5) followed by the objective. */
 export function parseInvocationInput(raw: string): { objective: string; planCandidates?: number } | { error: string } {
   const text = raw.trim()
@@ -728,27 +756,13 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
     : { ...config, planCandidates: parsed.planCandidates }
   const { agent, signal } = invocation
 
-  // Capability checks fail loud before any phase work starts.
+  // Capability checks fail loud before any phase work starts (the handler runs
+  // the same preflight synchronously so misconfiguration answers at command time).
+  const unavailable = preflightNextWorkflow(ctx, runConfig)
+  if (unavailable !== undefined) return { kind: 'error', text: unavailable }
   const subagents = ctx.get('subagents')
-  if (subagents === undefined) {
-    return { kind: 'error', text: '/next-workflow is unavailable: the subagents service is not mounted (load @huiliyi37/dsh-subagent and a provider)' }
-  }
-  const provider = subagents.getProvider(config.provider)
-  if (provider === undefined) {
-    return { kind: 'error', text: `/next-workflow is unavailable: subagent provider "${config.provider}" is not registered` }
-  }
-  for (const capability of ['outputSchema', 'persona'] as const) {
-    if (!provider.capabilities[capability]) {
-      return { kind: 'error', text: `/next-workflow is unavailable: subagent provider "${config.provider}" does not support the "${capability}" capability` }
-    }
-  }
-  if (provider.inheritsParentContext) {
-    return { kind: 'error', text: `/next-workflow is unavailable: subagent provider "${config.provider}" inherits parent context; critique and review require a fresh-context provider` }
-  }
+  if (subagents === undefined) throw new Error('unreachable: preflight passed without the subagents service')
   const bash = ctx.get('bash')
-  if (config.verifyCommand !== undefined && bash === undefined) {
-    return { kind: 'error', text: '/next-workflow is unavailable: verifyCommand is configured but no bash executor is mounted (load a ctx.bash provider)' }
-  }
 
   const session = agent.session
   const runId = `nw-${crypto.randomUUID().slice(0, 8)}`
@@ -783,6 +797,18 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
     session.append('next-workflow/phase', { runId, phase, ...extra })
   }
 
+  // Progress visibility: the command returns at once and the machine runs in the
+  // background, so every transcript line also lands as an appended conversation
+  // message (tail append — cache-safe; model-visible ⟺ logged holds via the
+  // session event). Without this the run is invisible until completion.
+  const note = (line: string): void => {
+    transcript.push(line)
+    session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: `[next-workflow ${runId}] ${line}` }],
+      source: { kind: 'plugin', plugin: name, form: 'notice', summary: line.slice(0, 80) },
+    }), { surfaceOp: 'append' })
+  }
+
   try {
     // INTENT
     activePhase = 'intent'
@@ -795,7 +821,7 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
     const spec = boundText(renderSpec(objective, specFields), config.maxArtifactChars)
     const specPath = await writeArtifact(dir, 'SPEC.md', spec)
     logPhase('intent', { artifact: specPath })
-    transcript.push('intent → SPEC normalized')
+    note('intent → SPEC normalized')
 
     // PLAN ⇄ CRITIQUE (bounded by maxCritiqueRounds). planCandidates > 1 fans
     // PLAN out to N parallel candidate planners and inserts SELECT: an
@@ -817,7 +843,7 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
         })), config.maxArtifactChars)
         planPath = await writeArtifact(dir, 'PLAN.md', plan)
         logPhase('plan', { artifact: planPath, ...round > 0 ? { detail: `revision ${round}` } : {} })
-        transcript.push(round === 0 ? 'plan → PLAN written' : `plan → revision ${round} written`)
+        note(round === 0 ? 'plan → PLAN written' : `plan → revision ${round} written`)
       } else {
         const candidates = await Promise.all(Array.from({ length: runConfig.planCandidates }, async () =>
           boundText(distillPlan(await runPhaseSubagent(subagents, config, agent, signal, {
@@ -830,7 +856,7 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
           const candidatePath = await writeArtifact(dir, `PLAN-${index + 1}.md`, candidate)
           logPhase('plan', { artifact: candidatePath, detail: `candidate ${index + 1}/${runConfig.planCandidates}${round > 0 ? ` (revision ${round})` : ''}` })
         }
-        transcript.push(`plan → ${runConfig.planCandidates} candidates written`)
+        note(`plan → ${runConfig.planCandidates} candidates written`)
         activePhase = 'select'
         const selection = distillSelection(await runPhaseSubagent(subagents, config, agent, signal, {
           label: 'next-workflow selector',
@@ -844,7 +870,7 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
           detail: `candidate ${selection.winner} of ${candidates.length}`,
           selection: { candidates: candidates.length, winner: selection.winner, rationale: selection.rationale },
         })
-        transcript.push(`select → candidate ${selection.winner} of ${candidates.length}`)
+        note(`select → candidate ${selection.winner} of ${candidates.length}`)
         // distillSelection bounds the winner to 1..candidates.length.
         plan = boundText(candidates[selection.winner - 1] as string, config.maxArtifactChars)
         planPath = await writeArtifact(dir, 'PLAN.md', plan)
@@ -859,10 +885,10 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
       }))
       logPhase('critique', { detail: critique.verdict === 'approve' ? 'approved' : `revise: ${critique.gaps.length} gap(s)` })
       if (critique.verdict === 'approve') {
-        transcript.push('critique → approved')
+        note('critique → approved')
         break
       }
-      transcript.push(`critique → revise (${critique.gaps.length} gap(s))`)
+      note(`critique → revise (${critique.gaps.length} gap(s))`)
       gaps = critique.gaps
     }
 
@@ -874,14 +900,14 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
     }))
     await waitForTurn(agent, signal)
     logPhase('implement')
-    transcript.push('implement → steered and settled')
+    note('implement → steered and settled')
 
     // VERIFY (deterministic gate; bounded retries steer back into IMPLEMENT)
     let verifyDisposition: 'verified' | 'unverified' = 'unverified'
     if (config.verifyCommand === undefined) {
       activePhase = 'verify'
       logPhase('verify', { detail: 'unverified: no verifyCommand configured' })
-      transcript.push('verify → unverified (no verifyCommand configured)')
+      note('verify → unverified (no verifyCommand configured)')
     } else {
       for (let attempt = 0; ; attempt += 1) {
         activePhase = 'verify'
@@ -898,20 +924,20 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
         if (result.exitCode === 0 && !result.timedOut && !result.aborted) {
           verifyDisposition = 'verified'
           logPhase('verify', { detail: 'verified' })
-          transcript.push(`verify → verified${attempt > 0 ? ` after ${attempt} retr${attempt === 1 ? 'y' : 'ies'}` : ''}`)
+          note(`verify → verified${attempt > 0 ? ` after ${attempt} retr${attempt === 1 ? 'y' : 'ies'}` : ''}`)
           break
         }
         const detail = verifyFailureDetail(result)
         logPhase('verify', { detail: `failed (${detail})` })
         if (attempt >= config.maxVerifyRetries) {
           session.append('next-workflow/end', { runId, outcome: 'failed-verification', detail })
-          transcript.push(`verify → failed-verification (${detail})`)
+          note(`verify → failed-verification (${detail})`)
           return {
             kind: 'error',
             text: renderSummary(runId, 'failed-verification', transcript, specPath, planPath, undefined),
           }
         }
-        transcript.push(`verify → failed (${detail}); retry ${attempt + 1}/${config.maxVerifyRetries}`)
+        note(`verify → failed (${detail}); retry ${attempt + 1}/${config.maxVerifyRetries}`)
         activePhase = 'implement'
         const output = boundText(
           [result.stdout.text, result.stderr.text].filter(text => text !== '').join('\n'),
@@ -937,19 +963,19 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
     }))
     const reviewPath = await writeArtifact(dir, 'REVIEW.md', renderReview(review))
     logPhase('review', { artifact: reviewPath, detail: review.verdict })
-    transcript.push(review.verdict === 'approve'
+    note(review.verdict === 'approve'
       ? 'review → approved'
       : `review → changes-requested (${review.findings.length} finding(s))`)
 
     session.append('next-workflow/end', { runId, outcome: 'completed', detail: verifyDisposition })
-    return {
-      kind: 'success',
-      text: renderSummary(runId, `completed (verify: ${verifyDisposition})`, transcript, specPath, planPath, reviewPath),
-    }
+    const summary = renderSummary(runId, `completed (verify: ${verifyDisposition})`, transcript, specPath, planPath, reviewPath)
+    note(`done — verify: ${verifyDisposition}; artifacts in ${dir}`)
+    return { kind: 'success', text: summary }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
     try {
       session.append('next-workflow/end', { runId, outcome: 'failed', detail: message })
+      note(`failed: ${message}`)
     } catch {
       // The original failure stays the reported one; a failed end-marker append must not mask it.
     }
@@ -991,26 +1017,48 @@ function renderSummary(
  * @param ctx - plugin context (injects `commands`; every other capability is probed at handler time).
  * @param config - deployment policy for the fixed pipeline.
  */
+/**
+ * In-flight runs by session id. The handler returns at once and the phase
+ * machine settles in the background; tests await the run through this map
+ * (the run never rejects — outcomes are CommandResults).
+ */
+export const pendingRuns = new Map<string, Promise<CommandResult>>()
+
+/**
+ * Register the global `/next-workflow` command for every composed command adapter.
+ * @param ctx - plugin context (injects `commands`; every other capability is probed at handler time).
+ * @param config - deployment policy for the fixed pipeline.
+ */
 export function apply(ctx: Context, config: Config = {}): void {
   const resolved = resolveConfig(config)
-  // One active run per session: a second run would race the first's effort
-  // listener and implementation steering on the same agent.
-  const activeSessions = new Set<string>()
   ctx.commands.register({
     name: 'next-workflow',
     description: 'Run the fixed intent pipeline: INTENT → PLAN → CRITIQUE → IMPLEMENT → VERIFY → REVIEW',
     input: { hint: '[candidates] <objective>' },
-    handler: async (invocation) => {
+    handler: (invocation) => {
       const key = String(invocation.agent.session.id)
-      if (activeSessions.has(key)) {
-        return { kind: 'error', text: '/next-workflow is already running on this session' }
+      // One active run per session: a second run would race the first's effort
+      // listener and implementation steering on the same agent.
+      if (pendingRuns.has(key)) {
+        return Promise.resolve({ kind: 'error', text: '/next-workflow is already running on this session' } as CommandResult)
       }
-      activeSessions.add(key)
-      try {
-        return await executeNextWorkflow(ctx, resolved, invocation)
-      } finally {
-        activeSessions.delete(key)
-      }
+      // Misconfiguration answers at command time, not in the background.
+      const unavailable = preflightNextWorkflow(ctx, resolved)
+      if (unavailable !== undefined) return Promise.resolve({ kind: 'error', text: unavailable } as CommandResult)
+      const parsed = parseInvocationInput(invocation.rawInput)
+      if ('error' in parsed) return Promise.resolve({ kind: 'error', text: parsed.error } as CommandResult)
+      // The machine settles in the background; progress lands in the
+      // conversation as appended messages (see note() in the run body), so the
+      // surface never blocks on a multi-minute pipeline.
+      const run = executeNextWorkflow(ctx, resolved, invocation)
+      pendingRuns.set(key, run)
+      const forget = (): void => { pendingRuns.delete(key) }
+      void run.then(forget, forget)
+      const preview = parsed.objective.length > 80 ? `${parsed.objective.slice(0, 80)}…` : parsed.objective
+      return Promise.resolve({
+        kind: 'success',
+        text: `next-workflow started: ${preview}\nProgress lands in this conversation; artifacts under ${resolved.workflowsRoot}.`,
+      } as CommandResult)
     },
   })
 }

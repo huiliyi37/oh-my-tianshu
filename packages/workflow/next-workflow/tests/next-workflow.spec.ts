@@ -38,7 +38,7 @@ import type { LlmCallConfig } from '@huiliyi37/dsh-llm'
 import type { UserMessage } from '@huiliyi37/dsh-llm'
 import { Session, SessionId } from '@huiliyi37/dsh-session'
 import type { SubagentCapabilities, SubagentResult, SubagentRun, SubagentStartRequest } from '@huiliyi37/dsh-subagent'
-import { apply, distillCritique, distillPlan, distillReview, distillSelection, distillSpec, parseInvocationInput } from '../src/index.ts'
+import { apply, distillCritique, distillPlan, distillReview, distillSelection, distillSpec, parseInvocationInput, pendingRuns } from '../src/index.ts'
 import type { Config } from '../src/index.ts'
 
 const FULL_CAPABILITIES: SubagentCapabilities = {
@@ -229,7 +229,11 @@ async function runCommand(h: Harness, objective = 'add tests for foo', signal?: 
     rawInput: ` ${objective}`,
     signal: signal ?? new AbortController().signal,
   }
-  return definition.handler(invocation)
+  const ack = await definition.handler(invocation)
+  // The handler returns at once: errors (preflight/usage/concurrency) are the
+  // ack itself; a started run settles in the background via pendingRuns.
+  if (ack.kind === 'error') return ack
+  return pendingRuns.get(String(h.session.id)) ?? ack
 }
 
 /** Read the log-only next-workflow events appended to the session, in order. */
@@ -319,8 +323,13 @@ describe('/next-workflow command', () => {
       'next-workflow/phase:review',
       'next-workflow/end:completed',
     ])
-    expect(h.session.surface.nodes).toEqual([])
-    expect(h.session.deriveMessages()).toEqual([])
+    // Progress notes land on the surface as plugin notices (the background run's
+    // visibility into the conversation); the phase/end events stay log-only.
+    const progress = h.session.deriveMessages()
+    expect(progress.length).toBeGreaterThan(0)
+    expect(progress.every(message => message.source.kind === 'plugin'
+      && message.source.plugin === 'next-workflow'
+      && 'form' in message.source && message.source.form === 'notice')).toBe(true)
   })
 
   it('planCandidates = 3 fans PLAN out, an independent selector picks the winner, and CRITIQUE receives it', async () => {
