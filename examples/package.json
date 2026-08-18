@@ -40,6 +40,7 @@
     "@huiliyi37/dsh-hooks-claude": "workspace:*",
     "@huiliyi37/dsh-hooks-codex": "workspace:*",
     "@huiliyi37/dsh-invariants": "workspace:*",
+    "@huiliyi37/dsh-intent-bridge": "workspace:*",
     "@huiliyi37/dsh-jsonrpc": "workspace:*",
     "@huiliyi37/dsh-llm": "workspace:*",
     "@huiliyi37/dsh-llm-deepseek": "workspace:*",
@@ -118,6 +119,7 @@
     "@huiliyi37/dsh-web": "workspace:*",
     "@huiliyi37/dsh-web-fetch-local": "workspace:*",
     "@huiliyi37/dsh-workflow-workerthread": "workspace:*",
-    "@huiliyi37/dsh-workspace-context": "workspace:*"
+    "@huiliyi37/dsh-workspace-context": "workspace:*",
+    "@huiliyi37/dsh-zen": "workspace:*"
   }
 }

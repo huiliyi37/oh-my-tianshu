@@ -427,6 +427,9 @@ importers:
       '@huiliyi37/dsh-hooks-codex':
         specifier: workspace:*
         version: link:../packages/hooks/hooks-codex
+      '@huiliyi37/dsh-intent-bridge':
+        specifier: workspace:*
+        version: link:../packages/guard/intent-bridge
       '@huiliyi37/dsh-invariants':
         specifier: workspace:*
         version: link:../packages/support/invariants
@@ -667,6 +670,9 @@ importers:
       '@huiliyi37/dsh-workspace-context':
         specifier: workspace:*
         version: link:../packages/context/workspace-context
+      '@huiliyi37/dsh-zen':
+        specifier: workspace:*
+        version: link:../packages/guard/zen
 
   native/landlock-run:
     devDependencies:
@@ -7623,6 +7629,9 @@ importers:
       '@huiliyi37/dsh-fs-snapshot':
         specifier: workspace:^
         version: link:../../fs/fs-snapshot
+      '@huiliyi37/dsh-intent-bridge':
+        specifier: workspace:^
+        version: link:../../guard/intent-bridge
       '@huiliyi37/dsh-memory':
         specifier: workspace:^
         version: link:../../memory/memory
