@@ -79,6 +79,12 @@
     },
     {
       "path": "../../guard/zen"
+    },
+    {
+      "path": "../../guard/task-card"
+    },
+    {
+      "path": "../../guard/intent-bridge"
     }
   ]
 }
