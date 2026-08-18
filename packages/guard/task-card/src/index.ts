@@ -36,6 +36,8 @@ import { hasTaskCard, parseLlmCard, renderTaskCard, templateCard } from './gener
 import { createTaskCardInvoke, TASK_CARD_SYSTEM_PROMPT } from './llm.ts'
 import type { TaskCardLlmInvoke } from './llm.ts'
 
+export { ORIGINAL_MARKER, hasTaskCard, parseLlmCard, renderTaskCard, templateCard } from './generate.ts'
+
 declare module '@huiliyi37/cordis' {
   interface Context {
     taskCard: TaskCardService
