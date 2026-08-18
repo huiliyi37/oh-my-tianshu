@@ -62,4 +62,4 @@ The intent bridge (`packages/guard/intent-bridge`, `@huiliyi37/dsh-intent-bridge
 
 - [Zen phase engineering paradigm](2026-08-17-zen-phase-engineering-paradigm.md) — the anchored-face phase the main session enters.
 - [Task card first-message](2026-08-18-task-card-first-message.md) — the card contract and single-shot rewrite the bridge reuses.
-- [MiniMax-M3 provider support](../../../docs/config-catalog.md) — pi-ai's built-in `minimax` provider (catalog since v0.78.1).
+- [MiniMax-M3 provider support](../../../../docs/config-catalog.md) — pi-ai's built-in `minimax` provider (catalog since v0.78.1).

@@ -62,4 +62,4 @@ Status: implemented
 
 - [禅相位工程范式](2026-08-17-zen-phase-engineering-paradigm.md) — 主会话进入的锚定面相位。
 - [任务卡首条消息](2026-08-18-task-card-first-message.md) — 桥复用的卡片契约与单轮改写。
-- [MiniMax-M3 provider 支持](../../../docs/config-catalog.md) — pi-ai 内置 `minimax` provider（v0.78.1 起入 catalog）。
+- [MiniMax-M3 provider 支持](../../../../docs/config-catalog.md) — pi-ai 内置 `minimax` provider（v0.78.1 起入 catalog）。

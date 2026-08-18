@@ -679,6 +679,16 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'intentBridge',
+    summary: '`ctx.intentBridge`: owns alignment sessions and the handoff.',
+    methods: [
+      {
+        signature: 'async createAlignedSession(options: CreateAlignedSessionOptions = {}): Promise<{ sessionId: string; handle: AgentHandle }>',
+        jsDoc: '/**\n * Create a fresh alignment session: seeded zen-completed (never arms),\n * tool face restricted to `finalize_alignment`, titled for the tab list.\n * Caller-owned options: `cwd` lands BOTH the alignment session and the main\n * session it hands off to in a real project directory (omitted → `_no-cwd/`),\n * `exec` overrides the main-session route for this alignment\'s handoff\n * (omitted → config exec route).\n *\n * @param options - per-call options (all optional).\n * @returns the session id and the owned handle (drive it after resolve).\n */',
+      },
+    ],
+  },
+  {
     key: 'invariants',
     summary: 'Package-owned invariant registry with global and regex-based selection.',
     methods: [
@@ -1305,6 +1315,11 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'taskCard',
+    summary: '`ctx.taskCard`: owns the first-message rewrite.',
+    methods: [],
+  },
+  {
     key: 'tasks',
     summary: 'Abstract background task registry.',
     methods: [
@@ -1826,6 +1841,13 @@ export const EVENT_API: readonly EventApiEntry[] = [
     signature: '\'goal/changed\'(this: import(\'@huiliyi37/dsh-scope\').Scoped<Agent>, payload: { agent: Agent; change: GoalChanged }): void',
     jsDoc: '/**\n * Goal mutation accepted by one live agent. The matching `goal/change`\n * session event has already committed. Listener failures are contained.\n * Scope-filtered dispatch (`@huiliyi37/dsh-scope`): agent-scoped listeners receive only that agent.\n * @param payload.agent - agent whose session owns the goal.\n * @param payload.change - fresh current projection or clear tombstone.\n * @mode emit\n */',
     summary: 'Goal mutation accepted by one live agent.',
+  },
+  {
+    name: 'intent-bridge/handoff',
+    mode: 'emit',
+    signature: '\'intent-bridge/handoff\'(this: unknown, payload: IntentBridgeHandoff): void',
+    jsDoc: '/**\n * An alignment session handed off to its main session. The main session\n * already received the rendered task card as its first user message.\n * @mode emit\n * @param payload.alignSessionId - the alignment session that completed.\n * @param payload.mainSessionId - the fresh main session to switch to.\n * @param payload.title - the task card\'s title (\'\' on failure fallback).\n */',
+    summary: 'An alignment session handed off to its main session.',
   },
   {
     name: 'llm/adapters-updated',
@@ -2390,6 +2412,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'CreateAgentOptions',
     declaration: 'export interface CreateAgentOptions {\n    readonly sessionId: SessionId;\n    readonly meta?: {\n        readonly cwd?: string;\n        readonly parentSession?: SessionId;\n        readonly seedLength?: number;\n        readonly origin?: \'subagent\';\n        readonly delegationDepth?: number;\n    };\n    readonly seed?: readonly SessionEvent[];\n    readonly agentOptions?: AgentOptions;\n    readonly signal?: AbortSignal;\n    readonly setup?: AgentSetup;\n}',
+  },
+  {
+    name: 'CreateAlignedSessionOptions',
+    declaration: 'export interface CreateAlignedSessionOptions {\n    cwd?: string;\n    exec?: {\n        provider: string;\n        model: string;\n    };\n}',
   },
   {
     name: 'CreateGoalRequest',

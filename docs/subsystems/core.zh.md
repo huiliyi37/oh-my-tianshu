@@ -728,6 +728,37 @@ roots(): Agent[]
 
 Source: [`packages/core/agent/src/index.ts:254`](../../packages/core/agent/src/index.ts)
 
+<a id="ctxintentbridge--intentbridgeservice"></a>
+
+### `ctx.intentBridge` — `IntentBridgeService`
+
+`ctx.intentBridge`: owns alignment sessions and the handoff. UIs observe the handoff through the `intent-bridge/handoff` dispatch event; the main session is a plain session that needs no special handling.
+
+```ts cordis-catalog
+/**
+ * Create a fresh alignment session: seeded zen-completed (never arms),
+ * tool face restricted to `finalize_alignment`, titled for the tab list.
+ * Caller-owned options: `cwd` lands BOTH the alignment session and the main
+ * session it hands off to in a real project directory (omitted → `_no-cwd/`),
+ * `exec` overrides the main-session route for this alignment's handoff
+ * (omitted → config exec route).
+ *
+ * @param options - per-call options (all optional).
+ * @returns the session id and the owned handle (drive it after resolve).
+ */
+async createAlignedSession(options: CreateAlignedSessionOptions = {}): Promise<{ sessionId: string; handle: AgentHandle }>
+```
+
+Source: [`packages/guard/intent-bridge/src/index.ts:195`](../../packages/guard/intent-bridge/src/index.ts)
+
+<a id="ctxtaskcard--taskcardservice"></a>
+
+### `ctx.taskCard` — `TaskCardService`
+
+`ctx.taskCard`: owns the first-message rewrite. UIs observe the rewritten message as a plain `user/message` in the session log; there is no extra event surface.
+
+Source: [`packages/guard/task-card/src/index.ts:152`](../../packages/guard/task-card/src/index.ts)
+
 <a id="agent-events"></a>
 
 ### `agent/*` events
@@ -1104,4 +1135,28 @@ One session committed a different agent preset to its durable log. Consumers inv
 ```
 
 Source: [`packages/preset/agent-presets/src/types.ts:13`](../../packages/preset/agent-presets/src/types.ts)
+
+<a id="intent-bridge-events"></a>
+
+### `intent-bridge/*` events
+
+<a id="intent-bridgehandoff--emit"></a>
+
+#### `intent-bridge/handoff` — emit
+
+An alignment session handed off to its main session. The main session already received the rendered task card as its first user message.
+
+```ts cordis-catalog
+/**
+ * An alignment session handed off to its main session. The main session
+ * already received the rendered task card as its first user message.
+ * @mode emit
+ * @param payload.alignSessionId - the alignment session that completed.
+ * @param payload.mainSessionId - the fresh main session to switch to.
+ * @param payload.title - the task card's title ('' on failure fallback).
+ */
+'intent-bridge/handoff'(this: unknown, payload: IntentBridgeHandoff): void
+```
+
+Source: [`packages/guard/intent-bridge/src/index.ts:57`](../../packages/guard/intent-bridge/src/index.ts)
 <!-- END GENERATED cordis-surface -->

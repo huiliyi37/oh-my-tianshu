@@ -599,7 +599,7 @@ phase(agent: Agent): ZenPhase
 
 Types: [Agent](core.md)
 
-Source: [`packages/guard/zen/src/index.ts:271`](../../packages/guard/zen/src/index.ts)
+Source: [`packages/guard/zen/src/index.ts:371`](../../packages/guard/zen/src/index.ts)
 
 <a id="tools-events"></a>
 
