@@ -8086,6 +8086,64 @@ importers:
         specifier: workspace:^
         version: link:../web
 
+  packages/workflow/next-workflow:
+    dependencies:
+      '@huiliyi37/schemastery':
+        specifier: ^3.18.0
+        version: link:../../../vendor/schemastery
+    devDependencies:
+      '@huiliyi37/cordis':
+        specifier: ^4.0.0-rc.7
+        version: link:../../../vendor/cordis
+      '@huiliyi37/cordis-plugin-include':
+        specifier: workspace:^
+        version: link:../../../vendor/include
+      '@huiliyi37/cordis-plugin-loader':
+        specifier: workspace:^
+        version: link:../../../vendor/loader
+      '@huiliyi37/dsh-agent':
+        specifier: workspace:^
+        version: link:../../core/agent
+      '@huiliyi37/dsh-agent-loop':
+        specifier: workspace:^
+        version: link:../../core/agent-loop
+      '@huiliyi37/dsh-agent-loop-testkit':
+        specifier: workspace:^
+        version: link:../../support/agent-loop-testkit
+      '@huiliyi37/dsh-bash':
+        specifier: workspace:^
+        version: link:../../bash/bash
+      '@huiliyi37/dsh-commands':
+        specifier: workspace:^
+        version: link:../../interaction/commands
+      '@huiliyi37/dsh-git':
+        specifier: workspace:^
+        version: link:../../git/git
+      '@huiliyi37/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../support/invariants
+      '@huiliyi37/dsh-llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
+      '@huiliyi37/dsh-paths':
+        specifier: workspace:^
+        version: link:../../util/paths
+      '@huiliyi37/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@huiliyi37/dsh-subagent':
+        specifier: workspace:^
+        version: link:../../subagent/subagent
+      '@huiliyi37/dsh-subagent-inprocess':
+        specifier: workspace:^
+        version: link:../../subagent/subagent-inprocess
+      '@huiliyi37/dsh-subagent-spawn':
+        specifier: workspace:^
+        version: link:../../subagent/subagent-spawn
+      '@huiliyi37/dsh-tools':
+        specifier: workspace:^
+        version: link:../../core/tools
+
   packages/workflow/tool-ralph:
     dependencies:
       '@huiliyi37/schemastery':

@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-This family runs model-authored orchestration workflows over subagents and exposes general and fixed-policy tools to the model.
+This family runs model-authored orchestration workflows over subagents and exposes general and fixed-policy tools to the model. `@huiliyi37/dsh-next-workflow` is a harness-owned human command on the same group; it is on the tree and stays off every shipped composition.
 
 | Package | Role | ctx key |
 |---|---|---|
@@ -10,6 +10,7 @@ This family runs model-authored orchestration workflows over subagents and expos
 | [`workflow-workerthread/`](workflow-workerthread/README.md) | Runs workflow scripts in worker threads | registers on `ctx.workflows` |
 | [`tool-workflow/`](tool-workflow/README.md) | Exposes general workflow execution to the model | registers on `ctx.tools` |
 | [`tool-ralph/`](tool-ralph/README.md) | Exposes the fixed fresh-agent Ralph workflow | registers on `ctx.tools` |
+| [`next-workflow/`](next-workflow/README.md) | Human `/next-workflow` intent pipeline | registers on `ctx.commands` |
 
 Worker threads isolate workflow execution from the host event loop but are not a security boundary. See the [dynamic-workflow](../../.agents/notes/implemented/feature/2026-07-05-dynamic-workflows.md) and [Ralph tool](../../.agents/notes/implemented/feature/2026-07-19-fresh-agent-ralph-workflow-tool.md) decisions.
 

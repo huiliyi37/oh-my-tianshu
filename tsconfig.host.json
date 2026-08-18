@@ -263,6 +263,7 @@
     { "path": "./packages/workflow/workflow-workerthread" },
     { "path": "./packages/workflow/tool-workflow" },
     { "path": "./packages/workflow/tool-ralph" },
+    { "path": "./packages/workflow/next-workflow" },
     { "path": "./packages/todo/tool-todo" },
     { "path": "./packages/plan/plan-mode" },
     { "path": "./packages/preset/persona" },

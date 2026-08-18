@@ -1,0 +1,51 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cosmokit"
+    },
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../core/agent"
+    },
+    {
+      "path": "../../bash/bash"
+    },
+    {
+      "path": "../../interaction/commands"
+    },
+    {
+      "path": "../../git/git"
+    },
+    {
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../util/paths"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../subagent/subagent"
+    },
+    {
+      "path": "../../core/tools"
+    },
+    {
+      "path": "../../support/invariants"
+    }
+  ]
+}

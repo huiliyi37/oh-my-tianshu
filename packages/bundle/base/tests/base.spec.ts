@@ -22,6 +22,7 @@ describe('dsh-base bundle', () => {
     expect(rows.length).toBeGreaterThan(50)
     expect(rows.some(row => row.id === 'agent-loop')).toBe(true)
     expect(rows.some(row => row.id === 'command-memory')).toBe(false)
+    expect(rows.some(row => row.id === 'next-workflow')).toBe(false)
   })
 
   it('caps un-roled subagent children at the official-minimal ∪ explore allow list', () => {

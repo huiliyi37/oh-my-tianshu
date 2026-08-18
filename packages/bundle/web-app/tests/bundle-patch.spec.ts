@@ -23,5 +23,6 @@ describe('dsh-web-app bundle', () => {
     const ids = rows.map(row => row.id)
     expect(ids).toEqual(expect.arrayContaining(['memory', 'command-memory']))
     expect(ids.indexOf('memory')).toBeLessThan(ids.indexOf('command-memory'))
+    expect(ids).not.toContain('next-workflow')
   })
 })

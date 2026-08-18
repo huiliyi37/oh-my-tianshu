@@ -428,6 +428,21 @@ Source: [`packages/hooks/hook-protocol/src/types.ts:19`](../packages/hooks/hook-
 
 Source: [`packages/hooks/hook-protocol/src/types.ts:33`](../packages/hooks/hook-protocol/src/types.ts)
 
+### `intent-bridge/*`
+
+#### `intent-bridge/handoff` — log-only
+
+```ts persistence-catalog
+/**
+ * Durable handoff record on the MAIN session's log: log-only (never
+ * reaches the model surface), whole-value append. At most one per
+ * session — the invariant checks it.
+ */
+'intent-bridge/handoff': { alignSessionId: string; reason: string }
+```
+
+Source: [`packages/guard/intent-bridge/src/index.ts:68`](../packages/guard/intent-bridge/src/index.ts)
+
 ### `llm/*`
 
 #### `llm/retry` — log-only
@@ -447,6 +462,82 @@ Source: [`packages/llm/llm-retry/src/types.ts:9`](../packages/llm/llm-retry/src/
 ```
 
 Source: [`packages/llm/llm-retry/src/types.ts:11`](../packages/llm/llm-retry/src/types.ts)
+
+### `memory/*`
+
+#### `memory/cache-hit` — log-only
+
+```ts persistence-catalog
+/** 门控保持：本轮评估后 STM 逐字节不变 — log-only（无 surfaceOp）。 */
+'memory/cache-hit': { intentId: string; intentKey: string; turn: number }
+```
+
+Source: [`packages/memory/adaptive-memory/src/types.ts:65`](../packages/memory/adaptive-memory/src/types.ts)
+
+#### `memory/cache-miss` — log-only
+
+```ts persistence-catalog
+/** 门控触发一次 STM 刷新 — log-only（无 surfaceOp）；选择结果见紧随的 memory/stm-selected。 */
+'memory/cache-miss': { intentId: string; intentKey: string; turn: number; reason: StmRefreshReason }
+```
+
+Source: [`packages/memory/adaptive-memory/src/types.ts:67`](../packages/memory/adaptive-memory/src/types.ts)
+
+#### `memory/reminder` — log-only
+
+```ts persistence-catalog
+/**
+ * 一次规则兜底提醒的触发决策 — log-only（无 surfaceOp）。提醒文本本身经
+ * memory:reminder context 贡献进入下一份 context-snapshot（模型可见面由
+ * 快照机制记录）；本事件只记决策（kind/subject/预算基准），供指标与审计。
+ */
+'memory/reminder': { intentId: string; turn: number; kind: 'unknown-entity' | 'error-code'; subject: string }
+```
+
+Source: [`packages/memory/adaptive-memory/src/types.ts:73`](../packages/memory/adaptive-memory/src/types.ts)
+
+#### `memory/stm-selected` — log-only
+
+```ts persistence-catalog
+/**
+ * 一次 STM 刷新的选择结果 — log-only（无 surfaceOp，不进模型可见面）。
+ * 与紧随其后的 context-snapshot user/message 共同满足 model-visible ⟺
+ * logged：快照里渲染的短 id 必须能以本事件 entryIds 的前缀匹配还原。
+ */
+'memory/stm-selected': { intentId: string; intentKey: string; turn: number; entryIds: string[] }
+```
+
+Source: [`packages/memory/adaptive-memory/src/types.ts:63`](../packages/memory/adaptive-memory/src/types.ts)
+
+### `next-workflow/*`
+
+#### `next-workflow/end` — log-only
+
+```ts persistence-catalog
+/**
+ * A `/next-workflow` run settled. Log-only; pairs with its
+ * `next-workflow/phase` records by `runId`. `detail` carries the verify
+ * disposition (`verified`/`unverified`) or the failure message.
+ */
+'next-workflow/end': { runId: string; outcome: NextWorkflowOutcome; detail?: string }
+```
+
+Source: [`packages/workflow/next-workflow/src/index.ts:97`](../packages/workflow/next-workflow/src/index.ts)
+
+#### `next-workflow/phase` — log-only
+
+```ts persistence-catalog
+/**
+ * One `/next-workflow` phase settled. Log-only (never the model surface or
+ * derived history); `artifact` points at the on-disk phase handoff, which
+ * survives compaction, and `detail` carries a short human summary such as
+ * the critique verdict or the verify outcome. A `select` phase additionally
+ * carries `selection`, so best-of-N plan selection is auditable from the log.
+ */
+'next-workflow/phase': { runId: string; phase: NextWorkflowPhase; artifact?: string; detail?: string; selection?: SelectionAudit }
+```
+
+Source: [`packages/workflow/next-workflow/src/index.ts:91`](../packages/workflow/next-workflow/src/index.ts)
 
 ### `permission/*`
 
@@ -827,4 +918,4 @@ Source: [`packages/web/web-search-deepseek/src/provider.ts:83`](../packages/web/
 'zen/phase': { phase: ZenPhase; reason: ZenTransitionReason }
 ```
 
-Source: [`packages/guard/zen/src/index.ts:50`](../packages/guard/zen/src/index.ts)
+Source: [`packages/guard/zen/src/index.ts:57`](../packages/guard/zen/src/index.ts)
