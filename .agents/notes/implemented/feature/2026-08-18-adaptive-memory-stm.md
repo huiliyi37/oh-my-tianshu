@@ -24,4 +24,4 @@ When the mounted `memory` service exposes `topicVersions()`, retrieval uses scor
 
 ## Consequences
 
-Hosts that opt in get an append-only STM tail that leaves the system-prompt prefix byte-stable. Markdown and sqlite remain interchangeable behind capability probes. Coverage: `packages/memory/adaptive-memory/tests/*.spec.ts` (Markdown fallback, sqlite structured path, cache hit/miss reasons, reminder budget, fail-loud config, log-only invariants).
+Hosts that opt in get an append-only STM tail that leaves the system-prompt prefix byte-stable. Markdown and sqlite remain interchangeable behind capability probes. On-demand raw-history questions use [`dsh-tool-memory-recall`](2026-08-18-tool-memory-recall.md), which does not consume the `memory` key. Coverage: `packages/memory/adaptive-memory/tests/*.spec.ts` (Markdown fallback, sqlite structured path, cache hit/miss reasons, reminder budget, fail-loud config, log-only invariants).

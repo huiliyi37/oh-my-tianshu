@@ -48,6 +48,7 @@ import * as ToolFileInfo from '@huiliyi37/dsh-tool-file-info'
 import GitLocal from '@huiliyi37/dsh-git'
 import * as ToolGit from '@huiliyi37/dsh-tool-git'
 import * as ToolMemory from '@huiliyi37/dsh-tool-memory'
+import * as ToolMemoryRecall from '@huiliyi37/dsh-tool-memory-recall'
 import * as ToolMeridian from '@huiliyi37/dsh-tool-meridian'
 import * as ToolSemanticSearch from '@huiliyi37/dsh-tool-semantic-search'
 import * as ToolStrReplaceEditor from '@huiliyi37/dsh-tool-str-replace-editor'
@@ -579,6 +580,18 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'memory_save and memory_search reach the project-memory store lazily at execution time, so the schemas are independent of the memory backend.',
+  },
+  {
+    pkg: '@huiliyi37/dsh-tool-memory-recall',
+    dir: 'tool-memory-recall',
+    source: 'packages/memory/tool-memory-recall/src/index.ts',
+    requires: ['ctx.tools', 'ctx.systemPrompt', 'ctx.sessionQuery (execution time)', 'ctx.subagents (execution time)'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(ToolMemoryRecall)
+    },
+    note:
+      'memory_deep_recall fans out to a read-only reader subagent and returns a budget-clamped distillation; missing sessionQuery, session-query tools, or a full-capability subagent provider fail loud at execute. Raw transcripts never enter the parent context.',
   },
   {
     pkg: '@huiliyi37/dsh-tool-meridian',

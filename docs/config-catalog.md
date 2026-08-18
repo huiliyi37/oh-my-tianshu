@@ -827,6 +827,32 @@ export interface Config {
 
 Source: [`packages/host/webserver/src/index.ts:47`](../packages/host/webserver/src/index.ts)
 
+## `@huiliyi37/dsh-intent-bridge`
+
+Requires: `agents` · `tools` · `systemPrompt` · `sessions`
+
+```ts config-catalog
+/** Deployment-owned intent-bridge policy. */
+export interface IntentBridgeConfig {
+  /** Master switch; `false` mounts the service with no behavior. Default true. */
+  enabled?: boolean
+  /** Alignment agent route. REQUIRED. */
+  alignProvider?: string
+  /** Alignment agent route. REQUIRED. */
+  alignModel?: string
+  /** Main (execution) agent route. REQUIRED. */
+  execProvider?: string
+  /** Main (execution) agent route. REQUIRED. */
+  execModel?: string
+  /** Alignment rounds before a template card is force-finalized. Default 5. */
+  alignMaxRounds?: number
+  /** Custom alignment contract; defaults to the built-in {@link ALIGN_SECTION}. */
+  section?: string
+}
+```
+
+Source: [`packages/guard/intent-bridge/src/index.ts:83`](../packages/guard/intent-bridge/src/index.ts)
+
 ## `@huiliyi37/dsh-invariants`
 
 ```ts config-catalog
@@ -2268,7 +2294,7 @@ export interface TaskCardConfig {
 }
 ```
 
-Source: [`packages/guard/task-card/src/index.ts:46`](../packages/guard/task-card/src/index.ts)
+Source: [`packages/guard/task-card/src/index.ts:48`](../packages/guard/task-card/src/index.ts)
 
 ## `@huiliyi37/dsh-time-context`
 
@@ -2492,6 +2518,30 @@ export interface ToolMemoryConfig {
 ```
 
 Source: [`packages/memory/tool-memory/src/index.ts:63`](../packages/memory/tool-memory/src/index.ts)
+
+## `@huiliyi37/dsh-tool-memory-recall`
+
+Requires: `tools` · `systemPrompt`
+
+```ts config-catalog
+/** 插件配置：reader 规模与返回预算，缺省值在 schema 上。 */
+export interface Config {
+  /** reader 使用的 ctx.subagents provider 名（缺省 'spawn'，进程内一次性）。 */
+  provider?: string
+  /** reader 可用的只读搜索工具（缺省 session_query 三件套；缺失即报告不可用）。 */
+  readerTools?: string[]
+  /** 返回主上下文的 answer 字符上限（缺省 2000；超出截断）。 */
+  maxAnswerChars?: number
+  /** 返回的 evidence 条数上限（缺省 5；uncertainties 同受此数限制）。 */
+  maxEvidence?: number
+  /** 单条 evidence quote 的字符上限（缺省 240；超出截断）。 */
+  maxQuoteChars?: number
+  /** reader 子代理的最大委托深度（缺省 1：reader 位于深度 1，不得再委托）。 */
+  maxDepth?: number
+}
+```
+
+Source: [`packages/memory/tool-memory-recall/src/index.ts:85`](../packages/memory/tool-memory-recall/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-meridian`
 

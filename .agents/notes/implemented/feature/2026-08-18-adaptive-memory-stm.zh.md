@@ -24,4 +24,4 @@ Status: implemented
 
 ## Consequences
 
-按需挂载的主机得到 append-only 的 STM 尾部，system-prompt 前缀逐字节稳定。Markdown 与 sqlite 经能力探测可互换。覆盖：`packages/memory/adaptive-memory/tests/*.spec.ts`（Markdown fallback、sqlite 结构化路径、cache hit/miss 原因、提醒预算、fail-loud 配置、log-only 不变量）。
+按需挂载的主机得到 append-only 的 STM 尾部，system-prompt 前缀逐字节稳定。Markdown 与 sqlite 经能力探测可互换。按需的原始历史问题走 [`dsh-tool-memory-recall`](2026-08-18-tool-memory-recall.md)，不消费 `memory` 键。覆盖：`packages/memory/adaptive-memory/tests/*.spec.ts`（Markdown fallback、sqlite 结构化路径、cache hit/miss 原因、提醒预算、fail-loud 配置、log-only 不变量）。

@@ -44,6 +44,7 @@
 | `@huiliyi37/dsh-tool-file-info` | `file_info` | `ctx.tools`、`ctx.fs` | `tool/call`、`tool/result` | - | file_info 通过 ctx.fs 报告元数据（大小、类型、修改时间），不会把文件内容读进模型上下文。 |
 | `@huiliyi37/dsh-tool-git` | `git` | `ctx.tools`、`ctx.git`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | git 通过一个 `operation` 判别（status \| diff \| log \| commit）消费有类型的 ctx.git seam（工具层不接触子进程）；commit 要求提供提交信息且独占运行（非并发安全），提交不会弹出审批卡——文件变更仍走 fs 审批面。 |
 | `@huiliyi37/dsh-tool-memory` | `memory_save`、`memory_search` | `ctx.tools`、`ctx.systemPrompt`、`ctx.memory (execution time)` | `tool/call`、`tool/result` | - | memory_save 与 memory_search 在执行时才惰性访问项目记忆存储，因此 schema 与记忆后端无关。 |
+| `@huiliyi37/dsh-tool-memory-recall` | `memory_deep_recall` | `ctx.tools`、`ctx.systemPrompt`、`ctx.sessionQuery (execution time)`、`ctx.subagents (execution time)` | `tool/call`、`tool/result` | - | memory_deep_recall 把问题扇出给只读 reader 子代理，返回按预算钳制的蒸馏结果；执行时缺 sessionQuery、session-query 工具或能力完整的 subagent provider 会 fail loud。原始转录永不进入父上下文。 |
 | `@huiliyi37/dsh-tool-meridian` | `repo_graph` | `ctx.tools`、`ctx.systemPrompt`、`ctx.meridian (execution time)` | `tool/call`、`tool/result` | - | repo_graph 在执行时才惰性查询代码图索引（仓库地图、影响分析、流查询）；其系统提示词区段仅在索引存在时由 runtime-context 内容差异注入。 |
 | `@huiliyi37/dsh-tool-semantic-search` | `semantic_search` | `ctx.tools`、`ctx.systemPrompt`、`ctx.semanticIndex (execution time)` | `tool/call`、`tool/result` | - | semantic_search 在执行时才惰性执行工作区检索（定义对齐的 BM25，可选向量融合）；其系统提示词区段仅在索引存在时由 runtime-context 内容差异注入。 |
 
@@ -1807,6 +1808,31 @@ git 通过一个 `operation` 判别（status | diff | log | commit）消费有�
 来源：[`packages/memory/tool-memory/src/index.ts`](../packages/memory/tool-memory/src/index.ts)
 
 memory_save 与 memory_search 在执行时才惰性访问项目记忆存储，因此 schema 与记忆后端无关。
+
+## `@huiliyi37/dsh-tool-memory-recall`
+
+### `memory_deep_recall`
+
+深度召回：回答关于历史会话具体经过的问题（"上次为什么改用 X"、"某错误当时怎么解决的"）。派出只读 reader 子代理检索历史会话转录，返回蒸馏答案（answer + evidence + uncertainties + confidence）；原始转录不进入本会话上下文。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "question": {
+      "type": "string",
+      "description": "要问历史的问题（具体、自成一体）"
+    }
+  },
+  "required": [
+    "question"
+  ]
+}
+```
+
+来源：[`packages/memory/tool-memory-recall/src/index.ts`](../packages/memory/tool-memory-recall/src/index.ts)
+
+memory_deep_recall 把问题扇出给只读 reader 子代理，返回按预算钳制的蒸馏结果；执行时缺 sessionQuery、session-query 工具或能力完整的 subagent provider 会 fail loud。原始转录永不进入父上下文。
 
 ## `@huiliyi37/dsh-tool-meridian`
 

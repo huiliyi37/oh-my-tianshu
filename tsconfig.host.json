@@ -285,6 +285,7 @@
     { "path": "./packages/memory/adaptive-memory" },
     { "path": "./packages/memory/memory-consolidate" },
     { "path": "./packages/memory/tool-memory" },
+    { "path": "./packages/memory/tool-memory-recall" },
     { "path": "./packages/host/apiproxy" },
     { "path": "./packages/host/directory-picker" },
     { "path": "./packages/host/directory-picker-auto" },

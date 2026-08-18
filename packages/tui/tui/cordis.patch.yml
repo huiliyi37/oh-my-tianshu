@@ -42,6 +42,11 @@
     - id: tool-session-query
       name: '@huiliyi37/dsh-tool-session-query'
 
+    # memory_deep_recall：只读 reader 子代理蒸馏历史会话；原始转录不进主上下文。
+    # 禅锚定面不加此工具；晋升后进入全工具面。
+    - id: tool-memory-recall
+      name: '@huiliyi37/dsh-tool-memory-recall'
+
     # 证据门（provide 'evidence'）：验证义务归账 + 编辑门。缺省温和——
     # TDD 门 suggest 只提示不拦，编辑拦截仅命中模型自建的 high bugfix 义务。
     - id: evidence-gate

@@ -19,6 +19,7 @@
     "@huiliyi37/dsh-tool-git": "workspace:^",
     "@huiliyi37/dsh-tool-lsp": "workspace:^",
     "@huiliyi37/dsh-tool-memory": "workspace:^",
+    "@huiliyi37/dsh-tool-memory-recall": "workspace:^",
     "@huiliyi37/dsh-tool-meridian": "workspace:^",
     "@huiliyi37/dsh-tool-semantic-search": "workspace:^",
     "@huiliyi37/dsh-tool-session-query": "workspace:^",

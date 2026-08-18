@@ -25,7 +25,7 @@ describe('dsh-tui bundle', () => {
     const ids = rows.map(row => row.id)
     expect(ids).toEqual(expect.arrayContaining([
       'tui-runner', 'spark-anchors', 'vision-bridge',
-      'fs-snapshot', 'memory', 'tool-memory', 'tool-session-query',
+      'fs-snapshot', 'memory', 'tool-memory', 'tool-session-query', 'tool-memory-recall',
       'evidence-gate', 'zen', 'task-card', 'intent-bridge', 'agent-router', 'agent-presets',
     ]))
     // The shipped read-only preset root is injected by composeProfile keyed on
