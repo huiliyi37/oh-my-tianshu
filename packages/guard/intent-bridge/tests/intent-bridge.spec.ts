@@ -103,7 +103,7 @@ describe('intent-bridge through the agent loop', () => {
     ctx.on('intent-bridge/handoff', (payload) => { handoff = payload })
 
     const align = await ctx.intentBridge.createAlignedSession()
-    const alignAgent = align.agent
+    const alignAgent = align.handle.agent
     ask(alignAgent, '帮我重构 src/auth.ts 的登录逻辑')
     await waitForIdle(ctx, alignAgent)
     ask(alignAgent, '改成支持 refresh token 轮换')
@@ -152,7 +152,7 @@ describe('intent-bridge through the agent loop', () => {
     ctx.on('intent-bridge/handoff', (payload) => { handoff = payload })
 
     const align = await ctx.intentBridge.createAlignedSession()
-    const alignAgent = align.agent
+    const alignAgent = align.handle.agent
     ask(alignAgent, '帮我重构 src/auth.ts 的登录逻辑')
     await waitForIdle(ctx, alignAgent)
     ask(alignAgent, '支持 refresh token')
@@ -180,10 +180,10 @@ describe('intent-bridge through the agent loop', () => {
     ctx.on('intent-bridge/handoff', (payload) => { handoff = payload })
 
     const align = await ctx.intentBridge.createAlignedSession()
-    ask(align.agent, '帮我重构 src/auth.ts 的登录逻辑')
-    await waitForIdle(ctx, align.agent)
+    ask(align.handle.agent, '帮我重构 src/auth.ts 的登录逻辑')
+    await waitForIdle(ctx, align.handle.agent)
 
-    const log = align.agent.session.events
+    const log = align.handle.agent.session.events
     const result = log.find(event => event.type === 'tool/result')
     expect(result?.type === 'tool/result' && result.data.message.content[0]?.isError).toBe(true)
     expect(JSON.stringify(result?.type === 'tool/result' ? result.data.message.content[0] : {}))

@@ -27,7 +27,7 @@
 
 import { randomUUID } from 'node:crypto'
 import { Context, Service } from '@huiliyi37/cordis'
-import type { Agent } from '@huiliyi37/dsh-agent'
+import type { Agent, AgentHandle } from '@huiliyi37/dsh-agent'
 import type {} from '@huiliyi37/dsh-agent' // 'agent/pre-step' / 'agent/inbox/inserted' event declaration merge
 import { createUserMessage } from '@huiliyi37/dsh-llm'
 import type { UserMessage } from '@huiliyi37/dsh-llm'
@@ -261,20 +261,21 @@ export class IntentBridgeService extends Service {
    * Create a fresh alignment session: seeded zen-completed (never arms),
    * tool face restricted to `finalize_alignment`, titled for the tab list.
    *
-   * @returns the session id and the published agent (drive it after resolve).
+   * @returns the session id and the owned handle (drive it after resolve).
    */
-  async createAlignedSession(): Promise<{ sessionId: string; agent: Agent }> {
+  async createAlignedSession(): Promise<{ sessionId: string; handle: AgentHandle }> {
     if (!this.config.enabled) throw new Error('intent-bridge: disabled')
     const sessionId = `session-${randomUUID()}`
     const seed: SessionEvent[] = [
       { type: 'zen/phase', seq: 0, time: 1, data: { phase: 'zen', reason: 'arm' } } as SessionEvent,
       { type: 'zen/phase', seq: 1, time: 2, data: { phase: 'full', reason: 'timeout' } } as SessionEvent,
     ]
-    const { agent } = await this.ctx.agents.create({
+    const handle = await this.ctx.agents.create({
       sessionId: SessionId(sessionId),
       seed,
       agentOptions: { provider: this.alignRoute.provider, model: this.alignRoute.model },
     })
+    const agent = handle.agent
     // The alignment agent's tool face: register the single tool agent-scoped
     // (agent-scoped tools bypass restrict's allow list — zen's zen_anchor is
     // the same pattern) and empty the global allow list.
@@ -282,7 +283,7 @@ export class IntentBridgeService extends Service {
     agent.ctx.tools.restrict({ allow: [] })
     agent.session.append('session/title', { title: ALIGN_TITLE, messageSeqs: [], source: { kind: 'fallback' } })
     this.aligns.set(sessionId, { rounds: 0, finalized: false, originalText: undefined })
-    return { sessionId, agent }
+    return { sessionId, handle }
   }
 
   /**
