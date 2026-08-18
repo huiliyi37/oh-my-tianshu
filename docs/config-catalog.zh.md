@@ -3408,6 +3408,7 @@ export interface ZenConfig {
 - `@huiliyi37/dsh-command-compact` — 需要 `commands` · `compact`（[`packages/compact/command-compact/src/index.ts`](../packages/compact/command-compact/src/index.ts)）
 - `@huiliyi37/dsh-command-feedback` — 需要 `commands`（[`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts)）
 - `@huiliyi37/dsh-command-goal` — 需要 `commands` · `goals`（[`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts)）
+- `@huiliyi37/dsh-command-memory` — 需要 `commands`（[`packages/memory/command-memory/src/index.ts`](../packages/memory/command-memory/src/index.ts)）
 - `@huiliyi37/dsh-commands`（[`packages/interaction/commands/src/index.ts`](../packages/interaction/commands/src/index.ts)）
 - `@huiliyi37/dsh-cordis-client-runner`（[`packages/self-modification/cordis-client-runner/src/index.ts`](../packages/self-modification/cordis-client-runner/src/index.ts)）
 - `@huiliyi37/dsh-fs-e2b` — 需要 `e2b`（[`packages/e2b/fs-e2b/src/index.ts`](../packages/e2b/fs-e2b/src/index.ts)）

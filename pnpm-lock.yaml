@@ -1511,6 +1511,9 @@ importers:
       '@huiliyi37/dsh-code-runtime-worker':
         specifier: workspace:^
         version: link:../../code-runtime/code-runtime-worker
+      '@huiliyi37/dsh-command-memory':
+        specifier: workspace:^
+        version: link:../../memory/command-memory
       '@huiliyi37/dsh-frontend':
         specifier: workspace:^
         version: link:../../../apps/web
@@ -1532,6 +1535,9 @@ importers:
       '@huiliyi37/dsh-host-webserver':
         specifier: workspace:^
         version: link:../../host/webserver
+      '@huiliyi37/dsh-memory':
+        specifier: workspace:^
+        version: link:../../memory/memory
       '@huiliyi37/dsh-session-projection-cache':
         specifier: workspace:^
         version: link:../../session/session-projection-cache
@@ -5261,6 +5267,30 @@ importers:
       '@huiliyi37/schemastery':
         specifier: ^3.0.0-rc.3
         version: link:../../../vendor/schemastery
+
+  packages/memory/command-memory:
+    devDependencies:
+      '@huiliyi37/cordis':
+        specifier: ^4.0.0-rc.7
+        version: link:../../../vendor/cordis
+      '@huiliyi37/cordis-plugin-include':
+        specifier: workspace:^
+        version: link:../../../vendor/include
+      '@huiliyi37/cordis-plugin-loader':
+        specifier: workspace:^
+        version: link:../../../vendor/loader
+      '@huiliyi37/dsh-agent':
+        specifier: workspace:^
+        version: link:../../core/agent
+      '@huiliyi37/dsh-commands':
+        specifier: workspace:^
+        version: link:../../interaction/commands
+      '@huiliyi37/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../support/invariants
+      '@huiliyi37/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
 
   packages/memory/memory:
     devDependencies:

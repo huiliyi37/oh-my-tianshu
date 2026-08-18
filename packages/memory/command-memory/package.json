@@ -1,0 +1,48 @@
+{
+  "name": "@huiliyi37/dsh-command-memory",
+  "description": "Human-facing /remember and /memory slash commands over the optional memory service",
+  "version": "0.2.7",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/oh-my-tianshu.git",
+    "directory": "packages/memory/command-memory"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "Apache-2.0",
+  "peerDependencies": {
+    "@huiliyi37/dsh-commands": "^0.2.0",
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
+  },
+  "devDependencies": {
+    "@huiliyi37/cordis-plugin-include": "workspace:^",
+    "@huiliyi37/cordis-plugin-loader": "workspace:^",
+    "@huiliyi37/dsh-agent": "workspace:^",
+    "@huiliyi37/dsh-commands": "workspace:^",
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/dsh-session": "workspace:^",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
+  }
+}

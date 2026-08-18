@@ -114,6 +114,7 @@
         "./packages/fs/*/src/invariant.ts",
         "./packages/skill/*/src/invariant.ts",
         "./packages/compact/*/src/invariant.ts",
+        "./packages/memory/*/src/invariant.ts",
         "./packages/context/*/src/invariant.ts",
         "./packages/goal/*/src/invariant.ts",
         "./packages/feedback/*/src/invariant.ts",

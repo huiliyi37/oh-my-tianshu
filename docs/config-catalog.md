@@ -3402,6 +3402,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@huiliyi37/dsh-command-compact` — requires `commands` · `compact` ([`packages/compact/command-compact/src/index.ts`](../packages/compact/command-compact/src/index.ts))
 - `@huiliyi37/dsh-command-feedback` — requires `commands` ([`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts))
 - `@huiliyi37/dsh-command-goal` — requires `commands` · `goals` ([`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts))
+- `@huiliyi37/dsh-command-memory` — requires `commands` ([`packages/memory/command-memory/src/index.ts`](../packages/memory/command-memory/src/index.ts))
 - `@huiliyi37/dsh-commands` ([`packages/interaction/commands/src/index.ts`](../packages/interaction/commands/src/index.ts))
 - `@huiliyi37/dsh-cordis-client-runner` ([`packages/self-modification/cordis-client-runner/src/index.ts`](../packages/self-modification/cordis-client-runner/src/index.ts))
 - `@huiliyi37/dsh-fs-e2b` — requires `e2b` ([`packages/e2b/fs-e2b/src/index.ts`](../packages/e2b/fs-e2b/src/index.ts))

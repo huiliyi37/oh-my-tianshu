@@ -28,6 +28,7 @@ describe('dsh-tui bundle', () => {
       'fs-snapshot', 'memory', 'tool-memory', 'tool-session-query', 'tool-memory-recall',
       'evidence-gate', 'zen', 'task-card', 'intent-bridge', 'agent-router', 'agent-presets',
     ]))
+    expect(ids).not.toContain('command-memory')
     // The shipped read-only preset root is injected by composeProfile keyed on
     // this exact row id; the row itself carries only the default preset.
     expect(rows.find(row => row.id === 'agent-presets')?.config).toEqual({ default: 'standard' })

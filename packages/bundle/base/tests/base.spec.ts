@@ -21,6 +21,7 @@ describe('dsh-base bundle', () => {
     const rows = (parsed as Array<{ insert?: { id?: string }[] }>).flatMap(patch => patch.insert ?? [])
     expect(rows.length).toBeGreaterThan(50)
     expect(rows.some(row => row.id === 'agent-loop')).toBe(true)
+    expect(rows.some(row => row.id === 'command-memory')).toBe(false)
   })
 
   it('caps un-roled subagent children at the official-minimal ∪ explore allow list', () => {
