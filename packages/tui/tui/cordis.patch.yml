@@ -77,6 +77,16 @@
       config:
         mode: template
 
+    # 意图对齐桥：新会话先进辅模型（minimax）多轮澄清，产出任务卡后移交
+    # 主会话（deepseek-official）自然进禅。部署方可覆写 provider/model。
+    - id: intent-bridge
+      name: '@huiliyi37/dsh-intent-bridge'
+      config:
+        alignProvider: minimax
+        alignModel: MiniMax-M3
+        execProvider: deepseek-official
+        execModel: deepseek-v4-flash
+
     # 失败预测路由：tool/result 成败喂预测累计器，越阈值派发子代理验证
     # （provider/model 缺省随子代理默认路由；evidence 服务在场时并入指标）。
     - id: agent-router

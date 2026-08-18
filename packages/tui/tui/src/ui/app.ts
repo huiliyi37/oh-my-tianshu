@@ -29,6 +29,7 @@ import type { ReadStream, WriteStream } from 'node:tty'
 import type { Context } from '@huiliyi37/cordis'
 import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
 import type { CallId, TokenUsage } from '@huiliyi37/dsh-llm'
+import type {} from '@huiliyi37/dsh-intent-bridge' // 'intent-bridge/handoff' event + ctx.intentBridge declaration merge
 import { installModelSelection, type Agent, type AgentHandle, type ModelSelection, type ModelSelectionRef } from '@huiliyi37/dsh-agent'
 // 空类型导入引入 Context 上 agentDefaultModel 服务的声明合并（headless 同款）。
 import type {} from '@huiliyi37/dsh-agent-default-model'
@@ -690,6 +691,8 @@ export class TuiApp {
   private osc52WarningShown = false
   /** bracketed paste 处理器 disposer（attach 注册，dispose 释放）。 */
   private pasteDisposer: (() => void) | null = null
+  /** intent-bridge handoff listener (re-registered on attach, cleared on dispose). */
+  private intentBridgeDisposer: (() => void) | null = null
   /**
    * 动态段高水位（display rows），跨轮保留。回缩会使输入框上跳，并把旧轨线
    * 留在空隙里（重影）。新会话 / 切会话时归零。
@@ -1014,6 +1017,12 @@ export class TuiApp {
     this.stdout.write(ANSI.KITTY_KEYBOARD_DISAMBIGUATE_ON)
     this.pasteDisposer?.()
     this.pasteDisposer = this.input.onPaste((text) => { void this.handlePaste(text) })
+    // 意图对齐桥：对齐完成时自动切到主会话（handoff 由 bridge 创建主会话并
+    // 注入任务卡）。重复 attach 先解绑旧 disposer。
+    this.intentBridgeDisposer?.()
+    this.intentBridgeDisposer = this.ctx.on('intent-bridge/handoff', ({ mainSessionId }) => {
+      void this.switchSession(SessionId(mainSessionId))
+    })
     // 目标 6：'auto' 才走系统终端配色探测（OSC 11 → dark/light）；显式主题直接生效。
     if (this.themeName === 'auto') {
       const background = await detectTerminalBackground()
@@ -1556,8 +1565,19 @@ export class TuiApp {
     // 下一次 agent 步进的 prompt assembly 自动生效）。
     this.modelRef = { current: selection, assembled: undefined }
     const ref = this.modelRef
-    // header.cwd 是 Web 会话列表与 workspace 挂载的门槛：缺省会被持久化进
-    // `_no-cwd/` 并从 web API 可见列表过滤掉（issue #5）。TUI 工作区 = 启动目录。
+    // 意图对齐桥装配时，新会话先进对齐会话（辅模型多轮澄清）；主会话在对齐
+    // 完成（intent-bridge/handoff）时由 bridge 创建并自动切回。对齐会话的
+    // 模型路由由 bridge 配置（alignProvider/alignModel），不走模型选择。
+    if (this.ctx.intentBridge !== undefined) {
+      const align = await this.ctx.intentBridge.createAlignedSession()
+      this.ownedHandle = align.handle
+      this.controls = controlsFromHandle(align.handle)
+      this.activeSessionId = SessionId(align.sessionId)
+      this.mountSession(this.activeSessionId)
+      // 会话 tab 栏刷新（对齐会话出现在 tab 栏并成为当前）。
+      void this.refreshSessionTabs()
+      return this.activeSessionId
+    }
     const handle = await this.ctx.agents.create({
       sessionId: id,
       meta: { cwd: process.cwd() },
@@ -3970,6 +3990,8 @@ export class TuiApp {
     this.stdout.write(ANSI.KITTY_KEYBOARD_OFF)
     this.pasteDisposer?.()
     this.pasteDisposer = null
+    this.intentBridgeDisposer?.()
+    this.intentBridgeDisposer = null
     this.input.dispose()
     this.resize.dispose()
     this.glance.dispose()

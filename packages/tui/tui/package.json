@@ -66,6 +66,7 @@
     "@huiliyi37/dsh-agent-router": "workspace:^",
     "@huiliyi37/dsh-evidence-gate": "workspace:^",
     "@huiliyi37/dsh-fs-snapshot": "workspace:^",
+    "@huiliyi37/dsh-intent-bridge": "workspace:^",
     "@huiliyi37/dsh-memory": "workspace:^",
     "@huiliyi37/dsh-permission": "workspace:^",
     "@huiliyi37/dsh-spark-anchors": "workspace:^",

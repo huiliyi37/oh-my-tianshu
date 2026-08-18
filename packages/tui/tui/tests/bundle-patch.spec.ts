@@ -26,7 +26,7 @@ describe('dsh-tui bundle', () => {
     expect(ids).toEqual(expect.arrayContaining([
       'tui-runner', 'spark-anchors', 'vision-bridge',
       'fs-snapshot', 'memory', 'tool-memory', 'tool-session-query',
-      'evidence-gate', 'zen', 'task-card', 'agent-router', 'agent-presets',
+      'evidence-gate', 'zen', 'task-card', 'intent-bridge', 'agent-router', 'agent-presets',
     ]))
     // The shipped read-only preset root is injected by composeProfile keyed on
     // this exact row id; the row itself carries only the default preset.
@@ -44,5 +44,14 @@ describe('dsh-tui bundle', () => {
     // default, so llm mode would fail loud at load; deployments opt in.
     const taskCard = rows.find(row => row.id === 'task-card')?.config as Record<string, unknown> | undefined
     expect(taskCard).toEqual({ mode: 'template' })
+    // The intent-bridge row ships both routes; resolveConfig fails loud at
+    // load without them.
+    const intentBridge = rows.find(row => row.id === 'intent-bridge')?.config as Record<string, unknown> | undefined
+    expect(intentBridge).toMatchObject({
+      alignProvider: 'minimax',
+      alignModel: 'MiniMax-M3',
+      execProvider: 'deepseek-official',
+      execModel: 'deepseek-v4-flash',
+    })
   })
 })
