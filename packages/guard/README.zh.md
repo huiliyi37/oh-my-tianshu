@@ -34,6 +34,7 @@ tool outcomes → failure prediction (agent-router)
 | [`timeout-policy/`](timeout-policy/README.md) | 以部署策略形式设置单次工具调用截止时间 | 注册 `tools/execute` 监听器 |
 | [`zen/`](zen/README.md) | 锚定的最小初始 face + 宿主验证的晋升 | `ctx.zen` |
 | [`task-card/`](task-card/README.md) | 首条消息任务卡改写，提升模型语义清晰度 | `ctx.taskCard` |
+| [`intent-bridge/`](intent-bridge/README.md) | 主会话前的对齐模型澄清，任务卡交接 | `ctx.intentBridge` |
 | [`pheromone/`](pheromone/README.md) | 文件级信息素信号 | 纯库 |
 
 ### evidence-gate — RED-first 验证
