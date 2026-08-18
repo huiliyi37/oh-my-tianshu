@@ -15,10 +15,20 @@ import { Inbox } from '@huiliyi37/dsh-agent'
 import type { Agent } from '@huiliyi37/dsh-agent'
 import { mountAgentLoopTestDependencies } from '@huiliyi37/dsh-agent-loop-testkit'
 import { MarkdownMemoryStore } from '@huiliyi37/dsh-memory'
+import type { ToolExecution, ToolExecutionToken } from '@huiliyi37/dsh-tools'
 import { apply, Config, name } from '../src/index.ts'
 import type { StmRefreshReason } from '../src/types.ts'
 
 const SIGNAL = new AbortController().signal
+
+/** 补全 tools/result 监听器所需的完整 ToolExecution（token/rootCallId 为占位值）。 */
+function stubToolExecution(input: Omit<ToolExecution, 'token' | 'rootCallId'>): ToolExecution {
+  return {
+    ...input,
+    rootCallId: input.callId,
+    token: Symbol('adaptive-memory-test-execution') as ToolExecutionToken,
+  }
+}
 
 let dir: string | undefined
 
@@ -28,7 +38,7 @@ afterEach(async () => {
 })
 
 /** 全字段显式 Config（覆盖 resolveConfig 的 `??` 右侧）。 */
-const EXPLICIT = {
+const EXPLICIT: Config = {
   stmTokenBudget: 600,
   maxEntries: 12,
   maxIntentTokens: 6,
@@ -48,7 +58,7 @@ const EXPLICIT = {
   topicBoosts: { procedure: 0.2 },
   maxRemindersPerTurn: 1,
   maxRemindersPerIntent: 3,
-} as const
+}
 
 async function harness(config: Parameters<typeof apply>[1] = EXPLICIT): Promise<{
   ctx: Context
@@ -230,7 +240,9 @@ describe('adaptive-memory plugin apply', { timeout: 20_000 }, () => {
       arguments: { path: 'src/secret/vault.ts' }, agent,
     })
     expect(session.events.some(event => event.type === 'memory/reminder')).toBe(false)
-    ctx.emit('tools/result', { name: 'probe', arguments: {}, agent }, {
+    ctx.emit('tools/result', stubToolExecution({
+      callId: CallId('c-error-code'), name: 'probe', arguments: {}, agent, signal: SIGNAL,
+    }), {
       isError: true,
       error: { message: 'denied', info: { name: 'IoError', code: 'EACCES' } },
       content: [{ type: 'image', dataUrl: 'data:image/png;base64,xx' }],
@@ -249,7 +261,9 @@ describe('adaptive-memory plugin apply', { timeout: 20_000 }, () => {
     })
     expect(session.events.some(event =>
       event.type === 'memory/reminder' && event.data.intentId === 'pre-intent')).toBe(true)
-    ctx.emit('tools/result', { name: 'probe', arguments: {}, agent }, {
+    ctx.emit('tools/result', stubToolExecution({
+      callId: CallId('c-error-no-code'), name: 'probe', arguments: {}, agent, signal: SIGNAL,
+    }), {
       isError: true,
       error: { message: 'denied' },
       content: [{ type: 'text', text: 'ok' }],
@@ -258,7 +272,9 @@ describe('adaptive-memory plugin apply', { timeout: 20_000 }, () => {
 
   it('tools/result 无 agent 时忽略', async () => {
     const { ctx } = await harness()
-    ctx.emit('tools/result', { name: 'probe', arguments: { path: 'x' } }, {
+    ctx.emit('tools/result', stubToolExecution({
+      callId: CallId('c-no-agent'), name: 'probe', arguments: { path: 'x' }, signal: SIGNAL,
+    }), {
       isError: false,
       value: 'ok',
       content: [{ type: 'text', text: 'ok' }],

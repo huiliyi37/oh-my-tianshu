@@ -22,6 +22,7 @@ import { chmod, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { MemoryScope } from '@huiliyi37/dsh-memory'
 import { ftsNormalize } from '../src/fts.ts'
 import { openMemoryDatabase, MEMORY_SQLITE_APPLICATION_ID } from '../src/schema.ts'
 import { SqliteMemoryStore } from '../src/store.ts'
@@ -321,7 +322,9 @@ describe('SqliteMemoryStore', () => {
 
   it('非法 scope 在 save 时 fail loud；检索侧非法/空 session 过滤为空', async () => {
     const { store } = await makeStore()
-    await expect(store.save({ text: 'x', scope: 'nope', tags: [], source: 'user' }))
+    // 非法 scope 模拟越过静态类型边界的外部输入；save 必须在自身边界 fail loud。
+    const invalidScope = 'nope' as unknown as MemoryScope
+    await expect(store.save({ text: 'x', scope: invalidScope, tags: [], source: 'user' }))
       .rejects.toThrow(/invalid memory scope/)
     await store.save({ text: 'sess', scope: 'session:abc', tags: ['s'], source: 'user' })
     expect(await store.search('sess', { scope: 'session' })).toHaveLength(1)

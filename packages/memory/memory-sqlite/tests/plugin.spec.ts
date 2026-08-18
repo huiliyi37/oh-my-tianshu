@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
-import type { GenerateOptions, StreamChunk } from '@huiliyi37/dsh-llm'
+import type { FinishReason, GenerateOptions, StreamChunk } from '@huiliyi37/dsh-llm'
 import { MEMORY_KEY } from '@huiliyi37/dsh-memory'
 import type { MemoryService } from '@huiliyi37/dsh-memory'
 import type { EmbeddingProvider } from '@huiliyi37/dsh-semantic-index'
@@ -38,7 +38,7 @@ function memoryOf(ctx: Context): MemoryService {
 }
 
 /** 结束一条流。 */
-function finish(reason: StreamChunk extends { type: 'finish'; reason: infer R } ? R : never): StreamChunk {
+function finish(reason: FinishReason): StreamChunk {
   return { type: 'finish', reason }
 }
 

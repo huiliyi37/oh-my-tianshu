@@ -167,6 +167,8 @@ describe('adaptive-memory invariants', () => {
       },
     })
     if (session === undefined) throw new Error('missing seeded session')
+    // 闭包内读取会让 let 的窄化失效；const 快照保住 Session 类型。
+    const seeded = session
     session.append('turn/start', { turn: 1 })
     session.append('memory/cache-miss', { intentId: 'intent-1', intentKey: 'fix-login', turn: 1, reason: 'initial' })
     session.append('memory/stm-selected', { intentId: 'intent-1', intentKey: 'fix-login', turn: 1, entryIds: [ENTRY_ID] })
@@ -176,6 +178,6 @@ describe('adaptive-memory invariants', () => {
     }), { surfaceOp: 'append' })
     await ctx.plugin(AdaptiveMemoryInvariant)
     const snapshot = stmSnapshotEvent(`相关项目记忆：\n- ${ENTRY_ID.slice(0, 8)} | auth | 摘要 | 关键词`)
-    expect(() => { ctx.emit('session/event', session, snapshot) }).not.toThrow()
+    expect(() => { ctx.emit('session/event', seeded, snapshot) }).not.toThrow()
   })
 })

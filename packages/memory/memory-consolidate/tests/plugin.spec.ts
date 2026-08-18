@@ -10,7 +10,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
 import { CallId, createAssistantMessage, createToolResultMessage, createUserMessage } from '@huiliyi37/dsh-llm'
-import type { GenerateOptions, StreamChunk } from '@huiliyi37/dsh-llm'
+import type { FinishReason, GenerateOptions, StreamChunk } from '@huiliyi37/dsh-llm'
 import SessionStore, { Session, SessionId } from '@huiliyi37/dsh-session'
 import { MarkdownMemoryStore } from '@huiliyi37/dsh-memory'
 import { SqliteMemoryStore } from '@huiliyi37/dsh-memory-sqlite'
@@ -32,7 +32,7 @@ afterEach(async () => {
   dir = undefined
 })
 
-function finish(reason: StreamChunk extends { type: 'finish'; reason: infer R } ? R : never): StreamChunk {
+function finish(reason: FinishReason): StreamChunk {
   return { type: 'finish', reason }
 }
 

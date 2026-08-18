@@ -21,6 +21,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { MarkdownMemoryStore } from '../src/store.js'
+import type { MemoryService } from '../src/index.js'
 
 let dir: string | undefined
 
@@ -142,9 +143,11 @@ describe('MarkdownMemoryStore', () => {
       createdAt: entry.createdAt,
       source: 'agent',
     })
-    expect(store.topicVersions).toBeUndefined()
-    expect(store.markUncertain).toBeUndefined()
-    expect(store.retireStale).toBeUndefined()
+    // 结构化可选能力按 MemoryService 视图探测（Markdown 后端不提供，恒 undefined）。
+    const service: MemoryService = store
+    expect(service.topicVersions).toBeUndefined()
+    expect(service.markUncertain).toBeUndefined()
+    expect(service.retireStale).toBeUndefined()
   })
 
   it('delete：移除条目；删除不存在的 id 静默 no-op', async () => {
