@@ -85,6 +85,10 @@ flowchart LR
   svc_planMode["ctx.planMode<br/>Plan collaboration state"]
   pkg_zen["zen"]
   svc_zen["ctx.zen<br/>Zen-phase first-face gate"]
+  pkg_task_card["task-card"]
+  svc_taskCard["ctx.taskCard<br/>First-message task-card rewrite"]
+  pkg_intent_bridge["intent-bridge"]
+  svc_intentBridge["ctx.intentBridge<br/>Intent-alignment handoff"]
   pkg_commands["commands"]
   svc_commands["ctx.commands<br/>Human command registry"]
   pkg_session_projection["session-projection"]
@@ -232,6 +236,7 @@ flowchart LR
   pkg_fs_sandbox --> svc_fs
   pkg_git --> svc_git
   pkg_goal --> svc_goals
+  pkg_intent_bridge --> svc_intentBridge
   pkg_invariants --> svc_invariants
   pkg_llm --> svc_llm
   pkg_llm_deepseek --> svc_llm
@@ -283,6 +288,7 @@ flowchart LR
   pkg_subprocess_e2b --> svc_subprocess
   pkg_subprocess_local --> svc_subprocess
   pkg_system_prompt --> svc_systemPrompt
+  pkg_task_card --> svc_taskCard
   pkg_tasks --> svc_tasks
   pkg_tasks_local --> svc_tasks
   pkg_token_meter --> svc_tokenMeter
@@ -439,6 +445,8 @@ flowchart LR
 | `ctx.userInteraction` | `seam` | [`user-interaction`](../packages/interaction/user-interaction) | - | [`tool-ask-user`](../packages/interaction/tool-ask-user) | - | UI 入口提供当前生效的人工回答提供方；tool-ask-user 在提供方无关的 ask() promise 上暂停工具调用。 |
 | `ctx.planMode` | `core` | [`plan-mode`](../packages/plan/plan-mode) | - | - | - | 折叠已记录的计划／模式状态，在轮次边界刷新用户选择，渲染由部署方拥有的指导信息，注册 /plan，并在状态转换期间保持计划退出 schema 稳定。 |
 | `ctx.zen` | `core` | [`zen`](../packages/guard/zen) | - | - | - | 折叠已记录的 zen/phase 状态，把新的顶层会话限制在锚定工具面上，并在宿主校验的立锚、分诊或步数预算谓词满足时晋升到全量面。 |
+| `ctx.taskCard` | `core` | [`task-card`](../packages/guard/task-card) | - | - | - | 在 agent/pre-step 把顶层会话的首条用户消息改写为结构化任务卡（LLM 一次性调用、模板回退），逐字原文保留在标记之下。 |
+| `ctx.intentBridge` | `core` | [`intent-bridge`](../packages/guard/intent-bridge) | - | - | - | 在仅限 finalize_alignment 的对齐会话中运行低成本澄清对话，随后把结构化任务卡移交给全新主会话，并发出 intent-bridge/handoff 供 UI 切换。 |
 | `ctx.commands` | `core` | [`commands`](../packages/interaction/commands) | - | - | - | 插件注册直接面向人的命令，而不会把调用发送给模型。 |
 | `ctx.sessionProjections` | `core` | [`session-projection`](../packages/session/session-projection) | - | [`tool-todo`](../packages/todo/tool-todo)、[`session-title`](../packages/session/session-title)、[`host-apiproxy`](../packages/host/apiproxy) | - | 各领域注册由状态驱动的折叠单元；主动驱动过程维护每个会话的水位状态，api-proxy 提供基线并推送发生变化的值。 |
 | `ctx.sessionProjectionCache` | `core` | [`session-projection-cache`](../packages/session/session-projection-cache) | - | [`host-apiproxy`](../packages/host/apiproxy) | - | 按会话持久保存投影单元状态的检查点（节流检查点，以及轮次／结束／分离时的必选检查点），并提供冷读取阶梯：缓存行加持久化尾部回放，因此列表读取永远不需要加载完整日志。 |
