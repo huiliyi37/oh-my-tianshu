@@ -33,6 +33,7 @@ tool outcomes → failure prediction (agent-router)
 | [`repeat-tool-guard/`](repeat-tool-guard/README.md) | 针对重复工具调用的建议性提醒 | 监听工具/agent 事件 |
 | [`timeout-policy/`](timeout-policy/README.md) | 以部署策略形式设置单次工具调用截止时间 | 注册 `tools/execute` 监听器 |
 | [`zen/`](zen/README.md) | 锚定的最小初始 face + 宿主验证的晋升 | `ctx.zen` |
+| [`task-card/`](task-card/README.md) | 首条消息任务卡改写，提升模型语义清晰度 | `ctx.taskCard` |
 | [`pheromone/`](pheromone/README.md) | 文件级信息素信号 | 纯库 |
 
 ### evidence-gate — RED-first 验证

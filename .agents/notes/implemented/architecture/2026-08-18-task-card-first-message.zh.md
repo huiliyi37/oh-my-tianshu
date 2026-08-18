@@ -40,6 +40,19 @@ Status: implemented
 - `tests/invariant.spec.ts` — 带卡消息不变量，live append 与晚注册（8 测试）。
 - 共 28 测试，macOS 全绿；zen 套件（61 测试）重跑无回归。
 
+## 执行记录
+
+- `1dcaac77` — 核心包（生成器、LLM 调用、pre-step 接线、不变量、28 测试）。
+- `387f940c` — README 配对、本 note、TUI bundle 行（`mode: template`）、keyless 快照（真实 Loader + 回放 fixtures）。
+- `3d819047` — host 编译面登记 + workspace lockfile。
+- `594af410` — 提交后审查 HIGH-4 修复：TUI bundle 的 `cordis.patch.yml` 行要求包出现在 `packages/tui/tui/package.json` dependencies（裸插件必须出现在其 resolver manifest；`verify-cordis-config` 强制，修复后 105 配置全绿）。
+
+## 后续工作
+
+- **禅模式进入联动（方案 B）**——经 `inbox.replace` 改写（listener 注册在 zen 之前）让短首条消息也进入禅相位；需 bundle 顺序测试锁死 listener 顺序。已记录，未发货。
+- **TUI 卡片渲染**——transcript 目前以普通用户消息显示改写后文本；专属卡片面列为后续。
+- **`mode: 'llm'` bundle 默认**——TUI 以 `template` 装配（bundle 无 provider 默认）；部署方以自有 provider/model 选择 llm。
+
 ## 相关
 
 - [禅相位工程范式](2026-08-17-zen-phase-engineering-paradigm.md) — 本包正交组合的锚定面相位。

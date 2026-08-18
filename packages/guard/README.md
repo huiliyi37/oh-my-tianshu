@@ -33,6 +33,7 @@ Accounting rides the session event stream, so there are no new channels: a subag
 | [`repeat-tool-guard/`](repeat-tool-guard/README.md) | Advisory reminders for repeated tool calls | listens on tool/agent events |
 | [`timeout-policy/`](timeout-policy/README.md) | Per-call tool deadlines as deployment policy | registers a `tools/execute` listener |
 | [`zen/`](zen/README.md) | Anchored minimal first-face with host-verified promotion | `ctx.zen` |
+| [`task-card/`](task-card/README.md) | First-message task-card rewrite for clearer model semantics | `ctx.taskCard` |
 | [`pheromone/`](pheromone/README.md) | File-level stigmergy signals | pure library |
 
 ### evidence-gate — RED-first verification

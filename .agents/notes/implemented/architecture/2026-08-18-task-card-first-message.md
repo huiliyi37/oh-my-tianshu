@@ -40,6 +40,19 @@ The task card is a built-in lifecycle enhancement owned by `packages/guard/task-
 - `tests/invariant.spec.ts` — carded message invariants on live appends and late registration (8 tests).
 - 28 tests total, green on macOS; zen suite (61 tests) re-run with no regression.
 
+## Execution record
+
+- `1dcaac77` — core package (generator, llm call, pre-step wiring, invariants, 28 tests).
+- `387f940c` — README pair, this note, TUI bundle row (`mode: template`), keyless snapshot (real Loader + replay fixtures).
+- `3d819047` — host compile face entry + workspace lockfile.
+- `594af410` — post-commit review HIGH-4 fix: the TUI bundle's `cordis.patch.yml` row requires the package in `packages/tui/tui/package.json` dependencies (bare plugins must appear in their resolver manifest; `verify-cordis-config` enforces it, 105 configs green after the fix).
+
+## Deferred work
+
+- **Zen-phase entry linkage (plan option B)** — rewrite via `inbox.replace` (listener registered before zen) so short first messages enter the zen phase too; needs bundle-order tests to lock the listener order. Recorded, not shipped.
+- **TUI card render** — the transcript shows the rewritten message as a plain user message; a dedicated card surface is deferred.
+- **`mode: 'llm'` bundle default** — the TUI ships `template` (no bundle-level provider default); deployments opt into llm with their own provider/model.
+
 ## Related
 
 - [Zen phase engineering paradigm](2026-08-17-zen-phase-engineering-paradigm.md) — the anchored-face phase the task card composes with.
