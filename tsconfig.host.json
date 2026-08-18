@@ -273,6 +273,7 @@
     { "path": "./packages/guard/pheromone" },
     { "path": "./packages/guard/zen" },
     { "path": "./packages/guard/task-card" },
+    { "path": "./packages/guard/intent-bridge" },
     { "path": "./packages/self-modification/tool-cordis" },
     { "path": "./packages/self-modification/cordis-host-runner" },
     { "path": "./packages/hooks/hook-protocol" },

@@ -4216,6 +4216,39 @@ importers:
         specifier: workspace:^
         version: link:../../core/tools
 
+  packages/guard/intent-bridge:
+    devDependencies:
+      '@huiliyi37/cordis':
+        specifier: ^4.0.0-rc.7
+        version: link:../../../vendor/cordis
+      '@huiliyi37/dsh-agent':
+        specifier: workspace:^
+        version: link:../../core/agent
+      '@huiliyi37/dsh-agent-loop':
+        specifier: workspace:^
+        version: link:../../core/agent-loop
+      '@huiliyi37/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../support/invariants
+      '@huiliyi37/dsh-llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
+      '@huiliyi37/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@huiliyi37/dsh-session-title':
+        specifier: workspace:^
+        version: link:../../session/session-title
+      '@huiliyi37/dsh-system-prompt':
+        specifier: workspace:^
+        version: link:../../core/system-prompt
+      '@huiliyi37/dsh-task-card':
+        specifier: workspace:^
+        version: link:../task-card
+      '@huiliyi37/dsh-tools':
+        specifier: workspace:^
+        version: link:../../core/tools
+
   packages/guard/pheromone:
     devDependencies:
       '@huiliyi37/cordis':
