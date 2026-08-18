@@ -72,6 +72,11 @@ export interface PiAiAdapterOptions {
    * `MISSING_CREDENTIAL` rather than falling back.
    */
   resolveApiKey: (provider: string, profile: ResolvedPiAiProviderProfile) => Promise<string | undefined>
+  /**
+   * Observe one assistant history message degrading to provider-neutral
+   * conversion because its stored replay state is unusable by this build.
+   */
+  onReplayDegrade?: (detail: { provider: string; model: string; reason: string }) => void
 }
 
 /** Copy profile stream knobs into pi-ai's common option vocabulary. */
@@ -293,7 +298,10 @@ export class PiAiAdapter extends LlmAdapter {
     using watchdog = idleWatchdog(upstream, streamIdleTimeoutMs, 'LLM_STREAM_IDLE_TIMEOUT')
 
     try {
-      const events = snapshot.models.streamSimple(model, toPiContext(options), {
+      const onReplayDegrade = (reason: string): void => {
+        this.config.onReplayDegrade?.({ provider: options.provider, model: options.model, reason })
+      }
+      const events = snapshot.models.streamSimple(model, toPiContext(options, onReplayDegrade), {
         ...profileOptions(profile, reasoning, apiKey),
         ...options.temperature === undefined ? {} : { temperature: options.temperature },
         ...options.maxTokens === undefined ? {} : { maxTokens: options.maxTokens },

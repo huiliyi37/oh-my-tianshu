@@ -1501,6 +1501,11 @@
       "source": "packages/llm/llm/src/types.ts"
     },
     {
+      "doc": "docs/subsystems/llm-streaming.md",
+      "symbol": "ReplayEnvelope",
+      "source": "packages/llm/llm/src/types.ts"
+    },
+    {
       "doc": "docs/subsystems/settings.md",
       "symbol": "SettingsPathOp",
       "source": "packages/settings/settings/src/index.ts"
