@@ -65,6 +65,9 @@ describe('intent-bridge first-message snapshot', () => {
         const files = await readdir(join(cwd, '.sessions'), { recursive: true })
         const jsonl = files.filter(file => file.endsWith('.jsonl'))
         expect(jsonl).toHaveLength(2)
+        // Both sessions persisted under the run's project directory — the
+        // main session inherits the alignment's cwd, never `_no-cwd/`.
+        expect(files.some(file => file.includes('_no-cwd'))).toBe(false)
 
         // The MAIN session (the one that recorded the handoff) carries the card.
         let mainLog: string | undefined

@@ -275,6 +275,20 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Folds logged zen/phase state, restricts new top-level sessions to the anchored tool face, and promotes to the full face on host-verified anchor, triage, or step-budget predicates.',
   },
   {
+    key: 'taskCard',
+    pkg: 'task-card',
+    title: 'First-message task-card rewrite',
+    mode: 'core',
+    note: 'Rewrites a top-level session\'s first user message into a structured task card at agent/pre-step (LLM one-shot with template fallback), keeping the verbatim original under the marker.',
+  },
+  {
+    key: 'intentBridge',
+    pkg: 'intent-bridge',
+    title: 'Intent-alignment handoff',
+    mode: 'core',
+    note: 'Runs the low-cost alignment conversation in a session restricted to finalize_alignment, then hands the structured task card to a fresh main session and emits intent-bridge/handoff for UIs to switch.',
+  },
+  {
     key: 'commands',
     pkg: 'commands',
     title: 'Human command registry',

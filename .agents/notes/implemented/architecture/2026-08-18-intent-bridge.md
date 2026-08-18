@@ -45,7 +45,8 @@ The intent bridge (`packages/guard/intent-bridge`, `@huiliyi37/dsh-intent-bridge
 - `b4af3a63` — core package (align contract, finalize tool, pre-step wiring, invariants, 27 tests).
 - `08d0dbcf`/`9f35bf22` — TUI newSession alignment branch + handoff auto-switch + bundle wiring; tsconfig references.
 - `c3d50ead` — keyless snapshot; `d8c3f42d` — docs/index sync.
-- Follow-up (`意图链后续优化`): `createAlignedSession` accepts caller-owned `cwd` (session lands in the real project directory instead of `_no-cwd/`) and `exec` override (the main session follows the TUI's `/model` selection; config remains the headless default).
+- Follow-up (`意图链后续优化`): `createAlignedSession` accepts caller-owned `cwd` (both the alignment session AND the main session it hands off to land in the real project directory instead of `_no-cwd/`) and `exec` override (the main session follows the TUI's `/model` selection; config remains the headless default).
+- Review fix: the follow-up originally landed `cwd` on the alignment session only — both `finalize` paths created the main session without `meta`, so the long-lived exec session persisted into `_no-cwd/` and disappeared from the Web session list. `AlignState` now carries `cwd` into every main-session create; the package spec asserts the main session's `header.cwd`, and the keyless snapshot passes `cwd` through the fixture and pins the no-`_no-cwd` layout.
 
 ## Retrospective (reusable patterns)
 

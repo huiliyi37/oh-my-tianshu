@@ -49,6 +49,7 @@ declare module '@huiliyi37/cordis' {
     /**
      * An alignment session handed off to its main session. The main session
      * already received the rendered task card as its first user message.
+     * @mode emit
      * @param payload.alignSessionId - the alignment session that completed.
      * @param payload.mainSessionId - the fresh main session to switch to.
      * @param payload.title - the task card's title ('' on failure fallback).
@@ -109,7 +110,7 @@ export interface ResolvedIntentBridgeConfig {
 
 /** Per-call alignment-session options (caller-owned; all optional). */
 export interface CreateAlignedSessionOptions {
-  /** Session project directory (durable header.cwd); omitted lands in `_no-cwd/`. */
+  /** Project directory (durable header.cwd) for the alignment session AND its main session; omitted lands both in `_no-cwd/`. */
   cwd?: string
   /** Main-session route override for this alignment's handoff; default is the config exec route. */
   exec?: { provider: string; model: string }
@@ -180,6 +181,8 @@ interface AlignState {
   finalized: boolean
   /** The user's first message verbatim (recorded before any rewrite). */
   originalText: string | undefined
+  /** Project directory for the alignment session and its main session (header.cwd). */
+  cwd: string | undefined
   /** Per-session main-session route override; falls back to the config exec route. */
   execRoute?: { provider: string; model: string }
 }
@@ -270,9 +273,10 @@ export class IntentBridgeService extends Service {
   /**
    * Create a fresh alignment session: seeded zen-completed (never arms),
    * tool face restricted to `finalize_alignment`, titled for the tab list.
-   * Caller-owned options: `cwd` lands the session in a real project directory
-   * (omitted → `_no-cwd/`), `exec` overrides the main-session route for this
-   * alignment's handoff (omitted → config exec route).
+   * Caller-owned options: `cwd` lands BOTH the alignment session and the main
+   * session it hands off to in a real project directory (omitted → `_no-cwd/`),
+   * `exec` overrides the main-session route for this alignment's handoff
+   * (omitted → config exec route).
    *
    * @param options - per-call options (all optional).
    * @returns the session id and the owned handle (drive it after resolve).
@@ -301,6 +305,7 @@ export class IntentBridgeService extends Service {
       rounds: 0,
       finalized: false,
       originalText: undefined,
+      cwd: options.cwd,
       ...(options.exec === undefined ? {} : { execRoute: options.exec }),
     })
     return { sessionId, handle }
@@ -378,6 +383,7 @@ export class IntentBridgeService extends Service {
     const route = state.execRoute ?? this.execRoute
     const { agent: main } = await this.ctx.agents.create({
       sessionId: SessionId(mainId),
+      ...(state.cwd === undefined ? {} : { meta: { cwd: state.cwd } }),
       agentOptions: { provider: route.provider, model: route.model },
     })
     main.followup(createUserMessage({ content: [{ type: 'text', text: cardText }], source: { kind: 'user' } }))
@@ -405,6 +411,7 @@ export class IntentBridgeService extends Service {
     const route = state.execRoute ?? this.execRoute
     const { agent: main } = await this.ctx.agents.create({
       sessionId: SessionId(mainId),
+      ...(state.cwd === undefined ? {} : { meta: { cwd: state.cwd } }),
       agentOptions: { provider: route.provider, model: route.model },
     })
     main.followup(createUserMessage({ content: [{ type: 'text', text: original }], source: { kind: 'user' } }))

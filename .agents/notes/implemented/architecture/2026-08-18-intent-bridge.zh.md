@@ -45,7 +45,8 @@ Status: implemented
 - `b4af3a63` — 核心包（对齐契约、finalize 工具、pre-step 接线、不变量、27 测试）。
 - `08d0dbcf`/`9f35bf22` — TUI newSession 对齐分支 + handoff 自动切换 + bundle 装配；tsconfig references。
 - `c3d50ead` — keyless 快照；`d8c3f42d` — 文档/索引同步。
-- 后续优化（`意图链后续优化`）：`createAlignedSession` 接受调用方持有的 `cwd`（会话落入真实项目目录而非 `_no-cwd/`）与 `exec` override（主会话跟随 TUI `/model` 选择；配置仍是 headless 默认）。
+- 后续优化（`意图链后续优化`）：`createAlignedSession` 接受调用方持有的 `cwd`（对齐会话与其移交的主会话都落入真实项目目录而非 `_no-cwd/`）与 `exec` override（主会话跟随 TUI `/model` 选择；配置仍是 headless 默认）。
+- 审查修复：后续优化最初只给对齐会话落了 `cwd`——两条 `finalize` 路径创建主会话都没带 `meta`，长期存在的 exec 会话被持久化进 `_no-cwd/` 并从 Web 会话列表消失。现在 `AlignState` 把 `cwd` 带进每次主会话创建；包测试断言主会话 `header.cwd`，keyless 快照经夹具传 `cwd` 并钉住无 `_no-cwd` 的落盘布局。
 
 ## 复盘（可复用模式）
 

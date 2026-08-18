@@ -37,9 +37,9 @@ Groups hold `packages/<group>/<pkg>/`; names `@huiliyi37/dsh-<pkg>`. **Group REA
 | [`attachment/`](attachment/README.md) | Durable attachment storage: seam + local content-addressed provider | Product — stable surface |
 | [`spill/`](spill/README.md) | Spill capability family: storage seam, local impl, tool-result spill policy | Product — stable surface |
 | [`todo/`](todo/README.md) | The model-facing `todo_write` tool | Product — stable surface |
-| [`plan/`](plan/README.md) | Plan collaboration state with a direct entry command and reviewed exit | Product — stable surface |
+| [`plan/`](plan/README.md) | Plan collaboration state: direct entry command, reviewed exit | Product — stable surface |
 | [`preset/`](preset/README.md) | Per-session agent composition from preset cordis.yml files | Product — stable surface |
-| [`guard/`](guard/README.md) | Loop-hygiene guards: repeat-call reminders, tool deadlines, the zen first-face phase, the task-card rewrite, the intent-bridge alignment handoff | Product — stable surface |
+| [`guard/`](guard/README.md) | Loop-hygiene guards: repeat-call reminders, tool deadlines, zen first-face, task-card rewrite, intent-bridge handoff | Product — stable surface |
 | [`bundle/`](bundle/README.md) | Installable `oh-my-tianshu --profile` patch layers | Product — stable surface |
 | [`self-modification/`](self-modification/README.md) | Self-modifying runtime: inspect, mount/unmount model-written plugins ([design](../.agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md)), restricted Plugin loading | Product — stable surface |
 | [`hooks/`](hooks/README.md) | Hook bridges + shared Claude Code / Codex protocol library | Product — stable surface |

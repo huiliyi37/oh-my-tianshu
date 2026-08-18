@@ -226,6 +226,8 @@ describe('intent-bridge through the agent loop', () => {
     expect(handoff).toBeDefined()
     const main = ctx.agents.get(SessionId(handoff!.mainSessionId))
     if (main === undefined) throw new Error('intent-bridge: main session missing after handoff')
+    // The main session inherited the alignment's cwd — never `_no-cwd/`.
+    expect(main.session.header.cwd).toBe(process.cwd())
     await waitForIdle(ctx, main)
     const mainRequest = adapter.requests.find(request => request.provider === 'mock')
     expect(mainRequest?.model).toBe('custom-model')

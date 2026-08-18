@@ -514,6 +514,8 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   DynamicCordisRunRequest: 'cordis/event contract is owned by packages/self-modification/cordis-host-runner/src/types.ts',
   AgentPreset: 'discovered preset record is owned by packages/preset/agent-presets/README.md',
   ZenPhase: 'zen-phase state vocabulary is owned by packages/guard/zen/README.md',
+  IntentBridgeHandoff: 'event payload contract is owned by packages/guard/intent-bridge/README.md',
+  CreateAlignedSessionOptions: 'per-call options contract is owned by packages/guard/intent-bridge/README.md',
   ApprovalRequestId: 'dynamic Plugin approval identity is owned by packages/self-modification/cordis-host-runner/src/types.ts',
   CordisErrorDetails: 'Cordis runtime error payload is owned by packages/self-modification/cordis-host-runner/src/types.ts',
   CordisInspectPlatform: 'Cordis inspect platform identity is owned by packages/self-modification/cordis-host-runner/src/types.ts',

@@ -1,4 +1,4 @@
-{"type":"session","version":0,"id":"session-{{sessionId}}-exec","createdAt":0,"delegationDepth":0}
+{"type":"session","version":0,"id":"session-{{sessionId}}-exec","createdAt":0,"cwd":"{{cwd}}","delegationDepth":0}
 {"type":"zen/phase","seq":0,"time":0,"data":{"phase":"zen","reason":"arm"}}
 {"type":"agent/inbox/spliced","seq":1,"time":0,"data":{"target":"next-turn","start":0,"inserted":[{"content":[{"type":"text","text":"# 重构登录逻辑\n\n## 目标\n重写 src/auth.ts 的登录流程\n\n## 约束\n- 不改变 API 签名\n\n## 验收\n- pnpm test 全绿\n\n—— 原始请求 ——\n帮我重构 src/auth.ts 的登录逻辑"}],"source":{"kind":"user"},"role":"user","id":"{{sessionId}}"}]}}
 {"type":"turn/start","seq":2,"time":0,"data":{"turn":1}}

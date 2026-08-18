@@ -83,6 +83,10 @@ flowchart LR
   svc_planMode["ctx.planMode<br/>Plan collaboration state"]
   pkg_zen["zen"]
   svc_zen["ctx.zen<br/>Zen-phase first-face gate"]
+  pkg_task_card["task-card"]
+  svc_taskCard["ctx.taskCard<br/>First-message task-card rewrite"]
+  pkg_intent_bridge["intent-bridge"]
+  svc_intentBridge["ctx.intentBridge<br/>Intent-alignment handoff"]
   pkg_commands["commands"]
   svc_commands["ctx.commands<br/>Human command registry"]
   pkg_session_projection["session-projection"]
@@ -230,6 +234,7 @@ flowchart LR
   pkg_fs_sandbox --> svc_fs
   pkg_git --> svc_git
   pkg_goal --> svc_goals
+  pkg_intent_bridge --> svc_intentBridge
   pkg_invariants --> svc_invariants
   pkg_llm --> svc_llm
   pkg_llm_deepseek --> svc_llm
@@ -281,6 +286,7 @@ flowchart LR
   pkg_subprocess_e2b --> svc_subprocess
   pkg_subprocess_local --> svc_subprocess
   pkg_system_prompt --> svc_systemPrompt
+  pkg_task_card --> svc_taskCard
   pkg_tasks --> svc_tasks
   pkg_tasks_local --> svc_tasks
   pkg_token_meter --> svc_tokenMeter
@@ -437,6 +443,8 @@ flowchart LR
 | `ctx.userInteraction` | `seam` | [`user-interaction`](../packages/interaction/user-interaction) | - | [`tool-ask-user`](../packages/interaction/tool-ask-user) | - | UI front doors provide the active human-answer provider; tool-ask-user pauses a tool call on the provider-neutral ask() promise. |
 | `ctx.planMode` | `core` | [`plan-mode`](../packages/plan/plan-mode) | - | - | - | Folds logged plan/mode state, flushes user selections at turn boundaries, renders deployment-owned guidance, registers /plan, and keeps the plan-exit schema stable across transitions. |
 | `ctx.zen` | `core` | [`zen`](../packages/guard/zen) | - | - | - | Folds logged zen/phase state, restricts new top-level sessions to the anchored tool face, and promotes to the full face on host-verified anchor, triage, or step-budget predicates. |
+| `ctx.taskCard` | `core` | [`task-card`](../packages/guard/task-card) | - | - | - | Rewrites a top-level session's first user message into a structured task card at agent/pre-step (LLM one-shot with template fallback), keeping the verbatim original under the marker. |
+| `ctx.intentBridge` | `core` | [`intent-bridge`](../packages/guard/intent-bridge) | - | - | - | Runs the low-cost alignment conversation in a session restricted to finalize_alignment, then hands the structured task card to a fresh main session and emits intent-bridge/handoff for UIs to switch. |
 | `ctx.commands` | `core` | [`commands`](../packages/interaction/commands) | - | - | - | Plugins register direct human commands without sending invocations to the model. |
 | `ctx.sessionProjections` | `core` | [`session-projection`](../packages/session/session-projection) | - | [`tool-todo`](../packages/todo/tool-todo), [`session-title`](../packages/session/session-title), [`host-apiproxy`](../packages/host/apiproxy) | - | Domains register state-driven fold units; the eager drive keeps per-session watermark states and api-proxy serves baselines and pushes changed values. |
 | `ctx.sessionProjectionCache` | `core` | [`session-projection-cache`](../packages/session/session-projection-cache) | - | [`host-apiproxy`](../packages/host/apiproxy) | - | Durably checkpoints projection unit states per session (throttled + turn/end/detach mandatory points) and serves the cold-read ladder: cache row + persistence tail replay, so listings never load full logs. |
