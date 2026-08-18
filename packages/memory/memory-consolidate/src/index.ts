@@ -203,18 +203,18 @@ function requireMemory(ctx: Context): MemoryService {
   return memory
 }
 
+/** 内部信号：provider 在 I/O 前拒绝显式 reasoning effort（适配器未声明 reasoning 能力）。 */
+class EffortUnsupported extends Error {}
+
 /**
  * 装配插件侧的提取调用执行体：经 ctx.llm 做一次有界流式调用（BlockAssembler
- * 聚合文本块）。llm 服务在调用时探测（extractor: 'llm' 而未装配 llm 服务 =
+ * 聚合文本块）。提取是机械摘要：缺省关思考，避免推理模型把输出预算烧在思考
+ * token 上。llm 服务在调用时探测（extractor: 'llm' 而未装配 llm 服务 =
  * 本次提取失败，由 FallbackExtractor 回退启发式并记 log-only 提示）。
  * @param ctx - 插件上下文（reflect 取 llm 服务）。
  * @param config - 解析后的配置（输出上限与超时）。
  * @returns 提取调用执行体。
  */
-/** 内部信号：provider 在 I/O 前拒绝显式 reasoning effort（适配器未声明 reasoning 能力）。 */
-class EffortUnsupported extends Error {}
-
-/** 提取是机械摘要：缺省关思考，避免推理模型把输出预算烧在思考 token 上。 */
 function createPluginInvoke(ctx: Context, config: ResolvedConfig): LlmInvoke {
   return async ({ system, user, route }) => {
     const llm = ctx.reflect.get('llm', false) as LlmService | undefined
