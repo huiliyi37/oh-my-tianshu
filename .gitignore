@@ -41,6 +41,10 @@ worktrees/
 # Harness runtime state (plans, knowledge, scratch, backups, artifacts).
 .rivet/
 
+# Cross-session memory the dsh-memory plugins write under process.cwd()
+# (global.md, ltm.sqlite) when dogfooding inside this repository.
+.dsh/
+
 # Local lefthook override for sandboxed serial pre-commit.
 lefthook-local.yml
 
