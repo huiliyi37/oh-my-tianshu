@@ -22,7 +22,7 @@ Shipped TUI and `dsh-base` stay on Markdown. This package is on the tree for hos
 
 **Migrate old sqlite schemas.** Rejected: pre-release stance — `SCHEMA_VERSION` mismatch fails loud.
 
-**Land STM and a retirement driver in the same change.** Rejected: sqlite is the store; those consumers are later work.
+**Land STM and a retirement driver in the same change.** Rejected: sqlite is the store. Those consumers now live in [`dsh-adaptive-memory`](2026-08-18-adaptive-memory-stm.md) and [`dsh-memory-consolidate`](2026-08-18-memory-consolidate.md); they stay off shipped compositions.
 
 ## Consequences
 

@@ -5215,10 +5215,6 @@ importers:
         version: 2026.7.10(zod@4.4.3)
 
   packages/memory/adaptive-memory:
-    dependencies:
-      '@huiliyi37/schemastery':
-        specifier: ^3.18.0
-        version: link:../../../vendor/schemastery
     devDependencies:
       '@huiliyi37/cordis':
         specifier: ^4.0.0-rc.7
@@ -5259,6 +5255,9 @@ importers:
       '@huiliyi37/dsh-tools':
         specifier: workspace:^
         version: link:../../core/tools
+      '@huiliyi37/schemastery':
+        specifier: ^3.0.0-rc.3
+        version: link:../../../vendor/schemastery
 
   packages/memory/memory:
     devDependencies:

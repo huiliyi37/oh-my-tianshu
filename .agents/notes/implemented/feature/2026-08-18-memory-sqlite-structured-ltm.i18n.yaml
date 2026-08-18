@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-18-memory-sqlite-structured-ltm.md
-2026-08-18-memory-sqlite-structured-ltm.md: 4e7a47de6d1da80eb16ef4572026703fa852a435
-2026-08-18-memory-sqlite-structured-ltm.zh.md: 893925be51d72e8a260e77ac67017f89512ea00c
+2026-08-18-memory-sqlite-structured-ltm.md: a1d782f406390e3acfeef71c32439f1e98dd42d5
+2026-08-18-memory-sqlite-structured-ltm.zh.md: 3bd3b0c1499a6b979f518cd92b203f4f83451539

@@ -10,7 +10,7 @@
 
 另有一条不依赖 embedding 端点的语义召回路径：`keywordExpansion: 'llm'` 时每次 `save` 花一次小型 chat 模型调用（路由对 `keywordExpansionProvider`/`keywordExpansionModel` 必填——save 路径没有会话路由可推导；`keywordExpansionEffort` 缺省 `'off'`，推理模型不会把输出预算烧在思考 token 上）生成 5–12 个同义、释义、跨语言扩展词，并入该条目落库的关键词——原始 tags 在前（`tags[0]` 作为 topic 代理的契约不动），扩展词在后、精确去重。释义查询（如对写着「扣款」的条目搜「重复收费」）由此经普通 FTS 命中。扩展是增强而非正确性依赖：expander 失败只记 log-only 警告，save 按未扩展继续落库。经 `apply` 第四参数注入的 expander 函数优先于 Config（keyless 测试钩子）。
 
-冲突与退役能力留给后续巩固消费方。`markUncertain(scope, subject, predicate)` 把该对当前的 active 事实降级为 `uncertain`——不删除、不 supersede，检索以较低权重保留——并追加一条 observation 事件，让审计轨迹记录这次冲突；之后对 uncertain 头的保存会将其 supersede（新证据消解不确定性，每对保持一个当前版本）。`retireStale(options)` 每次调用计一次巩固，退役早于调用方给定保留期限的 superseded 版本，以及连续指定次数巩固未被检索命中的 active/uncertain 事实（使用信号是 `used_at_consolidation`，每当 `search` 命中某版本时刷新为 `meta` 表的巩固计数）。`retired` 事实完全离开 `search` 与 `list`；行与 append-only 日志保留，退役会追加 tombstone 事件并 bump 所属 topic 的版本。两者都是 seam 的可选能力——消费方以 `typeof memory.markUncertain === 'function'` / `typeof memory.retireStale === 'function'` 探测。
+冲突与退役能力由挂载的 `dsh-memory-consolidate` 消费。`markUncertain(scope, subject, predicate)` 把该对当前的 active 事实降级为 `uncertain`——不删除、不 supersede，检索以较低权重保留——并追加一条 observation 事件，让审计轨迹记录这次冲突；之后对 uncertain 头的保存会将其 supersede（新证据消解不确定性，每对保持一个当前版本）。`retireStale(options)` 每次调用计一次巩固，退役早于调用方给定保留期限的 superseded 版本，以及连续指定次数巩固未被检索命中的 active/uncertain 事实（使用信号是 `used_at_consolidation`，每当 `search` 命中某版本时刷新为 `meta` 表的巩固计数）。`retired` 事实完全离开 `search` 与 `list`；行与 append-only 日志保留，退役会追加 tombstone 事件并 bump 所属 topic 的版本。两者都是 seam 的可选能力——消费方以 `typeof memory.markUncertain === 'function'` / `typeof memory.retireStale === 'function'` 探测。
 
 ## Model Experience
 
@@ -18,7 +18,7 @@
 
 #### What the model sees
 
-不直接可见：本 provider 自身从不注入任何内容。记忆内容只经消费方到达模型（`memory_save` / `memory_search` 的工具结果、后续 STM 快照）。
+不直接可见：本 provider 自身从不注入任何内容。记忆内容只经消费方到达模型（`memory_save` / `memory_search` 的工具结果、挂载 `dsh-adaptive-memory` 时的 STM 快照）。
 
 #### Token effect
 
@@ -32,4 +32,4 @@
 
 - **暴力向量扫描**——配置 embedder 后余弦名次要扫全部过滤通过的候选；记忆规模（数百条）下没有问题，ANN 索引推迟。融合还改变了 score 语义：单榜居首的命中约 0.5 分，而纯 BM25 可达 1.0——启用嵌入时，按 `score` 做门控的消费方需要重新调参。词法通道不变：CJK 召回依赖二元组分词，单字 CJK 查询不命中。
 - **单进程写入**——两个 dsh 实例在同一 cwd 并发写不受保护；存储假定单事件循环。
-- **退役需要驱动方**——`retireStale` 只在消费方调用时运行；store 自身从不主动退役，而检索期的使用信号让检索成为对视图（而非日志）的一次写入。
+- **退役需要驱动方**——`retireStale` 只在消费方调用时运行（挂载 `dsh-memory-consolidate` 时每次巩固后会调用）；store 自身从不主动退役，而检索期的使用信号让检索成为对视图（而非日志）的一次写入。

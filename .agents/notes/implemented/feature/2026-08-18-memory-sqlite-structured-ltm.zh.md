@@ -22,7 +22,7 @@ Markdown 记忆是人类可编辑的文件存储：子串检索、无排序、�
 
 **迁移旧 sqlite schema。** 否决：预发布立场——`SCHEMA_VERSION` 不符即 fail loud。
 
-**同一改动里再上 STM 和退役驱动方。** 否决：sqlite 是存储；那些消费方是后续工作。
+**同一改动里再上 STM 和退役驱动方。** 否决：sqlite 是存储。那些消费方现在是 [`dsh-adaptive-memory`](2026-08-18-adaptive-memory-stm.md) 与 [`dsh-memory-consolidate`](2026-08-18-memory-consolidate.md)；仍不进入发货组合。
 
 ## Consequences
 

@@ -217,6 +217,7 @@ flowchart TD
     pkg_evidence_gate["evidence-gate"]
     pkg_pheromone["pheromone"]
     pkg_repeat_tool_guard["repeat-tool-guard"]
+    pkg_task_card["task-card"]
     pkg_timeout_policy["timeout-policy"]
     pkg_zen["zen"]
   end
@@ -249,7 +250,9 @@ flowchart TD
     pkg_mcp_client["mcp-client"]
   end
   subgraph group_memory["packages/memory"]
+    pkg_adaptive_memory["adaptive-memory"]
     pkg_memory["memory"]
+    pkg_memory_consolidate["memory-consolidate"]
     pkg_memory_sqlite["memory-sqlite"]
     pkg_tool_memory["tool-memory"]
   end
@@ -562,6 +565,11 @@ flowchart TD
   pkg_code_runtime_worker --> pkg_invariants
   pkg_code_runtime_worker --> pkg_session
   pkg_code_runtime_worker --> pkg_timeout
+  pkg_memory_consolidate --> pkg_invariants
+  pkg_memory_consolidate --> pkg_llm
+  pkg_memory_consolidate --> pkg_memory
+  pkg_memory_consolidate --> pkg_session
+  pkg_memory_consolidate --> pkg_timeout
   pkg_persona --> pkg_invariants
   pkg_persona --> pkg_system_prompt
   pkg_sandbox_local --> pkg_invariants
@@ -662,6 +670,11 @@ flowchart TD
   pkg_agent_router --> pkg_invariants
   pkg_agent_router --> pkg_llm
   pkg_agent_router --> pkg_session
+  pkg_task_card --> pkg_agent
+  pkg_task_card --> pkg_invariants
+  pkg_task_card --> pkg_llm
+  pkg_task_card --> pkg_session
+  pkg_task_card --> pkg_timeout
   pkg_host_directory_picker_browse --> pkg_client_locale
   pkg_host_directory_picker_browse --> pkg_client_runtime
   pkg_host_directory_picker_browse --> pkg_client_ui_primitives
@@ -1018,6 +1031,12 @@ flowchart TD
   pkg_mcp_client --> pkg_llm
   pkg_mcp_client --> pkg_subprocess
   pkg_mcp_client --> pkg_tools
+  pkg_adaptive_memory --> pkg_agent
+  pkg_adaptive_memory --> pkg_invariants
+  pkg_adaptive_memory --> pkg_memory
+  pkg_adaptive_memory --> pkg_session
+  pkg_adaptive_memory --> pkg_system_prompt
+  pkg_adaptive_memory --> pkg_tools
   pkg_tool_memory --> pkg_invariants
   pkg_tool_memory --> pkg_system_prompt
   pkg_tool_memory --> pkg_tools
@@ -1470,6 +1489,7 @@ flowchart TD
 | [`client-ui-theme`](../packages/client/ui-theme) | `client` | [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-slots`](../packages/client/ui-slots), [`invariants`](../packages/support/invariants) |
 | [`client-ui-workspace`](../packages/client/ui-workspace) | `client` | [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-slots`](../packages/client/ui-slots), [`invariants`](../packages/support/invariants) |
 | [`code-runtime-worker`](../packages/code-runtime/code-runtime-worker) | `code-runtime` | [`code-runtime`](../packages/code-runtime/code-runtime), [`invariants`](../packages/support/invariants), [`session`](../packages/core/session), [`timeout`](../packages/util/timeout) |
+| [`memory-consolidate`](../packages/memory/memory-consolidate) | `memory` | [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`memory`](../packages/memory/memory), [`session`](../packages/core/session), [`timeout`](../packages/util/timeout) |
 | [`persona`](../packages/preset/persona) | `preset` | [`invariants`](../packages/support/invariants), [`system-prompt`](../packages/core/system-prompt) |
 | [`sandbox-local`](../packages/sandbox/sandbox-local) | `sandbox` | [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`sandbox`](../packages/sandbox/sandbox), [`session`](../packages/core/session) |
 | [`session-persistence`](../packages/session/session-persistence) | `session` | [`brand`](../packages/util/brand), [`invariants`](../packages/support/invariants), [`session`](../packages/core/session), [`timeout`](../packages/util/timeout) |
@@ -1495,6 +1515,7 @@ flowchart TD
 | [`fs-e2b`](../packages/e2b/fs-e2b) | `e2b` | [`e2b`](../packages/e2b/e2b), [`fs`](../packages/fs/fs), [`invariants`](../packages/support/invariants) |
 | [`message-feedback`](../packages/feedback/message-feedback) | `feedback` | [`brand`](../packages/util/brand), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`session-persistence`](../packages/session/session-persistence), [`storage-domain`](../packages/storage/storage-domain), [`type-meta`](../packages/typert/type-meta) |
 | [`agent-router`](../packages/guard/agent-router) | `guard` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session) |
+| [`task-card`](../packages/guard/task-card) | `guard` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`timeout`](../packages/util/timeout) |
 | [`host-directory-picker-browse`](../packages/host/directory-picker-browse) | `host` | [`client-locale`](../packages/client/locale), [`client-runtime`](../packages/client/runtime), [`client-ui-primitives`](../packages/client/ui-primitives), [`client-ui-slots`](../packages/client/ui-slots), [`client-ui-workspace`](../packages/client/ui-workspace), [`invariants`](../packages/support/invariants) |
 | [`host-directory-picker-native`](../packages/host/directory-picker-native) | `host` | [`client-runtime`](../packages/client/runtime), [`client-ui-slots`](../packages/client/ui-slots), [`client-ui-workspace`](../packages/client/ui-workspace), [`invariants`](../packages/support/invariants) |
 | [`commands`](../packages/interaction/commands) | `interaction` | [`agent`](../packages/core/agent), [`brand`](../packages/util/brand), [`invariants`](../packages/support/invariants), [`scope`](../packages/core/scope), [`session`](../packages/core/session) |
@@ -1562,6 +1583,7 @@ flowchart TD
 | [`tool-ask-user`](../packages/interaction/tool-ask-user) | `interaction` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`tools`](../packages/core/tools), [`user-interaction`](../packages/interaction/user-interaction) |
 | [`tool-lsp`](../packages/lsp/tool-lsp) | `lsp` | [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`lsp`](../packages/lsp/lsp), [`system-prompt`](../packages/core/system-prompt), [`timeout`](../packages/util/timeout), [`tools`](../packages/core/tools) |
 | [`mcp-client`](../packages/mcp/mcp-client) | `mcp` | [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`subprocess`](../packages/subprocess/subprocess), [`tools`](../packages/core/tools) |
+| [`adaptive-memory`](../packages/memory/adaptive-memory) | `memory` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`memory`](../packages/memory/memory), [`session`](../packages/core/session), [`system-prompt`](../packages/core/system-prompt), [`tools`](../packages/core/tools) |
 | [`tool-memory`](../packages/memory/tool-memory) | `memory` | [`invariants`](../packages/support/invariants), [`system-prompt`](../packages/core/system-prompt), [`tools`](../packages/core/tools) |
 | [`tool-bash-persistent`](../packages/pty/tool-bash-persistent) | `pty` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`pty`](../packages/pty/pty), [`timeout`](../packages/util/timeout), [`tools`](../packages/core/tools) |
 | [`tool-pty`](../packages/pty/tool-pty) | `pty` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`pty`](../packages/pty/pty), [`retention`](../packages/util/retention), [`system-prompt`](../packages/core/system-prompt), [`tasks`](../packages/tasks/tasks), [`tools`](../packages/core/tools) |

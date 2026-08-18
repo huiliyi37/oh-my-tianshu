@@ -82,6 +82,56 @@ export interface Config {
 
 来源：[`packages/examples/acp-demo/src/index.ts:39`](../packages/examples/acp-demo/src/index.ts)
 
+## `@huiliyi37/dsh-adaptive-memory`
+
+需要：`systemPrompt`
+
+```ts config-catalog
+/** 插件配置：全部预算/阈值经 schemastery 校验，缺省值在 schema 上。 */
+export interface Config {
+  /** 整份 STM 快照的估算 token 预算（缺省 600；汉字按 1 token、其余按 1/4 估算）。 */
+  stmTokenBudget?: number
+  /** STM 候选数上限（缺省 12）。 */
+  maxEntries?: number
+  /** intentKey 保留的关键词数上限（缺省 6）。 */
+  maxIntentTokens?: number
+  /** 实体提取数上限（缺省 24）。 */
+  maxEntities?: number
+  /** pressure 阀门：距上次刷新满 N 轮强制重评估（缺省 8）。 */
+  reviewIntervalTurns?: number
+  /** 目标动词表：含动词的用户消息成为新 intent 锚点（拉丁词按词边界、CJK 按子串匹配）。 */
+  goalVerbs?: string[]
+  /** 始终入选 STM 候选的 tag（安全/用户约束类条目；缺省 ['safety', 'constraint', 'preference']）。 */
+  alwaysIncludeTags?: string[]
+  /** 每行摘要的字符数上限（缺省 120）。 */
+  summaryMaxChars?: number
+  /** 每条目的关键词数上限（缺省 5）。 */
+  maxKeywords?: number
+  /**
+   * 置信度门高阈值（缺省 0.82，占位待调参）：结构化 provider 的归一化
+   * score ≥ 此值时条目全文注入 STM；只在 provider 产出 score 时生效。
+   */
+  confidenceHigh?: number
+  /** 置信度门中阈值（缺省 0.55，占位待调参）：score ≥ 此值注入索引行；低于此不注入。 */
+  confidenceMedium?: number
+  /** 结构化路径每次 search/list 的候选拉取上限（缺省 24）。 */
+  retrievalLimit?: number
+  /**
+   * 按 topic 的加分权重（缺省 {}）：topic → 0..1 的加性 score 提升，在置信度
+   * 门层级判定前施加（封顶 1；只作用于带 score 的检索命中）。小语料上 BM25
+   * 归一化得分天然趋零，procedure 等高价值 topic 可经此抬升——例如
+   * `{ procedure: 0.2 }` 让巩固产出的做法条目更易进入 STM 候选集。
+   */
+  topicBoosts?: Record<string, number>
+  /** 兜底提醒每轮上限（缺省 1）。 */
+  maxRemindersPerTurn?: number
+  /** 兜底提醒每 intent 上限（缺省 3）。 */
+  maxRemindersPerIntent?: number
+}
+```
+
+来源：[`packages/memory/adaptive-memory/src/index.ts:81`](../packages/memory/adaptive-memory/src/index.ts)
+
 ## `@huiliyi37/dsh-agent-default-model`
 
 ```ts config-catalog
@@ -1217,7 +1267,65 @@ export interface StreamableHttpConfig {
 }
 ```
 
-来源：[`packages/mcp/mcp-client/src/index.ts:100`](../packages/mcp/mcp-client/src/index.ts)
+来源：[`packages/mcp/mcp-client/src/index.ts:99`](../packages/mcp/mcp-client/src/index.ts)
+
+## `@huiliyi37/dsh-memory-consolidate`
+
+```ts config-catalog
+/** 插件配置：全部阈值经 schemastery 校验，缺省值在 schema 上。 */
+export interface Config {
+  /** 总开关（缺省 true；false 时完全不监听会话结束）。 */
+  enabled?: boolean
+  /** 成功门控级别（缺省 'standard'：末轮范围；'strict'：全会话范围）。 */
+  gate?: GateLevel
+  /** 门控未通过的会话是否记录 failure-pattern 经验（缺省 true）。 */
+  recordFailures?: boolean
+  /** 是否巩固子代理会话（缺省 false：reader 等子会话的一次性工作不产生经验）。 */
+  consolidateChildSessions?: boolean
+  /** 单次巩固写入的候选数上限（缺省 8）。 */
+  maxCandidatesPerSession?: number
+  /** 单条候选文本字符上限（缺省 280）。 */
+  maxTextChars?: number
+  /** 单条候选实体数上限（缺省 8）。 */
+  maxEntities?: number
+  /** 退役开关（缺省 true；store 不支持 retireStale 能力时自动跳过）。 */
+  retirementEnabled?: boolean
+  /** superseded 版本保留天数（缺省 30；超过即退役）。 */
+  supersededRetentionDays?: number
+  /** 巩固期未使用阈值（缺省 8；连续这么多次巩固未被检索命中的事实退役）。 */
+  unusedConsolidations?: number
+  /**
+   * 提取器选择（缺省 'heuristic'——零额外模型请求是契约点）：'llm' 时在会话
+   * 结束后做一次有界结构化调用，产出会话摘要 + 模型质量候选 + 可选做法条目；
+   * 失败回退启发式（log-only）。
+   */
+  extractor?: ExtractorKind
+  /** LLM 提取的显式路由对（与 llmModel 成对；缺省取会话最后一条 assistant 消息的来源路由）。 */
+  llmProvider?: string
+  /** LLM 提取的显式路由对（与 llmProvider 成对；缺省取会话路由）。 */
+  llmModel?: string
+  /** LLM 提取输入转写的字符上限（缺省 20000；超出截断）。 */
+  llmMaxInputChars?: number
+  /** LLM 提取的输出 token 上限（缺省 2000）。 */
+  llmMaxOutputTokens?: number
+  /** LLM 提取的 reasoning effort（缺省 'off'：提取是机械摘要，不烧思考 token）。 */
+  llmEffort?: string
+  /** LLM 提取的端到端超时毫秒数（缺省 30000）。 */
+  llmTimeoutMs?: number
+  /** 会话摘要条目的字符上限（缺省 600）。 */
+  maxSummaryChars?: number
+  /** 是否产出 procedure（做法沉淀）条目（缺省 true；两条提取路径共用）。 */
+  proceduresEnabled?: boolean
+}
+
+/** 门控级别：standard（缺省；末轮范围）或 strict（全会话范围）。 */
+export type GateLevel = 'standard' | 'strict'
+
+/** 提取器选择：heuristic（缺省，零额外模型请求）或 llm（一次有界结构化调用）。 */
+export type ExtractorKind = 'heuristic' | 'llm'
+```
+
+来源：[`packages/memory/memory-consolidate/src/index.ts:77`](../packages/memory/memory-consolidate/src/index.ts)
 
 ## `@huiliyi37/dsh-message-feedback`
 
@@ -2138,6 +2246,36 @@ export interface Config {
 ```
 
 来源：[`packages/core/system-prompt/src/index.ts:179`](../packages/core/system-prompt/src/index.ts)
+
+## `@huiliyi37/dsh-task-card`
+
+```ts config-catalog
+/** Deployment-owned task-card policy. */
+export interface TaskCardConfig {
+  /** Master switch; `false` mounts the service with no behavior. Default true. */
+  enabled?: boolean
+  /**
+   * `'llm'` generates the card with one bounded LLM call and falls back to
+   * the semantic template on any failure; `'template'` skips the model and
+   * uses the zero-cost template directly. Default `'llm'`.
+   */
+  mode?: 'llm' | 'template'
+  /** LLM route; REQUIRED when `mode: 'llm'` (the first message has no assistant message to derive a route from). */
+  provider?: string
+  /** LLM route; REQUIRED when `mode: 'llm'`. */
+  model?: string
+  /** End-to-end card-generation deadline. Default 5000. */
+  timeoutMs?: number
+  /** Messages longer than this are left untouched. Default 4000. */
+  maxInputChars?: number
+  /** Card-generation output budget. Default 300. */
+  maxOutputTokens?: number
+  /** Reserved for a future rendered card guidance section; accepted but unused in the MVP. */
+  section?: string
+}
+```
+
+来源：[`packages/guard/task-card/src/index.ts:46`](../packages/guard/task-card/src/index.ts)
 
 ## `@huiliyi37/dsh-time-context`
 
