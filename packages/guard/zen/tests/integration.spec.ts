@@ -332,7 +332,7 @@ describe('zen phase through the agent loop', () => {
     ask(agent, 'multi-step task: refactor the thing\nacross files')
     await waitForIdle(ctx, agent)
 
-    expect(adapter.requests[0]?.tools.map(tool => [tool.name, tool.description])).toEqual([
+    expect(adapter.requests[0]?.tools?.map(tool => [tool.name, tool.description])).toEqual([
       ['probe', 'test'],
       ['zen_anchor', 'Use'],
     ])

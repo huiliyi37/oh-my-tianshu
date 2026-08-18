@@ -111,7 +111,7 @@ describe('跨 chunk 粘贴 return', () => {
     const stdin = makeStdin()
     const handler = new InputHandler({ stdin, mode: 'input', returnHoldMs: 30 })
     const keys: Array<{ name: string; inline?: boolean }> = []
-    handler.onAnyKey(k => keys.push({ name: k.name, inline: k.inline }))
+    handler.onAnyKey(k => keys.push({ name: k.name, ...(k.inline === undefined ? {} : { inline: k.inline }) }))
     stdin.emit('data', '第一行\r')
     stdin.emit('data', '第二行\r')
     await new Promise(r => setTimeout(r, 50))

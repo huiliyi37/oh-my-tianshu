@@ -11,7 +11,7 @@
 import { describe, expect, it } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
 import LlmService, { createUserMessage } from '@huiliyi37/dsh-llm'
-import type { UserMessage } from '@huiliyi37/dsh-llm'
+import type { Message } from '@huiliyi37/dsh-llm'
 import SessionStore, { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
 import SystemPrompt from '@huiliyi37/dsh-system-prompt'
 import ToolRegistry, { defineContentToolFixture } from '@huiliyi37/dsh-tools'
@@ -60,7 +60,7 @@ function ask(agent: Agent, text: string): void {
   agent.followup(createUserMessage({ content: [{ type: 'text', text }], source: { kind: 'user' } }))
 }
 
-function textOf(message: UserMessage | undefined): string {
+function textOf(message: Message | undefined): string {
   if (message === undefined) return ''
   return message.content.flatMap(block => block.type === 'text' ? [block.text] : []).join('')
 }
@@ -202,8 +202,8 @@ describe('task-card through the agent loop', () => {
 
     // The card call carried the contract prompt.
     expect(adapter.requests[0]?.system).toContain('structured task card')
-    expect(adapter.requests[0]?.messages[0].content[0].type === 'text'
-      && adapter.requests[0]!.messages[0].content[0].text).toBe(ORIGINAL)
+    const cardBlock = adapter.requests[0]?.messages[0]?.content[0]
+    expect(cardBlock?.type === 'text' && (cardBlock as { text?: string }).text).toBe(ORIGINAL)
 
     // The main agent saw the rendered card with the verbatim original.
     const modelText = textOf(adapter.requests[1]?.messages[0])
