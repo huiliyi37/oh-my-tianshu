@@ -42,6 +42,15 @@ export const Config: z<Config> = z.object({
   allowFenced: z.boolean().default(true),
 })
 
+/** Resolved config: schema defaults mirrored as `??` fallbacks for direct `apply` calls (单一缺省来源). */
+function resolveConfig(config: Config): { enabled: boolean; maxBlockChars: number; allowFenced: boolean } {
+  return {
+    enabled: config.enabled ?? true,
+    maxBlockChars: config.maxBlockChars ?? 65536,
+    allowFenced: config.allowFenced ?? true,
+  }
+}
+
 /**
  * Derive the call id for a converted block: deterministic from the block
  * index and the call content, so replaying the same stream produces the
@@ -128,12 +137,11 @@ export async function* repairStream(
  * @param ctx - plugin context carrying the LLM service.
  * @param config - validated {@link Config}.
  */
-export function apply(ctx: Context, config: Config): void {
-  if (!config.enabled) return
-  const maxBlockChars = config.maxBlockChars as number
-  const allowFenced = config.allowFenced as boolean
-  if (!Number.isInteger(maxBlockChars) || maxBlockChars < 1) {
-    throw new Error(`tool-json-repair: invalid maxBlockChars ${maxBlockChars} — must be an integer >= 1`)
+export function apply(ctx: Context, config: Config = {}): void {
+  const resolved = resolveConfig(config)
+  if (!resolved.enabled) return
+  if (!Number.isInteger(resolved.maxBlockChars) || resolved.maxBlockChars < 1) {
+    throw new Error(`tool-json-repair: invalid maxBlockChars ${resolved.maxBlockChars} — must be an integer >= 1`)
   }
-  ctx.on('llm/stream', (_options, next) => repairStream(next(), { maxBlockChars, allowFenced }))
+  ctx.on('llm/stream', (_options, next) => repairStream(next(), { maxBlockChars: resolved.maxBlockChars, allowFenced: resolved.allowFenced }))
 }
