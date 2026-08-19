@@ -37,7 +37,7 @@ omts 的 guard 家族目前只能打破一种循环形态：repeat-tool-guard �
 
 ## Testing
 
-- `packages/guard/doom-loop-guard/tests/doom-loop-guard.spec.ts` — 组装好的 agent loop 对接脚本化 mock 适配器：振荡在含失败调用时触发、全部成功时保持安静；编辑螺旋在三次同一路径编辑失败时触发；测试空转在三次完全相同的失败重跑时触发；预算上限与用户消息重置、exclude 透明性，以及配置大声失败。
+- `packages/guard/doom-loop-guard/tests/doom-loop-guard.spec.ts` — 组装好的 agent loop 对接脚本化 mock 适配器：振荡在含失败调用时触发、在两次工具均成功的交替上保持安静；编辑螺旋在三次同一路径编辑失败时触发；测试空转在三次完全相同的失败重跑时触发；预算上限与用户消息重置、exclude 透明性，以及配置大声失败。
 
 ## Related
 

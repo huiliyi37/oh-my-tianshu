@@ -13,11 +13,11 @@ omts 唯一的测试运行面就是手写命令的 `bash`：没有框架检测�
 [`packages/tests/tool-run-tests`](../../../../packages/tests/tool-run-tests/README.md)（新的 `tests/` 分组）在 `ctx.tools` 上注册两个工具：
 
 - **`run_tests`** 通过 `ctx.bash` seam 执行。显式 `command` 优先；否则框架检测只读取工作区元数据（package.json 的 runner 依赖 → `test` 脚本 → pytest 标记 → `go.mod`），并组合 `DEFAULT_COMMANDS` 与所选 `path` 条目。规范值是一个 `foreground`/`background` 联合：前台分支携带解析出的 `command`、`exitCode`、可空的 `passed`/`failed`/`total`（从框架摘要行解析；无法识别时为 null，此时退出码仍会报告结果），以及有界的 `tail`。`run_in_background` 会向 `ctx.tasks` 注册一个 `run-tests` 生产方（该包以声明合并方式声明自己的 `TaskKindMap` 条目）并返回 task id。
-- **`related_tests`** 按文件名约定列出某个源路径附近的既有测试文件（同目录的 `<stem>.(test|spec).<ext>` 与 `_test` 变体、文件旁的 `__tests__`/`tests`/`test` 目录，以及根部的 `tests`/`test` 镜像），去重后最多 20 个。
+- **`related_tests`** 按文件名约定列出某个源路径附近的既有测试文件（同目录的 `<stem>.(test|spec).<ext>` 与 `_test` 变体、文件旁的 `__tests__`/`tests`/`test` 目录，以及根部的 `tests`/`test` 镜像），去重后最多 20 个。解析到会话 cwd 之外的目标会响亮失败；发现过程不会走出工作区。
 
 框架检测与执行都锚定到调用方会话的 cwd。配置错误在加载时响亮失败（`outputTailChars` 为 >= 1 的整数；`commandOverrides` 的键必须是已知框架 id 且值非空）。UI 渲染意图预先确定：`run_tests` 是 `terminal` 卡片（后台分支为 generic），`related_tests` 是 `generic`，把目标作为跟随位置（follow-along location）。
 
-**evidence-gate 交互：零新增通道。** `run_tests` 的 tool/call 与 tool/result 事件随普通会话事件流传输。显式 `command` 原样走既有命令归账路径；仅传路径的调用会合成一条 `run_tests <paths…>` 记录（evidence-gate 的 `tool/call` 处理程序），且 `run_tests` 加入 `TEST_COMMAND_RE`，使 `classifyVerification` 能识别该次运行。不新增会话事件类型，不新增服务，也无须改动主循环。
+**evidence-gate 交互：零新增通道。** `run_tests` 的 tool/call 与 tool/result 事件随普通会话事件流传输。显式 `command` 原样走既有命令归账路径；仅传路径的调用会合成一条 `run_tests <paths…>` 记录；裸调用（无 `command`、无 `path`）合成 `run_tests`。`run_tests` 加入 `TEST_COMMAND_RE`，使 `classifyVerification` 能识别每一次运行。不新增会话事件类型，不新增服务，也无须改动主循环。
 
 ## Alternatives considered
 
@@ -38,9 +38,9 @@ omts 唯一的测试运行面就是手写命令的 `bash`：没有框架检测�
 
 ## Testing
 
-- `packages/tests/tool-run-tests/tests/tool-run-tests.spec.ts` — 纯检测器（框架顺序、命令模板（含 npm/go 特例）、各框架的摘要解析器、发现约定）与真实执行器集成（显式 command、从会话工作区检测框架、失败的测试套件、后台任务结算、related_tests、响亮失败的配置）。
+- `packages/tests/tool-run-tests/tests/tool-run-tests.spec.ts` — 纯检测器（框架顺序、命令模板（含 npm/go 特例）、各框架的摘要解析器、发现约定、`related_tests` 的工作区约束）与真实执行器集成（显式 command、从会话工作区检测框架、失败的测试套件、后台任务结算、related_tests、响亮失败的配置、越界路径拒绝）。
 - `packages/tests/tool-run-tests/tests/evidence-accounting.spec.ts` — 组装好的 agent loop（智能体循环）：模型发出的 `run_tests` 调用经真实 bash 执行器执行，evidence-gate 的 `verificationCount()` 从会话流中为其归账。
-- `packages/guard/evidence-gate/tests/integration.spec.ts` — 显式 command 归账、仅传路径的合成记录归账，以及 `related_tests` 的负向用例（不归账）。
+- `packages/guard/evidence-gate/tests/integration.spec.ts` — 显式 command 归账、仅传路径的合成记录归账、裸调用（`{}`）归账，以及 `related_tests` 的负向用例（不归账）。
 
 ## Related
 

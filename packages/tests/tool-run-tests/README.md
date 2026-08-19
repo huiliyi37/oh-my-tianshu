@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-A model-facing test-runner surface, not an execution policy: `run_tests` executes the workspace's detected test framework through the `ctx.bash` seam and returns machine-readable pass/fail counts; `related_tests` lists test files near one source path by filename convention. Both tools emit only the ordinary `tool/call`/`tool/result` session events, so evidence-gate accounts a `run_tests` run as verification evidence with no new channel — an explicit `command` flows through the existing command-accounting path, and a path-only call synthesizes a `run_tests <paths…>` record for the same classifier.
+A model-facing test-runner surface, not an execution policy: `run_tests` executes the workspace's detected test framework through the `ctx.bash` seam and returns machine-readable pass/fail counts; `related_tests` lists test files near one source path by filename convention. Both tools emit only the ordinary `tool/call`/`tool/result` session events, so evidence-gate accounts a `run_tests` run as verification evidence with no new channel — an explicit `command` flows through the existing command-accounting path, a path-only call synthesizes a `run_tests <paths…>` record, and a bare call synthesizes `run_tests`.
 
 ## Config
 
@@ -29,7 +29,7 @@ A model-facing test-runner surface, not an execution policy: `run_tests` execute
 
 ### related_tests
 
-- **Heuristic, never parses code.** For a file: co-located `<stem>.(test|spec).<ext>` and `_test` variants, `__tests__`/`tests`/`test` directories beside the file, and the root `tests`/`test` mirror of the relative directory. For a directory: test files directly inside it. Only existing files are returned, deduplicated and capped at 20.
+- **Heuristic, never parses code.** For a file: co-located `<stem>.(test|spec).<ext>` and `_test` variants, `__tests__`/`tests`/`test` directories beside the file, and the root `tests`/`test` mirror of the relative directory. For a directory: test files directly inside it. Only existing files are returned, deduplicated and capped at 20. A path that resolves outside the session cwd fails loud.
 - **UI render intent**: `generic` with the target as a follow-along location at call time.
 
 ## Model Experience
@@ -52,4 +52,5 @@ Append-only tool results; no request-shaping behavior exists.
 - **Detection reads metadata files, not lockfiles** — a workspace whose runner lives only in `pnpm-lock.yaml` with no package.json dependency entry falls through to `npm test` or no detection.
 - **No test-framework imports** — the tool never parses or executes framework code; `npx <runner>` commands require the runner to be reachable in the deployment environment.
 - **Background runs report no pass/fail counts** — the tool returns the task id; the suite's own output is read through `task_output`.
-- **The evidence-gate synthesized record is `run_tests <paths…>`** — it classifies the run as a test run but carries no resolved framework command; a path-only call whose framework cannot be detected fails before execution, so no unclassified run is ever executed.
+- **The evidence-gate synthesized record is `run_tests` or `run_tests <paths…>`** — a bare call (no `command`, no `path`) and a path-only call both classify as a test run; neither carries the resolved framework command. A path-only call whose framework cannot be detected fails before execution, so no unclassified run is ever executed.
+- **Discovery stays inside the session cwd** — `related_tests` rejects a target that resolves outside the workspace; it still probes through process-local `fs` rather than `ctx.fs`, so symlink-follow off the root remains a residual hole.

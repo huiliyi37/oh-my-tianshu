@@ -37,7 +37,7 @@ Each detector dedupes per pattern until it breaks; a per-turn `reminderBudget` c
 
 ## Testing
 
-- `packages/guard/doom-loop-guard/tests/doom-loop-guard.spec.ts` — assembled agent loop against a scripted mock adapter: oscillation fires with a failing call and stays quiet all-success, edit spiral fires at three failed same-path edits, test churn fires at three identical failing runs, budget cap plus user-message reset, exclude transparency, and fail-loud config.
+- `packages/guard/doom-loop-guard/tests/doom-loop-guard.spec.ts` — assembled agent loop against a scripted mock adapter: oscillation fires with a failing call and stays quiet on a successful two-tool alternation, edit spiral fires at three failed same-path edits, test churn fires at three identical failing runs, budget cap plus user-message reset, exclude transparency, and fail-loud config.
 
 ## Related
 

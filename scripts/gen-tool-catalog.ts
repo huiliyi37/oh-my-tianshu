@@ -65,6 +65,7 @@ import * as ToolSubagent from '@huiliyi37/dsh-tool-subagent'
 import * as ToolWeb from '@huiliyi37/dsh-tool-web'
 import VmWorkflowEngine from '@huiliyi37/dsh-workflow-workerthread'
 import * as ToolRalph from '@huiliyi37/dsh-tool-ralph'
+import * as ToolRunTests from '@huiliyi37/dsh-tool-run-tests'
 import * as SchedulePlugin from '@huiliyi37/dsh-schedule'
 import LlmService from '@huiliyi37/dsh-llm'
 import AgentLoop from '@huiliyi37/dsh-agent-loop'
@@ -396,6 +397,21 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'A fixed foreground workflow starts one fresh structured child per round; the model selects only the immutable objective and an optional round cap.',
   },
   {
+    pkg: '@huiliyi37/dsh-tool-run-tests',
+    dir: 'tool-run-tests',
+    source: 'packages/tests/tool-run-tests/src/index.ts',
+    requires: ['ctx.tools', 'ctx.bash', 'ctx.tasks at call time for run_in_background'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(LocalSubprocessService)
+      await ctx.plugin(BashEnvPlugin)
+      await ctx.plugin(LocalBashExecutor)
+      await ctx.plugin(ToolRunTests)
+    },
+    note:
+      'run_tests executes the detected framework (or an explicit command) through the bash seam and returns pass/fail counts; related_tests lists nearby test files by filename convention. evidence-gate accounts every run_tests call from the ordinary session stream, including a bare call with no command or path. A related_tests path that resolves outside the session cwd fails loud.',
+  },
+  {
     pkg: '@huiliyi37/dsh-tool-skill',
     dir: 'tool-skill',
     source: 'packages/skill/tool-skill/src/index.ts',
@@ -635,8 +651,15 @@ interface CatalogPackage {
 export type ToolCatalog = CatalogPackage[]
 
 /**
+ * `tool-*` packages that wrap a non-tool seam and never register on `ctx.tools`.
+ * The completeness glob is name-based (`packages/<group>/tool-*`); these stay
+ * out of {@link TOOL_PACKAGES} so the catalog does not grow empty sections.
+ */
+const NOT_TOOL_SURFACE = new Set(['tool-json-repair'])
+
+/**
  * Assert the boot manifest covers every shipped tool package on disk (a
- * `tool-*` leaf under `packages/`).
+ * `tool-*` leaf under `packages/`), minus {@link NOT_TOOL_SURFACE}.
  * Booting has no source declaration to enumerate, so this glob restores the
  * "a new tool cannot be silently undocumented" guarantee: an unlisted package
  * fails the generator (and the freshness gate) until it is added to
@@ -645,7 +668,10 @@ export type ToolCatalog = CatalogPackage[]
  * `scanRoot` defaults to the repo root; a test may point it at a fixture tree.
  */
 export function assertManifestComplete(packages: ToolPackage[] = TOOL_PACKAGES, scanRoot: string = root): void {
-  const onDisk = globSync('packages/*/tool-*', { cwd: scanRoot }).map(p => basename(p)).sort()
+  const onDisk = globSync('packages/*/tool-*', { cwd: scanRoot })
+    .map(p => basename(p))
+    .filter(dir => !NOT_TOOL_SURFACE.has(dir))
+    .sort()
   const listed = new Set(packages.map(p => p.dir))
   const missing = onDisk.filter(dir => !listed.has(dir))
   if (missing.length > 0) {

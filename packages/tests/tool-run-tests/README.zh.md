@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-面向模型的测试运行面，而非执行策略：`run_tests` 通过 `ctx.bash` seam 执行工作区检测到的测试框架，返回机器可读的通过/失败计数；`related_tests` 按文件名约定列出某个源路径附近的测试文件。两个工具只产生常规的 `tool/call`/`tool/result` 会话事件，因此 evidence-gate 无需新通道即可把 `run_tests` 运行归账为验证证据；显式 `command` 走既有命令归账路径，仅传路径的调用则为同一分类器合成 `run_tests <paths…>` 记录。
+面向模型的测试运行面，而非执行策略：`run_tests` 通过 `ctx.bash` seam 执行工作区检测到的测试框架，返回机器可读的通过/失败计数；`related_tests` 按文件名约定列出某个源路径附近的测试文件。两个工具只产生常规的 `tool/call`/`tool/result` 会话事件，因此 evidence-gate 无需新通道即可把 `run_tests` 运行归账为验证证据；显式 `command` 走既有命令归账路径，仅传路径的调用合成 `run_tests <paths…>` 记录，裸调用合成 `run_tests`。
 
 ## 配置
 
@@ -29,7 +29,7 @@
 
 ### related_tests
 
-- **启发式，绝不解析代码。** 对于文件：同目录的 `<stem>.(test|spec).<ext>` 与 `_test` 变体、文件旁的 `__tests__`/`tests`/`test` 目录，以及相对目录在根部的 `tests`/`test` 镜像；对于目录：收集直接位于其中的测试文件。只返回真实存在的文件，去重后最多 20 个。
+- **启发式，绝不解析代码。** 对于文件：同目录的 `<stem>.(test|spec).<ext>` 与 `_test` 变体、文件旁的 `__tests__`/`tests`/`test` 目录，以及相对目录在根部的 `tests`/`test` 镜像；对于目录：收集直接位于其中的测试文件。只返回真实存在的文件，去重后最多 20 个。解析到会话 cwd 之外的路径会响亮失败。
 - **UI 渲染意图**：`generic`，调用时把目标作为跟随位置（follow-along location）。
 
 ## 模型体验
@@ -52,4 +52,5 @@
 - **检测读取元数据文件，而非 lockfile**：若工作区的 runner 只存在于 `pnpm-lock.yaml` 且没有 package.json 依赖条目，则回退到 `npm test`，或检测不到框架。
 - **不引入任何测试框架**：工具从不解析或执行框架代码；`npx <runner>` 命令要求 runner 在部署环境中可达。
 - **后台运行不报告通过/失败计数**：工具只返回 task id；测试套件自身的输出通过 `task_output` 读取。
-- **evidence-gate 合成的记录是 `run_tests <paths…>`**：它把运行归类为测试运行，但不携带解析后的框架命令；只传路径且框架无法检测的调用会在执行前失败，因此任何未分类的运行都不会被执行。
+- **evidence-gate 合成的记录是 `run_tests` 或 `run_tests <paths…>`**：裸调用（无 `command`、无 `path`）和仅传路径的调用都归类为测试运行；两者都不携带解析后的框架命令。只传路径且框架无法检测的调用会在执行前失败，因此任何未分类的运行都不会被执行。
+- **发现范围停在会话 cwd 之内**：`related_tests` 拒绝解析到工作区之外的目标；探测仍走进程内 `fs` 而非 `ctx.fs`，因此沿符号链接走出根目录仍是残留漏洞。

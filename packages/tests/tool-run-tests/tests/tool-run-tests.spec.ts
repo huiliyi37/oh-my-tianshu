@@ -20,6 +20,7 @@ import type { Config } from '@huiliyi37/dsh-tool-run-tests'
 import {
   detectFramework,
   parseTestSummary,
+  isInsideCwd,
   relatedTestsFor,
   renderCommand,
 } from '@huiliyi37/dsh-tool-run-tests/src/detect.ts'
@@ -172,6 +173,16 @@ describe('relatedTestsFor', () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-related-tests-'))
     expect(await relatedTestsFor(fakeProbe({}), join(root, 'nope.ts'), root)).toEqual([])
   })
+
+  it('rejects a target that resolves outside the workspace', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'dsh-related-inside-'))
+    expect(isInsideCwd(root, join(root, 'src/app.ts'))).toBe(true)
+    expect(isInsideCwd(root, root)).toBe(true)
+    expect(isInsideCwd(root, '/etc/passwd')).toBe(false)
+    expect(isInsideCwd(root, join(root, '..', 'outside.ts'))).toBe(false)
+    await expect(relatedTestsFor(fakeProbe({}), '/etc/passwd', root)).rejects.toThrow(/escapes the workspace/)
+    await expect(relatedTestsFor(fakeProbe({}), join(root, '..', 'outside.ts'), root)).rejects.toThrow(/escapes the workspace/)
+  })
 })
 
 describe('run_tests integration', () => {
@@ -269,6 +280,15 @@ describe('related_tests integration', () => {
     const result = await call(ctx, 'related_tests', { path: ' ' })
     expect(result.isError).toBe(true)
     expect(resultText(result)).toContain('non-empty string')
+  })
+
+  it('rejects a path that escapes the session workspace', async () => {
+    const workdir = mkdtempSync(join(tmpdir(), 'dsh-related-esc-'))
+    const ctx = await setup()
+    const agent = registerFakeAgent(ctx, 'esc-agent', workdir)
+    const result = await call(ctx, 'related_tests', { path: '/etc/passwd' }, agent)
+    expect(result.isError).toBe(true)
+    expect(resultText(result)).toContain('escapes the workspace')
   })
 })
 

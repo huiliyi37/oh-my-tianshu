@@ -13,11 +13,11 @@ omts's only test-runner surface was `bash` with hand-written commands: no framew
 [`packages/tests/tool-run-tests`](../../../../packages/tests/tool-run-tests/README.md) (new `tests/` group) registers two tools on `ctx.tools`:
 
 - **`run_tests`** executes through the `ctx.bash` seam. An explicit `command` wins; otherwise framework detection reads workspace metadata only (package.json runner dependency → `test` script → pytest markers → `go.mod`) and composes `DEFAULT_COMMANDS` plus the selected `path` entries. The canonical value is a `foreground`/`background` union: the foreground branch carries the resolved `command`, `exitCode`, nullable `passed`/`failed`/`total` (parsed from framework summary lines; null when unrecognized — the exit code still reports the outcome), and the bounded `tail`. `run_in_background` registers a `run-tests` producer with `ctx.tasks` (the package declares its `TaskKindMap` entry by declaration merging) and returns the task id.
-- **`related_tests`** lists existing test files near one source path by filename convention (`<stem>.(test|spec).<ext>`, `_test` variants, `__tests__`/`tests`/`test` directories beside the file, and the root `tests`/`test` mirror), deduplicated and capped at 20.
+- **`related_tests`** lists existing test files near one source path by filename convention (`<stem>.(test|spec).<ext>`, `_test` variants, `__tests__`/`tests`/`test` directories beside the file, and the root `tests`/`test` mirror), deduplicated and capped at 20. A target that resolves outside the session cwd fails loud; discovery never walks off the workspace.
 
 Framework detection and execution anchor to the calling session's cwd. Misconfiguration fails loud at load (`outputTailChars` integer >= 1; `commandOverrides` keys must be known framework ids with non-empty values). UI render intent is decided up front: `run_tests` is a `terminal` card (background branch generic), `related_tests` is `generic` with the target as a follow-along location.
 
-**evidence-gate interplay — zero new channels.** `run_tests` tool/call and tool/result events ride the ordinary session stream. An explicit `command` flows through the existing command-accounting path untouched; a path-only call synthesizes a `run_tests <paths…>` record (evidence-gate's `tool/call` handler) and `run_tests` joins `TEST_COMMAND_RE`, so `classifyVerification` recognizes the run. No session event type, no service, no loop change.
+**evidence-gate interplay — zero new channels.** `run_tests` tool/call and tool/result events ride the ordinary session stream. An explicit `command` flows through the existing command-accounting path untouched; a path-only call synthesizes a `run_tests <paths…>` record; a bare call (no `command`, no `path`) synthesizes `run_tests`. `run_tests` joins `TEST_COMMAND_RE`, so `classifyVerification` recognizes every run. No session event type, no service, no loop change.
 
 ## Alternatives considered
 
@@ -38,9 +38,9 @@ Framework detection and execution anchor to the calling session's cwd. Misconfig
 
 ## Testing
 
-- `packages/tests/tool-run-tests/tests/tool-run-tests.spec.ts` — pure detectors (framework order, command templating incl. npm/go special cases, summary parsers per framework, discovery conventions) and real-executor integration (explicit command, detected framework from the session workspace, failed suite, background task settlement, related_tests, fail-loud config).
+- `packages/tests/tool-run-tests/tests/tool-run-tests.spec.ts` — pure detectors (framework order, command templating incl. npm/go special cases, summary parsers per framework, discovery conventions, workspace-containment of `related_tests`) and real-executor integration (explicit command, detected framework from the session workspace, failed suite, background task settlement, related_tests, fail-loud config, escaped-path rejection).
 - `packages/tests/tool-run-tests/tests/evidence-accounting.spec.ts` — assembled agent loop: a model-issued `run_tests` call executes through the real bash executor and evidence-gate's `verificationCount()` accounts it from the session stream.
-- `packages/guard/evidence-gate/tests/integration.spec.ts` — explicit-command accounting, path-only synthesized-record accounting, and the `related_tests` negative (no accounting).
+- `packages/guard/evidence-gate/tests/integration.spec.ts` — explicit-command accounting, path-only synthesized-record accounting, bare-call (`{}`) accounting, and the `related_tests` negative (no accounting).
 
 ## Related
 

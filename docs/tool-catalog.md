@@ -30,6 +30,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@huiliyi37/dsh-tool-goal` | `create_goal`, `get_goal`, `update_goal` | `ctx.tools`, `ctx.agents`, `ctx.goals`, `ctx.systemPrompt`, `a calling Agent in an authorized open turn` | `tool/call`, `goal/change for mutations`, `tool/result` | - | create, edit, pause, and resume require direct-human root authority; complete and blocked also accept the exact current goal round. The default blocked lower bound is three admitted rounds. |
 | `@huiliyi37/dsh-tool-lsp` | `lsp` | `ctx.tools`, `ctx.lsp`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | The lsp tool keeps provider selection and language-server subprocesses behind ctx.lsp, so its model-visible schema stays stable across providers. Requires a registered provider (e.g. `@huiliyi37/dsh-lsp-local`) at runtime; without one, a query returns the structured `LSP_UNAVAILABLE` error rather than changing the schema. |
 | `@huiliyi37/dsh-tool-ralph` | `ralph` | `ctx.tools`, `ctx.workflows`, `ctx.subagents`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents every fresh round)` | `tool/call`, `tool/result`, `workflow and child session events during execution` | - | A fixed foreground workflow starts one fresh structured child per round; the model selects only the immutable objective and an optional round cap. |
+| `@huiliyi37/dsh-tool-run-tests` | `related_tests`, `run_tests` | `ctx.tools`, `ctx.bash`, `ctx.tasks at call time for run_in_background` | `tool/call`, `tool/result` | - | run_tests executes the detected framework (or an explicit command) through the bash seam and returns pass/fail counts; related_tests lists nearby test files by filename convention. evidence-gate accounts every run_tests call from the ordinary session stream, including a bare call with no command or path. A related_tests path that resolves outside the session cwd fails loud. |
 | `@huiliyi37/dsh-tool-skill` | `skill` | `ctx.tools`, `ctx.agents`, `ctx.skills` | `tool/call`, `tool/result`, `user/message replacement catalogs via agent.inject()` | - | - |
 | `@huiliyi37/dsh-tool-session-query` | `session_event_read`, `session_event_search`, `session_event_trace`, `session_search`, `session_trace` | `ctx.tools`, `ctx.systemPrompt`, `ctx.sessionQuery`, `a calling Agent for workspace authority` | `tool/call`, `tool/result` | - | The five read-only tools hide provider cursors and authorize every result from the immutable calling agent session. The package is opt-in; compositions that need enforced deadlines or bounded inline output also mount the generic timeout or spill policies. |
 | `@huiliyi37/dsh-tool-subagent` | `subagent` | `ctx.tools`, `ctx.subagents` | `tool/call`, `tool/result`, `child session events through the chosen provider` | `subagent`, `subagent_fork` | The registered tool name is the load-time `toolName` config (default `subagent`); the schema above is that default. The shipped example agents load this package once per subagent backend, so the model additionally sees `subagent_fork` (bound to the fork backend) with an identical schema — see `packages/bundle/base/cordis.patch.yml` and `examples/acp-agent/cordis.yml`. |
@@ -1006,6 +1007,60 @@ Run a foreground fresh-agent Ralph loop toward one immutable objective. Use only
 Source: [`packages/workflow/tool-ralph/src/index.ts`](../packages/workflow/tool-ralph/src/index.ts)
 
 A fixed foreground workflow starts one fresh structured child per round; the model selects only the immutable objective and an optional round cap.
+
+## `@huiliyi37/dsh-tool-run-tests`
+
+### `related_tests`
+
+List test files related to one source path, by filename convention: co-located `<name>.(test|spec).<ext>` and `_test` variants, and entries in `__tests__`/`tests`/`test` directories or the root test mirror. Bounded and heuristic — it never parses code.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "Source file or directory to find tests for."
+    }
+  },
+  "required": [
+    "path"
+  ]
+}
+```
+
+Source: [`packages/tests/tool-run-tests/src/index.ts`](../packages/tests/tool-run-tests/src/index.ts)
+
+### `run_tests`
+
+Run the project's tests and return machine-readable pass/fail counts. Prefer this over bash for test runs: the harness verification gate accounts the result. Provide `command` to run one exact command line, or `path` to select test files/directories and let the harness detect the framework (vitest/jest/mocha/npm/pytest/go) from workspace metadata. A non-zero exit is reported, not an error. Set `run_in_background: true` for long suites: the call returns a task id; read output with `task_output` and stop with `task_kill`.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "string",
+      "description": "Exact command line to run. Omit to use framework detection."
+    },
+    "path": {
+      "type": "array",
+      "description": "Test files or directories to run (relative to the workspace). Used with framework detection.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "run_in_background": {
+      "type": "boolean",
+      "description": "Run the suite as a background task and return a task id."
+    }
+  }
+}
+```
+
+Source: [`packages/tests/tool-run-tests/src/index.ts`](../packages/tests/tool-run-tests/src/index.ts)
+
+run_tests executes the detected framework (or an explicit command) through the bash seam and returns pass/fail counts; related_tests lists nearby test files by filename convention. evidence-gate accounts every run_tests call from the ordinary session stream, including a bare call with no command or path. A related_tests path that resolves outside the session cwd fails loud.
 
 ## `@huiliyi37/dsh-tool-skill`
 

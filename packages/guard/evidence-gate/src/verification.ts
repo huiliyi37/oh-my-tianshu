@@ -15,7 +15,7 @@ import type { VerificationMetadata } from './obligation.js'
 /** 一次验证的结果状态，转发义务归账用的判定域。 */
 export type VerificationStatus = VerificationMetadata['status']
 
-/** 测试命令启发式：命令文本含 test 关键字（run_tests 工具的无命令路径合成记录也在此列）。 */
+/** 测试命令启发式：命令文本含 test 关键字（run_tests 工具的裸调用与无命令路径合成记录也在此列）。 */
 const TEST_COMMAND_RE = /\b(vitest|pytest|jest|mocha|ava|tap|run_tests)\b|node --test|\b(test|tests?)\b|--coverage/
 
 /** 失败输出标记（优先于 passed 判定——失败证据不能被摘要遮蔽）。 */

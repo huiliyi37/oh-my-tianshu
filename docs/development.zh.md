@@ -64,6 +64,7 @@ packages/    @huiliyi37/dsh-<pkg> workspaces at packages/<group>/<pkg>/
   subagent/    subagent capability: Service Definition + providers + delegation Consumers
   bundle/      installable oh-my-tianshu --profile patch-layer bundles
   workflow/    workflow capability + worker-thread provider + tool Consumer
+  tests/       model-facing test-runner tools (`run_tests`, `related_tests`)
   todo/        todo_write tool
   plan/        plan mode as logged state
   guard/       loop-hygiene + tool-timeout plugins

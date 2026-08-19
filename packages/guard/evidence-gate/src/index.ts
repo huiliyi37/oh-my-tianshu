@@ -167,13 +167,15 @@ export function apply(ctx: Context, config: EvidenceGateConfig = {}): void {
     if (event.type === 'tool/call') {
       const args = parseArguments(event.data.arguments)
       const command = asString(args?.command)
-      // run_tests 无命令路径：框架命令在执行期才解析，归账侧用「run_tests + 路径」合成
-      // 命令记录，让 classifyVerification 把该次运行识别为测试运行。
+      // run_tests 的框架命令在执行期才解析：归账侧用「run_tests」或「run_tests + 路径」
+      // 合成记录，让 classifyVerification 把默认裸调用和仅 path 都识别为测试运行。
       const rawPath = args === undefined ? undefined : args['path']
       const paths = event.data.name === 'run_tests' && Array.isArray(rawPath)
         ? rawPath.filter((entry): entry is string => typeof entry === 'string')
         : []
-      const record = command ?? (paths.length > 0 ? `run_tests ${paths.join(' ')}` : undefined)
+      const record = event.data.name === 'run_tests'
+        ? (command ?? (paths.length > 0 ? `run_tests ${paths.join(' ')}` : 'run_tests'))
+        : command
       if (record !== undefined) pendingCommands.set(String(event.data.callId), record)
       return
     }

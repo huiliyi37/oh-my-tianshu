@@ -156,6 +156,25 @@ describe('evidence-gate 插件端到端（RED→GREEN 闭环）', () => {
     expect(evidence.evaluateFinal().verdict).toBe('allow')
   })
 
+  it('run_tests 裸调用（无 command、无 path）以 run_tests 记录计入归账', () => {
+    const { ctx, emit } = makeContext()
+    const evidence = ctx.get('evidence') as EvidenceService
+    // Bare `run_tests` synthesizes the command "run_tests" with no file stem, so
+    // a no-target obligation (any verification is relevant) is the matching proof.
+    evidence.createObligation({ family: 'bugfix', risk: 'high', claim: '修复 barefix', targets: [] })
+
+    const red = 'call-run-bare-red'
+    emit('session/event', { id: 'session-1' }, makeToolCall(red, 'run_tests', JSON.stringify({})))
+    emit('session/event', { id: 'session-1' }, makeToolResult(red, 'Tests  1 failed (1)'))
+
+    const green = 'call-run-bare-green'
+    emit('session/event', { id: 'session-1' }, makeToolCall(green, 'run_tests', JSON.stringify({})))
+    emit('session/event', { id: 'session-1' }, makeToolResult(green, 'Tests  1 passed (1)'))
+
+    expect(evidence.verificationCount()).toBe(2)
+    expect(evidence.evaluateFinal().verdict).toBe('allow')
+  })
+
   it('非测试工具（related_tests）不产生验证归账', () => {
     const { ctx, emit } = makeContext()
     const evidence = ctx.get('evidence') as EvidenceService

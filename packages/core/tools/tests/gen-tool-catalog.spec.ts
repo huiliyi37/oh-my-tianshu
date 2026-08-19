@@ -23,7 +23,7 @@ describe('gen-tool-catalog collectToolCatalog', () => {
   it('boots every shipped tool package and harvests its model-facing schemas', async () => {
     const catalog = await collectToolCatalog()
     const names = catalog.flatMap(entry => entry.schemas.map(s => s.name)).sort()
-    expect(names).toEqual(['ask_user_question', 'bash', 'bash', 'cordis_inspect', 'cordis_mount', 'cordis_unmount', 'create_goal', 'edit', 'exit_plan_mode', 'file_info', 'get_goal', 'git', 'glob', 'grep', 'interrupt_agent', 'list_agents', 'lsp', 'memory_deep_recall', 'memory_save', 'memory_search', 'pwsh', 'ralph', 'read', 'repo_graph', 'report', 'run_code', 'schedule_create', 'schedule_delete', 'schedule_list', 'semantic_search', 'send_message', 'session_event_read', 'session_event_search', 'session_event_trace', 'session_search', 'session_trace', 'skill', 'str_replace_editor', 'subagent', 'task_kill', 'task_list', 'task_output', 'terminal_close', 'terminal_list', 'terminal_open', 'terminal_read', 'terminal_send', 'terminal_signal', 'todo_write', 'update_goal', 'web_fetch', 'web_search', 'workflow', 'write'])
+    expect(names).toEqual(['ask_user_question', 'bash', 'bash', 'cordis_inspect', 'cordis_mount', 'cordis_unmount', 'create_goal', 'edit', 'exit_plan_mode', 'file_info', 'get_goal', 'git', 'glob', 'grep', 'interrupt_agent', 'list_agents', 'lsp', 'memory_deep_recall', 'memory_save', 'memory_search', 'pwsh', 'ralph', 'read', 'related_tests', 'repo_graph', 'report', 'run_code', 'run_tests', 'schedule_create', 'schedule_delete', 'schedule_list', 'semantic_search', 'send_message', 'session_event_read', 'session_event_search', 'session_event_trace', 'session_search', 'session_trace', 'skill', 'str_replace_editor', 'subagent', 'task_kill', 'task_list', 'task_output', 'terminal_close', 'terminal_list', 'terminal_open', 'terminal_read', 'terminal_send', 'terminal_signal', 'todo_write', 'update_goal', 'web_fetch', 'web_search', 'workflow', 'write'])
     // Every tool carries a JSON-Schema `parameters` object (what the model sees).
     for (const entry of catalog) {
       for (const schema of entry.schemas) {
@@ -85,9 +85,18 @@ describe('gen-tool-catalog assertManifestComplete', () => {
 
   it('throws, naming the omitted package, when a tool package is missing from the manifest', () => {
     // An empty manifest scanned against the real tree: every `tool-*` package
-    // is unlisted, so the guard must fire and name them.
-    expect(() => { assertManifestComplete([]) }).toThrow(/not in the boot manifest/)
-    expect(() => { assertManifestComplete([]) }).toThrow(/tool-bash/)
+    // that registers on ctx.tools is unlisted, so the guard must fire and name them.
+    let message = ''
+    try {
+      assertManifestComplete([])
+    } catch (error) {
+      message = String(error)
+    }
+    expect(message).toMatch(/not in the boot manifest/)
+    expect(message).toMatch(/tool-bash/)
+    expect(message).toMatch(/tool-run-tests/)
+    // llm/tool-json-repair matches the glob but wraps llm/stream, not ctx.tools.
+    expect(message).not.toMatch(/tool-json-repair/)
   })
 })
 

@@ -78,17 +78,16 @@ describe('oscillation detector', () => {
 
   it('stays quiet when the alternation never fails', async () => {
     const ctx = await harness()
-    const adapter = new MockAdapter([
+    ctx.tools.register(defineContentToolFixture({
+      name: 'ally', description: 'a', parameters: {}, async execute() { return [{ type: 'text', text: 'ok' }] },
+    }))
+    const agent = await runAgent(ctx, new MockAdapter([
       toolCallResponse('a1', 'probe', {}),
-      toolCallResponse('b1', 'probe', {}),
+      toolCallResponse('b1', 'ally', {}),
       toolCallResponse('a2', 'probe', {}),
-      toolCallResponse('b2', 'probe', {}),
+      toolCallResponse('b2', 'ally', {}),
       textResponse('done'),
-    ])
-    ctx.llm.registerAdapter(['mock-provider'], adapter)
-    const agent = ctx.agentLoop.create(SessionId('doom-all-ok'), { provider: 'mock-provider', model: 'mock' })
-    agent.followup(createUserMessage({ content: [{ type: 'text', text: 'go' }], source: { kind: 'user' } }))
-    await waitForIdle(ctx, agent)
+    ]))
 
     expect(guardReminders(agent)).toHaveLength(0)
   })

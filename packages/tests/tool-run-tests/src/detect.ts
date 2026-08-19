@@ -8,7 +8,7 @@
  */
 
 import { readFile, readdir, stat } from 'node:fs/promises'
-import { basename, dirname, extname, join, relative, resolve } from 'node:path'
+import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 
 /** One recognized test framework and its default command. */
 export interface TestFramework {
@@ -47,6 +47,7 @@ export const nodeProbe: Probe = {
     try {
       return await readFile(path, 'utf8')
     } catch {
+      // Missing or unreadable path: the probe treats absence as undefined.
       return undefined
     }
   },
@@ -54,6 +55,7 @@ export const nodeProbe: Probe = {
     try {
       return await readdir(path)
     } catch {
+      // Missing or non-directory path: discovery treats that as no entries.
       return []
     }
   },
@@ -61,6 +63,7 @@ export const nodeProbe: Probe = {
     try {
       return (await stat(path)).isFile()
     } catch {
+      // Missing or unstatable path: not a regular file for discovery.
       return false
     }
   },
@@ -98,6 +101,7 @@ export async function detectFramework(probe: Probe, cwd: string): Promise<TestFr
     try {
       packageJson = JSON.parse(packageJsonText) as typeof packageJson
     } catch {
+      // Unparseable package.json: skip dependency/script detection, keep going.
       packageJson = {}
     }
     const deps: Record<string, unknown> = { ...packageJson.dependencies, ...packageJson.devDependencies }
@@ -119,6 +123,10 @@ export async function detectFramework(probe: Probe, cwd: string): Promise<TestFr
   return undefined
 }
 
+function shellQuote(path: string): string {
+  return `'${path.replaceAll("'", '\'\\\'\'')}'`
+}
+
 /**
  * Compose the final command line: the framework base (config override wins)
  * plus the selected paths, shell-quoted, in framework order. `npm test` passes
@@ -129,10 +137,6 @@ export async function detectFramework(probe: Probe, cwd: string): Promise<TestFr
  * @param overrides - config `commandOverrides` (validated non-empty values).
  * @returns the command line to execute.
  */
-function shellQuote(path: string): string {
-  return `'${path.replaceAll("'", '\'\\\'\'')}'`
-}
-
 export function renderCommand(frameworkId: string, paths: readonly string[], overrides: Readonly<Record<string, string>>): string {
   const base = overrides[frameworkId] ?? (DEFAULT_COMMANDS as Record<string, string>)[frameworkId]
   if (base === undefined) throw new Error(`run_tests: unknown framework ${frameworkId}`)
@@ -247,21 +251,42 @@ export interface RelatedTest {
 const DISCOVERY_CAP = 20
 
 /**
+ * Whether `target` resolves strictly inside `cwd` (the session workspace).
+ * `cwd` itself counts as inside; `..` segments and absolute paths that leave
+ * the root do not. A file named `..foo` under the root stays inside.
+ * @param cwd - the workspace root.
+ * @param target - an absolute or cwd-relative path.
+ * @returns true when the resolved path is `cwd` or a descendant.
+ */
+export function isInsideCwd(cwd: string, target: string): boolean {
+  const root = resolve(cwd)
+  const absolute = resolve(root, target)
+  const rel = relative(root, absolute)
+  return rel === '' || (!isAbsolute(rel) && rel !== '..' && !rel.startsWith(`..${sep}`))
+}
+
+/**
  * Discover test files related to one source path, by pure filename
  * convention. A file probes co-located `<stem>.(test|spec).<ext>` variants
  * and `__tests__`/`tests`/root-mirror directories; a directory collects test
  * files inside it. Only existing files are returned, deduplicated and capped.
+ * A target that resolves outside `cwd` throws — discovery never walks off the
+ * session workspace.
  * @param probe - the filesystem probe.
  * @param target - the source path, absolute or workspace-relative.
  * @param cwd - the workspace root.
  * @returns the discovered test paths in deterministic order.
  */
 export async function relatedTestsFor(probe: Probe, target: string, cwd: string): Promise<RelatedTest[]> {
+  if (!isInsideCwd(cwd, target)) {
+    throw new Error('related_tests: path escapes the workspace')
+  }
   const absolute = resolve(cwd, target)
   const rel = relative(cwd, absolute)
   const found = new Map<string, RelatedTest>()
   const add = async (path: string, kind: RelatedTest['kind']): Promise<void> => {
     if (found.size >= DISCOVERY_CAP || found.has(path)) return
+    if (!isInsideCwd(cwd, path)) return
     if (!await probe.isFile(resolve(cwd, path))) return
     found.set(path, { path, kind })
   }

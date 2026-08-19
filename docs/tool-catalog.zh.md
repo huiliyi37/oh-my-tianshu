@@ -32,6 +32,7 @@
 | `@huiliyi37/dsh-tool-goal` | `create_goal`、`get_goal`、`update_goal` | `ctx.tools`、`ctx.agents`、`ctx.goals`、`ctx.systemPrompt`、`a calling Agent in an authorized open turn` | `tool/call`、`goal/change for mutations`、`tool/result` | - | create、edit、pause 和 resume 要求直接来自人类的根权限；complete 和 blocked 也接受确切的当前 Goal Round。blocked 的默认下限是 3 个获准的 Round。 |
 | `@huiliyi37/dsh-tool-lsp` | `lsp` | `ctx.tools`、`ctx.lsp`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，因此其模型可见 schema 在更换提供方时保持稳定。运行时要求已注册提供方，例如 `@huiliyi37/dsh-lsp-local`；如果没有提供方，查询会返回结构化 `LSP_UNAVAILABLE` 错误，而不会改变 schema。 |
 | `@huiliyi37/dsh-tool-ralph` | `ralph` | `ctx.tools`、`ctx.workflows`、`ctx.subagents`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents every fresh round)` | `tool/call`、`tool/result`、`workflow and child session events during execution` | - | 固定的前台工作流会在每个 Round 启动一个全新的结构化子级；模型只能选择不可变目标和可选的 Round 上限。 |
+| `@huiliyi37/dsh-tool-run-tests` | `related_tests`、`run_tests` | `ctx.tools`、`ctx.bash`、`ctx.tasks at call time for run_in_background` | `tool/call`、`tool/result` | - | run_tests 通过 bash seam 执行检测到的框架（或显式 command），并返回通过/失败计数；related_tests 按文件名约定列出附近的测试文件。evidence-gate 从普通会话流为每一次 run_tests 调用归账，包括无 command、无 path 的裸调用。解析到会话 cwd 之外的 related_tests 路径会响亮失败。 |
 | `@huiliyi37/dsh-tool-skill` | `skill` | `ctx.tools`、`ctx.agents`、`ctx.skills` | `tool/call`、`tool/result`、`user/message replacement catalogs via agent.inject()` | - | - |
 | `@huiliyi37/dsh-tool-session-query` | `session_event_read`、`session_event_search`、`session_event_trace`、`session_search`、`session_trace` | `ctx.tools`、`ctx.systemPrompt`、`ctx.sessionQuery`、`a calling Agent for workspace authority` | `tool/call`、`tool/result` | - | 这 5 个只读工具会隐藏提供方游标，并根据不可变的调用 agent 会话为每个结果授权。该包需要选择启用；需要强制截止时间或限制行内输出的组合还会挂载通用超时或 spill 策略。 |
 | `@huiliyi37/dsh-tool-subagent` | `subagent` | `ctx.tools`、`ctx.subagents` | `tool/call`、`tool/result`、`child session events through the chosen provider` | `subagent`、`subagent_fork` | 注册的工具名称取决于加载时 `toolName` 配置（默认为 `subagent`）；上述 schema 对应默认值。随产品发布的示例 agent 会为每个 subagent 后端加载一次该包，因此模型还会看到 schema 相同、绑定到 fork 后端的 `subagent_fork`；见 `packages/bundle/base/cordis.patch.yml` 和 `examples/acp-agent/cordis.yml`。 |
@@ -1010,6 +1011,60 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 来源：[`packages/workflow/tool-ralph/src/index.ts`](../packages/workflow/tool-ralph/src/index.ts)
 
 固定的前台工作流会在每个 Round 启动一个全新的结构化子级；模型只能选择不可变目标和可选的 Round 上限。
+
+## `@huiliyi37/dsh-tool-run-tests`
+
+### `related_tests`
+
+按文件名约定列出与某个源路径相关的测试文件：同目录的 `<name>.(test|spec).<ext>` 与 `_test` 变体，以及 `__tests__`/`tests`/`test` 目录中的条目或根部测试镜像。有界且为启发式——从不解析代码。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "Source file or directory to find tests for."
+    }
+  },
+  "required": [
+    "path"
+  ]
+}
+```
+
+来源：[`packages/tests/tool-run-tests/src/index.ts`](../packages/tests/tool-run-tests/src/index.ts)
+
+### `run_tests`
+
+运行项目测试并返回机器可读的通过/失败计数。测试运行请优先使用本工具而非 bash：harness 的验证门禁会为结果归账。提供 `command` 以运行一条确切命令行，或提供 `path` 以选择测试文件/目录，并由 harness 从工作区元数据检测框架（vitest/jest/mocha/npm/pytest/go）。非零退出会作为结果上报，而非错误。长时间套件可设 `run_in_background: true`：调用返回 task id；用 `task_output` 读取输出，用 `task_kill` 停止。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "string",
+      "description": "Exact command line to run. Omit to use framework detection."
+    },
+    "path": {
+      "type": "array",
+      "description": "Test files or directories to run (relative to the workspace). Used with framework detection.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "run_in_background": {
+      "type": "boolean",
+      "description": "Run the suite as a background task and return a task id."
+    }
+  }
+}
+```
+
+来源：[`packages/tests/tool-run-tests/src/index.ts`](../packages/tests/tool-run-tests/src/index.ts)
+
+run_tests 通过 bash seam 执行检测到的框架（或显式 command），并返回通过/失败计数；related_tests 按文件名约定列出附近的测试文件。evidence-gate 从普通会话流为每一次 run_tests 调用归账，包括无 command、无 path 的裸调用。解析到会话 cwd 之外的 related_tests 路径会响亮失败。
 
 ## `@huiliyi37/dsh-tool-skill`
 
