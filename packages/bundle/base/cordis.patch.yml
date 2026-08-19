@@ -72,6 +72,11 @@
     - id: llm-retry
       name: '@huiliyi37/dsh-llm-retry'
 
+    # Converts a DeepSeek tool-call serialized as JSON inside `content` into a
+    # real tool-call block on llm/stream (fail-closed: whole-block single object).
+    - id: tool-json-repair
+      name: '@huiliyi37/dsh-tool-json-repair'
+
     # User-settings document (`$DSH_HOME/settings.yaml`, hot-reloaded): a
     # `llm-deepseek:` or `llm-pi-ai:` section there overrides the adapter entries
     # below without a restart, and is what the web Models page writes.
@@ -194,6 +199,10 @@
 
     - id: tool-bash
       name: '@huiliyi37/dsh-tool-bash'
+
+    # Dedicated test-runner surface (framework detection over the bash seam).
+    - id: tool-run-tests
+      name: '@huiliyi37/dsh-tool-run-tests'
 
     - id: tool-tasks
       name: '@huiliyi37/dsh-tool-tasks'
@@ -396,6 +405,10 @@
       config:
         thresholds: [3, 5, 8]
         argumentsPreviewChars: 500
+
+    # Oscillation / edit-spiral / test-churn reminders (advisory, never vetoes).
+    - id: doom-loop-guard
+      name: '@huiliyi37/dsh-doom-loop-guard'
 
     # Every mode enables the stable web_search model surface. DeepSeek search
     # resolves the same DEEPSEEK_API_KEY credential the Models page manages for

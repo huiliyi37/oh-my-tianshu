@@ -32,6 +32,7 @@
 | [`context/`](context/README.md) | 模型可见请求上下文，包括 workspace 指令和时间上下文 | 产品：稳定接口 |
 | [`subagent/`](subagent/README.md) | subagent 能力系列：提供方注册表约定 + 委托工具 | 产品：稳定接口 |
 | [`tasks/`](tasks/README.md) | 通用后台任务运行时和面向模型的 `task_*` 控制工具 | 产品：稳定接口 |
+| [`tests/`](tests/README.md) | 面向模型的测试运行工具（`run_tests`、`related_tests`） | 产品：稳定接口 |
 | [`workflow/`](workflow/README.md) | 工作流 seam、worker 线程引擎和面向模型的 `workflow`/`ralph` 工具 | 产品：稳定接口 |
 | [`web/`](web/README.md) | Web 能力系列：seam、搜索／获取提供方实现和面向模型的 Web 工具 | 产品：稳定接口 |
 | [`attachment/`](attachment/README.md) | 持久附件存储：seam + 本地内容寻址 provider | 产品：稳定接口 |

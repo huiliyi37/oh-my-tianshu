@@ -124,6 +124,50 @@ describe('evidence-gate 插件端到端（RED→GREEN 闭环）', () => {
     expect(evidence.unresolvedHigh()).toHaveLength(0)
   })
 
+  it('run_tests 调用（显式命令）与 bash 一样计入验证归账', () => {
+    const { ctx, emit } = makeContext()
+    const evidence = ctx.get('evidence') as EvidenceService
+    evidence.createObligation({ family: 'bugfix', risk: 'high', claim: '修复 runfix', targets: ['src/runfix.ts'] })
+
+    const red = 'call-run-red'
+    emit('session/event', { id: 'session-1' }, makeToolCall(red, 'run_tests', JSON.stringify({ command: 'npx vitest run runfix.spec.ts' })))
+    emit('session/event', { id: 'session-1' }, makeToolResult(red, 'Tests  1 failed (1)'))
+
+    const green = 'call-run-green'
+    emit('session/event', { id: 'session-1' }, makeToolCall(green, 'run_tests', JSON.stringify({ command: 'npx vitest run runfix.spec.ts' })))
+    emit('session/event', { id: 'session-1' }, makeToolResult(green, 'Tests  1 passed (1)'))
+
+    expect(evidence.evaluateFinal().verdict).toBe('allow')
+  })
+
+  it('run_tests 无命令路径（仅 path）以合成命令记录计入归账', () => {
+    const { ctx, emit } = makeContext()
+    const evidence = ctx.get('evidence') as EvidenceService
+    evidence.createObligation({ family: 'bugfix', risk: 'high', claim: '修复 pathfix', targets: ['src/pathfix.ts'] })
+
+    const red = 'call-run-path-red'
+    emit('session/event', { id: 'session-1' }, makeToolCall(red, 'run_tests', JSON.stringify({ path: ['pathfix.spec.ts'] })))
+    emit('session/event', { id: 'session-1' }, makeToolResult(red, 'Tests  1 failed (1)'))
+
+    const green = 'call-run-path-green'
+    emit('session/event', { id: 'session-1' }, makeToolCall(green, 'run_tests', JSON.stringify({ path: ['pathfix.spec.ts'] })))
+    emit('session/event', { id: 'session-1' }, makeToolResult(green, 'Tests  1 passed (1)'))
+
+    expect(evidence.evaluateFinal().verdict).toBe('allow')
+  })
+
+  it('非测试工具（related_tests）不产生验证归账', () => {
+    const { ctx, emit } = makeContext()
+    const evidence = ctx.get('evidence') as EvidenceService
+    evidence.createObligation({ family: 'bugfix', risk: 'high', claim: '修复 T', targets: ['src/t.ts'] })
+
+    const callId = 'call-related'
+    emit('session/event', { id: 'session-1' }, makeToolCall(callId, 'related_tests', JSON.stringify({ path: 'src/t.ts' })))
+    emit('session/event', { id: 'session-1' }, makeToolResult(callId, 'Related tests:\n- t.test.ts'))
+
+    expect(evidence.evaluateFinal().verdict).toBe('continue_once')
+  })
+
   it('passed 无 RED 不满足（pass-without-red），final 仍 honest_blocked', () => {
     const { ctx, guards, emit } = makeContext()
     const evidence = ctx.get('evidence') as EvidenceService

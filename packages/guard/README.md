@@ -8,7 +8,7 @@ Behavioral guard plugins watch the agent loop for unproductive patterns and enfo
 
 Guards turn rules that would otherwise be prompt guidance into enforced, event-accounted mechanisms on the agent loop. They reuse the extension points every other dsh capability uses — `ctx.tools.guard`, `tools/execute`, `tools/post-execute`, `agent/pre-step`, and `session/event` — and either enrich the model's next request or veto a call. Two tiers:
 
-- **Advisory** — `repeat-tool-guard` folds a reminder into the next request but never vetoes.
+- **Advisory** — `repeat-tool-guard` and `doom-loop-guard` fold a reminder into the next request but never veto.
 - **Enforcing** — `evidence-gate`, `agent-router`, `timeout-policy`, and `zen` veto, reroute, or gate work.
 
 ## The verification-and-routing loop
@@ -31,6 +31,7 @@ Accounting rides the session event stream, so there are no new channels: a subag
 | [`evidence-gate/`](evidence-gate/README.md) | RED-first verification discipline for bugfix obligations | `ctx.evidence` |
 | [`agent-router/`](agent-router/README.md) | Failure-prediction routing with native subagent dispatch | `ctx.router` |
 | [`repeat-tool-guard/`](repeat-tool-guard/README.md) | Advisory reminders for repeated tool calls | listens on tool/agent events |
+| [`doom-loop-guard/`](doom-loop-guard/README.md) | Advisory reminders for oscillation, edit spirals, and test churn | listens on tool/agent events |
 | [`timeout-policy/`](timeout-policy/README.md) | Per-call tool deadlines as deployment policy | registers a `tools/execute` listener |
 | [`zen/`](zen/README.md) | Anchored minimal first-face with host-verified promotion | `ctx.zen` |
 | [`task-card/`](task-card/README.md) | First-message task-card rewrite for clearer model semantics | `ctx.taskCard` |

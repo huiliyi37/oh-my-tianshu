@@ -5,10 +5,9 @@
   "type": "module",
   "description": "Runnable demo: one complete headless coding-agent turn",
   "devDependencies": {
-    "@huiliyi37/dsh-evidence-gate": "workspace:^",
-    "@huiliyi37/dsh-tool-str-replace-editor": "workspace:^",
-    "@huiliyi37/dsh-fs-local": "workspace:^",
     "@huiliyi37/dsh-agent-router": "workspace:^",
+    "@huiliyi37/dsh-evidence-gate": "workspace:^",
+    "@huiliyi37/dsh-fs-local": "workspace:^",
     "@huiliyi37/dsh-git": "workspace:^",
     "@huiliyi37/dsh-lsp": "workspace:^",
     "@huiliyi37/dsh-session-query-sqlite": "workspace:^",
@@ -23,6 +22,7 @@
     "@huiliyi37/dsh-tool-meridian": "workspace:^",
     "@huiliyi37/dsh-tool-semantic-search": "workspace:^",
     "@huiliyi37/dsh-tool-session-query": "workspace:^",
+    "@huiliyi37/dsh-tool-str-replace-editor": "workspace:^",
     "@huiliyi37/dsh-tool-tasks": "workspace:^"
   }
 }

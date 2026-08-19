@@ -1,0 +1,54 @@
+{
+  "name": "@huiliyi37/dsh-doom-loop-guard",
+  "description": "Advisory loop-guard plugin: reminders when an agent oscillates between two tools, retries a failing same-file edit, or re-runs an unchanged failing test",
+  "version": "0.2.7",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/oh-my-tianshu.git",
+    "directory": "packages/guard/doom-loop-guard"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@huiliyi37/schemastery": "^3.18.0"
+  },
+  "peerDependencies": {
+    "@huiliyi37/dsh-agent": "^0.2.0",
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/dsh-llm": "^0.2.0",
+    "@huiliyi37/dsh-tools": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
+  },
+  "devDependencies": {
+    "@huiliyi37/dsh-agent": "workspace:^",
+    "@huiliyi37/dsh-agent-loop": "workspace:^",
+    "@huiliyi37/dsh-agent-loop-testkit": "workspace:^",
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/dsh-llm": "workspace:^",
+    "@huiliyi37/dsh-session": "workspace:^",
+    "@huiliyi37/dsh-tools": "workspace:^",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
+  }
+}

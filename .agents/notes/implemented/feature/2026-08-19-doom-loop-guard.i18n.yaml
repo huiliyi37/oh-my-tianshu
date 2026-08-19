@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-19-doom-loop-guard.md
+2026-08-19-doom-loop-guard.md: 7ad2e0efc2c6af130d1a884998e95ac5c654857d
+2026-08-19-doom-loop-guard.zh.md: ef81ce90694195e82d34fdcf2a06b49b4ad14194

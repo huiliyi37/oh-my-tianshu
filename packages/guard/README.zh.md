@@ -8,7 +8,7 @@
 
 guard 把原本只能靠提示词传达的规则，变成 agent loop 上被强制执行、且经事件归账的机制。它们复用其它 dsh 能力相同的扩展点——`ctx.tools.guard`、`tools/execute`、`tools/post-execute`、`agent/pre-step` 与 `session/event`——要么丰富模型的下一次请求，要么否决一次调用。两档：
 
-- **建议档**——`repeat-tool-guard` 把提醒折叠进下一次请求，但从不否决。
+- **建议档**——`repeat-tool-guard` 与 `doom-loop-guard` 把提醒折叠进下一次请求，但从不否决。
 - **强制档**——`evidence-gate`、`agent-router`、`timeout-policy` 与 `zen` 否决、改派或门控工作。
 
 ## 验证与路由闭环
@@ -31,6 +31,7 @@ tool outcomes → failure prediction (agent-router)
 | [`evidence-gate/`](evidence-gate/README.md) | bugfix 义务的 RED-first 验证纪律 | `ctx.evidence` |
 | [`agent-router/`](agent-router/README.md) | 失败预测路由 + 原生子代理派发 | `ctx.router` |
 | [`repeat-tool-guard/`](repeat-tool-guard/README.md) | 针对重复工具调用的建议性提醒 | 监听工具/agent 事件 |
+| [`doom-loop-guard/`](doom-loop-guard/README.md) | 针对振荡、编辑螺旋与测试空转的建议性提醒 | 监听工具/agent 事件 |
 | [`timeout-policy/`](timeout-policy/README.md) | 以部署策略形式设置单次工具调用截止时间 | 注册 `tools/execute` 监听器 |
 | [`zen/`](zen/README.md) | 锚定的最小初始 face + 宿主验证的晋升 | `ctx.zen` |
 | [`task-card/`](task-card/README.md) | 首条消息任务卡改写，提升模型语义清晰度 | `ctx.taskCard` |

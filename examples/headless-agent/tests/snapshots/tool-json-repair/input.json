@@ -1,0 +1,8 @@
+{
+  "steps": [
+    {
+      "op": "prompt",
+      "text": "call the tool serialized as JSON text"
+    }
+  ]
+}

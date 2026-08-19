@@ -32,6 +32,7 @@ Groups hold `packages/<group>/<pkg>/`; names `@huiliyi37/dsh-<pkg>`. **Group REA
 | [`context/`](context/README.md) | Model-visible request context: workspace instructions and time context | Product — stable surface |
 | [`subagent/`](subagent/README.md) | Subagent capability family: provider-registry contract + delegation tool | Product — stable surface |
 | [`tasks/`](tasks/README.md) | Generic background-task runtime and model-facing `task_*` control tools | Product — stable surface |
+| [`tests/`](tests/README.md) | Model-facing test-runner tools (`run_tests`, `related_tests`) | Product — stable surface |
 | [`workflow/`](workflow/README.md) | Workflow seam, worker-thread engine, and model-facing `workflow`/`ralph` tools | Product — stable surface |
 | [`web/`](web/README.md) | Web capability family: seam, search/fetch providers, model-facing web tools | Product — stable surface |
 | [`attachment/`](attachment/README.md) | Durable attachment storage: seam + local content-addressed provider | Product — stable surface |
