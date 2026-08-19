@@ -286,7 +286,7 @@ export interface BuiltinCommandDeps {
   toggleSubagentsPanel(): void
   /** /workflow：切换 workflow 运行中面板显隐（T2.2；数据源为运行中缓存）。 */
   toggleWorkflowPanel(): void
-  /** /rewind（C3 项 3）：打开 rewind overlay；返回是否已打开（无会话时 false）。 */
+  /** /rewind（C3 项 3）：打开 rewind overlay；返回是否已打开（无会话或无可回退用户消息时 false）。 */
   rewindSession(): boolean
   /** /btw（P1）：发起侧问；返回是否已发起（无会话/已有挂起侧问时 false）。 */
   askBtw(question: string): Promise<boolean>
@@ -401,7 +401,7 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
     },
     {
       name: 'rewind',
-      description: '回退到指定消息（C3 项 3：会话截断 + 可选文件回退）',
+      description: '回退到一条用户消息（C3 项 3：会话截断 + 可选文件回退）',
       argsHint: '',
       run: ({ echo }) => {
         if (!deps.rewindSession()) {

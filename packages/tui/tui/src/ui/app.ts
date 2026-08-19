@@ -52,7 +52,7 @@ import {
   prepareTermImageForCommit,
   type PreparedTermImage,
 } from '../engine/term-image.js'
-import { createTranscript, type Transcript, type TranscriptToolCall } from '../adapter/transcript.js'
+import { createTranscript, type Transcript, type TranscriptMessage, type TranscriptToolCall } from '../adapter/transcript.js'
 import { resolveToolViews, type ToolPresenterSource } from '../adapter/tool-view.js'
 import { trackAgent, type LiveAgent } from '../adapter/live.js'
 import { controlsFromHandle, controlsFromRegistry, type AgentControls } from '../adapter/send.js'
@@ -351,6 +351,14 @@ const LIVE_RESERVED_ROWS = 4
 /** 双击 Esc 触发 rewind 的窗口（ms；对齐 Claude Code 的 Esc+Esc 时间回溯）。
  *  比 Ctrl+C 双击退出的 2s 短——rewind 是高频操作，双击节奏更跟手。 */
 const REWIND_DOUBLE_ESC_MS = 1000
+
+/** rewind 检查点：真人用户说过的非空 `user/message`，不含插件注入与空助手行。 */
+function isUserRewindCheckpoint(message: TranscriptMessage): boolean {
+  return message.kind === 'user'
+    && message.text !== ''
+    && message.event.type === 'user/message'
+    && message.event.data.source.kind === 'user'
+}
 
 /** A3：`oh-my-tianshu tui --help` 输出的用法文本（port of dsh-tianshu-tui#21）。 */
 const USAGE_TEXT = `oh-my-tianshu tui — oh-my-tianshu 交互式终端界面 / interactive terminal UI
@@ -1681,17 +1689,20 @@ export class TuiApp {
   }
 
   /**
-   * C3 项 3：打开 rewind overlay（/rewind）。消息快照 = transcript 视图
-   * （seq/turn/text），执行回调做「文件回退 + 会话截断 + 持久化截断」。
-   * @returns 是否已打开（无活跃会话或无消息时 false）。
+   * C3 项 3：打开 rewind overlay（/rewind）。检查点 = transcript 里真人用户
+   * 说过的非空 `user/message`；执行回调做「文件回退 + 会话截断 + 持久化截断」。
+   * @returns 是否已打开（无活跃会话或无可回退用户消息时 false）。
    */
   rewindSession(): boolean {
     const overlay = this.overlay
     const rewind = this.rewindOverlay
     if (overlay === null || rewind === null) return false
     if (this.activeSessionId === null) return false
-    const messages = this.transcript?.view.messages ?? []
-    if (messages.length === 0) return false
+    const messages = (this.transcript?.view.messages ?? []).filter(isUserRewindCheckpoint)
+    if (messages.length === 0) {
+      this.echoWarn('没有可回退的用户消息')
+      return false
+    }
     rewind.setMessages(messages, (mode, atSeq) => this.executeRewind(mode, atSeq))
     overlay.activate('rewind')
     return true
@@ -2912,8 +2923,23 @@ export class TuiApp {
       }
       return
     }
-    // C3 项 3：rewind overlay 打开——键转发给 overlay 状态机；done 后任意键关闭。
+    // C3 项 3：rewind overlay 打开——Ctrl+C 与 list/done 的 Esc 立刻关闭
+    // （对齐 memory；否则第一次 Ctrl+C 走不到进程退出）。mode 的 Esc 先回 list。
     if (this.overlay?.activeId() === 'rewind' && this.rewindOverlay !== null) {
+      if (key.name === 'ctrl_c') {
+        this.overlay.deactivate()
+        return
+      }
+      if (key.name === 'escape') {
+        if (this.rewindOverlay.isListPhase() || this.rewindOverlay.isDone()) {
+          this.overlay.deactivate()
+          return
+        }
+        if (this.rewindOverlay.handleKey(key.name, key.char)) {
+          this.overlay.rerender()
+        }
+        return
+      }
       if (this.rewindOverlay.handleKey(key.name, key.char)) {
         this.overlay.rerender()
       }

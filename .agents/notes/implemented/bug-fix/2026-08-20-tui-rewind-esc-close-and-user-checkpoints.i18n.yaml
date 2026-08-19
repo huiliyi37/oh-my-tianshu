@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-20-tui-rewind-esc-close-and-user-checkpoints.md
+2026-08-20-tui-rewind-esc-close-and-user-checkpoints.md: 88be314ff9e46c14f825840fe084b4eedf45de9a
+2026-08-20-tui-rewind-esc-close-and-user-checkpoints.zh.md: f6d1bc7d4dffe185e3bae7199a0c5f8871ebb435

@@ -112,6 +112,39 @@ describe('RewindOverlay 状态机', () => {
     expect(ov.handleKey('escape', '')).toBe(true)
   })
 
+  it('mode 阶段 Esc 回到 list，再 Esc 仍只返回 true', () => {
+    const ov = new RewindOverlay()
+    ov.setMessages(MESSAGES, vi.fn())
+    ov.handleKey('return', '')
+    expect(ov.render(80, 20).some(r => r.includes('只截断会话'))).toBe(true)
+    expect(ov.handleKey('escape', '')).toBe(true)
+    const after = ov.render(80, 20).map(r => r.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''))
+    expect(after.some(r => r.includes('hello'))).toBe(true)
+    expect(after.some(r => r.includes('只截断会话'))).toBe(false)
+    expect(after.some(r => r.includes('选检查点'))).toBe(true)
+    expect(ov.handleKey('escape', '')).toBe(true)
+  })
+
+  it('矮窗口仍把提示行留在最后一行（不超过 height）', () => {
+    const many: RewindableMessage[] = Array.from({ length: 20 }, (_, i) => ({
+      seq: i,
+      turn: i,
+      kind: 'user' as const,
+      time: NOW - (20 - i) * 10_000,
+      text: `msg-${i}`,
+    }))
+    const ov = new RewindOverlay()
+    ov.setMessages(many, vi.fn())
+    const height = 6
+    const rows = ov.render(80, height).map(r => r.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''))
+    expect(rows.length).toBeLessThanOrEqual(height)
+    expect(rows[rows.length - 1]).toContain('选检查点')
+    ov.handleKey('return', '')
+    const modeRows = ov.render(80, 4).map(r => r.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''))
+    expect(modeRows.length).toBeLessThanOrEqual(4)
+    expect(modeRows[modeRows.length - 1]).toContain('返回列表')
+  })
+
   it('空消息列表：selectedSeq 返回 -1，Enter 不进入 mode', () => {
     const ov = new RewindOverlay()
     ov.setMessages([], vi.fn())

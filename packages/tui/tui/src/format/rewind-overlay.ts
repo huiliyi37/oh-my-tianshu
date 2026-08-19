@@ -1,11 +1,12 @@
 /**
- * C3 项 3：rewind overlay — 双阶段回退面板（消息列表 → 回退粒度）。
+ * C3 项 3：rewind overlay — 双阶段回退面板（用户检查点 → 回退粒度）。
  *
- * 阶段 1（list）：展示会话消息（turn/text/seq），↑↓/j k 移动，Enter 选中目标。
+ * 阶段 1（list）：展示用户检查点（turn/text/seq），↑↓/j k 移动，Enter 选中目标。
  * 阶段 2（mode）：convo（仅截断会话）/ code（仅文件回退）/ both（两者）。
  * 执行回调由装配方提供（TuiApp.rewindSession 接 FileHistory + SessionStore）。
+ * list 的 Esc/Ctrl+C 由装配方关闭；mode 的 Esc 回到 list。
  *
- * 数据源：transcript.view.messages（TranscriptMessage：seq/turn/text）。
+ * 数据源：装配方过滤后的用户检查点（TranscriptMessage：seq/turn/text）。
  */
 
 import type { OverlayRenderer } from '../engine/overlay-engine.js'
@@ -71,8 +72,8 @@ export class RewindOverlay implements OverlayRenderer {
   }
 
   /**
-   * 装配方提供消息快照 + 执行回调；重复设置重置状态。
-   * @param messages - 会话消息快照（transcript.view.messages）。
+   * 装配方提供检查点快照 + 执行回调；重复设置重置状态。
+   * @param messages - 用户检查点快照（过滤后的 transcript 行）。
    * @param executor - 用户确认后执行回退的回调。
    */
   setMessages(messages: readonly RewindableMessage[], executor: RewindExecutor): void {
@@ -102,10 +103,18 @@ export class RewindOverlay implements OverlayRenderer {
   }
 
   /**
+   * list 阶段由装配方对 Esc/Ctrl+C 直接关闭；mode 阶段 Esc 先回到 list。
+   * @returns 处于 list 阶段时 true。
+   */
+  isListPhase(): boolean {
+    return this.phase === 'list'
+  }
+
+  /**
    * 处理按键；返回 true 表示已消费。
    * @param name - 按键名（up/down/return/escape/ctrl_c 等）。
    * @param char - 可打印字符（j/k 移动，1/2/3 选粒度）。
-   * @returns 已消费时 true（Esc/Ctrl+C 由装配方关闭 overlay）。
+   * @returns 已消费时 true（list 的 Esc/Ctrl+C 由装配方关闭；mode 的 Esc 回到 list）。
    */
   handleKey(name: string, char: string): boolean {
     if (this.phase === 'list') {
@@ -130,7 +139,11 @@ export class RewindOverlay implements OverlayRenderer {
         void this.run()
         return true
       }
-      return name === 'escape' || name === 'ctrl_c'
+      if (name === 'escape') {
+        this.phase = 'list'
+        return true
+      }
+      return name === 'ctrl_c'
     }
     // done 阶段：任何键关闭（由装配方 deactivate）。
     return this.phase === 'done'
@@ -157,28 +170,26 @@ export class RewindOverlay implements OverlayRenderer {
   render(width: number, height: number): string[] {
     if (this.phase === null) return []
     const theme = this.theme
-    const rows: string[] = [color('⟲ rewind 回退', theme.secondary)]
+    const title = color('⟲ rewind 回退', theme.secondary)
     const contentWidth = Math.max(1, width - 2)
-    const bodyHeight = Math.max(1, height - 3)
+    const bodyBudget = Math.max(0, height - 2)
 
     if (this.phase === 'list') {
       // 时间线（参考 Claude Code checkpoint 浏览器）：
       // - turn 变化时输出 dim 分隔线（回合边界可视化）
       // - 类型标记：用户 ❯ / 助手 ✦（语义色）
       // - 相对时间（如 3m 前）
-      // - 滚动窗口跟随选中（可滚到更早消息，此前固定渲染末尾 N 条）
-      const sel = Math.max(0, Math.min(this.selected, this.messages.length - 1))
-      const start = Math.max(0, sel - bodyHeight + 1)
-      const window = this.messages.slice(start, start + bodyHeight)
+      // - 滚动窗口跟随选中；先留出底栏提示行再切窗，避免 OverlayEngine 裁掉操作说明
+      const body: string[] = []
+      let selectedRow = 0
       let lastTurn = -1
-      window.forEach((m, i) => {
-        const idx = start + i
-        const isSel = idx === this.selected
-        // turn 分隔线（换 turn 时插入，紧跟在前一行后）
+      this.messages.forEach((m, i) => {
         if (m.turn !== lastTurn) {
-          rows.push(color(`── turn ${m.turn} ──`, theme.muted))
+          body.push(color(`── turn ${m.turn} ──`, theme.muted))
           lastTurn = m.turn
         }
+        if (i === this.selected) selectedRow = body.length
+        const isSel = i === this.selected
         const mark = m.kind === 'user' ? '❯' : '✦'
         const markColor = m.kind === 'user' ? theme.userColor : theme.assistantColor
         const age = formatElapsedHuman(Date.now() - m.time)
@@ -186,41 +197,61 @@ export class RewindOverlay implements OverlayRenderer {
           `${color(mark, markColor)} ${age} 前 ${m.text.replace(/\n/g, ' ')}`,
           contentWidth - 2,
         )
-        rows.push(isSel ? color(`▸ ${line}`, theme.success) : `  ${color(line, theme.dim)}`)
+        body.push(isSel ? color(`▸ ${line}`, theme.success) : `  ${color(line, theme.dim)}`)
       })
-      rows.push(color('↑↓/j k 选择 · Enter 回退到此处 · Esc 取消', theme.muted))
-      return rows
+      const start = windowStart(selectedRow, body.length, bodyBudget)
+      return [
+        title,
+        ...body.slice(start, start + bodyBudget),
+        color('↑↓/j k 选检查点 · Enter 选粒度 · Esc 取消', theme.muted),
+      ]
     }
 
     if (this.phase === 'mode') {
-      rows.push(color(`回退到 seq ${this.selectedSeq()}，选择粒度：`, theme.primary))
-      MODE_KEYS.forEach(({ key, mode }) => {
-        rows.push(`  ${key}. ${MODE_LABELS[mode]}`)
-      })
-      rows.push(color('Esc 取消', theme.muted))
-      return rows
+      const body = [
+        color(`回退到 seq ${this.selectedSeq()}，选择粒度：`, theme.primary),
+        ...MODE_KEYS.map(({ key, mode }) => `  ${key}. ${MODE_LABELS[mode]}`),
+      ]
+      return [
+        title,
+        ...body.slice(0, bodyBudget),
+        color('1/2/3 确认 · Esc 返回列表或取消', theme.muted),
+      ]
     }
 
     if (this.phase === 'executing') {
-      rows.push(color('回退执行中…', theme.muted))
-      return rows
+      return [title, color('回退执行中…', theme.muted)]
     }
 
     // done
     const r = this.result
+    const hint = color('任意键关闭', theme.muted)
     if (r === null) {
-      rows.push(color('回退已取消', theme.muted))
-      return rows
+      return [title, color('回退已取消', theme.muted), hint]
     }
     if (r.filesChanged < 0) {
-      rows.push(color(`回退失败：${r.error ?? '未知错误'}`, theme.error))
-    } else {
-      const skippedNote = r.filesSkipped !== undefined && r.filesSkipped > 0
-        ? `（${r.filesSkipped} 个文件因快照缺失未回退）`
-        : ''
-      rows.push(color(`回退完成：${r.filesChanged} 个文件${skippedNote}${r.truncatedTo === undefined ? '' : `，会话截断到 seq ${r.truncatedTo}`}`, theme.success))
+      return [title, color(`回退失败：${r.error ?? '未知错误'}`, theme.error), hint]
     }
-    rows.push(color('任意键关闭', theme.muted))
-    return rows
+    const skippedNote = r.filesSkipped !== undefined && r.filesSkipped > 0
+      ? `（${r.filesSkipped} 个文件因快照缺失未回退）`
+      : ''
+    return [
+      title,
+      color(`回退完成：${r.filesChanged} 个文件${skippedNote}${r.truncatedTo === undefined ? '' : `，会话截断到 seq ${r.truncatedTo}`}`, theme.success),
+      hint,
+    ]
   }
+}
+
+/**
+ * 把选中行留在 `budget` 行窗口内；窗口比内容短时贴底对齐选中行。
+ * @param selectedRow - 选中行在完整 body 中的下标。
+ * @param length - body 总行数。
+ * @param budget - 可渲染行数。
+ * @returns 窗口起点。
+ */
+function windowStart(selectedRow: number, length: number, budget: number): number {
+  if (length <= budget) return 0
+  const start = Math.max(0, selectedRow - budget + 1)
+  return start + budget > length ? Math.max(0, length - budget) : start
 }

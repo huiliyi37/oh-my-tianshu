@@ -296,7 +296,7 @@ export const WELCOME_TIPS: readonly string[] = [
   'Ctrl+V 直接粘贴剪贴板里的截图',
   '@ 开头输入路径，Tab 补全文件',
   'Ctrl+O 展开最近一段推理',
-  '/rewind 回退到任意一条消息',
+  '/rewind 回退到一条用户消息',
   'Ctrl+F 搜索历史输入，n / N 前后跳',
   '/fork 给当前会话分叉一个探索分支',
   'Ctrl+E 用 $EDITOR 编辑长输入',
