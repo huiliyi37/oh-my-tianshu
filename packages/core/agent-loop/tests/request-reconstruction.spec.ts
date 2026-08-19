@@ -169,6 +169,33 @@ describe('request stability across the loop', () => {
     }
   })
 
+  it('logs an explicit AgentOptions.reasoningEffort without marking an adapter default', async () => {
+    const reasoning = {
+      efforts: [
+        { id: ReasoningEffortId('high'), name: 'High' },
+        { id: ReasoningEffortId('max'), name: 'Max' },
+      ],
+      defaultEffort: ReasoningEffortId('high'),
+    }
+    const adapter = new MockAdapter([textResponse('explicit')], reasoning)
+    const ctx = await harness(adapter)
+    const agent = ctx.agentLoop.create(SessionId('explicit-effort'), {
+      provider: 'mock',
+      model: 'mock',
+      reasoningEffort: ReasoningEffortId('max'),
+    })
+
+    send(agent, 'use the explicit effort')
+    await waitForIdle(ctx, agent)
+
+    expect(adapter.requests[0]?.reasoningEffort).toBe(ReasoningEffortId('max'))
+    const header = agent.session.events.find(event => event.type === 'request/header')
+    expect(header?.type === 'request/header' && header.data.header.config.reasoningEffort)
+      .toBe(ReasoningEffortId('max'))
+    expect(header?.type === 'request/header' && header.data.header.adapterDefaults?.reasoningEffort)
+      .not.toBe(true)
+  })
+
   it('logs an adapter-owned maxTokens default before dispatch', async () => {
     const adapter = new MockAdapter([textResponse('bounded')], undefined, 256_000)
     const ctx = await harness(adapter)

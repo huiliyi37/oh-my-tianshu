@@ -16,7 +16,7 @@ The intent bridge (`packages/guard/intent-bridge`, `@huiliyi37/dsh-intent-bridge
 - **Multi-round clarification is ordinary turns.** The alignment model asks (text, no tool call) → turn ends → the user answers via `followup` → next turn. No hang-until-answer machinery.
 - **Handoff.** `finalize_alignment` validates at the boundary (`parseFinalizeArgs`: non-empty title/goal, ≤4 constraints/acceptance, malformed calls rejected back to the model), renders the card with the verbatim original under the marker (`renderTaskCard(card, original)` from task-card), creates the main session (routed to `execProvider`/`execModel`), feeds it the card as its first user message, records a log-only `intent-bridge/handoff` on the main session, and emits the `intent-bridge/handoff` dispatch event (TUI listens and `switchSession`s).
 - **Failure paths never block the task.** Alignment rounds exhausted (`alignMaxRounds`, default 5) → force-finalize a template card and reject the step; the alignment agent errors → the verbatim original flows to the main session (task-card's single-shot rewrite is the fallback).
-- **TUI wiring.** `newSession()` creates the alignment session when the bridge is mounted (unchanged behavior otherwise); the handoff listener auto-switches to the main session. The bundle ships both routes as `deepseek-official/deepseek-v4-flash` ([shipped align default](2026-08-19-intent-bridge-shipped-align-flash.md)).
+- **TUI wiring.** `newSession()` creates the alignment session when the bridge is mounted (unchanged behavior otherwise); the handoff listener auto-switches to the main session. The per-call `exec` override carries the current `/model` selection and, when set, the current `reasoningEffort`, so the main session does not fall back to the adapter default. Switching onto that live main agent reinstalls `installModelSelection`, so later `/effort` still hot-applies. The bundle ships both routes as `deepseek-official/deepseek-v4-flash` ([shipped align default](2026-08-19-intent-bridge-shipped-align-flash.md)).
 - **Invariants.** `@huiliyi37/dsh-intent-bridge/invariant` validates from the authoritative session log: at most one handoff record per session with a known reason, and a carded first user message after a handoff keeps a non-empty verbatim original.
 
 ## Alternatives considered
@@ -35,7 +35,7 @@ The intent bridge (`packages/guard/intent-bridge`, `@huiliyi37/dsh-intent-bridge
 ## Testing
 
 - `tests/align.spec.ts` — alignment contract text + finalize argument validation table (15 tests).
-- `tests/intent-bridge.spec.ts` — full-loop scripted-model integration: multi-round alignment → finalize → main session task card → zen arm; rounds exhaustion force-finalizes a template card; malformed finalize rejected with no main session; disabled fails loud; per-call `cwd`/`exec` override honored (5 tests).
+- `tests/intent-bridge.spec.ts` — full-loop scripted-model integration: multi-round alignment → finalize → main session task card → zen arm; rounds exhaustion force-finalizes a template card; malformed finalize rejected with no main session; disabled fails loud; per-call `cwd`/`exec` override (including `reasoningEffort`) honored (5 tests).
 - `tests/invariant.spec.ts` — handoff record invariants on live appends and late registration (8 tests).
 - Keyless snapshot (`examples/headless-agent/tests/intent-bridge.snapshot.ts`, real Loader + replay adapter with both provider routes): alignment in one round → task card in the main session's persisted log → handoff recorded → zen armed; alignment session seeded full and titled.
 - 28 package tests + snapshot green on macOS; zen (61), task-card (28), and TUI app (260) suites re-run without regression.
@@ -63,4 +63,5 @@ The intent bridge (`packages/guard/intent-bridge`, `@huiliyi37/dsh-intent-bridge
 - [Zen phase engineering paradigm](2026-08-17-zen-phase-engineering-paradigm.md) — the anchored-face phase the main session enters.
 - [Task card first-message](2026-08-18-task-card-first-message.md) — the card contract and single-shot rewrite the bridge reuses.
 - [Shipped TUI align route](2026-08-19-intent-bridge-shipped-align-flash.md) — out-of-box DeepSeek flash; MiniMax is an overlay.
+- [Main-session effort follows current selection](../bug-fix/2026-08-19-intent-bridge-exec-effort.md) — `exec.reasoningEffort` and live-agent hot-switch after handoff.
 - [MiniMax-M3 provider support](../../../../docs/config-catalog.md) — pi-ai's built-in `minimax` provider (catalog since v0.78.1).

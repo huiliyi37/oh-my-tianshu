@@ -143,6 +143,10 @@ function assertAgentOptions(options: AgentOptions): void {
     && (!Number.isSafeInteger(options.maxTokens) || options.maxTokens <= 0)) {
     throw new TypeError('agent maxTokens must be a positive safe integer')
   }
+  if (options.reasoningEffort !== undefined
+    && (typeof options.reasoningEffort !== 'string' || options.reasoningEffort.length === 0)) {
+    throw new TypeError('agent reasoningEffort must be a non-empty string')
+  }
 }
 
 /** Prepared-but-unpublished agent resources sharing one memoized teardown. */

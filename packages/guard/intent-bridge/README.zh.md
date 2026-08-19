@@ -29,7 +29,7 @@
 
 ## createAlignedSession
 
-`ctx.intentBridge.createAlignedSession(options)` 创建对齐会话并返回其 id 与调用方持有的 `AgentHandle`。两个选项均由调用方持有：`cwd` 让对齐会话**及其移交的主会话**都落入真实项目目录（省略 → 两者持久化到 `_no-cwd/` 下并从 Web 会话列表消失）；`exec` 覆盖本次对齐 handoff 的主会话路由（省略 → 配置中的 exec 路由）——TUI 传入它当前的 `/model` 选择，让主会话跟随用户的模型。
+`ctx.intentBridge.createAlignedSession(options)` 创建对齐会话并返回其 id 与调用方持有的 `AgentHandle`。两个选项均由调用方持有：`cwd` 让对齐会话**及其移交的主会话**都落入真实项目目录（省略 → 两者持久化到 `_no-cwd/` 下并从 Web 会话列表消失）；`exec` 覆盖本次对齐 handoff 的主会话路由（省略 → 配置中的 exec 路由），并可携带 `reasoningEffort`——TUI 传入它当前的 `/model` 选择与 `/effort`，让主会话两者都跟随。省略 `reasoningEffort` 则保留适配器默认值；对齐会话不继承它。
 
 ## 交接
 

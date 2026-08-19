@@ -16,7 +16,7 @@ Status: implemented
 - **多轮澄清就是普通 turn。** 对齐模型提问（纯文本、无工具调用）→ turn 结束 → 用户经 `followup` 回答 → 下一轮。无需挂起等待机制。
 - **交接。** `finalize_alignment` 在边界校验（`parseFinalizeArgs`：非空 title/goal、约束/验收 ≤4 条、非法调用拒绝回模型）、以逐字原文渲染任务卡（task-card 的 `renderTaskCard(card, original)`）、创建主会话（路由到 `execProvider`/`execModel`）、把任务卡作为首条用户消息喂入、在主会话记录 log-only 的 `intent-bridge/handoff`、并 emit `intent-bridge/handoff` 派发事件（TUI 监听并 `switchSession`）。
 - **失败路径绝不阻塞任务。** 对齐轮数耗尽（`alignMaxRounds`，默认 5）→ 强制产出模板任务卡并 reject 该 step；对齐 agent 出错 → 逐字原文直通主会话（task-card 单轮改写兜底）。
-- **TUI 接线。** `newSession()` 在装配桥时创建对齐会话（否则行为不变）；handoff 监听自动切到主会话。bundle 两条路由都发货为 `deepseek-official/deepseek-v4-flash`（[发货对齐默认](2026-08-19-intent-bridge-shipped-align-flash.md)）。
+- **TUI 接线。** `newSession()` 在装配桥时创建对齐会话（否则行为不变）；handoff 监听自动切到主会话。按次 `exec` 覆盖带上当前 `/model` 选择，以及已设定时的当前 `reasoningEffort`，主会话因此不会回落到适配器默认。切到该 live 主 agent 时会重新安装 `installModelSelection`，之后的 `/effort` 仍可热切。bundle 两条路由都发货为 `deepseek-official/deepseek-v4-flash`（[发货对齐默认](2026-08-19-intent-bridge-shipped-align-flash.md)）。
 - **不变量。** `@huiliyi37/dsh-intent-bridge/invariant` 从权威会话日志验证：每会话至多一条 handoff 记录且 reason 已知；handoff 后的带卡首条用户消息保留非空逐字原文。
 
 ## 备选方案否决
@@ -35,7 +35,7 @@ Status: implemented
 ## 测试
 
 - `tests/align.spec.ts` — 对齐契约文本 + finalize 参数校验表（15 测试）。
-- `tests/intent-bridge.spec.ts` — 全链路 scripted-model 集成：多轮对齐 → finalize → 主会话任务卡 → zen arm；轮数耗尽强制模板卡；非法 finalize 拒绝且不建主会话；disabled 响亮失败；per-call `cwd`/`exec` override 生效（5 测试）。
+- `tests/intent-bridge.spec.ts` — 全链路 scripted-model 集成：多轮对齐 → finalize → 主会话任务卡 → zen arm；轮数耗尽强制模板卡；非法 finalize 拒绝且不建主会话；disabled 响亮失败；per-call `cwd`/`exec` override（含 `reasoningEffort`）生效（5 测试）。
 - `tests/invariant.spec.ts` — handoff 记录不变量（live append 与晚注册，8 测试）。
 - keyless 快照（`examples/headless-agent/tests/intent-bridge.snapshot.ts`，真实 Loader + 双 provider 路由的 replay 适配器）：单轮对齐 → 主会话持久化日志含任务卡 → handoff 记录 → zen arm；对齐会话 seed full 且带标题。
 - 28 包测试 + 快照 macOS 全绿；zen（61）、task-card（28）、TUI app（260）套件重跑无回归。
@@ -63,4 +63,5 @@ Status: implemented
 - [禅相位工程范式](2026-08-17-zen-phase-engineering-paradigm.md) — 主会话进入的锚定面相位。
 - [任务卡首条消息](2026-08-18-task-card-first-message.md) — 桥复用的卡片契约与单轮改写。
 - [发货 TUI 对齐路由](2026-08-19-intent-bridge-shipped-align-flash.md) — 出厂 DeepSeek flash；MiniMax 是 overlay。
+- [主会话 effort 跟随当前选择](../bug-fix/2026-08-19-intent-bridge-exec-effort.md) — `exec.reasoningEffort` 与交接后 live agent 热切。
 - [MiniMax-M3 provider 支持](../../../../docs/config-catalog.md) — pi-ai 内置 `minimax` provider（v0.78.1 起入 catalog）。

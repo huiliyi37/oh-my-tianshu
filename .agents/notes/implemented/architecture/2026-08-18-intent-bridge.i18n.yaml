@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-18-intent-bridge.md
-2026-08-18-intent-bridge.md: 31c945bc0fab72824c4bc0b6a8e1bda177d270a2
-2026-08-18-intent-bridge.zh.md: a46905f0ae53b467f6ea377a87f527f3fb93ce4f
+2026-08-18-intent-bridge.md: 92ab53ac94324fc5dcc8469aaf27b5bbe116d8cd
+2026-08-18-intent-bridge.zh.md: c22c80e670bd29a6bed53886b4403a9e0c38c9b8

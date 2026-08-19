@@ -466,6 +466,23 @@ export function parseSlashCommand(input: string): { kind: string; text: string }
   return parsed === null ? null : { kind: parsed.command.name, text: parsed.text }
 }
 
+/**
+ * Spread one selection into create/resume/exec options without inventing an omitted effort.
+ * @param selection - current or persisted provider/model/effort.
+ * @returns the same fields, with `reasoningEffort` present only when selected.
+ */
+function callConfigFrom(selection: ModelSelection): {
+  provider: string
+  model: string
+  reasoningEffort?: ModelSelection['reasoningEffort']
+} {
+  return {
+    provider: selection.provider,
+    model: selection.model,
+    ...selection.reasoningEffort === undefined ? {} : { reasoningEffort: selection.reasoningEffort },
+  }
+}
+
 /** 命令 → InputController 提示条目的投影（slash hint / Tab 补全数据源）。 */
 function toSlashHint(command: { name: string; description: string; argsHint?: string }): SlashHintEntry {
   return {
@@ -651,8 +668,10 @@ export class TuiApp {
   private taskSurfaceDisposer: (() => void) | null = null
   /** T1.4：plan 投影 active 态（驱动 statusline [plan] 徽标；服务缺失时为 false）。 */
   private planState: { active: boolean; pending: boolean } = { active: false, pending: false }
-  /** C2 项 4：当前会话的模型选择 ref（newSession/switchSession 挂载；registry 兜底为 null）。 */
+  /** C2 项 4：当前会话的模型选择 ref（newSession/switchSession 挂载）。 */
   private modelRef: ModelSelectionRef | null = null
+  /** installModelSelection 的 disposer；切会话时卸掉，避免 live agent 叠装监听。 */
+  private modelSelectionDisposer: (() => void) | null = null
   /** C2 项 2：历史搜索 overlay（Ctrl+F；attach 时注册，消息快照激活时提供）。 */
   private searchOverlay: HistorySearchOverlay | null = null
   /** T1.2：/status 面板显隐（/status 切换；数据源为投影缓存）。 */
@@ -1568,14 +1587,14 @@ export class TuiApp {
     // 意图对齐桥装配时，新会话先进对齐会话（辅模型多轮澄清）；主会话在对齐
     // 完成（intent-bridge/handoff）时由 bridge 创建并自动切回。对齐会话的
     // 模型路由由 bridge 配置（alignProvider/alignModel）；主会话跟随当前
-    // 模型选择（exec override），cwd 与常规新会话一致（启动目录）。
+    // 模型选择与 reasoningEffort（exec override），cwd 与常规新会话一致。
     // 经 reflect.get 读取：runtimeCtx 只 inject sessions/agents/agentDefaultModel，
     // 属性访问未声明的 intentBridge 在 Cordis 4 抛 without inject（真实装配已复现）。
     const intentBridge = this.ctx.reflect.get('intentBridge', false) as IntentBridgeService | undefined
     if (intentBridge !== undefined) {
       const align = await intentBridge.createAlignedSession({
         cwd: process.cwd(),
-        exec: { provider: selection.provider, model: selection.model },
+        exec: callConfigFrom(selection),
       })
       this.ownedHandle = align.handle
       this.controls = controlsFromHandle(align.handle)
@@ -1588,9 +1607,9 @@ export class TuiApp {
     const handle = await this.ctx.agents.create({
       sessionId: id,
       meta: { cwd: process.cwd() },
-      agentOptions: { provider: selection.provider, model: selection.model },
+      agentOptions: callConfigFrom(selection),
       setup: (agentCtx) => {
-        installModelSelection(agentCtx, ref)
+        this.bindModelSelection(agentCtx, ref)
       },
     })
     this.ownedHandle = handle
@@ -1604,8 +1623,7 @@ export class TuiApp {
 
   /**
    * C2 项 4：热切当前会话的模型。改 modelRef.current——下一次 agent 步进
-   * （prompt assembly）自动生效，不中断当前步骤。registry 兜底的会话
-   * （ref 由其他装配方持有）返回 false，调用方提示不可热切。
+   * （prompt assembly）自动生效，不中断当前步骤。无挂载会话时返回 false。
    * @param selection - 新的 provider/model。
    * @returns 是否已热切（modelRef 存在）。
    */
@@ -1616,6 +1634,31 @@ export class TuiApp {
     this.glanceEffort = selection.reasoningEffort ?? null
     this.refreshVisionForSelection(selection)
     return true
+  }
+
+  /**
+   * Fold the durable header's explicit route, else the current default selection.
+   * @param id - mounted session id.
+   * @returns provider/model and an explicit effort when the header recorded one.
+   */
+  private selectionForSession(id: SessionId): ModelSelection {
+    const persisted = getSession(this.ctx, id)?.requestHeader()?.config
+    if (persisted === undefined) return this.ctx.agentDefaultModel.currentSelection()
+    return {
+      provider: persisted.provider,
+      model: persisted.model,
+      ...persisted.reasoningEffort === undefined ? {} : { reasoningEffort: persisted.reasoningEffort },
+    }
+  }
+
+  /**
+   * Install one selection onto an agent scope and replace any previous install.
+   * @param agentCtx - the selected agent's scoped context.
+   * @param ref - the mutable selection this front door owns.
+   */
+  private bindModelSelection(agentCtx: Context, ref: ModelSelectionRef): void {
+    this.modelSelectionDisposer?.()
+    this.modelSelectionDisposer = installModelSelection(agentCtx, ref)
   }
 
   /**
@@ -1901,28 +1944,19 @@ export class TuiApp {
     this.dynamicRowsHighWater = 0
     this.activeSessionId = id
     const agent = this.ctx.agents.get(id)
+    const selection = this.selectionForSession(id)
+    this.modelRef = { current: selection, assembled: undefined }
+    const ref = this.modelRef
     if (agent !== undefined) {
       /* v8 ignore next -- agent 已确认存在（if 分支外），controlsFromRegistry 恒返回非空 */
       this.controls = controlsFromRegistry(this.ctx, id) ?? null
-      // registry 兜底：ref 由其他装配方持有，本层不可热切
-      this.modelRef = null
+      this.bindModelSelection(agent.ctx, ref)
     } else {
-      const persisted = getSession(this.ctx, id)?.requestHeader()?.config
-      const selection: ModelSelection = persisted === undefined
-        ? this.ctx.agentDefaultModel.currentSelection()
-        : {
-          provider: persisted.provider,
-          model: persisted.model,
-          ...persisted.reasoningEffort === undefined ? {} : { reasoningEffort: persisted.reasoningEffort },
-        }
-      // C2 项 4：持有可变 ref（resume 续模的 selection 也进 ref.current）
-      this.modelRef = { current: selection, assembled: undefined }
-      const ref = this.modelRef
       const handle = await this.ctx.agents.resume({
         resumeSessionId: id,
-        agentOptions: { provider: selection.provider, model: selection.model },
+        agentOptions: callConfigFrom(selection),
         setup: (agentCtx) => {
-          installModelSelection(agentCtx, ref)
+          this.bindModelSelection(agentCtx, ref)
         },
       })
       this.ownedHandle = handle
@@ -3887,7 +3921,7 @@ export class TuiApp {
    * 卸载当前会话的投影与控制面，并按 opts 处理本层持有的 handle：
    * - keepHandle（P3 side conversation 切换）：所有权让渡 registry——agent
    *   保持 live（可切回复用），退出时由 agent-loop factory 统一 teardown；
-   *   modelRef 同步让渡（registry 兜底语义：不可热切）。
+   *   本层卸掉 modelRef 与 selection 监听，切回时再装。
    * - 缺省（dispose 退出）：释放本层 handle（create/resume 铸造的）。
    * registry 兜底的裸 agent 非自有，两种情况都不 dispose。会话本身所有权归
    * 持有方，不销毁。
@@ -3922,6 +3956,9 @@ export class TuiApp {
     this.projectionCache = null
     this.taskItems = null
     this.planState = { active: false, pending: false }
+    this.modelSelectionDisposer?.()
+    this.modelSelectionDisposer = null
+    this.modelRef = null
     // C3 项 4：always-approve 是会话级本地态——切会话/退出时复位，
     // 防止残留到新会话（planState 同上复位；徽章由 statusLine 重建）。
     this.approval.setAlwaysApprove(false)
@@ -3941,7 +3978,6 @@ export class TuiApp {
       if (opts?.keepHandle === true) {
         // P3：切换保留——让渡 registry（agent 保持 live；退出时 factory 统一清理）。
         this.ownedHandle = null
-        this.modelRef = null
       } else {
         const handle = this.ownedHandle
         this.ownedHandle = null

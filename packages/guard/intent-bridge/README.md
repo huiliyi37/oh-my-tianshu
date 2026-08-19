@@ -29,7 +29,7 @@ Decision record for that default: [shipped TUI align route](../../../.agents/not
 
 ## createAlignedSession
 
-`ctx.intentBridge.createAlignedSession(options)` creates the alignment session and returns its id plus the owned `AgentHandle`. Both options are caller-owned: `cwd` lands the alignment session AND the main session it hands off to in a real project directory (omitted → both persist under `_no-cwd/` and vanish from the Web session list); `exec` overrides the main-session route for this alignment's handoff (omitted → the config exec route) — the TUI passes its current `/model` selection so the main session follows the user's model.
+`ctx.intentBridge.createAlignedSession(options)` creates the alignment session and returns its id plus the owned `AgentHandle`. Both options are caller-owned: `cwd` lands the alignment session AND the main session it hands off to in a real project directory (omitted → both persist under `_no-cwd/` and vanish from the Web session list); `exec` overrides the main-session route for this alignment's handoff (omitted → the config exec route) and may carry `reasoningEffort` — the TUI passes its current `/model` selection and `/effort` so the main session follows both. An omitted `reasoningEffort` leaves the adapter default; the alignment session does not inherit it.
 
 ## Handoff
 

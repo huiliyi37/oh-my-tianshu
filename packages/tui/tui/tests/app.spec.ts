@@ -175,7 +175,7 @@ function makeAgent(id: string): Agent & MockAgent {
     },
     inbox: { nextTurn: [], nextStep: [] },
     status: 'idle',
-    ctx: undefined,
+    ctx: { on: vi.fn(() => () => {}) },
     followup: vi.fn(),
     steer: vi.fn(),
     inject: vi.fn(),
@@ -254,6 +254,9 @@ describe('TuiApp agent-ensure 三分支', () => {
       sessionId: id,
       agentOptions: { provider: 'mock', model: 'mock' },
     }))
+    expect('reasoningEffort' in (
+      (ctx.agents.create.mock.calls[0]?.[0] as { agentOptions: object }).agentOptions
+    )).toBe(false)
     expect(ctx.sessions.create).not.toHaveBeenCalled()
     // controls 来自 handle.agent：followup 打到 handle 下的 agent
     app.handleSubmit('hello')
@@ -261,6 +264,31 @@ describe('TuiApp agent-ensure 三分支', () => {
     await app.dispose()
     // 自有 handle 由本层 dispose
     expect(handle.dispose).toHaveBeenCalledTimes(1)
+  })
+
+  it('newSession 无桥时把当前 reasoningEffort 写入 agentOptions', async () => {
+    const ctx = makeCtx()
+    ctx.agentDefaultModel.currentSelection.mockReturnValue({
+      provider: 'deepseek-spark',
+      model: 'deepseek-v4-flash',
+      reasoningEffort: 'max',
+    })
+    const agent = makeAgent('effort-create-1')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+    await app.newSession()
+
+    expect(ctx.agents.create).toHaveBeenCalledWith(expect.objectContaining({
+      agentOptions: {
+        provider: 'deepseek-spark',
+        model: 'deepseek-v4-flash',
+        reasoningEffort: 'max',
+      },
+    }))
+    await app.dispose()
   })
 
   it('newSession 把 process.cwd() 写入 create meta.cwd（Web 会话列表可见）', async () => {
@@ -316,7 +344,38 @@ describe('TuiApp agent-ensure 三分支', () => {
       cwd: process.cwd(),
       exec: { provider: 'mock', model: 'mock' },
     })
+    expect('reasoningEffort' in (createAlignedSession.mock.calls[0]?.[0] as { exec: object }).exec)
+      .toBe(false)
     expect(ctx.agents.create).not.toHaveBeenCalled()
+    await app.dispose()
+  })
+
+  it('newSession 在 intentBridge 装配时把当前 reasoningEffort 传给主会话 exec', async () => {
+    const ctx = makeCtx()
+    ctx.agentDefaultModel.currentSelection.mockReturnValue({
+      provider: 'deepseek-spark',
+      model: 'deepseek-v4-flash',
+      reasoningEffort: 'max',
+    })
+    const agent = makeAgent('align-effort')
+    const handle = makeHandle(agent)
+    const createAlignedSession = vi.fn(async () => ({ sessionId: 'align-session', handle }))
+    ctx.reflect.get.mockImplementation((name: string) => (
+      name === 'intentBridge' ? { createAlignedSession } : undefined
+    ))
+    ctx.sessions.get.mockReturnValue(agent.session)
+
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+    await app.newSession()
+
+    expect(createAlignedSession).toHaveBeenCalledWith({
+      cwd: process.cwd(),
+      exec: {
+        provider: 'deepseek-spark',
+        model: 'deepseek-v4-flash',
+        reasoningEffort: 'max',
+      },
+    })
     await app.dispose()
   })
 
@@ -3520,14 +3579,14 @@ describe('TuiApp switchLiveModel（C2 项 4 模型热切）', () => {
     await app.dispose()
   })
 
-  it('switchSession 到 registry 兜底会话（agent 已存在）→ 热切不可用（ref 归 null）', async () => {
+  it('switchSession 到 registry 已有 live agent → 仍可热切（交接主会话）', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('hot-registry-1')
-    ctx.agents.get.mockReturnValue(agent) // registry 已有 live agent
-    ctx.sessions.get.mockReturnValue(agent.session) // mountSession 需要 session
+    ctx.agents.get.mockReturnValue(agent)
+    ctx.sessions.get.mockReturnValue(agent.session)
     const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
     await app.switchSession(SessionId('hot-registry-1'))
-    expect(app.switchLiveModel({ provider: 'openai', model: 'gpt-5' })).toBe(false)
+    expect(app.switchLiveModel({ provider: 'openai', model: 'gpt-5', reasoningEffort: 'max' })).toBe(true)
     await app.dispose()
   })
 
@@ -4130,8 +4189,15 @@ describe('TuiApp resume 模型定路分支', () => {
     const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
     await app.switchSession(SessionId('eff-1'))
     expect(ctx.agents.resume).toHaveBeenCalledTimes(1)
-    // agentOptions 只传 provider/model；reasoningEffort 经 selection 进 setup（installModelSelection）
-    const options = ctx.agents.resume.mock.calls[0]?.[0] as { setup?: (c: unknown) => void }
+    const options = ctx.agents.resume.mock.calls[0]?.[0] as {
+      agentOptions?: { provider: string; model: string; reasoningEffort?: string }
+      setup?: (c: unknown) => void
+    }
+    expect(options.agentOptions).toEqual({
+      provider: 'deepseek',
+      model: 'deepseek-r1',
+      reasoningEffort: 'high',
+    })
     expect(options.setup).toBeTypeOf('function')
     await app.dispose()
   })

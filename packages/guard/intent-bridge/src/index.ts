@@ -27,10 +27,10 @@
 
 import { randomUUID } from 'node:crypto'
 import { Context, Service } from '@huiliyi37/cordis'
-import type { Agent, AgentHandle } from '@huiliyi37/dsh-agent'
+import type { Agent, AgentHandle, AgentOptions } from '@huiliyi37/dsh-agent'
 import type {} from '@huiliyi37/dsh-agent' // 'agent/pre-step' / 'agent/inbox/inserted' event declaration merge
 import { createUserMessage } from '@huiliyi37/dsh-llm'
-import type { UserMessage } from '@huiliyi37/dsh-llm'
+import type { ReasoningEffortId, UserMessage } from '@huiliyi37/dsh-llm'
 import type { Session, SessionEvent } from '@huiliyi37/dsh-session'
 import { SessionId } from '@huiliyi37/dsh-session'
 import type {} from '@huiliyi37/dsh-session-title' // 'session/title' event declaration merge
@@ -108,12 +108,35 @@ export interface ResolvedIntentBridgeConfig {
   section: string
 }
 
+/** Main-session route, optionally carrying an explicit conversation effort. */
+export interface IntentBridgeExecRoute {
+  /** Provider route for the main session. */
+  provider: string
+  /** Model id for the main session. */
+  model: string
+  /** Explicit conversation reasoning effort; omission leaves the adapter default. */
+  reasoningEffort?: ReasoningEffortId
+}
+
+/**
+ * Spread one exec route into AgentOptions without inventing an omitted effort.
+ * @param route - main-session provider/model and optional explicit effort.
+ * @returns AgentOptions with `reasoningEffort` present only when the route set it.
+ */
+function agentOptionsFor(route: IntentBridgeExecRoute): AgentOptions {
+  return {
+    provider: route.provider,
+    model: route.model,
+    ...route.reasoningEffort === undefined ? {} : { reasoningEffort: route.reasoningEffort },
+  }
+}
+
 /** Per-call alignment-session options (caller-owned; all optional). */
 export interface CreateAlignedSessionOptions {
   /** Project directory (durable header.cwd) for the alignment session AND its main session; omitted lands both in `_no-cwd/`. */
   cwd?: string
-  /** Main-session route override for this alignment's handoff; default is the config exec route. */
-  exec?: { provider: string; model: string }
+  /** Main-session route override for this alignment's handoff; default is the config exec route. May carry `reasoningEffort`. */
+  exec?: IntentBridgeExecRoute
 }
 
 /**
@@ -184,7 +207,7 @@ interface AlignState {
   /** Project directory for the alignment session and its main session (header.cwd). */
   cwd: string | undefined
   /** Per-session main-session route override; falls back to the config exec route. */
-  execRoute?: { provider: string; model: string }
+  execRoute?: IntentBridgeExecRoute
 }
 
 /**
@@ -276,7 +299,7 @@ export class IntentBridgeService extends Service {
    * Caller-owned options: `cwd` lands BOTH the alignment session and the main
    * session it hands off to in a real project directory (omitted → `_no-cwd/`),
    * `exec` overrides the main-session route for this alignment's handoff
-   * (omitted → config exec route).
+   * (omitted → config exec route) and may carry `reasoningEffort`.
    *
    * @param options - per-call options (all optional).
    * @returns the session id and the owned handle (drive it after resolve).
@@ -384,7 +407,7 @@ export class IntentBridgeService extends Service {
     const { agent: main } = await this.ctx.agents.create({
       sessionId: SessionId(mainId),
       ...(state.cwd === undefined ? {} : { meta: { cwd: state.cwd } }),
-      agentOptions: { provider: route.provider, model: route.model },
+      agentOptions: agentOptionsFor(route),
     })
     main.followup(createUserMessage({ content: [{ type: 'text', text: cardText }], source: { kind: 'user' } }))
     main.session.append('intent-bridge/handoff', { alignSessionId: agent.session.id, reason })
@@ -412,7 +435,7 @@ export class IntentBridgeService extends Service {
     const { agent: main } = await this.ctx.agents.create({
       sessionId: SessionId(mainId),
       ...(state.cwd === undefined ? {} : { meta: { cwd: state.cwd } }),
-      agentOptions: { provider: route.provider, model: route.model },
+      agentOptions: agentOptionsFor(route),
     })
     main.followup(createUserMessage({ content: [{ type: 'text', text: original }], source: { kind: 'user' } }))
     main.session.append('intent-bridge/handoff', { alignSessionId: sessionId, reason: 'alignment-error' })

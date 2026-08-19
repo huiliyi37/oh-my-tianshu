@@ -7,7 +7,7 @@
 
 import type { Context } from '@huiliyi37/cordis'
 import type { Scoped } from '@huiliyi37/dsh-scope'
-import type { CallId, LlmCallConfig, LlmFailure, ResolvedRetryPolicy } from '@huiliyi37/dsh-llm'
+import type { CallId, LlmCallConfig, LlmFailure, ReasoningEffortId, ResolvedRetryPolicy } from '@huiliyi37/dsh-llm'
 import type { AgentCancelCause, Session, SessionId, UserMessage } from '@huiliyi37/dsh-session'
 export type { AgentCancelCause } from '@huiliyi37/dsh-session'
 import type { Inbox } from './inbox.ts'
@@ -28,6 +28,12 @@ export interface AgentOptions {
   model?: string
   /** Maximum output tokens for each conversation-model request. */
   maxTokens?: number
+  /**
+   * Adapter-owned reasoning effort for conversation-model requests.
+   * An explicit value wins over the exact-model adapter default; omission
+   * leaves that default, or the provider's own default, in control.
+   */
+  reasoningEffort?: ReasoningEffortId
 }
 
 /** Options for {@link Agent.cancel}. */

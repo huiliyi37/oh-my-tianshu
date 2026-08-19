@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
-import LlmService, { createUserMessage } from '@huiliyi37/dsh-llm'
+import LlmService, { createUserMessage, ReasoningEffortId } from '@huiliyi37/dsh-llm'
 import type { UserMessage } from '@huiliyi37/dsh-llm'
 import SessionStore, { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
 import SystemPrompt from '@huiliyi37/dsh-system-prompt'
@@ -127,6 +127,7 @@ describe('intent-bridge through the agent loop', () => {
     // The main session received the rendered task card as its first message.
     const main = ctx.agents.get(SessionId(handoff!.mainSessionId))
     if (main === undefined) throw new Error('intent-bridge: main session missing after handoff')
+    expect(main.options.reasoningEffort).toBeUndefined()
     await waitForIdle(ctx, main)
     const mainLog = main.session.events
     const firstUser = userMessages(mainLog)[0]
@@ -204,7 +205,13 @@ describe('intent-bridge through the agent loop', () => {
       }),
       textResponse('对齐完成。'),
       textResponse('主会话收到。'),
-    ])
+    ], {
+      efforts: [
+        { id: ReasoningEffortId('high'), name: 'High' },
+        { id: ReasoningEffortId('max'), name: 'Max' },
+      ],
+      defaultEffort: ReasoningEffortId('high'),
+    })
     const ctx = await harness(adapter)
     let handoff: { mainSessionId: string } | undefined
     ctx.on('intent-bridge/handoff', (payload) => { handoff = payload })
@@ -214,7 +221,7 @@ describe('intent-bridge through the agent loop', () => {
       cwd: process.cwd(),
       // Distinct from the config exec route (deepseek-official/flash) so the
       // override is provable from the request stream.
-      exec: { provider: 'mock', model: 'custom-model' },
+      exec: { provider: 'mock', model: 'custom-model', reasoningEffort: ReasoningEffortId('max') },
     })
     ask(align.handle.agent, '帮我重构 src/auth.ts 的登录逻辑')
     await waitForIdle(ctx, align.handle.agent)
@@ -229,8 +236,13 @@ describe('intent-bridge through the agent loop', () => {
     // The main session inherited the alignment's cwd — never `_no-cwd/`.
     expect(main.session.header.cwd).toBe(process.cwd())
     await waitForIdle(ctx, main)
+    expect(main.options.reasoningEffort).toBe(ReasoningEffortId('max'))
     const mainRequest = adapter.requests.find(request => request.provider === 'mock')
     expect(mainRequest?.model).toBe('custom-model')
+    expect(mainRequest?.reasoningEffort).toBe(ReasoningEffortId('max'))
+    const mainHeader = main.session.events.find(event => event.type === 'request/header')
+    expect(mainHeader?.type === 'request/header' && mainHeader.data.header.adapterDefaults?.reasoningEffort)
+      .not.toBe(true)
     // The alignment request itself still used the config align route.
     expect(adapter.requests[0]?.provider).toBe('minimax')
     expect(adapter.requests[0]?.model).toBe('MiniMax-M3')

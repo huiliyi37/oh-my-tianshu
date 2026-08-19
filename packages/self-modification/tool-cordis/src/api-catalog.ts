@@ -684,7 +684,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     methods: [
       {
         signature: 'async createAlignedSession(options: CreateAlignedSessionOptions = {}): Promise<{ sessionId: string; handle: AgentHandle }>',
-        jsDoc: '/**\n * Create a fresh alignment session: seeded zen-completed (never arms),\n * tool face restricted to `finalize_alignment`, titled for the tab list.\n * Caller-owned options: `cwd` lands BOTH the alignment session and the main\n * session it hands off to in a real project directory (omitted → `_no-cwd/`),\n * `exec` overrides the main-session route for this alignment\'s handoff\n * (omitted → config exec route).\n *\n * @param options - per-call options (all optional).\n * @returns the session id and the owned handle (drive it after resolve).\n */',
+        jsDoc: '/**\n * Create a fresh alignment session: seeded zen-completed (never arms),\n * tool face restricted to `finalize_alignment`, titled for the tab list.\n * Caller-owned options: `cwd` lands BOTH the alignment session and the main\n * session it hands off to in a real project directory (omitted → `_no-cwd/`),\n * `exec` overrides the main-session route for this alignment\'s handoff\n * (omitted → config exec route) and may carry `reasoningEffort`.\n *\n * @param options - per-call options (all optional).\n * @returns the session id and the owned handle (drive it after resolve).\n */',
       },
     ],
   },
@@ -2095,7 +2095,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'AgentOptions',
-    declaration: 'export interface AgentOptions {\n    provider?: string;\n    model?: string;\n    maxTokens?: number;\n}',
+    declaration: 'export interface AgentOptions {\n    provider?: string;\n    model?: string;\n    maxTokens?: number;\n    reasoningEffort?: ReasoningEffortId;\n}',
   },
   {
     name: 'AgentPreset',
@@ -2415,7 +2415,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'CreateAlignedSessionOptions',
-    declaration: 'export interface CreateAlignedSessionOptions {\n    cwd?: string;\n    exec?: {\n        provider: string;\n        model: string;\n    };\n}',
+    declaration: 'export interface CreateAlignedSessionOptions {\n    cwd?: string;\n    exec?: IntentBridgeExecRoute;\n}',
   },
   {
     name: 'CreateGoalRequest',
@@ -2732,6 +2732,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'InboxTarget',
     declaration: 'export type InboxTarget = \'next-turn\' | \'next-step\';',
+  },
+  {
+    name: 'IntentBridgeExecRoute',
+    declaration: 'export interface IntentBridgeExecRoute {\n    provider: string;\n    model: string;\n    reasoningEffort?: ReasoningEffortId;\n}',
   },
   {
     name: 'InvariantFailure',

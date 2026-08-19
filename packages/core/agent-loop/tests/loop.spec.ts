@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
-import LlmService, { createUserMessage, CallId, LlmError, StreamChunk  } from '@huiliyi37/dsh-llm'
+import LlmService, { createUserMessage, CallId, LlmError, ReasoningEffortId, StreamChunk  } from '@huiliyi37/dsh-llm'
 import SessionStore, { SessionId, TurnEndReason } from '@huiliyi37/dsh-session'
 import SystemPrompt from '@huiliyi37/dsh-system-prompt'
 import ToolRegistry, { defineContentToolFixture } from '@huiliyi37/dsh-tools'
@@ -75,6 +75,36 @@ describe('agent loop', () => {
     await waitForIdle(ctx, agent)
 
     expect(adapter.requests[0]?.maxTokens).toBe(256)
+  })
+
+  it('rejects an empty AgentOptions.reasoningEffort before publication', async () => {
+    const ctx = await harness(new MockAdapter([]))
+    expect(() => ctx.agentLoop.create(
+      SessionId('invalid-reasoning-effort'),
+      { provider: 'mock', model: 'mock', reasoningEffort: '' as never },
+    )).toThrow('agent reasoningEffort must be a non-empty string')
+    expect(ctx.agents.list()).toEqual([])
+    expect(ctx.sessions.list()).toEqual([])
+  })
+
+  it('seeds a valid AgentOptions.reasoningEffort into the first model request', async () => {
+    const adapter = new MockAdapter([textResponse('explicit')], {
+      efforts: [
+        { id: ReasoningEffortId('high'), name: 'High' },
+        { id: ReasoningEffortId('max'), name: 'Max' },
+      ],
+      defaultEffort: ReasoningEffortId('high'),
+    })
+    const ctx = await harness(adapter)
+    const agent = ctx.agentLoop.create(
+      SessionId('valid-reasoning-effort'),
+      { provider: 'mock', model: 'mock', reasoningEffort: ReasoningEffortId('max') },
+    )
+
+    send(agent, 'use the configured reasoning effort')
+    await waitForIdle(ctx, agent)
+
+    expect(adapter.requests[0]?.reasoningEffort).toBe(ReasoningEffortId('max'))
   })
 
   it('cancels queued wakeup work together with an active maintenance task', async () => {
