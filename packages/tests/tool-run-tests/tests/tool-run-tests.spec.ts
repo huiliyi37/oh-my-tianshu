@@ -112,12 +112,15 @@ describe('detectFramework', () => {
 })
 
 describe('renderCommand', () => {
-  it('joins paths, special-cases npm and go, and lets overrides replace the base', () => {
-    expect(renderCommand('vitest', ['src/a.test.ts'], {})).toBe('npx vitest run src/a.test.ts')
+  it('joins shell-quoted paths, special-cases npm and go, and lets overrides replace the base', () => {
+    expect(renderCommand('vitest', ['src/a.test.ts'], {})).toBe('npx vitest run \'src/a.test.ts\'')
     expect(renderCommand('vitest', [], {})).toBe('npx vitest run')
-    expect(renderCommand('npm', ['a.test.ts'], {})).toBe('npm test -- a.test.ts')
-    expect(renderCommand('go', ['pkg/x/a_test.go'], {})).toBe('go test pkg/x')
-    expect(renderCommand('pytest', ['t/'], { pytest: 'uv run pytest' })).toBe('uv run pytest t/')
+    expect(renderCommand('npm', ['a.test.ts'], {})).toBe('npm test -- \'a.test.ts\'')
+    expect(renderCommand('go', ['pkg/x/a_test.go'], {})).toBe('go test \'pkg/x\'')
+    expect(renderCommand('pytest', ['t/'], { pytest: 'uv run pytest' })).toBe('uv run pytest \'t/\'')
+    // A path with spaces or an embedded quote stays one argument.
+    expect(renderCommand('vitest', ['my tests/a.test.ts'], {})).toBe('npx vitest run \'my tests/a.test.ts\'')
+    expect(renderCommand('vitest', ["it's.test.ts"], {})).toBe('npx vitest run \'it\'\\\'\'s.test.ts\'')
     expect(() => renderCommand('nope', [], {})).toThrow(/unknown framework/)
   })
 })
@@ -125,10 +128,13 @@ describe('renderCommand', () => {
 describe('parseTestSummary', () => {
   it('parses each framework summary and returns nulls for npm', () => {
     expect(parseTestSummary('vitest', 'Test Files  1 passed (1)\n     Tests  2 passed (2)')).toEqual({ passed: 2, failed: 0, total: 2 })
-    expect(parseTestSummary('vitest', 'Test Files  1 failed (1)\n     Tests  2 failed (1)')).toEqual({ passed: 1, failed: 1, total: 2 })
+    // Real mixed-result vitest line: per-status counts, parenthesized grand total.
+    expect(parseTestSummary('vitest', 'Test Files  1 failed (2)\n     Tests  3 failed | 4 passed (7)')).toEqual({ passed: 4, failed: 3, total: 7 })
+    expect(parseTestSummary('vitest', 'Tests  1 failed (1)')).toEqual({ passed: 0, failed: 1, total: 1 })
+    expect(parseTestSummary('vitest', 'Tests  2 passed | 1 skipped (3)')).toEqual({ passed: 2, failed: 0, total: 3 })
     expect(parseTestSummary('jest', 'Tests:       1 passed, 2 failed, 3 total')).toEqual({ passed: 1, failed: 2, total: 3 })
     expect(parseTestSummary('mocha', '  4 passing\n  1 failing')).toEqual({ passed: 4, failed: 1, total: 5 })
-    expect(parseTestSummary('pytest', '5 passed, 2 failed in 1.2s')).toEqual({ passed: 5, failed: 2, total: 7 })
+    expect(parseTestSummary('pytest', '5 passed, 2 failed in 0.12s')).toEqual({ passed: 5, failed: 2, total: 7 })
     expect(parseTestSummary('go', 'ok  example.com/p 0.1s\nFAIL example.com/q 0.2s')).toEqual({ passed: 1, failed: 1, total: 2 })
     expect(parseTestSummary('npm', 'whatever')).toEqual({ passed: null, failed: null, total: null })
   })
@@ -191,7 +197,7 @@ describe('run_tests integration', () => {
     const ctx = await setup()
     const agent = registerFakeAgent(ctx, 'ws-agent', workdir)
     const result = await call(ctx, 'run_tests', { path: ['src/a.test.ts'] }, agent)
-    expect(result.value).toMatchObject({ kind: 'foreground', command: 'npx vitest run src/a.test.ts' })
+    expect(result.value).toMatchObject({ kind: 'foreground', command: 'npx vitest run \'src/a.test.ts\'' })
   })
 
   it('fails loud when nothing identifies a framework and no command is given', async () => {

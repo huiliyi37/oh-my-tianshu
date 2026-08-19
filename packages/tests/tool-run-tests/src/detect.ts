@@ -121,34 +121,49 @@ export async function detectFramework(probe: Probe, cwd: string): Promise<TestFr
 
 /**
  * Compose the final command line: the framework base (config override wins)
- * plus the selected paths in framework order. `npm test` passes paths after
- * `--`; `go test` takes package directories, so file paths collapse to their
- * directory.
+ * plus the selected paths, shell-quoted, in framework order. `npm test` passes
+ * paths after `--`; `go test` takes package directories, so file paths
+ * collapse to their directory.
  * @param frameworkId - the detected framework id.
  * @param paths - the selected target paths, workspace-relative.
  * @param overrides - config `commandOverrides` (validated non-empty values).
  * @returns the command line to execute.
  */
+function shellQuote(path: string): string {
+  return `'${path.replaceAll("'", '\'\\\'\'')}'`
+}
+
 export function renderCommand(frameworkId: string, paths: readonly string[], overrides: Readonly<Record<string, string>>): string {
   const base = overrides[frameworkId] ?? (DEFAULT_COMMANDS as Record<string, string>)[frameworkId]
   if (base === undefined) throw new Error(`run_tests: unknown framework ${frameworkId}`)
   if (paths.length === 0) return base
-  if (frameworkId === 'npm') return `${base} -- ${paths.join(' ')}`
-  if (frameworkId === 'go') return `${base} ${paths.map(path => dirname(path) === '.' ? '.' : dirname(path)).join(' ')}`
-  return `${base} ${paths.join(' ')}`
+  const quoted = paths.map(shellQuote)
+  if (frameworkId === 'npm') return `${base} -- ${quoted.join(' ')}`
+  if (frameworkId === 'go') return `${base} ${paths.map(path => dirname(path) === '.' ? '.' : dirname(path)).map(shellQuote).join(' ')}`
+  return `${base} ${quoted.join(' ')}`
 }
 
 const SUMMARY_PARSERS: ReadonlyArray<{ id: string; parse: (tail: string) => TestSummary }> = [
   {
     id: 'vitest',
     parse(tail) {
-      const totalMatch = /Tests\s+(\d+)\s+passed\s*\((\d+)\)/.exec(tail) ?? /Tests\s+(\d+)\s+failed\s*\((\d+)\)/.exec(tail)
-      if (totalMatch === null) return { passed: null, failed: null, total: null }
-      const total = Number(totalMatch[1])
-      const counted = Number(totalMatch[2])
-      return totalMatch[0].includes('passed')
-        ? { passed: counted, failed: total - counted, total }
-        : { passed: total - counted, failed: counted, total }
+      // Real vitest summary shape: "Tests  3 failed | 4 passed (7)" — the
+      // parenthesized number is the grand total; a single-status run drops the
+      // other segment ("Tests  4 passed (4)"). Skipped/todo segments exist but
+      // fold into neither count; the paren total keeps them.
+      const match = /^[ \t]*Tests[ \t]+((?:\d+[ \t]+(?:failed|passed|skipped|todo)[ \t]*\|?[ \t]*)+)\((\d+)\)/m.exec(tail)
+      if (match === null) return { passed: null, failed: null, total: null }
+      const segments = match[1] ?? ''
+      const total = Number(match[2])
+      let passed = 0
+      let failed = 0
+      for (const segment of segments.split('|')) {
+        const counted = /(\d+)\s+(failed|passed)/.exec(segment)
+        if (counted === null) continue
+        if (counted[2] === 'passed') passed = Number(counted[1])
+        else failed = Number(counted[1])
+      }
+      return { passed, failed, total }
     },
   },
   {

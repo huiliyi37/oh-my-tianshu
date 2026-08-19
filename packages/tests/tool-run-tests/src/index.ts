@@ -149,10 +149,11 @@ function summaryText(value: RunTestsForegroundValue): string {
  * @param ctx - plugin context carrying the tool registry and bash executor.
  * @param config - validated {@link Config}; `outputTailChars` is re-checked fail-loud here.
  */
-export function apply(ctx: Context, config: Config): void {
-  const outputTailChars = config.outputTailChars as number
-  const overrides = config.commandOverrides as Record<string, string>
-  const backgroundEnabled = config.enableRunInBackground as boolean
+export function apply(ctx: Context, config: Config = {}): void {
+  // Schema defaults mirrored as `??` fallbacks for direct apply calls (单一缺省来源).
+  const outputTailChars = config.outputTailChars ?? 8000
+  const overrides = config.commandOverrides ?? {}
+  const backgroundEnabled = config.enableRunInBackground ?? true
   if (!Number.isInteger(outputTailChars) || outputTailChars < 1) {
     throw new Error(`tool-run-tests: invalid outputTailChars ${outputTailChars} — must be an integer >= 1`)
   }
