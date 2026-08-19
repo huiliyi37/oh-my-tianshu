@@ -314,7 +314,50 @@ A local one-shot provider appends the descriptor inside the child's initial turn
 
 `SubagentService.listChildren(parentSessionId)` enumerates the parent's direct session-backed subagents from the live-preferred merge of `ctx.sessions.list()` and optional `ctx.sessionPersistence.list()` — no query service, and no Agent is loaded or resumed. Candidates are the direct children whose durable header carries `origin: 'subagent'`; the marker classifies enumeration and coarse generic-route denial but cannot establish a valid descriptor, resumability, or authorization — the projection fold owns identity, and the Activation contract owns resume. Each row's `mode`/`label` is the registered `subagent` projection unit's value, served through a three-rung ladder: the registry's watermark cache for a live child (zero log reads); the optional projection checkpoint cache for a cold one (`cachedSnapshot` — an identity passing the own-suffix seq gate is final, because an own descriptor is immutable once appended); otherwise one `persistence.inspect()` reading folded through the registry (bounded concurrency, recomputed per listing). The cache is a pure optional accelerator: absent, serving the `null` sentinel or missing the key, failing the seq gate, or faulting, it falls silently through to the authoritative refold. The fold is `subagent/descriptor` last-wins with no failure channel: the child's own descriptor overrides a fork-seeded ancestor's, and a malformed or unknown-version payload folds to a serializable `null` sentinel, treated as no value. The result is one `SubagentListEntry[]` in `createdAt`-then-id order: a served identity yields a `child` entry with `mode: 'one-shot' | 'continuable'` and `activity: 'running' | 'inactive'`; continuable entries always carry `label`, while one-shot entries carry it only when the start caller supplied presentation metadata. A settled candidate whose fold served no identity yields a `corrupt` diagnostic — missing, malformed, and unknown-version descriptors deliberately undistinguished, with `unsupported` kept in the type for consumers already routing on it but no longer produced; a running candidate without an identity is omitted (the creation window before its descriptor lands); a failed cold inspection yields one `unavailable` diagnostic retried on the next listing, so one damaged sibling cannot hide healthy children. `hasChildren` marks a direct descendant with durable subagent origin, read from the same merged material. Activity snapshots only whether the logical record is live in `ctx.sessions`, not outcome or resumability. Absent persistence, enumeration is live-only rather than an error — a cold child cannot be resumed then either. `listChildren()` throws `SubagentError` with code `SUBAGENT_CONTROL_PROJECTIONS_UNAVAILABLE` when the `ctx.sessionProjections` registry is absent and `SUBAGENT_CONTROL_SESSION_STORE_UNAVAILABLE` when the session store is, both checked before any read so a deployment with zero children still fails deterministically; the list tool requires `ctx.subagents` and `ctx.agents` at plugin load. A service consumer such as a UI can display both modes and choose an unlabeled one-shot fallback, while the model-facing `list_agents` adapter (the separately loadable `/list-agents` plugin of [dsh-tool-subagent-control](../../packages/subagent/tool-subagent-control)) keeps only continuable entries and refines status through the live Agent registry's `running`/`idle`/`complete` vocabulary. Listing does not consult the continuation manager's Activation map, Agent registry, or provider availability; `send_message` remains the authoritative delivery-time operation, and a listed running continuable child may still reject delivery as an ownership conflict. The read-path rationale lives in [the list-identity-projection Agent Note](../../.agents/notes/implemented/architecture/2026-08-06-subagent-list-identity-projection.md).
 
-`SubagentService.listDescendants(rootSessionId)` applies the same live-preferred corpus and projection-backed interpretation to the root's complete descendant tree in stable pre-order. Ordinary sessions and one-shot children remain traversal nodes, so continuable descendants below them are discovered; only `origin: 'subagent'` candidates produce rows. Each returned child or diagnostic adds its position from the enumerated durable header, while a cold inspection revalidates that complete lifecycle before serving identity:
+`SubagentService.listDescendants(rootSessionId)` applies the same live-preferred corpus and projection-backed interpretation to the root's complete descendant tree in stable pre-order. Ordinary sessions and one-shot children remain traversal nodes, so continuable descendants below them are discovered; only `origin: 'subagent'` candidates produce rows. Each returned child or diagnostic adds its position from the enumerated durable header, while a cold inspection revalidates that complete lifecycle before serving identity. The same cut embeds `progress` (`SubagentProgressProjection`) and `timing` (`SubagentTimingProjection`) on a `child` row when the fold is meaningful — any post-descriptor turn, tool, token, or `lastTool` fact, or any elapsed timing; `listChildren()` never embeds those fields. `lastTurnEnd` is absent while a turn is open (`turn/start` clears the previous ending kind), and `reasoningTokens` follows the latest `assistant/message` usage last-wins (omission on that usage drops the field).
+
+```ts type-equiv
+/** Durable active-turn timing for one descriptor-backed child session. */
+interface SubagentTimingProjection {
+  /** Milliseconds accumulated across completed turns after the child's own descriptor. */
+  settledMs: number
+  /** Same-cut bounds of the currently open turn, when one has not reached `turn/end`. */
+  active?: {
+    /** Start of the open turn. */
+    since: number
+    /** Latest event time folded into this projection cut. */
+    through: number
+  }
+}
+```
+
+```ts type-equiv
+/**
+ * Running-state projection for one descriptor-backed subagent session: turn /
+ * tool counts, latest token accounting, and the current tool activity, all
+ * folded from the child's own log events (`turn/end`, `tool/call`,
+ * `tool/result`, `assistant/message` usage). Deliberately excludes facts the
+ * log cannot carry: `contextPct` needs the live `contextWindow` query, and the
+ * terminal `stopReason` (whose `refusal` variant is not log-derivable) stays
+ * on the `subagent/end` plugin-event path.
+ */
+interface SubagentProgressProjection {
+  /** `turn/end` count after the child's own descriptor (seed replay excluded). */
+  turns: number
+  /** `tool/call` count after the child's own descriptor. */
+  toolCalls: number
+  /** Billed total (input+output+cacheRead+cacheWrite) of the latest `assistant/message` usage. */
+  tokensUsed: number
+  /** `reasoningTokens` of the latest usage, when the adapter reported it. */
+  reasoningTokens?: number
+  /** Name of the latest `tool/call` (absent when the child made none). */
+  lastTool?: string
+  /** The latest `tool/call` has no paired `tool/result` yet. */
+  toolInFlight: boolean
+  /** Kind of the latest `turn/end` reason; `turn/start` clears it so an open turn is not terminal. */
+  lastTurnEnd?: 'completed' | 'aborted' | 'blocked' | 'error' | 'max-tokens' | 'interrupted'
+}
+```
 
 ```ts type-equiv
 /**
@@ -638,7 +681,8 @@ async drainContinuableDescendants(parents: readonly Agent[]): Promise<void>
  * never a list-time descriptor parse. Absent persistence, enumeration is
  * live-only (a cold child cannot be resumed then either, so its absence is
  * capability absence, not an error). This service consults no Agent
- * registrations, Activations, or providers.
+ * registrations, Activations, or providers. Direct-child rows do not carry
+ * `progress` or `timing`; those runtime fields are descendant-listing only.
  *
  * Every persistence read receives `signal`, and the listing rechecks
  * cancellation around each of those awaits. Read rejections that settle
@@ -657,9 +701,11 @@ listChildren(parentSessionId: SessionId, signal?: AbortSignal): Promise<Subagent
  * pre-order from one live-preferred corpus, without loading or resuming an
  * Agent. Ordinary sessions and one-shot children remain traversal nodes so
  * continuable descendants below them are discovered; each returned entry
- * adds its durable `parentId` and root-relative `depth`. Identity resolution,
- * diagnostics, optional persistence, and cancellation follow the same
- * projection-backed contract as {@link listChildren}.
+ * adds its durable `parentId` and root-relative `depth`. Each `child` row
+ * may also carry `progress` and `timing` from that same cut when the fold
+ * is meaningful; {@link listChildren} never embeds them. Identity resolution,
+ * diagnostics, optional persistence, and cancellation otherwise follow the
+ * same projection-backed contract as {@link listChildren}.
  * @param rootSessionId - session whose complete descendant tree is listed.
  * @param signal - caller-owned cancellation forwarded to persistence reads
  *   and observed around every read await.
@@ -706,7 +752,7 @@ async start(name: string, request: SubagentStartRequest): Promise<SubagentRun>
 
 Types: [Agent](core.md) · [ContentBlock](llm-streaming.md) · [MessageId](llm-streaming.md) · [SessionId](core.md)
 
-Source: [`packages/subagent/subagent/src/index.ts:167`](../../packages/subagent/subagent/src/index.ts)
+Source: [`packages/subagent/subagent/src/index.ts:171`](../../packages/subagent/subagent/src/index.ts)
 
 <a id="subagent-events"></a>
 
@@ -732,7 +778,7 @@ A published child settled. Scope-filtered dispatch uses the same delegating pare
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/subagent/subagent/src/index.ts:162`](../../packages/subagent/subagent/src/index.ts)
+Source: [`packages/subagent/subagent/src/index.ts:166`](../../packages/subagent/subagent/src/index.ts)
 
 <a id="subagentprovider-added--emit"></a>
 
@@ -749,7 +795,7 @@ A provider became resolvable in the registry.
 'subagent/provider-added'(provider: SubagentProvider): void
 ```
 
-Source: [`packages/subagent/subagent/src/index.ts:136`](../../packages/subagent/subagent/src/index.ts)
+Source: [`packages/subagent/subagent/src/index.ts:140`](../../packages/subagent/subagent/src/index.ts)
 
 <a id="subagentprovider-removed--emit"></a>
 
@@ -766,7 +812,7 @@ A provider left the registry. Accepted runs remain holder-owned.
 'subagent/provider-removed'(name: string): void
 ```
 
-Source: [`packages/subagent/subagent/src/index.ts:142`](../../packages/subagent/subagent/src/index.ts)
+Source: [`packages/subagent/subagent/src/index.ts:146`](../../packages/subagent/subagent/src/index.ts)
 
 <a id="subagentstart--emit"></a>
 
@@ -790,5 +836,5 @@ A provider established a published child. For in-process providers, `ctx.agents.
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/subagent/subagent/src/index.ts:153`](../../packages/subagent/subagent/src/index.ts)
+Source: [`packages/subagent/subagent/src/index.ts:157`](../../packages/subagent/subagent/src/index.ts)
 <!-- END GENERATED cordis-surface -->

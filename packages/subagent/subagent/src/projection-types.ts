@@ -18,6 +18,32 @@ export interface SubagentTimingProjection {
 }
 
 /**
+ * Running-state projection for one descriptor-backed subagent session: turn /
+ * tool counts, latest token accounting, and the current tool activity, all
+ * folded from the child's own log events (`turn/end`, `tool/call`,
+ * `tool/result`, `assistant/message` usage). Deliberately excludes facts the
+ * log cannot carry: `contextPct` needs the live `contextWindow` query, and the
+ * terminal `stopReason` (whose `refusal` variant is not log-derivable) stays
+ * on the `subagent/end` plugin-event path.
+ */
+export interface SubagentProgressProjection {
+  /** `turn/end` count after the child's own descriptor (seed replay excluded). */
+  turns: number
+  /** `tool/call` count after the child's own descriptor. */
+  toolCalls: number
+  /** Billed total (input+output+cacheRead+cacheWrite) of the latest `assistant/message` usage. */
+  tokensUsed: number
+  /** `reasoningTokens` of the latest usage, when the adapter reported it. */
+  reasoningTokens?: number
+  /** Name of the latest `tool/call` (absent when the child made none). */
+  lastTool?: string
+  /** The latest `tool/call` has no paired `tool/result` yet. */
+  toolInFlight: boolean
+  /** Kind of the latest `turn/end` reason; `turn/start` clears it so an open turn is not terminal. */
+  lastTurnEnd?: 'completed' | 'aborted' | 'blocked' | 'error' | 'max-tokens' | 'interrupted'
+}
+
+/**
  * Durable identity of one descriptor-backed subagent session: lifecycle mode
  * plus creation label, folded last-wins from `subagent/descriptor` events.
  * Label strength follows the descriptor schema: a continuable child always
@@ -50,6 +76,8 @@ declare module '@huiliyi37/dsh-session-projection/types' {
   interface SessionProjectionMap {
     /** Active-turn duration for a descriptor-backed subagent session. */
     subagentTiming: SubagentTimingProjection
+    /** Running-state activity/token/turn facts for a descriptor-backed subagent session. */
+    subagentProgress: SubagentProgressProjection
     /**
      * Identity of a descriptor-backed subagent session. `null` ⟺ no valid
      * descriptor (missing, malformed, or unrecognized-version — deliberately

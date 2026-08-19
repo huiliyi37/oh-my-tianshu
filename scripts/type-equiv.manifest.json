@@ -1162,6 +1162,16 @@
     },
     {
       "doc": "docs/subsystems/subagent.md",
+      "symbol": "SubagentTimingProjection",
+      "source": "packages/subagent/subagent/src/projection-types.ts"
+    },
+    {
+      "doc": "docs/subsystems/subagent.md",
+      "symbol": "SubagentProgressProjection",
+      "source": "packages/subagent/subagent/src/projection-types.ts"
+    },
+    {
+      "doc": "docs/subsystems/subagent.md",
       "symbol": "SubagentDescendantListEntry",
       "source": "packages/subagent/subagent/src/list-children.ts"
     },

@@ -138,12 +138,7 @@ export function renderLspPanel(snapshot: LiveSnapshot): string[] {
 export function renderDelegationPanel(snapshot: LiveSnapshot): string[] {
   if (!snapshot.subagentsPanelVisible) return []
   if (snapshot.delegationEntries === null) return []
-  return projectDelegationTree(
-    snapshot.delegationEntries,
-    snapshot.subagentIdentities,
-    snapshot.subagentTimings,
-    { width: snapshot.cols },
-  )
+  return projectDelegationTree(snapshot.delegationEntries, { width: snapshot.cols })
 }
 
 /**

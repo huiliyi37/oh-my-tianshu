@@ -118,6 +118,22 @@ interface GoalFacet {
 }
 
 /** /tasks kill 所需的最小 tasks 服务面（不引入 dsh-tasks 依赖；id 运行时即 string）。 */
+/** One `listDescendants` row the kill path reads (direct parent + mode). */
+interface SubagentsKillEntry {
+  readonly kind: 'child' | 'diagnostic'
+  readonly id: string
+  readonly parentId: string
+  readonly activity?: 'running' | 'inactive'
+  readonly mode?: 'one-shot' | 'continuable'
+}
+
+/** /subagents kill 所需的最小 subagents 服务面（不引入 dsh-subagent 依赖；
+ *  reflect.get 动态获取——TUI 编译面约定）。 */
+interface SubagentsFacet {
+  listDescendants(rootSessionId: SessionId, signal?: AbortSignal): Promise<readonly SubagentsKillEntry[]>
+  interrupt(targetSessionId: SessionId, authority: { kind: 'user'; parentSessionId: SessionId }): void
+}
+
 interface TasksFacet {
   kill(id: string, caller?: unknown, reason?: string): 'requested' | 'already-finished'
 }
@@ -713,8 +729,56 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
     },
     {
       name: 'subagents',
-      description: '切换委派树面板（subagent 层级投影）',
-      run: () => { deps.toggleSubagentsPanel() },
+      description: '委派树：无参切换；kill <id> 终止运行中的 continuable 子代理',
+      argsHint: '[kill <id>]',
+      run: async ({ text, echo, ctx, sessionId }) => {
+        const sub = text.split(/\s+/)[0] ?? ''
+        if (sub === 'kill') {
+          const id = text.slice(sub.length).trim()
+          if (id === '') {
+            echo('用法: /subagents kill <id>')
+            return
+          }
+          const subagents = ctx.reflect.get('subagents', false) as SubagentsFacet | undefined
+          if (subagents === undefined) {
+            echo('⚠ subagents 服务不可用（未加载 subagent 插件）')
+            return
+          }
+          if (sessionId === null) {
+            echo('⚠ 无活动会话，无法终止子代理')
+            return
+          }
+          const entry = (await subagents.listDescendants(sessionId))
+            .find(row => row.kind === 'child' && row.id === id)
+          if (entry === undefined) {
+            echo(`⚠ 该 id 不在当前委派树中: ${id}`)
+            return
+          }
+          if (entry.mode === 'one-shot') {
+            echo(`⚠ 一次性子代理不能经 /subagents kill 终止: ${id}`)
+            return
+          }
+          if (entry.activity === 'inactive') {
+            echo(`⚠ 子代理已不在运行: ${id}`)
+            return
+          }
+          try {
+            subagents.interrupt(id as SessionId, {
+              kind: 'user',
+              parentSessionId: entry.parentId as SessionId,
+            })
+            echo(`已请求终止子代理: ${id}`)
+          } catch (error: unknown) {
+            echo(`⚠ 终止失败: ${error instanceof Error ? error.message : String(error)}`)
+          }
+          return
+        }
+        if (sub !== '') {
+          echo('用法: /subagents [kill <id>]')
+          return
+        }
+        deps.toggleSubagentsPanel()
+      },
     },
     {
       name: 'workflow',

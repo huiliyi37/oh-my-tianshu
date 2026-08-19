@@ -94,8 +94,6 @@ import { formatTurnSummary as renderTurnSummaryLine } from '../format/turn-summa
 import { getToolFamily } from '../format/tool-meta.js'
 import type {
   DelegationTreeEntry,
-  DelegationIdentityProjection,
-  DelegationTimingProjection,
 } from '../delegation-panel.js'
 import type { WorkflowRunView, WorkflowResultInfoInput } from '../workflow-panel.js'
 import {
@@ -142,6 +140,8 @@ type DelegationEntry = DelegationTreeEntry
 /** T2.1：subagents 服务最小面（listDescendants 预取；事件经 ctx.on('subagent/…')）。 */
 interface SubagentsFacet {
   listDescendants(rootSessionId: SessionId, signal?: AbortSignal): Promise<DelegationEntry[]>
+  /** 终止一个 live continuable 子代理的当前 turn（one-shot 目标是服务层 no-op）。 */
+  interrupt(targetSessionId: SessionId, authority: { kind: 'user'; parentSessionId: SessionId }): void
 }
 
 /** T2.3：tasks 服务最小面（不引入 dsh-tasks 依赖；id 运行时即 string）。 */
@@ -466,6 +466,7 @@ export function parseSlashCommand(input: string): { kind: string; text: string }
   return parsed === null ? null : { kind: parsed.command.name, text: parsed.text }
 }
 
+/** 命令 → InputController 提示条目的投影（slash hint / Tab 补全数据源）。 */
 /**
  * Spread one selection into create/resume/exec options without inventing an omitted effort.
  * @param selection - current or persisted provider/model/effort.
@@ -483,7 +484,6 @@ function callConfigFrom(selection: ModelSelection): {
   }
 }
 
-/** 命令 → InputController 提示条目的投影（slash hint / Tab 补全数据源）。 */
 function toSlashHint(command: { name: string; description: string; argsHint?: string }): SlashHintEntry {
   return {
     name: command.name,
@@ -2031,7 +2031,17 @@ export class TuiApp {
       const statusLine = this.statusLine as WorkflowStatusLine | null
       statusLine?.setPlanState(this.planState)
       this.projectionDisposer = projections.onChanged((s, key, value) => {
-        if (s.id !== id) return
+        if (s.id !== id) {
+          // T2.1：子会话运行态变化 → 重拉当前根的 listDescendants（同一 cut）。
+          // 仅面板可见且 id 已在树上时才拉；冷子代仍可能走持久化 inspect。
+          // 父会话自身的投影走下方原分流路径。
+          if (this.subagentsPanelVisible
+            && (key === 'subagentProgress' || key === 'subagentTiming')
+            && this.delegationEntries?.some(e => e.kind === 'child' && e.id === s.id) === true) {
+            this.refreshDelegationTree(id)
+          }
+          return
+        }
         // 按 key 分流缓存（5 域总线）；todos/plan 有专有消费，其余域仅进缓存。
         /* v8 ignore next -- projectionCache 在快照后恒非 null（L766 赋值），null 仅类型收窄 */
         if (this.projectionCache !== null) {
@@ -3567,10 +3577,6 @@ export class TuiApp {
       },
       subagentsPanelVisible: this.subagentsPanelVisible,
       delegationEntries: this.delegationEntries,
-      subagentIdentities: (this.projectionCache?.subagent as
-        ReadonlyMap<string, DelegationIdentityProjection> | undefined) ?? new Map(),
-      subagentTimings: (this.projectionCache?.subagentTiming as
-        ReadonlyMap<string, DelegationTimingProjection> | undefined) ?? new Map(),
       workflowPanelVisible: this.workflowPanelVisible,
       workflowRuns,
       configPanelVisible: this.configPanelVisible,

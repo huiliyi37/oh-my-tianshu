@@ -117,6 +117,12 @@ function descriptorPayload(label: string, version = SUBAGENT_DESCRIPTOR_VERSION)
   return { version, mode: 'continuable' as const, provider: 'spawn', label }
 }
 
+/** Runtime facts a completed-turn childEvents() log folds into (1 turn, 3ms settled). */
+const COMPLETED_TURN_RUNTIME = {
+  progress: { turns: 1, toolCalls: 0, tokensUsed: 0, toolInFlight: false, lastTurnEnd: 'completed' },
+  timing: { settledMs: 3 },
+}
+
 declare module '@huiliyi37/dsh-session-projection/types' {
   interface SessionProjectionMap {
     /** Test-only hostile probe proving per-child isolation of foreign unit failures. */
@@ -997,14 +1003,17 @@ describe('SubagentService.listDescendants', () => {
       {
         kind: 'child', id: childA, label: 'branch a', mode: 'continuable',
         activity: 'inactive', hasChildren: true, parentId: parent.id, depth: 1,
+        ...COMPLETED_TURN_RUNTIME,
       },
       {
         kind: 'child', id: grandchild, label: 'under a', mode: 'continuable',
         activity: 'inactive', hasChildren: false, parentId: childA, depth: 2,
+        ...COMPLETED_TURN_RUNTIME,
       },
       {
         kind: 'child', id: childB, label: 'branch b', mode: 'continuable',
         activity: 'inactive', hasChildren: false, parentId: parent.id, depth: 1,
+        ...COMPLETED_TURN_RUNTIME,
       },
     ])
   })
@@ -1031,6 +1040,7 @@ describe('SubagentService.listDescendants', () => {
     await expect(ctx.subagents.listDescendants(parent.id)).resolves.toEqual([{
       kind: 'child', id: below, label: 'below the creation window', mode: 'continuable',
       activity: 'inactive', hasChildren: false, parentId: bareId, depth: 2,
+      ...COMPLETED_TURN_RUNTIME,
     }])
   })
 
@@ -1051,32 +1061,37 @@ describe('SubagentService.listDescendants', () => {
     await expect(ctx.subagents.listDescendants(rootId)).resolves.toEqual([{
       kind: 'child', id: nodeId, label: 'cycle child', mode: 'continuable',
       activity: 'inactive', hasChildren: false, parentId: rootId, depth: 1,
+      ...COMPLETED_TURN_RUNTIME,
     }])
   })
 
 
-  it('walks a deeply nested ordinary-session chain without consuming the call stack', async () => {
-    const { ctx, parent } = await setup([])
-    const depth = 10_000
-    let parentId = parent.id
-    for (let level = 1; level < depth; level += 1) {
-      const session = ctx.sessions.create(SessionId(`deep-ordinary-${level}`), {
-        meta: { createdAt: level, parentSession: parentId },
+  it('walks a deeply nested ordinary-session chain without consuming the call stack',
+    // A 10k-session chain folds every registered projection unit per event; keep a
+    // generous budget for loaded CI machines.
+    async () => {
+      const { ctx, parent } = await setup([])
+      const depth = 10_000
+      let parentId = parent.id
+      for (let level = 1; level < depth; level += 1) {
+        const session = ctx.sessions.create(SessionId(`deep-ordinary-${level}`), {
+          meta: { createdAt: level, parentSession: parentId },
+        })
+        parentId = session.id
+      }
+      const leafId = SessionId('deep-subagent-leaf')
+      const leaf = ctx.sessions.create(leafId, {
+        meta: { createdAt: depth, parentSession: parentId, origin: 'subagent' },
       })
-      parentId = session.id
-    }
-    const leafId = SessionId('deep-subagent-leaf')
-    const leaf = ctx.sessions.create(leafId, {
-      meta: { createdAt: depth, parentSession: parentId, origin: 'subagent' },
-    })
-    leaf.append('turn/start', { turn: 1 })
-    leaf.append('subagent/descriptor', descriptorPayload('deep leaf'))
+      leaf.append('turn/start', { turn: 1 })
+      leaf.append('subagent/descriptor', descriptorPayload('deep leaf'))
 
-    await expect(ctx.subagents.listDescendants(parent.id)).resolves.toEqual([{
-      kind: 'child', id: leafId, label: 'deep leaf', mode: 'continuable',
-      activity: 'running', hasChildren: false, parentId, depth,
-    }])
-  })
+      await expect(ctx.subagents.listDescendants(parent.id)).resolves.toEqual([{
+        kind: 'child', id: leafId, label: 'deep leaf', mode: 'continuable',
+        activity: 'running', hasChildren: false, parentId, depth,
+        timing: { settledMs: 0, active: expect.any(Object) },
+      }])
+    }, 30_000)
 
   it('discovers continuable descendants below ordinary and one-shot intermediates', async () => {
     const { ctx, parent } = await setup([textResponse('one shot')])
@@ -1112,6 +1127,7 @@ describe('SubagentService.listDescendants', () => {
     expect(entries).toContainEqual({
       kind: 'child', id: underFork, label: 'under the fork', mode: 'continuable',
       activity: 'inactive', hasChildren: false, parentId: fork.header.id, depth: 2,
+      ...COMPLETED_TURN_RUNTIME,
     })
     expect(entries).toContainEqual(expect.objectContaining({
       kind: 'child', id: oneShotId, mode: 'one-shot', parentId: parent.id, depth: 1,
@@ -1119,6 +1135,7 @@ describe('SubagentService.listDescendants', () => {
     expect(entries).toContainEqual({
       kind: 'child', id: underOneShot, label: 'under the one-shot', mode: 'continuable',
       activity: 'inactive', hasChildren: false, parentId: oneShotId, depth: 2,
+      ...COMPLETED_TURN_RUNTIME,
     })
     // Pre-order: every child appears after its own parent entry.
     const position = new Map(entries.map((entry, index) => [entry.id, index]))
@@ -1148,6 +1165,7 @@ describe('SubagentService.listDescendants', () => {
       {
         kind: 'child', id: below, label: 'below the bare node', mode: 'continuable',
         activity: 'inactive', hasChildren: false, parentId: bare, depth: 2,
+        ...COMPLETED_TURN_RUNTIME,
       },
     ])
   })
@@ -1171,6 +1189,7 @@ describe('SubagentService.listDescendants', () => {
       {
         kind: 'child', id: below, label: 'below the corrupt node', mode: 'continuable',
         activity: 'inactive', hasChildren: false, parentId: corrupt, depth: 2,
+        ...COMPLETED_TURN_RUNTIME,
       },
     ])
   })

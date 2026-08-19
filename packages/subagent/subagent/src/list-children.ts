@@ -22,7 +22,11 @@ import type { SessionPersistence } from '@huiliyi37/dsh-session-persistence'
 import type { SessionProjectionRegistry } from '@huiliyi37/dsh-session-projection'
 import type { SessionProjectionCache } from '@huiliyi37/dsh-session-projection-cache'
 import { SubagentError } from './error.ts'
-import type { SubagentIdentityProjection } from './projection-types.ts'
+import type {
+  SubagentIdentityProjection,
+  SubagentProgressProjection,
+  SubagentTimingProjection,
+} from './projection-types.ts'
 
 /**
  * Concurrent cold inspections per listing; a constant because it bounds one
@@ -55,6 +59,18 @@ export type SubagentListEntry =
     readonly activity: 'running' | 'inactive'
     /** Whether a direct descendant has durable `origin: 'subagent'`. */
     readonly hasChildren: boolean
+    /**
+     * Running-state facts folded from this child's own log. `listDescendants`
+     * embeds the field when the fold is meaningful; `listChildren` never does.
+     * Absent before the descriptor, when nothing foldable exists, or when every
+     * counter is still zero. Same cut as the identity that produced this row.
+     */
+    readonly progress?: SubagentProgressProjection
+    /**
+     * Active-turn timing folded from this child's own log. Embedded under the
+     * same `listDescendants`-only rule as `progress`.
+     */
+    readonly timing?: SubagentTimingProjection
   } & (
     | {
       /** A terminal one-shot child. */
@@ -141,7 +157,7 @@ export async function listChildren(
     .filter(record => record.header.parentSession === parentSessionId
       && record.header.origin === 'subagent')
     .sort(compareCorpusRecords)
-  const rows = await resolveCandidateRows(candidates, listing, signal)
+  const rows = await resolveCandidateRows(candidates, listing, signal, false)
   return rows.filter((row): row is SubagentListEntry => row !== undefined)
 }
 
@@ -155,7 +171,8 @@ export async function listChildren(
  * @param ctx - context carrying the session store, projection registry, and optional persistence/cache.
  * @param rootSessionId - session whose complete descendant tree is listed.
  * @param signal - caller-owned cancellation observed around every persistence read.
- * @returns interpreted subagents with durable direct-parent and root-relative depth.
+ * @returns interpreted subagents with durable direct-parent and root-relative
+ *   depth; child rows may carry `progress`/`timing` from the same cut.
  * @throws {@link SubagentError} under the same conditions as {@link listChildren}.
  */
 export async function listDescendants(
@@ -169,6 +186,7 @@ export async function listDescendants(
     positioned.map(candidate => candidate.record),
     listing,
     signal,
+    true,
   )
   const entries: SubagentDescendantListEntry[] = []
   positioned.forEach((position, index) => {
@@ -244,6 +262,7 @@ async function resolveCandidateRows(
   candidates: readonly CorpusRecord[],
   listing: ListingRuntime,
   signal: AbortSignal | undefined,
+  embedRuntime: boolean,
 ): Promise<(SubagentListEntry | undefined)[]> {
   const { projections, persistence, cache, subagentParents } = listing
   const rows: (SubagentListEntry | undefined)[] = Array.from({ length: candidates.length })
@@ -258,8 +277,13 @@ async function resolveCandidateRows(
     // reads; a live child without an identity yet is the creation window
     // before the establishing provider appends its descriptor.
     let identity: SubagentIdentityProjection | null | undefined
+    let progress: SubagentProgressProjection | undefined
+    let timing: SubagentTimingProjection | undefined
     try {
-      identity = projections.snapshot(candidate.live).values.subagent
+      const values = projections.snapshot(candidate.live).values
+      identity = values.subagent
+      progress = values.subagentProgress
+      timing = values.subagentTiming
     } catch {
       // The snapshot folds EVERY registered unit over this child's log, so
       // any unit's fold or schema can reject damaged payloads. That is
@@ -271,7 +295,9 @@ async function resolveCandidateRows(
     // The unit's serializable no-value sentinel is `null`; `undefined` can
     // only mean the key was dropped at a JSON boundary. Both are no value.
     if (identity === undefined || identity === null) return
-    rows[index] = childRow(childId, identity, 'running', subagentParents.has(childId))
+    rows[index] = childRow(
+      childId, identity, 'running', subagentParents.has(childId), progress, timing, embedRuntime,
+    )
   })
 
   // Cold candidates exist only when persistence listed them, so the narrow
@@ -285,6 +311,7 @@ async function resolveCandidateRows(
           rows[job.index] = await resolveColdIdentity(
             persistence, projections, cache, job.header,
             subagentParents.has(job.header.id), signal,
+            embedRuntime,
           )
         }
       },
@@ -352,12 +379,18 @@ async function resolveColdIdentity(
   header: SessionHeader,
   hasChildren: boolean,
   signal: AbortSignal | undefined,
+  embedRuntime: boolean,
 ): Promise<SubagentListEntry> {
   const childId = header.id
+  let cachedProgress: SubagentProgressProjection | undefined
+  let cachedTiming: SubagentTimingProjection | undefined
   if (cache !== undefined) {
     let cached: SubagentIdentityProjection | null | undefined
     try {
-      cached = cache.cachedSnapshot(header)?.values.subagent
+      const values = cache.cachedSnapshot(header)?.values
+      cached = values?.subagent
+      cachedProgress = values?.subagentProgress
+      cachedTiming = values?.subagentTiming
     } catch {
       // Unlike the preparation fold below, a throwing cache read renders no
       // verdict: the cache is derived data, so its damage (a poisoned stored
@@ -373,7 +406,9 @@ async function resolveColdIdentity(
     // `null` sentinel, whose verdict belongs to the authoritative re-fold,
     // not to a derived row.
     if (cached !== undefined && cached !== null && cached.seq >= (header.seedLength ?? 0)) {
-      return childRow(childId, cached, 'inactive', hasChildren)
+      return childRow(
+        childId, cached, 'inactive', hasChildren, cachedProgress, cachedTiming, embedRuntime,
+      )
     }
   }
   assertListingNotCancelled(signal)
@@ -394,8 +429,13 @@ async function resolveColdIdentity(
     return { kind: 'diagnostic', id: childId, reason: 'corrupt' }
   }
   let identity: SubagentIdentityProjection | null | undefined
+  let restoredProgress: SubagentProgressProjection | undefined
+  let restoredTiming: SubagentTimingProjection | undefined
   try {
-    identity = projections.restore({}, inspected.events, 0).snapshot.values.subagent
+    const restored = projections.restore({}, inspected.events, 0).snapshot.values
+    identity = restored.subagent
+    restoredProgress = restored.subagentProgress
+    restoredTiming = restored.subagentTiming
   } catch {
     // The restore folds EVERY registered unit over this child's log, so any
     // unit's fold or schema can reject damaged payloads — deterministic data
@@ -405,7 +445,9 @@ async function resolveColdIdentity(
   if (identity === undefined || identity === null) {
     return { kind: 'diagnostic', id: childId, reason: 'corrupt' }
   }
-  return childRow(childId, identity, 'inactive', hasChildren)
+  return childRow(
+    childId, identity, 'inactive', hasChildren, restoredProgress, restoredTiming, embedRuntime,
+  )
 }
 
 /** Materialize one served identity as its child row. */
@@ -414,6 +456,9 @@ function childRow(
   identity: SubagentIdentityProjection,
   activity: 'running' | 'inactive',
   hasChildren: boolean,
+  progress: SubagentProgressProjection | undefined,
+  timing: SubagentTimingProjection | undefined,
+  embedRuntime: boolean,
 ): SubagentListEntry {
   return identity.mode === 'one-shot'
     ? {
@@ -423,6 +468,8 @@ function childRow(
       ...identity.label !== undefined ? { label: identity.label } : {},
       activity,
       hasChildren,
+      ...embedRuntime && progress !== undefined && meaningfulProgress(progress) ? { progress } : {},
+      ...embedRuntime && timing !== undefined && meaningfulTiming(timing) ? { timing } : {},
     }
     : {
       kind: 'child',
@@ -431,7 +478,20 @@ function childRow(
       label: identity.label,
       activity,
       hasChildren,
+      ...embedRuntime && progress !== undefined && meaningfulProgress(progress) ? { progress } : {},
+      ...embedRuntime && timing !== undefined && meaningfulTiming(timing) ? { timing } : {},
     }
+}
+
+/** Whether a progress projection carries any fact worth a row field (all-zero = the creation window). */
+function meaningfulProgress(progress: SubagentProgressProjection): boolean {
+  return progress.turns > 0 || progress.toolCalls > 0 || progress.tokensUsed > 0
+    || progress.lastTool !== undefined
+}
+
+/** Whether a timing projection carries any elapsed fact worth a row field. */
+function meaningfulTiming(timing: SubagentTimingProjection): boolean {
+  return timing.settledMs > 0 || timing.active !== undefined
 }
 
 /** Immutable header fields that distinguish one session lifecycle from another under the same id. */
