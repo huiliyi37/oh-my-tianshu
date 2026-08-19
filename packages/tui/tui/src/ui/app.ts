@@ -3771,7 +3771,8 @@ export class TuiApp {
     }
 
     // chrome 起点：提问/审批贴输入轨（列入 chrome，小窗口也不会被从顶裁掉），
-    // 其后是 slash / vim / 图片 / 输入轨 / footer。溢出裁剪只作用在动态段。
+    // 其后是 slash / vim / 图片 / 输入轨 / footer。溢出裁剪只作用在动态段；
+    // slash 菜单行数另计入动态段高水位记账（见下方预算段），高度变化由垫高吸收。
     const chromeStart = lines.length
 
     // 会话 tab 栏（chrome 段：不参与动态裁剪；>1 会话时显示；Ctrl+X/Alt+数字切换）。
@@ -3813,19 +3814,24 @@ export class TuiApp {
 
     // slash 命令菜单（grok slash_dropdown 移植）：输入以 / 开头且有匹配时
     // 在输入行上方渲染可滚动命令列表；无匹配时退回一行内联提示（旧行为）。
+    // 菜单/hint 行是可变高度 chrome 行：行数随行内过滤实时变化，其 display
+    // rows（slashRows）计入下方动态段高水位记账，由垫高吸收高度差，输入框
+    // 不随菜单开合/过滤上下漂移（首次打开落定一次，见动态段预算注释）。
     const inputValue = this.inputLine.value
+    const slashLines: string[] = []
     if (this.inputController.slashMenu.open) {
       for (const line of formatSlashMenu({
         width: cols,
         items: this.inputController.slashMenu.matches,
         selected: this.inputController.slashMenu.selected,
       }, theme)) {
-        lines.push({ text: line })
+        slashLines.push(line)
       }
     } else {
       const hint = this.slash.hint(inputValue)
-      if (hint !== null) lines.push({ text: hint })
+      if (hint !== null) slashLines.push(hint)
     }
+    for (const line of slashLines) lines.push({ text: line })
 
     // 输入行；vim 模式标签（Phase 6.5：normal/visual 态可见，insert 态隐藏）
     if (this.vimEnabled && this.inputLine.vimMode !== 'insert') {
@@ -3928,22 +3934,31 @@ export class TuiApp {
       if (row === undefined) continue
       dynamicRows += rowsForLine(row.text)
     }
+    let slashRows = 0
+    for (const line of slashLines) slashRows += rowsForLine(line)
     // 定高视口：动态段按高水位垫到恰好 budget，live region 只涨不缩 →
-    // 输入框钉住、回缩黑洞与旧轨线重影一并消除。欢迎首帧（无消息且非运行）不垫。
+    // 输入框钉住、回缩黑洞与旧轨线重影一并消除。欢迎首帧（无消息且非运行、
+    // 未开过 slash 菜单）不垫，避免凭空空白。
+    // slash 菜单/hint 虽在 chrome 段（小窗不被裁剪），其行数计入被跟踪总量：
+    // ceiling 已含 chromeRows（含 slashRows），传 ceiling + slashRows 使上限与
+    // 菜单高度无关 → 菜单开合/过滤只改垫高行数，输入框行位恒定。首次打开时
+    // 高水位尚无余量，输入框向下落定一次；此后（含关闭）由垫高吸收，不再漂移。
     const terminalRows = this.stdout.rows || 24
     const raw = terminalRows - chromeRows - 2
     const ceiling = Math.max(0, Math.min(raw, liveMaxRowsFor(terminalRows) - chromeRows))
     const skipPad = (this.transcript?.view.messages ?? []).length === 0
       && this.liveAgent?.state.status !== 'running'
+      && slashRows === 0
+      && this.dynamicRowsHighWater === 0
     const next = nextDynamicBudget(
       this.dynamicRowsHighWater,
-      dynamicRows,
-      ceiling,
+      dynamicRows + slashRows,
+      ceiling + slashRows,
       skipPad,
       this.reasoningExpanded,
     )
     this.dynamicRowsHighWater = next.highWater
-    const padded = padDynamicRegion(lines, chromeStart, next.budget, rowsForLine)
+    const padded = padDynamicRegion(lines, chromeStart, Math.max(0, next.budget - slashRows), rowsForLine)
     const chromeTail = padded.lines.length - padded.chromeStart
     this.live.render(padded.lines, chromeTail > 0 ? { reservedTail: chromeTail } : undefined)
     this.perfMonitor.record('renderLive', performance.now() - renderStart)

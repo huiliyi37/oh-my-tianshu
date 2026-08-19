@@ -11,6 +11,7 @@ import { ReasoningEffortId } from '@huiliyi37/dsh-llm'
 import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
 import type { Agent, AgentHandle } from '@huiliyi37/dsh-agent'
 import { TuiApp, parseSlashCommand } from '../src/ui/app.js'
+import { LiveEngine } from '../src/engine/live-engine.js'
 import { getActiveThemeName, setTheme } from '../src/theme.js'
 import { readImageFromClipboard, readTextFromClipboard } from '../src/engine/clipboard-image.js'
 import { decodeMessages, encodeMessage } from '../src/lsp/rpc.js'
@@ -5907,6 +5908,46 @@ describe('slash 命令菜单接线（grok slash_dropdown 移植）', () => {
     written = await writtenOf(stdout)
     expect(written).toMatch(/❯ \/theme/)
     await app.dispose()
+  })
+
+  it('菜单过滤/关闭时输入轨行位钉住（slash 行计入高水位垫高）', async () => {
+    const { stdin, app } = boot()
+    // 捕获每帧传给 LiveEngine.render 的行数组，量输入轨（╭ 顶框）在帧内的行下标。
+    // 渲染走 WriteBatcher 合并，帧时机不可预定——按帧内容轮询到目标状态再量，
+    // 不用固定 sleep（并行跑时 setImmediate 可能先于菜单帧）。
+    const spy = vi.spyOn(LiveEngine.prototype, 'render')
+    try {
+      await app.attach()
+      const railRow = (lines: readonly { text: string }[]): number => {
+        const idx = lines.findIndex(line => line.text.includes('╭'))
+        if (idx < 0) throw new Error('帧中无输入轨顶框')
+        return idx
+      }
+      const awaitFrame = async (pred: (lines: readonly { text: string }[]) => boolean): Promise<readonly { text: string }[]> => {
+        for (let i = 0; i < 200; i++) {
+          const call = spy.mock.calls.at(-1)
+          if (call !== undefined && pred(call[0])) return call[0]
+          await new Promise(resolve => setTimeout(resolve, 10))
+        }
+        throw new Error('等待目标帧超时')
+      }
+      const menuOpen = (lines: readonly { text: string }[]): boolean =>
+        lines.some(line => line.text.includes('切换主题'))
+      // 打开菜单（全量命令 > 8 → 9 行菜单），输入轨落定位置。
+      stdin.emit('data', '/')
+      const pinned = railRow(await awaitFrame(menuOpen))
+      // 逐键过滤到单一匹配（菜单 9 → 1 行）：行位不变（垫高吸收）。
+      for (const ch of ['t', 'h', 'e', 'm', 'e']) stdin.emit('data', ch)
+      const filtered = await awaitFrame(lines => menuOpen(lines) && !lines.some(line => line.text.includes('还有')))
+      expect(railRow(filtered)).toBe(pinned)
+      // Esc 关闭菜单（输入行保留 /theme）：菜单让出的行变垫高，行位仍不变。
+      stdin.emit('data', '\x1b')
+      const closed = await awaitFrame(lines => !menuOpen(lines))
+      expect(railRow(closed)).toBe(pinned)
+    } finally {
+      spy.mockRestore()
+      await app.dispose()
+    }
   })
 })
 
