@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-cordis-client-runner",
   "description": "Browser half of a dual-half dynamic package: evaluates the definition into a live browser plugin and answers the run request",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-anonymous-user-id",
   "description": "Shared anonymous user identity for the Tianshu Harness: one random UUID per harness home, persisted for telemetry and feedback correlation",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

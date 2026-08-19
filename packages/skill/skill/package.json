@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-skill",
   "description": "Agent skill provider registry for the Tianshu Harness",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

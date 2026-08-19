@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-subprocess-local",
   "description": "Local-subprocess implementation of the Tianshu Harness subprocess seam",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-llm",
   "description": "Provider-neutral LLM service interface for the Tianshu Harness",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

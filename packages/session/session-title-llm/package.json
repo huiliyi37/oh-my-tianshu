@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-session-title-llm",
   "description": "Shared LLM generation policy for Tianshu Harness session-title providers",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

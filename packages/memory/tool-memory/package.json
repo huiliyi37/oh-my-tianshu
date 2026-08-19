@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tool-memory",
   "description": "memory_save / memory_search model tools backed by dsh-memory",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

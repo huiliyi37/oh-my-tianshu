@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-client-locale",
   "description": "Locale plugin: LocaleService (zh/en preference with getter/setter/change event + persistence; ns x locale dictionaries, bind(ns) -> t); registers the Language settings row",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

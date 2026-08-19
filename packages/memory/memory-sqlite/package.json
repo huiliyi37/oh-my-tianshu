@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-memory-sqlite",
   "description": "Structured long-term memory provider — append-only event log + materialized fact view on SQLite/FTS5 (BM25 hybrid retrieval)",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

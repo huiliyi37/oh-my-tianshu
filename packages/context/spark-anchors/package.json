@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-spark-anchors",
   "description": "spark 锚点补偿插件：从被截断的推理前段提取排除路径，随 pre-step 注入模型可见动态上下文（内部能力）",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

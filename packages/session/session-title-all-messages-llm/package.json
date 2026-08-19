@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-session-title-all-messages-llm",
   "description": "All-user-messages LLM provider plugin for Tianshu Harness session titles",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

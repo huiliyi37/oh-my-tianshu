@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-agent-definitions",
   "description": "Agent role definitions (ctx.agentDefinitions): markdown-discovered delegation roles with a runtime registration seam",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

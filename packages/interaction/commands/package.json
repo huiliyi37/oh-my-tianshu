@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-commands",
   "description": "Plugin-owned human command registry for Tianshu Harness UI surfaces",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-code-runtime",
   "description": "Abstract code-execution seam (ctx.codeRuntime) for the Tianshu Harness",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

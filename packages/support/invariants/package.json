@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-invariants",
   "description": "Registry service for package-owned Tianshu Harness runtime invariants",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },
