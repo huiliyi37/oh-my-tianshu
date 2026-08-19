@@ -41,14 +41,17 @@ export interface Config {
   reminderBudget?: number
 }
 
+/** Default `exclude`: read-only discovery tools transparent to every detector. */
+const DEFAULT_EXCLUDE = [
+  'read', 'glob', 'grep', 'file_info', 'related_tests', 'task_output', 'task_list',
+  'session_search', 'session_event_search', 'memory_search', 'web_search', 'skill',
+]
+
 export const Config: z<Config> = z.object({
   oscillationPairs: z.number().default(2),
   editRetryThreshold: z.number().default(3),
   testChurnThreshold: z.number().default(3),
-  exclude: z.array(z.string()).default([
-    'read', 'glob', 'grep', 'file_info', 'related_tests', 'task_output', 'task_list',
-    'session_search', 'session_event_search', 'memory_search', 'web_search', 'skill',
-  ]),
+  exclude: z.array(z.string()).default(DEFAULT_EXCLUDE),
   argumentsPreviewChars: z.number().default(200),
   reminderBudget: z.number().default(3),
 })
@@ -265,13 +268,14 @@ function detectTestChurn(state: AgentState, threshold: number, argumentsPreviewC
  * @param ctx - plugin context; listeners are scoped to it and disposed with it.
  * @param config - validated {@link Config}; thresholds are re-checked fail-loud here.
  */
-export function apply(ctx: Context, config: Config): void {
-  const oscillationPairs = validateThreshold('oscillationPairs', config.oscillationPairs as number)
-  const editRetryThreshold = validateThreshold('editRetryThreshold', config.editRetryThreshold as number)
-  const testChurnThreshold = validateThreshold('testChurnThreshold', config.testChurnThreshold as number)
-  const argumentsPreviewChars = validateThreshold('argumentsPreviewChars', config.argumentsPreviewChars as number, 1)
-  const reminderBudget = validateThreshold('reminderBudget', config.reminderBudget as number, 1)
-  const excludePatterns = (config.exclude as string[]).map(wildcardToRegExp)
+export function apply(ctx: Context, config: Config = {}): void {
+  // Schema defaults mirrored as `??` fallbacks for direct apply calls (单一缺省来源).
+  const oscillationPairs = validateThreshold('oscillationPairs', config.oscillationPairs ?? 2)
+  const editRetryThreshold = validateThreshold('editRetryThreshold', config.editRetryThreshold ?? 3)
+  const testChurnThreshold = validateThreshold('testChurnThreshold', config.testChurnThreshold ?? 3)
+  const argumentsPreviewChars = validateThreshold('argumentsPreviewChars', config.argumentsPreviewChars ?? 200, 1)
+  const reminderBudget = validateThreshold('reminderBudget', config.reminderBudget ?? 3, 1)
+  const excludePatterns = (config.exclude ?? DEFAULT_EXCLUDE).map(wildcardToRegExp)
 
   const states = new WeakMap<Agent, AgentState>()
 
@@ -309,7 +313,9 @@ export function apply(ctx: Context, config: Config): void {
       name: exec.name,
       key: JSON.stringify([exec.name, canonicalize(exec.arguments)]),
       isError: result.isError,
-      failedText: /\b(failed|FAILED|AssertionError)\b/i.test(text),
+      // A failure needs a non-zero count ("3 failed") or a Java-style assert
+      // name; a passing summary that merely prints "0 failed" stays quiet.
+      failedText: /\b[1-9]\d*\s+(?:failed|failing|errors?)\b/i.test(text) || /\bAssertionError\b/.test(text),
     }
     if (editPath !== undefined) call.path = editPath
     if (isTestRun) call.resultHash = resultHash(text)
