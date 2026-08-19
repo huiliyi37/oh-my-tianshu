@@ -126,12 +126,6 @@ export class BlockAssembler {
   }
 
   /**
-   * Assemble all blocks seen so far, in stream order.
-   * @returns one block per seen index, except that max-token truncation drops
-   *   tool calls that cannot be executed safely; an open block assembles from
-   *   its accumulated deltas (an unknown block type never closed by `block-end` throws).
-   */
-  /**
    * The one shared keep/drop decision over all seen blocks: max-token
    * truncation drops tool calls that cannot be executed safely. Emitted blocks
    * and replay metadata both derive from this result, so they cannot disagree.
@@ -153,6 +147,12 @@ export class BlockAssembler {
     }
   }
 
+  /**
+   * Assemble all blocks seen so far, in stream order.
+   * @returns one block per seen index, except that max-token truncation drops
+   *   tool calls that cannot be executed safely; an open block assembles from
+   *   its accumulated deltas (an unknown block type never closed by `block-end` throws).
+   */
   blocks(): ContentBlock[] {
     return this.assembled().blocks
   }
