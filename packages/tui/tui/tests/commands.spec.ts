@@ -22,7 +22,7 @@ import {
 import { getActiveThemeName, setTheme } from '../src/theme.js'
 
 /** 最小 ctx 替身：/session list 需要的 sessions.list + get('sessionPersistence')。 */
-function makeCtx(overrides: Partial<Record<'sessions' | 'agents' | 'compact' | 'agentDefaultModel' | 'goals' | 'tasks' | 'agentPresets', unknown>> = {}): Context {
+function makeCtx(overrides: Partial<Record<'sessions' | 'agents' | 'compact' | 'agentDefaultModel' | 'goals' | 'tasks' | 'agentPresets' | 'subagents', unknown>> = {}): Context {
   const ctx = {
     sessions: {
       list: vi.fn(() => []),

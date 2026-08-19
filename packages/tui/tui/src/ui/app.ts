@@ -28,7 +28,7 @@ import { fileURLToPath } from 'node:url'
 import type { ReadStream, WriteStream } from 'node:tty'
 import type { Context } from '@huiliyi37/cordis'
 import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
-import type { CallId, TokenUsage } from '@huiliyi37/dsh-llm'
+import type { CallId, ReasoningEffortId, TokenUsage } from '@huiliyi37/dsh-llm'
 import type { IntentBridgeService } from '@huiliyi37/dsh-intent-bridge' // 'intent-bridge/handoff' event + ctx.intentBridge declaration merge
 import { installModelSelection, type Agent, type AgentHandle, type ModelSelection, type ModelSelectionRef } from '@huiliyi37/dsh-agent'
 // 空类型导入引入 Context 上 agentDefaultModel 服务的声明合并（headless 同款）。
@@ -475,7 +475,7 @@ export function parseSlashCommand(input: string): { kind: string; text: string }
 function callConfigFrom(selection: ModelSelection): {
   provider: string
   model: string
-  reasoningEffort?: ModelSelection['reasoningEffort']
+  reasoningEffort?: ReasoningEffortId
 } {
   return {
     provider: selection.provider,

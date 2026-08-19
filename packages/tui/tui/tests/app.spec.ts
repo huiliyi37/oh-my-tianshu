@@ -7,6 +7,7 @@ import { PassThrough } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Context } from '@huiliyi37/cordis'
 import type { WriteStream } from 'node:tty'
+import { ReasoningEffortId } from '@huiliyi37/dsh-llm'
 import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
 import type { Agent, AgentHandle } from '@huiliyi37/dsh-agent'
 import { TuiApp, parseSlashCommand } from '../src/ui/app.js'
@@ -344,7 +345,10 @@ describe('TuiApp agent-ensure 三分支', () => {
       cwd: process.cwd(),
       exec: { provider: 'mock', model: 'mock' },
     })
-    expect('reasoningEffort' in (createAlignedSession.mock.calls[0]?.[0] as { exec: object }).exec)
+    // The zero-arg mock widens calls to an empty tuple; read the first
+    // argument through unknown, then guard before the `in` probe.
+    const firstOptions = (createAlignedSession.mock.calls[0] as unknown as Array<{ exec: object }>)[0]
+    expect(firstOptions !== undefined && 'reasoningEffort' in firstOptions.exec)
       .toBe(false)
     expect(ctx.agents.create).not.toHaveBeenCalled()
     await app.dispose()
@@ -3586,7 +3590,7 @@ describe('TuiApp switchLiveModel（C2 项 4 模型热切）', () => {
     ctx.sessions.get.mockReturnValue(agent.session)
     const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
     await app.switchSession(SessionId('hot-registry-1'))
-    expect(app.switchLiveModel({ provider: 'openai', model: 'gpt-5', reasoningEffort: 'max' })).toBe(true)
+    expect(app.switchLiveModel({ provider: 'openai', model: 'gpt-5', reasoningEffort: ReasoningEffortId('max') })).toBe(true)
     await app.dispose()
   })
 
@@ -4844,9 +4848,11 @@ describe('TuiApp subagent / workflow / tasks 服务接线', () => {
     stdin.emit('data', '\r')
     await new Promise(resolve => setImmediate(resolve))
     let written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('⏳ 跑测试')
-    expect(written).toContain('✓ 构建 · ok')
-    expect(written).toContain('✗ 清理')
+    // 完成/失败卡的标题走 muted 着色，剥掉 SGR 后断言用户可见行。
+    const plain = written.replaceAll(/\u001b\[[0-9;]*m/g, '')
+    expect(plain).toContain('⠋ 跑测试')
+    expect(plain).toContain('› 构建 · ok')
+    expect(plain).toContain('✗ 清理')
 
     stdout.write.mockClear()
     ;(taskDone as ((s: { label: string }) => void) | null)?.({ label: '编译' })
@@ -5325,9 +5331,11 @@ describe('TuiApp /model slash 走 switchLiveModel 闭包', () => {
 
     app.handleSubmit('/model deepseek/v4-turbo')
     await new Promise(resolve => setTimeout(resolve, 30))
-    // 热切路径：modelRef.current 更新（switchLiveModel 闭包生效）
+    // 热切路径：modelRef.current 更新（switchLiveModel 闭包生效）。
+    // dispose 会清空 modelRef（a63f90de 拆除语义），先读后拆。
+    const hotSwitch = (app as unknown as { modelRef: { current: unknown } | null }).modelRef?.current
     await app.dispose()
-    expect((app as unknown as { modelRef: { current: unknown } | null }).modelRef?.current).toEqual({ provider: 'deepseek', model: 'v4-turbo' })
+    expect(hotSwitch).toEqual({ provider: 'deepseek', model: 'v4-turbo' })
   })
 })
 

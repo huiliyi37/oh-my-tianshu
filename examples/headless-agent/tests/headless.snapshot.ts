@@ -359,7 +359,8 @@ describe('headless stream-json snapshots', () => {
         // The repaired stream is what was logged: a tool-call delta and no
         // surviving text delta in the first step.
         const chunks = records.filter(record => record.type === 'assistant/chunk')
-        expect(chunks.some(record => record.data?.chunk?.type === 'tool-call-delta')).toBe(true)
+        const chunkType = (record: JsonObject): unknown => (record.data as { chunk?: { type?: unknown } } | undefined)?.chunk?.type
+        expect(chunks.some(record => chunkType(record) === 'tool-call-delta')).toBe(true)
         const message = records.find(record => record.type === 'assistant/message')
         expect(JSON.stringify(message)).toContain('todo_write')
         expect(records.some(record => record.type === 'tool/result')).toBe(true)

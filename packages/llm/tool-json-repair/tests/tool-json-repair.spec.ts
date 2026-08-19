@@ -152,7 +152,7 @@ describe('repairStream through the llm/stream waterfall', () => {
   })
 
   it('converts each of two interleaved JSON text blocks with distinct indexes', async () => {
-    const chunks = [
+    const chunks: StreamChunk[] = [
       { type: 'block-start', index: 0, blockType: 'text' },
       { type: 'text-delta', index: 0, text: '{"name": "a", "arguments": {}}' },
       { type: 'block-start', index: 1, blockType: 'reasoning' },

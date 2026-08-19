@@ -63,8 +63,6 @@ function baseSnapshot(): LiveSnapshot {
     sessionTotals: { turns: 0, toolCalls: 0, elapsedMs: 0 },
     subagentsPanelVisible: false,
     delegationEntries: null,
-    subagentIdentities: new Map(),
-    subagentTimings: new Map(),
     workflowPanelVisible: false,
     workflowRuns: [],
     configPanelVisible: false,
@@ -171,8 +169,6 @@ describe('renderDelegationPanel', () => {
       delegationEntries: [
         { kind: 'child' as const, id: 's1', parentId: 'root', depth: 1, activity: 'running' as const, hasChildren: false, mode: 'one-shot' as const },
       ],
-      subagentIdentities: new Map([['s1', { mode: 'one-shot' as const, seq: 1 }]]),
-      subagentTimings: new Map([['s1', { settledMs: 1500 }]]),
     }
     const rows = renderDelegationPanel(snap)
     expect(rows.length).toBeGreaterThan(0)
