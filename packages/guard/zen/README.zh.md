@@ -39,7 +39,7 @@ zen 阶段是内建的 agent（智能体）生命周期阶段，而非 skill（�
   - `anchor`——模型调用 `zen_anchor`，给出非空目标、2–4 个地标和一个 pass 级别，且（在 `requireEvidence` 下）日志中已有至少 1 条成功的非簿记类工具结果；裸锚定会连同「先探针」指令一起驳回给模型。
   - `timeout`——步骤预算耗尽。晋升在预算的最后一个步骤触发，解锁在下一次组装可见；一条插件来源的通知会告知模型。
   - `triage`——首条用户消息足够短（≤ `maxChars`、单行、纯文本），该阶段在首次请求组装之前即被跳过。
-- **晋升之后**，`zen:policy` 段落折叠为空，`zen_anchor` 保持注册但调用即返回错误——跨越边界只改变限制本身，呼应计划模式的稳定目录规则。重叠栈的插件仍保持注册，因此 subagent 角色仍可允许 `grep`／`read`／`glob`。
+- **晋升之后**，`zen:policy` 段落折叠为空，`zen_anchor` 保持注册；阶段结束后（锚定、预算或分诊）再调用它会解析为良性的空操作成功——完整工具集已经解锁——呼应计划模式的稳定目录规则。跨越边界只改变限制本身。重叠栈的插件仍保持注册，因此 subagent 角色仍可允许 `grep`／`read`／`glob`。
 - **纵深防御**——只要*日志中的*阶段仍是 zen，注册表 guard 就拒绝 face 之外的工具执行，与实时限制簿记相互独立。
 
 `zen/phase` 序列受不变量检查（`@huiliyi37/dsh-zen/invariant`）：载荷在持久边界做形状校验，一个会话至多武装一次，晋升绝不重复记录。
@@ -50,11 +50,11 @@ zen 阶段是内建的 agent（智能体）生命周期阶段，而非 skill（�
 
 #### 模型看到的内容
 
-首次请求的工具列表是锚定 face 加 `zen_anchor`，系统提示词携带部署配置的 `section` 文本。其余一切不变。
+首次请求的工具列表是锚定 face 加 `zen_anchor`，系统提示词携带部署配置的 `section` 文本，随后还有一行 `Zen-phase callable tools:` 精确列出可用 face（加上 `zen_anchor`），让模型不会去调用被 face 移除的工具。其余一切不变。
 
 #### Token 影响
 
-宽 face 的 schema 从不进入最初几次请求。唯一新增的是 `section` 文本。
+宽 face 的 schema 从不进入最初几次请求。唯一新增的是 `section` 文本加上一行可用工具清单。
 
 #### KV Cache 影响
 
@@ -64,7 +64,7 @@ zen 阶段是内建的 agent（智能体）生命周期阶段，而非 skill（�
 
 #### 模型看到的内容
 
-一个按 `generic` 渲染的工具：`goal`（一句话）、`landmarks`（2–4 个字符串）、`pass`（`fast | full | loop`）、可选的 `forbidden`。接受时返回 "Anchor accepted — the full toolset unlocks from your next step…"；拒绝时把「先探针」指令作为工具错误返回。
+一个按 `generic` 渲染的工具：`goal`（一句话）、`landmarks`（2–4 个字符串）、`pass`（`fast | full | loop`）、可选的 `forbidden`。接受时返回 "Anchor accepted — the full toolset unlocks from your next step…"；拒绝时把「先探针」指令作为工具错误返回。阶段结束后（锚定、预算或分诊）再调用则解析为良性的空操作成功。
 
 #### Token 影响
 

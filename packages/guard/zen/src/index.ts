@@ -23,7 +23,8 @@
  *
  * `zen_anchor` stays registered (agent-scoped) after promotion so crossing
  * the boundary changes only the restriction, mirroring `exit_plan_mode`'s
- * stable-catalog rule; calling it outside the zen phase returns an error.
+ * stable-catalog rule; calling it outside the zen phase resolves as a benign
+ * no-op success (the full toolset is already unlocked).
  *
  * Agent Note:
  * - .agents/notes/implemented/architecture/2026-08-17-zen-phase-engineering-paradigm.md
@@ -316,6 +317,11 @@ function stepCount(events: readonly SessionEvent[]): number {
 /** Tool names whose successful results do not count as anchor evidence (pure bookkeeping). */
 const NON_EVIDENCE_TOOLS: ReadonlySet<string> = new Set(['todo_write', ZEN_ANCHOR])
 
+/** The full model-callable tool list while zen is active: the face plus the agent-scoped anchor. */
+function callableFace(face: readonly string[]): string {
+  return [...face, ZEN_ANCHOR].join(', ')
+}
+
 /** Join a user message's text blocks; non-text blocks contribute nothing. */
 function messageText(message: UserMessage): string {
   return message.content.map(block => block.type === 'text' ? block.text : '').join('')
@@ -387,7 +393,12 @@ export class ZenPhaseService extends Service {
       order: 48,
       text: (context) => {
         if (context.agent === undefined) return ''
-        return foldZenPhase(context.agent.session.events) === 'zen' ? this.config.section : ''
+        if (foldZenPhase(context.agent.session.events) !== 'zen') return ''
+        const face = this.installs.get(context.agent)?.face ?? this.config.face
+        // The section names the exact callable set so the model does not reach
+        // for familiar tools (glob/grep/read) the face removed; the inventory
+        // derives from the same per-agent face the guard and restriction enforce.
+        return `${this.config.section}\n\nZen-phase callable tools: ${callableFace(face)}. Only these tools run until the phase ends.`
       },
     })
 
@@ -417,7 +428,8 @@ export class ZenPhaseService extends Service {
       const face = this.installs.get(agent)?.face ?? this.config.face
       if (face.includes(exec.name)) return undefined
       return `the zen phase is active: '${exec.name}' is locked. `
-        + `Anchor the task first — probe a landmark with the reduced toolset, then call ${ZEN_ANCHOR}.`
+        + `Callable now: ${callableFace(face)}. `
+        + `Anchor the task first — probe a landmark with one of these, then call ${ZEN_ANCHOR}.`
     }), 'dsh-zen: lock non-face tools while the logged phase is zen')
 
     // Arm at agent/created: it precedes the driver and the first assembly, so
@@ -639,7 +651,11 @@ export class ZenPhaseService extends Service {
         const agent = exec.agent
         if (agent === undefined) throw new Error(`${ZEN_ANCHOR} requires a calling agent (no session to promote)`)
         if (foldZenPhase(agent.session.events) !== 'zen') {
-          throw new Error(`${ZEN_ANCHOR} is only available during the zen phase; the full toolset is already unlocked`)
+          // The zen window is already closed (anchor, step-budget timeout, or
+          // first-message triage): there is nothing left to promote. A benign
+          // success — mirroring /plan off's idempotent wording — lets the
+          // model proceed instead of reading back a contradiction.
+          return Promise.resolve({ unlocked: true as const })
         }
         if (this.config.faceSelection.enabled) {
           throw new Error(`${ZEN_ANCHOR} cannot change the face: this session froze its tool face on the first message`)

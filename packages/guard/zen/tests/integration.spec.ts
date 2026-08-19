@@ -152,7 +152,23 @@ describe('zen phase through the agent loop', () => {
     const log = agent.session.events
     const result = log.find(event => event.type === 'tool/result')
     expect(result?.type === 'tool/result' && result.data.message.content[0]?.isError).toBe(true)
+    // The denial names the exact callable set so the model knows what to use instead.
+    const text = result?.type === 'tool/result' ? JSON.stringify(result.data.message.content) : ''
+    expect(text).toContain('Callable now: probe, zen_anchor')
     expect(foldZenPhase(log)).toBe('zen')
+  })
+
+  it('the zen section names exactly the callable face while zen is active', async () => {
+    const adapter = new MockAdapter([textResponse('reading the section')])
+    const ctx = await harness(adapter)
+    const agent = ctx.agentLoop.create(SessionId('zen-face-inventory'), { provider: 'mock', model: 'mock' })
+
+    ask(agent, 'multi-step task: refactor the thing\nacross files')
+    await waitForIdle(ctx, agent)
+
+    const system = adapter.requests[0]?.system ?? ''
+    expect(system).toContain(SECTION)
+    expect(system).toContain('Zen-phase callable tools: probe, zen_anchor')
   })
 
   it('the step budget promotes with a narrated notice; the unlock is visible on the following assembly', async () => {
@@ -180,6 +196,59 @@ describe('zen phase through the agent loop', () => {
     const headers = headerFaces(log)
     expect(headers[0]).toEqual({ reason: 'initial', tools: ['probe', 'zen_anchor'] })
     expect(headers.at(-1)).toEqual({ reason: 'change', tools: ['hammer', 'probe', 'zen_anchor'] })
+  })
+
+  it('zen_anchor on the final budget step resolves as a no-op success instead of a contradiction', async () => {
+    // Promotion fires on the budget's final step, so a model that probes for
+    // three steps and anchors on the fourth finds the phase already flipped;
+    // the anchor must resolve as a benign success, not a misleading error.
+    const adapter = new MockAdapter([
+      toolCallResponse('c1', 'probe', {}),
+      toolCallResponse('c2', 'probe', {}),
+      toolCallResponse('c3', 'probe', {}),
+      toolCallResponse('c4', 'zen_anchor', { goal: 'refactor', landmarks: ['a', 'b'], pass: 'full' }, 'anchoring on the last budget step'),
+      textResponse('done'),
+    ])
+    const ctx = await harness(adapter, { ...BASE_CONFIG, timeoutSteps: 4 })
+    const agent = ctx.agentLoop.create(SessionId('zen-budget-anchor'), { provider: 'mock', model: 'mock' })
+
+    ask(agent, 'multi-step task: refactor the thing\nacross files')
+    await waitForIdle(ctx, agent)
+
+    const log = agent.session.events
+    expect(zenPhases(log)).toEqual([
+      { phase: 'zen', reason: 'arm' },
+      { phase: 'full', reason: 'timeout' },
+    ])
+    const anchor = log.find(event => event.type === 'tool/result' && event.data.message.source.callId === 'c4')
+    expect(anchor?.type === 'tool/result' && anchor.data.message.content[0]?.isError).toBe(false)
+    // The no-op did not re-log a promotion: the timeout flip is the only one.
+    expect(zenPhases(log)).toEqual([
+      { phase: 'zen', reason: 'arm' },
+      { phase: 'full', reason: 'timeout' },
+    ])
+  })
+
+  it('zen_anchor after triage resolves as a benign no-op success on the full face', async () => {
+    const adapter = new MockAdapter([
+      toolCallResponse('c1', 'zen_anchor', { goal: 'late anchor', landmarks: ['a', 'b'], pass: 'fast' }, 'anchoring late'),
+      textResponse('proceeding on the full face'),
+    ])
+    const ctx = await harness(adapter, { section: SECTION, face: ['probe'], triage: { enabled: true, maxChars: 80 } })
+    const agent = ctx.agentLoop.create(SessionId('zen-triage-anchor'), { provider: 'mock', model: 'mock' })
+
+    ask(agent, 'quick task')
+    await waitForIdle(ctx, agent)
+
+    const log = agent.session.events
+    expect(zenPhases(log)).toEqual([
+      { phase: 'zen', reason: 'arm' },
+      { phase: 'full', reason: 'triage' },
+    ])
+    const anchor = log.find(event => event.type === 'tool/result')
+    expect(anchor?.type === 'tool/result' && anchor.data.message.content[0]?.isError).toBe(false)
+    // The anchor stays callable on the promoted face (stable registration).
+    expect(headerFaces(log).at(-1)?.tools.includes('zen_anchor')).toBe(true)
   })
 
   it('triage promotes a trivially short first message before the first request', async () => {

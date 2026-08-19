@@ -39,7 +39,7 @@ The phase physically shrinks the first-request face instead of asking the model 
   - `anchor` — the model calls `zen_anchor` with a non-empty goal, 2–4 landmarks, and a pass level, and (under `requireEvidence`) the log already holds ≥1 successful non-bookkeeping tool result; a bare anchor is rejected back to the model with the probe-first instruction.
   - `timeout` — the step budget ran out. Promotion fires on the budget's final step and the unlock is visible on the following assembly; a plugin-sourced notice tells the model.
   - `triage` — the first user message is trivially short (≤ `maxChars`, single-line, text-only), so the phase is skipped before the first request ever assembles.
-- **After promotion** the `zen:policy` section folds to empty and `zen_anchor` stays registered but returns an error if called — crossing the boundary changes only the restriction, mirroring plan mode's stable-catalog rule. Overlapping plugins remain registered so a subagent role can still allow `grep`/`read`/`glob`.
+- **After promotion** the `zen:policy` section folds to empty and `zen_anchor` stays registered; calling it once the phase has ended (anchor, budget, or triage) resolves as a benign no-op success — the full toolset is already unlocked — mirroring plan mode's stable-catalog rule. Crossing the boundary changes only the restriction. Overlapping plugins remain registered so a subagent role can still allow `grep`/`read`/`glob`.
 - **Defense in depth** — a registry guard denies non-face tool execution whenever the *logged* phase is still zen, independent of the live restriction bookkeeping.
 
 The `zen/phase` sequence is invariant-checked (`@huiliyi37/dsh-zen/invariant`): payloads are shape-validated at the durable boundary, a session arms at most once, and promotion never re-logs.
@@ -50,11 +50,11 @@ The `zen/phase` sequence is invariant-checked (`@huiliyi37/dsh-zen/invariant`): 
 
 #### What the model sees
 
-The first request's tool list is the anchored face plus `zen_anchor`, and the system prompt carries the deployment's `section` text. Nothing else changes.
+The first request's tool list is the anchored face plus `zen_anchor`, and the system prompt carries the deployment's `section` text followed by a `Zen-phase callable tools:` line naming the exact face (plus `zen_anchor`) so the model never reaches for tools the face removed. Nothing else changes.
 
 #### Token effect
 
-The wide face's schemas never enter the first requests. The `section` text is the only addition.
+The wide face's schemas never enter the first requests. The `section` text plus the one-line callable-tools inventory are the only additions.
 
 #### KV Cache effect
 
@@ -64,7 +64,7 @@ Promotion changes the tool schema block, so the next request re-fills that prefi
 
 #### What the model sees
 
-One `generic`-rendered tool: `goal` (one sentence), `landmarks` (2–4 strings), `pass` (`fast | full | loop`), optional `forbidden`. Acceptance returns "Anchor accepted — the full toolset unlocks from your next step…"; rejection returns the probe-first instruction as a tool error.
+One `generic`-rendered tool: `goal` (one sentence), `landmarks` (2–4 strings), `pass` (`fast | full | loop`), optional `forbidden`. Acceptance returns "Anchor accepted — the full toolset unlocks from your next step…"; rejection returns the probe-first instruction as a tool error. Calling it after the phase has ended (anchor, budget, or triage) resolves as a benign no-op success instead.
 
 #### Token effect
 
