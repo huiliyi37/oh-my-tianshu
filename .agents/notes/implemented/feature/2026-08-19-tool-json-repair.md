@@ -38,4 +38,5 @@ The plugin needs no loop change: the loop already logs whatever the `llm/stream`
 
 ## Related
 
+- [dsh-tui fusion evolution record](../../../../docs/dsh-融合演进-迭代记录.md) — earlier 天枢 absorptions (render core, meridian, pheromone, fs-snapshot).
 - [run_tests tools](2026-08-19-run-tests-tools.md) and [doom-loop guard](2026-08-19-doom-loop-guard.md) — sibling absorptions in the same tier.

@@ -6,7 +6,7 @@ English | [中文](2026-08-18-memory-seam-prefix-stable-digest.zh.md)
 
 ## Problem
 
-`MemoryService` only carried Markdown-shaped `save` / `search` / `list` / `delete`. A later structured provider would otherwise need a second consumer-facing type, and every extra `save` field would be a breaking addition. Separately, `tool-memory` injected a digest of the twenty most recent entries as an order-130 system-prompt section and refreshed it after every `memory_save`, rewriting the request prefix and forfeiting provider prefix-cache reuse for the rest of the conversation. Those refreshes put a high no-digest prefix-cache hit rate at risk. The shipped TUI bundle already mounts this pair ([capability roster](2026-08-17-tui-bundle-tianshu-capability-roster.md)), so the digest default is a product-visible prefix-cache choice, not an unused library knob.
+`MemoryService` only carried Markdown-shaped `save` / `search` / `list` / `delete`. A later structured provider would otherwise need a second consumer-facing type, and every extra `save` field would be a breaking addition. Separately, `tool-memory` injected a digest of the twenty most recent entries as an order-130 system-prompt section and refreshed it after every `memory_save`, rewriting the request prefix and forfeiting provider prefix-cache reuse for the rest of the conversation. The [96.8% no-digest baseline](../../../../docs/cache-hit-baseline-20260812.md) is the reference those refreshes put at risk. The shipped TUI bundle already mounts this pair ([capability roster](2026-08-17-tui-bundle-tianshu-capability-roster.md)), so the digest default is a product-visible prefix-cache choice, not an unused library knob.
 
 ## Decision
 
