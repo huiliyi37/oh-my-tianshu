@@ -49,7 +49,7 @@
 
 #### 模型看到的内容
 
-对齐 agent 的请求携带固定的 `intent:policy` 契约段落和唯一工具 `finalize_alignment`；restrict 的 allow 列表被清空，任何全局工具都不可见。契约指示它复述、归类、澄清（每轮 1-3 个问题）并 finalize——绝不执行任务本身。
+对齐 agent 的请求携带固定的 `intent:policy` 契约段落和唯一工具 `finalize_alignment`；restrict 的 allow 列表被清空，任何全局工具都不可见，且契约明确声明本会话只有 `finalize_alignment` 可用，让模型不会凭先验去调 shell／文件系统／搜索工具。注册表 guard 会把任何其他调用（包括泄漏进来的 `zen_anchor`）同样变成这条 face 声明，而不是一句光秃秃的 "unknown tool"。契约指示它复述、归类、澄清（每轮 1-3 个问题）并 finalize——绝不执行任务本身。
 
 #### Token 影响
 

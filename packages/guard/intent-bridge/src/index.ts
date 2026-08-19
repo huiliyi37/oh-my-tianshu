@@ -254,6 +254,21 @@ export class IntentBridgeService extends Service {
       },
     })
 
+    // Defense in depth behind the single-tool face: the restrict allow list
+    // already hides every global tool, but a flighty alignment model may
+    // still call familiar names (bash/glob) from its priors and read back a
+    // bare "unknown tool" with no recovery. This guard turns any non-finalize
+    // call — including the leaked zen_anchor — into the actionable face
+    // statement, mirroring zen's locked-tool guard.
+    ctx.effect(() => ctx.tools.guard((exec) => {
+      const agent = exec.agent
+      if (agent === undefined) return undefined
+      if (!this.aligns.has(agent.session.id)) return undefined
+      if (exec.name === FINALIZE_TOOL_NAME) return undefined
+      return `only ${FINALIZE_TOOL_NAME} is available in this alignment session; `
+        + 'no shell, filesystem, or search tool is registered here'
+    }), 'dsh-intent-bridge: lock the alignment face to finalize_alignment')
+
     // Record the user's first message verbatim (pre-rewrite) per alignment session.
     ctx.on('agent/inbox/inserted', ({ agent, message }) => {
       const state = this.aligns.get(agent.session.id)

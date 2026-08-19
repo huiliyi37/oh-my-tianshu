@@ -26,6 +26,11 @@ describe('ALIGN_SECTION', () => {
     expect(ALIGN_SECTION).toContain('never perform')
     expect(ALIGN_SECTION).toContain('ask instead')
   })
+
+  it('declares the single available tool so the model never reaches for bash/glob', () => {
+    expect(ALIGN_SECTION).toContain('Only finalize_alignment is available in this session')
+    expect(ALIGN_SECTION).toContain('no shell')
+  })
 })
 
 describe('parseFinalizeArgs', () => {

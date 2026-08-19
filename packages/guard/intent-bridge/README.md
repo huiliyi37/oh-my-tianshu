@@ -49,7 +49,7 @@ Neither path blocks the task. When the alignment rounds are exhausted, the bridg
 
 #### What the model sees
 
-The alignment agent's requests carry the fixed `intent:policy` contract section and exactly one tool, `finalize_alignment`; the restrict allow list is emptied, so no global tool is visible. The contract tells it to restate, classify, clarify (1-3 questions per round), and finalize — never to perform the task.
+The alignment agent's requests carry the fixed `intent:policy` contract section and exactly one tool, `finalize_alignment`; the restrict allow list is emptied, so no global tool is visible, and the contract states that only `finalize_alignment` exists here so the model never reaches for shell/filesystem/search tools from its priors. A registry guard turns any other call — including the leaked `zen_anchor` — into the same face statement instead of a bare "unknown tool". The contract tells it to restate, classify, clarify (1-3 questions per round), and finalize — never to perform the task.
 
 #### Token effect
 

@@ -144,6 +144,39 @@ describe('intent-bridge through the agent loop', () => {
       .toContain('—— 原始请求 ——')
   })
 
+  it('denies non-finalize calls in the alignment session with the face statement, not "unknown tool"', async () => {
+    const adapter = new MockAdapter([
+      toolCallResponse('a1', 'bash', { command: 'ls' }, 'try bash'),
+      toolCallResponse('a2', 'glob', { pattern: '**/*' }, 'try glob'),
+      toolCallResponse('a3', 'zen_anchor', { goal: 'x', landmarks: ['a', 'b'], pass: 'fast' }, 'try anchor'),
+      toolCallResponse('a4', 'finalize_alignment', { title: 'T', goal: 'G', acceptance: ['ok'] }, 'finalize'),
+      textResponse('main response'),
+    ])
+    const ctx = await harness(adapter)
+    const align = await ctx.intentBridge.createAlignedSession()
+    const alignAgent = align.handle.agent
+    ask(alignAgent, '帮我重构 src/auth.ts 的登录逻辑')
+    await waitForIdle(ctx, alignAgent)
+
+    const alignLog = alignAgent.session.events
+    const calls = alignLog.filter(event => event.type === 'tool/call')
+    const results = alignLog.filter(event => event.type === 'tool/result')
+    const byCallId = new Map(
+      calls.map(event => event.type === 'tool/call' ? [event.data.callId, event.data.name] : ['', '']),
+    )
+    const denied = results.filter((event) => {
+      const d = event.type === 'tool/result' ? event.data : null
+      return d?.message.content[0]?.isError === true && byCallId.get(String(d.message.source.callId)) !== 'finalize_alignment'
+    })
+    // Every non-finalize call (bash, glob, zen_anchor) is denied with the face statement.
+    expect(denied).toHaveLength(3)
+    const text = denied.map(event => event.type === 'tool/result' ? JSON.stringify(event.data.message.content) : '').join(' ')
+    expect(text).toContain('only finalize_alignment is available in this alignment session')
+    expect(text).not.toContain('unknown tool')
+    // The contract section declares the single tool to the model.
+    expect(adapter.requests[0]?.system ?? '').toContain('Only finalize_alignment is available in this session')
+  })
+
   it('forces a template card when the alignment rounds are exhausted', async () => {
     const adapter = new MockAdapter([
       textResponse('问题一：目标范围？'),
