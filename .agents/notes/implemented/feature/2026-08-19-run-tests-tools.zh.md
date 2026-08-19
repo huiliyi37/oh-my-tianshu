@@ -34,7 +34,7 @@ omts 唯一的测试运行面就是手写命令的 `bash`：没有框架检测�
 - 两个新的面向模型工具加入日常使用面；与其他已注册工具一样，其 schema 会自动流入系统提示词组装。
 - 框架检测以元数据为驱动且属启发式：只有 lockfile 的工作区会回退到 `npm test` 或检测不到框架（此时不带 `command` 的调用会响亮失败，而不是自行猜测）。
 - 后台运行返回 task id 而非计数：测试套件的输出通过 `task_output` 读取；evidence-gate 在读取其结果之前不为其归账，因为归账只读取 `tool/result` 事件。
-- `tests/` 分组纳入 `tsconfig.base.json` 的路径通配符与宿主 aggregate；基础 bundle 在 `tool-bash` 之后接入 `tool-run-tests`。
+- `tests/` 分组纳入 `tsconfig.base.json` 的路径通配符与宿主 aggregate；基础 bundle 在 `tool-bash` 之后接入 `tool-run-tests`。根目录 `tsdown.config.ts` 不得沿用 tsdown 默认的 `**/test?(s)/**` workspace 排除，否则该包会被静默漏出 `lib/`，publint 失败。
 
 ## Testing
 

@@ -16,7 +16,14 @@ function isBuildFaceClient(value: unknown): boolean {
 export default defineConfig(({ env }) => {
   const client = isBuildFaceClient(env?.DSH_BUILD_FACE)
   return {
-    workspace: ['vendor/*', 'packages/*/*', 'apps/cli'],
+    // tsdown's default workspace exclude includes `**/test?(s)/**`, which
+    // drops the real package at `packages/tests/tool-run-tests`. Keep the
+    // other defaults (`node_modules`, `dist`, temp dirs) and name the tests
+    // group as a first-class include.
+    workspace: {
+      include: ['vendor/*', 'packages/*/*', 'apps/cli'],
+      exclude: ['**/node_modules/**', '**/dist/**', '**/t?(e)mp/**'],
+    },
     entry: client ? '' : ['lib/types/{index,invariant}.js'],
     outDir: 'lib',
     format: ['esm'],

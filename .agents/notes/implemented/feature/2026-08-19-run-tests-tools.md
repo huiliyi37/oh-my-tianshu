@@ -34,7 +34,7 @@ Framework detection and execution anchor to the calling session's cwd. Misconfig
 - Two new model-facing tools join the daily surface; their schemas flow into system-prompt assembly automatically like every registered tool.
 - Framework detection is metadata-driven and heuristic: lockfile-only workspaces fall through to `npm test` or no detection (a call without `command` then fails loud instead of guessing).
 - Background runs return the task id, not counts — the suite's output is read through `task_output`; evidence-gate does not account a background run until its result is read, because accounting reads `tool/result` events only.
-- The `tests/` group joins `tsconfig.base.json` path wildcards and the host aggregate; the base bundle wires `tool-run-tests` after `tool-bash`.
+- The `tests/` group joins `tsconfig.base.json` path wildcards and the host aggregate; the base bundle wires `tool-run-tests` after `tool-bash`. Root `tsdown.config.ts` must not use tsdown's default `**/test?(s)/**` workspace exclude, or the package is silently omitted from `lib/` and publint fails.
 
 ## Testing
 
