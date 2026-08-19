@@ -15,15 +15,17 @@ Decision record: [the intent-bridge Agent Note](../../../.agents/notes/implement
   name: '@huiliyi37/dsh-intent-bridge'
   config:
     enabled: true                    # default; false mounts the service with no behavior (routes still required)
-    alignProvider: minimax           # REQUIRED alignment-agent route
-    alignModel: MiniMax-M3
+    alignProvider: deepseek-official # REQUIRED alignment-agent route
+    alignModel: deepseek-v4-flash
     execProvider: deepseek-official  # REQUIRED main-session route
     execModel: deepseek-v4-flash
     alignMaxRounds: 5                # default; steps before a template card is force-finalized
     # section: custom alignment contract text (optional; default = the built-in contract)
 ```
 
-`resolveConfig` fails loud at plugin load on unknown keys, a missing provider/model pair, or a non-positive `alignMaxRounds`. The shipped TUI bundle mounts the plugin with the routes above; deployments override them from `cordis.patch.yml`.
+`resolveConfig` fails loud at plugin load on unknown keys, a missing provider/model pair, or a non-positive `alignMaxRounds`. The shipped TUI bundle mounts the plugin with the routes above (the out-of-box DeepSeek adapter, same `DEEPSEEK_API_KEY` as `/model`); deployments override them from `cordis.patch.yml`. A MiniMax alignment route is an overlay after the `llm-pi-ai` profile and its key are live — not a second required key on first run.
+
+Decision record for that default: [shipped TUI align route](../../../.agents/notes/implemented/architecture/2026-08-19-intent-bridge-shipped-align-flash.md).
 
 ## createAlignedSession
 

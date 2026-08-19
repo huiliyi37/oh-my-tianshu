@@ -82,13 +82,14 @@
       config:
         mode: template
 
-    # 意图对齐桥：新会话先进辅模型（minimax）多轮澄清，产出任务卡后移交
-    # 主会话（deepseek-official）自然进禅。部署方可覆写 provider/model。
+    # 意图对齐桥：新会话先走对齐路由多轮澄清，产出任务卡后移交主会话
+    # 自然进禅。出厂两条路由都落在 llm-deepseek（同一把 DEEPSEEK_API_KEY）；
+    # MiniMax 等辅模型由部署 overlay 覆写，并自行把 llm-pi-ai profile 加活。
     - id: intent-bridge
       name: '@huiliyi37/dsh-intent-bridge'
       config:
-        alignProvider: minimax
-        alignModel: MiniMax-M3
+        alignProvider: deepseek-official
+        alignModel: deepseek-v4-flash
         execProvider: deepseek-official
         execModel: deepseek-v4-flash
 

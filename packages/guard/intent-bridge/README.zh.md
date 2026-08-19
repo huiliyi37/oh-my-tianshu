@@ -15,15 +15,17 @@
   name: '@huiliyi37/dsh-intent-bridge'
   config:
     enabled: true                    # default; false mounts the service with no behavior (routes still required)
-    alignProvider: minimax           # REQUIRED alignment-agent route
-    alignModel: MiniMax-M3
+    alignProvider: deepseek-official # REQUIRED alignment-agent route
+    alignModel: deepseek-v4-flash
     execProvider: deepseek-official  # REQUIRED main-session route
     execModel: deepseek-v4-flash
     alignMaxRounds: 5                # default; steps before a template card is force-finalized
     # section: custom alignment contract text (optional; default = the built-in contract)
 ```
 
-`resolveConfig` 在插件加载时对未知键、缺少 provider/model 对、或非正的 `alignMaxRounds` **响亮失败**。发货的 TUI bundle 按上述路由装配该插件；部署从 `cordis.patch.yml` 覆盖它们。
+`resolveConfig` 在插件加载时对未知键、缺少 provider/model 对、或非正的 `alignMaxRounds` **响亮失败**。发货的 TUI bundle 按上述路由装配该插件（出厂 DeepSeek 适配器，与 `/model` 共用 `DEEPSEEK_API_KEY`）；部署从 `cordis.patch.yml` 覆盖它们。MiniMax 对齐路由是 overlay：先把 `llm-pi-ai` profile 和密钥加活，不是首次运行的第二把必填 key。
+
+该默认的决策记录：[发货 TUI 对齐路由](../../../.agents/notes/implemented/architecture/2026-08-19-intent-bridge-shipped-align-flash.md)。
 
 ## createAlignedSession
 

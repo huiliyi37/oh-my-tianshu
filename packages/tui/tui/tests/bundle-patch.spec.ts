@@ -46,12 +46,13 @@ describe('dsh-tui bundle', () => {
     // default, so llm mode would fail loud at load; deployments opt in.
     const taskCard = rows.find(row => row.id === 'task-card')?.config as Record<string, unknown> | undefined
     expect(taskCard).toEqual({ mode: 'template' })
-    // The intent-bridge row ships both routes; resolveConfig fails loud at
-    // load without them.
+    // The intent-bridge row ships both routes on the out-of-box DeepSeek
+    // adapter (same key as /model); resolveConfig fails loud at load without
+    // them. MiniMax remains a deployment overlay, not the shipped default.
     const intentBridge = rows.find(row => row.id === 'intent-bridge')?.config as Record<string, unknown> | undefined
     expect(intentBridge).toMatchObject({
-      alignProvider: 'minimax',
-      alignModel: 'MiniMax-M3',
+      alignProvider: 'deepseek-official',
+      alignModel: 'deepseek-v4-flash',
       execProvider: 'deepseek-official',
       execModel: 'deepseek-v4-flash',
     })
