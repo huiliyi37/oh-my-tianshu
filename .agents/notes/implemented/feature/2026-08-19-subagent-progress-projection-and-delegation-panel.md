@@ -36,7 +36,7 @@ The public shape lives in `projection-types.ts` and on the [subagent subsystem p
 
 ### D4 — TUI consumption
 
-`DelegationTreeEntry` child rows carry the same optional fields. Row format: `● ↻ 主探索 · Running: bash · 12.3k tok · 5 工具 · 43s`. Activity text is `Running: <lastTool>` while in flight, else `Done: <lastTool>` when a tool has run. Tokens reuse `formatTokenCount`. Suffixes drop right-to-left; the label survives first. A present `lastTurnEnd` appends a status word (`✓ 已完成`, `✗ 出错`, …). Live `now` computes open-turn elapsed from `timing.active`.
+`DelegationTreeEntry` child rows carry the same optional fields. Chrome is owned by [the live-card language note](2026-08-19-live-card-language.md): in-flight rows are a `⠋` header plus a `⎿` body (`Running: <lastTool>` / tokens / tool count); finished rows are header-only with the terminal word and elapsed suffix. Activity text is `Running: <lastTool>` while in flight, else `Done: <lastTool>` when a tool has run. Tokens reuse `formatTokenCount`. Suffixes drop right-to-left; the label survives first. A present `lastTurnEnd` appends a status word (`✓ 已完成`, `✗ 出错`, …) and suppresses the body. Live `now` computes open-turn elapsed from `timing.active`.
 
 Refresh: `sessionProjections.onChanged` matching a tree member (or `subagentProgress`/`subagentTiming` on a child already on the tree) re-runs `listDescendants` for the current root — one consistent cut, including cold inspect when needed. That is not a no-I/O render-only schedule.
 
@@ -70,7 +70,7 @@ P1/P2 work (activity-store wiring, cache panel, history replay, timeline rail, d
 
 - `packages/subagent/subagent/tests/subagent-progress.spec.ts` — descriptor reset; in-flight tools; `lastTurnEnd` cleared on a later `turn/start`; prototype-named `tool/result` same-ref; last-wins tokens including dropped `reasoningTokens`; unknown `turn/end` kind counted without a label.
 - `packages/subagent/subagent/tests/list-children.spec.ts` — `listDescendants` embeds meaningful runtime fields; `listChildren` rows stay identity-only.
-- `packages/tui/tui/tests/delegation-panel.spec.ts` — row format, suffix drop, terminal words, one-shot without a kill glyph.
+- `packages/tui/tui/tests/delegation-panel.spec.ts` — live-card chrome, suffix drop, terminal words, one-shot without a kill glyph.
 - `packages/tui/tui/tests/commands.spec.ts` — kill uses the entry's `parentId`; one-shot / inactive / unknown id / null session / missing service do not call `interrupt`.
 
 ## Related

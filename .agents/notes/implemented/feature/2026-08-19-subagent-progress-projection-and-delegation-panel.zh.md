@@ -36,7 +36,7 @@ Status: implemented
 
 ### D4 — TUI 消费
 
-`DelegationTreeEntry` 的 child 行携带同样的可选字段。行格式：`● ↻ 主探索 · Running: bash · 12.3k tok · 5 工具 · 43s`。进行中为 `Running: <lastTool>`，否则在已跑过工具时为 `Done: <lastTool>`。token 复用 `formatTokenCount`。suffix 从右往左丢，label 优先保留。存在 `lastTurnEnd` 时追加状态词（`✓ 已完成`、`✗ 出错` 等）。live 的 `now` 用 `timing.active` 算进行中 turn 的耗时。
+`DelegationTreeEntry` 的 child 行携带同样的可选字段。行 chrome 由[活区卡片语言 note](2026-08-19-live-card-language.md) 拥有：进行中是 `⠋` header 加 `⎿` body（`Running: <lastTool>` / token / 工具计数）；已结束只留 header，终态词与耗时在 suffix。进行中为 `Running: <lastTool>`，否则在已跑过工具时为 `Done: <lastTool>`。token 复用 `formatTokenCount`。suffix 从右往左丢，label 优先保留。存在 `lastTurnEnd` 时追加状态词（`✓ 已完成`、`✗ 出错` 等）并去掉 body。live 的 `now` 用 `timing.active` 算进行中 turn 的耗时。
 
 刷新：`sessionProjections.onChanged` 命中树上成员（或已在树上的子会话的 `subagentProgress`/`subagentTiming`）时，对当前根重跑 `listDescendants`——同一 cut，冷子代仍可能 `inspect`。这不是无 I/O 的纯重绘调度。
 
@@ -70,7 +70,7 @@ P1/P2 工作（activity-store 接线、cache 面板、history replay、timeline 
 
 - `packages/subagent/subagent/tests/subagent-progress.spec.ts` — descriptor 重置；进行中工具；后续 `turn/start` 清掉 `lastTurnEnd`；原型名 `tool/result` 同引用；token last-wins（含丢掉的 `reasoningTokens`）；未知 `turn/end` kind 计数但不贴标签。
 - `packages/subagent/subagent/tests/list-children.spec.ts` — `listDescendants` 嵌入有意义的运行态字段；`listChildren` 行保持纯身份。
-- `packages/tui/tui/tests/delegation-panel.spec.ts` — 行格式、suffix 丢弃、终态词、一次性无 kill 字形。
+- `packages/tui/tui/tests/delegation-panel.spec.ts` — 活区卡 chrome、suffix 丢弃、终态词、一次性无 kill 字形。
 - `packages/tui/tui/tests/commands.spec.ts` — kill 使用条目的 `parentId`；一次性 / 已结束 / 未知 id / 空会话 / 服务缺失不调用 `interrupt`。
 
 ## Related

@@ -98,14 +98,17 @@ describe('renderTasksPanel', () => {
     expect(renderTasksPanel({ ...baseSnapshot(), taskPanelVisible: true, taskItems: null })).toEqual([])
   })
 
-  it('后台任务区：taskSnapshots 逐行渲染（running/completed 标记）', () => {
+  it('后台任务区：taskSnapshots 走活区卡（running ⠋ + 可选 ⎿ detail）', () => {
     const snap = { ...baseSnapshot(), taskPanelVisible: true, taskSnapshots: [
-      { id: 't1', kind: 'build', label: 'pnpm build', status: 'running' as const, startedAt: 1 },
+      { id: 't1', kind: 'build', label: 'pnpm build', status: 'running' as const, startedAt: 1, detail: 'compiling' },
       { id: 't2', kind: 'test', label: 'vitest', status: 'completed' as const, startedAt: 2 },
     ] }
     const text = renderTasksPanel(snap).join('\n')
-    expect(text).toContain('⏳ pnpm build')
-    expect(text).toContain('✓ vitest')
+    expect(text).toContain('⠋')
+    expect(text).toContain('pnpm build')
+    expect(text).toContain('compiling')
+    expect(text).toContain('›')
+    expect(text).toContain('vitest')
   })
 })
 

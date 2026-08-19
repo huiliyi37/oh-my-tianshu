@@ -4,7 +4,7 @@
  * 覆盖：标题动词/参数摘要（toolCardTitle）、家族默认展开高度、
  * formatToolCard 各状态 bullet（成功/失败/进行中/待答）、无输出、diff 分支
  * （内联/折叠摘要）、普通输出与 read 族头尾预览、截断判定、
- * live 进行中卡（tick/elapsed/compact/tail 截断）、formatToolGroup 折叠/展开、
+ * live 进行中卡（⠋ 标题、tick/elapsed/compact/tail 截断）、formatToolGroup 折叠/展开、
  * parseToolArguments 容错。
  */
 
@@ -209,9 +209,11 @@ describe('isToolCardTruncated', () => {
 })
 
 describe('formatToolCardLive', () => {
-  it('dim ● 标题 + 末 N 行 tail', () => {
+  it('dim ⠋ 标题 + 末 N 行 tail', () => {
+    process.env.RIVET_ASCII_UI = '0'
+    resetTermCapsCache()
     const lines = formatToolCardLive({ toolName: 'bash', outputTail: 'a\nb\nc\nd', columns: 80 }, fakeTheme())
-    expect(plain(lines).join('\n')).toContain('● Run')
+    expect(plain(lines).join('\n')).toContain('⠋ Run')
     expect(plain(lines).join('\n')).toContain('d')
   })
 

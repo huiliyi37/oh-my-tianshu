@@ -1,22 +1,21 @@
 /**
  * 委派树面板（grok-build tasks_pane 分组行移植，纯函数层）。
  *
- * projectDelegationTree 把 listDescendants 的树条目投影为面板行：标题行 +
- * 每层委派一行，depth 驱动层级缩进，activity 状态标记（running ● /
- * inactive ○），mode 标记（one-shot ▶ / continuable ↻），label 缺失回退
- * id 前 8 位短哈希。条目携带子代理运行态投影（progress/timing）时，行尾
- * 追加运行信息段：activity 文本（`Running: <tool>` / `Done: <tool>`）、
- * token 消耗、工具计数与耗时；终态行追加结束原因。suffix 从右往左丢弃，
- * label 最后截断。diagnostic 条目渲染警示行（不吞异常、不伪造
- * activity/mode）。空 entries 返回空数组——无委派树则不渲染面板。TuiApp
- * 消费 listDescendants 快照（条目自带 identity/progress/timing，同一投影
- * cut），行渲染进 live 区（接线由其他维度独占）。
+ * projectDelegationTree 把 listDescendants 的树条目投影为活区卡：标题行 +
+ * 每层一张卡。depth 驱动缩进。状态形与工具卡同一套（进行中 ⠋ / 成功 › /
+ * 失败 ✗）；mode 标记（one-shot ▶ / continuable ↻）留在 title。进行中且有
+ * 活动时第二行 `⎿` 承载 activity / token / 工具计数；耗时与终态词留在
+ * header suffix。空闲或已结束只留标题行。label 缺失回退 id 前 8 位短哈希。
+ * diagnostic 条目渲染警示行（不吞异常、不伪造 activity/mode）。空 entries
+ * 返回空数组。TuiApp 消费 listDescendants 快照（条目自带 identity/progress/
+ * timing，同一投影 cut）。不处理行选中或鼠标。
  *
  * @module @huiliyi37/dsh-tui/delegation-panel
  */
 
-import { displayWidth } from './width.js'
+import type { RivetTheme } from './theme.js'
 import { formatTokenCount } from './format/glance-bar.js'
+import { formatLiveCard, liveCardGlyph, truncateToLiveWidth, type LiveCardStatus } from './format/live-card.js'
 
 /** activity 状态：running 在 store 中存活，inactive 仅存在于持久化。 */
 export type DelegationActivity = 'running' | 'inactive'
@@ -92,15 +91,12 @@ export interface DelegationPanelOptions {
   width: number
   /** 当前墙钟（epoch 毫秒）；缺失时运行中耗时回落 settledMs。 */
   now?: number
+  /** 可选主题；提供时终态 title 涂 muted。 */
+  theme?: RivetTheme
 }
 
 /** 面板标题行。 */
 const TITLE = '🌳 委派'
-
-/** activity → 状态标记。 */
-function activityMark(activity: DelegationActivity): string {
-  return activity === 'running' ? '●' : '○'
-}
 
 /** mode → 模式标记。 */
 function modeMark(mode: DelegationMode): string {
@@ -166,68 +162,66 @@ function terminalText(progress: DelegationProgressProjection): string {
 /**
  * 投影委派树为面板行。
  * @param entries - listDescendants 树条目（已按 pre-order 排序）；空数组 → 空行数组（面板不渲染）。
- * @param opts - 渲染选项（宽度与可选墙钟）。
- * @returns 面板行数组（标题 + 每层委派一行；空输入返回空数组）。
+ * @param opts - 渲染选项（宽度、可选墙钟、可选主题）。
+ * @returns 面板行数组（标题 + 每层一张卡；空输入返回空数组）。
  */
 export function projectDelegationTree(
   entries: DelegationTreeEntry[],
   opts: DelegationPanelOptions,
 ): string[] {
   if (entries.length === 0) return []
-  const rows = [truncateByWidth(TITLE, opts.width)]
+  const rows = [truncateToLiveWidth(TITLE, opts.width)]
   for (const entry of entries) {
-    rows.push(renderEntry(entry, opts))
+    rows.push(...renderEntry(entry, opts))
   }
   return rows
 }
 
-/** 渲染单个条目为一行（child 渲染状态行 + 运行信息段，diagnostic 渲染警示行）。 */
-function renderEntry(entry: DelegationTreeEntry, opts: DelegationPanelOptions): string {
+/** lastTurnEnd 中与失败状态形对齐的 kind。 */
+function isErrorTurn(kind: DelegationProgressProjection['lastTurnEnd'] | undefined): boolean {
+  return kind === 'error' || kind === 'aborted' || kind === 'interrupted'
+}
+
+/** 渲染单个条目为一张卡（child）或一行警示（diagnostic）。 */
+function renderEntry(entry: DelegationTreeEntry, opts: DelegationPanelOptions): string[] {
   const indent = '  '.repeat(Math.max(0, entry.depth))
   if (entry.kind === 'diagnostic') {
-    return truncateByWidth(`${indent}⚠ ${reasonLabel(entry.reason)} ${shortHash(entry.id)}`, opts.width)
+    return [truncateToLiveWidth(`${indent}⚠ ${reasonLabel(entry.reason)} ${shortHash(entry.id)}`, opts.width)]
   }
   const { progress, timing } = entry
-  const line = `${indent}${activityMark(entry.activity)} ${modeMark(entry.mode)} ${entry.label ?? shortHash(entry.id)}`
-  if (progress === undefined && timing === undefined) {
-    return truncateByWidth(line, opts.width)
-  }
+  const title = `${modeMark(entry.mode)} ${entry.label ?? shortHash(entry.id)}`
+  const finished = entry.activity === 'inactive' || progress?.lastTurnEnd !== undefined
+  const inFlight = progress?.toolInFlight === true
+  const activity = progress === undefined ? '' : activityText(progress)
+  const terminal = progress === undefined ? '' : terminalText(progress)
+
+  const status: LiveCardStatus = inFlight
+    ? 'running'
+    : isErrorTurn(progress?.lastTurnEnd)
+      ? 'error'
+      : 'success'
+
   const suffixes: string[] = []
-  if (progress !== undefined) {
-    const activity = activityText(progress)
-    if (activity !== '') suffixes.push(activity)
-    const tokens = tokensText(progress)
-    if (tokens !== '') suffixes.push(tokens)
-    const tools = toolsText(progress)
-    if (tools !== '') suffixes.push(tools)
-    const terminal = terminalText(progress)
-    if (terminal !== '') suffixes.push(terminal)
-  }
+  if (finished && terminal !== '') suffixes.push(terminal)
   if (timing !== undefined) suffixes.push(formatSettled(liveSettled(timing, opts.now)))
-  return assembleSuffixes(line, suffixes, opts.width)
-}
 
-/** 行 + 后缀：后缀从右往左丢弃，剩余整体再截断（label 最后才被截）。 */
-function assembleSuffixes(line: string, suffixes: string[], width: number): string {
-  let out = line
-  for (const suffix of suffixes) {
-    const candidate = `${out} · ${suffix}`
-    if (displayWidth(candidate) > width - 1) break
-    out = candidate
+  const bodyParts: string[] = []
+  if (!finished && progress !== undefined && (inFlight || activity !== '')) {
+    if (activity !== '') bodyParts.push(activity)
+    const tokens = tokensText(progress)
+    if (tokens !== '') bodyParts.push(tokens)
+    const tools = toolsText(progress)
+    if (tools !== '') bodyParts.push(tools)
   }
-  return truncateByWidth(out, width)
-}
 
-/** 按显示宽度截断字符串（仅发生截断时尾部补 …；极端窄宽退化为 …）。 */
-function truncateByWidth(text: string, max: number): string {
-  if (max <= 1) return '…'
-  let out = ''
-  let w = 0
-  for (const ch of text) {
-    const cw = displayWidth(ch)
-    if (w + cw > max - 1) break
-    out += ch
-    w += cw
-  }
-  return w < displayWidth(text) ? `${out}…` : out
+  return formatLiveCard({
+    glyph: liveCardGlyph(status),
+    title,
+    suffixes,
+    ...(bodyParts.length > 0 ? { body: [bodyParts.join(' · ')] } : {}),
+    width: opts.width,
+    indent,
+    dim: finished,
+    ...(opts.theme === undefined ? {} : { theme: opts.theme }),
+  })
 }

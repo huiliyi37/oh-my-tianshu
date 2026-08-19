@@ -18,9 +18,14 @@
 import { color } from '../engine/ansi.js'
 import { withBgFillLines } from './bg-block.js'
 import type { RivetTheme } from '../theme.js'
-import { brailleSpinnerFrame } from '../braille-spinner.js'
 import { displayWidth, truncateToDisplayWidth } from '../width.js'
 import { useAsciiGlyphs } from '../term-caps.js'
+import {
+  LIVE_CARD_BODY_CONT,
+  LIVE_CARD_BODY_FIRST,
+  indentLiveCardBody,
+  liveCardGlyph,
+} from './live-card.js'
 import { truncationHint } from '../truncation-marker.js'
 import { formatElapsed, getToolFamily, isDelegationTool, parseToolArguments, toolArgSummary } from './tool-meta.js'
 import { toolFamilyColor } from './tool-family.js'
@@ -78,9 +83,6 @@ export function getDefaultMaxLines(toolName: string): number {
   }
 }
 
-const BODY_FIRST_PREFIX = '⎿  '
-const BODY_CONT_PREFIX = '   '
-
 /**
  * 标题动词：family verb 首字母大写（Run/Read/Patch/Write/Search/Find…）。
  * @param toolName - 工具名（家族判定经 getToolFamily）。
@@ -115,8 +117,7 @@ export function toolCardTitle(toolName: string, toolInput?: Record<string, unkno
  * @returns 缩进后的行数组。
  */
 export function indentToolBody(bodyLines: readonly string[], indent: string, theme: RivetTheme): string[] {
-  return bodyLines.map((line, i) =>
-    `${indent}${i === 0 ? color(BODY_FIRST_PREFIX, theme.dim) : BODY_CONT_PREFIX}${line}`)
+  return indentLiveCardBody(bodyLines, indent, theme)
 }
 
 /** formatToolCardHeader 的输入：标题行的状态与文本。 */
@@ -149,10 +150,10 @@ export function formatToolCardHeader(input: ToolCardHeaderInput, theme: RivetThe
   const isQuestion = toolName === 'ask_user_question'
   const useAscii = useAsciiGlyphs()
   const bulletColor = isError ? theme.error : isQuestion ? theme.warning : streaming ? theme.dim : theme.success
-  const bulletGlyph = isError ? (useAscii ? 'x' : '✗')
-    : isQuestion ? '?'
-      : streaming ? (useAscii ? '-' : '⠋')
-        : '›'
+  const bulletGlyph = liveCardGlyph(
+    isError ? 'error' : isQuestion ? 'question' : streaming ? 'running' : 'success',
+    { ascii: useAscii },
+  )
   // 家族着色（Phase 7.2）：标题色按功能域取主题语义 token；待答问保持 warning。
   const tColor = isQuestion ? theme.warning : toolFamilyColor(toolName, theme)
   let header = `${indent}${color(bulletGlyph, bulletColor)} ${color(title, tColor, { bold: true })}`
@@ -166,7 +167,7 @@ export function formatToolCardHeader(input: ToolCardHeaderInput, theme: RivetThe
 }
 
 /**
- * 格式化工具卡片为 ANSI 行数组（Claude Code ●/⎿ 结构）。
+ * 格式化工具卡片为 ANSI 行数组（›/⎿ 结构）。
  * @param input - 工具名、输出内容与折叠/展开等渲染选项。
  * @param theme - 当前主题（状态形色与家族着色取语义 token）。
  * @returns ANSI 行数组：标题行 + 按截断策略折叠的 body 行。
@@ -204,7 +205,7 @@ export function formatToolCard(input: FormatToolCardInput, theme: RivetTheme): s
 
   const trimmed = content.replace(/\n+$/, '')
   if (!trimmed) {
-    lines.push(...tint([`${indent}${color(BODY_FIRST_PREFIX, theme.dim)}${color('(无输出)', theme.muted)}`]))
+    lines.push(...tint([`${indent}${color(LIVE_CARD_BODY_FIRST, theme.dim)}${color('(无输出)', theme.muted)}`]))
     return lines
   }
 
@@ -219,7 +220,7 @@ export function formatToolCard(input: FormatToolCardInput, theme: RivetTheme): s
     } else {
       const hunkLabel = stats.hunks > 0 ? `${stats.hunks} 处修改` : `${changeCount} 行修改`
       const summary = `⎿ ${hunkLabel} (+${stats.adds} −${stats.dels})`
-      lines.push(`${indent}${color(BODY_FIRST_PREFIX, theme.dim)}${color(summary, theme.muted)}`)
+      lines.push(`${indent}${color(LIVE_CARD_BODY_FIRST, theme.dim)}${color(summary, theme.muted)}`)
     }
     return lines
   }
@@ -237,7 +238,7 @@ export function formatToolCard(input: FormatToolCardInput, theme: RivetTheme): s
     lines.push(...tint(indentToolBody(contentLines.map(renderLine), indent, theme)))
     if (rawPath && !expanded) {
       /* v8 ignore next -- split('/') 恒返回非空数组，pop() 恒有值；noUncheckedIndexedAccess 收窄防御 */
-      lines.push(...tint([`${indent}${BODY_CONT_PREFIX}${color(`raw: ${rawPath.split('/').pop() ?? rawPath}`, theme.muted)}`]))
+      lines.push(...tint([`${indent}${LIVE_CARD_BODY_CONT}${color(`raw: ${rawPath.split('/').pop() ?? rawPath}`, theme.muted)}`]))
     }
     return lines
   }
@@ -314,7 +315,7 @@ export interface FormatToolCardLiveInput {
 }
 
 /**
- * live 区进行中工具的渲染：dim `●` 标题行 + 末 N 行输出（⎿ 缩进）。
+ * live 区进行中工具的渲染：dim `⠋` 标题行 + 末 N 行输出（⎿ 缩进）。
  * @param input - 工具名、流式输出 tail、耗时与终端列数等。
  * @param theme - 当前主题。
  * @returns ANSI 行数组：标题行 + tailLines 行（compact 模式仅标题行）。
@@ -322,11 +323,10 @@ export interface FormatToolCardLiveInput {
 export function formatToolCardLive(input: FormatToolCardLiveInput, theme: RivetTheme): string[] {
   const title = input.title ?? toolCardTitle(input.toolName, input.toolInput)
   const useAscii = useAsciiGlyphs()
-  const bullet = input.tick !== undefined
-    /* v8 ignore start -- tick 取模归一化后恒在 [0,4) 界内，?? 右侧不可达；noUncheckedIndexedAccess 收窄防御 */
-    ? (useAscii ? (['-', '\\', '|', '/'][((input.tick % 4) + 4) % 4] ?? '-') : brailleSpinnerFrame(input.tick))
-    : '●'
-    /* v8 ignore stop */
+  const bullet = liveCardGlyph('running', {
+    ascii: useAscii,
+    ...(input.tick === undefined ? {} : { tick: input.tick }),
+  })
   let header = `${color(bullet, theme.dim)} ${color(title, toolFamilyColor(input.toolName, theme), { bold: true })}`
   if (input.elapsedMs !== undefined && input.elapsedMs >= 1000) {
     header += ` ${color(`(${formatElapsed(input.elapsedMs)})`, theme.muted)}`
@@ -337,7 +337,7 @@ export function formatToolCardLive(input: FormatToolCardLiveInput, theme: RivetT
   // 单行截断——live 区每帧重绘，多行参数会推挤输入框）。
   if (input.expanded === true && input.toolInput !== undefined && Object.keys(input.toolInput).length > 0) {
     const argsText = JSON.stringify(input.toolInput)
-    lines.push(`${color(BODY_FIRST_PREFIX, theme.dim)}${color(truncateToDisplayWidth(argsText, Math.max(10, input.columns - 6)), theme.muted)}`)
+    lines.push(`${color(LIVE_CARD_BODY_FIRST, theme.dim)}${color(truncateToDisplayWidth(argsText, Math.max(10, input.columns - 6)), theme.muted)}`)
   }
   // 紧凑模式（/compact-mode）：仅标题行，省略输出 tail——高密度渲染。
   if (input.compact === true) return lines
@@ -361,11 +361,11 @@ export function formatToolCardLive(input: FormatToolCardLiveInput, theme: RivetT
   }
 
   if (tailCount > 0 && tailLines.length === 0) {
-    tailLines.push(`${color(BODY_FIRST_PREFIX, theme.dim)}${color('…', theme.dim)}`)
+    tailLines.push(`${color(LIVE_CARD_BODY_FIRST, theme.dim)}${color('…', theme.dim)}`)
   }
   // 固定 tail 区高度：内容不足时顶部补空行，避免卡片随输出涨缩带动输入框跳动。
   while (tailLines.length < tailCount) {
-    tailLines.unshift(BODY_CONT_PREFIX)
+    tailLines.unshift(LIVE_CARD_BODY_CONT)
   }
 
   // omp 风格：进行中工具块垫 pending 状态底色（主题带表面底色时；16 色轨不着底）。
@@ -440,7 +440,7 @@ export function formatToolGroup(input: FormatToolGroupInput): string[] {
 
   const names = summarizeToolNames(group)
   if (names) {
-    lines.push(`  ${color(BODY_FIRST_PREFIX, theme.dim)}${color(names, theme.muted)}`)
+    lines.push(`  ${color(LIVE_CARD_BODY_FIRST, theme.dim)}${color(names, theme.muted)}`)
   }
   return lines
 }
