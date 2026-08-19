@@ -64,7 +64,7 @@ while time.monotonic() < deadline:
             output.extend(chunk)
 
     snapshot = bytes(output)
-    if not termination_sent and b"oh-my-tianshu web: http://127.0.0.1:" in snapshot:
+    if not termination_sent and b"tianshu web: http://127.0.0.1:" in snapshot:
         ready_seen = True
         os.kill(pid, signal.SIGTERM)
         termination_sent = True
