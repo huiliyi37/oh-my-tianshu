@@ -6,7 +6,7 @@ English | [中文](2026-08-19-tool-json-repair.zh.md)
 
 ## Problem
 
-DeepSeek intermittently serializes tool calls as JSON text inside `content` instead of the `tool_calls` wire field (the failure shape opencode-tui repairs with its `RepairPipeline`). omts's `dsh-llm-deepseek` translates only well-formed wire `tool_calls`, so a JSON-in-content response lands as a plain text message: the loop executes nothing and the model burns turns re-emitting the call. The `dsh-tui` gap analysis ([opencode-tui vs omts](../../../../docs/opencode-tui-vs-omts-能力差距与吸收路线.md)) classes this as the highest-value absorbable item from the 天枢 source.
+DeepSeek intermittently serializes tool calls as JSON text inside `content` instead of the `tool_calls` wire field (the failure shape opencode-tui repairs with its `RepairPipeline`). omts's `dsh-llm-deepseek` translates only well-formed wire `tool_calls`, so a JSON-in-content response lands as a plain text message: the loop executes nothing and the model burns turns re-emitting the call. The `dsh-tui` gap analysis classes this as the highest-value absorbable item from the 天枢 source.
 
 ## Decision
 
@@ -38,5 +38,4 @@ The plugin needs no loop change: the loop already logs whatever the `llm/stream`
 
 ## Related
 
-- [opencode-tui vs omts — capability gap and absorption roadmap](../../../../docs/opencode-tui-vs-omts-能力差距与吸收路线.md) — the analysis this implements.
-- [dsh-tui fusion evolution record](../../../../docs/dsh-融合演进-迭代记录.md) — earlier 天枢 absorptions (render core, meridian, pheromone, fs-snapshot).
+- [run_tests tools](2026-08-19-run-tests-tools.md) and [doom-loop guard](2026-08-19-doom-loop-guard.md) — sibling absorptions in the same tier.

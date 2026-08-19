@@ -6,7 +6,7 @@ Status: implemented
 
 ## Problem
 
-omts 唯一的测试运行面就是手写命令的 `bash`：没有框架检测，没有机器可读的通过/失败计数，也没有针对「哪些测试覆盖了这个文件」的专用发现机制。opencode-tui 将 `run_tests`（结果解析 + 失败分类）与 `related_tests` 作为日常使用的内核工具随产品提供；[差距分析](../../../../docs/opencode-tui-vs-omts-能力差距与吸收路线.md)将它们归为「值得吸收」，因为二者建立在 omts 已拥有的 seam 之上，且以零新增通道为 evidence-gate 供数。
+omts 唯一的测试运行面就是手写命令的 `bash`：没有框架检测，没有机器可读的通过/失败计数，也没有针对「哪些测试覆盖了这个文件」的专用发现机制。opencode-tui 将 `run_tests`（结果解析 + 失败分类）与 `related_tests` 作为日常使用的内核工具随产品提供。二者建立在 omts 已拥有的 seam 之上，且以零新增通道为 evidence-gate 供数，因此适合落在本仓库。
 
 ## Decision
 
@@ -44,6 +44,5 @@ omts 唯一的测试运行面就是手写命令的 `bash`：没有框架检测�
 
 ## Related
 
-- [opencode-tui vs omts — 能力差距与吸收路线](../../../../docs/opencode-tui-vs-omts-能力差距与吸收路线.md) — 本功能所实现的差距分析。
 - [tool-JSON-in-content 修复插件](2026-08-19-tool-json-repair.md) — 同一档位的姊妹吸收项。
 - [后台任务运行时](../architecture/2026-06-20-generic-long-running-tool-runtime.md) — 后台分支复用的 `ctx.tasks` 生产方约定。

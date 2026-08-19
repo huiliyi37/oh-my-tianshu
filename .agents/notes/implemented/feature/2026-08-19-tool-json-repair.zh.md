@@ -6,7 +6,7 @@ Status: implemented
 
 ## Problem
 
-DeepSeek 偶尔会把工具调用序列化成 `content` 里的 JSON 文本，而不是放进 `tool_calls` 协议字段（这正是 opencode-tui 用 `RepairPipeline` 修复的故障形态）。omts 的 `dsh-llm-deepseek` 只翻译结构完好的协议层 `tool_calls`，因此 JSON 内嵌 content 的响应会落成一条纯文本消息：主循环什么也不执行，模型白白消耗轮次反复重发该调用。`dsh-tui` 的差距分析（[opencode-tui vs omts](../../../../docs/opencode-tui-vs-omts-能力差距与吸收路线.md)）把它列为从天枢源码中吸收价值最高的一项。
+DeepSeek 偶尔会把工具调用序列化成 `content` 里的 JSON 文本，而不是放进 `tool_calls` 协议字段（这正是 opencode-tui 用 `RepairPipeline` 修复的故障形态）。omts 的 `dsh-llm-deepseek` 只翻译结构完好的协议层 `tool_calls`，因此 JSON 内嵌 content 的响应会落成一条纯文本消息：主循环什么也不执行，模型白白消耗轮次反复重发该调用。`dsh-tui` 的差距分析把它列为从天枢源码中吸收价值最高的一项。
 
 ## Decision
 
@@ -38,5 +38,4 @@ DeepSeek 偶尔会把工具调用序列化成 `content` 里的 JSON 文本，而
 
 ## Related
 
-- [opencode-tui vs omts — 能力差距与吸收路线](../../../../docs/opencode-tui-vs-omts-能力差距与吸收路线.md) — 本插件所实现的差距分析。
-- [dsh-tui 融合演进迭代记录](../../../../docs/dsh-融合演进-迭代记录.md) — 早期从天枢吸收的能力（render core、meridian、pheromone、fs-snapshot）。
+- [run_tests 工具](2026-08-19-run-tests-tools.md) 与 [doom-loop guard](2026-08-19-doom-loop-guard.md) — 同一档位下的姊妹吸收。

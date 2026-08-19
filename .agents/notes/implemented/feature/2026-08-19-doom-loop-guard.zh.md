@@ -6,7 +6,7 @@ Status: implemented
 
 ## Problem
 
-omts 的 guard 家族目前只能打破一种循环形态：repeat-tool-guard 统计相同调用的连续次数。opencode-tui 内置了更丰富的检测器：oscillation（交替调用对）、behavior-mirror（重复模式）与 strategy-shift（doom-loop 退出建议）。差距分析（[opencode-tui vs omts — 能力差距与吸收路线](../../../../docs/opencode-tui-vs-omts-能力差距与吸收路线.md)）把它们归类为「值得吸收」的 guard 插件：吸收检测器本身，而不是承载它们的认知虚拟机（CVM）。交替使用工具、或反复重跑未变失败测试的循环，能轻松绕过相同调用链。
+omts 的 guard 家族目前只能打破一种循环形态：repeat-tool-guard 统计相同调用的连续次数。opencode-tui 内置了更丰富的检测器：oscillation（交替调用对）、behavior-mirror（重复模式）与 strategy-shift（doom-loop 退出建议）。因此它们作为 guard 插件落在本仓库：吸收检测器本身，而不是承载它们的认知虚拟机（CVM）。交替使用工具、或反复重跑未变失败测试的循环，能轻松绕过相同调用链。
 
 ## Decision
 
@@ -41,6 +41,5 @@ omts 的 guard 家族目前只能打破一种循环形态：repeat-tool-guard �
 
 ## Related
 
-- [opencode-tui vs omts — 能力差距与吸收路线](../../../../docs/opencode-tui-vs-omts-能力差距与吸收路线.md) — 本插件所实现的差距分析。
 - [repeat-tool-guard README](../../../../packages/guard/repeat-tool-guard/README.md) — 本插件刻意不去重复的相同调用链。
 - [tool-JSON-in-content repair 插件](2026-08-19-tool-json-repair.md) 与 [run_tests 工具](2026-08-19-run-tests-tools.md) — 同一档位下的姊妹吸收。

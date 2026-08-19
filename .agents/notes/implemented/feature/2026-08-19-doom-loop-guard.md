@@ -6,7 +6,7 @@ English | [中文](2026-08-19-doom-loop-guard.zh.md)
 
 ## Problem
 
-omts's guard family broke loops by one shape only: repeat-tool-guard counts runs of identical calls. opencode-tui ships richer detectors — oscillation (an alternating call pair), behavior-mirror (repetitive patterns), and strategy-shift (doom-loop exit suggestions) — and the [gap analysis](../../../../docs/opencode-tui-vs-omts-能力差距与吸收路线.md) classes them "worth absorbing" as a guard plugin: absorb the detectors, not the CVM they live in. Loops that alternate tools or re-run an unchanged failing test sail past an identical-call chain.
+omts's guard family broke loops by one shape only: repeat-tool-guard counts runs of identical calls. opencode-tui ships richer detectors — oscillation (an alternating call pair), behavior-mirror (repetitive patterns), and strategy-shift (doom-loop exit suggestions) — so they land here as a guard plugin: absorb the detectors, not the CVM they live in. Loops that alternate tools or re-run an unchanged failing test sail past an identical-call chain.
 
 ## Decision
 
@@ -41,6 +41,5 @@ Each detector dedupes per pattern until it breaks; a per-turn `reminderBudget` c
 
 ## Related
 
-- [opencode-tui vs omts — capability gap and absorption roadmap](../../../../docs/opencode-tui-vs-omts-能力差距与吸收路线.md) — the analysis this implements.
 - [repeat-tool-guard README](../../../../packages/guard/repeat-tool-guard/README.md) — the identical-call chain this guard deliberately does not duplicate.
 - [tool-JSON-in-content repair plugin](2026-08-19-tool-json-repair.md) and [run_tests tools](2026-08-19-run-tests-tools.md) — the sibling absorptions in the same tier.

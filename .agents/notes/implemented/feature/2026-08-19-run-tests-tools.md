@@ -6,7 +6,7 @@ English | [中文](2026-08-19-run-tests-tools.zh.md)
 
 ## Problem
 
-omts's only test-runner surface was `bash` with hand-written commands: no framework detection, no machine-readable pass/fail counts, and no dedicated discovery for "which tests cover this file". opencode-tui ships `run_tests` (result parsing + failure classification) and `related_tests` as daily-use kernel tools; the [gap analysis](../../../../docs/opencode-tui-vs-omts-能力差距与吸收路线.md) classes them "worth absorbing" because they build on seams omts already owns and feed the evidence gate with zero new channels.
+omts's only test-runner surface was `bash` with hand-written commands: no framework detection, no machine-readable pass/fail counts, and no dedicated discovery for "which tests cover this file". opencode-tui ships `run_tests` (result parsing + failure classification) and `related_tests` as daily-use kernel tools. They belong here because they build on seams omts already owns and feed the evidence gate with zero new channels.
 
 ## Decision
 
@@ -44,6 +44,5 @@ Framework detection and execution anchor to the calling session's cwd. Misconfig
 
 ## Related
 
-- [opencode-tui vs omts — capability gap and absorption roadmap](../../../../docs/opencode-tui-vs-omts-能力差距与吸收路线.md) — the analysis this implements.
 - [tool-JSON-in-content repair plugin](2026-08-19-tool-json-repair.md) — the sibling absorption in the same tier.
 - [background-task runtime](../architecture/2026-06-20-generic-long-running-tool-runtime.md) — the `ctx.tasks` producer contract the background branch reuses.

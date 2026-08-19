@@ -43,7 +43,7 @@ engine/（原语）    render/（纯函数面板投影）
 | `engine/stream-render-controller.ts` | `handleStreamEvent`（L1466+） | 内联含 `tool/call`→fluency.setPhase、`tool/result`→fluency.recordToolResult、`turn/end`→fluency.onTurnComplete；controller 只有 assistant/chunk·message·turn/end 三 case，缺 fluency 处理 | **语义不等 → 删除提取**（保留内联） |
 | `engine/tool-group-controller.ts` | `renderLive` 工具卡段（L1658+） | 内联传 `compact: this.compactMode`；controller.liveLines 无 compact 参数 | **语义不等 → 删除提取**（保留内联） |
 
-判据（[C4 拆分方案](../../../docs/dsh-tui-拆分方案-c4.md) 项 13）：任何 case
+判据：任何 case
 语义不等则以 app.ts 内联为准（删除提取），不留孤儿。底层原语
 （StreamRenderer / BlockStreamWriter / formatToolCard / format-tool-group
 纯 fold）保留且有独立测试；app.spec 黑盒覆盖等价行为。
