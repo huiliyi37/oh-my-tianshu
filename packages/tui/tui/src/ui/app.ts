@@ -29,7 +29,7 @@ import type { ReadStream, WriteStream } from 'node:tty'
 import type { Context } from '@huiliyi37/cordis'
 import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
 import type { CallId, TokenUsage } from '@huiliyi37/dsh-llm'
-import type {} from '@huiliyi37/dsh-intent-bridge' // 'intent-bridge/handoff' event + ctx.intentBridge declaration merge
+import type { IntentBridgeService } from '@huiliyi37/dsh-intent-bridge' // 'intent-bridge/handoff' event + ctx.intentBridge declaration merge
 import { installModelSelection, type Agent, type AgentHandle, type ModelSelection, type ModelSelectionRef } from '@huiliyi37/dsh-agent'
 // 空类型导入引入 Context 上 agentDefaultModel 服务的声明合并（headless 同款）。
 import type {} from '@huiliyi37/dsh-agent-default-model'
@@ -1569,8 +1569,11 @@ export class TuiApp {
     // 完成（intent-bridge/handoff）时由 bridge 创建并自动切回。对齐会话的
     // 模型路由由 bridge 配置（alignProvider/alignModel）；主会话跟随当前
     // 模型选择（exec override），cwd 与常规新会话一致（启动目录）。
-    if (this.ctx.intentBridge !== undefined) {
-      const align = await this.ctx.intentBridge.createAlignedSession({
+    // 经 reflect.get 读取：runtimeCtx 只 inject sessions/agents/agentDefaultModel，
+    // 属性访问未声明的 intentBridge 在 Cordis 4 抛 without inject（真实装配已复现）。
+    const intentBridge = this.ctx.reflect.get('intentBridge', false) as IntentBridgeService | undefined
+    if (intentBridge !== undefined) {
+      const align = await intentBridge.createAlignedSession({
         cwd: process.cwd(),
         exec: { provider: selection.provider, model: selection.model },
       })

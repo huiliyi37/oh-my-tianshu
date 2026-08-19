@@ -279,6 +279,47 @@ describe('TuiApp agent-ensure 三分支', () => {
     await app.dispose()
   })
 
+  it('newSession 经 reflect.get 读 intentBridge：属性访问抛 without inject 时仍建常规会话', async () => {
+    const ctx = makeCtx()
+    Object.defineProperty(ctx, 'intentBridge', {
+      get(): never {
+        throw new Error('cannot get property "intentBridge" without inject')
+      },
+      configurable: true,
+    })
+    const agent = makeAgent('bridge-proxy-1')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+    await expect(app.newSession()).resolves.toEqual(expect.any(String))
+    expect(ctx.agents.create).toHaveBeenCalledTimes(1)
+    await app.dispose()
+  })
+
+  it('newSession 在 intentBridge 装配时走 createAlignedSession，主会话跟随当前模型', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('align-1')
+    const handle = makeHandle(agent)
+    const createAlignedSession = vi.fn(async () => ({ sessionId: 'align-session', handle }))
+    ctx.reflect.get.mockImplementation((name: string) => (
+      name === 'intentBridge' ? { createAlignedSession } : undefined
+    ))
+    ctx.sessions.get.mockReturnValue(agent.session)
+
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+    const id = await app.newSession()
+
+    expect(id).toBe(SessionId('align-session'))
+    expect(createAlignedSession).toHaveBeenCalledWith({
+      cwd: process.cwd(),
+      exec: { provider: 'mock', model: 'mock' },
+    })
+    expect(ctx.agents.create).not.toHaveBeenCalled()
+    await app.dispose()
+  })
+
   it('提交路径在 followup 前先画一帧：驱动同步阻塞不吞输入框（提交卡顿回归）', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('order-1')
