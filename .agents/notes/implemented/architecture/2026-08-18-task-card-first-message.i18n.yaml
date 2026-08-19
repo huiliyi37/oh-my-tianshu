@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-18-task-card-first-message.md
-2026-08-18-task-card-first-message.md: 29758330fe277c56524c275908c0fd5c037b080a
-2026-08-18-task-card-first-message.zh.md: 05dfab98be8b0c452cfae6a3cda5ff51a7a3936b
+2026-08-18-task-card-first-message.md: 4170647e4e9c2ee5e23e015c8bf5f687a72f194a
+2026-08-18-task-card-first-message.zh.md: 8e65b2961f4c64da2b8398230e41f9e69d1d788c

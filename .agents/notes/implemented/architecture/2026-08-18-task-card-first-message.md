@@ -24,7 +24,7 @@ The task card is a built-in lifecycle enhancement owned by `packages/guard/task-
 
 - **`inbox.replace` rewrite (zen-phase entry linkage).** A listener on `agent/inbox/inserted` (registered before zen) would rewrite asynchronously and `replace` the pending message, re-publishing inserted so zen's triage sees the carded text and short messages enter the zen phase. Rejected for the MVP: the driver can claim the message during the async generation (`replace` then returns false — `packages/core/agent/src/inbox.ts:127-135`), and the effect depends on listener registration order (fragile, would need bundle-order tests to lock). Recorded as a follow-up enhancement, not the shipped path.
 - **TUI confirmation panel.** Generate the card in the client, let the user confirm before sending. Rejected: TUI-only (headless clients get nothing), the TUI layer should not call the LLM (architecture layering), and it changes the interaction flow with an extra step.
-- **Prompt-only guidance.** Ask the model to restructure its own input — model-side discipline, unenforceable and host-invisible; the zen ablation already showed guidance alone cannot rescue a bad surface.
+- **Prompt-only guidance.** Ask the model to restructure its own input — model-side discipline, unenforceable and host-invisible; guidance alone cannot rescue a wide tool face.
 
 ## Consequences
 

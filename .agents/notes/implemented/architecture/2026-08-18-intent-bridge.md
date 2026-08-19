@@ -23,7 +23,7 @@ The intent bridge (`packages/guard/intent-bridge`, `@huiliyi37/dsh-intent-bridge
 
 - **Model switch inside the main session** — rejected: inherits the full context (violates the requirement), and no route-switching mechanism exists mid-session.
 - **`ask_user_question` hang-tool clarification** — rejected: forces structured question tooling + a suspension link, loses conversation context; ordinary turns are simpler and already proven (btw-controller's single-round sample).
-- **Prompt-only guidance on the main model** — rejected: model-side discipline, unenforceable; the zen ablation already showed guidance cannot rescue a bad surface.
+- **Prompt-only guidance on the main model** — rejected: model-side discipline, unenforceable; guidance cannot rescue a wide tool face.
 
 ## Consequences
 

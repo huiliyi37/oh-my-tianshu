@@ -57,7 +57,7 @@
     # 以便收窄期能走到已按角色收窄的委派路径。锚校验/超时/分诊三谓词晋升
     # 去重后的顶层面（promoteDeny 拿掉与 bash 抢意图的栈；插件仍注册，
     # 供 explore 子代理的 allow 列表使用）。子代理会话（parentSession）
-    # 不参与。Phase 0 消融见 examples/headless-agent/zen-ablation-report.md。
+    # 不参与。
     - id: zen
       name: '@huiliyi37/dsh-zen'
       config:

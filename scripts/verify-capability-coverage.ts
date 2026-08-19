@@ -1,30 +1,26 @@
 /**
- * Prove the tool-face ablation's capability namespace stays exhaustive against
- * the shipped tool catalog.
+ * Prove the shipped tool catalog's intent-group namespace stays exhaustive.
  *
- * The ablation in `examples/headless-agent/` decides which model-visible tools
- * belong on the default face. It reasons over *intent groups*, and it detects
- * `bash` standing in for a withheld tool through a command-signature table. Both
- * are silent failure surfaces: a newly registered tool that nobody grouped is
- * counted as intent-free, so every substitution through it disappears from the
- * data instead of raising an error. This gate makes that impossible by checking
- * three things against `docs/tool-catalog.md`:
+ * A newly registered tool that nobody grouped is a silent hole in the face
+ * partition. This gate checks three things against `docs/tool-catalog.md`:
  *
  * 1. every registered tool name sits in exactly one capability group,
  * 2. no group names a tool that no package registers,
  * 3. every group is accounted for as the self-sufficient base face, a mountable
- *    real-face layer, or an explicitly excluded group with a written reason.
+ *    product-face layer, or an explicitly excluded group with a written reason.
  */
 
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
+  BASE_FACE,
   CAPABILITY_GROUPS,
   capabilityCoverageViolations,
+  EXCLUDED_CAPABILITIES,
+  EXCLUDED_TOOLS,
   groupOfTool,
-  BASE_FACE,
-} from '../examples/headless-agent/src/zen-ablation/capabilities.ts'
-import { EXCLUDED_CAPABILITIES, EXCLUDED_TOOLS, REAL_LAYERS } from '../examples/headless-agent/src/zen-ablation/faces.ts'
+  REAL_LAYERS,
+} from './tool-face-catalog.ts'
 
 const root = resolve(import.meta.dirname, '..')
 
@@ -86,8 +82,8 @@ if (process.argv[1] && import.meta.filename === resolve(process.argv[1])) {
   if (failures.length > 0) {
     console.error('verify-capability-coverage failed:\n')
     for (const failure of failures) console.error(`  ${failure}`)
-    console.error('\nGroup the tool in examples/headless-agent/src/zen-ablation/capabilities.ts, then either mount it '
-      + 'in a REAL_LAYERS layer or record why not in EXCLUDED_CAPABILITIES / EXCLUDED_TOOLS (faces.ts).')
+    console.error('\nGroup the tool in scripts/tool-face-catalog.ts, then either mount it '
+      + 'in a REAL_LAYERS layer or record why not in EXCLUDED_CAPABILITIES / EXCLUDED_TOOLS.')
     process.exit(1)
   }
   console.log(`verify-capability-coverage: ${registered.length} catalogued tools grouped; `

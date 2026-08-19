@@ -4,7 +4,7 @@ English | [中文](README.zh.md)
 
 The zen phase is a built-in agent-lifecycle phase, not a skill: a fresh top-level session's first steps run on a minimal anchored tool face — the official DeepSeek evaluation recipe (`bash`, `str_replace_editor`, `todo_write`) plus the agent-scoped `zen_anchor` — while a `zen:policy` prompt section directs the model to anchor the task: restate the goal, verify a landmark with a read-only probe, then call `zen_anchor`. A host-verified predicate promotes the session to the full face; the model's own claim of readiness is never trusted. Decision record: [the zen-phase Agent Note](../../../.agents/notes/implemented/architecture/2026-08-17-zen-phase-engineering-paradigm.md). After promotion the TUI parent catalog hides stacks that compete with `bash` for the same intent (`promoteDeny`).
 
-Ablation grounding (Phase 0, 5-arm, real DeepSeek API, [report](../../../examples/headless-agent/zen-ablation-report.md), [results](../../../examples/headless-agent/zen-ablation-results.json)): the 2-tool minimal face eliminated wasted tool calls entirely (0 vs 3.0 per task on the 35-schema face) at 39% of the wide face's tokens, while zen guidance on a wide face made things worse — the face reduction is the active ingredient, which is why the phase physically shrinks the face instead of asking nicely. Remaining waste on a real product face is intent overlap with `bash`, not schema count.
+The phase physically shrinks the first-request face instead of asking the model to ignore extra tools: guidance on a wide face does not substitute for a smaller catalog. After promotion the remaining overlap is with `bash`, which is why the TUI `promoteDeny` list hides the competing stacks rather than growing the catalog.
 
 ## Config
 
@@ -54,11 +54,11 @@ The first request's tool list is the anchored face plus `zen_anchor`, and the sy
 
 #### Token effect
 
-The wide face's schemas never enter the first requests: in the ablation the minimal face averaged 561 tokens per task against 1446 on the wide face. The `section` text is the only addition.
+The wide face's schemas never enter the first requests. The `section` text is the only addition.
 
 #### KV Cache effect
 
-Promotion changes the tool schema block, so the next request re-fills that prefix once. Phase 0 measured 561 tokens/task on the minimal face against 1446 on the wide face (in+out). DeepSeek flash list prices used here are $0.27/MTok uncached input and $0.07/MTok cache read; do not treat the ablation harness's `firstStepInputTokens` as prefix size.
+Promotion changes the tool schema block, so the next request re-fills that prefix once.
 
 ### zen_anchor call and result
 

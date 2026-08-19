@@ -24,7 +24,7 @@ Status: implemented
 
 - **`inbox.replace` 改写（联动禅模式进入）。** 监听 `agent/inbox/inserted`（注册在 zen 之前）异步改写并 `replace` pending 消息，重发 inserted 让 zen triage 看到卡片文本、短消息进入禅模式。MVP 否决：异步生成期间 driver 可能已 claim 消息（`replace` 届时返回 false——`packages/core/agent/src/inbox.ts:127-135`），且效果依赖 listener 注册顺序（脆弱，需 bundle 顺序测试锁死）。记为后续增强，不是本次路径。
 - **TUI 确认面板。** 客户端生成卡片、用户确认后发送。否决：只在 TUI 生效（headless 客户端没有）；TUI 层不应调 LLM（架构分层）；多一步交互改变流程。
-- **纯提示引导。** 求模型自行重构输入——模型侧纪律，无法强制执行且 host 不可见；zen 消融已证明引导词单独救不了劣质面。
+- **纯提示引导。** 求模型自行重构输入——模型侧纪律，无法强制执行且 host 不可见；仅靠引导词救不了过宽的工具面。
 
 ## 后果
 

@@ -4,7 +4,7 @@
 
 zen 阶段是内建的 agent（智能体）生命周期阶段，而非 skill（技能）：新建顶层会话的最初几个步骤运行在一个最小的锚定工具 face 上——官方 DeepSeek 评测配方（`bash`、`str_replace_editor`、`todo_write`）加 agent 作用域的 `zen_anchor`——同时一段 `zen:policy` 提示词段落指示模型锚定任务：重述目标，用只读探针验证一个地标，然后调用 `zen_anchor`。由宿主验证的谓词把会话晋升（promotion）到完整 face；绝不采信模型自称已就绪。决策记录见 [zen 阶段 Agent Note](../../../.agents/notes/implemented/architecture/2026-08-17-zen-phase-engineering-paradigm.md)。晋升之后 TUI 父级目录会隐藏与 `bash` 抢同一意图的栈（`promoteDeny`）。
 
-消融实验依据（Phase 0，五组实验、真实 DeepSeek API、[实验报告](../../../examples/headless-agent/zen-ablation-report.md)、[结果数据](../../../examples/headless-agent/zen-ablation-results.json)）：双工具最小 face 完全消除了浪费的工具调用（每任务 0 次，对比 35 个 schema 的 face 上的 3.0 次），token 用量仅为宽 face 的 39%；而在宽 face 上叠加 zen 指引反而更糟——face 缩减才是起效成分，这正是该阶段物理收窄 face、而非好言相劝的原因。真实产品面上剩余的浪费来自与 `bash` 的意图重叠，而不是 schema 数量。
+该阶段物理收窄首次请求的工具 face，而不是请模型自行忽略多余工具：在宽 face 上叠加指引不能代替更小的目录。晋升之后剩余的重叠来自与 `bash` 抢同一意图，因此 TUI 用 `promoteDeny` 隐藏那些栈，而不是把目录再做大。
 
 ## 配置
 
@@ -54,11 +54,11 @@ zen 阶段是内建的 agent（智能体）生命周期阶段，而非 skill（�
 
 #### Token 影响
 
-宽 face 的 schema 从不进入最初几次请求：消融实验中最小 face 平均每任务 561 token，宽 face 则是 1446。唯一新增的是 `section` 文本。
+宽 face 的 schema 从不进入最初几次请求。唯一新增的是 `section` 文本。
 
 #### KV Cache 影响
 
-晋升会改变工具 schema 块，因此下一次请求要重填一次该前缀。Phase 0 测得最小 face 每任务 561 token，宽 face 为 1446（输入+输出）。此处采用的 DeepSeek flash 牌价是未命中输入 $0.27/MTok、缓存读取 $0.07/MTok；不要把消融 harness 的 `firstStepInputTokens` 当成前缀规模。
+晋升会改变工具 schema 块，因此下一次请求要重填一次该前缀。
 
 ### zen_anchor 调用与结果
 
