@@ -124,6 +124,7 @@
 | src/restore-session.ts | restore-session.ts | modified |
 | src/ring-buffer.ts | ring-buffer.ts | modified |
 | src/scrollback-transcript.ts | scrollback-transcript.ts | modified |
+| src/session-label.ts | — | new（会话 id 显示短标签：剥离 `session-` 前缀后截 8 位，消除空壳 label） |
 | src/skill-panel.ts | — | new |
 | src/status-panel.ts | — | new |
 | src/statusline.ts | statusline.ts | modified（追加工作流投影层 + WorkflowStatusLine） |

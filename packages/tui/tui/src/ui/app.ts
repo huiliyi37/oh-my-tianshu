@@ -69,7 +69,8 @@ import { lspBadgeText } from '../format/lsp-diagnostics.js'
 import { formatToolViewCard } from '../format/tool-view-card.js'
 import { formatReasoningBlock, formatReasoningLive, reasoningTailBudget } from '../format/reasoning.js'
 import { accumulateUsage, formatSessionCostReport, type SessionCostBucket } from '../format/session-cost.js'
-import { formatSessionTabs, sessionTabLabel, type SessionTab } from '../format/session-tabs.js'
+import { formatSessionTabs, type SessionTab } from '../format/session-tabs.js'
+import { shortSessionLabel } from '../session-label.js'
 import { renderKeymapPanel } from '../format/keymap-panel.js'
 import { renderSessionExport } from '../format/export.js'
 import type { TaskItem } from '../format/task-panel.js'
@@ -110,7 +111,6 @@ import {
   renderWorkflowPanel,
   renderConfigPanel,
   renderSkillsPanel,
-  renderSessionTabs,
   renderLspPanel,
 } from '../render/live-panels.js'
 import type { LiveSnapshot } from '../render/live-snapshot.js'
@@ -1463,7 +1463,7 @@ export class TuiApp {
     const active = this.activeSessionId
     this.sessionTabs = rows.map(row => ({
       id: row.id,
-      label: sessionTabLabel(row.id),
+      label: shortSessionLabel(row.id),
       current: row.id === active,
     }))
     this.renderBatcher.schedule()
@@ -2227,9 +2227,9 @@ export class TuiApp {
    */
   private subagentLabel(id: string): string {
     for (const e of this.delegationEntries ?? []) {
-      if (e.kind === 'child' && e.id === id) return e.label ?? id.slice(0, 8)
+      if (e.kind === 'child' && e.id === id) return e.label ?? shortSessionLabel(id)
     }
-    return id.slice(0, 8)
+    return shortSessionLabel(id)
   }
 
   private refreshDelegationTree(sessionId: SessionId): void {
@@ -3621,10 +3621,9 @@ export class TuiApp {
     }
 
     // ── 面板段（7 面板纯函数；组合器负责 { text } 包装与 theme 着色）。──
-    // P3：会话 tab 栏（多会话 side conversation；单行，secondary 色）。
-    for (const line of renderSessionTabs(snapshot)) {
-      lines.push({ text: color(line, theme.secondary) })
-    }
+    // 会话 tab 栏只在 chrome 段渲染一次（formatSessionTabs：短 label + 当前 ● +
+    // 窄宽折叠；Ctrl+X/Alt+数字切换）。live 段的 renderSessionTabs 消费已移除——
+    // 双栏同屏（两行不同来源的 tab）且 label 数据源曾是空壳病灶。
     // glance 段：状态行 + 错误行（metrics 已并入输入轨下方 footer，避免双份）。
     for (const line of renderGlancePanel(snapshot)) lines.push({ text: line })
     // T4 + T2.3：任务窗格 + 后台任务区（/tasks 面板内；taskPanelVisible 门控
