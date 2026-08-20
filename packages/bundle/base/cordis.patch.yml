@@ -292,6 +292,13 @@
     - id: command-compact
       name: '@huiliyi37/dsh-command-compact'
 
+    # Human `/next-workflow`: the fixed intent pipeline (INTENT → PLAN →
+    # CRITIQUE → IMPLEMENT → VERIFY → REVIEW). Subagent and bash capabilities
+    # are probed at handler time, so the row stays neutral; the deployment owns
+    # verifyCommand — unset, VERIFY reports `unverified` instead of claiming success.
+    - id: next-workflow
+      name: '@huiliyi37/dsh-next-workflow'
+
     - id: subagent
       name: '@huiliyi37/dsh-subagent'
 

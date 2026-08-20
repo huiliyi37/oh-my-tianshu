@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-This family runs model-authored orchestration workflows over subagents and exposes general and fixed-policy tools to the model. `@huiliyi37/dsh-next-workflow` is a harness-owned human command on the same group; it is on the tree and stays off every shipped composition.
+This family runs model-authored orchestration workflows over subagents and exposes general and fixed-policy tools to the model. `@huiliyi37/dsh-next-workflow` is a harness-owned human command on the same group; `dsh-base` supplies it to every shipped profile.
 
 | Package | Role | ctx key |
 |---|---|---|

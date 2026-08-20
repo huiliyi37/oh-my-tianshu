@@ -36,7 +36,9 @@ const EXPECTED_TOOLS = [
   'list_agents',
   'ralph',
   'read',
+  'related_tests',
   'repo_graph',
+  'run_tests',
   'semantic_search',
   'send_message',
   'skill',
@@ -97,6 +99,11 @@ it('assembles the shipped Web catalog with the confined access default', async (
       name: 'feedback',
       description: 'record feedback about this session',
       input: { hint: '<text>' },
+    })
+    expect(scaffold.ctx.commands.list(handle.agent)).toContainEqual({
+      name: 'next-workflow',
+      description: 'Run the fixed intent pipeline: INTENT → PLAN → CRITIQUE → IMPLEMENT → VERIFY → REVIEW',
+      input: { hint: '[candidates] <objective>' },
     })
   } finally {
     await handle.dispose()

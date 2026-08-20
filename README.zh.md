@@ -137,6 +137,7 @@ TUI 是天枢(opencode-tui)渲染核心适配 harness 接缝的移植,界面对�
 | `/skills` | 技能浏览面板 |
 | `/subagents` | 委派树面板 |
 | `/workflow` | workflow 运行中面板 |
+| `/next-workflow [candidates] <objective>` | 运行固定的「意图 → 规划 → 批评 → 实现 → 验证 → 评审」流水线；除非 profile 配置 `verifyCommand`，否则 VERIFY 报告 `unverified`；请在禅相位晋升后调用 |
 | `/tasks` | 任务窗格(后台任务) |
 | `/goal` | 目标管理(创建 / 暂停 / 恢复 / 完成 / 阻塞) |
 | `/memory` | 记忆浏览器(列表 / 过滤 / 删除 / 预览) |

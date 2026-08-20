@@ -1,4 +1,4 @@
-# Agent Note: `/next-workflow` —— 固定意图流水线，按需挂载，不是禅的替代品
+# Agent Note: `/next-workflow` —— 固定意图流水线，不是禅的替代品
 
 Status: implemented
 
@@ -16,11 +16,11 @@ INTENT、PLAN、CRITIQUE、SELECT、REVIEW 是一次性结构化输出子代理�
 
 插件只注入 `commands`，其余在处理器时探测。缺 subagents、provider 能力不足或继承父上下文、或配置了闸门却没有 bash，都 fail loud。每个会话同时只有一次运行。
 
-任何发货组合都不挂本插件——不进 `dsh-base`，不进 TUI，不进 Web。IMPLEMENT 用当前会话的工具面，禅锚定会话只会在锚定集合上实现。overlay 挂载的宿主应在晋升之后或不挂禅。plan-mode 与 `tool-ralph` 不动。
+[基础组合包启用决策](2026-08-20-next-workflow-base-bundle-activation.md)负责插件的发货位置。IMPLEMENT 使用当前会话的工具面，因此 TUI 用户应在禅相位晋升后调用该命令；该命令本身不会晋升会话。plan-mode 与 `tool-ralph` 不动。
 
 ## Alternatives considered
 
-**像 `github/dev` 那样挂进 `dsh-base` 或发货 TUI。** 否决：每个 profile 都会多一条六相位运行器，VERIFY 在部署写上 `verifyCommand` 之前一直是 `unverified`。禅锚定的 TUI 会话上 IMPLEMENT 不是全工具面实现器。这不是禅的替代品。
+**保持命令按需挂载。** 已被[基础组合包启用决策](2026-08-20-next-workflow-base-bundle-activation.md)取代；该决策负责发货挂载策略，同时保留如实的 `unverified` 处置和禅晋升约束。
 
 **用 `tool-workflow` 让模型写动态工作流。** 否决：模型拿着编排脚本，正是本功能要去掉的不确定性。
 
@@ -30,4 +30,4 @@ INTENT、PLAN、CRITIQUE、SELECT、REVIEW 是一次性结构化输出子代理�
 
 ## Consequences
 
-overlay 挂载的宿主得到可重建的运行（会话日志加产物文件）和诚实的 verify 处置。发货 TUI、Web、headless 不变。覆盖：`packages/workflow/next-workflow/tests/*.spec.ts`（成功路径、批评回环、verify 重试 / `failed-verification`、能力探测、effort 改写与恢复、多方案 SELECT、Loader 组合、真实 spawn 集成、空 invariant 伴侣）。
+流水线提供可重建的运行（会话日志加产物文件）和诚实的 verify 处置。[基础组合包启用决策](2026-08-20-next-workflow-base-bundle-activation.md)负责 profile 可用性。覆盖：`packages/workflow/next-workflow/tests/*.spec.ts`（成功路径、批评回环、verify 重试 / `failed-verification`、能力探测、effort 改写与恢复、多方案 SELECT、Loader 组合、真实 spawn 集成、空 invariant 伴侣）。

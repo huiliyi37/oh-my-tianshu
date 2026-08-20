@@ -137,6 +137,7 @@ The TUI is a port of the Tianshu (opencode-tui) render core adapted to the harne
 | `/skills` | skill browser panel |
 | `/subagents` | delegation-tree panel |
 | `/workflow` | running-workflow panel |
+| `/next-workflow [candidates] <objective>` | run the fixed intent → plan → critique → implement → verify → review pipeline; VERIFY reports `unverified` unless the profile configures `verifyCommand`; invoke after zen promotion |
 | `/tasks` | task panel (background tasks) |
 | `/goal` | goal management (create / pause / resume / complete / block) |
 | `/memory` | memory browser (list / filter / delete / preview) |

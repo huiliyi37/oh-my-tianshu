@@ -1,4 +1,4 @@
-# Agent Note: `/next-workflow` — a fixed intent pipeline, opt-in, not a zen replacement
+# Agent Note: `/next-workflow` — a fixed intent pipeline, not a zen replacement
 
 Status: implemented
 
@@ -16,11 +16,11 @@ INTENT, PLAN, CRITIQUE, SELECT, and REVIEW are one-shot structured-output subage
 
 The plugin injects only `commands` and probes the rest at handler time. Missing subagents, an incapable or parent-inheriting provider, or a configured gate without bash fails loud. One run per session.
 
-No shipped composition mounts this plugin — not `dsh-base`, not TUI, not Web. IMPLEMENT uses the current session's tool face, so a zen-armed session would implement on the anchored set. Hosts that overlay this plugin do so after promotion or without zen. plan-mode and `tool-ralph` stay untouched.
+The [base-bundle activation decision](2026-08-20-next-workflow-base-bundle-activation.md) owns where the plugin ships. IMPLEMENT uses the current session's tool face, so TUI users invoke it after zen promotion; the command does not promote the session itself. plan-mode and `tool-ralph` stay untouched.
 
 ## Alternatives considered
 
-**Mount in `dsh-base` or the shipped TUI, as `github/dev` did.** Rejected: every profile would grow a six-phase runner whose VERIFY is `unverified` until a deployment sets `verifyCommand`. IMPLEMENT on a zen-armed TUI session is not a full-face implementer. This is not a zen substitute.
+**Keep the command opt-in.** Superseded by the [base-bundle activation decision](2026-08-20-next-workflow-base-bundle-activation.md), which owns the shipped mounting policy while retaining the honest `unverified` disposition and zen-promotion constraint.
 
 **A model-written dynamic workflow via `tool-workflow`.** Rejected: the model holding the orchestration script is the non-determinism this feature removes.
 
@@ -30,4 +30,4 @@ No shipped composition mounts this plugin — not `dsh-base`, not TUI, not Web. 
 
 ## Consequences
 
-Hosts that overlay the plugin get a reconstructable run (session log plus artifact files) and an honest verify disposition. Shipped TUI, Web, and headless stay unchanged. Coverage: `packages/workflow/next-workflow/tests/*.spec.ts` (happy path, critique loop, verify retry / `failed-verification`, capability probes, effort rewrite and restore, best-of-N select, Loader composition, real spawn integration, empty invariant companion).
+The pipeline provides a reconstructable run (session log plus artifact files) and an honest verify disposition. The [base-bundle activation decision](2026-08-20-next-workflow-base-bundle-activation.md) owns profile availability. Coverage: `packages/workflow/next-workflow/tests/*.spec.ts` (happy path, critique loop, verify retry / `failed-verification`, capability probes, effort rewrite and restore, best-of-N select, Loader composition, real spawn integration, empty invariant companion).

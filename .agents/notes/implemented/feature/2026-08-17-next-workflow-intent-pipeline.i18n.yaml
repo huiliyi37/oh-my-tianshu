@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-17-next-workflow-intent-pipeline.md
-2026-08-17-next-workflow-intent-pipeline.md: c1b2667355a9f6809a8f23eb822f16604d302bf2
-2026-08-17-next-workflow-intent-pipeline.zh.md: e117b7b46f1318031642a2790f430bd5ae0dbe43
+2026-08-17-next-workflow-intent-pipeline.md: 1537f4438d7c0840e0124d555f9d4af083cfb60c
+2026-08-17-next-workflow-intent-pipeline.zh.md: 8e1919046290cb3f2cf7b67f91faea179a0ab889

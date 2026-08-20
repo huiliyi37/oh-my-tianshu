@@ -4,6 +4,8 @@ English | [中文](README.zh.md)
 
 The shared dsh core as a profile bundle: [`cordis.patch.yml`](cordis.patch.yml) inserts every base plugin row — model adapters, the shared [`agent-default-model`](../../core/agent-default-model/README.md) selection, tools, persistence, policy, settings/credentials, repository Plugins, telemetry — over the empty profile root, as the first layer of every profile's `dsh.profile.bundles` list. Later bundle layers (e.g. [`dsh-web-app`](../web-app/README.md)) and the user's profile `cordis.patch.yml` override these rows by id; a patch replaces a row's whole `config`, so mode-specific values live in mode bundles, not here. The package has no runtime API; the profile composer resolves the patch through the `dsh.bundle.patch` manifest field, never through code.
 
+The base row for [`/next-workflow`](../../workflow/next-workflow/README.md) has no config, so every profile exposes the command once while package defaults keep `verifyCommand` unset. VERIFY reports `unverified` unless a later profile layer replaces the row with deployment-specific gate configuration.
+
 The row set and its rationale are documented inline in the patch file; the [generated composition graph](../../../apps/cli/composition.md) renders it.
 
 ## Model Experience

@@ -4,6 +4,8 @@
 
 以 profile 组合包形式交付的共享 dsh 核心：[`cordis.patch.yml`](cordis.patch.yml) 在空的 profile 根之上插入全部基础插件行——模型适配器、共享的 [`agent-default-model`](../../core/agent-default-model/README.md) 选择、工具、持久化、策略、settings／credentials、repository 插件、遥测——作为每个 profile 的 `dsh.profile.bundles` 列表中的第一层。后续的组合包层（例如 [`dsh-web-app`](../web-app/README.md)）和用户 profile 的 `cordis.patch.yml` 按 id 覆盖这些行；patch 会替换目标行的整个 `config`，因此模式专属的值放在各模式组合包中，而不是这里。该包没有运行时 API；profile 组合器通过 manifest（元数据清单）的 `dsh.bundle.patch` 字段解析 patch，绝不通过代码。
 
+[`/next-workflow`](../../workflow/next-workflow/README.md) 的基础行不含 config，因此每个 profile 仅公开一次该命令，包默认值则保持 `verifyCommand` 未设置。除非后续 profile 层以部署专属的门禁配置替换该行，否则 VERIFY 报告 `unverified`。
+
 行集合及其设计依据以行内注释写在 patch 文件里；[生成的组合图](../../../apps/cli/composition.md)负责渲染它。
 
 ## 模型体验

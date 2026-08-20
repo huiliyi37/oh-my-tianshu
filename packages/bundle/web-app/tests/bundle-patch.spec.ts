@@ -23,6 +23,7 @@ describe('dsh-web-app bundle', () => {
     const ids = rows.map(row => row.id)
     expect(ids).toEqual(expect.arrayContaining(['memory', 'command-memory']))
     expect(ids.indexOf('memory')).toBeLessThan(ids.indexOf('command-memory'))
+    // The shared base bundle owns this row; the Web layer must not duplicate it.
     expect(ids).not.toContain('next-workflow')
   })
 })

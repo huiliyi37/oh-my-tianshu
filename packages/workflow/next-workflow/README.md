@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-The human-facing `/next-workflow <objective>` command runs a fixed, harness-owned phase machine — INTENT → PLAN → CRITIQUE → IMPLEMENT → VERIFY → REVIEW, with an optional SELECT phase between PLAN and CRITIQUE when `planCandidates` exceeds 1. The harness holds the orchestration; models write the content. The plugin registers on [`ctx.commands`](../../interaction/commands/README.md). Design contract: [Agent Note](../../../.agents/notes/implemented/feature/2026-08-17-next-workflow-intent-pipeline.md). No shipped composition mounts this plugin.
+The human-facing `/next-workflow <objective>` command runs a fixed, harness-owned phase machine — INTENT → PLAN → CRITIQUE → IMPLEMENT → VERIFY → REVIEW, with an optional SELECT phase between PLAN and CRITIQUE when `planCandidates` exceeds 1. The harness holds the orchestration; models write the content. The plugin registers on [`ctx.commands`](../../interaction/commands/README.md). The [pipeline](../../../.agents/notes/implemented/feature/2026-08-17-next-workflow-intent-pipeline.md) and [base-bundle activation](../../../.agents/notes/implemented/feature/2026-08-20-next-workflow-base-bundle-activation.md) Agent Notes own its design and shipped placement.
 
 ## Pipeline
 
@@ -29,7 +29,7 @@ While a run is active, an `agent/request` waterfall listener on the invoking age
 
 ## Composition
 
-The plugin injects only `commands`; the subagent provider, bash executor, and git service are probed at handler time. Mount it in an overlay. `dsh-base` and the shipped TUI/Web bundles do not. IMPLEMENT steers the invoking session, so a zen-armed face would implement with only the anchored tools — hosts that mount this should do so after promotion, or without zen. plan-mode and `tool-ralph` stay separate surfaces.
+The plugin injects only `commands`; the subagent provider, bash executor, and git service are probed at handler time. `dsh-base` mounts the neutral row, so every shipped profile inherits it once. A later profile overlay may replace the row to set `verifyCommand`. IMPLEMENT steers the invoking session, so TUI users invoke it after zen promotion when implementation needs the full tool set. plan-mode and `tool-ralph` stay separate surfaces.
 
 ```yaml
 - id: commands
@@ -83,5 +83,4 @@ Effort switches break the request prefix cache at phase boundaries by design —
 - **Implementation is not isolated** — IMPLEMENT steers the invoking session for live visibility and the full tool surface; a Config-routed isolated implementation subagent is deferred.
 - **Critique loop economics** — each critique and review is a full extra context; bounded by Config, but a long SPEC makes phases expensive.
 - **Best-of-N is a cost multiplier, not a quality guarantee** — N planner contexts plus one judge context per planning round, and the judge picks from what the planners produced; it cannot exceed the best candidate. Weak planners make selection cosmetic.
-- **Not a zen replacement** — IMPLEMENT steers the current session's full tool surface; the zen anchored face is a different product and must not host this pipeline by default.
-- **No shipped composition** — the package is on the tree; a host overlay mounts it. Default `planCandidates` stays 1.
+- **Zen invocation** — `dsh-base` exposes the command in TUI, but IMPLEMENT inherits the current session's tool face; invoke it after zen promotion. The pipeline does not promote the session itself.

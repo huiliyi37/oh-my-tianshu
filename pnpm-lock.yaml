@@ -1224,6 +1224,9 @@ importers:
       '@huiliyi37/dsh-meridian':
         specifier: workspace:^
         version: link:../../search/meridian
+      '@huiliyi37/dsh-next-workflow':
+        specifier: workspace:^
+        version: link:../../workflow/next-workflow
       '@huiliyi37/dsh-permission':
         specifier: workspace:^
         version: link:../../interaction/permission

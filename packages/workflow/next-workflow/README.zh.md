@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-面向人类的 `/next-workflow <objective>` 命令运行一条固定的、由 harness 持有的相位机——INTENT → PLAN → CRITIQUE → IMPLEMENT → VERIFY → REVIEW，当 `planCandidates` 大于 1 时在 PLAN 与 CRITIQUE 之间插入可选的 SELECT 相位。编排由 harness 持有，模型只写内容。插件注册在 [`ctx.commands`](../../interaction/commands/README.md) 上。设计约定：[Agent Note](../../../.agents/notes/implemented/feature/2026-08-17-next-workflow-intent-pipeline.md)。任何发货组合都不挂载本插件。
+面向人类的 `/next-workflow <objective>` 命令运行一条固定的、由 harness 持有的相位机——INTENT → PLAN → CRITIQUE → IMPLEMENT → VERIFY → REVIEW，当 `planCandidates` 大于 1 时在 PLAN 与 CRITIQUE 之间插入可选的 SELECT 相位。编排由 harness 持有，模型只写内容。插件注册在 [`ctx.commands`](../../interaction/commands/README.md) 上。[流水线](../../../.agents/notes/implemented/feature/2026-08-17-next-workflow-intent-pipeline.md)与[基础组合包启用](../../../.agents/notes/implemented/feature/2026-08-20-next-workflow-base-bundle-activation.md) Agent Note 分别负责其设计与发货位置。
 
 ## 流水线
 
@@ -29,7 +29,7 @@
 
 ## 装配
 
-插件只注入 `commands`；subagent provider、bash 执行器与 git 服务都在处理器执行时探测。在 overlay 里挂载。`dsh-base` 与发货 TUI/Web bundle 不挂。IMPLEMENT 会 steer 调用方会话，禅锚定面下实现只会看到锚定工具——挂载本插件的宿主应在晋升之后，或不挂禅。plan-mode 与 `tool-ralph` 仍是独立表面。
+插件只注入 `commands`；subagent provider、bash 执行器与 git 服务都在处理器执行时探测。`dsh-base` 挂载中性配置行，因此每个发货 profile 都只继承一次该行。后续 profile overlay 可以替换该行以设置 `verifyCommand`。IMPLEMENT 会 steer 调用方会话；当实现需要完整工具集时，TUI 用户应在禅相位晋升后调用该命令。plan-mode 与 `tool-ralph` 仍是独立表面。
 
 ```yaml
 - id: commands
@@ -83,5 +83,4 @@ effort 切换按设计在相位边界打破请求前缀缓存——相位边界�
 - **实现不做隔离**——IMPLEMENT steer 调用方会话以获得实时可见性与完整工具面；由配置路由的隔离实现 subagent 是延后工作。
 - **批评循环的经济性**——每次批评与评审都是一整份额外上下文；由配置限界，但长 SPEC 会让相位变贵。
 - **多方案选优是成本乘数，不是质量保证**——每轮规划消耗 N 份规划上下文加一份裁判上下文，而裁判只能从规划者产出的候选中选；它无法超越最佳候选。规划者太弱时选优形同虚设。
-- **不是禅的替代品**——IMPLEMENT steer 当前会话的完整工具面；禅锚定面是另一条产品，默认不能承载这条流水线。
-- **不进发货组合**——包已上树；由宿主 overlay 挂载。缺省 `planCandidates` 保持 1。
+- **禅相位调用时机**——`dsh-base` 在 TUI 中公开该命令，但 IMPLEMENT 继承当前会话的工具面；请在禅相位晋升后调用。流水线本身不会晋升会话。

@@ -3,6 +3,9 @@
   - option "compact Compact older conversation history" [selected]
   - option "feedback record feedback about this session"
   - option "goal set or view the goal for a long-running task"
+  - option "memory List saved memories; delete <id> removes one"
+  - 'option "next-workflow Run the fixed intent pipeline: INTENT → PLAN → CRITIQUE → IMPLEMENT → VERIFY → REVIEW"'
   - option "permission Switch the permission preset (sandbox mode + approval policy)"
   - option "plan Enter or leave plan mode"
+  - option "remember Save a project memory entry (writes .dsh/memory/global.md)"
   - option "model Select the model for this conversation"

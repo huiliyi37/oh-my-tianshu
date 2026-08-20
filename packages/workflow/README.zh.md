@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-本家族通过 subagent 运行由模型编写的编排工作流，并将通用工具与固定策略工具公开给模型。`@huiliyi37/dsh-next-workflow` 是同组里宿主拥有的人类命令，已上树，不进任何发货组合。
+本家族通过 subagent 运行由模型编写的编排工作流，并将通用工具与固定策略工具公开给模型。`@huiliyi37/dsh-next-workflow` 是同组里宿主拥有的人类命令，由 `dsh-base` 提供给每个发货 profile。
 
 | 包 | 职责 | ctx 键 |
 |---|---|---|
