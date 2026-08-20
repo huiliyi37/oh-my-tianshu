@@ -14,6 +14,9 @@ import {
   type NormalizeContext,
 } from '@huiliyi37/dsh-acp-snapshot'
 import { LOADER_SMOKE_TEST_TIMEOUT_MS, runLoaderSmoke } from '@huiliyi37/dsh-loader-smoke'
+/** 产品级 dsh run 用例的进程/测试超时：构建产物 + 真实工具往返，满负载并行下 30s 缺省过紧。 */
+const PRODUCT_RUN_PROCESS_TIMEOUT_MS = 90_000
+const PRODUCT_RUN_TEST_TIMEOUT_MS = PRODUCT_RUN_PROCESS_TIMEOUT_MS + 30_000
 import {
   decompressZstdFrame,
   scanZstdFrames,
@@ -228,6 +231,7 @@ describe('headless stream-json snapshots', () => {
       configPath: dshRunOverlayPath,
       binArgs: ['run', '--patch', dshRunOverlayPath, task],
       tsconfigPath,
+      processTimeoutMs: PRODUCT_RUN_PROCESS_TIMEOUT_MS,
       env: {
         DSH_PERMISSION_MODE: 'danger-full-access',
         DSH_TELEMETRY_DISABLED: '1',
@@ -250,7 +254,7 @@ describe('headless stream-json snapshots', () => {
 
     expect(result.stdout).toBe('CLI tool round trip complete: CLI_TOOL_ROUND_TRIP\n')
     expect(result.stderr).toBe('')
-  }, LOADER_SMOKE_TEST_TIMEOUT_MS)
+  }, PRODUCT_RUN_TEST_TIMEOUT_MS)
 
   it('prints a terminal model failure through the product dsh run command', async () => {
     const result = await runLoaderSmoke({
@@ -260,6 +264,7 @@ describe('headless stream-json snapshots', () => {
       configPath: dshRunOverlayPath,
       binArgs: ['run', '--patch', dshRunOverlayPath, 'Trigger the keyless model failure.'],
       tsconfigPath,
+      processTimeoutMs: PRODUCT_RUN_PROCESS_TIMEOUT_MS,
       expectedExitCode: 1,
       env: {
         DSH_CLI_MOCK_FAILURE: '1',
@@ -271,7 +276,7 @@ describe('headless stream-json snapshots', () => {
 
     expect(result.stdout).toBe('\n')
     await expect(result.stderr).toMatchFileSnapshot(dshRunFailureExpected)
-  }, LOADER_SMOKE_TEST_TIMEOUT_MS)
+  }, PRODUCT_RUN_TEST_TIMEOUT_MS)
 
   it('prints the original Loader activation error through the assembled one-shot app', async () => {
     const result = await runLoaderSmoke({
