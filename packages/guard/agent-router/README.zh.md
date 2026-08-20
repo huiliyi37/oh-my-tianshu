@@ -68,6 +68,12 @@ apply(ctx, {
   synthesis: {             // 可选：主代理综合提示 rubric（缺省内置角色裁定纪律）
     section: '...',        // 覆盖 rubric 文本；存在未综合 child 结论时渲染
   },
+  budget: {                // 可选：派发预算（方案 a：计算与记录，不强制）
+    defaultMaxTurns: 48,   // 回合预算（每多一个目标文件 +6）
+    ceilMaxTurns: 100,     // 回合绝对帽
+    ceilTimeoutMs: 1_800_000, // 墙钟预算（毫秒，单发绝对帽）
+    turnsPerExtraFile: 6,
+  },
 })
 
 ```
@@ -99,6 +105,7 @@ None directly; the delegate session is an independent model request, and the par
 - **派发需要活的父会话** — `execute` 接收父 `sessionId`，该会话不是活 agent 时 fail loud；seam 从父会话派生 child 的 workspace、血统与委派深度。
 - **turn-end 触发以 shadow 发货** — 发货 TUI 挂 `trigger: { mode: 'shadow', onTurnEnd: true }`：delegate 决策落 log-only `router/decision` 但绝不派发。切 `auto` 是闭环验证后的产品决定；`auto` 需要 `provider`/`model`。
 - **综合是主代理的行为** — 存在未综合 child 结论时渲染 `router:synthesis` 提示节，`router_adopt` 工具把采用/拒绝声明落成 log-only `router/adoption`（每条 outcome 恰好一条，invariant companion 校验）。router 从不合并或投票，只搬运结论与声明。
+- **预算只计算与记录，不强制** — `budget` 配置喂天枢同构定价（按文件数加回合、双绝对帽）；route 记录携带 `{ maxTurns, deadlineMs }`。run-level 预算强制是未来的 subagent-seam 能力（候选优化，不发货）。
 - **预测窗口是内存态** — 滑动窗口与 tipping point 状态随进程消失。累计按会话隔离且排除 child 会话（`header.parentSession`），被路由的子代理绝不污染父会话窗口。
 - **路由表是固定策略** — 三级干预阈值（0.4/0.6/0.8）与动作映射为移植时的天枢常量；可配置化随实际调参需求再做。
 - **profile 工具集随部署而定** — 内置默认面向发货工具目录（`grep`/`read`/`glob`/`repo_graph`/`semantic_search`/`bash`）；精简装配经 `profileTools` 声明自己的子集，未知工具名会让派发响亮失败而不是放宽工具面。

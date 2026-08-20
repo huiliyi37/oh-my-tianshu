@@ -35,6 +35,8 @@ export interface DispatchOptions {
   parentSessionId: SessionId
   /** 派发取消通道（execute 透传；缺省新 controller）。 */
   signal: AbortSignal
+  /** 预算形状（resolveBudgetConfig + shapeWriteBudget 计算；记录用）。 */
+  budget: { maxTurns: number; timeoutMs: number }
 }
 
 /**
@@ -85,6 +87,8 @@ export interface DispatchOutcome {
   stopReason: string
   /** 子代理最终 assistant 输出（ContentBlock 数组）。 */
   output: ContentBlock[]
+  /** 记录用预算（maxTurns + deadlineMs=派发时点+timeoutMs）。 */
+  budget: { maxTurns: number; deadlineMs: number }
 }
 
 /**
@@ -126,11 +130,13 @@ export async function dispatchSubagent(ctx: Context, opts: DispatchOptions): Pro
     if (parentSession === undefined) {
       throw new Error('agent-router: parent agent has no session (cannot record the route decision)')
     }
+    const budget = { maxTurns: opts.budget.maxTurns, deadlineMs: Date.now() + opts.budget.timeoutMs }
     parentSession.append('router/route', {
       profile: opts.profile,
       task: opts.task,
       targets: opts.targets,
       subagentSessionId: run.id,
+      budget,
     })
     // result 在子级失败时不 reject（stopReason: 'error'）；仅基础设施故障
     // reject——finally dispose 覆盖两条路径（含 append 抛错）。
@@ -139,7 +145,7 @@ export async function dispatchSubagent(ctx: Context, opts: DispatchOptions): Pro
       subagentSessionId: run.id,
       stopReason: result.stopReason,
     })
-    return { sessionId: run.id, stopReason: result.stopReason, output: result.output }
+    return { sessionId: run.id, stopReason: result.stopReason, output: result.output, budget }
   } finally {
     await run.dispose()
   }

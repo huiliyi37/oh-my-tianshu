@@ -161,6 +161,28 @@ describe('agent-router route-record invariants', () => {
       .toThrow(/non-empty stopReason/)
   })
 
+  it('rejects a route record with a malformed budget', async () => {
+    const ctx = await setup()
+    const parent = Session.create(SessionId('parent-1'))
+    const route = (budget: unknown): SessionEvent => ({
+      type: 'router/route',
+      seq: 0,
+      time: 0,
+      data: {
+        profile: 'verifier',
+        task: '复核',
+        targets: [],
+        subagentSessionId: 'child-1',
+        budget,
+      },
+    } as SessionEvent)
+    expect(() => { ctx.emit('session/event', parent, route(undefined)) }).not.toThrow()
+    expect(() => { ctx.emit('session/event', parent, route({ maxTurns: 0, deadlineMs: 1 })) })
+      .toThrow(/maxTurns/)
+    expect(() => { ctx.emit('session/event', parent, route({ maxTurns: 1, deadlineMs: -5 })) })
+      .toThrow(/deadlineMs/)
+  })
+
   it('rejects an outcome whose live child names another parent', async () => {
     const ctx = await setup()
     const parent = Session.create(SessionId('parent-1'))

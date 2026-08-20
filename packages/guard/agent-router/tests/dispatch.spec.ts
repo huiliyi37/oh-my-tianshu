@@ -27,6 +27,7 @@ function makeOptions(profile: 'code_scout' | 'verifier', task: string, targets: 
   subagentProvider: string
   parentSessionId: SessionId
   signal: AbortSignal
+  budget: { maxTurns: number; timeoutMs: number }
 } {
   return {
     profile,
@@ -38,6 +39,7 @@ function makeOptions(profile: 'code_scout' | 'verifier', task: string, targets: 
     subagentProvider: 'spawn',
     parentSessionId: PARENT_ID,
     signal: new AbortController().signal,
+    budget: { maxTurns: 48, timeoutMs: 1_800_000 },
   }
 }
 
@@ -111,6 +113,7 @@ describe('dispatchSubagent', () => {
     expect(id.sessionId).toBe(CHILD_ID)
     expect(id.stopReason).toBe('completed')
     expect(id.output).toEqual([])
+    expect(id.budget.maxTurns).toBe(48)
   })
 
   it('acceptance 落 router/route、settle 后落 router/outcome（终态可自日志重建）', async () => {
@@ -120,11 +123,19 @@ describe('dispatchSubagent', () => {
     const outcome = await dispatchSubagent(ctx, makeOptions('verifier', '复核修复', ['src/a.ts']))
     expect(appended).toHaveLength(2)
     expect(appended[0]!.type).toBe('router/route')
-    const route = appended[0]!.data as { profile: string; task: string; targets: string[]; subagentSessionId: string }
+    const route = appended[0]!.data as {
+      profile: string
+      task: string
+      targets: string[]
+      subagentSessionId: string
+      budget: { maxTurns: number; deadlineMs: number }
+    }
     expect(route.profile).toBe('verifier')
     expect(route.task).toBe('复核修复')
     expect(route.targets).toEqual(['src/a.ts'])
     expect(route.subagentSessionId).toBe(CHILD_ID)
+    expect(route.budget.maxTurns).toBe(48)
+    expect(route.budget.deadlineMs).toBeGreaterThan(Date.now() - 10_000)
     expect(appended[1]!.type).toBe('router/outcome')
     const outcomeRecord = appended[1]!.data as { subagentSessionId: string; stopReason: string }
     expect(outcomeRecord.subagentSessionId).toBe(CHILD_ID)

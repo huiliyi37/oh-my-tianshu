@@ -286,6 +286,7 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     expect(() => applyAgentRouter(new Context(), { trigger: { onTurnEnd: 'yes' as never } })).toThrow(/onTurnEnd/)
     expect(() => applyAgentRouter(new Context(), { escalation: { cap: 'strong' as never } })).toThrow(/escalation.cap/)
     expect(() => applyAgentRouter(new Context(), { escalation: { minConsecutiveFailures: 0 } })).toThrow(/minConsecutiveFailures/)
+    expect(() => applyAgentRouter(new Context(), { budget: { defaultMaxTurns: -1 } })).toThrow(/budget.defaultMaxTurns/)
   })
 
   it('综合提示：存在未综合 child 结论时渲染，adoption 后清除', async () => {

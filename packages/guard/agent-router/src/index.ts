@@ -31,6 +31,7 @@ import {
 } from './prediction.js'
 import { decideRouterAction, type EscalationPolicy, type RouterAction, type RouterMetrics } from './router.js'
 import { DEFAULT_PROFILE_TOOLS, dispatchSubagent, type DispatchOptions, type DispatchOutcome } from './dispatch.js'
+import { mergeBudgetOverride, resolveBudgetConfig, shapeWriteBudget, type BudgetConfig } from './budget.js'
 import { ADOPT_TOOL_NAME, DEFAULT_SYNTHESIS_SECTION, parseAdoptArgs, pendingOutcomes, renderSynthesisSection, verificationGap } from './synthesis.js'
 
 /** 插件名（cordis.yml 装配用）。 */
@@ -45,7 +46,14 @@ declare module '@huiliyi37/dsh-session/types' {
      * reaches the model surface), whole-value append at acceptance. One per
      * accepted delegate — a session may route many delegates.
      */
-    'router/route': { profile: 'code_scout' | 'verifier'; task: string; targets: string[]; subagentSessionId: string }
+    'router/route': {
+      profile: 'code_scout' | 'verifier'
+      task: string
+      targets: string[]
+      subagentSessionId: string
+      /** 记录用预算（shape 计算 + 绝对帽；方案 a 只记录不强制）。 */
+      budget?: { maxTurns: number; deadlineMs: number }
+    }
     /**
      * Durable route-decision record on the session's own log: log-only (never
      * reaches the model surface), whole-value append at turn end. One per
@@ -130,6 +138,20 @@ export interface AgentRouterConfig {
     mode?: 'off' | 'shadow' | 'auto'
     /** 是否在 turn/end 触发（缺省 false）。 */
     onTurnEnd?: boolean
+  }
+  /**
+   * 派发预算（Phase 3，方案 a：计算与记录；强制属候选优化）。tunables 全部
+   * 经此配置注入并校验（no hardcoded tunables）。
+   */
+  budget?: {
+    /** 缺省回合预算（正整数）。 */
+    defaultMaxTurns?: number
+    /** 回合预算绝对帽（正整数，≥ 缺省）。 */
+    ceilMaxTurns?: number
+    /** 墙钟预算（毫秒，即单发绝对帽）。 */
+    ceilTimeoutMs?: number
+    /** 每多一个目标文件增加的回合数（非负）。 */
+    turnsPerExtraFile?: number
   }
   /**
    * 主代理综合提示（Phase 2）：存在未综合 child 结论时渲染；rubric 可覆盖。
@@ -260,6 +282,7 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
   if (typeof subagentProvider !== 'string' || subagentProvider.trim() === '') {
     throw new Error('agent-router: subagentProvider must be a non-empty provider name')
   }
+  const budgetConfig: BudgetConfig = resolveBudgetConfig(config.budget ?? {})
   const synthesisSection = config.synthesis?.section ?? DEFAULT_SYNTHESIS_SECTION
   if (typeof synthesisSection !== 'string' || synthesisSection.trim() === '') {
     throw new Error('agent-router: synthesis.section must be a non-empty string')
@@ -351,6 +374,7 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
       subagentProvider,
       parentSessionId: sessionId,
       signal: signal ?? new AbortController().signal,
+      budget: mergeBudgetOverride(undefined, shapeWriteBudget(action.targets.length, budgetConfig)),
     }
     return dispatchSubagent(ctx, opts)
   }
@@ -454,3 +478,5 @@ export { createPredictionAccumulator, getConsecutiveFailures, getErrorRate, getI
 export { decideRouterAction, type EscalationPolicy, type RouterAction, type RouterMetrics } from './router.js'
 export { dispatchSubagent, SUBAGENT_TASK_PREFIX, type DispatchOptions, type DispatchOutcome } from './dispatch.js'
 export { ADOPT_TOOL_NAME, DEFAULT_SYNTHESIS_SECTION, parseAdoptArgs, pendingOutcomes, renderSynthesisSection, verificationGap, type AdoptArgs, type AdoptVerdict, type PendingOutcome } from './synthesis.js'
+export { mergeBudgetOverride, resolveBudgetConfig, shapeWriteBudget, type BudgetConfig, type BudgetShape } from './budget.js'
+export { MIN_MARGIN, MIN_SAMPLES, effectivePromotionMode, resolvePromotionGate, type PromotionEvidence, type PromotionGateResult, type PromotionMode } from './promotion.js'

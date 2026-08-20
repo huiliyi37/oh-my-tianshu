@@ -61,6 +61,16 @@ function validateEvent(event: SessionEvent, fail: InvariantFailure): void {
     if (typeof subagentSessionId !== 'string' || subagentSessionId === '') {
       fail('agent-router: a route record must carry a non-empty subagentSessionId')
     }
+    const budget = (event.data as { budget?: unknown }).budget
+    if (budget !== undefined) {
+      const { maxTurns, deadlineMs } = budget as { maxTurns?: unknown; deadlineMs?: unknown }
+      if (!Number.isInteger(maxTurns) || (maxTurns as number) < 1) {
+        fail('agent-router: a route record budget.maxTurns must be a positive integer')
+      }
+      if (typeof deadlineMs !== 'number' || !Number.isFinite(deadlineMs) || deadlineMs <= 0) {
+        fail('agent-router: a route record budget.deadlineMs must be a positive finite number')
+      }
+    }
     return
   }
   if (event.type === 'router/outcome') {

@@ -286,6 +286,20 @@ export interface AgentRouterConfig {
     onTurnEnd?: boolean
   }
   /**
+   * 派发预算（Phase 3，方案 a：计算与记录；强制属候选优化）。tunables 全部
+   * 经此配置注入并校验（no hardcoded tunables）。
+   */
+  budget?: {
+    /** 缺省回合预算（正整数）。 */
+    defaultMaxTurns?: number
+    /** 回合预算绝对帽（正整数，≥ 缺省）。 */
+    ceilMaxTurns?: number
+    /** 墙钟预算（毫秒，即单发绝对帽）。 */
+    ceilTimeoutMs?: number
+    /** 每多一个目标文件增加的回合数（非负）。 */
+    turnsPerExtraFile?: number
+  }
+  /**
    * 主代理综合提示（Phase 2）：存在未综合 child 结论时渲染；rubric 可覆盖。
    * 缺省用内置 rubric（角色裁定纪律：主代理拥有最终综合与写入）。
    */
