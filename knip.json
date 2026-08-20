@@ -8,7 +8,9 @@
     "musl-gcc",
     "python3",
     "sandbox-exec",
-    "taskkill"
+    "taskkill",
+    "icacls",
+    "where.exe"
   ],
   "ignoreWorkspaces": [
     "vendor/*",
@@ -62,7 +64,9 @@
         "jsonrpc-agent/tests/fixtures/subagent/subagent-dsh-sdk/child-mock-llm.ts",
         "jsonrpc-agent/tests/fixtures/subagent/subagent-dsh-sdk/mock-delegating-llm.ts",
         "*/tests/**/*.e2e.ts",
-        "*/tests/**/*.snapshot.ts"
+        "*/tests/**/*.snapshot.ts",
+        "headless-agent/tests/fixtures/intent-bridge-agent.ts",
+        "headless-agent/tests/fixtures/task-card-agent.ts"
       ],
       "project": [
         "**/*.ts"
@@ -118,8 +122,43 @@
         "tests/**/*.ts"
       ]
     },
+    "packages/self-modification/cordis-host-runner": {
+      "ignoreDependencies": [
+        "zod"
+      ]
+    },
+    "packages/tui/tui": {
+      "ignoreDependencies": [
+        "@huiliyi37/dsh-agent-router",
+        "@huiliyi37/dsh-evidence-gate",
+        "@huiliyi37/dsh-fs-snapshot",
+        "@huiliyi37/dsh-memory",
+        "@huiliyi37/dsh-tool-memory",
+        "@huiliyi37/dsh-tool-memory-recall",
+        "@huiliyi37/dsh-tool-session-query"
+      ]
+    },
     "packages/api/remotes": {
       "entry": [
+        "tests/**/*.e2e.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ],
+      "ignoreDependencies": [
+        "@huiliyi37/dsh-cordis-host-runner"
+      ]
+    },
+    "packages/attachment/attachment": {
+      "entry": [],
+      "project": [
+        "src/**/*.ts"
+      ]
+    },
+    "packages/bash/pwsh-sandbox": {
+      "entry": [
+        "tests/**/*.spec.ts",
         "tests/**/*.e2e.ts"
       ],
       "project": [
@@ -276,11 +315,18 @@
     "packages/sandbox/sandbox-local": {
       "entry": [
         "tests/**/*.spec.ts",
-        "tests/**/*.e2e.ts"
+        "tests/**/*.e2e.ts",
+        "tests/bwrap.e2e.ts",
+        "tests/landlock.e2e.ts",
+        "tests/packed-install.e2e.ts",
+        "tests/seatbelt.e2e.ts"
       ],
       "project": [
         "src/**/*.ts",
         "tests/**/*.ts"
+      ],
+      "ignoreDependencies": [
+        "@huiliyi37/dsh-sandbox-windows-acl"
       ]
     },
     "packages/session/session-telemetry-otel": {
@@ -735,10 +781,33 @@
         "@huiliyi37/.+"
       ]
     },
+    "packages/client/ui-input-trigger": {
+      "ignoreDependencies": ["react-dom"]
+    },
+    "packages/guard/zen": {
+      "ignoreDependencies": ["@huiliyi37/dsh-agent-loop-testkit"]
+    },
+    "packages/memory/adaptive-memory": {
+      "entry": ["tests/**/*.spec.ts", "tests/**/*.e2e.ts"],
+      "project": ["src/**/*.ts", "tests/**/*.ts"]
+    },
+    "packages/self-modification/cordis-client-runner": {
+      "ignoreDependencies": ["react-dom"]
+    },
+    "packages/self-modification/ui-cordis": {
+      "ignoreDependencies": ["react-dom"]
+    },
     "packages/tui/tui": {
       "ignoreDependencies": [
         "@huiliyi37/dsh-spark-anchors",
-        "@huiliyi37/dsh-vision-bridge"
+        "@huiliyi37/dsh-vision-bridge",
+        "@huiliyi37/dsh-agent-router",
+        "@huiliyi37/dsh-evidence-gate",
+        "@huiliyi37/dsh-fs-snapshot",
+        "@huiliyi37/dsh-memory",
+        "@huiliyi37/dsh-tool-memory",
+        "@huiliyi37/dsh-tool-memory-recall",
+        "@huiliyi37/dsh-tool-session-query"
       ]
     }
   }

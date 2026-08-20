@@ -34,15 +34,17 @@
 
 ## 模型体验
 
-### 模型看到的内容
+### 测试工具
+
+#### 模型看到的内容
 
 模型会看到两个新工具及其 schema 与说明。`run_tests` 告知模型优先使用它而非 bash，因为验证门禁会对结果归账；`related_tests` 提供有界的文件名约定清单。
 
-### Token 影响
+#### Token 影响
 
 `run_tests` 的结果是有界的 `tail`（上限为 `outputTailChars`）外加一行摘要；无界的命令输出不会进入上下文。`related_tests` 最多返回 20 个路径。
 
-### KV Cache 影响
+#### KV Cache 影响
 
 工具结果仅追加；不存在任何请求塑形行为。
 

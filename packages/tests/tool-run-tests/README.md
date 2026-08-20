@@ -34,15 +34,17 @@ A model-facing test-runner surface, not an execution policy: `run_tests` execute
 
 ## Model Experience
 
-### What the model sees
+### Test tooling
+
+#### What the model sees
 
 Two new tools with their schemas and descriptions. `run_tests` tells the model to prefer it over bash because the verification gate accounts the result; `related_tests` offers a bounded filename-convention listing.
 
-### Token effect
+#### Token effect
 
 A `run_tests` result is the bounded `tail` (capped at `outputTailChars`) plus one summary line — no unbounded command output enters context. `related_tests` returns at most 20 paths.
 
-### KV Cache effect
+#### KV Cache effect
 
 Append-only tool results; no request-shaping behavior exists.
 

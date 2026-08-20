@@ -260,10 +260,10 @@ describe('SessionTitleService provider lifecycle', () => {
     expect(ctx.sessionTitle.get(session)?.title).toBe('Newest complete title')
   })
 
-  // 已知失败（fb34fb6b 能力剥离后确定性出现）：复用已记 header 的下一主请求
-  // 不再触发 all-messages 修订（requests 停在 1）。onMainRequest 的调度条件
-  // 疑似在剥离后不再命中——跟踪 https://github.com/huiliyi37/oh-my-tianshu/issues/5；修复后改回 it 翻绿。
-  it.skip('runs an all-messages revision when the next main request reuses its logged header', async () => {
+  // fb34fb6b 中间态曾确定性失败（见 #5），但最终 squash 进 main 的实现
+  // （onMainRequest 经 llm/stream prepend 挂点 + requestHeader fold 读取）已满足
+  // 本场景：在引入 it.skip 的 3505cc2 与当前 main 上均确定性通过（42/42），翻回。
+  it('runs an all-messages revision when the next main request reuses its logged header', async () => {
     const ctx = new Context()
     await ctx.plugin(LlmService)
     await ctx.plugin(SessionStore)

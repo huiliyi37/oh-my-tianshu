@@ -662,7 +662,7 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
     },
     {
       name: 'clear',
-      description: '清空当前会话滚动区',
+      description: '清空当前会话滚动区并收起命令面板',
       run: ({ echo }) => {
         deps.clearScrollback()
         echo('已清空当前会话滚动区')

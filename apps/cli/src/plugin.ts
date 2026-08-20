@@ -54,8 +54,53 @@ function exportsPatch(packageName: string, profileDir: string): boolean {
  * version dropped the declaration — leaves it. In-box bundles from the
  * profile template are not dependencies and are never touched. Warns once
  * per newly-added bundle-less dependency (a plain library is fine; the
- * warning is orientation).
+ * warning is orientation), and once per newly-joined bundle whose
+ * peerDependencies target the official `@deepseek-ai/*` ecosystem
+ * (cross-ecosystem coupling orientation; the install still succeeds).
  */
+/**
+ * The npm scope of the official dsh distribution. A plugin whose
+ * `peerDependencies` target this scope belongs to that ecosystem: installing
+ * it into an oh-my-tianshu profile makes its runtime `@deepseek-ai/*` imports
+ * resolve through whatever official-dsh installation happens to be reachable
+ * (historically the leftover flat-fallback module links) — fragile
+ * cross-ecosystem coupling that survives self-updates.
+ */
+const OFFICIAL_DSH_SCOPE = '@deepseek-ai/'
+
+/**
+ * First `@deepseek-ai/*` entry in a manifest's peerDependencies, if any.
+ * Pure read of the manifest — resolution and I/O live with the caller.
+ * @param manifest - the installed package's manifest.
+ * @returns the foreign peer name, or undefined when none targets the scope.
+ */
+export function foreignOfficialPeer(manifest: ProfileManifest): string | undefined {
+  return Object.keys(manifest.peerDependencies ?? {}).find(name => name.startsWith(OFFICIAL_DSH_SCOPE))
+}
+
+/**
+ * Warn (once, at reconcile time) when a newly-joined bundle targets the
+ * official dsh ecosystem. Orientation only — the install still succeeds and
+ * the plugin still activates (fail-open); the user decides whether to keep it.
+ * @param packageName - the dependency's package name.
+ * @param profileDir - the profile directory (resolution anchor).
+ */
+export function warnIfForeignEcosystem(packageName: string, profileDir: string): void {
+  let dir: string
+  try {
+    dir = resolveBundleDir(NAME, packageName, INSTALL_ANCHOR, profileDir)
+  } catch {
+    return // unresolvable here — the bundle-less warning path already covers orientation
+  }
+  const foreign = foreignOfficialPeer(readProfileManifest(NAME, dir))
+  if (foreign === undefined) return
+  process.stderr.write(
+    `${NAME}: warning: ${packageName} targets the official dsh ecosystem (${foreign} peer) — `
+    + 'this profile runs on oh-my-tianshu; the plugin\'s @deepseek-ai imports will resolve through '
+    + 'an official-dsh installation if one is reachable (fragile cross-ecosystem coupling)\n',
+  )
+}
+
 function reconcilePlugins(before: ProfileManifest, profileDir: string): void {
   const after = readProfileManifest(NAME, profileDir)
   const beforeDeps = new Set(Object.keys(before.dependencies ?? {}))
@@ -66,6 +111,7 @@ function reconcilePlugins(before: ProfileManifest, profileDir: string): void {
     const isBundle = exportsPatch(packageName, profileDir)
     if (isBundle && !plugins.includes(packageName)) {
       plugins.push(packageName)
+      warnIfForeignEcosystem(packageName, profileDir)
       changed = true
     } else if (!isBundle && !beforeDeps.has(packageName)) {
       process.stderr.write(

@@ -6,6 +6,7 @@
  */
 import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
 import type { SessionSummary } from './adapter/sessions.js'
+import { shortSessionLabel } from './session-label.js'
 
 /** 可恢复会话视图行（live = 当前进程内仍活跃）。 */
 export interface RestorableSession {
@@ -74,9 +75,9 @@ export function formatSessionAge(createdAt: number, now: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-/** 会话 id 的 8 位短引用（`#` 前缀），欢迎页行用可读短 id 替代裸 UUID。 */
+/** 会话 id 的 8 位短引用（`#` 前缀，`session-` 前缀已剥离），欢迎页行用可读短 id 替代裸 UUID。 */
 function shortId(id: SessionId): string {
-  return id.slice(0, 8)
+  return shortSessionLabel(id)
 }
 
 /** cwd 的目录 basename（无尾斜杠）；空/根路径（无 basename）返回 undefined。 */

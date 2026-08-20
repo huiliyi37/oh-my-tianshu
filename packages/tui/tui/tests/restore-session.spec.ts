@@ -107,6 +107,21 @@ describe('formatRestorableSessions — 展示行', () => {
     expect(formatRestorableSessions([row], { now: NOW })).toEqual(['● 刚刚 · #s-x'])
   })
 
+  it('session- 前缀 id → 短 id 去前缀（#uuid8；id 与 fork 父 id 均不出现 #session- 空壳）', () => {
+    const row: RestorableSession = {
+      id: 'session-3f2a1b9c-4d5e-4f60-8a7b-9c0d1e2f3a4b' as SessionId,
+      createdAt: NOW - 1000,
+      cwd: undefined,
+      parentSession: 'session-01234567-89ab-4cde-8f01-23456789012a' as SessionId,
+      live: false,
+      agentPreset: undefined,
+    }
+    const lines = formatRestorableSessions([row], { now: NOW })
+    expect(lines[0]).toContain('#3f2a1b9c')
+    expect(lines[0]).toContain('fork #01234567')
+    expect(lines[0]).not.toContain('#session-')
+  })
+
   it('persisted 行无 parentSession → 不渲染 fork 段', () => {
     const row: RestorableSession = { id: 's-y' as SessionId, createdAt: NOW - 1000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined, corrupt: false }
     expect(formatRestorableSessions([row], { now: NOW })).toEqual(['○ 刚刚 · #s-y'])

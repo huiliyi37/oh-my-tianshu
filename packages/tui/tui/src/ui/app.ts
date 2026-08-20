@@ -109,7 +109,6 @@ import {
   renderWorkflowPanel,
   renderConfigPanel,
   renderSkillsPanel,
-  renderSessionTabs,
   renderLspPanel,
 } from '../render/live-panels.js'
 import type { LiveSnapshot } from '../render/live-snapshot.js'
@@ -229,6 +228,7 @@ import { openInEditorDetailed, getEditorCommand } from '../external-editor.js'
 import { FluencyTracker } from '../fluency-hook.js'
 import { expandMentions } from '../mention-expand.js'
 import { formatRestorableSessions, formatSessionAge, formatRestorablePickerList, projectRestorableSessions, wasCrashRepaired, type RestorableSession } from '../restore-session.js'
+import { shortSessionLabel } from '../session-label.js'
 import { sessionTitleFor } from '../adapter/session-title.js'
 // 副作用声明合并：让 ctx.on('approval/request') 的 handler 参数由 cordis 事件
 // 类型推导（user-approval 的 module augmentation）。不 import 具体类型——
@@ -715,6 +715,8 @@ export class TuiApp {
   /** 进行中工具的 presentCall 标题覆盖（callId → title）；result/abort/换会话清理。 */
   private readonly pendingCallTitles = new Map<CallId, string>()
   private activeSessionId: SessionId | null = null
+  /** switchSession 代际号：连续切换时旧代作废，迟到的 resume 不再挂载。 */
+  private switchEpoch = 0
   private history: string[] = []
   private tick = 0
   private ticker: ReturnType<typeof setInterval> | null = null
@@ -832,6 +834,19 @@ export class TuiApp {
       forkSession: () => this.forkSession(),
       switchLiveModel: selection => this.switchLiveModel(selection),
       clearScrollback: () => {
+        // 命令切换的 live 信息面板（/config /skills /lsp /tasks /status
+        // /subagents /workflow）随清屏一并收起：这些面板渲染在 live 区，
+        // 只清 scrollback 不清可见性标志的话，2J 清屏后的全量重绘会把面板
+        // 内容原样画回来——用户看到的便是「/clear 清不掉命令输出」（如
+        // /config 的配置面板残留）。与既有语义一致：会话切换时 task/status
+        // 面板同样被重置（见 mountSession）。
+        this.configPanelVisible = false
+        this.skillsPanelVisible = false
+        this.lspPanelVisible = false
+        this.taskPanelVisible = false
+        this.statusPanelVisible = false
+        this.subagentsPanelVisible = false
+        this.workflowPanelVisible = false
         this.commit.reset()
         // 真实清屏（对齐 README「清空滚动区视图」）：2J 擦可见屏、3J 清终端
         // 滚动缓冲（不支持的终端无害忽略）、光标回顶；live 区状态复位后从
@@ -1491,8 +1506,9 @@ export class TuiApp {
    * live store 没有时走 switchSession → resume。
    */
   private async restoreRecentOtherSession(): Promise<void> {
-    // Ctrl+S 落到最近一个「可恢复」的其他会话：损坏占位跳过（选中只会失败）。
-    const others = (await listSessions(this.ctx))
+    // Ctrl+S 落到最近一个「可恢复」的其他会话：损坏占位跳过（选中只会失败）；
+    // listSessions 失败静默降级（void 触发的按键面，无 catch 会成 unhandled rejection）。
+    const others = (await listSessions(this.ctx).catch(() => []))
       .filter(s => s.id !== this.activeSessionId && !s.corrupt)
     const target = others[0]?.id
     if (target === undefined) return
@@ -2030,6 +2046,9 @@ export class TuiApp {
   async switchSession(id: SessionId): Promise<void> {
     // 1.1：任何会话切换都结束欢迎阶段（数字键列表只在冷启动首屏有效）。
     this.welcomeDigitsActive = false
+    // 代际号：快速连续切换时旧代作废——resume 是异步的，迟到完成的旧代
+    // 不得再提交/挂载（乱序完成会把旧目标挂到新 active 上）。
+    const epoch = ++this.switchEpoch
     const agent = this.ctx.agents.get(id)
     const selection = this.selectionForSession(id)
     const ref: ModelSelectionRef = { current: selection, assembled: undefined }
@@ -2037,9 +2056,14 @@ export class TuiApp {
     const handle = agent !== undefined
       ? undefined
       : await this.resumeForSwitch(id, selection, ref)
+    // 迟到的旧代：更新的切换已接管。已 resume 的 handle 让渡 registry
+    // （与 keepHandle 同语义：agent 保持 live，切回走 agents.get 兜底；
+    // 退出时 factory 统一清理）——不提交状态、不挂载。
+    if (epoch !== this.switchEpoch) return
     // P3 side conversation：切走时保留旧会话 agent（keepHandle 让渡 registry；
     // 切回时走上方 agents.get 兜底分支——不 create 不 resume，transcript 重放）。
     await this.detachProjections({ keepHandle: true })
+    if (epoch !== this.switchEpoch) return
     this.dynamicRowsHighWater = 0
     this.activeSessionId = id
     this.modelRef = ref
@@ -2348,9 +2372,9 @@ export class TuiApp {
    */
   private subagentLabel(id: string): string {
     for (const e of this.delegationEntries ?? []) {
-      if (e.kind === 'child' && e.id === id) return e.label ?? id.slice(0, 8)
+      if (e.kind === 'child' && e.id === id) return e.label ?? shortSessionLabel(id)
     }
-    return id.slice(0, 8)
+    return shortSessionLabel(id)
   }
 
   private refreshDelegationTree(sessionId: SessionId): void {
@@ -2361,9 +2385,11 @@ export class TuiApp {
       this.delegationEntries = entries
       this.renderBatcher.schedule()
     }).catch(() => {
-      /* v8 ignore next -- dispose 后 reject 的竞态守卫（同步测试无法构造） */
+      // 非 dispose 原因的失败同样要重绘（置空清面板），否则滞留旧树直到
+      // 120ms ticker 自愈；与 then 分支对称调度。
       if (this.disposed) return
       this.delegationEntries = null
+      this.renderBatcher.schedule()
     })
   }
 
@@ -3766,10 +3792,9 @@ export class TuiApp {
     }
 
     // ── 面板段（7 面板纯函数；组合器负责 { text } 包装与 theme 着色）。──
-    // P3：会话 tab 栏（多会话 side conversation；单行，secondary 色）。
-    for (const line of renderSessionTabs(snapshot)) {
-      lines.push({ text: color(line, theme.secondary) })
-    }
+    // 会话 tab 栏只在 chrome 段渲染一次（formatSessionTabs：短 label + 当前 ● +
+    // 窄宽折叠；Ctrl+X/Alt+数字切换）。live 段的 renderSessionTabs 消费已移除——
+    // 双栏同屏（两行不同来源的 tab）且 label 数据源曾是空壳病灶。
     // glance 段：状态行 + 错误行（metrics 已并入输入轨下方 footer，避免双份）。
     for (const line of renderGlancePanel(snapshot)) lines.push({ text: line })
     // T4 + T2.3：任务窗格 + 后台任务区（/tasks 面板内；taskPanelVisible 门控

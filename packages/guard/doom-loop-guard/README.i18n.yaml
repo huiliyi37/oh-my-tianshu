@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/guard/doom-loop-guard/README.md
-README.md: 67a908153391480add0092fc91c2748eaa2bb4f5
-README.zh.md: ca1941047a6208c6def995b277d3f32e8e27bed0
+README.md: c68d50d1a4896022eacae465d41bc179a978a3c8
+README.zh.md: 0a91f853c9d61fcc932f824bb6c57f9eba76bf46
