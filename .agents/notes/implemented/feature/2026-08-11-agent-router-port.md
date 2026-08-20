@@ -18,12 +18,12 @@ dsh has discipline — the evidence gate's "what you must not do" — but nothin
   3. obligations pending + zero verifications → self (write a probe first — the evidence gate already blocks edits; routing does not block again)
   4. default self
 - **dispatch.ts**: **dsh-native dispatch** — `ctx.agents.create({ sessionId, agentOptions })` → `followup` injects the task text (a public Agent method, the simplest reliable task entry) → `whenIdle` waits → `dispose` cleans up (a finally guarantees cleanup on every path). **The Tianshu worker/dispatcher/council lifecycle is not carried over.** Dispatch goes through the dsh subagent seam: `ctx.subagents.start` (named provider, config `subagentProvider`, default `spawn`) delivers the task as the child's first user message; `await run.result` settles; `dispose` cleans up. The seam stamps `parentSession`/`origin: 'subagent'`/`delegationDepth`, so routed children appear under `/subagents`/`list_agents`/the descendants projection and zen never arms them (zen skips by `parentSession`). `execute(action, { sessionId })` requires the live parent session — the seam derives workspace/lineage/depth from it. The profile tool restriction installs via `toolFilter` fail-loud — unknown tool names or a missing service abort the dispatch, never silently widening the tool face. `profileTools` (Config) overrides the built-in defaults for slim assemblies (e.g. the headless fixture declares `['read','bash']`).
-- **index.ts wiring**: `session/event` tool/result → recordPrediction (isError judgment); evidence tracker metrics are optionally consumed via `ctx.reflect.get('evidence', false)` (prediction works standalone without evidence-gate); the `ctx.router` service surface (metrics/decide/execute/resetPrediction).
+- **index.ts wiring**: `session/event` tool/result → recordPrediction (isError judgment), keyed per session and excluding child sessions (`header.parentSession` — mirroring zen's skip); evidence tracker metrics are optionally consumed via `ctx.reflect.get('evidence', false)` (prediction works standalone without evidence-gate); the `ctx.router` service surface (`metrics`/`decide`/`execute` all take the owning `sessionId`; `resetPrediction(sessionId?)`).
 - **Zero new channels for accounting**: subagent tool/result events are accounted back to evidence-gate automatically through the existing session/event stream.
 
 ## Key verification facts
 
-- Package-level tests: 37 all green (prediction 17 / router 8 / dispatch 6 / integration 6).
+- Package-level tests: 40 all green (prediction 17 / router 8 / dispatch 6 / integration 9).
 - Integration (a real cordis Context + real event objects, no mocked middle layers): 8 consecutive failures → escalate → delegate verifier → execute dispatch call-sequence assertion; 3 consecutive successes → tipping-point reset → decide returns self; dispatchEnabled:false does not dispatch.
 - Test-driven correction: a mock Context that overrides the real `ctx.reflect` crashes (`ctx.on`'s proxy depends on the reflection layer) — **integration tests always use a real `new Context()` + provide**, never hand-patch reflect.
 - dispatch resolves `subagents` and `agents` through `ctx.reflect.get(name, false)` (the Cordis 4 injection proxy pattern — the same as T4/compact/evidence-gate); the parent session must be a live agent, else dispatch fails loud.
@@ -43,7 +43,7 @@ The full EFE suite, season/vigor/sensorium, the Tianshu worker/dispatcher/counci
 ## Verification commands
 
 ```sh
-pnpm vitest run packages/guard/agent-router/tests/                     # 4 文件 37 测试全绿
+pnpm vitest run packages/guard/agent-router/tests/                     # 4 文件 40 测试全绿
 npx oxlint packages/guard/agent-router/                                # 0 错误
 npx tsc -p packages/guard/agent-router/tsconfig.json                   # 0 错误
 ```
