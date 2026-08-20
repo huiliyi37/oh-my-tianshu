@@ -75,6 +75,7 @@
 | src/format/history-search-overlay.ts | — | new |
 | src/format/input-frame.ts | — | new（输入轨：上下圆角横线 ╭─╮/╰─╯，左右不封，纯渲染） |
 | src/format/keymap-panel.ts | — | new |
+| src/format/live-card.ts | — | new（活区共享卡片 chrome：工具卡/委派树/后台任务同一套 header/body 语汇，纯渲染） |
 | src/format/markdown.ts | format/markdown.ts | modified |
 | src/format/memory-overlay.ts | — | new |
 | src/format/permission-diff.ts | format/permission-diff.ts | modified |

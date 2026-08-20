@@ -45,7 +45,7 @@ function cmd(name: string, description: string, argsHint?: string): SlashCommand
 
 const SAMPLE: readonly SlashCommand[] = [
   cmd('theme', '切换主题', '<name>'),
-  cmd('clear', '清空当前会话滚动区'),
+  cmd('clear', '清空当前会话滚动区并收起命令面板'),
   cmd('compact', '压缩当前会话'),
   cmd('steer', '中轮转向', '<text>'),
 ]
@@ -164,7 +164,7 @@ describe('paletteVisibleEntries / commitText', () => {
 describe('renderCommandPalette — overlay 渲染', () => {
   const entries: readonly PaletteEntry[] = [
     { name: 'theme', description: '切换主题', argsHint: '<name>' },
-    { name: 'clear', description: '清空当前会话滚动区' },
+    { name: 'clear', description: '清空当前会话滚动区并收起命令面板' },
     { name: 'compact', description: '压缩当前会话' },
   ]
 
