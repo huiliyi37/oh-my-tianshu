@@ -80,6 +80,27 @@ export interface ModelFacet {
   saveSelection(next: { provider: string; model: string; reasoningEffort?: string }): Promise<void>
 }
 
+/** /model 校验所需的 llm 目录最小服务面（不引入 dsh-llm 依赖；reflect.get 动态获取）。 */
+interface LlmCatalogFacet {
+  listProviders(): Array<{ id: string }>
+  listModels(provider: string): Promise<Array<{ id: string }>>
+}
+
+/**
+ * /model 的就近建议：大小写不敏感的精确 → 前缀 → 子串匹配，去重封顶 3 个。
+ * 只做提示，不做自动纠错（纠错会掩盖 advisory 目录的边界）。
+ * @param input - 用户输入的模型名。
+ * @param catalogIds - 目标 provider 通告目录里的模型 id 列表。
+ * @returns 相近模型 id（catalog 原序），无相近时为空数组。
+ */
+function suggestModels(input: string, catalogIds: readonly string[]): string[] {
+  const needle = input.toLowerCase()
+  const exact = catalogIds.filter(id => id.toLowerCase() === needle)
+  const prefix = catalogIds.filter(id => id.toLowerCase().startsWith(needle))
+  const substring = catalogIds.filter(id => id.toLowerCase().includes(needle))
+  return [...new Set([...exact, ...prefix, ...substring])].slice(0, 3)
+}
+
 /** /preset 所需的最小 agent-presets 服务面（不引入 dsh-agent-presets 依赖）。 */
 interface PresetFacet {
   /** 当前配置根提供的全部预设（first-root-wins per id）。 */
@@ -419,7 +440,7 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
     },
     {
       name: 'model',
-      description: '查看或切换模型（默认 + 当前会话热切；spark-flash / spark-pro 别名一键切 spark）',
+      description: '查看或切换模型（默认 + 当前会话热切；目录校验拼写；spark-flash / spark-pro 别名一键切 spark）',
       argsHint: '[provider/model | spark-flash | spark-pro]',
       run: async ({ text, echo, ctx }) => {
         // as unknown as：Context 声明合并的 agentDefaultModel 是完整服务面，
@@ -448,11 +469,38 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
         const aliased = SPARK_ALIASES[target]
         const input = aliased === undefined ? target : `${aliased.provider}/${aliased.model}`
         const parts = input.split('/')
-        // noUncheckedIndexedAccess：parts 元素可能 undefined，空串回退无害
+        if (parts.length > 2 || parts.some(part => part === '')) {
+          echo('⚠ 用法: /model provider/model（或 /model 无参打开选择器）——未切换')
+          return
+        }
         /* v8 ignore next 2 -- split 恒返回非空数组且元素恒为 string；noUncheckedIndexedAccess 收窄防御 */
         const next = parts.length === 2
           ? { provider: parts[0] ?? '', model: parts[1] ?? '' }
           : { provider: current.provider, model: parts[0] ?? '' }
+        // 目录校验（对标 Claude Code：拼写错误不切换）。分级策略遵守 llm 的
+        // advisory 契约——目录缺失不得变成请求拒绝：provider 未注册是权威事实
+        // （请求注定派发失败）硬拒绝；目录非空而模型在目录外硬拒绝并给就近
+        // 建议；目录为空（adapter 未通告/通告失败）无法证伪，放行。
+        // reflect.get 读取可选服务（Cordis 4 注入代理：属性访问未 inject 抛错）。
+        const llm = ctx.reflect.get('llm', false) as LlmCatalogFacet | undefined
+        if (llm !== undefined) {
+          const providers = llm.listProviders().map(provider => provider.id)
+          if (!providers.includes(next.provider)) {
+            echo(`⚠ 未知 provider: ${next.provider}（已注册: ${providers.join(' / ') || '无'}）`
+              + `——未切换，当前仍是 ${current.provider}/${current.model}`)
+            return
+          }
+          const catalog = await llm.listModels(next.provider).catch(() => [])
+          if (catalog.length > 0 && !catalog.some(model => model.id === next.model)) {
+            const suggestions = suggestModels(next.model, catalog.map(model => model.id))
+            const hint = suggestions.length > 0
+              ? `（你是否想用 ${suggestions.map(id => `${next.provider}/${id}`).join(' / ')}？）`
+              : `（可用 ${catalog.length} 个，/model 无参打开选择器）`
+            echo(`⚠ ${next.provider} 没有模型 ${next.model}${hint}`
+              + `——未切换，当前仍是 ${current.provider}/${current.model}`)
+            return
+          }
+        }
         // effort 显式传入（含清除：省略 = 回 provider 默认——与 installModelSelection
         // 的 "absent effort clears inherited" 语义一致）。
         const selection = effortRaw === undefined

@@ -22,7 +22,7 @@ import {
 import { getActiveThemeName, setTheme } from '../src/theme.js'
 
 /** 最小 ctx 替身：/session list 需要的 sessions.list + get('sessionPersistence')。 */
-function makeCtx(overrides: Partial<Record<'sessions' | 'agents' | 'compact' | 'agentDefaultModel' | 'goals' | 'tasks' | 'agentPresets' | 'subagents', unknown>> = {}): Context {
+function makeCtx(overrides: Partial<Record<'sessions' | 'agents' | 'compact' | 'agentDefaultModel' | 'goals' | 'tasks' | 'agentPresets' | 'subagents' | 'llm', unknown>> = {}): Context {
   const ctx = {
     sessions: {
       list: vi.fn(() => []),
@@ -646,6 +646,96 @@ describe('内置命令 — /model', () => {
     const { args, echo } = makeArgs({ text: '' })
     await cmd.run(args)
     expect(echo).toHaveBeenCalledWith(expect.stringContaining('不可用'))
+  })
+
+  // 目录校验（对标 Claude Code：拼写错误不切换）。llm facet 经 makeCtx 的
+  // reflect.get mock 注入；未注入时跳过校验（上方既有用例即此路径）。
+  const llmCatalog = (providers: string[], models: Record<string, string[]>) => ({
+    listProviders: vi.fn(() => providers.map(id => ({ id }))),
+    listModels: vi.fn(async (provider: string) => (models[provider] ?? []).map(id => ({ id }))),
+  })
+  const modelFacet = (saveSelection: ReturnType<typeof vi.fn>) => ({
+    currentSelection: vi.fn(() => ({ provider: 'deepseek-official', model: 'deepseek-v4-flash' })),
+    saveSelection,
+  })
+  const OFFICIAL_MODELS = ['deepseek-v4-flash', 'deepseek-v4-pro']
+
+  it('未知 provider 硬拒绝并列出已注册路由', async () => {
+    const { cmd } = commandByName('model')
+    const saveSelection = vi.fn(async () => {})
+    const ctx = makeCtx({
+      agentDefaultModel: modelFacet(saveSelection),
+      llm: llmCatalog(['deepseek-official'], { 'deepseek-official': OFFICIAL_MODELS }),
+    })
+    const { args, echo } = makeArgs({ text: 'opanai/gpt-5', ctx })
+    await cmd.run(args)
+    expect(saveSelection).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('未知 provider: opanai'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('deepseek-official'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('未切换'))
+  })
+
+  it('目录外模型名硬拒绝并就近建议（写错不切换）', async () => {
+    const { cmd } = commandByName('model')
+    const saveSelection = vi.fn(async () => {})
+    const ctx = makeCtx({
+      agentDefaultModel: modelFacet(saveSelection),
+      llm: llmCatalog(['deepseek-official'], { 'deepseek-official': OFFICIAL_MODELS }),
+    })
+    const { args, echo } = makeArgs({ text: 'deepseek-official/deepseek-v4-pr', ctx })
+    await cmd.run(args)
+    expect(saveSelection).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('没有模型 deepseek-v4-pr'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('deepseek-official/deepseek-v4-pro'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('当前仍是 deepseek-official/deepseek-v4-flash'))
+  })
+
+  it('目录为空的 provider 放行（llm 目录为 advisory，空目录无法证伪）', async () => {
+    const { cmd } = commandByName('model')
+    const saveSelection = vi.fn(async () => {})
+    const ctx = makeCtx({
+      agentDefaultModel: modelFacet(saveSelection),
+      llm: llmCatalog(['openai-compatible'], { 'openai-compatible': [] }),
+    })
+    const { args } = makeArgs({ text: 'openai-compatible/gpt-5', ctx })
+    await cmd.run(args)
+    expect(saveSelection).toHaveBeenCalledWith({ provider: 'openai-compatible', model: 'gpt-5' })
+  })
+
+  it('裸模型名沿用当前 provider 并按其目录校验', async () => {
+    const { cmd } = commandByName('model')
+    const saveSelection = vi.fn(async () => {})
+    const ctx = makeCtx({
+      agentDefaultModel: modelFacet(saveSelection),
+      llm: llmCatalog(['deepseek-official'], { 'deepseek-official': OFFICIAL_MODELS }),
+    })
+    const { args, echo } = makeArgs({ text: 'deepseek-v4-mx', ctx })
+    await cmd.run(args)
+    expect(saveSelection).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('没有模型 deepseek-v4-mx'))
+  })
+
+  it('畸形路由 a/b/c 给用法提示且不切换', async () => {
+    const { cmd } = commandByName('model')
+    const saveSelection = vi.fn(async () => {})
+    const ctx = makeCtx({ agentDefaultModel: modelFacet(saveSelection) })
+    const { args, echo } = makeArgs({ text: 'a/b/c', ctx })
+    await cmd.run(args)
+    expect(saveSelection).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('用法: /model provider/model'))
+  })
+
+  it('spark 别名目标 provider 未注册时硬拒绝（loud，不再静默保存死路由）', async () => {
+    const { cmd } = commandByName('model')
+    const saveSelection = vi.fn(async () => {})
+    const ctx = makeCtx({
+      agentDefaultModel: modelFacet(saveSelection),
+      llm: llmCatalog(['deepseek-official'], { 'deepseek-official': OFFICIAL_MODELS }),
+    })
+    const { args, echo } = makeArgs({ text: 'spark-flash', ctx })
+    await cmd.run(args)
+    expect(saveSelection).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('未知 provider: deepseek-spark'))
   })
 
   it('内置命令集含 /model', () => {
