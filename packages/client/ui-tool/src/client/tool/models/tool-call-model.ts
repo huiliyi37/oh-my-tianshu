@@ -150,6 +150,10 @@ function deriveSummary(variant: ToolRowVariant, argsRaw: string): string {
   const parsed = parseArgs(argsRaw)
   if (typeof parsed !== 'object' || parsed === null) return firstLine(argsRaw)
   const args = parsed as Record<string, unknown>
+  if (variant === 'search' && Array.isArray(args.queries)) {
+    const queries = args.queries.filter((query): query is string => typeof query === 'string' && query !== '')
+    if (queries.length > 0) return queries.map(firstLine).join(', ')
+  }
   const picked = pickString(args, SUMMARY_KEYS[variant])
   if (picked !== undefined) return firstLine(picked)
   for (const v of Object.values(args)) {

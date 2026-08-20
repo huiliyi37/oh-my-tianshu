@@ -1,20 +1,20 @@
 - banner:
   - navigation "Session hierarchy":
-    - button "Use web_search to search exactly" [disabled]
+    - button "Use web_search once with queries" [disabled]
   - tablist:
     - tab "Chat" [selected]
     - tab "Trajectory"
-- text: Use web_search to search exactly "Tianshu Harness snapshot search". Then reply exactly SEARCH_DONE and stop. {{clock}}
+- text: Use web_search once with queries ["Tianshu Harness snapshot search","Tianshu Harness multi-query search"]. Then reply exactly SEARCH_DONE and stop. {{clock}}
 - button "Copy":
   - img
 - button "Context injection @huiliyi37/dsh-system-prompt":
   - img
   - img
   - text: Context injection @huiliyi37/dsh-system-prompt
-- button "Search Tianshu Harness snapshot search":
+- button "Search Tianshu Harness snapshot search, Tianshu Harness multi-query search":
   - img
   - img
-  - text: Search Tianshu Harness snapshot search
+  - text: Search Tianshu Harness snapshot search, Tianshu Harness multi-query search
 - paragraph: SEARCH_DONE
 - button "Copy":
   - img

@@ -79,6 +79,13 @@ describe('tool-call-model', () => {
     expect(toolRowModel('', running({ argsRaw: '' })).summary).toBe('c1')
   })
 
+  it('joins multi-query web search arguments in the summary', () => {
+    expect(toolRowModel('web_search', running({
+      name: 'web_search',
+      argsRaw: '{"queries":["first query","second\\nquery"]}',
+    })).summary).toBe('first query, second')
+  })
+
   it('exposes filePath for path/file_path args and skips URL-only reads', () => {
     expect(toolRowModel('read', running({ name: 'read', argsRaw: '{"path":"src/a.ts"}' })).filePath).toBe('src/a.ts')
     expect(toolRowModel('write', running({ name: 'write', argsRaw: '{"file_path":"src/a.ts"}' })).filePath).toBe('src/a.ts')
