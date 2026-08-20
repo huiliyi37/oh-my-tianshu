@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/guard/agent-router/README.md
-README.md: c62e3d5b0ab60d997cca9809aed2a3a2e2e48ec7
-README.zh.md: 10a1aa9aba477b54472933413e6aeec939379e1d
+README.md: 5d1544a8277defc9e2a14b7b337e58822c72890b
+README.zh.md: ff6661438a8c193074a0bcd7c985ff798894f5d5

@@ -107,8 +107,20 @@ export async function dispatchSubagent(ctx: Context, opts: DispatchOptions): Pro
     toolFilter: { allow: opts.tools },
   })
   try {
+    // 路由接受记录（决策可审计）：log-only 落父会话，start 成功即写
+    // （acceptance 时机，早于 result 结算，崩溃也能留痕）。
+    const parentSession = (parent as { session?: { append(type: string, data: unknown): void } }).session
+    if (parentSession === undefined) {
+      throw new Error('agent-router: parent agent has no session (cannot record the route decision)')
+    }
+    parentSession.append('router/route', {
+      profile: opts.profile,
+      task: opts.task,
+      targets: opts.targets,
+      subagentSessionId: run.id,
+    })
     // result 在子级失败时不 reject（stopReason: 'error'）；仅基础设施故障
-    // reject——finally dispose 覆盖两条路径。
+    // reject——finally dispose 覆盖两条路径（含 append 抛错）。
     await run.result
   } finally {
     await run.dispose()

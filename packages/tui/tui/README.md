@@ -12,7 +12,7 @@ Interactive terminal UI: the TUI layer for `oh-my-tianshu --profile`, riding on 
   name: '@huiliyi37/dsh-tui'
 ```
 
-The shipped bundle patch (cordis.patch.yml) mounts, besides `tui-runner`: spark-anchors, the vision bridge, and the tianshu-side capability roster — fs-snapshot (`/rewind` file restore), the memory service plus memory tools (including `memory_deep_recall`), the cross-session query tools, evidence-gate, zen (the anchored first-face phase; the top status bar shows a `禅` badge while armed; `memory_deep_recall` is not on the zen `face`), agent-router, and agent-presets (`default: standard`; the shipped read-only root is injected by `composeProfile`).
+The shipped bundle patch (cordis.patch.yml) mounts, besides `tui-runner`: spark-anchors, the vision bridge, and the tianshu-side capability roster — fs-snapshot (`/rewind` file restore), the memory service plus memory tools (including `memory_deep_recall`), the cross-session query tools, evidence-gate, zen (the anchored first-face phase; the top status bar shows a `禅` badge while armed; `memory_deep_recall` is not on the zen `face`), and agent-presets (`default: standard`; the shipped read-only root is injected by `composeProfile`).
 
 `TuiRunnerConfig` (all optional):
 

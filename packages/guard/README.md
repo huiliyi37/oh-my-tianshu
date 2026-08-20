@@ -54,8 +54,7 @@ A **prediction accumulator** slides a 10-round window over tool outcomes and der
 
 1. `escalate` → delegate a `verifier` subagent (independent re-check);
 2. `gate` with exhausted probe cooldown → delegate a `code_scout` subagent (fresh angle);
-3. unresolved obligation with zero verifications → `self` (write a probe first — the edit gate already blocks edits);
-4. otherwise `self`.
+3. otherwise `self` (obligations/verifications feed the metrics; probe duty stays with the edit gate).
 
 Delegation is dsh-native: `ctx.agents.create` → `followup` injects the task → `whenIdle` waits → `dispose` cleans up; each profile restricts the subagent's tool set (read/search/bash, installed fail-loud — unknown tool names abort the dispatch). Results land back in `evidence-gate` through `session/event`. Details: [agent-router README](agent-router/README.md).
 

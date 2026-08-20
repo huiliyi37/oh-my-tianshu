@@ -39,11 +39,10 @@ const VERIFIER_TASK_PREFIX = '独立复核'
 const SCOUT_TASK_PREFIX = '新角度侦查'
 
 /**
- * 路由决策（规则优先级降序）：
+ * 路由决策（规则优先级降序；义务/验证计数已采集进 metrics，尚无规则消费）：
  * 1. escalate（错误率 ≥0.8）→ delegate verifier（独立通道复核）
  * 2. gate（≥0.6）+ 探针冷却耗尽 → delegate code_scout（新角度侦查）
- * 3. 义务未决 + 零验证 → self（先写探针——证据门已拦编辑，路由不重复拦）
- * 4. 默认 self
+ * 3. 默认 self——先写探针的责任在证据门，路由不重复拦
  * @param metrics - 指标快照。
  * @param obligationHint - 义务提示（可选；delegate 时进任务描述）。
  * @returns 路由动作。

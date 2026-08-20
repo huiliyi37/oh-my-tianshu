@@ -10,9 +10,8 @@ The agent routing layer — base metrics → algorithm → MoE routing → dsh-n
 - **router** (deterministic routing table):
   1. escalate (error rate ≥0.8) → `delegate verifier` (independent-channel recheck)
   2. gate (≥0.6) + probe cooldown exhausted → `delegate code_scout` (fresh-angle reconnaissance)
-  3. unresolved obligations + zero verifications → `self` (write a probe first)
-  4. default `self`
-- **dispatch** (the dsh subagent seam): `ctx.subagents.start` (named provider, default `spawn`) delivers the task as the child's first user message → `await run.result` (structured terminal state) → `dispose` cleans up. The seam stamps the lineage (`parentSession`/`origin: 'subagent'`/`delegationDepth`), so routed children appear under `/subagents`, `list_agents`, and the descendants projection, and zen never arms them. The profile tool restriction installs via `toolFilter` fail-loud — unknown tool names or a missing service abort the dispatch, so a profile never silently runs with the full tool surface. Results are accounted back to evidence-gate automatically through session/event (zero new channels).
+  3. default `self` — obligations/verifications are collected into the metrics but no rule consumes them yet; probe duty stays with the evidence gate
+- **dispatch** (the dsh subagent seam): `ctx.subagents.start` (named provider, default `spawn`) delivers the task as the child's first user message → `await run.result` (structured terminal state) → `dispose` cleans up. The seam stamps the lineage (`parentSession`/`origin: 'subagent'`/`delegationDepth`), so routed children appear under `/subagents`, `list_agents`, and the descendants projection, and zen never arms them. The profile tool restriction installs via `toolFilter` fail-loud — unknown tool names or a missing service abort the dispatch, so a profile never silently runs with the full tool surface. Each accepted delegate appends a log-only `router/route` record on the parent session (decision auditability). Results are accounted back to evidence-gate automatically through session/event (zero new channels).
 
 ## Assembly
 

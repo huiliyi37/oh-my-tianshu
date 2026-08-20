@@ -31,6 +31,17 @@ import { DEFAULT_PROFILE_TOOLS, dispatchSubagent, type DispatchOptions } from '.
 /** 插件名（cordis.yml 装配用）。 */
 export const name = 'agent-router'
 
+declare module '@huiliyi37/dsh-session/types' {
+  interface SessionEventMap {
+    /**
+     * Durable route record on the PARENT session's log: log-only (never
+     * reaches the model surface), whole-value append at acceptance. One per
+     * accepted delegate — a session may route many delegates.
+     */
+    'router/route': { profile: 'code_scout' | 'verifier'; task: string; targets: string[]; subagentSessionId: string }
+  }
+}
+
 /** evidence 服务最小面（可选——无 evidence-gate 时 metrics 缺省）。 */
 interface EvidenceFacet {
   unresolvedHigh(): { id: string; claim: string; targets: string[] }[]

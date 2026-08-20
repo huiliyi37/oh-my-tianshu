@@ -17,7 +17,7 @@ const PARENT_ID = SessionId('session-1')
 function makeContext(): {
   ctx: Context
   seam: { start: ReturnType<typeof vi.fn> }
-  counters: { result: number; dispose: number }
+  counters: { result: number; dispose: number; append: Array<{ type: string; data: unknown }> }
   emit: (name: string, ...args: unknown[]) => void
 } {
   const counters = { result: 0, dispose: 0 }
@@ -30,8 +30,17 @@ function makeContext(): {
   }
   const ctx = new Context()
   ctx.provide('subagents', seam)
-  ctx.provide('agents', { get: (_id: SessionId) => ({ session: { header: { id: PARENT_ID } } }) })
+  const appended: Array<{ type: string; data: unknown }> = []
+  ctx.provide('agents', {
+    get: (_id: SessionId) => ({
+      session: {
+        header: { id: PARENT_ID },
+        append: (type: string, data: unknown) => { appended.push({ type, data }) },
+      },
+    }),
+  })
   applyAgentRouter(ctx, { provider: 'mock', model: 'mock' })
+  counters.append = appended
   const emit = (name: string, ...args: unknown[]): void => {
     // 测试替身按宽松签名派发事件（name 为运行时字符串）；类型化重载要求
     // keyof Events + 精确 payload——@ts-expect-error 命名该偏差。
@@ -96,6 +105,12 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
       const entry = seam.start.mock.calls[0] as unknown as [string, Record<string, unknown>]
       expect(entry[0]).toBe('spawn')
       expect(entry[1].toolFilter).toEqual({ allow: ['grep', 'read', 'glob', 'repo_graph', 'bash'] })
+      // acceptance 时的路由决策记录（约束：决策可审计）
+      expect(counters.append).toHaveLength(1)
+      expect(counters.append[0]!.type).toBe('router/route')
+      const record = counters.append[0]!.data as { profile: string; subagentSessionId: string }
+      expect(record.profile).toBe('verifier')
+      expect(record.subagentSessionId).toBe('session-child-1')
     }
   }, 10000)
 

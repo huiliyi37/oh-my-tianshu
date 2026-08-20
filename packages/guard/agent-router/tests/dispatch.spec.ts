@@ -60,6 +60,12 @@ function makeSeam(): {
   return { start, calls, requests }
 }
 
+function makeParent(append?: (type: string, data: unknown) => void): {
+  session: { append: (type: string, data: unknown) => void }
+} {
+  return { session: { append: append ?? (() => {}) } }
+}
+
 function makeCtx(seam: ReturnType<typeof makeSeam>, parent: unknown | undefined): Context {
   return {
     reflect: {
@@ -77,14 +83,14 @@ afterEach(() => { vi.restoreAllMocks() })
 describe('dispatchSubagent', () => {
   it('start（label/prompt/parent/toolFilter）→ result → dispose，返回子代理 sessionId', async () => {
     const seam = makeSeam()
-    const ctx = makeCtx(seam, {})
+    const ctx = makeCtx(seam, makeParent())
     const id = await dispatchSubagent(ctx, makeOptions('code_scout', '侦查 src/foo.ts', ['src/foo.ts']))
     expect(seam.start).toHaveBeenCalledTimes(1)
     const entry = seam.requests[0] as { name: string; request: Record<string, unknown> }
     expect(entry.name).toBe('spawn')
     const request = entry.request
     expect(request.label).toBe('router-code_scout')
-    expect(request.parent).toEqual({})
+    expect(request.parent).toBeDefined()
     expect(request.signal).toBeInstanceOf(AbortSignal)
     expect(request.agentOptions).toEqual({ provider: 'mock', model: 'mock' })
     // 工具限制：profile → toolFilter allow 列表（真实工具名）
@@ -105,9 +111,30 @@ describe('dispatchSubagent', () => {
     expect(id).toBe(CHILD_ID)
   })
 
-  it('verifier profile 允许 bash（跑测试验证）', async () => {
+  it('acceptance 时在父会话记录 log-only 路由决策（router/route）', async () => {
+    const seam = makeSeam()
+    const appended: Array<{ type: string; data: unknown }> = []
+    const ctx = makeCtx(seam, makeParent((type, data) => { appended.push({ type, data }) }))
+    await dispatchSubagent(ctx, makeOptions('verifier', '复核修复', ['src/a.ts']))
+    expect(appended).toHaveLength(1)
+    expect(appended[0]!.type).toBe('router/route')
+    const data = appended[0]!.data as { profile: string; task: string; targets: string[]; subagentSessionId: string }
+    expect(data.profile).toBe('verifier')
+    expect(data.task).toBe('复核修复')
+    expect(data.targets).toEqual(['src/a.ts'])
+    expect(data.subagentSessionId).toBe(CHILD_ID)
+  })
+
+  it('父 agent 无 session 时记录失败 fail loud 且 dispose 已启动的子代理', async () => {
     const seam = makeSeam()
     const ctx = makeCtx(seam, {})
+    await expect(dispatchSubagent(ctx, makeOptions('code_scout', 'x'))).rejects.toThrow(/no session/)
+    expect(seam.calls.dispose).toBe(1)
+  })
+
+  it('verifier profile 允许 bash（跑测试验证）', async () => {
+    const seam = makeSeam()
+    const ctx = makeCtx(seam, makeParent())
     await dispatchSubagent(ctx, makeOptions('verifier', '复核修复'))
     const request = (seam.requests[0] as { request: { toolFilter: { allow: string[] } } }).request
     expect(request.toolFilter.allow).toContain('bash')
@@ -132,7 +159,7 @@ describe('dispatchSubagent', () => {
   it('start 抛错（如未知工具名）时拒绝且无 dispose 泄漏', async () => {
     const seam = makeSeam()
     seam.start.mockRejectedValue(new Error('tools.restrict() names unknown global tool "nope"'))
-    const ctx = makeCtx(seam, {})
+    const ctx = makeCtx(seam, makeParent())
     await expect(dispatchSubagent(ctx, makeOptions('code_scout', 'x'))).rejects.toThrow(/unknown global tool/)
     expect(seam.calls.dispose).toBe(0)
   })
@@ -144,7 +171,7 @@ describe('dispatchSubagent', () => {
       result: Promise.reject(new Error('infra fault')),
       dispose: vi.fn(async () => { seam.calls.dispose++ }),
     })
-    const ctx = makeCtx(seam, {})
+    const ctx = makeCtx(seam, makeParent())
     await expect(dispatchSubagent(ctx, makeOptions('code_scout', 'x'))).rejects.toThrow('infra fault')
     expect(seam.calls.dispose).toBe(1)
   })

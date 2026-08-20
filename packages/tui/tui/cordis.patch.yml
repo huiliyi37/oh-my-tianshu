@@ -93,10 +93,6 @@
         execProvider: deepseek-official
         execModel: deepseek-v4-flash
 
-    # 失败预测路由：tool/result 成败喂预测累计器，越阈值派发子代理验证
-    # （provider/model 缺省随子代理默认路由；evidence 服务在场时并入指标）。
-    - id: agent-router
-      name: '@huiliyi37/dsh-agent-router'
 
     # preset roster（/preset 的服务端）。shipped 只读根由 apps/cli 的
     # composeProfile 按「行 id 为 agent-presets」注入（与 profile 无关）；

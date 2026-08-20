@@ -54,8 +54,7 @@ tool outcomes → failure prediction (agent-router)
 
 1. `escalate` → 派发 `verifier` 子代理（独立复核）；
 2. `gate` 且探针冷却耗尽 → 派发 `code_scout` 子代理（新角度侦查）；
-3. 义务未决 + 零验证 → `self`（先写探针——编辑门已在拦编辑）；
-4. 否则 `self`。
+3. 否则 `self`（义务/验证计数进指标；先写探针的责任在编辑门）。
 
 派发是 dsh 原生：`ctx.agents.create` → `followup` 注入任务 → `whenIdle` 等待 → `dispose` 清理；每个 profile 限制子代理工具集（读/搜索/bash，fail loud 安装——未知工具名会中止派发）。结果经 `session/event` 归账回 `evidence-gate`。细节见 [agent-router README](agent-router/README.md)。
 

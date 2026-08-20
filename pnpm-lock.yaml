@@ -7904,9 +7904,6 @@ importers:
       '@huiliyi37/dsh-agent-presets':
         specifier: workspace:^
         version: link:../../preset/agent-presets
-      '@huiliyi37/dsh-agent-router':
-        specifier: workspace:^
-        version: link:../../guard/agent-router
       '@huiliyi37/dsh-evidence-gate':
         specifier: workspace:^
         version: link:../../guard/evidence-gate
