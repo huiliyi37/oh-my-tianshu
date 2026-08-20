@@ -956,6 +956,8 @@ export interface Config {
   models?: DeepSeekCatalogModel[]
   /** Maximum provider idle time while one stream read is outstanding (default five minutes). */
   streamIdleTimeoutMs?: number
+  /** Maximum accumulated base64 image payload per request (default 20 MiB). */
+  maxRequestImageBytes?: number
   /** Provider-owned model-request retry policy; omission uses normal defaults. */
   retryPolicy?: RetryPolicyConfig
   /**
@@ -1001,7 +1003,7 @@ export interface SparkTruncatePolicy {
 
 依赖：[`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
 
-来源：[`packages/llm/llm-deepseek/src/index.ts:61`](../packages/llm/llm-deepseek/src/index.ts)
+来源：[`packages/llm/llm-deepseek/src/index.ts:75`](../packages/llm/llm-deepseek/src/index.ts)
 
 ## `@huiliyi37/dsh-llm-pi-ai`
 
@@ -1083,6 +1085,13 @@ export interface PiAiProviderProfile {
   websocketConnectTimeoutMs?: number
   /** Maximum provider idle time while one stream read is outstanding. */
   streamIdleTimeoutMs?: number
+  /**
+   * Maximum base64-encoded image payload per request. When a request's
+   * accumulated images exceed it, the oldest images are replaced by text
+   * placeholders until the request fits, so a long session keeps completing
+   * requests instead of being rejected by a request-size cap.
+   */
+  maxRequestImageBytes?: number
   /** Provider-owned model-request retry policy; omission uses normal defaults. */
   retryPolicy?: RetryPolicyConfig
 }
@@ -1216,7 +1225,7 @@ export type PiAiThinkingFormat = NonNullable<OpenAICompletionsCompat['thinkingFo
 
 依赖：`CacheRetention`（`@earendil-works/pi-ai`）· `ModelThinkingLevel`（`@earendil-works/pi-ai`）· `OpenAICompletionsCompat`（`@earendil-works/pi-ai`）· [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts) · `ThinkingBudgets`（`@earendil-works/pi-ai`）· `Transport`（`@earendil-works/pi-ai`）
 
-来源：[`packages/llm/llm-pi-ai/src/config.ts:150`](../packages/llm/llm-pi-ai/src/config.ts)
+来源：[`packages/llm/llm-pi-ai/src/config.ts:170`](../packages/llm/llm-pi-ai/src/config.ts)
 
 ## `@huiliyi37/dsh-llm-replay`
 
@@ -1564,7 +1573,7 @@ export interface PlanModeConfig {
 }
 ```
 
-来源：[`packages/plan/plan-mode/src/index.ts:89`](../packages/plan/plan-mode/src/index.ts)
+来源：[`packages/plan/plan-mode/src/index.ts:90`](../packages/plan/plan-mode/src/index.ts)
 
 ## `@huiliyi37/dsh-pty-local`
 
@@ -1575,9 +1584,11 @@ export interface PlanModeConfig {
 export interface Config {
   /** Backend registry type (default: `shell`). */
   backendType?: string
-  /** Interactive shell executable (default: `/bin/bash`). */
+  /** Interactive shell dialect (default: `bash`); selects the argv/env/startup defaults. */
+  shellDialect?: ShellDialect
+  /** Interactive shell executable (default per dialect: `/bin/bash`, or the resolved pwsh). */
   shellPath?: string
-  /** Shell arguments (default: `--noprofile --norc -i`). */
+  /** Shell arguments (default per dialect: bash `--noprofile --norc -i`, pwsh `-NoLogo -NoProfile`). */
   shellArgs?: string[]
   /** Terminal rows. */
   rows?: number
@@ -1605,9 +1616,12 @@ export interface Config {
   /** Grace before teardown escalates to `SIGKILL`. */
   disposeGraceMs?: number
 }
+
+/** One supported interactive shell dialect. */
+export type ShellDialect = 'bash' | 'pwsh'
 ```
 
-来源：[`packages/pty/pty-local/src/config.ts:6`](../packages/pty/pty-local/src/config.ts)
+来源：[`packages/pty/pty-local/src/config.ts:10`](../packages/pty/pty-local/src/config.ts)
 
 ## `@huiliyi37/dsh-pwsh-local`
 
@@ -2493,7 +2507,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/pty/tool-bash-persistent/src/index.ts:405`](../packages/pty/tool-bash-persistent/src/index.ts)
+来源：[`packages/pty/tool-bash-persistent/src/index.ts:437`](../packages/pty/tool-bash-persistent/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-cordis`
 
@@ -2737,6 +2751,26 @@ export interface Config {
 ```
 
 来源：[`packages/bash/tool-pwsh/src/index.ts:43`](../packages/bash/tool-pwsh/src/index.ts)
+
+## `@huiliyi37/dsh-tool-pwsh-persistent`
+
+需要：`tools` · `pty`
+
+```ts config-catalog
+/** Configuration for the persistent pwsh tool. */
+export interface Config {
+  /** PTY backend used for each owner-isolated persistent shell (default `shell`). */
+  backendType?: string
+  /** Wall-clock limit for one command (default 300000). */
+  timeoutMs?: number
+  /** Maximum returned command-output characters before clipping (default 16000). */
+  maxOutputChars?: number
+  /** Model-facing tool description; deployments may describe their environment. */
+  description?: string
+}
+```
+
+来源：[`packages/pty/tool-pwsh-persistent/src/index.ts:472`](../packages/pty/tool-pwsh-persistent/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-ralph`
 
@@ -3640,6 +3674,7 @@ export interface ZenConfig {
 - `@huiliyi37/dsh-client-ui-slots`（[`packages/client/ui-slots/src/index.ts`](../packages/client/ui-slots/src/index.ts)）
 - `@huiliyi37/dsh-client-web`（[`packages/client/web/src/index.ts`](../packages/client/web/src/index.ts)）
 - `@huiliyi37/dsh-client-web-react`（[`packages/client/web-react/src/index.ts`](../packages/client/web-react/src/index.ts)）
+- `@huiliyi37/dsh-code-runtime-python`（[`packages/code-runtime/code-runtime-python/src/index.ts`](../packages/code-runtime/code-runtime-python/src/index.ts)）
 - `@huiliyi37/dsh-environment`（[`packages/util/environment/src/index.ts`](../packages/util/environment/src/index.ts)）
 - `@huiliyi37/dsh-fs-snapshot`（[`packages/fs/fs-snapshot/src/index.ts`](../packages/fs/fs-snapshot/src/index.ts)）
 - `@huiliyi37/dsh-hook-protocol`（[`packages/hooks/hook-protocol/src/index.ts`](../packages/hooks/hook-protocol/src/index.ts)）
