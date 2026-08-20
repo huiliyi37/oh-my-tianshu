@@ -1,17 +1,21 @@
 /**
- * dispatch.spec.ts — dsh 原生子代理派发（含工具限制）。
+ * dispatch.spec.ts — dsh 子代理 seam 派发（含工具限制）。
  *
- * 覆盖：create/followup/whenIdle/dispose 调用序、任务文本进 followup、
- * sessionId 生成、错误时 dispose 清理、setup 内 restrict 工具集
- * （profile → allow 列表）、restrict 抛错/缺失 tools 服务时 fail loud。
+ * 覆盖：start 参数形状（label/prompt/parent/signal/agentOptions/toolFilter）、
+ * result/dispose 调用序、任务文本进 prompt、父会话解析、start/result 抛错
+ * 路径、profile 工具集经 toolFilter 透传。
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
-import { dispatchSubagent } from '../src/dispatch.js'
+import { SessionId } from '@huiliyi37/dsh-session'
+import { dispatchSubagent, SUBAGENT_TASK_PREFIX } from '../src/dispatch.js'
 
 /** 各 profile 的默认工具集（与 DEFAULT_PROFILE_TOOLS 同源，测试按真实名断言）。 */
 const SCOUT_TOOLS = ['grep', 'read', 'glob', 'repo_graph', 'semantic_search', 'bash']
 const VERIFIER_TOOLS = ['grep', 'read', 'glob', 'repo_graph', 'bash']
+
+const PARENT_ID = SessionId('session-parent-1')
+const CHILD_ID = SessionId('session-child-1')
 
 function makeOptions(profile: 'code_scout' | 'verifier', task: string, targets: string[] = []): {
   profile: 'code_scout' | 'verifier'
@@ -20,6 +24,9 @@ function makeOptions(profile: 'code_scout' | 'verifier', task: string, targets: 
   provider: string
   model: string
   tools: string[]
+  subagentProvider: string
+  parentSessionId: SessionId
+  signal: AbortSignal
 } {
   return {
     profile,
@@ -28,140 +35,117 @@ function makeOptions(profile: 'code_scout' | 'verifier', task: string, targets: 
     provider: 'mock',
     model: 'mock',
     tools: profile === 'code_scout' ? SCOUT_TOOLS : VERIFIER_TOOLS,
+    subagentProvider: 'spawn',
+    parentSessionId: PARENT_ID,
+    signal: new AbortController().signal,
   }
 }
 
-/** mock agents 服务：create 捕获 setup 并调用（返回 handle）。 */
-function makeAgents(): {
-  create: ReturnType<typeof vi.fn>
-  calls: { followup: unknown[]; whenIdle: number; dispose: number }
-  setupCalls: unknown[]
-  restrictCalls: { allow?: string[]; deny?: string[] }[]
+/** mock subagents 服务：start 捕获 request 并返回可控 run。 */
+function makeSeam(): {
+  start: ReturnType<typeof vi.fn>
+  calls: { result: number; dispose: number }
+  requests: unknown[]
 } {
-  const calls = { followup: [] as unknown[], whenIdle: 0, dispose: 0 }
-  const setupCalls: unknown[] = []
-  const restrictCalls: { allow?: string[]; deny?: string[] }[] = []
-  const agent = {
-    followup: vi.fn(async (input: unknown) => { calls.followup.push(input) }),
-    whenIdle: vi.fn(async () => { calls.whenIdle++ }),
-  }
-  const handle = {
-    agent,
-    dispose: vi.fn(async () => { calls.dispose++ }),
-  }
-  // setup 调用时：agentCtx.tools.restrict 记录调用
-  const create = vi.fn(async (opts: { setup?: (agentCtx: unknown) => unknown }) => {
-    if (opts.setup !== undefined) {
-      const agentCtx = {
-        tools: {
-          restrict: (filter: { allow?: string[]; deny?: string[] }) => {
-            restrictCalls.push(filter)
-            return () => {}
-          },
-        },
-      }
-      setupCalls.push(agentCtx)
-      await opts.setup(agentCtx)
+  const calls = { result: 0, dispose: 0 }
+  const requests: unknown[] = []
+  const start = vi.fn(async (name: string, request: unknown) => {
+    requests.push({ name, request })
+    return {
+      id: CHILD_ID,
+      result: Promise.resolve({ stopReason: 'completed' }).then((r) => { calls.result++; return r }),
+      dispose: vi.fn(async () => { calls.dispose++ }),
     }
-    return handle
   })
-  return { create, calls, setupCalls, restrictCalls }
+  return { start, calls, requests }
 }
 
-function makeCtx(agents: ReturnType<typeof makeAgents>): Context {
+function makeCtx(seam: ReturnType<typeof makeSeam>, parent: unknown | undefined): Context {
   return {
-    agents: { create: agents.create },
-    get: () => undefined,
-    reflect: { get: (_name: string, _strict: boolean) => ({ create: agents.create }) },
+    reflect: {
+      get: (name: string, _strict: boolean) => {
+        if (name === 'subagents') return seam
+        if (name === 'agents') return { get: (_id: SessionId) => parent }
+        return undefined
+      },
+    },
   } as unknown as Context
 }
 
 afterEach(() => { vi.restoreAllMocks() })
 
 describe('dispatchSubagent', () => {
-  it('create → setup 注入 restrict(allow 只读工具) → followup → whenIdle → dispose', async () => {
-    const agents = makeAgents()
-    const ctx = makeCtx(agents)
+  it('start（label/prompt/parent/toolFilter）→ result → dispose，返回子代理 sessionId', async () => {
+    const seam = makeSeam()
+    const ctx = makeCtx(seam, {})
     const id = await dispatchSubagent(ctx, makeOptions('code_scout', '侦查 src/foo.ts', ['src/foo.ts']))
-    // create 带 sessionId/agentOptions/setup
-    expect(agents.create).toHaveBeenCalledTimes(1)
-    const createArg = agents.create.mock.calls[0]![0] as { sessionId: string; setup?: unknown }
-    expect(createArg.setup).toBeTypeOf('function')
-    expect(createArg.sessionId).toMatch(/^session-router-/)
-    // setup 内 restrict 被调用（code_scout → 只读 allow 列表）
-    expect(agents.restrictCalls).toHaveLength(1)
-    const filter = agents.restrictCalls[0]!
-    expect(filter.allow).toContain('grep')
-    expect(filter.allow).toContain('read')
-    expect(filter.allow).toContain('repo_graph')
-    expect(filter.allow).not.toContain('read_file')
-    // followup 带任务文本
-    expect(agents.calls.followup).toHaveLength(1)
-    const message = agents.calls.followup[0] as { content: { text: string }[]; role?: string; source?: { kind: string } }
-    const task = message.content.map(b => b.text).join('\n')
+    expect(seam.start).toHaveBeenCalledTimes(1)
+    const entry = seam.requests[0] as { name: string; request: Record<string, unknown> }
+    expect(entry.name).toBe('spawn')
+    const request = entry.request
+    expect(request.label).toBe('router-code_scout')
+    expect(request.parent).toEqual({})
+    expect(request.signal).toBeInstanceOf(AbortSignal)
+    expect(request.agentOptions).toEqual({ provider: 'mock', model: 'mock' })
+    // 工具限制：profile → toolFilter allow 列表（真实工具名）
+    const toolFilter = request.toolFilter as { allow: string[] }
+    expect(toolFilter.allow).toContain('grep')
+    expect(toolFilter.allow).toContain('read')
+    expect(toolFilter.allow).toContain('repo_graph')
+    expect(toolFilter.allow).not.toContain('read_file')
+    // 任务文本进 prompt（SUBAGENT_TASK_PREFIX 契约）
+    const prompt = request.prompt as Array<{ text: string }>
+    const task = prompt.map(b => b.text).join('\n')
+    expect(task).toContain(SUBAGENT_TASK_PREFIX)
     expect(task).toContain('侦查 src/foo.ts')
-    // 修复契约（7f44edc）：followup 消息必须带 source: { kind: 'user' }——缺 source 时
-    // agent-loop 的 pre-step 监听者（repeat-tool-guard 等读 message.source.kind）崩溃。
-    expect(message.role).toBe('user')
-    expect(message.source).toEqual({ kind: 'user' })
-    // whenIdle/dispose 各一次
-    expect(agents.calls.whenIdle).toBe(1)
-    expect(agents.calls.dispose).toBe(1)
-    expect(id).toBe(createArg.sessionId)
+    expect(task).toContain('目标文件: src/foo.ts')
+    // result/dispose 各一次，返回子代理 id
+    expect(seam.calls.result).toBe(1)
+    expect(seam.calls.dispose).toBe(1)
+    expect(id).toBe(CHILD_ID)
   })
 
   it('verifier profile 允许 bash（跑测试验证）', async () => {
-    const agents = makeAgents()
-    const ctx = makeCtx(agents)
+    const seam = makeSeam()
+    const ctx = makeCtx(seam, {})
     await dispatchSubagent(ctx, makeOptions('verifier', '复核修复'))
-    expect(agents.restrictCalls[0]!.allow).toContain('bash')
-    const task = (agents.calls.followup[0] as { content: { text: string }[] }).content.map(b => b.text).join('\n')
-    expect(task).toContain('复核修复')
+    const request = (seam.requests[0] as { request: { toolFilter: { allow: string[] } } }).request
+    expect(request.toolFilter.allow).toContain('bash')
+    const prompt = (seam.requests[0] as { request: { prompt: Array<{ text: string }> } }).request.prompt
+    expect(prompt.map(b => b.text).join('\n')).toContain('复核修复')
   })
 
-  it('restrict 抛错（未知工具名）时 fail loud——中止派发且不静默放宽', async () => {
-    const agents = makeAgents()
-    // 改 agentCtx.tools.restrict 抛错（真实 restrict 的 unknown-name 报错形态）
-    agents.create.mockImplementation((opts: { setup?: (agentCtx: unknown) => unknown }) => {
-      if (opts.setup !== undefined) {
-        void opts.setup({ tools: { restrict: () => { throw new Error('tools.restrict() names unknown global tool "nope"') } } })
-      }
-      return { agent: { followup: async () => {}, whenIdle: async () => {} }, dispose: async () => {} }
-    })
-    const ctx = makeCtx(agents)
+  it('父会话不是活 agent 时 fail loud', async () => {
+    const seam = makeSeam()
+    const ctx = makeCtx(seam, undefined)
+    await expect(dispatchSubagent(ctx, makeOptions('code_scout', 'x'))).rejects.toThrow(/parent session not live/)
+    expect(seam.start).not.toHaveBeenCalled()
+  })
+
+  it('subagents 服务缺失时 fail loud', async () => {
+    const ctx = {
+      reflect: { get: (name: string, _strict: boolean) => name === 'agents' ? { get: () => ({}) } : undefined },
+    } as unknown as Context
+    await expect(dispatchSubagent(ctx, makeOptions('code_scout', 'x'))).rejects.toThrow(/subagents service unavailable/)
+  })
+
+  it('start 抛错（如未知工具名）时拒绝且无 dispose 泄漏', async () => {
+    const seam = makeSeam()
+    seam.start.mockRejectedValue(new Error('tools.restrict() names unknown global tool "nope"'))
+    const ctx = makeCtx(seam, {})
     await expect(dispatchSubagent(ctx, makeOptions('code_scout', 'x'))).rejects.toThrow(/unknown global tool/)
+    expect(seam.calls.dispose).toBe(0)
   })
 
-  it('agentCtx 缺失 tools 服务时 fail loud', async () => {
-    const agents = makeAgents()
-    agents.create.mockImplementation((opts: { setup?: (agentCtx: unknown) => unknown }) => {
-      if (opts.setup !== undefined) void opts.setup({})
-      return { agent: { followup: async () => {}, whenIdle: async () => {} }, dispose: async () => {} }
+  it('result 基础设施故障 reject 时仍 dispose 清理', async () => {
+    const seam = makeSeam()
+    seam.start.mockResolvedValue({
+      id: CHILD_ID,
+      result: Promise.reject(new Error('infra fault')),
+      dispose: vi.fn(async () => { seam.calls.dispose++ }),
     })
-    const ctx = makeCtx(agents)
-    await expect(dispatchSubagent(ctx, makeOptions('code_scout', 'x'))).rejects.toThrow(/tools service unavailable/)
-  })
-
-  it('create 抛错时不调用 followup，且无 dispose 泄漏', async () => {
-    const agents = makeAgents()
-    agents.create.mockRejectedValue(new Error('create failed'))
-    const ctx = makeCtx(agents)
-    await expect(dispatchSubagent(ctx, makeOptions('code_scout', 'x'))).rejects.toThrow('create failed')
-    expect(agents.calls.followup).toHaveLength(0)
-    expect(agents.calls.dispose).toBe(0)
-  })
-
-  it('followup 抛错时仍 dispose 清理', async () => {
-    const agents = makeAgents()
-    agents.create.mockImplementation(() => ({
-      agent: {
-        followup: () => { throw new Error('followup failed') },
-        whenIdle: async () => {},
-      },
-      dispose: async () => { agents.calls.dispose++ },
-    }))
-    const ctx = makeCtx(agents)
-    await expect(dispatchSubagent(ctx, makeOptions('code_scout', 'x'))).rejects.toThrow('followup failed')
-    expect(agents.calls.dispose).toBe(1)
+    const ctx = makeCtx(seam, {})
+    await expect(dispatchSubagent(ctx, makeOptions('code_scout', 'x'))).rejects.toThrow('infra fault')
+    expect(seam.calls.dispose).toBe(1)
   })
 })

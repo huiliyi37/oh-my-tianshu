@@ -267,10 +267,12 @@ export interface AgentRouterConfig {
     /** verifier profile 的允许工具集（覆盖内置默认）。 */
     verifier?: string[]
   }
+  /** 子代理 provider 名（ctx.subagents 注册名）；缺省 'spawn'（进程内子代理）。 */
+  subagentProvider?: string
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:56`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:57`](../packages/guard/agent-router/src/index.ts)
 
 ## `@huiliyi37/dsh-agent-spine-demo`
 

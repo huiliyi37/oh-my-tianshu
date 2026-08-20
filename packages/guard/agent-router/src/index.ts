@@ -6,7 +6,8 @@
  *    （工具成败累计器）；evidence tracker 指标经 reflect.get('evidence', false)
  *    读取（无 evidence-gate 时缺省空值，prediction 独立工作）。
  * 2. 路由决策：`ctx.router.decide()` 返回 RouterAction（纯函数 decideRouterAction）。
- * 3. 子代理派发：delegate 动作 → dispatchSubagent（dsh 原生 agents.create）。
+ * 3. 子代理派发：delegate 动作 → dispatchSubagent（dsh 子代理 seam：
+ *    ctx.subagents.start；血统/深度/投影由 seam 自动写）。
  *
  * 未装配时零行为（可选插件）；子代理结果经 session/event 自动归账回
  * evidence-gate（零新通道）。
@@ -70,6 +71,8 @@ export interface AgentRouterConfig {
     /** verifier profile 的允许工具集（覆盖内置默认）。 */
     verifier?: string[]
   }
+  /** 子代理 provider 名（ctx.subagents 注册名）；缺省 'spawn'（进程内子代理）。 */
+  subagentProvider?: string
 }
 
 /**
@@ -108,8 +111,13 @@ export interface RouterService {
   metrics(): RouterMetrics
   /** 路由决策（纯函数；可重复调用）。 */
   decide(): RouterAction
-  /** 执行动作（delegate → 派发子代理；self → no-op）。 */
-  execute(action: RouterAction): Promise<SessionId | null>
+  /**
+   * 执行动作（delegate → 经 subagent seam 派发子代理；self → no-op）。
+   * @param action - 路由动作。
+   * @param options.sessionId - 父会话 id（必须活 agent；子代理血统自此派生）。
+   * @param options.signal - 派发取消通道（缺省新建）。
+   */
+  execute(action: RouterAction, options: { sessionId: SessionId; signal?: AbortSignal }): Promise<SessionId | null>
   /** 重置预测累计器（环境恢复后调用）。 */
   resetPrediction(): void
 }
@@ -117,6 +125,10 @@ export interface RouterService {
 /** 插件装配：指标采集 + 路由服务面 + 派发。 */
 export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
   const profileTools = resolveProfileTools(config)
+  const subagentProvider = config.subagentProvider ?? 'spawn'
+  if (typeof subagentProvider !== 'string' || subagentProvider.trim() === '') {
+    throw new Error('agent-router: subagentProvider must be a non-empty provider name')
+  }
   let prediction = createPredictionAccumulator()
   const dispatchEnabled = config.dispatchEnabled ?? true
 
@@ -162,7 +174,7 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
   const service: RouterService = {
     metrics: collectMetrics,
     decide: () => decideRouterAction(collectMetrics(), obligationHint()),
-    execute: async (action) => {
+    execute: async (action, options) => {
       if (action.kind !== 'delegate' || !dispatchEnabled) return null
       if (config.provider === undefined || config.model === undefined) return null
       const opts: DispatchOptions = {
@@ -172,6 +184,9 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
         provider: config.provider,
         model: config.model,
         tools: profileTools[action.profile],
+        subagentProvider,
+        parentSessionId: options.sessionId,
+        signal: options.signal ?? new AbortController().signal,
       }
       return dispatchSubagent(ctx, opts)
     },

@@ -60,11 +60,16 @@ describe('agent-router 真实装配（连败 → escalate → delegate）', () =
     expect(metrics.interventionLevel).toBe('escalate')
     expect(action.kind).toBe('delegate')
     expect(action.profile).toBe('verifier')
-    // 真实派发成功：driver 打印 router_dispatched，子代理 sessionId 带前缀
+    // 真实派发成功：driver 打印 router_dispatched，子代理 sessionId 为 seam
+    // 铸造的子会话 id（与主会话不同；血统断言由 subagent seam 自身测试钉住）
     const dispatched = lines.find(line => line['type'] === 'router_dispatched')
     expect(dispatched).toBeDefined()
     const subagentId = dispatched!['subagentId'] as string
-    expect(subagentId.startsWith('session-router-')).toBe(true)
+    // seam 铸造的子会话 id（subagent-inprocess 用裸 UUID，非 session- 前缀）
+    expect(subagentId.length).toBeGreaterThan(0)
+    const firstEvent = lines.find(line => line['type'] === 'session_event')
+    expect(firstEvent).toBeDefined()
+    expect(subagentId).not.toBe(firstEvent!['sessionId'])
     expect(lines.find(line => line['type'] === 'router_dispatch_failed')).toBeUndefined()
     // 子代理真实完成一轮（mock 分支产物经 forwardAllSessions 转发可见）：
     // tool-call 触发 bash printf SUBAGENT_ROUND_TRIP，收到结果后回复 SUBAGENT DONE。

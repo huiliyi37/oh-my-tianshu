@@ -1,30 +1,36 @@
 /**
  * integration.spec.ts — 端到端：真实 cordis Context 装配插件，真实事件对象
  * 驱动「工具成败 → prediction → 路由 → 派发」闭环（不 mock 中间层；
- * agents 服务用最小替身——派发调用序真实断言）。
+ * agents/subagents 服务用最小替身——派发调用序真实断言）。
  *
  * 场景：8 连败 → prediction escalate → decide() 返回 delegate verifier →
- * execute() 派发子代理（create/followup/whenIdle/dispose 调用序）→
+ * execute() 经 subagent seam 派发子代理（start/result/dispose 调用序）→
  * 连续 3 次成功 → tipping point 重置 → decide() 回 self。
  */
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
+import { SessionId } from '@huiliyi37/dsh-session'
 import { apply as applyAgentRouter, resolveProfileTools, type RouterService } from '../src/index.js'
 
-interface AgentsFacet {
-  create: ReturnType<typeof import('vitest').vi.fn>
-}
+const PARENT_ID = SessionId('session-1')
 
-function makeContext(): { ctx: Context; agents: AgentsFacet; emit: (name: string, ...args: unknown[]) => void } {
-  const calls = { followup: [] as unknown[], whenIdle: 0, dispose: 0 }
-  const agent = {
-    followup: async (input: unknown) => { calls.followup.push(input) },
-    whenIdle: async () => { calls.whenIdle++ },
+function makeContext(): {
+  ctx: Context
+  seam: { start: ReturnType<typeof vi.fn> }
+  counters: { result: number; dispose: number }
+  emit: (name: string, ...args: unknown[]) => void
+} {
+  const counters = { result: 0, dispose: 0 }
+  const seam = {
+    start: vi.fn(async () => ({
+      id: SessionId('session-child-1'),
+      result: Promise.resolve({ stopReason: 'completed' }).then((r: unknown) => { counters.result++; return r }),
+      dispose: vi.fn(async () => { counters.dispose++ }),
+    })),
   }
-  const create = Object.assign(async () => ({ agent, dispose: async () => { calls.dispose++ } }), {})
-  const agents = { create: create as unknown as AgentsFacet['create'] }
-  const ctx = new Context() as Context & { agents: AgentsFacet; reflect: { get(): unknown } }
-  ctx.provide('agents', agents)
+  const ctx = new Context()
+  ctx.provide('subagents', seam)
+  ctx.provide('agents', { get: (_id: SessionId) => ({ session: { header: { id: PARENT_ID } } }) })
   applyAgentRouter(ctx, { provider: 'mock', model: 'mock' })
   const emit = (name: string, ...args: unknown[]): void => {
     // 测试替身按宽松签名派发事件（name 为运行时字符串）；类型化重载要求
@@ -32,7 +38,7 @@ function makeContext(): { ctx: Context; agents: AgentsFacet; emit: (name: string
     // @ts-expect-error -- name: string 非 keyof Events；payload 形状宽松
     (ctx.emit)(name, ...args)
   }
-  return { ctx, agents, emit }
+  return { ctx, seam, counters, emit }
 }
 
 function toolResult(isError: boolean): unknown {
@@ -64,7 +70,7 @@ function runTool(emit: (name: string, ...args: unknown[]) => void, isError: bool
 
 describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
   it('8 连败 → escalate → delegate verifier → 派发调用序', async () => {
-    const { ctx, emit } = makeContext()
+    const { ctx, seam, counters, emit } = makeContext()
     const router = ctx.get('router') as RouterService
 
     // 8 连败（≥3 样本 + 错误率 1.0 → escalate）
@@ -77,9 +83,15 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     expect(action.kind).toBe('delegate')
     if (action.kind === 'delegate') {
       expect(action.profile).toBe('verifier')
-      // execute 派发：返回子代理 id + 调用序（create 经 mock、followup/whenIdle/dispose 真实）
-      const id = await router.execute(action)
-      expect(id).not.toBeNull()
+      // execute 派发：返回子代理 id + 调用序（start/result/dispose 真实）
+      const id = await router.execute(action, { sessionId: PARENT_ID })
+      expect(id).toBe(SessionId('session-child-1'))
+      expect(seam.start).toHaveBeenCalledTimes(1)
+      expect(counters.result).toBe(1)
+      expect(counters.dispose).toBe(1)
+      const entry = seam.start.mock.calls[0] as unknown as [string, Record<string, unknown>]
+      expect(entry[0]).toBe('spawn')
+      expect(entry[1].toolFilter).toEqual({ allow: ['grep', 'read', 'glob', 'repo_graph', 'bash'] })
     }
   }, 10000)
 
@@ -113,10 +125,10 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
   })
 
   it('dispatchEnabled: false 时 execute 不派发（返回 null）', async () => {
-    const guards: unknown[] = []
     const ctx = new Context()
-    const create = async () => ({ agent: { followup: async () => {}, whenIdle: async () => {} }, dispose: async () => {} })
-    ctx.provide('agents', { create } as never)
+    const seam = { start: vi.fn(async () => ({ id: SessionId('session-child-1'), result: Promise.resolve({}), dispose: async () => {} })) }
+    ctx.provide('subagents', seam)
+    ctx.provide('agents', { get: () => ({}) })
     applyAgentRouter(ctx, { provider: 'mock', model: 'mock', dispatchEnabled: false })
     const router = ctx.get('router') as RouterService
     for (let i = 0; i < 5; i++) {
@@ -125,8 +137,12 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     }
     const action = router.decide()
     expect(action.kind).toBe('delegate')
-    const id = await router.execute(action)
+    const id = await router.execute(action, { sessionId: PARENT_ID })
     expect(id).toBeNull()
-    void guards
+    expect(seam.start).not.toHaveBeenCalled()
   }, 10000)
+
+  it('subagentProvider 非法（空串）时装配 fail loud', () => {
+    expect(() => applyAgentRouter(new Context(), { subagentProvider: '' })).toThrow(/non-empty provider name/)
+  })
 })

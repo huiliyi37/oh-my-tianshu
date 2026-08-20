@@ -271,6 +271,8 @@ export interface AgentRouterConfig {
     /** verifier profile 的允许工具集（覆盖内置默认）。 */
     verifier?: string[]
   }
+  /** 子代理 provider 名（ctx.subagents 注册名）；缺省 'spawn'（进程内子代理）。 */
+  subagentProvider?: string
 }
 ```
 

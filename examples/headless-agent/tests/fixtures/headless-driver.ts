@@ -43,22 +43,28 @@ try {
     router?: {
       metrics(): unknown
       decide(): { kind: string; profile?: string; task?: string; targets?: string[] } | undefined
-      execute(action: { kind: string; profile?: string; task?: string; targets?: string[] }): Promise<unknown>
+      execute(
+        action: { kind: string; profile?: string; task?: string; targets?: string[] },
+        options: { sessionId: string },
+      ): Promise<unknown>
     }
+    agents?: { list(): Array<{ session: { id: string } }> }
   }).router
-  if (router !== undefined && process.env.DSH_ROUTER_DEMO === '1') {
+  const mainAgent = (ctx as Context & { agents?: { list(): Array<{ session: { id: string } }> } }).agents?.list()[0]
+  if (router !== undefined && mainAgent !== undefined && process.env.DSH_ROUTER_DEMO === '1') {
     const action = router.decide()
     process.stdout.write(`${JSON.stringify({ type: 'router_state', metrics: router.metrics(), action })}\n`)
     if (action !== undefined && process.env.DSH_ROUTER_EXECUTE === '1' && action.kind === 'delegate') {
       // 子代理会话事件转发：runFixtureTurn 的 onEvent 只转发主会话且 turn 结束即
       // 释放——子代理在 turn 后派发，事件无处进 stdout。此处注册一次不过滤的
-      // 监听，捕获 session-router-* 会话的完整一轮（agent-router e2e 断言依赖）。
+      // 监听，捕获非主会话（seam 子代理）的完整一轮（agent-router e2e 断言依赖）。
+      const mainSessionId = mainAgent.session.id
       const disposeSubagentListener = ctx.on('session/event', (session: { id: string }, event: SessionEvent) => {
-        if (!session.id.startsWith('session-router-')) return
+        if (session.id === mainSessionId) return
         process.stdout.write(`${JSON.stringify({ type: 'session_event', sessionId: session.id, event })}\n`)
       })
       try {
-        const subagentId = await router.execute(action)
+        const subagentId = await router.execute(action, { sessionId: mainSessionId })
         process.stdout.write(`${JSON.stringify({ type: 'router_dispatched', subagentId })}\n`)
       } catch (error) {
         process.stdout.write(`${JSON.stringify({ type: 'router_dispatch_failed', error: error instanceof Error ? error.message : String(error) })}\n`)
