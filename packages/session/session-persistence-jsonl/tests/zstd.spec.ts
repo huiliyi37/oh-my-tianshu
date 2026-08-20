@@ -628,7 +628,10 @@ describe('SessionPersistenceJsonl: default Zstandard encoding', () => {
       await writeFile(logPath(root, undefined, sessionId, 'zstd'), content)
     }
     const ctx = await mount(root)
-    expect(await ctx.sessionPersistence.list()).toEqual([])
+    // 2.4：空/半写/非头部工件不再静默消失——保留为 version -1 的不可恢复条目。
+    const listed = await ctx.sessionPersistence.list()
+    expect(listed.map(h => h.id).sort()).toEqual(['empty', 'not-header', 'partial'])
+    for (const header of listed) expect(header.version).toBe(-1)
 
     const twoLinesId = SessionId('two-lines')
     await mkdir(sessionDir(root, undefined, twoLinesId), { recursive: true })
