@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
-import { apply as applyAgentRouter, type RouterService } from '../src/index.js'
+import { apply as applyAgentRouter, resolveProfileTools, type RouterService } from '../src/index.js'
 
 interface AgentsFacet {
   create: ReturnType<typeof import('vitest').vi.fn>
@@ -94,6 +94,23 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     expect(router.metrics().interventionLevel).toBe('none') // 重置后样本 <3 → none
     expect(router.decide().kind).toBe('self')
   }, 10000)
+
+  it('profileTools 配置非法时装配 fail loud', () => {
+    expect(() => applyAgentRouter(new Context(), { profileTools: { codeScout: [] } })).toThrow(/non-empty/)
+    expect(() => applyAgentRouter(new Context(), { profileTools: { verifier: ['read', ''] } })).toThrow(/non-empty/)
+    expect(() => applyAgentRouter(new Context(), { profileTools: { codeScout: ['read', 'read'] } })).toThrow(/duplicates/)
+  })
+
+  it('resolveProfileTools 缺省用内置真实工具名，覆盖生效', () => {
+    const defaults = resolveProfileTools({})
+    expect(defaults.code_scout).toContain('read')
+    expect(defaults.code_scout).not.toContain('read_file')
+    expect(defaults.code_scout).toContain('repo_graph')
+    expect(defaults.verifier).toContain('repo_graph')
+    const overridden = resolveProfileTools({ profileTools: { codeScout: ['read', 'bash'], verifier: ['read'] } })
+    expect(overridden.code_scout).toEqual(['read', 'bash'])
+    expect(overridden.verifier).toEqual(['read'])
+  })
 
   it('dispatchEnabled: false 时 execute 不派发（返回 null）', async () => {
     const guards: unknown[] = []

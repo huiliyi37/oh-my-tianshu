@@ -12,7 +12,7 @@ The agent routing layer — base metrics → algorithm → MoE routing → dsh-n
   2. gate (≥0.6) + probe cooldown exhausted → `delegate code_scout` (fresh-angle reconnaissance)
   3. unresolved obligations + zero verifications → `self` (write a probe first)
   4. default `self`
-- **dispatch** (dsh-native subagents): `ctx.agents.create` → `followup` injects the task → `whenIdle` waits → `dispose` cleans up. Results are accounted back to evidence-gate automatically through session/event (zero new channels).
+- **dispatch** (dsh-native subagents): `ctx.agents.create` → `followup` injects the task → `whenIdle` waits → `dispose` cleans up. The profile tool restriction installs fail-loud in `setup` — unknown tool names or a missing tools service abort the dispatch, so a profile never silently runs with the full tool surface. Results are accounted back to evidence-gate automatically through session/event (zero new channels).
 
 ## Assembly
 
@@ -52,6 +52,10 @@ apply(ctx, {
   dispatchEnabled: true,   // 是否实际派发（false 时只决策不回显）
   provider: 'deepseek',    // 子代理模型（派发必需）
   model: 'deepseek-v4-flash',
+  profileTools: {          // 可选：profile 工具集覆盖（缺省用内置只读/验证集合）
+    codeScout: ['read', 'bash'],
+    verifier: ['read', 'bash'],
+  },
 })
 
 ```
@@ -59,7 +63,7 @@ apply(ctx, {
 
 - `prediction.ts` — tool success/failure prediction accumulator (Tianshu pure-function core, zero dependencies)
 - `router.ts` — deterministic routing table (metrics → action)
-- `dispatch.ts` — dsh-native subagent dispatch (create/followup/whenIdle/dispose)
+- `dispatch.ts` — dsh-native subagent dispatch (create/followup/whenIdle/dispose) with fail-loud profile tool restriction
 - `index.ts` — Cordis plugin wiring (event collection + service surface)
 - `invariant.ts` — runtime-invariant companion
 
@@ -82,3 +86,4 @@ None directly; the delegate session is an independent model request, and the par
 - **Dispatch requires explicit model configuration** — with `dispatchEnabled: true`, `provider`/`model` must be supplied; unconfigured, the router only decides without dispatching (decision results stay queryable).
 - **The prediction window is in-memory** — the sliding window and tipping-point state vanish with the process; cross-session error-rate profiles are deferred work.
 - **The routing table is a fixed policy** — the three intervention thresholds (0.4/0.6/0.8) and the action mapping are the Tianshu constants from the port; configurability waits for real tuning demand.
+- **Profile tool sets are deployment-scoped** — the built-in defaults name the shipped tool catalog (`grep`/`read`/`glob`/`repo_graph`/`semantic_search`/`bash`); a slim assembly declares its own subset via `profileTools`, and unknown names fail the dispatch loudly rather than widening the tool face.

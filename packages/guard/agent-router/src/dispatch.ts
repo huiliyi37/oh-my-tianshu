@@ -4,8 +4,9 @@
  * 子代理 = dsh 原生 agent 会话：ctx.agents.create（新 sessionId）→
  * followup 注入任务文本（Agent 公开方法，最简单可靠的任务入口）→
  * whenIdle 等待完成 → dispose 清理。结果经 session/event 归账回
- * evidence-gate（零新通道）。工具限制（restrict）签名待探明，
- * 本轮不做——之后慢慢改造。
+ * evidence-gate（零新通道）。profile 工具集在 setup 内经 tools.restrict
+ * fail loud 安装：未知工具名或缺失 tools 服务直接中止派发（create 回滚），
+ * 绝不静默放宽为全量工具面。
  *
  * @module @huiliyi37/dsh-agent-router/dispatch
  */
@@ -27,14 +28,20 @@ export interface DispatchOptions {
   /** 模型选择（provider/model）。 */
   provider: string
   model: string
+  /** 本 profile 允许的工具集（restrict allow 列表；resolveProfileTools 已校验）。 */
+  tools: string[]
 }
 
-/** profile → 允许的工具集（restrict allow 列表；仅含只读/验证必需工具）。 */
-const PROFILE_TOOLS: Record<DispatchOptions['profile'], string[]> = {
+/**
+ * profile → 默认允许的工具集（restrict allow 列表；只读/验证必需工具，
+ * 名称为 gen-tool-catalog 权威名单）。部署可经 config.profileTools 覆盖
+ * （如只装少量工具的精简装配）——见 index.ts 的 resolveProfileTools。
+ */
+export const DEFAULT_PROFILE_TOOLS: Record<DispatchOptions['profile'], string[]> = {
   // 只读侦查：搜索/读取 + bash（只读命令侦查用）
-  code_scout: ['grep', 'read_file', 'glob', 'repo_map', 'semantic_search', 'ast_grep', 'bash'],
+  code_scout: ['grep', 'read', 'glob', 'repo_graph', 'semantic_search', 'bash'],
   // 独立复核：只读 + bash（跑测试命令验证）
-  verifier: ['grep', 'read_file', 'glob', 'repo_map', 'bash'],
+  verifier: ['grep', 'read', 'glob', 'repo_graph', 'bash'],
 }
 
 /**
@@ -56,8 +63,8 @@ interface AgentsFacet {
 /**
  * 派发一个子代理：create（setup 内 restrict 工具集）→ followup 注入任务 →
  * whenIdle 等待 → dispose。restrict 在 agent.ctx 作用域调用（tools.restrict
- * 要求 scoped context）；装配无这些工具时 restrict 抛错 → 降级不限制
- * （不阻止派发）。
+ * 要求 scoped context）；未知工具名或缺失 tools 服务 fail loud——setup
+ * 抛错经 create 回滚，派发整体拒绝，不静默放宽权限。
  * @param ctx - 宿主上下文（需 agents 服务）。
  * @param opts - 派发选项。
  * @returns 子代理 sessionId（结果经事件流归账）。
@@ -70,16 +77,14 @@ export async function dispatchSubagent(ctx: Context, opts: DispatchOptions): Pro
     sessionId: id,
     agentOptions: { provider: opts.provider, model: opts.model },
     setup: (agentCtx) => {
-      // 工具限制：profile → allow 列表；restrict 需 scoped context（agent.ctx），
-      // 未知工具名抛错时降级（装配差异不炸派发）。
-      const tools = (agentCtx as { tools?: { restrict(filter: { allow?: string[] }): unknown } }).tools
-      if (tools !== undefined) {
-        try {
-          tools.restrict({ allow: PROFILE_TOOLS[opts.profile] })
-        } catch {
-          // 装配无这些工具（如 headless 只注册 bash）——降级不限制
-        }
+      // 工具限制：profile → allow 列表；restrict 需 scoped context（agent.ctx）。
+      // 未知工具名或缺失 tools 服务都 fail loud——静默降级会让 profile
+      // 带着全量写工具面运行，等于没有权限约束。
+      const tools = (agentCtx as { tools?: { restrict(filter: { allow: string[] }): unknown } }).tools
+      if (tools === undefined) {
+        throw new Error('agent-router: subagent tools service unavailable (cannot apply the profile tool restriction)')
       }
+      tools.restrict({ allow: opts.tools })
     },
   })
   try {

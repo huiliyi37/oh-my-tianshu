@@ -24,7 +24,7 @@ import {
   shouldTippingPointReset,
 } from './prediction.js'
 import { decideRouterAction, type RouterAction, type RouterMetrics } from './router.js'
-import { dispatchSubagent, type DispatchOptions } from './dispatch.js'
+import { DEFAULT_PROFILE_TOOLS, dispatchSubagent, type DispatchOptions } from './dispatch.js'
 
 /** 插件名（cordis.yml 装配用）。 */
 export const name = 'agent-router'
@@ -60,6 +60,46 @@ export interface AgentRouterConfig {
   provider?: string
   /** 派发子代理所用模型名；缺省随子代理服务的默认路由。 */
   model?: string
+  /**
+   * profile 工具集覆盖（部署差异——如只装少量工具的精简装配——声明自己的
+   * 子集）；缺省用内置只读/验证集合（{@link DEFAULT_PROFILE_TOOLS}）。
+   */
+  profileTools?: {
+    /** code_scout profile 的允许工具集（覆盖内置默认）。 */
+    codeScout?: string[]
+    /** verifier profile 的允许工具集（覆盖内置默认）。 */
+    verifier?: string[]
+  }
+}
+
+/**
+ * 校验并默认 profile 工具集。每个列表必须是非空工具名字符串数组且无
+ * 重复（空列表会被 tools.restrict 拒绝，在此先行拒绝）；形状错误在装配
+ * 时 fail loud，未知工具名由 restrict 在派发时 fail loud（两级防线）。
+ * @param config - 插件配置。
+ * @returns 两个 profile 的最终工具集（缺省用 {@link DEFAULT_PROFILE_TOOLS}）。
+ */
+export function resolveProfileTools(config: AgentRouterConfig): Record<DispatchOptions['profile'], string[]> {
+  const result: Record<DispatchOptions['profile'], string[]> = {
+    code_scout: [...DEFAULT_PROFILE_TOOLS.code_scout],
+    verifier: [...DEFAULT_PROFILE_TOOLS.verifier],
+  }
+  const overrides: Array<[DispatchOptions['profile'], string[] | undefined]> = [
+    ['code_scout', config.profileTools?.codeScout],
+    ['verifier', config.profileTools?.verifier],
+  ]
+  for (const [profile, list] of overrides) {
+    if (list === undefined) continue
+    const key = profile === 'code_scout' ? 'codeScout' : 'verifier'
+    if (list.length === 0 || list.some(name => typeof name !== 'string' || name.trim() === '')) {
+      throw new Error(`agent-router: profileTools.${key} must be a non-empty array of non-empty tool names`)
+    }
+    if (new Set(list).size !== list.length) {
+      throw new Error(`agent-router: profileTools.${key} must not contain duplicates`)
+    }
+    result[profile] = [...list]
+  }
+  return result
 }
 
 /** 宿主服务面。 */
@@ -76,6 +116,7 @@ export interface RouterService {
 
 /** 插件装配：指标采集 + 路由服务面 + 派发。 */
 export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
+  const profileTools = resolveProfileTools(config)
   let prediction = createPredictionAccumulator()
   const dispatchEnabled = config.dispatchEnabled ?? true
 
@@ -130,6 +171,7 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
         targets: action.targets,
         provider: config.provider,
         model: config.model,
+        tools: profileTools[action.profile],
       }
       return dispatchSubagent(ctx, opts)
     },

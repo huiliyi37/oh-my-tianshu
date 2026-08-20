@@ -261,6 +261,16 @@ export interface AgentRouterConfig {
   provider?: string
   /** 派发子代理所用模型名；缺省随子代理服务的默认路由。 */
   model?: string
+  /**
+   * profile 工具集覆盖（部署差异——如只装少量工具的精简装配——声明自己的
+   * 子集）；缺省用内置只读/验证集合（{@link DEFAULT_PROFILE_TOOLS}）。
+   */
+  profileTools?: {
+    /** code_scout profile 的允许工具集（覆盖内置默认）。 */
+    codeScout?: string[]
+    /** verifier profile 的允许工具集（覆盖内置默认）。 */
+    verifier?: string[]
+  }
 }
 ```
 

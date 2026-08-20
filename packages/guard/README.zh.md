@@ -57,7 +57,7 @@ tool outcomes → failure prediction (agent-router)
 3. 义务未决 + 零验证 → `self`（先写探针——编辑门已在拦编辑）；
 4. 否则 `self`。
 
-派发是 dsh 原生：`ctx.agents.create` → `followup` 注入任务 → `whenIdle` 等待 → `dispose` 清理；每个 profile 限制子代理工具集（读/搜索/bash）。结果经 `session/event` 归账回 `evidence-gate`。细节见 [agent-router README](agent-router/README.md)。
+派发是 dsh 原生：`ctx.agents.create` → `followup` 注入任务 → `whenIdle` 等待 → `dispose` 清理；每个 profile 限制子代理工具集（读/搜索/bash，fail loud 安装——未知工具名会中止派发）。结果经 `session/event` 归账回 `evidence-gate`。细节见 [agent-router README](agent-router/README.md)。
 
 ### repeat-tool-guard — 重复调用提醒
 

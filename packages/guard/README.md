@@ -57,7 +57,7 @@ A **prediction accumulator** slides a 10-round window over tool outcomes and der
 3. unresolved obligation with zero verifications → `self` (write a probe first — the edit gate already blocks edits);
 4. otherwise `self`.
 
-Delegation is dsh-native: `ctx.agents.create` → `followup` injects the task → `whenIdle` waits → `dispose` cleans up; each profile restricts the subagent's tool set (read/search/bash). Results land back in `evidence-gate` through `session/event`. Details: [agent-router README](agent-router/README.md).
+Delegation is dsh-native: `ctx.agents.create` → `followup` injects the task → `whenIdle` waits → `dispose` cleans up; each profile restricts the subagent's tool set (read/search/bash, installed fail-loud — unknown tool names abort the dispatch). Results land back in `evidence-gate` through `session/event`. Details: [agent-router README](agent-router/README.md).
 
 ### repeat-tool-guard — repeat-call reminders
 

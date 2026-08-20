@@ -12,7 +12,7 @@ agent 路由层——基础指标 → 算法 → MoE 路由 → dsh 原生子代
   2. gate（≥0.6）+ 探针冷却耗尽 → `delegate code_scout`（新角度侦查）
   3. 义务未决 + 零验证 → `self`（先写探针）
   4. 默认 `self`
-- **dispatch**（dsh 原生子代理）：`ctx.agents.create` → `followup` 注入任务 → `whenIdle` 等待 → `dispose` 清理。结果经 session/event 自动归账回 evidence-gate（零新通道）。
+- **dispatch**（dsh 原生子代理）：`ctx.agents.create` → `followup` 注入任务 → `whenIdle` 等待 → `dispose` 清理。profile 工具限制在 `setup` 内 fail loud 安装——未知工具名或缺失 tools 服务会中止派发，profile 绝不带着全量工具面静默运行。结果经 session/event 自动归账回 evidence-gate（零新通道）。
 
 ## 装配
 
@@ -52,6 +52,10 @@ apply(ctx, {
   dispatchEnabled: true,   // 是否实际派发（false 时只决策不回显）
   provider: 'deepseek',    // 子代理模型（派发必需）
   model: 'deepseek-v4-flash',
+  profileTools: {          // 可选：profile 工具集覆盖（缺省用内置只读/验证集合）
+    codeScout: ['read', 'bash'],
+    verifier: ['read', 'bash'],
+  },
 })
 
 ```
@@ -59,7 +63,7 @@ apply(ctx, {
 
 - `prediction.ts` — 工具成败预测累计器（天枢纯函数核心，零依赖）
 - `router.ts` — 确定性路由表（指标 → 动作）
-- `dispatch.ts` — dsh 原生子代理派发（create/followup/whenIdle/dispose）
+- `dispatch.ts` — dsh 原生子代理派发（create/followup/whenIdle/dispose），profile 工具限制 fail loud
 - `index.ts` — Cordis 插件接线（事件采集 + 服务面）
 - `invariant.ts` — 运行时不变量 companion
 
@@ -82,3 +86,4 @@ None directly; the delegate session is an independent model request, and the par
 - **派发需要显式模型配置** — `dispatchEnabled: true` 时必须提供 `provider`/`model`；未配置时只决策不派发（决策结果仍可查询）。
 - **预测窗口是内存态** — 滑动窗口与 tipping point 状态随进程消失；跨会话的错误率画像为延期工作。
 - **路由表是固定策略** — 三级干预阈值（0.4/0.6/0.8）与动作映射为移植时的天枢常量；可配置化随实际调参需求再做。
+- **profile 工具集随部署而定** — 内置默认面向发货工具目录（`grep`/`read`/`glob`/`repo_graph`/`semantic_search`/`bash`）；精简装配经 `profileTools` 声明自己的子集，未知工具名会让派发响亮失败而不是放宽工具面。

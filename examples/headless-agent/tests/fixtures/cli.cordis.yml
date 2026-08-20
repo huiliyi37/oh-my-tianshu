@@ -9,6 +9,11 @@
   config:
     provider: cli-mock
     model: cli-mock
+    # 精简装配未装 grep/glob/repo_graph/semantic_search——声明本装配可用子集，
+    # 否则派发时 restrict 按 fail-loud 中止。
+    profileTools:
+      codeScout: ['read', 'bash']
+      verifier: ['read', 'bash']
 
 - id: str-replace-editor
   name: '@huiliyi37/dsh-tool-str-replace-editor'
