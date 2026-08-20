@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/guard/intent-bridge/README.md
-README.md: 5f759184ec23b647a9ee9ec969f28d757c8fa033
-README.zh.md: a05475573b14a1dcdbb3357f56a7953d4394f317
+README.md: 6130ec86dd71c88c714cb53e94bc04a899383cc9
+README.zh.md: d9bebea6457b6ac1e23e59c038811fb5d2b942b3

@@ -9,7 +9,7 @@
  * (mock/minimax/deepseek-official) so both agents stream through it.
  */
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
 import LlmService, { CallId, createUserMessage, ReasoningEffortId } from '@huiliyi37/dsh-llm'
 import type { UserMessage } from '@huiliyi37/dsh-llm'
@@ -317,5 +317,122 @@ describe('intent-bridge through the agent loop', () => {
     const adapter = new MockAdapter([])
     const ctx = await harness(adapter, { ...BASE_CONFIG, enabled: false })
     await expect(ctx.intentBridge.createAlignedSession()).rejects.toThrow(/disabled/)
+  })
+
+  it('retries a handoff whose main-session create failed', async () => {
+    const adapter = new MockAdapter([
+      toolCallResponse('f1', 'finalize_alignment', { title: 'T', goal: 'G', constraints: [], acceptance: [] }),
+      toolCallResponse('f2', 'finalize_alignment', { title: 'T', goal: 'G', constraints: [], acceptance: [] }),
+      textResponse('主会话响应。'),
+    ])
+    const ctx = await harness(adapter)
+    let handoff: { mainSessionId: string } | undefined
+    ctx.on('intent-bridge/handoff', (payload) => { handoff = payload })
+
+    const original = ctx.agents.create.bind(ctx.agents)
+    let failedOnce = false
+    vi.spyOn(ctx.agents, 'create').mockImplementation(async (options) => {
+      if (options.sessionId.endsWith('-exec') && !failedOnce) {
+        failedOnce = true
+        throw new Error('injected create failure')
+      }
+      return original(options)
+    })
+
+    const align = await ctx.intentBridge.createAlignedSession()
+    ask(align.handle.agent, '帮我重构 src/auth.ts 的登录逻辑')
+    await waitForIdle(ctx, align.handle.agent)
+
+    // The first attempt surfaced as a tool error and the model retried: the
+    // alignment session stayed non-finalized until the retry succeeded.
+    expect(failedOnce).toBe(true)
+    expect(handoff).toBeDefined()
+    const main = ctx.agents.get(SessionId(handoff!.mainSessionId))
+    if (main === undefined) throw new Error('intent-bridge: main session missing after handoff')
+    await waitForIdle(ctx, main)
+    expect(userMessages(main.session.events)[0]).toContain('—— 原始请求 ——')
+  })
+
+  it('skips the error-fallback handoff while a handoff is already in flight', async () => {
+    const adapter = new MockAdapter([
+      toolCallResponse('f1', 'finalize_alignment', { title: 'T', goal: 'G', constraints: [], acceptance: [] }),
+      textResponse('主会话响应。'),
+    ])
+    const ctx = await harness(adapter)
+    let handoff: { mainSessionId: string } | undefined
+    ctx.on('intent-bridge/handoff', (payload) => { handoff = payload })
+
+    const original = ctx.agents.create.bind(ctx.agents)
+    const mainCreates: string[] = []
+    let gate: { resolve: () => void } | undefined
+    vi.spyOn(ctx.agents, 'create').mockImplementation((options) => {
+      if (!options.sessionId.endsWith('-exec')) return original(options)
+      mainCreates.push(options.sessionId)
+      return new Promise((resolve, reject) => {
+        gate = {
+          resolve: () => { original(options).then(resolve, reject) },
+        }
+      })
+    })
+
+    const align = await ctx.intentBridge.createAlignedSession()
+    ask(align.handle.agent, '帮我重构 src/auth.ts 的登录逻辑')
+    // The finalize tool call runs while the main-session create is held open.
+    await vi.waitFor(() => expect(mainCreates).toHaveLength(1))
+
+    // The error fallback fires mid-handoff: the in-flight sentinel must skip it.
+    const session = ctx.sessions.get(SessionId(align.sessionId))
+    if (session === undefined) throw new Error('intent-bridge: alignment session missing')
+    const emit = ctx.emit as unknown as (name: string, ...args: unknown[]) => void
+    emit('internal/dispatch', 'emit', 'session/event', [session, {
+      type: 'turn/end',
+      data: { turn: 1, reason: { kind: 'error' } },
+    }])
+    await new Promise(resolve => setTimeout(resolve, 10))
+    expect(mainCreates).toHaveLength(1)
+
+    // Release the held create; the handoff completes exactly once.
+    if (gate === undefined) throw new Error('intent-bridge: held create never reached')
+    gate.resolve()
+    await waitForIdle(ctx, align.handle.agent)
+    expect(handoff).toBeDefined()
+    expect(mainCreates).toHaveLength(1)
+  })
+
+  it('disposes a main session whose card delivery failed and lets the model retry', async () => {
+    const adapter = new MockAdapter([
+      toolCallResponse('f1', 'finalize_alignment', { title: 'T', goal: 'G', constraints: [], acceptance: [] }),
+      toolCallResponse('f2', 'finalize_alignment', { title: 'T', goal: 'G', constraints: [], acceptance: [] }),
+      textResponse('主会话响应。'),
+    ])
+    const ctx = await harness(adapter)
+    let handoff: { mainSessionId: string } | undefined
+    ctx.on('intent-bridge/handoff', (payload) => { handoff = payload })
+
+    const original = ctx.agents.create.bind(ctx.agents)
+    const abandoned: string[] = []
+    vi.spyOn(ctx.agents, 'create').mockImplementation(async (options) => {
+      const handle = await original(options)
+      if (options.sessionId.endsWith('-exec') && abandoned.length === 0) {
+        abandoned.push(options.sessionId)
+        vi.spyOn(handle.agent, 'followup').mockImplementation(() => {
+          throw new Error('injected delivery failure')
+        })
+      }
+      return handle
+    })
+
+    const align = await ctx.intentBridge.createAlignedSession()
+    ask(align.handle.agent, '帮我重构 src/auth.ts 的登录逻辑')
+    await waitForIdle(ctx, align.handle.agent)
+
+    expect(handoff).toBeDefined()
+    // The card-less first main session was disposed; the retry minted a fresh one.
+    if (abandoned[0] === undefined) throw new Error('intent-bridge: delivery sabotage never triggered')
+    expect(ctx.agents.get(SessionId(abandoned[0]))).toBeUndefined()
+    const main = ctx.agents.get(SessionId(handoff!.mainSessionId))
+    if (main === undefined) throw new Error('intent-bridge: main session missing after handoff')
+    await waitForIdle(ctx, main)
+    expect(userMessages(main.session.events)[0]).toContain('—— 原始请求 ——')
   })
 })

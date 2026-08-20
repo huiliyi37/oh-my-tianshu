@@ -91,5 +91,5 @@ The card is in place before the main session's first request, so the prefix neve
 
 - **The round meter counts agent steps, not user turns** — with a single-tool face the two coincide in practice; a multi-step alignment turn would consume budget faster.
 - **A bridged main session cannot hot-switch its model** — the exec route is a snapshot taken when the alignment session is created; the registry-owned agent does not take the TUI's model ref.
-- **A failed handoff closes the alignment session to retries** — `finalize` marks the session finalized before creating the main session, so a failed create leaves no retry path (recovery: a new session).
+- **Handoff is create-then-commit** — the alignment session is marked finalized only after the main session received the card; a failed create or delivery surfaces as a tool error and stays retryable, with a card-less main session disposed automatically.
 - **The alignment tab survives the handoff** — it stays in the tab list as a plain chat; automatic disposal is deferred.

@@ -200,8 +200,17 @@ function originalOf(text: string): string {
 interface AlignState {
   /** Steps consumed (the round meter). */
   rounds: number
-  /** Whether the handoff already happened (1:1). */
+  /**
+   * Whether the handoff already happened (1:1). Set only after the main
+   * session received the card, so a failed handoff stays retryable.
+   */
   finalized: boolean
+  /**
+   * Whether a handoff is currently in flight. Set synchronously before the
+   * first await so every path (tool, forced, fallback) serializes against
+   * the create window; cleared in `finally` on success and failure alike.
+   */
+  finalizing: boolean
   /** The user's first message verbatim (recorded before any rewrite). */
   originalText: string | undefined
   /** Project directory for the alignment session and its main session (header.cwd). */
@@ -281,7 +290,7 @@ export class IntentBridgeService extends Service {
     // and reject the step so the alignment model never runs past the budget.
     ctx.on('agent/pre-step', async ({ agent }, next) => {
       const state = this.aligns.get(agent.session.id)
-      if (state === undefined || state.finalized) return next()
+      if (state === undefined || state.finalized || state.finalizing) return next()
       state.rounds += 1
       if (state.rounds < this.config.alignMaxRounds) return next()
       try {
@@ -299,7 +308,7 @@ export class IntentBridgeService extends Service {
       if (eventName !== 'session/event') return
       const [session, event] = args as [Session, SessionEvent]
       const state = this.aligns.get(session.id)
-      if (state === undefined || state.finalized) return
+      if (state === undefined || state.finalized || state.finalizing) return
       if (event.type === 'turn/end' && event.data.reason.kind === 'error') {
         this.finalizeFromSession(session.id).catch((error: unknown) => {
           ctx.logger.warn('intent-bridge: error fallback finalize failed: %o', error)
@@ -342,6 +351,7 @@ export class IntentBridgeService extends Service {
     this.aligns.set(sessionId, {
       rounds: 0,
       finalized: false,
+      finalizing: false,
       originalText: undefined,
       cwd: options.cwd,
       ...(options.exec === undefined ? {} : { execRoute: options.exec }),
@@ -383,6 +393,7 @@ export class IntentBridgeService extends Service {
         const state = this.aligns.get(agent.session.id)
         if (state === undefined) throw new Error(`${FINALIZE_TOOL_NAME} is only available during intent alignment`)
         if (state.finalized) throw new Error(`${FINALIZE_TOOL_NAME}: this session already handed off`)
+        if (state.finalizing) throw new Error(`${FINALIZE_TOOL_NAME}: a handoff is already in progress`)
         const parsed = parseFinalizeArgs(args)
         await this.finalize(agent, parsed, 'anchor')
         return { handedOff: true as const }
@@ -404,57 +415,100 @@ export class IntentBridgeService extends Service {
     })
   }
 
-  /** Complete a handoff from a live agent (tool or forced path). */
+  /**
+   * Complete a handoff from a live agent (tool or forced path).
+   *
+   * `finalizing` is set synchronously before the first await so the tool,
+   * forced, and fallback paths all serialize against the create window;
+   * `finalized` is set only after the main session received the card, so a
+   * failed create or delivery leaves the alignment session retryable.
+   */
   private async finalize(
     agent: Agent,
     parsed: FinalizeArgs | undefined,
     reason: 'anchor' | 'rounds-exhausted',
   ): Promise<void> {
     const state = this.aligns.get(agent.session.id)
-    if (state === undefined || state.finalized) return
-    state.finalized = true
-    const original = state.originalText ?? ''
-    const cardText = parsed === undefined
-      ? renderTaskCard(templateCard(original), original)
-      : renderTaskCard(parsed, original)
-    const mainId = `session-${randomUUID()}-exec`
-    const route = state.execRoute ?? this.execRoute
-    const { agent: main } = await this.ctx.agents.create({
-      sessionId: SessionId(mainId),
-      ...(state.cwd === undefined ? {} : { meta: { cwd: state.cwd } }),
-      agentOptions: agentOptionsFor(route),
-    })
-    main.followup(createUserMessage({ content: [{ type: 'text', text: cardText }], source: { kind: 'user' } }))
-    main.session.append('intent-bridge/handoff', { alignSessionId: agent.session.id, reason })
-    this.ctx.emit('intent-bridge/handoff', {
-      alignSessionId: agent.session.id,
-      mainSessionId: mainId,
-      title: parsed?.title ?? '',
-    })
-    this.ctx.logger.info('intent-bridge: handoff %s -> %s (%s)', agent.session.id, mainId, reason)
+    if (state === undefined || state.finalized || state.finalizing) return
+    state.finalizing = true
+    try {
+      const original = state.originalText ?? ''
+      const cardText = parsed === undefined
+        ? renderTaskCard(templateCard(original), original)
+        : renderTaskCard(parsed, original)
+      const mainId = `session-${randomUUID()}-exec`
+      const route = state.execRoute ?? this.execRoute
+      const handle = await this.ctx.agents.create({
+        sessionId: SessionId(mainId),
+        ...(state.cwd === undefined ? {} : { meta: { cwd: state.cwd } }),
+        agentOptions: agentOptionsFor(route),
+      })
+      try {
+        this.deliverCard(handle.agent, cardText, agent.session.id, reason)
+      } catch (error) {
+        // The main session exists but never received the card: dispose it so
+        // a retry mints a fresh main session (the invariant forbids a second
+        // handoff record on the same session), then surface the failure.
+        await handle.dispose()
+        throw error
+      }
+      state.finalized = true
+      this.ctx.emit('intent-bridge/handoff', {
+        alignSessionId: agent.session.id,
+        mainSessionId: mainId,
+        title: parsed?.title ?? '',
+      })
+      this.ctx.logger.info('intent-bridge: handoff %s -> %s (%s)', agent.session.id, mainId, reason)
+    } finally {
+      state.finalizing = false
+    }
   }
 
-  /** Failure fallback: hand off the verbatim original (task-card rewrites it). */
+  /**
+   * Failure fallback: hand off the verbatim original (task-card rewrites it).
+   * Same create-then-commit ordering as {@link finalize}: a failed create or
+   * delivery leaves the alignment session retryable via the next error turn.
+   */
   private async finalizeFromSession(sessionId: string): Promise<void> {
     const state = this.aligns.get(sessionId)
-    if (state === undefined || state.finalized) return
+    if (state === undefined || state.finalized || state.finalizing) return
     const session = this.ctx.sessions.get(SessionId(sessionId))
     if (session === undefined) return
     const firstUser = session.events.find(event => event.type === 'user/message')
     const original = firstUser !== undefined
       ? originalOf(textOf(firstUser.data))
       : (state.originalText ?? '')
-    state.finalized = true
-    const mainId = `session-${randomUUID()}-exec`
-    const route = state.execRoute ?? this.execRoute
-    const { agent: main } = await this.ctx.agents.create({
-      sessionId: SessionId(mainId),
-      ...(state.cwd === undefined ? {} : { meta: { cwd: state.cwd } }),
-      agentOptions: agentOptionsFor(route),
-    })
-    main.followup(createUserMessage({ content: [{ type: 'text', text: original }], source: { kind: 'user' } }))
-    main.session.append('intent-bridge/handoff', { alignSessionId: sessionId, reason: 'alignment-error' })
-    this.ctx.emit('intent-bridge/handoff', { alignSessionId: sessionId, mainSessionId: mainId, title: '' })
+    state.finalizing = true
+    try {
+      const mainId = `session-${randomUUID()}-exec`
+      const route = state.execRoute ?? this.execRoute
+      const handle = await this.ctx.agents.create({
+        sessionId: SessionId(mainId),
+        ...(state.cwd === undefined ? {} : { meta: { cwd: state.cwd } }),
+        agentOptions: agentOptionsFor(route),
+      })
+      try {
+        this.deliverCard(handle.agent, original, sessionId, 'alignment-error')
+      } catch (error) {
+        // See {@link finalize}: dispose the card-less main session so a
+        // retry mints a fresh one instead of double-appending.
+        await handle.dispose()
+        throw error
+      }
+      state.finalized = true
+      this.ctx.emit('intent-bridge/handoff', { alignSessionId: sessionId, mainSessionId: mainId, title: '' })
+    } finally {
+      state.finalizing = false
+    }
+  }
+
+  /**
+   * Deliver the card to a created main session: first user message plus the
+   * durable log-only handoff record (at most one per session — the invariant).
+   */
+  private deliverCard(main: Agent, text: string, alignSessionId: string, reason: string): void {
+    main.followup(createUserMessage({ content: [{ type: 'text', text }], source: { kind: 'user' } }))
+    main.session.append('intent-bridge/handoff', { alignSessionId, reason })
   }
 }
 
