@@ -24,7 +24,7 @@ plugins: ['@huiliyi37/dsh-agent-router']
 
 // 宿主调用（任务边界或 turn 结束）：
 const router = ctx.router
-const action = router.decide()
+const action = router.decide({ sessionId })
 if (action.kind === 'delegate') {
   const subagentId = await router.execute(action, { sessionId })  // 派发子代理（父会话必填）
   // 结果经事件流自动归账
@@ -37,10 +37,10 @@ if (action.kind === 'delegate') {
 
 | Method | Semantics |
 |---|---|
-| `metrics()` | Current metrics snapshot (interventionLevel/unresolvedHigh/verifications/probeCooledTargets) |
-| `decide()` | Routing decision (pure function, safe to call repeatedly) |
+| `metrics({ sessionId })` | Current metrics snapshot (interventionLevel/unresolvedHigh/verifications/probeCooledTargets) for that session's accumulator |
+| `decide({ sessionId })` | Routing decision (pure function, safe to call repeatedly) from that session's accumulator |
 | `execute(action, { sessionId, signal? })` | Executes an action (delegate → dispatches a subagent through the seam and returns the child sessionId; self → null); `sessionId` names the live parent session the child lineage derives from |
-| `resetPrediction()` | Resets the prediction accumulator |
+| `resetPrediction(sessionId?)` | Resets the prediction accumulator (one session; all sessions when omitted) |
 
 ## Configuration
 
@@ -86,6 +86,6 @@ None directly; the delegate session is an independent model request, and the par
 
 - **Dispatch requires explicit model configuration** — with `dispatchEnabled: true`, `provider`/`model` must be supplied; unconfigured, the router only decides without dispatching (decision results stay queryable).
 - **Dispatch requires a live parent session** — `execute` takes the parent `sessionId` and fails loud when that session is not a live agent; the seam derives the child's workspace, lineage, and delegation depth from it.
-- **The prediction window is in-memory** — the sliding window and tipping-point state vanish with the process; cross-session error-rate profiles are deferred work.
+- **The prediction window is in-memory** — the sliding window and tipping-point state vanish with the process. Accumulation is keyed per session and child sessions (`header.parentSession`) are excluded, so routed children never pollute their parent's window.
 - **The routing table is a fixed policy** — the three intervention thresholds (0.4/0.6/0.8) and the action mapping are the Tianshu constants from the port; configurability waits for real tuning demand.
 - **Profile tool sets are deployment-scoped** — the built-in defaults name the shipped tool catalog (`grep`/`read`/`glob`/`repo_graph`/`semantic_search`/`bash`); a slim assembly declares its own subset via `profileTools`, and unknown names fail the dispatch loudly rather than widening the tool face.

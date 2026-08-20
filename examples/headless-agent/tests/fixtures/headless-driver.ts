@@ -41,8 +41,8 @@ try {
   // DSH_ROUTER_EXECUTE=1 时真实派发子代理（verifier 真实 turn 验证）。
   const router = (ctx as Context & {
     router?: {
-      metrics(): unknown
-      decide(): { kind: string; profile?: string; task?: string; targets?: string[] } | undefined
+      metrics(options: { sessionId: string }): unknown
+      decide(options: { sessionId: string }): { kind: string; profile?: string; task?: string; targets?: string[] } | undefined
       execute(
         action: { kind: string; profile?: string; task?: string; targets?: string[] },
         options: { sessionId: string },
@@ -52,8 +52,9 @@ try {
   }).router
   const mainAgent = (ctx as Context & { agents?: { list(): Array<{ session: { id: string } }> } }).agents?.list()[0]
   if (router !== undefined && mainAgent !== undefined && process.env.DSH_ROUTER_DEMO === '1') {
-    const action = router.decide()
-    process.stdout.write(`${JSON.stringify({ type: 'router_state', metrics: router.metrics(), action })}\n`)
+    const sessionId = mainAgent.session.id
+    const action = router.decide({ sessionId })
+    process.stdout.write(`${JSON.stringify({ type: 'router_state', metrics: router.metrics({ sessionId }), action })}\n`)
     if (action !== undefined && process.env.DSH_ROUTER_EXECUTE === '1' && action.kind === 'delegate') {
       // 子代理会话事件转发：runFixtureTurn 的 onEvent 只转发主会话且 turn 结束即
       // 释放——子代理在 turn 后派发，事件无处进 stdout。此处注册一次不过滤的

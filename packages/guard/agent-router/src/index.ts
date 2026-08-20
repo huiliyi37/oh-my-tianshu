@@ -3,8 +3,9 @@
  *
  * 三个钩子（全部走 dsh 既有机制）：
  * 1. 指标采集：`ctx.on('session/event')` tool/result → recordPrediction
- *    （工具成败累计器）；evidence tracker 指标经 reflect.get('evidence', false)
- *    读取（无 evidence-gate 时缺省空值，prediction 独立工作）。
+ *    （工具成败累计器，按 session 隔离、child 会话排除）；evidence tracker
+ *    指标经 reflect.get('evidence', false) 读取（无 evidence-gate 时缺省
+ *    空值，prediction 独立工作）。
  * 2. 路由决策：`ctx.router.decide()` 返回 RouterAction（纯函数 decideRouterAction）。
  * 3. 子代理派发：delegate 动作 → dispatchSubagent（dsh 子代理 seam：
  *    ctx.subagents.start；血统/深度/投影由 seam 自动写）。
@@ -107,10 +108,16 @@ export function resolveProfileTools(config: AgentRouterConfig): Record<DispatchO
 
 /** 宿主服务面。 */
 export interface RouterService {
-  /** 当前指标快照。 */
-  metrics(): RouterMetrics
-  /** 路由决策（纯函数；可重复调用）。 */
-  decide(): RouterAction
+  /**
+   * 当前指标快照（指定会话的累计器）。
+   * @param options.sessionId - 指标归属的会话。
+   */
+  metrics(options: { sessionId: SessionId }): RouterMetrics
+  /**
+   * 路由决策（纯函数；可重复调用）。
+   * @param options.sessionId - 决策归属的会话。
+   */
+  decide(options: { sessionId: SessionId }): RouterAction
   /**
    * 执行动作（delegate → 经 subagent seam 派发子代理；self → no-op）。
    * @param action - 路由动作。
@@ -118,8 +125,11 @@ export interface RouterService {
    * @param options.signal - 派发取消通道（缺省新建）。
    */
   execute(action: RouterAction, options: { sessionId: SessionId; signal?: AbortSignal }): Promise<SessionId | null>
-  /** 重置预测累计器（环境恢复后调用）。 */
-  resetPrediction(): void
+  /**
+   * 重置预测累计器（环境恢复后调用）。
+   * @param sessionId - 目标会话；缺省清空全部会话的累计器。
+   */
+  resetPrediction(sessionId?: SessionId): void
 }
 
 /** 插件装配：指标采集 + 路由服务面 + 派发。 */
@@ -129,33 +139,39 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
   if (typeof subagentProvider !== 'string' || subagentProvider.trim() === '') {
     throw new Error('agent-router: subagentProvider must be a non-empty provider name')
   }
-  let prediction = createPredictionAccumulator()
+  const predictions = new Map<SessionId, ReturnType<typeof createPredictionAccumulator>>()
   const dispatchEnabled = config.dispatchEnabled ?? true
 
-  // —— 指标采集：tool/result 成败喂 prediction ——
-  ctx.on('session/event', (_owner: { id: SessionId }, event: SessionEvent) => {
+  // —— 指标采集：tool/result 成败喂 prediction（按 session 隔离）——
+  ctx.on('session/event', (owner, event: SessionEvent) => {
     if (event.type !== 'tool/result') return
+    // child 会话排除：子代理反馈污染父会话窗口（镜像 zen 的 parentSession
+    // 跳过条件）——路由决定只归因于本会话自己的工具轨迹。
+    const header = (owner as { header?: { parentSession?: unknown } }).header
+    if (header?.parentSession !== undefined) return
     const block = event.data.message.content[0]
     // 成败判定：isError 标记（工具异常）或输出含非零退出码（dsh bash 对
     // 非零退出码不标 isError，退出码在文本 `[exit code: N]`——真实装配实证）。
     const text = extractResultText(event.data.message)
     const exitFail = /\[exit code: [1-9]\d*\]/.test(text)
     const isError = block.isError === true || exitFail
-    prediction = recordPrediction(prediction, !isError)
+    const current = predictions.get(owner.id) ?? createPredictionAccumulator()
+    const next = recordPrediction(current, !isError)
+    predictions.set(owner.id, next)
     // tipping point：连续 3 次正确 → 环境恢复，重置累计器（干预撤销）
-    if (shouldTippingPointReset(prediction)) {
-      prediction = resetAccumulator(prediction)
+    if (shouldTippingPointReset(next)) {
+      predictions.set(owner.id, resetAccumulator(next))
     }
   })
 
-  // —— 指标组装（evidence 可选）——
-  const collectMetrics = (): RouterMetrics => {
+  // —— 指标组装（evidence 可选；prediction 按会话取）——
+  const collectMetrics = (sessionId: SessionId): RouterMetrics => {
     const evidence = ctx.reflect.get('evidence', false) as unknown as EvidenceFacet | undefined
     const high = evidence?.unresolvedHigh() ?? []
     const cooled = evidence?.cooldownTable() ?? {}
     const cooledTargets = Object.values(cooled).filter(v => v >= 2).length
     return {
-      interventionLevel: getInterventionLevel(prediction),
+      interventionLevel: getInterventionLevel(predictions.get(sessionId) ?? createPredictionAccumulator()),
       unresolvedHigh: high.length,
       verifications: evidence?.verificationCount() ?? 0,
       probeCooledTargets: cooledTargets,
@@ -172,8 +188,8 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
   }
 
   const service: RouterService = {
-    metrics: collectMetrics,
-    decide: () => decideRouterAction(collectMetrics(), obligationHint()),
+    metrics: options => collectMetrics(options.sessionId),
+    decide: options => decideRouterAction(collectMetrics(options.sessionId), obligationHint()),
     execute: async (action, options) => {
       if (action.kind !== 'delegate' || !dispatchEnabled) return null
       if (config.provider === undefined || config.model === undefined) return null
@@ -190,7 +206,13 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
       }
       return dispatchSubagent(ctx, opts)
     },
-    resetPrediction: () => { prediction = resetAccumulator(prediction) },
+    resetPrediction: (sessionId) => {
+      if (sessionId === undefined) {
+        predictions.clear()
+        return
+      }
+      predictions.set(sessionId, resetAccumulator(predictions.get(sessionId) ?? createPredictionAccumulator()))
+    },
   }
   ctx.provide('router', service)
 }

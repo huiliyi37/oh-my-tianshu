@@ -24,7 +24,7 @@ plugins: ['@huiliyi37/dsh-agent-router']
 
 // 宿主调用（任务边界或 turn 结束）：
 const router = ctx.router
-const action = router.decide()
+const action = router.decide({ sessionId })
 if (action.kind === 'delegate') {
   const subagentId = await router.execute(action, { sessionId })  // 派发子代理（父会话必填）
   // 结果经事件流自动归账
@@ -37,10 +37,10 @@ if (action.kind === 'delegate') {
 
 | 方法 | 语义 |
 |---|---|
-| `metrics()` | 当前指标快照（interventionLevel/unresolvedHigh/verifications/probeCooledTargets） |
-| `decide()` | 路由决策（纯函数，可重复调用） |
+| `metrics({ sessionId })` | 当前指标快照（interventionLevel/unresolvedHigh/verifications/probeCooledTargets），取自该会话的累计器 |
+| `decide({ sessionId })` | 路由决策（纯函数，可重复调用），取自该会话的累计器 |
 | `execute(action, { sessionId, signal? })` | 执行动作（delegate → 经 seam 派发子代理，返回 child sessionId；self → null）；`sessionId` 为父会话（活 agent），child 血统自此派生 |
-| `resetPrediction()` | 重置预测累计器 |
+| `resetPrediction(sessionId?)` | 重置预测累计器（单个会话；缺省清空全部会话） |
 
 ## 配置
 
@@ -86,6 +86,6 @@ None directly; the delegate session is an independent model request, and the par
 
 - **派发需要显式模型配置** — `dispatchEnabled: true` 时必须提供 `provider`/`model`；未配置时只决策不派发（决策结果仍可查询）。
 - **派发需要活的父会话** — `execute` 接收父 `sessionId`，该会话不是活 agent 时 fail loud；seam 从父会话派生 child 的 workspace、血统与委派深度。
-- **预测窗口是内存态** — 滑动窗口与 tipping point 状态随进程消失；跨会话的错误率画像为延期工作。
+- **预测窗口是内存态** — 滑动窗口与 tipping point 状态随进程消失。累计按会话隔离且排除 child 会话（`header.parentSession`），被路由的子代理绝不污染父会话窗口。
 - **路由表是固定策略** — 三级干预阈值（0.4/0.6/0.8）与动作映射为移植时的天枢常量；可配置化随实际调参需求再做。
 - **profile 工具集随部署而定** — 内置默认面向发货工具目录（`grep`/`read`/`glob`/`repo_graph`/`semantic_search`/`bash`）；精简装配经 `profileTools` 声明自己的子集，未知工具名会让派发响亮失败而不是放宽工具面。

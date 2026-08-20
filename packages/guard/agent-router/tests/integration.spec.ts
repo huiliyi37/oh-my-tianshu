@@ -64,8 +64,12 @@ function toolResult(isError: boolean): unknown {
   }
 }
 
-function runTool(emit: (name: string, ...args: unknown[]) => void, isError: boolean): void {
-  emit('session/event', { id: 'session-1' }, toolResult(isError))
+function runTool(
+  emit: (name: string, ...args: unknown[]) => void,
+  isError: boolean,
+  session: { id: string; header?: { parentSession?: string } } = { id: 'session-1' },
+): void {
+  emit('session/event', session, toolResult(isError))
 }
 
 describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
@@ -76,10 +80,10 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     // 8 连败（≥3 样本 + 错误率 1.0 → escalate）
     for (let i = 0; i < 8; i++) runTool(emit, true)
 
-    const metrics = router.metrics()
+    const metrics = router.metrics({ sessionId: PARENT_ID })
     expect(metrics.interventionLevel).toBe('escalate')
 
-    const action = router.decide()
+    const action = router.decide({ sessionId: PARENT_ID })
     expect(action.kind).toBe('delegate')
     if (action.kind === 'delegate') {
       expect(action.profile).toBe('verifier')
@@ -100,11 +104,11 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     const router = ctx.get('router') as RouterService
 
     for (let i = 0; i < 5; i++) runTool(emit, true) // 5 连败 → escalate
-    expect(router.metrics().interventionLevel).toBe('escalate')
+    expect(router.metrics({ sessionId: PARENT_ID }).interventionLevel).toBe('escalate')
 
     for (let i = 0; i < 3; i++) runTool(emit, false) // 3 连成 → tipping point
-    expect(router.metrics().interventionLevel).toBe('none') // 重置后样本 <3 → none
-    expect(router.decide().kind).toBe('self')
+    expect(router.metrics({ sessionId: PARENT_ID }).interventionLevel).toBe('none') // 重置后样本 <3 → none
+    expect(router.decide({ sessionId: PARENT_ID }).kind).toBe('self')
   }, 10000)
 
   it('profileTools 配置非法时装配 fail loud', () => {
@@ -133,9 +137,9 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     const router = ctx.get('router') as RouterService
     for (let i = 0; i < 5; i++) {
       // @ts-expect-error -- 测试拆开 payload 派发（session/event 参数形状宽松）
-      (ctx.emit)('session/event', { id: 's1' }, toolResult(true))
+      (ctx.emit)('session/event', { id: PARENT_ID }, toolResult(true))
     }
-    const action = router.decide()
+    const action = router.decide({ sessionId: PARENT_ID })
     expect(action.kind).toBe('delegate')
     const id = await router.execute(action, { sessionId: PARENT_ID })
     expect(id).toBeNull()
@@ -145,4 +149,44 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
   it('subagentProvider 非法（空串）时装配 fail loud', () => {
     expect(() => applyAgentRouter(new Context(), { subagentProvider: '' })).toThrow(/non-empty provider name/)
   })
+
+  it('指标按会话隔离：A 连败不影响 B 的决策', async () => {
+    const { ctx, emit } = makeContext()
+    const router = ctx.get('router') as RouterService
+    const A = SessionId('session-a')
+    const B = SessionId('session-b')
+
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    expect(router.metrics({ sessionId: A }).interventionLevel).toBe('escalate')
+    expect(router.metrics({ sessionId: B }).interventionLevel).toBe('none')
+    expect(router.decide({ sessionId: B }).kind).toBe('self')
+  }, 10000)
+
+  it('child 会话（header.parentSession）的工具结果不进任何累计器', async () => {
+    const { ctx, emit } = makeContext()
+    const router = ctx.get('router') as RouterService
+    const A = SessionId('session-a')
+
+    for (let i = 0; i < 8; i++) {
+      runTool(emit, true, { id: 'session-child-1', header: { parentSession: A } })
+    }
+    expect(router.metrics({ sessionId: A }).interventionLevel).toBe('none')
+    expect(router.decide({ sessionId: A }).kind).toBe('self')
+  }, 10000)
+
+  it('resetPrediction 按会话重置（不影响其他会话）', async () => {
+    const { ctx, emit } = makeContext()
+    const router = ctx.get('router') as RouterService
+    const A = SessionId('session-a')
+    const B = SessionId('session-b')
+
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: B })
+    expect(router.metrics({ sessionId: A }).interventionLevel).toBe('escalate')
+    router.resetPrediction(A)
+    expect(router.metrics({ sessionId: A }).interventionLevel).toBe('none')
+    expect(router.metrics({ sessionId: B }).interventionLevel).toBe('escalate')
+    router.resetPrediction()
+    expect(router.metrics({ sessionId: B }).interventionLevel).toBe('none')
+  }, 10000)
 })
