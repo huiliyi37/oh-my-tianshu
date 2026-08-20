@@ -418,7 +418,9 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
     {
       // session-resume 2.1：/resume 无参恢复最近可恢复会话（含持久化），
       // 带参切换指定会话；与 Ctrl+S、欢迎页列表共享 listSessions 数据源。
-      // 损坏会话切换时 switchSession 抛错——命令层回显失败（不静默新建）。
+      // 损坏行（version -1 占位）：无参跳过（落到最近一个可恢复会话），
+      // 带参显式选中时由 switchSession 预检抛错——命令层回显失败原因
+      // （不静默新建、不吞掉）。
       name: 'resume',
       description: '恢复会话：无参恢复最近可恢复会话，带参切换指定会话',
       argsHint: '[id]',
@@ -426,7 +428,7 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
         const id = text.trim()
         const rows = await listSessions(ctx)
         if (id === '') {
-          const target = rows.find(r => r.id !== sessionId)
+          const target = rows.find(r => r.id !== sessionId && !r.corrupt)
           if (target === undefined) {
             echo('无可恢复会话（/session new 新建）')
             return
@@ -435,7 +437,7 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
           echo(`已恢复会话: ${target.id}`)
           return
         }
-        if (!rows.some(r => r.id === id as SessionId)) {
+        if (!rows.some(r => r.id === SessionId(id))) {
           echo(`会话不存在: ${id}。可用: /session list 或欢迎页恢复列表`)
           return
         }

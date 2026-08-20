@@ -1085,7 +1085,7 @@ export class TuiApp {
     // 注入任务卡）。重复 attach 先解绑旧 disposer。
     this.intentBridgeDisposer?.()
     this.intentBridgeDisposer = this.ctx.on('intent-bridge/handoff', ({ mainSessionId }) => {
-      void this.switchSession(SessionId(mainSessionId))
+      this.switchSessionGuarded(SessionId(mainSessionId))
     })
     // 目标 6：'auto' 才走系统终端配色探测（OSC 11 → dark/light）；显式主题直接生效。
     if (this.themeName === 'auto') {
@@ -1102,13 +1102,17 @@ export class TuiApp {
     await this.waitForServicesReady(['settings', 'credentials'])
     let target = cliSessionId ?? initialSessionId ?? this.initialSessionId ?? this.ctx.sessions.list()[0]?.id
     if (cliSessionId !== undefined) {
-      // 1.4：--session 指向未知会话 fails loud + 入口指引——回落到正常启动路径，
-      // 欢迎页可恢复列表即指引（不静默吞掉错误）。
-      const known = (await listSessions(this.ctx)).some(s => s.id === cliSessionId)
-      if (!known) {
+      // 1.4：--session 指向未知/损坏会话 fails loud + 入口指引——回落到正常
+      // 启动路径，欢迎页可恢复列表即指引（不静默吞掉错误）。损坏占位单列
+      // 提示：它列在恢复面上，「不存在」对它是误导。
+      const row = (await listSessions(this.ctx)).find(s => s.id === cliSessionId)
+      const corrupt = row?.corrupt === true
+      if (row === undefined || corrupt) {
         target = initialSessionId ?? this.initialSessionId ?? this.ctx.sessions.list()[0]?.id
         this.commitToScrollback({
-          text: color(`⚠ 会话不存在: ${cliSessionId} —— 可用入口: 欢迎页数字键 / /session list / ctrl+s 恢复最近`, this.theme.warning),
+          text: color(corrupt
+            ? `⚠ 会话工件损坏，不可恢复: ${cliSessionId}`
+            : `⚠ 会话不存在: ${cliSessionId} —— 可用入口: 欢迎页数字键 / /session list / ctrl+s 恢复最近`, this.theme.warning),
           trailingNewline: true,
         })
       }
@@ -1493,14 +1497,20 @@ export class TuiApp {
    * live store 没有时走 switchSession → resume。
    */
   private async restoreRecentOtherSession(): Promise<void> {
-    const others = (await listSessions(this.ctx)).filter(s => s.id !== this.activeSessionId)
+    // Ctrl+S 落到最近一个「可恢复」的其他会话：损坏占位跳过（选中只会失败）。
+    const others = (await listSessions(this.ctx))
+      .filter(s => s.id !== this.activeSessionId && !s.corrupt)
     const target = others[0]?.id
-    if (target !== undefined) await this.switchSession(target)
+    if (target === undefined) return
+    this.switchSessionGuarded(target)
   }
 
   /** 会话 tab 栏缓存刷新：listSessions → 短 id + 当前标记 → 缓存并调度重绘。 */
   private async refreshSessionTabs(): Promise<void> {
-    const rows = await listSessions(this.ctx).catch(() => [])
+    // tab 栏只列可切换会话：损坏占位无 agent 可挂载（Ctrl+X/Alt+数字切过去
+    // 只会失败）——损坏会话的可见性由列表/选择器/欢迎页承载（2.4）。
+    const rows = (await listSessions(this.ctx).catch(() => []))
+      .filter(row => !row.corrupt)
     if (this.disposed) return
     const active = this.activeSessionId
     this.sessionTabs = rows.map(row => ({
@@ -1518,7 +1528,7 @@ export class TuiApp {
     if (tabs.length <= 1) return
     const idx = tabs.findIndex(t => t.id === active)
     const next = tabs[(idx + 1) % tabs.length]
-    if (next !== undefined && next.id !== active) void this.switchSession(SessionId(next.id))
+    if (next !== undefined && next.id !== active) this.switchSessionGuarded(SessionId(next.id))
   }
 
   /**
@@ -1906,10 +1916,8 @@ export class TuiApp {
       items.push(item)
     }
     picker.open('选择会话', items, (item) => {
-      // 损坏会话切换抛错——fails loud（提示不可恢复，不静默吞掉）。
-      void this.switchSession(SessionId(item.value)).catch(() => {
-        this.echoWarn(`⚠ 会话不可恢复: ${item.value}`)
-      })
+      // 损坏会话切换抛错——fails loud（统一回显失败原因，不静默吞掉）。
+      this.switchSessionGuarded(SessionId(item.value))
     }, selectedIndex)
     overlay.activate('picker')
   }
@@ -2051,38 +2059,76 @@ export class TuiApp {
    * （非自有，不 dispose）；无则 resume 拿 handle（本层持有并 dispose）。
    * resume 的模型定路沿用会话持久化的 request header（跨重启续模），
    * 无 header（从未成功发起请求的会话）才落 agentDefaultModel 当前选择。
-   * @param id - 目标会话 id；必须是 live store 中已存在的会话。
+   * 恢复先于任何切换状态提交：目标不可恢复时在此抛错，应用停留在原会话
+   * （activeSessionId/modelRef/投影均不变，不进入半切换状态）。
+   * @param id - 目标会话 id；live 会话或可恢复的持久化会话。
    */
   async switchSession(id: SessionId): Promise<void> {
     // 1.1：任何会话切换都结束欢迎阶段（数字键列表只在冷启动首屏有效）。
     this.welcomeDigitsActive = false
+    const agent = this.ctx.agents.get(id)
+    const selection = this.selectionForSession(id)
+    const ref: ModelSelectionRef = { current: selection, assembled: undefined }
+    // 失败先于状态提交：损坏占位/未知工件/后端故障在此抛出。
+    const handle = agent !== undefined
+      ? undefined
+      : await this.resumeForSwitch(id, selection, ref)
     // P3 side conversation：切走时保留旧会话 agent（keepHandle 让渡 registry；
-    // 切回时走下方 agents.get 兜底分支——不 create 不 resume，transcript 重放）。
+    // 切回时走上方 agents.get 兜底分支——不 create 不 resume，transcript 重放）。
     await this.detachProjections({ keepHandle: true })
     this.dynamicRowsHighWater = 0
     this.activeSessionId = id
-    const agent = this.ctx.agents.get(id)
-    const selection = this.selectionForSession(id)
-    this.modelRef = { current: selection, assembled: undefined }
-    const ref = this.modelRef
+    this.modelRef = ref
     if (agent !== undefined) {
       /* v8 ignore next -- agent 已确认存在（if 分支外），controlsFromRegistry 恒返回非空 */
       this.controls = controlsFromRegistry(this.ctx, id) ?? null
       this.bindModelSelection(agent.ctx, ref)
-    } else {
-      const handle = await this.ctx.agents.resume({
-        resumeSessionId: id,
-        agentOptions: callConfigFrom(selection),
-        setup: (agentCtx) => {
-          this.bindModelSelection(agentCtx, ref)
-        },
-      })
+    } else if (handle !== undefined) {
       this.ownedHandle = handle
       this.controls = controlsFromHandle(handle)
     }
     this.mountSession(id)
     // 会话 tab 栏刷新（切换后当前标记跟随）。
     void this.refreshSessionTabs()
+  }
+
+  /**
+   * 恢复持久化会话供切换：损坏占位（version -1）先行失败并给出准确原因——
+   * 后端对未物化工件只报 not found，用户无从知道是损坏；其余失败（未知 id/
+   * 版本不符/后端故障）交给 agents.resume 原样抛出。
+   * @param id - 目标会话 id（live store 中无此会话）。
+   * @param selection - 定路快照（selectionForSession 已计算）。
+   * @param ref - resume 的 setup 要接线的模型选择 ref。
+   * @returns 本层持有并负责 dispose 的 agent handle。
+   */
+  private async resumeForSwitch(
+    id: SessionId,
+    selection: ModelSelection,
+    ref: ModelSelectionRef,
+  ): Promise<AgentHandle> {
+    // 列举失败（后端故障）吞掉：预检只负责损坏占位，真实错误由 agents.resume 抛。
+    const rows = await listSessions(this.ctx).catch(() => [])
+    if (rows.some(s => s.id === id && s.corrupt)) {
+      throw new Error(`会话工件损坏，不可恢复: ${id}`)
+    }
+    return this.ctx.agents.resume({
+      resumeSessionId: id,
+      agentOptions: callConfigFrom(selection),
+      setup: (agentCtx) => {
+        this.bindModelSelection(agentCtx, ref)
+      },
+    })
+  }
+
+  /**
+   * 按键面会话切换：失败统一回显警告（损坏/未知工件 fails loud），rejection
+   * 不逃逸成 unhandled；状态安全由 switchSession 保证（失败不提交切换状态）。
+   * @param id - 目标会话 id。
+   */
+  private switchSessionGuarded(id: SessionId): void {
+    void this.switchSession(id).catch((error: unknown) => {
+      this.echoWarn(`⚠ 会话切换失败: ${error instanceof Error ? error.message : String(error)}`)
+    })
   }
 
   /**
@@ -2970,7 +3016,7 @@ export class TuiApp {
     if (key.meta && key.char >= '1' && key.char <= '9') {
       const target = this.sessionTabs[Number(key.char) - 1]
       if (target !== undefined && target.id !== this.activeSessionId) {
-        void this.switchSession(SessionId(target.id))
+        this.switchSessionGuarded(SessionId(target.id))
       }
       return
     }
@@ -3191,7 +3237,7 @@ export class TuiApp {
     if (this.welcomeDigitsActive && !key.meta && !key.ctrl && /^[1-9]$/.test(key.char) && this.inputLine.value === '') {
       const row = this.welcomeSessionRows[Number(key.char) - 1]
       if (row !== undefined) {
-        void this.switchSession(row.id)
+        this.switchSessionGuarded(row.id)
         return
       }
     }

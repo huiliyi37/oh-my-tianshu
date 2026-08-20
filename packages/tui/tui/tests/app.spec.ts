@@ -2064,8 +2064,8 @@ describe('TuiApp 1.4 --session 命令行会话参数', () => {
     const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
     await app.attach()
     expect(app.sessionId).toBe(SessionId('session-cli-2'))
-    const followups = (agent.followup as ReturnType<typeof vi.fn>).mock.calls
-    expect(followups.some(c => `${c[0]?.content?.[0]?.text ?? ''}` === 'hello')).toBe(true)
+    const followups = (agent.followup as ReturnType<typeof vi.fn>)
+    expect(allCallTexts(followups)).toContain('hello')
     await app.dispose()
   })
 
@@ -2087,6 +2087,85 @@ describe('TuiApp 1.4 --session 命令行会话参数', () => {
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('会话不存在: session-nope')
     expect(written).toContain('/session list')
+    await app.dispose()
+  })
+})
+
+describe('TuiApp 会话切换失败安全（损坏行/恢复失败不进入半切换状态）', () => {
+  /** attach 到唯一 live 会话；list 另含损坏行与可恢复行，agents.get 只认 live。 */
+  async function attachWithCorrupt(): Promise<{
+    app: TuiApp
+    ctx: Context
+    stdout: ReturnType<typeof makeStdout>
+    stdin: ReturnType<typeof makeStdin>
+    agent: ReturnType<typeof makeAgent>
+    current: SessionId
+    corrupt: SessionId
+    valid: SessionId
+  }> {
+    const ctx = makeCtx()
+    const agent = makeAgent('switch-safe')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const current = SessionId('session-live-safe')
+    const corrupt = SessionId('session-corrupt-x')
+    const valid = SessionId('session-valid-x')
+    const headerOf = (id: SessionId, createdAt: number, version = 0) => ({
+      id, createdAt, version, cwd: undefined, parentSession: undefined,
+    })
+    // 损坏行 createdAt 最新：任何「取最近其他会话」的路径若不过滤都会先撞上它。
+    // （SessionManager.list 读 session.events.length——mock 必须带 events 数组。）
+    ctx.sessions.list.mockReturnValue([
+      { id: current, header: headerOf(current, Date.now() - 10_000), events: [] },
+      { id: corrupt, header: headerOf(corrupt, Date.now() - 1_000, -1), events: [] },
+      { id: valid, header: headerOf(valid, Date.now() - 5_000), events: [] },
+    ])
+    // registry 只认 live 会话：corrupt/valid 走 resume 路径（resume 由各测试定）。
+    ctx.agents.get.mockImplementation((id: SessionId) => id === current ? agent : undefined)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    return { app, ctx, stdout, stdin, agent, current, corrupt, valid }
+  }
+
+  it('switchSession 到损坏行 → 抛出损坏原因且状态不提交（activeSessionId 不变）', async () => {
+    const { app, current, corrupt } = await attachWithCorrupt()
+    await expect(app.switchSession(corrupt)).rejects.toThrow('会话工件损坏，不可恢复')
+    expect(app.sessionId).toBe(current)
+    await app.dispose()
+  })
+
+  it('switchSession 恢复被拒 → 状态留在原会话（无半切换）', async () => {
+    const { app, ctx, current, valid } = await attachWithCorrupt()
+    ;(ctx.agents.resume as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('session "x" not found'))
+    await expect(app.switchSession(valid)).rejects.toThrow('not found')
+    expect(app.sessionId).toBe(current)
+    await app.dispose()
+  })
+
+  it('欢迎页数字键选中损坏行 → 回显失败警告，会话不切换（不逃逸 unhandled）', async () => {
+    const { app, stdout, stdin, current } = await attachWithCorrupt()
+    // 欢迎列表第 1 行 = 损坏行（others[0]，createdAt 最新）
+    stdin.emit('data', '1')
+    await new Promise(resolve => setTimeout(resolve, 30))
+    expect(app.sessionId).toBe(current)
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('会话切换失败')
+    expect(written).toContain('会话工件损坏，不可恢复')
+    await app.dispose()
+  })
+
+  it('ctrl+s 跳过损坏行 → 切到最近一个「可恢复」的其他会话', async () => {
+    const { app, ctx, stdin, agent, valid } = await attachWithCorrupt()
+    // valid 改走 registry 分支（agents.get 认它）——本测试只验证目标选择跳过了损坏行。
+    ;(ctx.agents.get as ReturnType<typeof vi.fn>).mockImplementation(
+      (id: SessionId) => id === valid ? agent : undefined,
+    )
+    stdin.emit('data', '\x13') // Ctrl+S
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(app.sessionId).toBe(valid)
     await app.dispose()
   })
 })

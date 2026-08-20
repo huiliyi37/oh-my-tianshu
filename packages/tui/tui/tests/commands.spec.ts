@@ -443,6 +443,22 @@ describe('内置命令 — /resume（session-resume 2.1）', () => {
     expect(echo).toHaveBeenCalledWith(expect.stringContaining('会话不存在: session-nope'))
   })
 
+  it('无参跳过损坏行（version -1）→ 落到最近一个可恢复会话', async () => {
+    const { cmd, deps } = commandByName('resume')
+    const corrupt = { id: 'session-corrupt-9' as SessionId, header: { id: 'session-corrupt-9' as SessionId, version: -1, createdAt: 9 } }
+    const ctx = makeCtx({
+      sessions: {
+        list: vi.fn(() => [corrupt, row('session-r1', 3), row('session-r2', 2)]),
+        get: vi.fn(() => undefined),
+      },
+    })
+    const { args, echo } = makeArgs({ text: '', ctx, sessionId: 'session-r2' as SessionId })
+    await cmd.run(args)
+    // 损坏行 createdAt 最新也不被选中：无参恢复最近一个「可恢复」的其他会话。
+    expect(deps.switchSession).toHaveBeenCalledWith('session-r1')
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('session-r1'))
+  })
+
   it('无任何其他会话 → 占位提示', async () => {
     const { cmd, deps } = commandByName('resume')
     const ctx = makeCtx({
