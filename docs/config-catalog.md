@@ -208,7 +208,7 @@ export interface Config {
 
 Depends on: [`AgentOptions`](subsystems/core.md) · [`SessionId`](subsystems/core.md)
 
-Source: [`packages/core/agent-loop/src/index.ts:236`](../packages/core/agent-loop/src/index.ts)
+Source: [`packages/core/agent-loop/src/index.ts:240`](../packages/core/agent-loop/src/index.ts)
 
 ## `@huiliyi37/dsh-agent-presets`
 
@@ -608,6 +608,33 @@ export interface Config {
 ```
 
 Source: [`packages/credentials/credentials-local/src/index.ts:54`](../packages/credentials/credentials-local/src/index.ts)
+
+## `@huiliyi37/dsh-doom-loop-guard`
+
+```ts config-catalog
+/**
+ * Plugin config, validated by the same-named schemastery schema plus the
+ * load-time checks in `apply` (misconfiguration fails loud: a threshold below
+ * 2, a sub-1 `argumentsPreviewChars`, or a sub-1 `reminderBudget` throws at
+ * plugin load, never a silent fall-back).
+ */
+export interface Config {
+  /** Alternating-pair length that trips the oscillation detector (default `2` → A,B,A,B). */
+  oscillationPairs?: number
+  /** Consecutive failed same-file edits that trip the edit spiral (default `3`). */
+  editRetryThreshold?: number
+  /** Consecutive identical failing test runs that trip the churn detector (default `3`). */
+  testChurnThreshold?: number
+  /** Tool-name patterns transparent to every detector (default: read-only discovery tools). */
+  exclude?: string[]
+  /** Maximum characters of canonical arguments quoted in detailed reminders (default `200`). */
+  argumentsPreviewChars?: number
+  /** Reminders per agent per user-turn (default `3`); observation continues past the budget. */
+  reminderBudget?: number
+}
+```
+
+Source: [`packages/guard/doom-loop-guard/src/index.ts:29`](../packages/guard/doom-loop-guard/src/index.ts)
 
 ## `@huiliyi37/dsh-e2b`
 
@@ -2572,6 +2599,26 @@ export interface Config {
 
 Source: [`packages/goal/tool-goal/src/index.ts:26`](../packages/goal/tool-goal/src/index.ts)
 
+## `@huiliyi37/dsh-tool-json-repair`
+
+```ts config-catalog
+/**
+ * Plugin config, validated by the same-named schemastery schema plus the
+ * load-time checks in `apply` (misconfiguration fails loud: a non-integer or
+ * sub-1 `maxBlockChars` throws at plugin load, never a silent fall-back).
+ */
+export interface Config {
+  /** Whether the stream wrapper converts tool-JSON text blocks (default `true`). */
+  enabled?: boolean
+  /** Text blocks longer than this never convert (default `65536`). */
+  maxBlockChars?: number
+  /** Accept one ```json … ``` fence around the object (default `true`). */
+  allowFenced?: boolean
+}
+```
+
+Source: [`packages/llm/tool-json-repair/src/index.ts:30`](../packages/llm/tool-json-repair/src/index.ts)
+
 ## `@huiliyi37/dsh-tool-lsp`
 
 Requires: `tools` · `lsp` · `systemPrompt`
@@ -2703,6 +2750,29 @@ export interface Config {
 ```
 
 Source: [`packages/workflow/tool-ralph/src/index.ts:23`](../packages/workflow/tool-ralph/src/index.ts)
+
+## `@huiliyi37/dsh-tool-run-tests`
+
+Requires: `tools` · `bash`
+
+```ts config-catalog
+/**
+ * Plugin config, validated by the same-named schemastery schema plus the
+ * load-time checks in `apply` (misconfiguration fails loud: a non-integer or
+ * sub-1 `outputTailChars`, an unknown framework id, or an empty
+ * `commandOverrides` value throws at plugin load, never a silent fall-back).
+ */
+export interface Config {
+  /** Framework id → command base; replaces one DEFAULT_COMMANDS entry. */
+  commandOverrides?: Record<string, string>
+  /** Characters of combined output kept in the canonical value's `tail` (default `8000`). */
+  outputTailChars?: number
+  /** Expose `run_in_background` (default true); disabled calls are also rejected. */
+  enableRunInBackground?: boolean
+}
+```
+
+Source: [`packages/tests/tool-run-tests/src/index.ts:46`](../packages/tests/tool-run-tests/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-semantic-search`
 
@@ -3457,7 +3527,7 @@ export interface ZenConfig {
 }
 ```
 
-Source: [`packages/guard/zen/src/index.ts:77`](../packages/guard/zen/src/index.ts)
+Source: [`packages/guard/zen/src/index.ts:78`](../packages/guard/zen/src/index.ts)
 
 ## Loadable plugins with no config
 
