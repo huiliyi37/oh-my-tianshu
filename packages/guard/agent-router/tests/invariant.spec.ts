@@ -98,7 +98,8 @@ describe('agent-router route-record invariants', () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     const session = ctx.sessions.create()
-    session.append('router/route', { profile: 'hacker', task: 't', targets: [], subagentSessionId: 'x' })
+    // 非法 payload 刻意违反声明类型（不变量测试的职责）；as never 命名该偏差。
+    session.append('router/route', { profile: 'hacker', task: 't', targets: [], subagentSessionId: 'x' } as never)
     await ctx.plugin(InvariantService, { enabled: true })
 
     await expect(ctx.plugin(AgentRouterInvariant).then(() => undefined)).rejects.toThrow(/known profile/)
@@ -113,7 +114,8 @@ describe('agent-router route-record invariants', () => {
     await ctx.plugin(AgentRouterInvariant)
 
     expect(() => {
-      session.append('router/route', { profile: 'hacker', task: 't', targets: [], subagentSessionId: 'x' })
+      // 非法 payload 刻意违反声明类型（不变量测试的职责）；as never 命名该偏差。
+      session.append('router/route', { profile: 'hacker', task: 't', targets: [], subagentSessionId: 'x' } as never)
     }).toThrow(/known profile/)
   })
 })
