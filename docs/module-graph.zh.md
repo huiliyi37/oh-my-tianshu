@@ -24,6 +24,7 @@ flowchart TD
     pkg_llm_pi_ai["llm-pi-ai"]
     pkg_llm_retry["llm-retry"]
     pkg_token_meter["token-meter"]
+    pkg_tool_json_repair["tool-json-repair"]
   end
   subgraph group_core["packages/core"]
     pkg_agent["agent"]
@@ -214,6 +215,7 @@ flowchart TD
   end
   subgraph group_guard["packages/guard"]
     pkg_agent_router["agent-router"]
+    pkg_doom_loop_guard["doom-loop-guard"]
     pkg_evidence_gate["evidence-gate"]
     pkg_intent_bridge["intent-bridge"]
     pkg_pheromone["pheromone"]
@@ -329,6 +331,9 @@ flowchart TD
     pkg_tasks_local["tasks-local"]
     pkg_tool_tasks["tool-tasks"]
   end
+  subgraph group_tests["packages/tests"]
+    pkg_tool_run_tests["tool-run-tests"]
+  end
   subgraph group_tui["packages/tui"]
     pkg_tui["tui"]
     pkg_vision_ask["vision-ask"]
@@ -434,6 +439,8 @@ flowchart TD
   pkg_llm_pi_ai --> pkg_llm
   pkg_llm_pi_ai --> pkg_settings
   pkg_llm_pi_ai --> pkg_timeout
+  pkg_tool_json_repair --> pkg_invariants
+  pkg_tool_json_repair --> pkg_llm
   pkg_session --> pkg_brand
   pkg_session --> pkg_invariants
   pkg_session --> pkg_llm
@@ -1007,6 +1014,10 @@ flowchart TD
   pkg_tool_git --> pkg_invariants
   pkg_tool_git --> pkg_system_prompt
   pkg_tool_git --> pkg_tools
+  pkg_doom_loop_guard --> pkg_agent
+  pkg_doom_loop_guard --> pkg_invariants
+  pkg_doom_loop_guard --> pkg_llm
+  pkg_doom_loop_guard --> pkg_tools
   pkg_evidence_gate --> pkg_invariants
   pkg_evidence_gate --> pkg_session
   pkg_evidence_gate --> pkg_tools
@@ -1130,6 +1141,11 @@ flowchart TD
   pkg_tool_tasks --> pkg_system_prompt
   pkg_tool_tasks --> pkg_tasks
   pkg_tool_tasks --> pkg_tools
+  pkg_tool_run_tests --> pkg_bash
+  pkg_tool_run_tests --> pkg_invariants
+  pkg_tool_run_tests --> pkg_llm
+  pkg_tool_run_tests --> pkg_tasks
+  pkg_tool_run_tests --> pkg_tools
   pkg_tui --> pkg_agent
   pkg_tui --> pkg_agent_default_model
   pkg_tui --> pkg_invariants
@@ -1483,6 +1499,7 @@ flowchart TD
 | [`typert-loader`](../packages/typert/loader) | `typert` | [`invariants`](../packages/support/invariants), [`typert-registry`](../packages/typert/registry) |
 | [`llm-deepseek`](../packages/llm/llm-deepseek) | `llm` | [`credentials`](../packages/credentials/credentials), [`environment`](../packages/util/environment), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`settings`](../packages/settings/settings), [`timeout`](../packages/util/timeout) |
 | [`llm-pi-ai`](../packages/llm/llm-pi-ai) | `llm` | [`credentials`](../packages/credentials/credentials), [`environment`](../packages/util/environment), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`settings`](../packages/settings/settings), [`timeout`](../packages/util/timeout) |
+| [`tool-json-repair`](../packages/llm/tool-json-repair) | `llm` | [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm) |
 | [`session`](../packages/core/session) | `core` | [`brand`](../packages/util/brand), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`scope`](../packages/core/scope), [`type-meta`](../packages/typert/type-meta) |
 | [`system-prompt`](../packages/core/system-prompt) | `core` | [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`scope`](../packages/core/scope) |
 | [`skill`](../packages/skill/skill) | `skill` | [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm) |
@@ -1606,6 +1623,7 @@ flowchart TD
 | [`session-reference`](../packages/context/session-reference) | `context` | [`agent`](../packages/core/agent), [`compact`](../packages/compact/compact), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`retention`](../packages/util/retention), [`session`](../packages/core/session), [`session-query`](../packages/session-query/session-query) |
 | [`workspace-context`](../packages/context/workspace-context) | `context` | [`agent`](../packages/core/agent), [`fs`](../packages/fs/fs), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`paths`](../packages/util/paths), [`session`](../packages/core/session), [`tools`](../packages/core/tools) |
 | [`tool-git`](../packages/git/tool-git) | `git` | [`git`](../packages/git/git), [`invariants`](../packages/support/invariants), [`system-prompt`](../packages/core/system-prompt), [`tools`](../packages/core/tools) |
+| [`doom-loop-guard`](../packages/guard/doom-loop-guard) | `guard` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`tools`](../packages/core/tools) |
 | [`evidence-gate`](../packages/guard/evidence-gate) | `guard` | [`invariants`](../packages/support/invariants), [`session`](../packages/core/session), [`tools`](../packages/core/tools) |
 | [`intent-bridge`](../packages/guard/intent-bridge) | `guard` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`session-title`](../packages/session/session-title), [`task-card`](../packages/guard/task-card), [`tools`](../packages/core/tools) |
 | [`repeat-tool-guard`](../packages/guard/repeat-tool-guard) | `guard` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`tools`](../packages/core/tools) |
@@ -1629,6 +1647,7 @@ flowchart TD
 | [`session-title-all-messages-llm`](../packages/session/session-title-all-messages-llm) | `session` | [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`session-title`](../packages/session/session-title), [`session-title-llm`](../packages/session/session-title-llm) |
 | [`session-title-first-message-llm`](../packages/session/session-title-first-message-llm) | `session` | [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`session-title`](../packages/session/session-title), [`session-title-llm`](../packages/session/session-title-llm) |
 | [`tool-tasks`](../packages/tasks/tool-tasks) | `tasks` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`retention`](../packages/util/retention), [`system-prompt`](../packages/core/system-prompt), [`tasks`](../packages/tasks/tasks), [`tools`](../packages/core/tools) |
+| [`tool-run-tests`](../packages/tests/tool-run-tests) | `tests` | [`bash`](../packages/bash/bash), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`tasks`](../packages/tasks/tasks), [`tools`](../packages/core/tools) |
 | [`tui`](../packages/tui/tui) | `tui` | [`agent`](../packages/core/agent), [`agent-default-model`](../packages/core/agent-default-model), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`session-title`](../packages/session/session-title), [`tools`](../packages/core/tools), [`user-interaction`](../packages/interaction/user-interaction) |
 | [`vision-ask`](../packages/tui/vision-ask) | `tui` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`session`](../packages/core/session), [`tools`](../packages/core/tools) |
 | [`tool-workflow`](../packages/workflow/tool-workflow) | `workflow` | [`agent`](../packages/core/agent), [`invariants`](../packages/support/invariants), [`llm`](../packages/llm/llm), [`system-prompt`](../packages/core/system-prompt), [`tools`](../packages/core/tools), [`workflow`](../packages/workflow/workflow) |

@@ -36,6 +36,8 @@ flowchart LR
   cfg --> plugin_dsh_base_tasks
   plugin_dsh_base_llm_retry["llm-retry<br/>@huiliyi37/dsh-llm-retry"]
   cfg --> plugin_dsh_base_llm_retry
+  plugin_dsh_base_tool_json_repair["tool-json-repair<br/>@huiliyi37/dsh-tool-json-repair"]
+  cfg --> plugin_dsh_base_tool_json_repair
   plugin_dsh_base_settings["settings<br/>@huiliyi37/dsh-settings-local"]
   cfg --> plugin_dsh_base_settings
   plugin_dsh_base_credentials["credentials<br/>@huiliyi37/dsh-credentials-local"]
@@ -66,6 +68,8 @@ flowchart LR
   cfg --> plugin_dsh_base_bash_env
   plugin_dsh_base_tool_bash["tool-bash<br/>@huiliyi37/dsh-tool-bash"]
   cfg --> plugin_dsh_base_tool_bash
+  plugin_dsh_base_tool_run_tests["tool-run-tests<br/>@huiliyi37/dsh-tool-run-tests"]
+  cfg --> plugin_dsh_base_tool_run_tests
   plugin_dsh_base_tool_tasks["tool-tasks<br/>@huiliyi37/dsh-tool-tasks"]
   cfg --> plugin_dsh_base_tool_tasks
   plugin_dsh_base_fs_policy["fs-policy<br/>@huiliyi37/dsh-fs-policy"]
@@ -154,6 +158,8 @@ flowchart LR
   cfg --> plugin_dsh_base_tool_str_replace_editor
   plugin_dsh_base_repeat_tool_guard["repeat-tool-guard<br/>@huiliyi37/dsh-repeat-tool-guard"]
   cfg --> plugin_dsh_base_repeat_tool_guard
+  plugin_dsh_base_doom_loop_guard["doom-loop-guard<br/>@huiliyi37/dsh-doom-loop-guard"]
+  cfg --> plugin_dsh_base_doom_loop_guard
   plugin_dsh_base_web["web<br/>@huiliyi37/dsh-web"]
   cfg --> plugin_dsh_base_web
   plugin_dsh_base_web_search_deepseek["web-search-deepseek<br/>@huiliyi37/dsh-web-search-deepseek"]
@@ -188,6 +194,7 @@ flowchart LR
 | `agent-default-model` | `@huiliyi37/dsh-agent-default-model` |
 | `tasks` | `@huiliyi37/dsh-tasks-local` |
 | `llm-retry` | `@huiliyi37/dsh-llm-retry` |
+| `tool-json-repair` | `@huiliyi37/dsh-tool-json-repair` |
 | `settings` | `@huiliyi37/dsh-settings-local` |
 | `credentials` | `@huiliyi37/dsh-credentials-local` |
 | `llm-pi-ai` | `@huiliyi37/dsh-llm-pi-ai` |
@@ -203,6 +210,7 @@ flowchart LR
 | `permission` | `@huiliyi37/dsh-permission` |
 | `bash-env` | `@huiliyi37/dsh-bash-env` |
 | `tool-bash` | `@huiliyi37/dsh-tool-bash` |
+| `tool-run-tests` | `@huiliyi37/dsh-tool-run-tests` |
 | `tool-tasks` | `@huiliyi37/dsh-tool-tasks` |
 | `fs-policy` | `@huiliyi37/dsh-fs-policy` |
 | `tool-fs` | `@huiliyi37/dsh-tool-fs` |
@@ -247,6 +255,7 @@ flowchart LR
 | `tool-ralph` | `@huiliyi37/dsh-tool-ralph` |
 | `tool-str-replace-editor` | `@huiliyi37/dsh-tool-str-replace-editor` |
 | `repeat-tool-guard` | `@huiliyi37/dsh-repeat-tool-guard` |
+| `doom-loop-guard` | `@huiliyi37/dsh-doom-loop-guard` |
 | `web` | `@huiliyi37/dsh-web` |
 | `web-search-deepseek` | `@huiliyi37/dsh-web-search-deepseek` |
 | `tool-web` | `@huiliyi37/dsh-tool-web` |

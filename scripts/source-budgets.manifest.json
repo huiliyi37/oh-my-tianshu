@@ -1,15 +1,15 @@
 {
   "packages/client/runtime/src/client/sessions/manager.ts": 1068,
   "packages/client/ui-trajectory/src/client/layout.ts": 1030,
-  "packages/core/session/src/index.ts": 1201,
-  "packages/core/tools/src/index.ts": 1686,
-  "packages/host/apiproxy/src/api-proxy.ts": 2793,
+  "packages/core/session/src/index.ts": 1205,
+  "packages/core/tools/src/index.ts": 1843,
+  "packages/host/apiproxy/src/api-proxy.ts": 2798,
   "packages/session-query/session-query-sqlite/src/index.ts": 1070,
   "packages/session/session-persistence/src/coordinator.ts": 1303,
   "packages/skill/skill-local/src/index.ts": 1034,
   "packages/subagent/subagent/src/continuation.ts": 1288,
   "packages/support/acp-snapshot/src/suite.ts": 1541,
-  "packages/tui/tui/src/engine/input-line.ts": 1410,
-  "packages/tui/tui/src/ui/app.ts": 3301,
+  "packages/tui/tui/src/engine/input-line.ts": 1558,
+  "packages/tui/tui/src/ui/app.ts": 4061,
   "packages/typert/generator/src/analyzer.ts": 3045
 }

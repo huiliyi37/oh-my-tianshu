@@ -27,15 +27,17 @@ A repair plugin, not a model-facing tool and not an adapter: it never appears in
 
 ## Model Experience
 
-### What the model sees
+### Repaired tool call
+
+#### What the model sees
 
 Nothing new in the system prompt or tool schemas. When a text block converts, the step proceeds exactly as if the model had emitted a wire-level tool call: the same tool execution, the same `tool/result` content, the same follow-up request.
 
-### Token effect
+#### Token effect
 
 Zero when no block converts. A converted block shifts the same text out of message history (replaced by the executed call and its result), so the net context effect is the tool round-trip the model intended.
 
-### KV Cache effect
+#### KV Cache effect
 
 The prefix is untouched: the conversion happens inside stream processing, after the request is sent, so the cached prompt prefix for the following turn is unaffected.
 
