@@ -2439,6 +2439,42 @@ describe('TuiApp Phase 6.1 slash 命令系统', () => {
     await app.dispose()
   })
 
+  it('/clear 收起命令切换的 live 面板（/config /skills 不再重绘）', async () => {
+    const ctx = makeCtx()
+    const fallback = ctx.reflect.get.getMockImplementation() as ((name: string) => unknown) | undefined
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'settings') return { describe: vi.fn(() => [{ ns: 'model', value: 'deepseek' }]) }
+      if (name === 'permission') return { names: ['run_shell'], current: vi.fn(() => 'ask') }
+      if (name === 'credentials') return { describe: vi.fn(async () => ({ configured: true, source: 'file', writable: false })) }
+      if (name === 'skills') return { list: vi.fn(async () => [{ name: 'code-review', description: '代码审查', provider: 'mock', source: 'builtin', invocation: 'manual' }]) }
+      return fallback ? fallback(name) : undefined
+    })
+    const agent = makeAgent('slash-clear-panels')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.attach()
+
+    app.handleSubmit('/config')
+    app.handleSubmit('/skills')
+    await new Promise(resolve => setTimeout(resolve, 40))
+    let written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('⚙ 配置')      // 配置面板已渲染
+    expect(written).toContain('code-review') // 技能面板已渲染
+
+    app.handleSubmit('/clear')
+    await new Promise(resolve => setTimeout(resolve, 40))
+    written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('已清空')
+    // /clear 光标回顶（\x1b[H）之后的 live 区全量重绘不应再包含命令面板
+    const tail = written.slice(written.lastIndexOf('\x1b[H'))
+    expect(tail).not.toContain('⚙ 配置')
+    expect(tail).not.toContain('已配置')
+    expect(tail).not.toContain('code-review')
+    await app.dispose()
+  })
+
   it('/export 带 path：完整链路导出会话转录为 Markdown（真实文件系统）', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('slash-export')

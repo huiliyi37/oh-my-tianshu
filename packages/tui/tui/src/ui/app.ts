@@ -821,6 +821,19 @@ export class TuiApp {
       forkSession: () => this.forkSession(),
       switchLiveModel: selection => this.switchLiveModel(selection),
       clearScrollback: () => {
+        // 命令切换的 live 信息面板（/config /skills /lsp /tasks /status
+        // /subagents /workflow）随清屏一并收起：这些面板渲染在 live 区，
+        // 只清 scrollback 不清可见性标志的话，2J 清屏后的全量重绘会把面板
+        // 内容原样画回来——用户看到的便是「/clear 清不掉命令输出」（如
+        // /config 的配置面板残留）。与既有语义一致：会话切换时 task/status
+        // 面板同样被重置（见 mountSession）。
+        this.configPanelVisible = false
+        this.skillsPanelVisible = false
+        this.lspPanelVisible = false
+        this.taskPanelVisible = false
+        this.statusPanelVisible = false
+        this.subagentsPanelVisible = false
+        this.workflowPanelVisible = false
         this.commit.reset()
         // 真实清屏（对齐 README「清空滚动区视图」）：2J 擦可见屏、3J 清终端
         // 滚动缓冲（不支持的终端无害忽略）、光标回顶；live 区状态复位后从
