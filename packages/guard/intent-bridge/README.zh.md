@@ -4,7 +4,7 @@
 
 意图对齐桥将新会话的首条消息拆分给两个角色。低成本**对齐模型**（路由可配置）在专用的对齐会话中与用户进行多轮澄清对话——都是普通轮次，无挂起机制；意图清晰后它调用 `finalize_alignment`，桥把结构化任务卡交给**全新主会话**。主会话从不继承对齐上下文：它只接收任务卡，而任务卡天然多行、超长，task-card 因此保持幂等（不改写），zen 的 triage 也不会跳过它——主会话自然 arm 禅相位，并在解锁全量工具面之前完成锚定。
 
-对齐会话 seed 一组已完成的 `zen/phase` 序列，zen 因此绝不会 arm 它；它的工具面被限制为仅有 `finalize_alignment`（agent-scoped 注册绕过 restrict 的 allow 列表）；一条确定性的 `session/title` 为 tab 命名；`intent:policy` 系统提示词段落只在对齐会话存活期间渲染对齐契约。
+对齐会话 seed 一组已完成的 `zen/phase` 序列，zen 因此绝不会 arm 它；它的工具面被限制为仅有 `finalize_alignment`（agent-scoped 注册绕过 restrict 的 allow 列表）；一条确定性的 `session/title` 为会话命名（在 `/session list`、Ctrl+S 选择器与欢迎页列表中带标题显示）；`intent:policy` 系统提示词段落只在对齐会话存活期间渲染对齐契约。
 
 决策记录：[意图对齐桥 Agent Note](../../../.agents/notes/implemented/architecture/2026-08-18-intent-bridge.md)。
 
@@ -92,4 +92,4 @@
 - **轮数计数器按 agent 步骤计数，而非用户轮次**——在单工具面上两者实际一致；多步骤的对齐轮次会更快消耗预算。
 - **经桥接的主会话无法热切换模型**——exec 路由是创建对齐会话时的快照；registry 持有的 agent 不接收 TUI 的 model ref。
 - **Handoff 先创建后提交**——只有在主会话收到任务卡之后，对齐会话才被标记为已 finalize；创建或投递失败会以工具错误浮出并保持可重试，未收到卡片的主会话会被自动 dispose。
-- **对齐 tab 在 handoff 后留存**——它以普通聊天的形式留在 tab 列表中；自动 dispose 列为后续。
+- **对齐会话在 handoff 后留存**——经会话切换面（`/session list`、Ctrl+S、欢迎页列表）仍可回到该普通聊天；自动 dispose 列为后续。

@@ -4,7 +4,7 @@ English | [中文](README.zh.md)
 
 The intent bridge splits a fresh session's first message into two roles. A low-cost ALIGNMENT model (configurable route) runs a multi-round clarification conversation with the user in a dedicated alignment session — ordinary turns, no hang machinery; when the intent is clear it calls `finalize_alignment`, and the bridge hands the structured task card to a FRESH main session. The main session never inherits the alignment context: it receives only the card, which is multi-line and long, so task-card stays idempotent (no rewrite) and zen's triage does not skip it — the main session naturally arms the zen phase and anchors before unlocking the full face.
 
-The alignment session is seeded with a completed `zen/phase` pair so zen never arms it; its tool face is restricted to `finalize_alignment` alone (agent-scoped registration bypasses the restrict allow list); a deterministic `session/title` names the tab; the `intent:policy` system-prompt section renders the alignment contract only while an alignment session is live.
+The alignment session is seeded with a completed `zen/phase` pair so zen never arms it; its tool face is restricted to `finalize_alignment` alone (agent-scoped registration bypasses the restrict allow list); a deterministic `session/title` names the session (it shows titled in `/session list`, the Ctrl+S picker, and the welcome list); the `intent:policy` system-prompt section renders the alignment contract only while an alignment session is live.
 
 Decision record: [the intent-bridge Agent Note](../../../.agents/notes/implemented/architecture/2026-08-18-intent-bridge.md).
 
@@ -92,4 +92,4 @@ The card is in place before the main session's first request, so the prefix neve
 - **The round meter counts agent steps, not user turns** — with a single-tool face the two coincide in practice; a multi-step alignment turn would consume budget faster.
 - **A bridged main session cannot hot-switch its model** — the exec route is a snapshot taken when the alignment session is created; the registry-owned agent does not take the TUI's model ref.
 - **Handoff is create-then-commit** — the alignment session is marked finalized only after the main session received the card; a failed create or delivery surfaces as a tool error and stays retryable, with a card-less main session disposed automatically.
-- **The alignment tab survives the handoff** — it stays in the tab list as a plain chat; automatic disposal is deferred.
+- **The alignment session survives the handoff** — it stays reachable as a plain chat through the session switcher surfaces (`/session list`, Ctrl+S, the welcome list); automatic disposal is deferred.
