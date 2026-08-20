@@ -34,15 +34,17 @@ Reminders ride the post-execute decision's `additionalContexts` (source `{kind: 
 
 ## Model Experience
 
-### What the model sees
+### Advisory reminder
+
+#### What the model sees
 
 No tool schema or normal-call text is added. On detection, that agent receives one advisory reminder naming the pattern, the tools or path involved, and the recommended change of approach.
 
-### Token effect
+#### Token effect
 
 Zero tokens before a detector trips. Each reminder is bounded: the churn reminder previews the canonical command identity capped at `argumentsPreviewChars`; the oscillation and edit reminders are fixed-length.
 
-### KV Cache effect
+#### KV Cache effect
 
 Append-only; newly visible content follows the reusable request prefix and does not invalidate existing KV-cache entries.
 

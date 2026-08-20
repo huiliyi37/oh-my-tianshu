@@ -211,7 +211,7 @@ export interface Config {
 
 依赖：[`AgentOptions`](subsystems/core.md) · [`SessionId`](subsystems/core.md)
 
-来源：[`packages/core/agent-loop/src/index.ts:236`](../packages/core/agent-loop/src/index.ts)
+来源：[`packages/core/agent-loop/src/index.ts:240`](../packages/core/agent-loop/src/index.ts)
 
 ## `@huiliyi37/dsh-agent-presets`
 
@@ -612,6 +612,33 @@ export interface Config {
 ```
 
 来源：[`packages/credentials/credentials-local/src/index.ts:54`](../packages/credentials/credentials-local/src/index.ts)
+
+## `@huiliyi37/dsh-doom-loop-guard`
+
+```ts config-catalog
+/**
+ * Plugin config, validated by the same-named schemastery schema plus the
+ * load-time checks in `apply` (misconfiguration fails loud: a threshold below
+ * 2, a sub-1 `argumentsPreviewChars`, or a sub-1 `reminderBudget` throws at
+ * plugin load, never a silent fall-back).
+ */
+export interface Config {
+  /** Alternating-pair length that trips the oscillation detector (default `2` → A,B,A,B). */
+  oscillationPairs?: number
+  /** Consecutive failed same-file edits that trip the edit spiral (default `3`). */
+  editRetryThreshold?: number
+  /** Consecutive identical failing test runs that trip the churn detector (default `3`). */
+  testChurnThreshold?: number
+  /** Tool-name patterns transparent to every detector (default: read-only discovery tools). */
+  exclude?: string[]
+  /** Maximum characters of canonical arguments quoted in detailed reminders (default `200`). */
+  argumentsPreviewChars?: number
+  /** Reminders per agent per user-turn (default `3`); observation continues past the budget. */
+  reminderBudget?: number
+}
+```
+
+来源：[`packages/guard/doom-loop-guard/src/index.ts:29`](../packages/guard/doom-loop-guard/src/index.ts)
 
 ## `@huiliyi37/dsh-e2b`
 
@@ -2525,6 +2552,26 @@ export interface Config {
 
 来源：[`packages/goal/tool-goal/src/index.ts:26`](../packages/goal/tool-goal/src/index.ts)
 
+## `@huiliyi37/dsh-tool-json-repair`
+
+```ts config-catalog
+/**
+ * Plugin config, validated by the same-named schemastery schema plus the
+ * load-time checks in `apply` (misconfiguration fails loud: a non-integer or
+ * sub-1 `maxBlockChars` throws at plugin load, never a silent fall-back).
+ */
+export interface Config {
+  /** Whether the stream wrapper converts tool-JSON text blocks (default `true`). */
+  enabled?: boolean
+  /** Text blocks longer than this never convert (default `65536`). */
+  maxBlockChars?: number
+  /** Accept one ```json … ``` fence around the object (default `true`). */
+  allowFenced?: boolean
+}
+```
+
+来源：[`packages/llm/tool-json-repair/src/index.ts:30`](../packages/llm/tool-json-repair/src/index.ts)
+
 ## `@huiliyi37/dsh-tool-lsp`
 
 需要：`tools` · `lsp` · `systemPrompt`
@@ -2656,6 +2703,29 @@ export interface Config {
 ```
 
 来源：[`packages/workflow/tool-ralph/src/index.ts:23`](../packages/workflow/tool-ralph/src/index.ts)
+
+## `@huiliyi37/dsh-tool-run-tests`
+
+需要：`tools` · `bash`
+
+```ts config-catalog
+/**
+ * Plugin config, validated by the same-named schemastery schema plus the
+ * load-time checks in `apply` (misconfiguration fails loud: a non-integer or
+ * sub-1 `outputTailChars`, an unknown framework id, or an empty
+ * `commandOverrides` value throws at plugin load, never a silent fall-back).
+ */
+export interface Config {
+  /** Framework id → command base; replaces one DEFAULT_COMMANDS entry. */
+  commandOverrides?: Record<string, string>
+  /** Characters of combined output kept in the canonical value's `tail` (default `8000`). */
+  outputTailChars?: number
+  /** Expose `run_in_background` (default true); disabled calls are also rejected. */
+  enableRunInBackground?: boolean
+}
+```
+
+来源：[`packages/tests/tool-run-tests/src/index.ts:46`](../packages/tests/tool-run-tests/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-semantic-search`
 
