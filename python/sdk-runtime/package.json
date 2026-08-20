@@ -50,6 +50,7 @@
     "@huiliyi37/dsh-plan-mode": "workspace:^",
     "@huiliyi37/dsh-pty": "workspace:^",
     "@huiliyi37/dsh-pty-local": "workspace:^",
+    "@huiliyi37/dsh-pwsh-local": "workspace:^",
     "@huiliyi37/dsh-repeat-tool-guard": "workspace:^",
     "@huiliyi37/dsh-retention": "workspace:^",
     "@huiliyi37/dsh-sandbox": "workspace:^",

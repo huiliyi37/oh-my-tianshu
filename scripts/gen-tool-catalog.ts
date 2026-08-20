@@ -41,6 +41,7 @@ import * as ToolAskUser from '@huiliyi37/dsh-tool-ask-user'
 import * as ToolBash from '@huiliyi37/dsh-tool-bash'
 import * as ToolPwsh from '@huiliyi37/dsh-tool-pwsh'
 import * as ToolBashPersistent from '@huiliyi37/dsh-tool-bash-persistent'
+import * as ToolPwshPersistent from '@huiliyi37/dsh-tool-pwsh-persistent'
 import * as ToolCordis from '@huiliyi37/dsh-tool-cordis'
 import * as ToolFs from '@huiliyi37/dsh-tool-fs'
 import * as ToolFsSearch from '@huiliyi37/dsh-tool-fs-search'
@@ -293,6 +294,19 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'One owner-isolated persistent bash tool; deployment composition supplies the PTY backend and may override the model-facing environment description.',
+  },
+  {
+    pkg: '@huiliyi37/dsh-tool-pwsh-persistent',
+    dir: 'tool-pwsh-persistent',
+    source: 'packages/pty/tool-pwsh-persistent/src/index.ts',
+    requires: ['ctx.tools', 'ctx.pty', 'an owning Agent at execution time'],
+    writes: ['tool/call', 'PTY shell state', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(PtyService)
+      await ctx.plugin(ToolPwshPersistent)
+    },
+    note:
+      'One owner-isolated persistent pwsh tool, the Windows counterpart of the persistent bash tool; deployment composition supplies a pwsh-dialect PTY backend and may override the model-facing environment description.',
   },
   {
     pkg: '@huiliyi37/dsh-tool-str-replace-editor',

@@ -92,6 +92,74 @@ describe('loadOptionalPatches', () => {
   })
 })
 
+describe('Loader entry disabled interpolation', () => {
+  it('evaluates a !!js disabled expression against the loader context', async () => {
+    const dir = tmp()
+    writeFileSync(join(dir, 'noop.mjs'), 'export function apply() {}\n')
+    writeFileSync(join(dir, 'cordis.yml'), [
+      '- id: expr-off',
+      '  name: ./noop.mjs',
+      '  disabled: !!js process.version.length > 0',
+      '- id: expr-on',
+      '  name: ./noop.mjs',
+      '  disabled: !!js process.version.length === 0',
+      '',
+    ].join('\n'))
+    const ctx = await boot(NAME, join(dir, 'cordis.yml'))
+    try {
+      const off = [...ctx.loader.entries()].find(entry => entry.options.id === 'expr-off')
+      const on = [...ctx.loader.entries()].find(entry => entry.options.id === 'expr-on')
+      expect(off?.disabled).toBe(true)
+      expect(off?.fiber).toBeUndefined()
+      expect(on?.disabled).toBe(false)
+      expect(on?.fiber).toBeDefined()
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
+  it('keeps the raw expression in the options so write-back preserves the !!js form', async () => {
+    const dir = tmp()
+    writeFileSync(join(dir, 'noop.mjs'), 'export function apply() {}\n')
+    writeFileSync(join(dir, 'cordis.yml'), '- id: expr\n  name: ./noop.mjs\n  disabled: !!js process.platform === "win32"\n')
+    const ctx = await boot(NAME, join(dir, 'cordis.yml'))
+    try {
+      const entry = [...ctx.loader.entries()].find(item => item.options.id === 'expr')
+      // The evaluated boolean drives the mount decision; the serialized
+      // expression node stays in the options for the file-backed tree.
+      expect(entry?.options.disabled).toEqual({ __jsExpr: 'process.platform === "win32"' })
+      expect(entry?.disabled).toBe(process.platform === 'win32')
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
+  it('re-evaluates when update() replaces the expression, mounting and unmounting', async () => {
+    const dir = tmp()
+    writeFileSync(join(dir, 'noop.mjs'), 'export function apply() {}\n')
+    writeFileSync(join(dir, 'cordis.yml'), '- id: expr\n  name: ./noop.mjs\n  disabled: !!js process.version.length === 0\n')
+    const ctx = await boot(NAME, join(dir, 'cordis.yml'))
+    try {
+      const entry = [...ctx.loader.entries()].find(item => item.options.id === 'expr')
+      expect(entry?.disabled).toBe(false)
+      expect(entry?.fiber).toBeDefined()
+      // The expression form is the file dialect; the typed programmatic API
+      // carries booleans. Include reapplication feeds the raw node through
+      // the untyped file path — simulated here with the serialized shape.
+      const disabledTrue = { __jsExpr: 'process.version.length > 0' } as unknown as boolean
+      const disabledFalse = { __jsExpr: 'process.version.length === 0' } as unknown as boolean
+      await entry?.update({ disabled: disabledTrue })
+      expect(entry?.disabled).toBe(true)
+      expect(entry?.fiber).toBeUndefined()
+      await entry?.update({ disabled: disabledFalse })
+      expect(entry?.disabled).toBe(false)
+      expect(entry?.fiber).toBeDefined()
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+})
+
 describe('boot with user patches', () => {
   function writeTree(dir: string): string {
     writeFileSync(join(dir, 'noop.mjs'), [

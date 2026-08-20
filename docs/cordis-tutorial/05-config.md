@@ -77,7 +77,7 @@ The loader used in this repo supports a `!!js` tag for config values that must b
     greeting: !!js process.env.DEMO_GREETING ?? 'Hello'
 ```
 
-`!!js` works **only inside `config`**. Entry metadata (`name`, `id`, `disabled`, `inject`, ...) is static; `disabled: !!js ...` produces a truthy expression object that always disables the entry. See [loader configuration](../cordis-primer.md#loader-configuration).
+`!!js` works only inside `config` and in an entry's `disabled` field. `disabled: !!js ...` evaluates against the loader context at every mount decision (this repo's extension), so a row can gate itself on platform or environment; the other metadata (`name`, `id`, `inject`, ...) stays static, where an expression is ordinary truthy data. See [loader configuration](../cordis-primer.md#loader-configuration).
 
 Next: [Composition and HMR](06-composition-and-hmr.md) — treating `cordis.yml` as the application.
 

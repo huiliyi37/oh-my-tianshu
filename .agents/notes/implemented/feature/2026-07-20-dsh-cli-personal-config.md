@@ -6,7 +6,7 @@ English | [中文](2026-07-20-dsh-cli-personal-config.zh.md)
 
 ## Problem
 
-A developer's own preferences — which provider and model the TUI uses, personal credentials, a private adapter route — had nowhere to live except edits to committed files. Pointing the TUI demo at a personal Anthropic-proxy Opus route meant patching `examples/tui-agent/cordis.yml` and `.env` in the working tree, which risks committing secrets and repeats per checkout. There was also no installable command: running the agent in an arbitrary project directory required invoking the repo's demo script from the repo root. Loader metadata is static, so "conditional composition uses overlays" (AGENTS.md) — but overlays only existed as committed sibling files, not as a machine-level layer.
+A developer's own preferences — which provider and model the TUI uses, personal credentials, a private adapter route — had nowhere to live except edits to committed files. Pointing the TUI demo at a personal Anthropic-proxy Opus route meant patching `examples/tui-agent/cordis.yml` and `.env` in the working tree, which risks committing secrets and repeats per checkout. There was also no installable command: running the agent in an arbitrary project directory required invoking the repo's demo script from the repo root. Loader metadata is static except the entry `disabled` field (see the [loader `disabled` interpolation decision](../architecture/2026-08-11-loader-entry-disabled-interpolation.md)), so "conditional composition uses overlays" (AGENTS.md) — but overlays only existed as committed sibling files, not as a machine-level layer.
 
 ## Decision
 

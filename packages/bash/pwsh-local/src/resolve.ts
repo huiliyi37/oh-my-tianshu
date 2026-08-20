@@ -8,7 +8,7 @@
  * @module @huiliyi37/dsh-pwsh-local/resolve
  */
 
-import { existsSync } from 'node:fs'
+import { lstatSync } from 'node:fs'
 import { join } from 'node:path'
 
 /**
@@ -37,6 +37,25 @@ export function candidatePwshPaths(env: NodeJS.ProcessEnv = process.env): string
 }
 
 /**
+ * Whether a candidate can be spawned. lstat opens the entry itself instead of
+ * following reparse points, so it sees the Store app execution alias where
+ * stat hits the target's ACL (EACCES); Node reports that alias as a symlink
+ * on current releases and as a plain file on older ones, and CreateProcess
+ * resolves either shape. A real directory never matches.
+ */
+function candidateExists(candidate: string): boolean {
+  try {
+    const stat = lstatSync(candidate)
+    return stat.isFile() || stat.isSymbolicLink()
+  } catch {
+    // ENOENT (the candidate vanished between listing and probing) is the only
+    // expected failure; any other error names an unspawnable path, so false
+    // is the safe answer for it too.
+    return false
+  }
+}
+
+/**
  * Resolve the pwsh executable this executor spawns.
  * @param configured - an explicit `pwshPath` config value, trusted as-is.
  * @param env - the environment to probe on Windows; defaults to the process environment.
@@ -53,7 +72,7 @@ export function resolvePwshPath(
   if (configured !== undefined && configured.length > 0) return configured
   if (platform === 'win32') {
     for (const candidate of candidatePwshPaths(env)) {
-      if (existsSync(candidate)) return candidate
+      if (candidateExists(candidate)) return candidate
     }
   }
   return 'pwsh'

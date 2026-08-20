@@ -77,7 +77,7 @@ ValidationError: invalid config:
     greeting: !!js process.env.DEMO_GREETING ?? 'Hello'
 ```
 
-`!!js` **仅在 `config` 内有效**。Cordis 配置项的元数据（`name`、`id`、`disabled`、`inject` 等）是静态的；`disabled: !!js ...` 会生成一个真值表达式对象，始终禁用该 Cordis 配置项。详见 [loader 配置](../cordis-primer.md#loader-configuration)。
+`!!js` 仅在 `config` 内和条目的 `disabled` 字段上有效。`disabled: !!js ...` 在每次挂载决策时基于 loader 上下文求值（本仓库的扩展），因此一行可以按平台或环境门控自身；其余元数据（`name`、`id`、`inject` 等）是静态的，表达式在那里只是普通的真值数据。详见 [loader 配置](../cordis-primer.md#loader-configuration)。
 
 下一章：[组合与 HMR（热模块替换）](06-composition-and-hmr.md)：将 `cordis.yml` 视为应用。
 

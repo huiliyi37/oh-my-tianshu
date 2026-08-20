@@ -6,7 +6,7 @@ Status: implemented
 
 ## Problem
 
-开发者自己的偏好——TUI 使用哪个提供方和模型、个人凭证、私有的适配器路由——除了改动已提交的文件之外无处安放。要把 TUI 示例指向个人的 Anthropic 代理 Opus 路由，只能在工作区里改 `examples/tui-agent/cordis.yml` 和 `.env`，既有提交密钥的风险，又要在每个 checkout 里重复一遍。也没有可安装的命令：想在任意项目目录里运行这个 agent，必须回到仓库根目录调用示例脚本。Loader 元数据是静态的，所以「条件组合使用 overlay」（AGENTS.md）——但 overlay 此前只以已提交的同级文件形式存在，没有机器级的层。
+开发者自己的偏好——TUI 使用哪个提供方和模型、个人凭证、私有的适配器路由——除了改动已提交的文件之外无处安放。要把 TUI 示例指向个人的 Anthropic 代理 Opus 路由，只能在工作区里改 `examples/tui-agent/cordis.yml` 和 `.env`，既有提交密钥的风险，又要在每个 checkout 里重复一遍。也没有可安装的命令：想在任意项目目录里运行这个 agent，必须回到仓库根目录调用示例脚本。Loader 元数据除条目 `disabled` 字段外是静态的（见 [loader `disabled` 插值决策](../architecture/2026-08-11-loader-entry-disabled-interpolation.md)），所以「条件组合使用 overlay」（AGENTS.md）——但 overlay 此前只以已提交的同级文件形式存在，没有机器级的层。
 
 ## Decision
 

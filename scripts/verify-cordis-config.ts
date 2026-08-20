@@ -1,15 +1,18 @@
 /**
  * Validate Cordis Loader entry metadata and package resolution.
  *
- * The Loader interpolates only a plugin entry's `config`; expression objects in
- * fields such as `disabled` remain truthy data and silently change composition.
- * Example configs and the dsh Web composition resolve named plugins from their
- * owning workspace manifests. Local example packages must also be in the root
- * TypeScript project graph.
+ * The Loader interpolates a plugin entry's `config` (after declared injections
+ * activate, against that plugin context) and the entry `disabled` field (at
+ * every mount decision, against the loader context). Every other entry
+ * metadata field stays static, so an expression there remains truthy data and
+ * silently changes composition. Example configs and the dsh Web composition
+ * resolve named plugins from their owning workspace manifests. Local example
+ * packages must also be in the root TypeScript project graph.
  */
 
 import { globSync, readFileSync } from 'node:fs'
 import { dirname, relative, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import * as yaml from 'js-yaml'
 import ts from 'typescript'
 import { cordisConfigFiles } from './cordis-config-files.ts'
@@ -35,7 +38,7 @@ const appOverlayFiles = new Set([
   'examples/web-cordis/cordis.yml',
   ...globSync('examples/mcp-memory/*.cordis.yml', { cwd: root }),
 ])
-const metadataFields = ['id', 'name', 'group', 'disabled', 'inject', 'intercept', 'isolate'] as const
+const metadataFields = ['id', 'name', 'group', 'inject', 'intercept', 'isolate'] as const
 
 /** The adaptive directory-picker chooser package (mounts a backend row at boot). */
 const CHOOSER_PACKAGE = '@huiliyi37/dsh-host-directory-picker-auto'
@@ -60,31 +63,36 @@ const jsExprType = new yaml.Type('tag:yaml.org,2002:js', {
 })
 const schema = yaml.JSON_SCHEMA.extend(jsExprType)
 
-const files = cordisConfigFiles(root)
 const errors: string[] = []
 const pluginReferences: PluginReference[] = []
 
-for (const file of files) {
-  const document: unknown = yaml.load(readFileSync(resolve(root, file), 'utf8'), { schema })
-  if (!isUnknownArray(document)) {
-    errors.push(`${file}: root must be a Loader entry array`)
-    continue
-  }
-  for (let index = 0; index < document.length; index++) {
-    validateEntry(document[index], file, `[${index}]`)
-  }
-}
+// Entry-point detection: `import.meta.main` is undefined under tsx, so a
+// `import.meta.main` guard would skip every check silently (see run-gates.ts).
+if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const files = cordisConfigFiles(root)
 
-errors.push(...validateExampleResolution())
-errors.push(...validateAppResolution())
-errors.push(...validateSourcePlaneResolution())
+  for (const file of files) {
+    const document: unknown = yaml.load(readFileSync(resolve(root, file), 'utf8'), { schema })
+    if (!isUnknownArray(document)) {
+      errors.push(`${file}: root must be a Loader entry array`)
+      continue
+    }
+    for (let index = 0; index < document.length; index++) {
+      validateEntry(document[index], file, `[${index}]`)
+    }
+  }
 
-if (errors.length > 0) {
-  console.error('verify-cordis-config: invalid Loader metadata or plugin package resolution:')
-  for (const error of errors) console.error(`- ${error}`)
-  process.exitCode = 1
-} else {
-  console.log(`verify-cordis-config: ${files.length} config files passed.`)
+  errors.push(...validateExampleResolution())
+  errors.push(...validateAppResolution())
+  errors.push(...validateSourcePlaneResolution())
+
+  if (errors.length > 0) {
+    console.error('verify-cordis-config: invalid Loader metadata or plugin package resolution:')
+    for (const error of errors) console.error(`- ${error}`)
+    process.exitCode = 1
+  } else {
+    console.log(`verify-cordis-config: ${files.length} config files passed.`)
+  }
 }
 
 function validateEntry(value: unknown, file: string, path: string): void {
@@ -304,11 +312,60 @@ function packageNameFromSpecifier(specifier: string): string | undefined {
 }
 
 function validateMetadata(entry: Record<string, unknown>, file: string, path: string): void {
+  for (const problem of metadataExpressionErrors(entry, path)) {
+    errors.push(`${file}${problem}`)
+  }
+}
+
+/**
+ * Expression-node diagnostics for one entry. `disabled` is the single
+ * interpolated metadata field: its own `!!js` expression node is allowed and
+ * must parse, while expressions nested below it stay truthy data; every other
+ * metadata field must stay fully static.
+ * @param entry - one loader entry (or patch row).
+ * @param path - the entry's diagnostic path prefix.
+ * @returns one diagnostic per offending expression.
+ */
+export function metadataExpressionErrors(entry: Record<string, unknown>, path: string): string[] {
+  const problems: string[] = []
   for (const field of metadataFields) {
     if (!(field in entry)) continue
     const expressionPaths: string[] = []
     collectExpressionPaths(entry[field], `${path}.${field}`, expressionPaths)
-    for (const expressionPath of expressionPaths) errors.push(`${file}${expressionPath}: !!js is not interpolated here`)
+    for (const expressionPath of expressionPaths) problems.push(`${expressionPath}: !!js is not interpolated here`)
+  }
+  const disabled = entry.disabled
+  if (disabled !== undefined) {
+    if (isJsExpr(disabled)) {
+      const detail = disabledExpressionProblem(disabled.__jsExpr)
+      if (detail !== undefined) problems.push(`${path}.disabled${detail}`)
+    } else {
+      // A non-expression value gates on Boolean() at mount; an expression
+      // nested anywhere below it never evaluates, so it must stay literal.
+      const expressionPaths: string[] = []
+      collectExpressionPaths(disabled, `${path}.disabled`, expressionPaths)
+      for (const expressionPath of expressionPaths) problems.push(`${expressionPath}: !!js is not interpolated here`)
+    }
+  }
+  return problems
+}
+
+/**
+ * Parse-only validation of a `disabled` expression: the Loader evaluates it
+ * at every mount decision, and a syntax error would fail the boot — rejecting
+ * it here moves that failure to the earliest resolvable point.
+ * @param expression - the `!!js` expression text.
+ * @returns the diagnostic suffix, or `undefined` when the expression parses.
+ */
+function disabledExpressionProblem(expression: string): string | undefined {
+  try {
+    // Compilation only — the constructor never executes the body.
+    // oxlint-disable-next-line typescript/no-implied-eval
+    new Function(`return (${expression})`)
+    return undefined
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    return `: disabled expression does not parse: ${detail}`
   }
 }
 

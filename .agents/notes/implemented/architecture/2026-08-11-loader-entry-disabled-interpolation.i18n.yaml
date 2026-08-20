@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-11-loader-entry-disabled-interpolation.md
+2026-08-11-loader-entry-disabled-interpolation.md: f0ebb7ec9b4d3043875693e61ff157007dadfee3
+2026-08-11-loader-entry-disabled-interpolation.zh.md: 376d2a3f8cf27e0fd3753bc42f7b35a6d72af908

@@ -25,6 +25,7 @@
 | `@huiliyi37/dsh-tool-pwsh` | `pwsh` | `ctx.tools`、`ctx.bash`、`ctx.systemPrompt`、`ctx.bashEnv`、`ctx.tasks at call time for run_in_background` | `tool/call`、`tool/result` | - | pwsh 工具是 Windows 组合中 bash 执行器 seam 的 PowerShell 方言消费方（由 `@huiliyi37/dsh-pwsh-local` 等 PowerShell 执行器为 `ctx.bash` 提供后端）；除沙箱接口外，它逐项对应 bash 工具调用。使用 `run_in_background` 的运行会注册到通用 `ctx.tasks` 运行时，并通过 `task_*` 工具收集／停止；托管的 `DSH_*` 环境来自 `@huiliyi37/dsh-bash-env`。每次调用都在新进程中运行，不使用持久 PTY 会话；ConPTY 尚在规划中。路径采用原生 `C:\...` 形式，变量采用 `$env:NAME`。 |
 | `@huiliyi37/dsh-tool-cordis` | `cordis_inspect`、`cordis_mount`、`cordis_unmount` | `ctx.tools` | `tool/call`、`tool/result`、`process-local temporary Plugin lifecycle` | - | 不在任何随产品发布的树中，需要有意选择启用；临时 Plugin 代码可以访问真实运行时，见 .agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md。由 cordis_mount 创建的插件在卸载或 DSH 重启之前可以注册**额外的**模型可见工具；发生这类工具集变更时，系统会记录完整且有变动的请求头。 |
 | `@huiliyi37/dsh-tool-bash-persistent` | `bash` | `ctx.tools`、`ctx.pty`、`an owning Agent at execution time` | `tool/call`、`PTY shell state`、`tool/result` | - | 一个按所有者隔离的持久 bash 工具；部署组合提供 PTY 后端，并可覆盖面向模型的环境描述。 |
+| `@huiliyi37/dsh-tool-pwsh-persistent` | `pwsh` | `ctx.tools`、`ctx.pty`、`an owning Agent at execution time` | `tool/call`、`PTY shell state`、`tool/result` | - | 一个按所有者隔离的持久 pwsh 工具，持久 bash 工具的 Windows 对应物；部署组合提供 pwsh 方言的 PTY 后端，并可覆盖面向模型的环境描述。 |
 | `@huiliyi37/dsh-tool-str-replace-editor` | `str_replace_editor` | `ctx.tools`、`ctx.fs` | `tool/call`、`fs/observed after view presence/absence, edit absence, or successful mutation`、`tool/result` | - | 基于文件系统 seam 的独立查看／创建／唯一字面量替换／按行插入工具；可与任何 shell 或终端接口组合。 |
 | `@huiliyi37/dsh-tool-fs` | `edit`、`read`、`write` | `ctx.tools`、`ctx.fs`、`ctx.systemPrompt` | `tool/call`、`fs/write-intent or fs/edit-intent for mutations`、`fs/observed after read presence/absence or successful mutation`、`tool/result` | - | 先读后写／编辑策略由 `@huiliyi37/dsh-fs-policy` 添加；它是一个 `fs/*` 事件门禁插件，不会改变 schema。加载这些工具的部署按预期也应加载该插件。无论是否加载策略插件，上述工具 schema 都完全相同。 |
 | `@huiliyi37/dsh-tool-fs-search` | `glob`、`grep` | `ctx.tools`、`ctx.subprocess`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | glob 和 grep 是无条件可用的发现工具，通过 ctx.subprocess spawn 随包提供的 ripgrep 二进制文件（`@vscode/ripgrep`），并作为普通前台调用运行，绝不作为后台任务；无需在宿主机安装 `rg`，也不经过 shell 层。本目录使用 `sampleOverCapGlobResults: true`；部署必须显式选择该行为。结果超过上限时，会通过可选的 ctx.spillStore 后端保存完整的格式化列表；在共置部署中，如果后端公开本地路径，返回的定位信息可供后续读取／搜索。 |
@@ -455,6 +456,31 @@ pwsh 工具是 Windows 组合中 bash 执行器 seam 的 PowerShell 方言消费
 来源：[`packages/pty/tool-bash-persistent/src/index.ts`](../packages/pty/tool-bash-persistent/src/index.ts)
 
 一个按所有者隔离的持久 bash 工具；部署组合提供 PTY 后端，并可覆盖面向模型的环境描述。
+
+## `@huiliyi37/dsh-tool-pwsh-persistent`
+
+### `pwsh`
+
+在持久 PowerShell shell 中运行命令。包括当前目录和已导出环境变量在内的状态会在此 agent 的多次调用之间保留。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "string",
+      "description": "The PowerShell command to run. Relative path is preferred in the command."
+    }
+  },
+  "required": [
+    "command"
+  ]
+}
+```
+
+来源：[`packages/pty/tool-pwsh-persistent/src/index.ts`](../packages/pty/tool-pwsh-persistent/src/index.ts)
+
+一个按所有者隔离的持久 pwsh 工具，持久 bash 工具的 Windows 对应物；部署组合提供 pwsh 方言的 PTY 后端，并可覆盖面向模型的环境描述。
 
 ## `@huiliyi37/dsh-tool-str-replace-editor`
 

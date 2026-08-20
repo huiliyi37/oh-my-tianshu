@@ -3,7 +3,7 @@ import { deepEqual, isNullable } from '@huiliyi37/cosmokit'
 import { Loader } from '../index.ts'
 import { EntryGroup } from './group.ts'
 import { EntryTree } from './tree.ts'
-import { evaluate, interpolate } from './utils.ts'
+import { evaluate, interpolate, isJsExpr } from './utils.ts'
 
 /** Serialized plugin entry options stored in loader config files. */
 export interface EntryOptions {
@@ -88,13 +88,23 @@ export class Entry {
   private _disabled(options: EntryOptions) {
     // group is always enabled
     if (options.group) return false
-    if (options.disabled) return true
+    if (this.disabledOf(options)) return true
     let entry = this.parent.ctx.fiber.entry
     while (entry) {
-      if (entry.options.disabled) return true
+      if (this.disabledOf(entry.options)) return true
       entry = entry.parent.ctx.fiber.entry
     }
     return false
+  }
+
+  /**
+   * Effective disabled state: a `!!js` expression evaluates against the loader
+   * context. The raw node stays in the options, so write-back keeps the form.
+   */
+  private disabledOf(options: EntryOptions): boolean {
+    return isJsExpr(options.disabled)
+      ? Boolean(this.evaluate(options.disabled.__jsExpr))
+      : Boolean(options.disabled)
   }
 
   evaluate(expr: string) {

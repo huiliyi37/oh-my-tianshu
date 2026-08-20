@@ -180,6 +180,7 @@
     { "path": "./packages/pty/pty" },
     { "path": "./packages/pty/pty-local" },
     { "path": "./packages/pty/tool-bash-persistent" },
+    { "path": "./packages/pty/tool-pwsh-persistent" },
     { "path": "./packages/pty/tool-pty" },
     { "path": "./packages/code-runtime/code-runtime" },
     { "path": "./packages/code-runtime/code-runtime-python" },

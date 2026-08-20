@@ -35,7 +35,7 @@ For single-decision events, short-circuiting is the design. A policy listener ca
 
 ## Loader Configuration
 
-`@huiliyi37/cordis-plugin-include` parses `!!js` into expression nodes, but the Loader interpolates only an entry's `config` before mounting the plugin. Entry metadata (`id`, `name`, `group`, `disabled`, `inject`, `intercept`, and `isolate`) remains literal; `disabled: !!js ...` is therefore a truthy object that always disables the entry. Use explicit config overlays when environment selection changes which plugins are mounted.
+`@huiliyi37/cordis-plugin-include` parses `!!js` into expression nodes. The Loader interpolates an entry's `config` (before mounting the plugin) and its `disabled` field (at every mount decision, against the loader context). Other entry metadata (`id`, `name`, `group`, `inject`, `intercept`, and `isolate`) remains literal. Use explicit config overlays when environment selection changes which plugins are mounted.
 
 ## Practical Rules
 

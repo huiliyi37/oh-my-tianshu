@@ -1,4 +1,5 @@
 import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -12,6 +13,7 @@ import SandboxProvider from '@huiliyi37/dsh-sandbox'
 import type { ConfinedArgv, SandboxPolicy } from '@huiliyi37/dsh-sandbox'
 import SandboxPolicyService from '@huiliyi37/dsh-sandbox-policy'
 import LocalSubprocessService from '@huiliyi37/dsh-subprocess-local'
+import { resolvePwshPath } from '@huiliyi37/dsh-pwsh-local/src/resolve.ts'
 import * as ptyLocal from '@huiliyi37/dsh-pty-local'
 
 const roots: Array<string> = []
@@ -49,6 +51,7 @@ function stubAgent(ctx: Context, rawId: string): Agent {
 async function harness(
   mode: 'danger-full-access' | 'workspace-write',
   timing: { idleSilenceMs?: number; handoffGraceMs?: number; timeoutMs?: number } = {},
+  dialect: 'bash' | 'pwsh' = 'bash',
 ) {
   const root = mkdtempSync(join(tmpdir(), 'dsh-pty-local-'))
   roots.push(root)
@@ -60,6 +63,7 @@ async function harness(
   await ctx.plugin(SandboxPolicyService, { mode, workspaceRoot: root })
   await ctx.plugin(LocalSubprocessService)
   const fiber = await ctx.plugin(ptyLocal, {
+    shellDialect: dialect,
     pollIntervalMs: 10,
     exactProbeAfterMs: 20,
     idleSilenceMs: timing.idleSilenceMs ?? 250,
@@ -114,7 +118,9 @@ function processIsRunning(pid: number): boolean {
   }
 }
 
-describe('pty-local real shell', () => {
+// The real-shell suite drives a POSIX bash over the actual node-pty terminal;
+// Windows has no bash, and its pwsh counterpart lives in the describe below.
+describe.skipIf(process.platform === 'win32')('pty-local real shell', () => {
   it('persists cwd and environment across sends, scrubs secrets, and closes', async () => {
     const previous = process.env.DSH_TEST_SECRET
     process.env.DSH_TEST_SECRET = 'must-not-leak'
@@ -246,4 +252,73 @@ describe('pty-local real shell', () => {
     expectReadyForNextSend((await after.done).waitReason)
     await ctx.pty.kill(agent, created.sessionId)
   }, 35_000)
+})
+
+const hasPwsh = spawnSync(
+  resolvePwshPath(), ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', '$true'],
+  { encoding: 'utf8' },
+).status === 0
+
+describe.skipIf(!hasPwsh)('pty-local pwsh real shell', () => {
+  it('bootstraps a persistent pwsh, persists state, and scrubs secrets', async () => {
+    const previous = process.env.DSH_TEST_SECRET
+    process.env.DSH_TEST_SECRET = 'must-not-leak'
+    try {
+      const { ctx, root, agent } = await harness('danger-full-access', {
+        idleSilenceMs: 300,
+        handoffGraceMs: 300,
+        timeoutMs: 8_000,
+      }, 'pwsh')
+      const created = await ctx.pty.spawn(agent, { type: 'shell', name: 'main', cwd: root })
+      expect(created.motd).toContain('dsh> ')
+
+      const first = ctx.pty.startSend(agent, created.sessionId, {
+        text: '$env:KEEP = "ok"; Set-Location /',
+        submit: true,
+      })
+      expect((await first.done).waitReason).toBe('stdin_read')
+      const second = ctx.pty.startSend(agent, created.sessionId, {
+        text: 'Write-Output "keep=$env:KEEP secret=$env:DSH_TEST_SECRET"',
+        submit: true,
+      })
+      const result = await second.done
+      expect(result.viewport).toContain('keep=ok')
+      expect(result.viewport).toContain('secret=')
+      expect(result.viewport).not.toContain('must-not-leak')
+
+      expect(ctx.pty.read(agent, created.sessionId, { offset: 0, count: 40 }).text).toContain('keep=ok')
+      expect(await ctx.pty.kill(agent, created.sessionId)).toBe(true)
+      expect(ctx.pty.list(agent)).toEqual([])
+    } finally {
+      if (previous === undefined) delete process.env.DSH_TEST_SECRET
+      else process.env.DSH_TEST_SECRET = previous
+    }
+  }, 30_000)
+
+  it('pins UTF-8 output encoding so non-ASCII output survives the byte decode', async () => {
+    const { ctx, root, agent } = await harness('danger-full-access', {
+      idleSilenceMs: 300,
+      handoffGraceMs: 300,
+      timeoutMs: 8_000,
+    }, 'pwsh')
+    const created = await ctx.pty.spawn(agent, { type: 'shell', name: 'main', cwd: root })
+    // The bootstrap itself must have pinned both encodings: the session byte
+    // decode is UTF-8, so an un-pinned console writing its host code page
+    // garbles every non-ASCII byte that follows.
+    const pinned = ctx.pty.startSend(agent, created.sessionId, {
+      text: '"console=" + [Console]::OutputEncoding.WebName + " out=" + $OutputEncoding.WebName',
+      submit: true,
+    })
+    const pinnedResult = await pinned.done
+    expect(pinnedResult.viewport).toContain('console=utf-8 out=utf-8')
+    // Char codes keep the submitted line ASCII-only, so the assertion is a
+    // pure output-decode check.
+    const sent = ctx.pty.startSend(agent, created.sessionId, {
+      text: "[Console]::Write([char]0x4E2D + [char]0x6587 + ' encoding-ok')",
+      submit: true,
+    })
+    const result = await sent.done
+    expect(result.viewport).toContain('中文 encoding-ok')
+    await ctx.pty.kill(agent, created.sessionId)
+  }, 30_000)
 })

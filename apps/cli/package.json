@@ -39,6 +39,7 @@
     "@huiliyi37/dsh-tmux-context": "workspace:^",
     "@huiliyi37/dsh-tool-ask-user": "workspace:^",
     "@huiliyi37/dsh-tool-bash-persistent": "workspace:^",
+    "@huiliyi37/dsh-tool-pwsh-persistent": "workspace:^",
     "@huiliyi37/dsh-agent-presets": "workspace:^",
     "@huiliyi37/dsh-command-compact": "workspace:^",
     "@huiliyi37/dsh-compact-basic": "workspace:^",
