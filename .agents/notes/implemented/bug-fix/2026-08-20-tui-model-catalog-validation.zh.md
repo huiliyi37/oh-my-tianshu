@@ -37,4 +37,4 @@ Status: implemented
 
 ## Related
 
-- [TUI 模型热切](../../feature/2026-08-11-tui-model-hot-swap.md)——拥有本校验所守护的 saveSelection + switchLiveModel 路径。
+- [TUI 模型热切](../feature/2026-08-11-tui-model-hot-swap.md)——拥有本校验所守护的 saveSelection + switchLiveModel 路径。

@@ -31,5 +31,5 @@ The alignment model gets prompt-level and runtime-level statements of its single
 
 ## Related
 
-- [intent-bridge architecture](../../architecture/2026-08-18-intent-bridge.md) — owns the alignment session design this guard enforces.
-- [zen_anchor no-op and callable face](../../bug-fix/2026-08-20-zen-anchor-noop-and-callable-face.md) — the paired fix for the main session's anchored face.
+- [intent-bridge architecture](../architecture/2026-08-18-intent-bridge.md) — owns the alignment session design this guard enforces.
+- [zen_anchor no-op and callable face](../bug-fix/2026-08-20-zen-anchor-noop-and-callable-face.md) — the paired fix for the main session's anchored face.

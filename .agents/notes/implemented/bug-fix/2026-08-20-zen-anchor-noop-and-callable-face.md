@@ -33,4 +33,4 @@ A model that anchors on the final budget step (or after triage or an earlier anc
 
 ## Related
 
-- [zen-phase engineering paradigm](../../architecture/2026-08-17-zen-phase-engineering-paradigm.md) — owns the phase design; this note records the failure-mode fix on top of it.
+- [zen-phase engineering paradigm](../architecture/2026-08-17-zen-phase-engineering-paradigm.md) — owns the phase design; this note records the failure-mode fix on top of it.

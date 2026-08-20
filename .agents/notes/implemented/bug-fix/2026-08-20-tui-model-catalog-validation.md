@@ -37,4 +37,4 @@ Bad `/model` input now fails at the command line with an actionable message inst
 
 ## Related
 
-- [TUI model hot-swap](../../feature/2026-08-11-tui-model-hot-swap.md) — owns the saveSelection + switchLiveModel path this validation guards.
+- [TUI model hot-swap](../feature/2026-08-11-tui-model-hot-swap.md) — owns the saveSelection + switchLiveModel path this validation guards.

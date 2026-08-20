@@ -33,4 +33,4 @@ Status: implemented
 
 ## Related
 
-- [禅相位工程范式](../../architecture/2026-08-17-zen-phase-engineering-paradigm.md)——拥有阶段设计；本 note 在其上记录失败模式修复。
+- [禅相位工程范式](../architecture/2026-08-17-zen-phase-engineering-paradigm.md)——拥有阶段设计；本 note 在其上记录失败模式修复。

@@ -31,5 +31,5 @@ Status: implemented
 
 ## Related
 
-- [intent-bridge 架构](../../architecture/2026-08-18-intent-bridge.md)——拥有本 guard 所落实的对齐会话设计。
-- [zen_anchor 空操作与可用工具面](../../bug-fix/2026-08-20-zen-anchor-noop-and-callable-face.md)——主会话锚定面的配对修复。
+- [intent-bridge 架构](../architecture/2026-08-18-intent-bridge.md)——拥有本 guard 所落实的对齐会话设计。
+- [zen_anchor 空操作与可用工具面](../bug-fix/2026-08-20-zen-anchor-noop-and-callable-face.md)——主会话锚定面的配对修复。

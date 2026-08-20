@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-20-tui-model-catalog-validation.md
-2026-08-20-tui-model-catalog-validation.md: 8573d75f1b6bd5023c1f867c47b4d400c78decd4
-2026-08-20-tui-model-catalog-validation.zh.md: 376b68ef3afdfbd5ea6936906bd27b22f54e1601
+2026-08-20-tui-model-catalog-validation.md: 594ed057c47ceac7351f368c862c8e32dfe7649d
+2026-08-20-tui-model-catalog-validation.zh.md: 2b8bd94559320b44a9b72689443bd4bd80714770
