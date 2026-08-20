@@ -250,6 +250,7 @@ async function runCommand(h: Harness, objective = 'add tests for foo', signal?: 
     commandId: CommandId(`cmd-test-${serial}`),
     agent: h.agent,
     rawInput: ` ${objective}`,
+    attachments: [],
     signal: signal ?? new AbortController().signal,
   }
   return definition.handler(invocation)
