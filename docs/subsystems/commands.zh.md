@@ -8,13 +8,19 @@
 
 ## 输入元数据
 
-该服务公开一个可选的非结构化输入提示。命令的可用性由插件组合决定：每个消费注册表的适配器都会看到全部生效定义。
+该服务公开一个可选的非结构化输入描述符：一个提示加一个图片受理标志。命令的可用性由插件组合决定：每个消费注册表的适配器都会看到全部生效定义。
 
 ```ts type-equiv
 /** Immutable metadata for a command's optional unstructured input. */
 interface CommandInputDescriptor {
   /** Placeholder shown before the user supplies free-form input. */
   readonly hint: string
+  /**
+   * Whether the command accepts image attachments alongside its free-form
+   * input. An invocation carrying images to a command that does not declare
+   * this flag settles as an error result before the handler runs.
+   */
+  readonly images?: boolean
 }
 ```
 
@@ -55,6 +61,15 @@ interface CommandInvocation {
   readonly agent: Agent
   /** Exact text following the registered command name, including separator whitespace. */
   readonly rawInput: string
+  /**
+   * Image blocks accompanying this invocation, in submission order; empty
+   * unless the definition declares `input.images`. The payloads are data URLs
+   * already validated at composer intake. The handler owns their
+   * model-visible use — the registry never schedules them itself — and a
+   * handler whose grammar cannot use them in this invocation returns an
+   * error so the dispatching surface retains the originals.
+   */
+  readonly attachments: readonly ImageBlock[]
   /** Cancellation signal owned by the dispatching UI request. */
   readonly signal: AbortSignal
 }
@@ -150,18 +165,25 @@ find(agent: Agent, name: string): CommandDefinition | undefined
  * handler-failure path is contained so the handler's own error stays the
  * reported failure.
  *
+ * The `input.images` declaration is enforced here, not in the composer:
+ * images sent to a command that does not declare it settle as a logged
+ * error result before the handler runs. Payloads arrive as data URLs
+ * validated at composer intake, so no further admission step runs here.
+ *
  * @param agent - exact receiving agent.
  * @param line - complete slash-command line.
  * @param signal - cancellation signal owned by the UI request.
+ * @param images - composer images accompanying the line as data-URL image
+ *   blocks, in submission order; empty for a plain invocation.
  * @returns the settled execution (result + lifecycle pairing id), or
  *   `undefined` when syntax or name does not resolve.
  */
-async execute( agent: Agent, line: string, signal: AbortSignal, ): Promise<CommandExecution | undefined>
+async execute( agent: Agent, line: string, signal: AbortSignal, images: readonly ImageBlock[] = NO_ATTACHMENTS, ): Promise<CommandExecution | undefined>
 ```
 
-Types: [Agent](core.md)
+Types: [Agent](core.md) · [ImageBlock](llm-streaming.md)
 
-Source: [`packages/interaction/commands/src/index.ts:267`](../../packages/interaction/commands/src/index.ts)
+Source: [`packages/interaction/commands/src/index.ts:292`](../../packages/interaction/commands/src/index.ts)
 
 <a id="commands-events"></a>
 
@@ -183,5 +205,5 @@ A command was registered or unregistered. This is an unfiltered registry notific
 'commands/change'(): void
 ```
 
-Source: [`packages/interaction/commands/src/index.ts:134`](../../packages/interaction/commands/src/index.ts)
+Source: [`packages/interaction/commands/src/index.ts:153`](../../packages/interaction/commands/src/index.ts)
 <!-- END GENERATED cordis-surface -->

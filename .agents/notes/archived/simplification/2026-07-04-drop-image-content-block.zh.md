@@ -1,6 +1,7 @@
 # Agent Note: 移除 `image` 内容块，直到有路径能真正处理它
 
 Status: implemented
+Archived: 2026-08-20
 
 [English](2026-07-04-drop-image-content-block.md) | 中文
 

@@ -96,7 +96,7 @@ describe('@huiliyi37/dsh-command-goal registration', () => {
     expect(test.ctx.commands.list(test.agent)).toContainEqual({
       name: 'goal',
       description: 'set or view the goal for a long-running task',
-      input: { hint: '[<objective>|clear|edit <objective>|pause|resume]' },
+      input: { hint: '[<objective>|clear|edit <objective>|pause|resume]', images: true },
     })
     expect(test.ctx.commands.find(test.agent, 'goal')).toBeDefined()
 
@@ -230,5 +230,80 @@ describe('/goal human command', () => {
     const test = await harness()
     vi.spyOn(test.ctx.goals, 'get').mockImplementationOnce(() => { throw new Error('unexpected failure') })
     await expect(run(test)).rejects.toThrow('unexpected failure')
+  })
+})
+
+describe('/goal image attachments', () => {
+  /** Execute `/goal` with `count` composer images through the registry boundary. */
+  async function runWithImages(test: Harness, suffix: string, count: number) {
+    const images = Array.from({ length: count }, () => ({
+      type: 'image' as const,
+      dataUrl: 'data:image/png;base64,AAAA',
+    }))
+    const execution = await test.ctx.commands.execute(
+      test.agent, `/goal${suffix}`, new AbortController().signal, images,
+    )
+    if (execution === undefined) throw new Error('goal command was not registered')
+    return execution.result
+  }
+
+  it('submits one user followup carrying the images ahead of the round prompt', async () => {
+    const test = await harness()
+    const followup = vi.fn()
+    ;(test.agent as unknown as { followup: typeof followup }).followup = followup
+    const result = await runWithImages(test, ' rebuild the cathedral', 2)
+    expect(result.kind).toBe('success')
+    expect(followup).toHaveBeenCalledTimes(1)
+    const message = followup.mock.calls[0]?.[0] as {
+      content: ReadonlyArray<Record<string, unknown>>
+      source: { kind: string }
+    }
+    expect(message.source).toEqual({ kind: 'user' })
+    expect(message.content.map(block => block.type)).toEqual(['image', 'image', 'text'])
+    expect(message.content.at(-1)).toEqual({ type: 'text', text: 'Reference images for the goal objective.' })
+    expect(message.content[0]).toEqual({ type: 'image', dataUrl: 'data:image/png;base64,AAAA' })
+  })
+
+  it('accompanies an edit and a post-complete recreate the same way', async () => {
+    const test = await harness()
+    const followup = vi.fn()
+    ;(test.agent as unknown as { followup: typeof followup }).followup = followup
+    test.ctx.goals.create(test.agent, { objective: 'initial objective' })
+    const edited = await runWithImages(test, ' edit refined objective', 1)
+    expect(edited.kind).toBe('success')
+    expect(followup).toHaveBeenCalledTimes(1)
+
+    const goal = test.ctx.goals.get(test.agent)
+    if (goal === undefined) throw new Error('goal missing after edit')
+    test.ctx.goals.complete(test.agent, ref(goal))
+    const recreated = await runWithImages(test, ' fresh objective', 1)
+    expect(recreated.kind).toBe('success')
+    expect(followup).toHaveBeenCalledTimes(2)
+  })
+
+  it('rejects attachments on sub-commands that cannot use them, leaving the domain untouched', async () => {
+    const test = await harness()
+    const followup = vi.fn()
+    ;(test.agent as unknown as { followup: typeof followup }).followup = followup
+    test.ctx.goals.create(test.agent, { objective: 'active objective' })
+    for (const suffix of [' pause', '', ' clear']) {
+      const result = await runWithImages(test, suffix, 1)
+      expect(result).toEqual({
+        kind: 'error',
+        text: 'Image attachments only accompany a goal objective: /goal <objective> or /goal edit <objective>.',
+      })
+    }
+    expect(followup).not.toHaveBeenCalled()
+    expect(test.ctx.goals.get(test.agent)?.phase).toBe('active')
+  })
+
+  it('does not submit attachments when goal creation is refused', async () => {
+    const test = await harness()
+    const followup = vi.fn()
+    ;(test.agent as unknown as { followup: typeof followup }).followup = followup
+    test.ctx.goals.create(test.agent, { objective: 'existing objective' })
+    const result = await runWithImages(test, ' replacement objective', 1)
+    expect(result.kind).toBe('error')
+    expect(followup).not.toHaveBeenCalled()
   })
 })

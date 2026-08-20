@@ -1,14 +1,16 @@
 /**
  * Serialize harness messages into DeepSeek chat completions. User text is joined; assistant text
  * becomes `content`, tool calls become `tool_calls`, and tool results become separate tool messages.
- * Assistant reasoning is replayed as `reasoning_content` on every reasoning-carrying turn: required
- * on tool-call turns by thinking-mode passback, and the only place a gateway re-encoding the
- * conversation for another vendor can recover a plain turn's thinking signature.
+ * Image-carrying user messages keep ordered text/image parts; tool-result images follow their
+ * string-only tool messages grouped into one separate user message. Assistant reasoning is replayed
+ * as `reasoning_content` on every reasoning-carrying turn: required on tool-call turns by
+ * thinking-mode passback, and the only place a gateway re-encoding the conversation for another
+ * vendor can recover a plain turn's thinking signature.
  * Unknown declaration-merged block types are skipped rather than rejected.
  * @module dsh-llm-deepseek/serialize
  */
 
-import { LlmError } from '@huiliyi37/dsh-llm'
+import { contentHasImage, LlmError, offloadRequestImages } from '@huiliyi37/dsh-llm'
 import type { ContentBlock, GenerateOptions, Message } from '@huiliyi37/dsh-llm'
 import {
   defaultTokenizer,
@@ -17,7 +19,7 @@ import {
   SPARK_PROVIDER,
 } from './spark.ts'
 import type { SparkRequestPolicy } from './spark.ts'
-import type { WireContentPart, WireMessage, WireRequest, WireTool } from './types.ts'
+import type { WireContentImagePart, WireContentPart, WireMessage, WireRequest, WireTool } from './types.ts'
 
 /** Adapter-level request defaults (from plugin config). */
 export interface RequestDefaults {
@@ -73,6 +75,53 @@ function flattenText(blocks: ContentBlock[]): string {
     .join('')
 }
 
+/** Fixed text introducing tool-result images grouped into their following user message. */
+const TOOL_RESULT_IMAGE_TEXT = 'Attached image(s) from tool result:'
+
+/** Reject roles whose DeepSeek history format cannot carry image input. */
+function assertSupportedImageRoles(messages: readonly Message[]): void {
+  for (const message of messages) {
+    if (message.role !== 'user' && contentHasImage(message.content)) {
+      throw new LlmError(
+        `The DeepSeek chat-completions adapter cannot represent image content in a ${message.role} message.`,
+        'UNSUPPORTED_CONTENT',
+      )
+    }
+  }
+}
+
+/** Convert user or nested tool-result blocks into ordered wire parts; image blocks pass their data URL through. */
+function contentParts(blocks: readonly ContentBlock[]): WireContentPart[] {
+  const parts: WireContentPart[] = []
+  for (const block of blocks) {
+    switch (block.type) {
+      case 'text':
+        if (block.text.length > 0) parts.push({ type: 'text', text: block.text })
+        break
+      case 'image':
+        parts.push({ type: 'image_url', image_url: { url: block.dataUrl } })
+        break
+      case 'tool-result':
+        parts.push(...contentParts(block.content))
+        break
+      default:
+        // Other merge-extensible blocks are not DeepSeek user-input vocabulary.
+        break
+    }
+  }
+  return parts
+}
+
+/** Keep text-only user messages on the compact string wire form. */
+function userContent(parts: readonly WireContentPart[]): string | WireContentPart[] {
+  const text: string[] = []
+  for (const part of parts) {
+    if (part.type === 'image_url') return [...parts]
+    text.push(part.text)
+  }
+  return text.join('')
+}
+
 /**
  * Serialize one assistant message (text + reasoning + tool calls).
  * @param message - the harness assistant message.
@@ -126,51 +175,64 @@ function serializeAssistant(message: Message, sparkN?: number): WireMessage {
  * Serialize the conversation. `tool-result` blocks become standalone
  * `{role: 'tool'}` messages; the harness puts each tool result in its own
  * user-role message, so a mixed user message contributes its text first and
- * its tool results as separate wire messages after.
- * @param messages - the harness conversation, in order.
+ * its tool results as separate wire messages after. Tool-result images stay
+ * out of the string-only tool message: consecutive results' images are grouped
+ * into one following user message introduced by {@link TOOL_RESULT_IMAGE_TEXT}.
+ * @param messages - the harness conversation, in order (already offloaded when a bound applies).
  * @param sparkN - spark 截断 N（N<=0 或缺省 = 不截断），仅由 serializeRequest
  *   在 spark route + enabled 时传入；直接调用此函数时保持非 spark 行为。
  * @returns the wire messages; order preserved, each tool result expanded into its own entry.
  */
-export function serializeMessages(messages: Message[], sparkN?: number): WireMessage[] {
+export function serializeMessages(messages: readonly Message[], sparkN?: number): WireMessage[] {
+  assertSupportedImageRoles(messages)
   const wire: WireMessage[] = []
+  let pendingToolImages: WireContentImagePart[] = []
+  const flushToolImages = (): void => {
+    if (pendingToolImages.length === 0) return
+    wire.push({
+      role: 'user',
+      content: [{ type: 'text', text: TOOL_RESULT_IMAGE_TEXT }, ...pendingToolImages],
+    })
+    pendingToolImages = []
+  }
   for (const message of messages) {
     if (message.role === 'system') {
+      flushToolImages()
       wire.push({ role: 'system', content: flattenText(message.content) })
       continue
     }
     if (message.role === 'assistant') {
+      flushToolImages()
       wire.push(serializeAssistant(message, sparkN))
       continue
     }
     // user role: tool results ride in user messages in the harness
     // vocabulary, but DeepSeek wants them as role:'tool' messages.
-    const toolResults = message.content.filter(block => block.type === 'tool-result')
-    const text = flattenText(message.content)
-    const images = message.content.filter(block => block.type === 'image')
-    if (text.length > 0 || images.length > 0 || toolResults.length === 0) {
-      if (images.length > 0) {
-        // 多模态 user 消息：text + image_url parts（OpenAI 兼容，视觉模型接受）。
-        // data URL 在 harness 侧（TUI normalize / vision 桥）已校验，此处透传。
-        const parts: WireContentPart[] = []
-        if (text.length > 0) parts.push({ type: 'text', text })
-        for (const img of images) {
-          parts.push({ type: 'image_url', image_url: { url: img.dataUrl } })
-        }
-        wire.push({ role: 'user', content: parts })
-      } else {
-        wire.push({ role: 'user', content: text })
-      }
+    const regular = message.content.filter(block => block.type !== 'tool-result')
+    const toolResults = message.content.filter((block): block is Extract<ContentBlock, { type: 'tool-result' }> => (
+      block.type === 'tool-result'
+    ))
+    // 多模态 user 消息：text + image_url parts（OpenAI 兼容，视觉模型接受）。
+    // data URL 在 harness 侧（TUI normalize / vision 桥）已校验，此处透传。
+    const content = userContent(contentParts(regular))
+    if (content.length > 0 || toolResults.length === 0) {
+      flushToolImages()
+      wire.push({ role: 'user', content })
     }
     for (const result of toolResults) {
+      const parts = contentParts(result.content)
+      const images = parts.filter((part): part is WireContentImagePart => part.type === 'image_url')
+      const text = parts.filter(part => part.type === 'text').map(part => part.text).join('')
       wire.push({
         role: 'tool',
         tool_call_id: result.toolCallId,
         // Empty tool output still needs SOME content on the wire.
-        content: flattenText(result.content) || '(no output)',
+        content: text || (images.length > 0 ? '(see attached image)' : '(no output)'),
       })
+      pendingToolImages.push(...images)
     }
   }
+  flushToolImages()
   return wire
 }
 
@@ -180,11 +242,15 @@ export function serializeMessages(messages: Message[], sparkN?: number): WireMes
  * provider defaults apply.
  * @param options - the harness request (model, history, system, tools, sampling).
  * @param defaults - adapter-level thinking defaults; undefined fields put nothing on the wire.
+ * @param maxRequestImageBytes - positive bound on accumulated base64 image
+ *   payload; the oldest images become a fixed model-visible placeholder until
+ *   the request fits. Omission preserves every image.
  * @returns the chat-completions request body.
  */
 export function serializeRequest(
   options: GenerateOptions,
   defaults: RequestDefaults = {},
+  maxRequestImageBytes?: number,
 ): WireRequest {
   const messages: WireMessage[] = []
   if (options.system !== undefined) {
@@ -196,7 +262,12 @@ export function serializeRequest(
   const sparkN = options.provider === SPARK_PROVIDER && defaults.spark?.enabled === true
     ? resolveTruncateN(options.model, defaults.spark.truncateN)
     : undefined
-  messages.push(...serializeMessages(options.messages, sparkN))
+  // Role gate before offloading: an image no DeepSeek history role can carry
+  // must fail as itself, never degrade into an offload placeholder.
+  assertSupportedImageRoles(options.messages)
+  // Offload before serializing: replacement is deterministic from durable
+  // message order and data-URL length, and omitted images never reach the wire.
+  messages.push(...serializeMessages(offloadRequestImages(options.messages, maxRequestImageBytes), sparkN))
 
   const tools: WireTool[] | undefined = options.tools?.map(tool => ({
     type: 'function',

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createUserMessage, CallId, CONTEXT_WINDOW_EXCEEDED_CODE, EMPTY_RESPONSE_CODE, createMessage } from '@huiliyi37/dsh-llm'
+import { createUserMessage, CallId, CONTEXT_WINDOW_EXCEEDED_CODE, EMPTY_RESPONSE_CODE, createMessage, LlmError, OFFLOADED_IMAGE_TEXT } from '@huiliyi37/dsh-llm'
 import type { ContentBlock, StreamChunk } from '@huiliyi37/dsh-llm'
 import type { AssistantMessage, AssistantMessageEvent, Usage } from '@earendil-works/pi-ai'
 import { toPiContext } from '../src/context.ts'
@@ -481,7 +481,244 @@ describe('toPiContext', () => {
     ['non-boolean redaction', { ...validReplay, blocks: [{ type: 'reasoning', redacted: 'yes' }] }, 'redacted must be boolean'],
   ])('degrades malformed replay state: %s', (_name, replayState, message) => {
     expectDegraded(replayState, message)
-  })})
+  })
+
+  it('recursively converts nested tool-result text and images', () => {
+    const callId = CallId('nested-call')
+    const context = toPiContext({
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      messages: [createUserMessage({
+        content: [{
+          type: 'tool-result',
+          toolCallId: callId,
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: callId,
+              content: [{ type: 'text', text: 'nested text' }],
+            },
+            {
+              type: 'tool-result',
+              toolCallId: callId,
+              content: [{ type: 'image', dataUrl: 'data:image/png;base64,AQ==' }],
+            },
+          ],
+        }],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    })
+
+    expect(context.messages).toEqual([{
+      role: 'toolResult',
+      toolCallId: 'nested-call',
+      toolName: 'unknown',
+      content: [
+        { type: 'text', text: 'nested text' },
+        { type: 'image', data: 'AQ==', mimeType: 'image/png' },
+      ],
+      isError: false,
+      timestamp: 0,
+    }])
+  })
+
+  it('flattens nested text-only tool results and ignores unknown block types', () => {
+    const callId = CallId('nested-text')
+    expect(toPiContext({
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      messages: [createUserMessage({
+        content: [{
+          type: 'tool-result',
+          toolCallId: callId,
+          content: [
+            { type: 'chart', data: 'ignored' } as unknown as ContentBlock,
+            {
+              type: 'tool-result',
+              toolCallId: callId,
+              content: [{ type: 'text', text: 'nested' }],
+            },
+          ],
+        }],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    })).toMatchObject({
+      messages: [{
+        role: 'toolResult',
+        content: [{ type: 'text', text: 'nested' }],
+      }],
+    })
+  })
+
+  it('replaces the oldest images with placeholders once the request payload bound is exceeded', () => {
+    const callId = CallId('shot-call')
+    // Three data-URL images carry a 4-character base64 payload each (12
+    // total); a bound of 8 forces exactly the oldest one out, including one
+    // nested in a tool result.
+    const context = toPiContext({
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      messages: [
+        createUserMessage({
+          content: [{
+            type: 'tool-result',
+            toolCallId: callId,
+            content: [{ type: 'image', dataUrl: 'data:image/png;base64,AQID' }],
+          }],
+          source: { kind: 'tool', callId },
+        }),
+        createUserMessage({
+          content: [
+            { type: 'image', dataUrl: 'data:image/png;base64,AQID' },
+            { type: 'text', text: 'newer' },
+          ],
+          source: { kind: 'user' },
+        }),
+        createUserMessage({
+          content: [{ type: 'image', dataUrl: 'data:image/png;base64,AQID' }],
+          source: { kind: 'user' },
+        }),
+      ],
+    }, undefined, 8)
+
+    expect(context.messages).toEqual([
+      {
+        role: 'toolResult',
+        toolCallId: 'shot-call',
+        toolName: 'unknown',
+        content: [{ type: 'text', text: OFFLOADED_IMAGE_TEXT }],
+        isError: false,
+        timestamp: 0,
+      },
+      {
+        role: 'user',
+        content: [
+          { type: 'image', data: 'AQID', mimeType: 'image/png' },
+          { type: 'text', text: 'newer' },
+        ],
+        timestamp: 0,
+      },
+      { role: 'user', content: [{ type: 'image', data: 'AQID', mimeType: 'image/png' }], timestamp: 0 },
+    ])
+  })
+
+  it('keeps every image at exactly the payload bound and drops all of them when even the newest cannot fit', () => {
+    const exact = toPiContext({
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      messages: [
+        createUserMessage({
+          content: [{ type: 'image', dataUrl: 'data:image/png;base64,AQID' }],
+          source: { kind: 'user' },
+        }),
+        createUserMessage({
+          content: [{ type: 'image', dataUrl: 'data:image/png;base64,AQID' }],
+          source: { kind: 'user' },
+        }),
+      ],
+    }, undefined, 8)
+    expect(exact.messages).toEqual([
+      { role: 'user', content: [{ type: 'image', data: 'AQID', mimeType: 'image/png' }], timestamp: 0 },
+      { role: 'user', content: [{ type: 'image', data: 'AQID', mimeType: 'image/png' }], timestamp: 0 },
+    ])
+
+    // A single image whose payload alone exceeds the bound unloads too; the
+    // all-text content then collapses to the plain string form, so the
+    // placeholder still reaches the model.
+    const oversized = toPiContext({
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      messages: [createUserMessage({
+        content: [{ type: 'image', dataUrl: `data:image/png;base64,${'A'.repeat(300)}` }],
+        source: { kind: 'user' },
+      })],
+    }, undefined, 8)
+    expect(oversized.messages).toEqual([
+      { role: 'user', content: OFFLOADED_IMAGE_TEXT, timestamp: 0 },
+    ])
+  })
+
+  it('offloads repeated image-block occurrences by position rather than shared object identity', () => {
+    const shared: ContentBlock = { type: 'image', dataUrl: 'data:image/png;base64,AQID' }
+    const aliased = toPiContext({
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      messages: [createUserMessage({ content: [shared, shared], source: { kind: 'user' } })],
+    }, undefined, 4)
+    const replayed = toPiContext({
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      messages: [createUserMessage({
+        content: [
+          { type: 'image', dataUrl: 'data:image/png;base64,AQID' },
+          { type: 'image', dataUrl: 'data:image/png;base64,AQID' },
+        ],
+        source: { kind: 'user' },
+      })],
+    }, undefined, 4)
+
+    const expected = [{
+      role: 'user',
+      content: [
+        { type: 'text', text: OFFLOADED_IMAGE_TEXT },
+        { type: 'image', data: 'AQID', mimeType: 'image/png' },
+      ],
+      timestamp: 0,
+    }]
+    expect(aliased.messages).toEqual(expected)
+    expect(replayed.messages).toEqual(expected)
+  })
+
+  it.each(['system', 'assistant'] as const)('rejects an image in an in-history %s message', (role) => {
+    const image: ContentBlock[] = [{ type: 'image', dataUrl: 'data:image/png;base64,AQID' }]
+    // A bound of 1 would offload the image, but the role check fires first.
+    const convert = () => toPiContext({
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      messages: [role === 'assistant'
+        ? createMessage({
+          role,
+          content: image,
+          source: { kind: 'model', provider: 'deepseek', model: 'deepseek-v4-flash' },
+        })
+        : createMessage({ role, content: image, source: { kind: 'plugin', plugin: 'test' } })],
+    }, undefined, 1)
+
+    let caught: unknown
+    try {
+      convert()
+    } catch (error) {
+      caught = error
+    }
+    expect(caught).toBeInstanceOf(LlmError)
+    expect(caught).toMatchObject({
+      code: 'UNSUPPORTED_CONTENT',
+      message: `pi-ai cannot represent an image in an in-history ${role} message`,
+    })
+  })
+
+  it('prefers an image block mime over the data-URL header', () => {
+    const context = toPiContext({
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      messages: [createUserMessage({
+        content: [
+          { type: 'image', dataUrl: 'data:image/png;base64,AQID', mime: 'image/jpeg' },
+          { type: 'image', dataUrl: 'data:image/webp;base64,AQID' },
+        ],
+        source: { kind: 'user' },
+      })],
+    })
+    expect(context.messages).toEqual([{
+      role: 'user',
+      content: [
+        { type: 'image', data: 'AQID', mimeType: 'image/jpeg' },
+        { type: 'image', data: 'AQID', mimeType: 'image/webp' },
+      ],
+      timestamp: 0,
+    }])
+  })
+})
 
 describe('toStreamChunks', () => {
   const partialWithToolCall = assistant({
@@ -674,6 +911,16 @@ describe('mapStopReason / mapUsage', () => {
       stopReason: 'error',
       errorMessage: 'HTTP 400: invalid input: temperature exceeds maximum allowed value',
     }))).toMatchObject({ kind: 'error', failure: { code: 'INVALID_REQUEST' } })
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: 'HTTP 413: Payload Too Large' })))
+      .toMatchObject({ kind: 'error', failure: { code: 'INVALID_REQUEST' } })
+    expect(mapStopReason(assistant({
+      stopReason: 'error',
+      errorMessage: 'Failed to buffer the request body: length limit exceeded',
+    }))).toMatchObject({ kind: 'error', failure: { code: 'INVALID_REQUEST' } })
+    expect(mapStopReason(assistant({
+      stopReason: 'error',
+      errorMessage: 'vector length limit exceeded',
+    }))).toMatchObject({ kind: 'error', failure: { code: 'PI_AI_ERROR' } })
   })
 
   it.each([

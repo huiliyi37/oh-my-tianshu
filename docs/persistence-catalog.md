@@ -574,7 +574,7 @@ Source: [`packages/interaction/permission/src/index.ts:50`](../packages/interact
 'plan/file': { path: string; heading: string }
 ```
 
-Source: [`packages/plan/plan-mode/src/index.ts:72`](../packages/plan/plan-mode/src/index.ts)
+Source: [`packages/plan/plan-mode/src/index.ts:73`](../packages/plan/plan-mode/src/index.ts)
 
 #### `plan/mode` — log-only
 
@@ -587,7 +587,7 @@ Source: [`packages/plan/plan-mode/src/index.ts:72`](../packages/plan/plan-mode/s
 'plan/mode': { active: boolean }
 ```
 
-Source: [`packages/plan/plan-mode/src/index.ts:64`](../packages/plan/plan-mode/src/index.ts)
+Source: [`packages/plan/plan-mode/src/index.ts:65`](../packages/plan/plan-mode/src/index.ts)
 
 ### `request/*`
 

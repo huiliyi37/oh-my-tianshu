@@ -45,6 +45,7 @@ import { dshHomePath } from '@huiliyi37/dsh-paths'
 import { UserInteractionError } from '@huiliyi37/dsh-user-interaction'
 // Type-only edge: resolves `ctx.commands` for the optional command child.
 import type {} from '@huiliyi37/dsh-commands'
+import type { CommandId } from '@huiliyi37/dsh-commands/brand'
 // Type-only: resolves ctx.sessionProjections for the optional unit child.
 import type {} from '@huiliyi37/dsh-session-projection'
 import type { PlanProjection } from './types.ts'
@@ -227,14 +228,17 @@ export function foldPlanMode(events: readonly SessionEvent[], end = events.lengt
 }
 
 /**
- * Projection unit state: the logged mode plus the latest logged `/plan`
- * selection (`command/run`) not yet resolved by a `plan/mode` commit. Plain
- * JSON (persisted-cache precondition).
+ * Projection unit state: the logged mode, the latest successful `/plan`
+ * selection not yet resolved by a `plan/mode` commit, and an execution whose
+ * paired `command/done` has not settled. Plain JSON (persisted-cache
+ * precondition).
  */
 interface PlanUnitState {
   active: boolean
   /** The selection's target mode; null when no selection is outstanding. */
   wanted: boolean | null
+  /** The latest plan command awaiting its paired settlement. */
+  running: { commandId: CommandId; wanted: boolean } | null
 }
 
 /** Wire payload schema of the `plan` projection. */
@@ -340,11 +344,11 @@ export class PlanModeService extends Service {
       },
     })
 
-    // The plan projection unit (session-projection RFC): a pure double-event
-    // fold serving clients the whole {active, pending} value. `command/run`
-    // records the user's logged /plan selection (the handler calls `set()`
-    // before any failing path, so log and run-plane cannot fork); `plan/mode`
-    // is the boundary commit that resolves it. Pending is thereby a pure
+    // The plan projection unit (session-projection RFC): a pure event fold
+    // serving clients the whole {active, pending} value. `command/run`
+    // records the user's logged /plan selection, its paired `command/done`
+    // keeps only successful selections, and `plan/mode` records that
+    // selection and clears it. Pending is thereby a pure
     // replay quantity: host restarts, other tabs, and cold reads all recover
     // it from the log alone. The unit child activates only when a projection
     // registry is composed (headless assemblies stay unaffected).
@@ -352,23 +356,29 @@ export class PlanModeService extends Service {
       projectionCtx.sessionProjections.register<'plan', PlanUnitState>({
         key: 'plan',
         schema: planProjectionSchema,
-        init: () => ({ active: false, wanted: null }),
+        init: () => ({ active: false, wanted: null, running: null }),
         apply: (state, event) => {
           if (event.type === 'command/run' && event.data.name === 'plan') {
             if (event.data.args === undefined) return state
             const wanted = event.data.args.trim() !== 'off'
-            return wanted !== state.wanted ? { active: state.active, wanted } : state
+            return { ...state, running: { commandId: event.data.commandId, wanted } }
+          }
+          if (event.type === 'command/done' && event.data.commandId === state.running?.commandId) {
+            const wanted = event.data.kind === 'success' && state.running.wanted !== state.active
+              ? state.running.wanted
+              : null
+            return { ...state, wanted, running: null }
           }
           if (event.type === 'plan/mode') {
-            return { active: event.data.active, wanted: null }
+            return { ...state, active: event.data.active, wanted: null }
           }
           return state
         },
-        view: state => ({
-          active: state.active,
-          pending: state.wanted !== null && state.wanted !== state.active,
-        }),
-        stateVersion: 1,
+        view: (state) => {
+          const wanted = state.running?.wanted ?? state.wanted
+          return { active: state.active, pending: wanted !== null && wanted !== state.active }
+        },
+        stateVersion: 2,
       })
     })
 
@@ -377,9 +387,12 @@ export class PlanModeService extends Service {
       commandCtx.commands.register({
         name: 'plan',
         description: 'Enter or leave plan mode',
-        input: { hint: '[off|message]' },
-        handler: ({ agent, rawInput }) => {
+        input: { hint: '[off|message]', images: true },
+        handler: ({ agent, rawInput, attachments }) => {
           const message = rawInput.trim()
+          if (message === 'off' && attachments.length > 0) {
+            return { kind: 'error', text: 'Image attachments cannot accompany /plan off.' }
+          }
           if (message === 'off') {
             switch (this.set(agent, false)) {
               case 'committed':
@@ -397,7 +410,15 @@ export class PlanModeService extends Service {
             }
           }
           const outcome = this.set(agent, true)
-          if (message !== '') agent.steer(createUserMessage({ content: [{ type: 'text', text: message }], source: { kind: 'user' } }))
+          if (message !== '' || attachments.length > 0) {
+            agent.steer(createUserMessage({
+              content: [
+                ...attachments,
+                ...message === '' ? [] : [{ type: 'text' as const, text: message }],
+              ],
+              source: { kind: 'user' },
+            }))
+          }
           return {
             kind: 'success',
             text: outcome === 'committed'

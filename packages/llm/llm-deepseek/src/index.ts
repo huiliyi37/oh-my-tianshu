@@ -21,6 +21,7 @@ import { deepEqualJson, installSettingsSection, settingsNamespace } from '@huili
 import { MAX_TIMER_DELAY_MS } from '@huiliyi37/dsh-timeout'
 import {
   DEFAULT_CONTEXT_WINDOW,
+  DEFAULT_MAX_REQUEST_IMAGE_BYTES,
   DEFAULT_MAX_TOKENS,
   DEFAULT_STREAM_IDLE_TIMEOUT_MS,
   DeepSeekAdapter,
@@ -31,6 +32,7 @@ import type { DeepSeekCatalogModel, DeepSeekConnectionOptions } from './adapter.
 
 export {
   DEFAULT_CONTEXT_WINDOW,
+  DEFAULT_MAX_REQUEST_IMAGE_BYTES,
   DEFAULT_MAX_TOKENS,
   DEFAULT_STREAM_IDLE_TIMEOUT_MS,
   DeepSeekAdapter,
@@ -87,6 +89,8 @@ export interface Config {
   models?: DeepSeekCatalogModel[]
   /** Maximum provider idle time while one stream read is outstanding (default five minutes). */
   streamIdleTimeoutMs?: number
+  /** Maximum accumulated base64 image payload per request (default 20 MiB). */
+  maxRequestImageBytes?: number
   /** Provider-owned model-request retry policy; omission uses normal defaults. */
   retryPolicy?: RetryPolicyConfig
   /**
@@ -125,6 +129,7 @@ export const Config: z<Config> = z.object({
   defaultContextWindow: z.number().step(1).min(1).default(DEFAULT_CONTEXT_WINDOW),
   models: z.array(catalogModel).default(DEFAULT_MODELS),
   streamIdleTimeoutMs: z.number().min(Number.MIN_VALUE).max(MAX_TIMER_DELAY_MS).default(DEFAULT_STREAM_IDLE_TIMEOUT_MS),
+  maxRequestImageBytes: z.number().step(1).min(1).default(DEFAULT_MAX_REQUEST_IMAGE_BYTES),
   retryPolicy: RetryPolicySchema,
   spark: sparkPolicy,
 })
@@ -210,6 +215,10 @@ export function resolveAdapterOptions(config: Config, environment?: EnvironmentS
       `llm-deepseek: streamIdleTimeoutMs must be a positive finite number no greater than ${MAX_TIMER_DELAY_MS}`,
     )
   }
+  const maxRequestImageBytes = config.maxRequestImageBytes ?? DEFAULT_MAX_REQUEST_IMAGE_BYTES
+  if (!Number.isSafeInteger(maxRequestImageBytes) || maxRequestImageBytes <= 0) {
+    throw new Error('llm-deepseek: maxRequestImageBytes must be a positive safe integer')
+  }
   // spark 档位归一化 + 校验（fail loud at load / 首个坏 settings 快照）。
   // as Partial：schemastery 已归一化 yml 面（字段必填），但程序化构造可绕过
   // 归一化传入缺字段的策略——显式承认类型外输入后统一补缺省再校验。
@@ -240,6 +249,7 @@ export function resolveAdapterOptions(config: Config, environment?: EnvironmentS
     defaultContextWindow: config.defaultContextWindow ?? DEFAULT_CONTEXT_WINDOW,
     models: resolveModels(config.models),
     streamIdleTimeoutMs,
+    maxRequestImageBytes,
     retryPolicy: resolveRetryPolicy(config.retryPolicy, 'llm-deepseek: retryPolicy'),
   }
 }

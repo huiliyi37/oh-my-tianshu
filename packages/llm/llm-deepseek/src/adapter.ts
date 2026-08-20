@@ -8,7 +8,7 @@
  * @module dsh-llm-deepseek/adapter
  */
 
-import { attributionHeaders, CONTEXT_WINDOW_EXCEEDED_CODE, isContextWindowExceededError, isQuotaExceededError, LlmAdapter, LlmError, ProviderRequestId, QUOTA_EXCEEDED_CODE, ReasoningEffortId } from '@huiliyi37/dsh-llm'
+import { attributionHeaders, contentHasImage, CONTEXT_WINDOW_EXCEEDED_CODE, isContextWindowExceededError, isQuotaExceededError, LlmAdapter, LlmError, ProviderRequestId, QUOTA_EXCEEDED_CODE, ReasoningEffortId } from '@huiliyi37/dsh-llm'
 import type {
   GenerateOptions,
   LlmModelInfo,
@@ -68,6 +68,8 @@ export interface DeepSeekConnectionOptions {
   models: readonly DeepSeekCatalogModel[]
   /** Maximum provider idle time while one stream read is outstanding. */
   streamIdleTimeoutMs: number
+  /** Maximum accumulated base64 image payload in one request. */
+  maxRequestImageBytes: number
   /** Provider-owned model-request retry policy, already resolved. */
   retryPolicy: ResolvedRetryPolicy
 }
@@ -91,6 +93,8 @@ export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 300_000
 export const DEFAULT_CONTEXT_WINDOW = 1_000_000
 /** Default per-request output-token cap. */
 export const DEFAULT_MAX_TOKENS = 256_000
+/** Default bound on accumulated base64 image payload per request. */
+export const DEFAULT_MAX_REQUEST_IMAGE_BYTES = 20 * 1024 * 1024
 const STREAM_IDLE_TIMEOUT_CODE = 'LLM_STREAM_IDLE_TIMEOUT'
 const OFF_REASONING_EFFORT = ReasoningEffortId('off')
 const HIGH_REASONING_EFFORT = ReasoningEffortId('high')
@@ -137,6 +141,9 @@ function requestId(headers: Headers): ReturnType<typeof ProviderRequestId> | und
  */
 export function httpErrorCode(status: number, error?: WireError['error']): string {
   if (status === 401 || status === 403) return 'AUTH'
+  // A rejected request body (gateway or provider size cap): resending the same
+  // request cannot succeed, so it is invalid, not transient.
+  if (status === 413) return 'INVALID_REQUEST'
   const detail = [error?.code, error?.type, error?.message].filter(Boolean).join(' ')
   if (isQuotaExceededError(detail)) return QUOTA_EXCEEDED_CODE
   if (status === 429) return 'RATE_LIMIT'
@@ -214,6 +221,18 @@ export class DeepSeekAdapter extends LlmAdapter {
     // The key resolves *from this snapshot*, so an endpoint and the secret
     // sent to it can never come from different configuration generations.
     const connection = this.config.options()
+    // Capability gate before credential or network I/O: an uncatalogued or
+    // text-only route rejects image input instead of failing at the provider
+    // on every later turn of the session.
+    if (options.messages.some(message => contentHasImage(message.content))) {
+      const model = connection.models.find(entry => entry.id === options.model)
+      if (model?.supportsVision !== true) {
+        throw new LlmError(
+          `DeepSeek model "${options.model}" does not accept image input.`,
+          'UNSUPPORTED_CONTENT',
+        )
+      }
+    }
     const apiKey = await this.config.resolveApiKey(connection)
     const consumer = new AbortController()
     const upstream = options.signal === undefined
@@ -269,7 +288,7 @@ export class DeepSeekAdapter extends LlmAdapter {
     apiKey: string,
     onComment: () => void,
   ): AsyncIterable<StreamChunk> {
-    const body = serializeRequest(options, connection.defaults)
+    const body = serializeRequest(options, connection.defaults, connection.maxRequestImageBytes)
     // Prepared outside the try so the TRANSPORT label below covers exactly the
     // transport boundary, never a serialization failure.
     const payload = JSON.stringify(body)

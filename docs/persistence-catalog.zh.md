@@ -576,7 +576,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 'plan/file': { path: string; heading: string }
 ```
 
-来源：[`packages/plan/plan-mode/src/index.ts:72`](../packages/plan/plan-mode/src/index.ts)
+来源：[`packages/plan/plan-mode/src/index.ts:73`](../packages/plan/plan-mode/src/index.ts)
 
 #### `plan/mode` — log-only
 
@@ -589,7 +589,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 'plan/mode': { active: boolean }
 ```
 
-来源：[`packages/plan/plan-mode/src/index.ts:64`](../packages/plan/plan-mode/src/index.ts)
+来源：[`packages/plan/plan-mode/src/index.ts:65`](../packages/plan/plan-mode/src/index.ts)
 
 ### `request/*`
 

@@ -301,7 +301,7 @@ export class PiAiAdapter extends LlmAdapter {
       const onReplayDegrade = (reason: string): void => {
         this.config.onReplayDegrade?.({ provider: options.provider, model: options.model, reason })
       }
-      const events = snapshot.models.streamSimple(model, toPiContext(options, onReplayDegrade), {
+      const events = snapshot.models.streamSimple(model, toPiContext(options, onReplayDegrade, profile.maxRequestImageBytes), {
         ...profileOptions(profile, reasoning, apiKey),
         ...options.temperature === undefined ? {} : { temperature: options.temperature },
         ...options.maxTokens === undefined ? {} : { maxTokens: options.maxTokens },

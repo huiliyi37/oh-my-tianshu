@@ -172,6 +172,126 @@ describe('serializeMessages', () => {
     ])
   })
 
+  it('keeps tool content textual and groups consecutive tool-result images afterward', () => {
+    const png = 'data:image/png;base64,AQID'
+    const jpeg = 'data:image/jpeg;base64,AQID'
+    const wire = serializeMessages([
+      createUserMessage({
+        content: [{
+          type: 'tool-result',
+          toolCallId: CallId('first'),
+          content: [{ type: 'image', dataUrl: png }],
+        }],
+        source: { kind: 'plugin', plugin: 'test' },
+      }),
+      createUserMessage({
+        content: [{
+          type: 'tool-result',
+          toolCallId: CallId('second'),
+          content: [
+            { type: 'text', text: 'caption' },
+            { type: 'image', dataUrl: jpeg },
+          ],
+        }],
+        source: { kind: 'plugin', plugin: 'test' },
+      }),
+    ])
+    expect(wire).toEqual([
+      { role: 'tool', tool_call_id: 'first', content: '(see attached image)' },
+      { role: 'tool', tool_call_id: 'second', content: 'caption' },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Attached image(s) from tool result:' },
+          { type: 'image_url', image_url: { url: png } },
+          { type: 'image_url', image_url: { url: jpeg } },
+        ],
+      },
+    ])
+  })
+
+  it('does not emit an empty user message for ignored content beside a tool result', () => {
+    const wire = serializeMessages([createUserMessage({
+      content: [
+        { type: 'text', text: '' },
+        { type: 'chart', data: 'ignored' } as unknown as ContentBlock,
+        {
+          type: 'tool-result',
+          toolCallId: CallId('result'),
+          content: [{ type: 'text', text: 'ok' }],
+        },
+      ],
+      source: { kind: 'plugin', plugin: 'test' },
+    })])
+    expect(wire).toEqual([
+      { role: 'tool', tool_call_id: 'result', content: 'ok' },
+    ])
+  })
+
+  it('recursively converts nested tool-result content and preserves the empty fallback', () => {
+    const wire = serializeMessages([createUserMessage({
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: CallId('nested'),
+          content: [{
+            type: 'tool-result',
+            toolCallId: CallId('inner'),
+            content: [{ type: 'text', text: 'inside' }],
+          }],
+        },
+        { type: 'tool-result', toolCallId: CallId('empty'), content: [] },
+      ],
+      source: { kind: 'plugin', plugin: 'test' },
+    })])
+    expect(wire).toEqual([
+      { role: 'tool', tool_call_id: 'nested', content: 'inside' },
+      { role: 'tool', tool_call_id: 'empty', content: '(no output)' },
+    ])
+  })
+
+  it('flushes tool-result images before system and assistant history', () => {
+    const png = 'data:image/png;base64,AQID'
+    const imageResult = (id: string): Message => createUserMessage({
+      content: [{
+        type: 'tool-result',
+        toolCallId: CallId(id),
+        content: [{ type: 'image', dataUrl: png }],
+      }],
+      source: { kind: 'plugin' as const, plugin: 'test' },
+    })
+    const wire = serializeMessages([
+      imageResult('before-system'),
+      createMessage({
+        role: 'system',
+        content: [{ type: 'text', text: 'system history' }],
+        source: { kind: 'plugin', plugin: 'test' },
+      }),
+      imageResult('before-assistant'),
+      createMessage({
+        role: 'assistant',
+        content: [{ type: 'text', text: 'assistant history' }],
+        source: { kind: 'plugin', plugin: 'test' },
+      }),
+    ])
+    expect(wire).toEqual([
+      { role: 'tool', tool_call_id: 'before-system', content: '(see attached image)' },
+      expect.objectContaining({ role: 'user' }),
+      { role: 'system', content: 'system history' },
+      { role: 'tool', tool_call_id: 'before-assistant', content: '(see attached image)' },
+      expect.objectContaining({ role: 'user' }),
+      { role: 'assistant', content: 'assistant history' },
+    ])
+  })
+
+  it.each(['system', 'assistant'] as const)('rejects an image in %s history', (role) => {
+    expect(() => serializeMessages([createMessage({
+      role,
+      content: [{ type: 'image', dataUrl: 'data:image/png;base64,AQID' }],
+      source: { kind: 'plugin', plugin: 'test' },
+    })])).toThrow(expect.objectContaining({ code: 'UNSUPPORTED_CONTENT' }))
+  })
+
   it('skips plugin-added block types (merge-extensible ContentBlockMap)', () => {
     const wire = serializeMessages([
       createUserMessage({
@@ -299,6 +419,35 @@ describe('serializeRequest', () => {
     const wire = serializeRequest(request({ messages: history }), { thinking: 'enabled' })
     expect(wire.thinking).toEqual({ type: 'enabled' })
     expect(wire.reasoning_effort).toBeUndefined()
+  })
+
+  it('offloads the oldest images once the request payload bound is exceeded', () => {
+    const wire = serializeRequest(request({
+      messages: [createUserMessage({
+        content: [
+          { type: 'image', dataUrl: 'data:image/png;base64,AAAA' },
+          { type: 'image', dataUrl: 'data:image/jpeg;base64,AQID' },
+        ],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    }), {}, 4)
+    expect(wire.messages[0]).toMatchObject({
+      role: 'user',
+      content: [
+        { type: 'text', text: expect.stringContaining('older images are omitted first') as string },
+        { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,AQID' } },
+      ],
+    })
+  })
+
+  it('rejects unsupported image history before request offloading can replace it', () => {
+    expect(() => serializeRequest(request({
+      messages: [createMessage({
+        role: 'system',
+        content: [{ type: 'image', dataUrl: `data:image/png;base64,${'A'.repeat(300)}` }],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    }), {}, 1)).toThrow(expect.objectContaining({ code: 'UNSUPPORTED_CONTENT' }))
   })
 
   it('rejects an effort outside the DeepSeek capability', () => {

@@ -221,6 +221,7 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   AgentOptions: 'core.md',
   AgentStatus: 'core.md',
   ContentBlock: 'llm-streaming.md',
+  ImageBlock: 'llm-streaming.md',
   CreateAgentOptions: 'core.md',
   GenerateOptions: 'llm-streaming.md',
   InboxItem: 'core.md',

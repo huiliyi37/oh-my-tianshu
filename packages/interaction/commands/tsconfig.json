@@ -24,6 +24,9 @@
       "path": "../../core/session"
     },
     {
+      "path": "../../llm/llm"
+    },
+    {
       "path": "../../util/brand"
     },
     {

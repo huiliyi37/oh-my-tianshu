@@ -5,6 +5,7 @@
 
 import { Context, Service } from '@huiliyi37/cordis'
 import type { Agent } from '@huiliyi37/dsh-agent'
+import type { ImageBlock } from '@huiliyi37/dsh-llm'
 import { NamedEntries, ScopedLayers } from '@huiliyi37/dsh-scope'
 import type { ScopeKey, ScopeLayer } from '@huiliyi37/dsh-scope'
 import type { Session, SessionEvent, SessionEventMap } from '@huiliyi37/dsh-session'
@@ -17,10 +18,19 @@ export const name = 'commands'
 
 const COMMAND_NAME = /^[a-z][a-z0-9_-]*$/u
 
+/** Shared frozen attachments value for image-free invocations. */
+const NO_ATTACHMENTS: readonly ImageBlock[] = Object.freeze([])
+
 /** Immutable metadata for a command's optional unstructured input. */
 export interface CommandInputDescriptor {
   /** Placeholder shown before the user supplies free-form input. */
   readonly hint: string
+  /**
+   * Whether the command accepts image attachments alongside its free-form
+   * input. An invocation carrying images to a command that does not declare
+   * this flag settles as an error result before the handler runs.
+   */
+  readonly images?: boolean
 }
 
 /** Invocation passed to one registered command handler. */
@@ -31,6 +41,15 @@ export interface CommandInvocation {
   readonly agent: Agent
   /** Exact text following the registered command name, including separator whitespace. */
   readonly rawInput: string
+  /**
+   * Image blocks accompanying this invocation, in submission order; empty
+   * unless the definition declares `input.images`. The payloads are data URLs
+   * already validated at composer intake. The handler owns their
+   * model-visible use — the registry never schedules them itself — and a
+   * handler whose grammar cannot use them in this invocation returns an
+   * error so the dispatching surface retains the originals.
+   */
+  readonly attachments: readonly ImageBlock[]
   /** Cancellation signal owned by the dispatching UI request. */
   readonly signal: AbortSignal
 }
@@ -213,7 +232,13 @@ function normalizeDefinition(definition: CommandDefinition): RegisteredCommand {
     if (rawInput.hint.trim().length === 0) {
       throw new TypeError(`command "${definition.name}" input hint must not be empty`)
     }
-    input = Object.freeze({ hint: rawInput.hint })
+    if ('images' in rawInput && rawInput.images !== undefined && typeof rawInput.images !== 'boolean') {
+      throw new TypeError(`command "${definition.name}" input images flag must be a boolean`)
+    }
+    input = Object.freeze({
+      hint: rawInput.hint,
+      ...'images' in rawInput && rawInput.images === true ? { images: true } : {},
+    })
   }
   const normalized = Object.freeze({
     name: definition.name,
@@ -328,9 +353,16 @@ export class CommandService extends Service {
    * handler-failure path is contained so the handler's own error stays the
    * reported failure.
    *
+   * The `input.images` declaration is enforced here, not in the composer:
+   * images sent to a command that does not declare it settle as a logged
+   * error result before the handler runs. Payloads arrive as data URLs
+   * validated at composer intake, so no further admission step runs here.
+   *
    * @param agent - exact receiving agent.
    * @param line - complete slash-command line.
    * @param signal - cancellation signal owned by the UI request.
+   * @param images - composer images accompanying the line as data-URL image
+   *   blocks, in submission order; empty for a plain invocation.
    * @returns the settled execution (result + lifecycle pairing id), or
    *   `undefined` when syntax or name does not resolve.
    */
@@ -338,6 +370,7 @@ export class CommandService extends Service {
     agent: Agent,
     line: string,
     signal: AbortSignal,
+    images: readonly ImageBlock[] = NO_ATTACHMENTS,
   ): Promise<CommandExecution | undefined> {
     const parsed = parseCommand(line)
     if (parsed === undefined) return undefined
@@ -351,30 +384,45 @@ export class CommandService extends Service {
       ...command.definition.recordInput === false ? {} : { args: parsed.rawInput },
       source: { kind: 'user' },
     })
-    const invocation = Object.freeze({ commandId, agent, rawInput: parsed.rawInput, signal })
+    const settle = (result: CommandResult): CommandExecution => {
+      this.appendLifecycle(agent.session, 'command/done', {
+        commandId, kind: result.kind,
+        ...result.text === undefined ? {} : { text: result.text },
+        ...result.kind === 'success' && result.sourceEventSeq !== undefined
+          ? { sourceEventSeq: result.sourceEventSeq }
+          : {},
+      })
+      return Object.freeze({ commandId, result: Object.freeze(result) })
+    }
+    let attachments = NO_ATTACHMENTS
+    if (images.length > 0) {
+      if (command.definition.input?.images !== true) {
+        return settle({ kind: 'error', text: `/${parsed.name} does not accept image attachments` })
+      }
+      attachments = Object.freeze([...images])
+    }
+    const invocation = Object.freeze({ commandId, agent, rawInput: parsed.rawInput, attachments, signal })
     let result: CommandResult
     try {
       const output = command.definition.handler(invocation)
       result = normalizeResult(parsed.name, await withAbort(Promise.resolve(output), signal))
     } catch (error: unknown) {
-      try {
-        this.appendLifecycle(agent.session, 'command/done', {
-          commandId, kind: 'error',
-          text: error instanceof Error ? error.message : renderThrown(error),
-        })
-      } catch (appendError: unknown) {
-        this.ctx.logger.warn(`command "${parsed.name}": command/done append failed: ${renderThrown(appendError)}`)
-      }
+      this.settleThrown(agent.session, parsed.name, commandId, error)
       throw error
     }
-    this.appendLifecycle(agent.session, 'command/done', {
-      commandId, kind: result.kind,
-      ...result.text === undefined ? {} : { text: result.text },
-      ...result.kind === 'success' && result.sourceEventSeq !== undefined
-        ? { sourceEventSeq: result.sourceEventSeq }
-        : {},
-    })
-    return Object.freeze({ commandId, result })
+    return settle(result)
+  }
+
+  /** Contained `command/done` error append for a thrown handler. */
+  private settleThrown(session: Session, command: string, commandId: CommandId, error: unknown): void {
+    try {
+      this.appendLifecycle(session, 'command/done', {
+        commandId, kind: 'error',
+        text: error instanceof Error ? error.message : renderThrown(error),
+      })
+    } catch (appendError: unknown) {
+      this.ctx.logger.warn(`command "${command}": command/done append failed: ${renderThrown(appendError)}`)
+    }
   }
 
   /** Mint the next pairing id (monotonic; instance-token-prefixed so a resumed log never repeats one). */

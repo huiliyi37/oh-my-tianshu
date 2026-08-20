@@ -3827,7 +3827,7 @@ describe('TuiApp 历史搜索 overlay（C2 项 2）', () => {
 
 describe('runSlash fallback 到 CommandService（A1）', () => {
   /** 带 commands 服务的 ctx 替身：reflect.get 按名字返回。 */
-  async function setupApp(commands: { execute: ReturnType<typeof vi.fn> } | undefined) {
+  async function setupApp(commands: { execute: ReturnType<typeof vi.fn>; find?: ReturnType<typeof vi.fn> } | undefined) {
     const ctx = makeCtx()
     const agent = makeAgent('fallback-1')
     const handle = makeHandle(agent)
@@ -3906,6 +3906,49 @@ describe('runSlash fallback 到 CommandService（A1）', () => {
     expect(execute).not.toHaveBeenCalled()
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('未知命令')
+    await app.dispose()
+  })
+
+  it('slash 提交携带图片 → ImageBlock 信封透传，成功后清空输入框图片', async () => {
+    const execute = vi.fn().mockResolvedValue({ result: { kind: 'success', text: 'ok' } })
+    // /plan 仅由插件注册（内置表无）：facet.find 命中使路径谓词不误判为文件路径。
+    const find = vi.fn((_: unknown, name: string) => (name === 'plan' ? { name: 'plan' } : undefined))
+    const { app, agent } = await setupApp({ execute, find })
+    const clearImages = vi.spyOn(
+      (app as unknown as { inputLine: { clearImages(): void } }).inputLine, 'clearImages',
+    )
+    app.handleSubmit('/plan 先起草迁移方案', ['data:image/png;base64,AAAA'])
+    await flush()
+    expect(execute).toHaveBeenCalledTimes(1)
+    expect(execute.mock.calls[0]![0]).toBe(agent)
+    expect(execute.mock.calls[0]![1]).toBe('/plan 先起草迁移方案')
+    expect(execute.mock.calls[0]![2]).toBeInstanceOf(AbortSignal)
+    expect(execute.mock.calls[0]![3]).toEqual([{ type: 'image', dataUrl: 'data:image/png;base64,AAAA' }])
+    expect(clearImages).toHaveBeenCalledTimes(1)
+    await app.dispose()
+  })
+
+  it('execute 返回 error → 保留输入框图片供修正重发', async () => {
+    const execute = vi.fn().mockResolvedValue({ result: { kind: 'error', text: 'Image attachments cannot accompany /plan off.' } })
+    const find = vi.fn((_: unknown, name: string) => (name === 'plan' ? { name: 'plan' } : undefined))
+    const { app } = await setupApp({ execute, find })
+    const clearImages = vi.spyOn(
+      (app as unknown as { inputLine: { clearImages(): void } }).inputLine, 'clearImages',
+    )
+    app.handleSubmit('/plan off', ['data:image/png;base64,AAAA'])
+    await flush()
+    expect(execute).toHaveBeenCalledTimes(1)
+    expect(clearImages).not.toHaveBeenCalled()
+    await app.dispose()
+  })
+
+  it('slash 提交无图片 → execute 第 4 参为 undefined', async () => {
+    const execute = vi.fn().mockResolvedValue({ result: { kind: 'success', text: 'ok' } })
+    const { app } = await setupApp({ execute })
+    app.handleSubmit('/st')
+    await flush()
+    expect(execute).toHaveBeenCalledTimes(1)
+    expect(execute.mock.calls[0]![3]).toBeUndefined()
     await app.dispose()
   })
 })

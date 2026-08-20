@@ -42,6 +42,14 @@ function adapterOf(config: Partial<LlmDeepSeek.Config> & { apiKey?: string } = {
   })
 }
 
+/** Drain one adapter stream to settlement. */
+async function drain(stream: AsyncIterable<unknown>): Promise<void> {
+  for await (const _chunk of stream) { /* drain */ }
+}
+
+/** A 3-byte PNG data URL, the smallest payload the image path can carry. */
+const IMAGE_DATA_URL = 'data:image/png;base64,AQID'
+
 describe('DeepSeekAdapter against a mock server', () => {
   it('streams a text generation end to end through the assembler', async () => {
     const server = await mockServer([{ kind: 'sse', events: textEvents }])
@@ -73,6 +81,85 @@ describe('DeepSeekAdapter against a mock server', () => {
     expect(server.headers[0]).not.toHaveProperty('x-openrouter-title')
     expect(server.headers[0]).not.toHaveProperty('x-openrouter-categories')
     expect(server.headers[0]).not.toHaveProperty('x-tianshu-harness-compact')
+  })
+
+  it('sends user images as data-URL image_url parts for a vision-declared model', async () => {
+    const server = await mockServer([{ kind: 'sse', events: textEvents }])
+    const adapter = adapterOf({
+      baseURL: server.url,
+      models: [{ id: 'deepseek-v4-flash-vision-exp', supportsVision: true }],
+    })
+
+    await drain(adapter.stream({
+      provider: 'deepseek-official',
+      model: 'deepseek-v4-flash-vision-exp',
+      messages: [createUserMessage({
+        content: [
+          { type: 'text', text: 'describe ' },
+          { type: 'image', dataUrl: IMAGE_DATA_URL },
+        ],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    }))
+
+    expect(server.requests[0]).toMatchObject({
+      model: 'deepseek-v4-flash-vision-exp',
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: 'describe ' },
+          { type: 'image_url', image_url: { url: IMAGE_DATA_URL } },
+        ],
+      }],
+    })
+  })
+
+  it.each(['deepseek-v4-flash', 'unlisted-pass-through'])(
+    'rejects image input for text-only model %s before credentials or fetch',
+    async (model) => {
+      const server = await mockServer([])
+      const resolveApiKey = vi.fn(() => Promise.resolve('k'))
+      const adapter = new DeepSeekAdapter({
+        options: () => resolveAdapterOptions({ baseURL: server.url }),
+        resolveApiKey,
+      })
+
+      await expect(drain(adapter.stream({
+        provider: 'deepseek-official',
+        model,
+        messages: [createUserMessage({
+          content: [{ type: 'image', dataUrl: IMAGE_DATA_URL }],
+          source: { kind: 'plugin', plugin: 'test' },
+        })],
+      }))).rejects.toMatchObject({ code: 'UNSUPPORTED_CONTENT' })
+      expect(resolveApiKey).not.toHaveBeenCalled()
+      expect(server.requests).toHaveLength(0)
+    },
+  )
+
+  it('offloads the oldest images once the configured request image bound is exceeded', async () => {
+    const server = await mockServer([{ kind: 'sse', events: textEvents }])
+    const adapter = adapterOf({
+      baseURL: server.url,
+      maxRequestImageBytes: 4,
+      models: [{ id: 'deepseek-v4-flash-vision-exp', supportsVision: true }],
+    })
+
+    await drain(adapter.stream({
+      provider: 'deepseek-official',
+      model: 'deepseek-v4-flash-vision-exp',
+      messages: [createUserMessage({
+        content: [
+          { type: 'image', dataUrl: 'data:image/png;base64,AAAA' },
+          { type: 'image', dataUrl: IMAGE_DATA_URL },
+        ],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    }))
+
+    const content = (server.requests[0] as { messages: Array<{ content: unknown }> }).messages[0]?.content
+    expect(JSON.stringify(content)).toContain('[image omitted to keep the request within its image limit')
+    expect(JSON.stringify(content).match(/"type":"image_url"/g)).toHaveLength(1)
   })
 
   it('streams raw chunks through ctx.llm.stream', async () => {
@@ -363,7 +450,7 @@ describe('DeepSeekAdapter against a mock server', () => {
       .toBe(CONTEXT_WINDOW_EXCEEDED_CODE)
     expect(httpErrorCode(400, { message: 'invalid input: temperature exceeds maximum allowed value' }))
       .toBe('INVALID_REQUEST')
-    expect(httpErrorCode(413, { code: 'context_length_exceeded' })).toBe('HTTP_413')
+    expect(httpErrorCode(413, { code: 'context_length_exceeded' })).toBe('INVALID_REQUEST')
   })
 
   it('distinguishes terminal quota exhaustion from transient HTTP 429 throttling', () => {
@@ -834,6 +921,22 @@ describe('plugin registration and config', () => {
     expect(() => resolveAdapterOptions({ models: [{ id: 'bad-cap', maxTokens }] }))
       .toThrow(/maxTokens must be a positive integer/)
   })
+
+  it.each([0, 1.5, Number.MAX_SAFE_INTEGER + 1])(
+    'rejects invalid request image bound %s',
+    async (maxRequestImageBytes) => {
+      expect(() => resolveAdapterOptions({ maxRequestImageBytes }))
+        .toThrow(/maxRequestImageBytes must be a positive safe integer/)
+
+      const ctx = new Context()
+      await ctx.plugin(LlmService)
+      await expect(ctx.plugin(LlmDeepSeek, {
+        baseURL: 'http://127.0.0.1:1',
+        maxRequestImageBytes,
+      })).rejects.toThrow(/maxRequestImageBytes/)
+      expect(ctx.llm.listProviders()).toEqual([])
+    },
+  )
 
   it('prefers a model\'s own output cap over the profile default', async () => {
     // The profile default stays what an unlisted or uncapped model resolves

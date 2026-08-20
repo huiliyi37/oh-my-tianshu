@@ -5,6 +5,7 @@ import type { Scope } from '@huiliyi37/dsh-scope'
 import type { Agent } from '@huiliyi37/dsh-agent'
 import SessionStore, { SessionId } from '@huiliyi37/dsh-session'
 import CommandService, { parseCommand, type CommandDefinition } from '@huiliyi37/dsh-commands'
+import type { ImageBlock } from '@huiliyi37/dsh-llm'
 
 function command(name: string, text = `ran:${name}`): CommandDefinition {
   return {
@@ -461,5 +462,71 @@ describe('CommandService', () => {
       handler: () => output as never,
     })
     await expect(ctx.commands.execute(agent, '/broken', new AbortController().signal)).rejects.toThrow(expected)
+  })
+})
+
+describe('image attachments', () => {
+  const IMAGE: ImageBlock = { type: 'image', dataUrl: 'data:image/png;base64,AAAA' }
+
+  function accepting(handler: CommandDefinition['handler']): CommandDefinition {
+    return {
+      name: 'vision',
+      description: 'accepts images',
+      input: { hint: '<objective>', images: true },
+      handler,
+    }
+  }
+
+  it('rejects a boolean-typed images flag violation at registration', async () => {
+    const ctx = await mount()
+    expect(() => ctx.commands.register({
+      ...command('flag-type'),
+      input: { hint: 'x', images: 'yes' },
+    } as unknown as CommandDefinition)).toThrow('command "flag-type" input images flag must be a boolean')
+  })
+
+  it('lists images acceptance on the descriptor and omits a false flag', async () => {
+    const ctx = await mount()
+    const { agent } = await mintAgentScope(ctx, 'a')
+    ctx.commands.register(accepting(() => ({ kind: 'success' })))
+    ctx.commands.register({ ...command('plain-input'), input: { hint: 'x', images: false } })
+    const byName = new Map(ctx.commands.list(agent).map(descriptor => [descriptor.name, descriptor]))
+    expect(byName.get('vision')?.input).toEqual({ hint: '<objective>', images: true })
+    expect(byName.get('plain-input')?.input).toEqual({ hint: 'x' })
+  })
+
+  it('settles images sent to a non-declaring command as a logged error before the handler', async () => {
+    const ctx = await mount()
+    const { agent } = await mintAgentScope(ctx, 'a')
+    const handler = vi.fn(() => ({ kind: 'success' as const }))
+    ctx.commands.register({ ...command('deploy'), handler })
+    const execution = await ctx.commands.execute(
+      agent, '/deploy now', new AbortController().signal, [IMAGE])
+    expect(execution?.result).toEqual({ kind: 'error', text: '/deploy does not accept image attachments' })
+    expect(handler).not.toHaveBeenCalled()
+    expect(lifecycleOf(agent)).toMatchObject([
+      { type: 'command/run', data: { name: 'deploy' } },
+      { type: 'command/done', data: { kind: 'error', text: '/deploy does not accept image attachments' } },
+    ])
+  })
+
+  it('hands the handler frozen ordered image blocks; plain invocations stay empty', async () => {
+    const ctx = await mount()
+    const { agent } = await mintAgentScope(ctx, 'a')
+    const seen = vi.fn((invocation: { attachments: readonly unknown[] }) => {
+      expect(Object.isFrozen(invocation.attachments)).toBe(true)
+      return { kind: 'success' as const }
+    })
+    ctx.commands.register(accepting(seen))
+    await ctx.commands.execute(agent, '/vision x', new AbortController().signal, [
+      { type: 'image', dataUrl: 'data:image/png;base64,AAAA' },
+      { type: 'image', dataUrl: 'data:image/png;base64,BBBB' },
+    ])
+    const invocation = seen.mock.calls[0]?.[0] as { attachments: readonly ImageBlock[] }
+    expect(invocation.attachments.map(block => block.dataUrl)).toEqual([
+      'data:image/png;base64,AAAA', 'data:image/png;base64,BBBB',
+    ])
+    await ctx.commands.execute(agent, '/vision y', new AbortController().signal)
+    expect((seen.mock.calls[1]?.[0] as { attachments: readonly unknown[] }).attachments).toEqual([])
   })
 })

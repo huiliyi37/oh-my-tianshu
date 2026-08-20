@@ -28,7 +28,7 @@ import { fileURLToPath } from 'node:url'
 import type { ReadStream, WriteStream } from 'node:tty'
 import type { Context } from '@huiliyi37/cordis'
 import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
-import type { CallId, ReasoningEffortId, TokenUsage } from '@huiliyi37/dsh-llm'
+import type { CallId, ImageBlock, ReasoningEffortId, TokenUsage } from '@huiliyi37/dsh-llm'
 import type { IntentBridgeService } from '@huiliyi37/dsh-intent-bridge' // 'intent-bridge/handoff' event + ctx.intentBridge declaration merge
 import { installModelSelection, type Agent, type AgentHandle, type ModelSelection, type ModelSelectionRef } from '@huiliyi37/dsh-agent'
 // 空类型导入引入 Context 上 agentDefaultModel 服务的声明合并（headless 同款）。
@@ -269,13 +269,19 @@ import { zenPhaseLabel } from '../preset-surface.js'
 /**
  * A1：CommandService 的最小消费面（不引入 dsh-commands 依赖）。
  * execute 的返回形状对齐 CommandExecution：undefined = 命令未知名。
+ * images 为 composer 图片（ImageBlock dataUrl 形态），随命令信封透传；
+ * 未声明 input.images 的命令由 executor 拒绝为 error result。
+ * find 供 isKnownCommand 把插件注册的命令（/goal、/plan）与单段文件路径
+ * 区分开——缺省时退化为仅内置注册表判定（A1 之前的旧行为）。
  */
 interface CommandServiceFacet {
   execute(
     agent: unknown,
     line: string,
     signal: AbortSignal,
+    images?: readonly ImageBlock[],
   ): Promise<{ result: { kind: 'success' | 'error'; text?: string } } | undefined>
+  find?(agent: unknown, name: string): unknown
 }
 
 /** P2：memory 服务最小消费面（不引入 dsh-memory 依赖；reflect 动态获取）。 */
@@ -1470,9 +1476,19 @@ export class TuiApp {
     if (next !== undefined && next.id !== active) void this.switchSession(SessionId(next.id))
   }
 
-  /** slash 注册表当前命令名集合（现取——/lsp 等动态注册命令不误判为路径）。 */
+  /**
+   * slash 注册表当前命令名集合（现取——/lsp 等动态注册命令不误判为路径）。
+   * 内置表未命中时再查 cordis CommandService：/plan 等仅由插件注册的命令
+   * 携带参数（/plan off）也是命令而非单段文件路径。
+   */
   private isKnownCommand(name: string): boolean {
-    return this.slash.list().some(c => c.name === name)
+    if (this.slash.list().some(c => c.name === name)) return true
+    if (this.activeSessionId === null) return false
+    const commands = this.ctx.reflect.get('commands', false) as CommandServiceFacet | undefined
+    if (commands === undefined || typeof commands.find !== 'function') return false
+    const agent = this.ctx.agents.get(this.activeSessionId)
+    if (agent === undefined) return false
+    return commands.find(agent, name) !== undefined
   }
 
   /** name 是否为某个已注册命令的前缀（/h → help；模糊输入仍视为命令）。 */
@@ -2392,7 +2408,7 @@ export class TuiApp {
     // 当作未知 slash 命令报失败（参考本体 looksLikeFilePath；命令集取注册表
     // 现值——/lsp 等动态注册命令不误判为路径）。
     if (trimmed.startsWith('/') && !looksLikeFilePath(trimmed, n => this.isKnownCommand(n), n => this.isCommandPrefix(n))) {
-      void this.runSlash(trimmed)
+      void this.runSlash(trimmed, images)
       return
     }
     // Phase 9a：@mention 用户侧摘要展开（cwd 边界/截断/降级见 mention-expand）。
@@ -2480,8 +2496,10 @@ export class TuiApp {
    * 命令回显写 scrollback（用户可见），但不写回 session log（dsh 纪律：
    * 命令执行是 UI 层副作用，session 事件词汇不变）。
    * @param input - 输入行提交的原始文本（已 trim，以 / 开头）。
+   * @param images - composer 图片 data URL 列表（已 normalize；可省略）；
+   *   仅 cordis 命令通道消费，内置命令通道不透传。
    */
-  private async runSlash(input: string): Promise<void> {
+  private async runSlash(input: string, images?: string[]): Promise<void> {
     const echo = (text: string): void => {
       this.commitToScrollback({ text, trailingNewline: true })
     }
@@ -2492,7 +2510,7 @@ export class TuiApp {
       // 且 command/run 生命周期事件驱动 plan 投影的 pending 状态。
       // 经 reflect.get 读取：TuiApp 的 runtimeCtx 未 inject commands，属性访问
       // 在 Cordis 4 抛 "without inject"；服务未装配时返回 undefined → 降级。
-      if (await this.runCordisCommand(input, echo)) {
+      if (await this.runCordisCommand(input, echo, images)) {
         this.flushLiveRender()
         return
       }
@@ -2523,21 +2541,30 @@ export class TuiApp {
    * A1：把未命中的 slash 输入委托给 CommandService（cordis 命令通道）。
    * 无会话、commands 服务未装配、或命令未知名（execute 返回 undefined）时
    * 返回 false，由调用方维持「未知命令」回显；成功/失败回显在此完成。
+   * composer 图片转成 ImageBlock 随信封透传：声明 input.images 的命令
+   * （/goal、/plan）由生产方负责模型可见性；成功执行后清空输入框图片，
+   * 失败/未知时保留以便用户修正重发。
    * @param input - 完整 slash 输入（含 / 前缀）。
    * @param echo - scrollback 回显回调。
+   * @param images - composer 图片 data URL 列表（已 normalize；可省略）。
    * @returns 命令是否被 CommandService 受理（true 时调用方不再回显未知命令）。
    */
-  private async runCordisCommand(input: string, echo: (text: string) => void): Promise<boolean> {
+  private async runCordisCommand(input: string, echo: (text: string) => void, images?: string[]): Promise<boolean> {
     if (this.activeSessionId === null) return false
     const commands = this.ctx.reflect.get('commands', false) as CommandServiceFacet | undefined
     if (commands === undefined) return false
     const agent = this.ctx.agents.get(this.activeSessionId)
     if (agent === undefined) return false
+    const blocks: readonly ImageBlock[] | undefined = images === undefined || images.length === 0
+      ? undefined
+      : images.map(dataUrl => ({ type: 'image', dataUrl }))
     try {
-      const execution = await commands.execute(agent, input, new AbortController().signal)
+      const execution = await commands.execute(agent, input, new AbortController().signal, blocks)
       if (execution === undefined) return false
       if (execution.result.kind === 'success') {
         echo(execution.result.text ?? '已执行')
+        // 与文本提交路径同一纪律：仅成功消费后清空；错误结果保留图片供重试。
+        if (blocks !== undefined) this.inputLine.clearImages()
       } else {
         echo(`⚠ 命令执行失败: ${execution.result.text}`)
       }

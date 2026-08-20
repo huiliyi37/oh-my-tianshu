@@ -353,8 +353,8 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         jsDoc: '/**\n * Resolve one effective command definition.\n * @param agent - exact receiving agent and scoped-layer key.\n * @param name - command name without a slash.\n * @returns the scoped shadow or global definition.\n */',
       },
       {
-        signature: 'async execute( agent: Agent, line: string, signal: AbortSignal, ): Promise<CommandExecution | undefined>',
-        jsDoc: '/**\n * Parse and execute a known command without sending it to the model.\n *\n * A resolved command\'s lifecycle is logged: `command/run` is appended\n * before the handler is invoked and `command/done` after settlement (a\n * thrown or aborted handler settles as `kind: \'error\'`). Both are direct\n * log-only appends — no turn wraps them, and persistence drains them at\n * ordinary checkpoints. Admission misses (syntax or unknown name) log\n * nothing — they never entered a handler. A `command/run` append failure\n * fails the execution loud; a `command/done` append failure on the\n * handler-failure path is contained so the handler\'s own error stays the\n * reported failure.\n *\n * @param agent - exact receiving agent.\n * @param line - complete slash-command line.\n * @param signal - cancellation signal owned by the UI request.\n * @returns the settled execution (result + lifecycle pairing id), or\n *   `undefined` when syntax or name does not resolve.\n */',
+        signature: 'async execute( agent: Agent, line: string, signal: AbortSignal, images: readonly ImageBlock[] = NO_ATTACHMENTS, ): Promise<CommandExecution | undefined>',
+        jsDoc: '/**\n * Parse and execute a known command without sending it to the model.\n *\n * A resolved command\'s lifecycle is logged: `command/run` is appended\n * before the handler is invoked and `command/done` after settlement (a\n * thrown or aborted handler settles as `kind: \'error\'`). Both are direct\n * log-only appends — no turn wraps them, and persistence drains them at\n * ordinary checkpoints. Admission misses (syntax or unknown name) log\n * nothing — they never entered a handler. A `command/run` append failure\n * fails the execution loud; a `command/done` append failure on the\n * handler-failure path is contained so the handler\'s own error stays the\n * reported failure.\n *\n * The `input.images` declaration is enforced here, not in the composer:\n * images sent to a command that does not declare it settle as a logged\n * error result before the handler runs. Payloads arrive as data URLs\n * validated at composer intake, so no further admission step runs here.\n *\n * @param agent - exact receiving agent.\n * @param line - complete slash-command line.\n * @param signal - cancellation signal owned by the UI request.\n * @param images - composer images accompanying the line as data-URL image\n *   blocks, in submission order; empty for a plain invocation.\n * @returns the settled execution (result + lifecycle pairing id), or\n *   `undefined` when syntax or name does not resolve.\n */',
       },
     ],
   },
@@ -2275,11 +2275,11 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'CommandInputDescriptor',
-    declaration: 'export interface CommandInputDescriptor {\n    readonly hint: string;\n}',
+    declaration: 'export interface CommandInputDescriptor {\n    readonly hint: string;\n    readonly images?: boolean;\n}',
   },
   {
     name: 'CommandInvocation',
-    declaration: 'export interface CommandInvocation {\n    readonly commandId: CommandId;\n    readonly agent: Agent;\n    readonly rawInput: string;\n    readonly signal: AbortSignal;\n}',
+    declaration: 'export interface CommandInvocation {\n    readonly commandId: CommandId;\n    readonly agent: Agent;\n    readonly rawInput: string;\n    readonly attachments: readonly ImageBlock[];\n    readonly signal: AbortSignal;\n}',
   },
   {
     name: 'CommandResult',

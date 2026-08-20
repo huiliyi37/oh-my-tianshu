@@ -3,7 +3,7 @@ import { Context } from '@huiliyi37/cordis'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import LlmService, { INVALID_CREDENTIAL_CODE } from '@huiliyi37/dsh-llm'
+import LlmService, { createUserMessage, INVALID_CREDENTIAL_CODE } from '@huiliyi37/dsh-llm'
 import { credentialRef } from '@huiliyi37/dsh-credentials'
 import { CredentialsLocal } from '@huiliyi37/dsh-credentials-local'
 import { settingsNamespace } from '@huiliyi37/dsh-settings'
@@ -119,6 +119,36 @@ describe('request-level dynamic configuration', () => {
     await expect(ctx.llm.listModels('deepseek-official')).resolves.toEqual([
       { provider: 'deepseek-official', id: 'settings-model', name: 'From Settings' },
     ])
+  })
+
+  it('applies a changed request image bound to the next request', async () => {
+    vi.stubEnv('DEEPSEEK_API_KEY', 'test-key')
+    const dir = await home()
+    const server = await mockServer([
+      { kind: 'sse', events: textEvents },
+      { kind: 'sse', events: textEvents },
+    ])
+    const { ctx } = await boot(dir, {
+      baseURL: server.url,
+      models: [{ id: 'deepseek-v4-flash-vision-exp', supportsVision: true }],
+    })
+    const messages = [createUserMessage({
+      content: [
+        { type: 'image', dataUrl: 'data:image/png;base64,AQID' },
+        { type: 'image', dataUrl: 'data:image/png;base64,AQID' },
+      ],
+      source: { kind: 'plugin', plugin: 'test' },
+    })]
+
+    await assemble(ctx, { model: 'deepseek-v4-flash-vision-exp', messages })
+    await ctx.settings.update(NS, { maxRequestImageBytes: 4 })
+    await assemble(ctx, { model: 'deepseek-v4-flash-vision-exp', messages })
+
+    const first = (server.requests[0] as { messages: Array<{ content: unknown }> }).messages[0]?.content
+    const second = (server.requests[1] as { messages: Array<{ content: unknown }> }).messages[0]?.content
+    expect(JSON.stringify(first).match(/"type":"image_url"/g)).toHaveLength(2)
+    expect(JSON.stringify(second)).toContain('[image omitted to keep the request within its image limit')
+    expect(JSON.stringify(second).match(/"type":"image_url"/g)).toHaveLength(1)
   })
 
   it('re-registers the route in place when the captured retry policy changes, without an empty-registry window', async () => {

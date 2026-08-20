@@ -588,7 +588,7 @@ describe('/plan', () => {
     const plainSteer = vi.fn()
     ;(plainAgent as unknown as { steer: typeof plainSteer }).steer = plainSteer
     expect(ctx.commands.list(plainAgent)).toEqual([
-      { name: 'plan', description: 'Enter or leave plan mode', input: { hint: '[off|message]' } },
+      { name: 'plan', description: 'Enter or leave plan mode', input: { hint: '[off|message]', images: true } },
     ])
 
     const signal = new AbortController().signal
@@ -670,6 +670,52 @@ describe('/plan', () => {
     expect((await ctx.commands.execute(agent, '/plan off', signal))?.result)
       .toEqual({ kind: 'success', text: 'Plan mode off.' })
     expect(foldPlanMode(agent.session.events)).toBe(false)
+  })
+
+  it('steers image attachments with or without text and refuses them on /plan off', async () => {
+    const ctx = await setup()
+    await ctx.plugin(CommandService)
+    await new Promise(resolve => setImmediate(resolve))
+    const signal = new AbortController().signal
+    const images = [{ type: 'image' as const, dataUrl: 'data:image/png;base64,AAAA' }]
+
+    const agent = await agentWithSession(ctx, 'imaged-plan-command')
+    openTurn(agent.session)
+    const steer = vi.fn()
+    ;(agent as unknown as { steer: typeof steer }).steer = steer
+    const withMessage = await ctx.commands.execute(agent, '/plan sketch the layout', signal, images)
+    expect(withMessage?.result.kind).toBe('success')
+    expect(steer).toHaveBeenCalledExactlyOnceWith({
+      id: expect.any(String) as unknown,
+      role: 'user',
+      content: [
+        { type: 'image', dataUrl: 'data:image/png;base64,AAAA' },
+        { type: 'text', text: 'sketch the layout' },
+      ],
+      source: { kind: 'user' },
+    })
+
+    const bareAgent = await agentWithSession(ctx, 'imaged-bare-plan-command')
+    openTurn(bareAgent.session)
+    const bareSteer = vi.fn()
+    ;(bareAgent as unknown as { steer: typeof bareSteer }).steer = bareSteer
+    expect((await ctx.commands.execute(bareAgent, '/plan', signal, images))?.result)
+      .toEqual({ kind: 'success', text: 'Entering plan mode (applies from the next step). Use /plan off to leave.' })
+    expect(bareSteer).toHaveBeenCalledExactlyOnceWith({
+      id: expect.any(String) as unknown,
+      role: 'user',
+      content: [{ type: 'image', dataUrl: 'data:image/png;base64,AAAA' }],
+      source: { kind: 'user' },
+    })
+    expect(ctx.planMode.get(bareAgent)).toEqual({ active: false, pending: true })
+
+    const activeAgent = await agentWithSession(ctx, 'imaged-off-plan-command', { active: true })
+    const offSteer = vi.fn()
+    ;(activeAgent as unknown as { steer: typeof offSteer }).steer = offSteer
+    expect((await ctx.commands.execute(activeAgent, '/plan off', signal, images))?.result)
+      .toEqual({ kind: 'error', text: 'Image attachments cannot accompany /plan off.' })
+    expect(offSteer).not.toHaveBeenCalled()
+    expect(ctx.planMode.get(activeAgent)).toEqual({ active: true })
   })
 
   it('removes the contributed command when the plan-mode plugin is disposed', async () => {
