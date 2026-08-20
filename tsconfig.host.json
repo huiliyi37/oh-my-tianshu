@@ -182,6 +182,7 @@
     { "path": "./packages/pty/tool-bash-persistent" },
     { "path": "./packages/pty/tool-pty" },
     { "path": "./packages/code-runtime/code-runtime" },
+    { "path": "./packages/code-runtime/code-runtime-python" },
     { "path": "./packages/code-runtime/code-runtime-worker" },
     { "path": "./packages/llm/llm-deepseek" },
     { "path": "./packages/llm/llm-pi-ai" },

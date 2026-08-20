@@ -180,6 +180,7 @@ flowchart TD
   end
   subgraph group_code_runtime["packages/code-runtime"]
     pkg_code_runtime["code-runtime"]
+    pkg_code_runtime_python["code-runtime-python"]
     pkg_code_runtime_worker["code-runtime-worker"]
   end
   subgraph group_context["packages/context"]
@@ -366,6 +367,7 @@ flowchart TD
   pkg_client_web --> pkg_invariants
   pkg_client_web_react --> pkg_invariants
   pkg_code_runtime --> pkg_invariants
+  pkg_code_runtime_python --> pkg_invariants
   pkg_e2b --> pkg_invariants
   pkg_jsonrpc_demo --> pkg_invariants
   pkg_git --> pkg_invariants
@@ -1450,6 +1452,7 @@ flowchart TD
 | [`client-web`](../packages/client/web) | `client` | [`invariants`](../packages/support/invariants) |
 | [`client-web-react`](../packages/client/web-react) | `client` | [`invariants`](../packages/support/invariants) |
 | [`code-runtime`](../packages/code-runtime/code-runtime) | `code-runtime` | [`invariants`](../packages/support/invariants) |
+| [`code-runtime-python`](../packages/code-runtime/code-runtime-python) | `code-runtime` | [`invariants`](../packages/support/invariants) |
 | [`e2b`](../packages/e2b/e2b) | `e2b` | [`invariants`](../packages/support/invariants) |
 | [`jsonrpc-demo`](../packages/examples/jsonrpc-demo) | `examples` | [`invariants`](../packages/support/invariants) |
 | [`git`](../packages/git/git) | `git` | [`invariants`](../packages/support/invariants) |

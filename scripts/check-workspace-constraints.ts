@@ -130,6 +130,8 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   '@huiliyi37/dsh-headless': ['cordis.patch.yml'],
   '@huiliyi37/dsh-tui': ['cordis.patch.yml'],
   '@huiliyi37/dsh-client-ui-theme': ['lib/styles'],
+  // The CPython bootstrap ships as source .py files the host spawns by path.
+  '@huiliyi37/dsh-code-runtime-python': ['py/**/*.py'],
   '@huiliyi37/dsh-skill-badge': ['assets'],
   '@huiliyi37/dsh-subprocess-local': ['scripts/ensure-spawn-helper.mjs'],
 }
