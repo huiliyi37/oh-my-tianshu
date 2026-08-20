@@ -39,6 +39,7 @@
     "@huiliyi37/cordis": "^4.0.0-rc.7"
   },
   "devDependencies": {
+    "@huiliyi37/dsh-agent": "workspace:^",
     "@huiliyi37/dsh-invariants": "workspace:^",
     "@huiliyi37/dsh-llm": "workspace:^",
     "@huiliyi37/dsh-session": "workspace:^",
