@@ -15,15 +15,15 @@ dsh has discipline — the evidence gate's "what you must not do" — but nothin
 - **router.ts**: a deterministic routing table (a pure function, unit-testable; no learning/bandit — "evolve it gradually later"). Rule priority in descending order:
   1. `escalate` (error rate ≥0.8) → delegate verifier (independent-channel recheck)
   2. `gate` (≥0.6) + probe cooldown exhausted → delegate code_scout (reconnaissance from a fresh angle)
-  3. obligations pending + zero verifications → self (write a probe first — the evidence gate already blocks edits; routing does not block again)
-  4. default self
-- **dispatch.ts**: **dsh-native dispatch** — `ctx.agents.create({ sessionId, agentOptions })` → `followup` injects the task text (a public Agent method, the simplest reliable task entry) → `whenIdle` waits → `dispose` cleans up (a finally guarantees cleanup on every path). **The Tianshu worker/dispatcher/council lifecycle is not carried over.** Dispatch goes through the dsh subagent seam: `ctx.subagents.start` (named provider, config `subagentProvider`, default `spawn`) delivers the task as the child's first user message; `await run.result` settles; `dispose` cleans up. The seam stamps `parentSession`/`origin: 'subagent'`/`delegationDepth`, so routed children appear under `/subagents`/`list_agents`/the descendants projection and zen never arms them (zen skips by `parentSession`). `execute(action, { sessionId })` requires the live parent session — the seam derives workspace/lineage/depth from it. The profile tool restriction installs via `toolFilter` fail-loud — unknown tool names or a missing service abort the dispatch, never silently widening the tool face. `profileTools` (Config) overrides the built-in defaults for slim assemblies (e.g. the headless fixture declares `['read','bash']`).
+  3. default self — obligations/verifications are collected into the metrics but no rule consumes them yet (the comment once listed an obligation rule the code never implemented; the comment now matches the code)
+- **dispatch.ts**: **dsh-native dispatch** — **the Tianshu worker/dispatcher/council lifecycle is not carried over.** Dispatch goes through the dsh subagent seam: `ctx.subagents.start` (named provider, config `subagentProvider`, default `spawn`) delivers the task as the child's first user message; `await run.result` settles; `dispose` cleans up. The seam stamps `parentSession`/`origin: 'subagent'`/`delegationDepth`, so routed children appear under `/subagents`/`list_agents`/the descendants projection and zen never arms them (zen skips by `parentSession`). `execute(action, { sessionId })` requires the live parent session — the seam derives workspace/lineage/depth from it. The profile tool restriction installs via `toolFilter` fail-loud — unknown tool names or a missing service abort the dispatch, never silently widening the tool face. `profileTools` (Config) overrides the built-in defaults for slim assemblies (e.g. the headless fixture declares `['read','bash']`).
 - **index.ts wiring**: `session/event` tool/result → recordPrediction (isError judgment), keyed per session and excluding child sessions (`header.parentSession` — mirroring zen's skip); evidence tracker metrics are optionally consumed via `ctx.reflect.get('evidence', false)` (prediction works standalone without evidence-gate); the `ctx.router` service surface (`metrics`/`decide`/`execute` all take the owning `sessionId`; `resetPrediction(sessionId?)`).
 - **Zero new channels for accounting**: subagent tool/result events are accounted back to evidence-gate automatically through the existing session/event stream.
+- **Decision auditability**: each accepted delegate appends a log-only `router/route` record on the parent session at acceptance (profile/task/targets/child session id) — route decisions are reconstructable from the session log.
 
 ## Key verification facts
 
-- Package-level tests: 40 all green (prediction 17 / router 8 / dispatch 6 / integration 9).
+- Package-level tests: 42 all green (prediction 17 / router 8 / dispatch 8 / integration 9).
 - Integration (a real cordis Context + real event objects, no mocked middle layers): 8 consecutive failures → escalate → delegate verifier → execute dispatch call-sequence assertion; 3 consecutive successes → tipping-point reset → decide returns self; dispatchEnabled:false does not dispatch.
 - Test-driven correction: a mock Context that overrides the real `ctx.reflect` crashes (`ctx.on`'s proxy depends on the reflection layer) — **integration tests always use a real `new Context()` + provide**, never hand-patch reflect.
 - dispatch resolves `subagents` and `agents` through `ctx.reflect.get(name, false)` (the Cordis 4 injection proxy pattern — the same as T4/compact/evidence-gate); the parent session must be a live agent, else dispatch fails loud.
@@ -36,6 +36,7 @@ The full EFE suite, season/vigor/sensorium, the Tianshu worker/dispatcher/counci
 ## Real assembly (S7 wrap-up)
 
 - **examples/headless-agent** mounts agent-router: cli.cordis.yml adds the plugin (provider/model: cli-mock) + a mock LLM consecutive-failure mode (`DSH_CLI_MOCK_FAIL_LOOP=1`, an instance field failCount counts across turns, back to normal replies after 8 failed turns to prevent an infinite loop) + the driver exposes router state (`DSH_ROUTER_DEMO=1` prints metrics + decide).
+- **Shipped TUI unmount decision**: the TUI bundle used to mount agent-router with no config — inert (no production caller of `decide`/`execute`, `execute` short-circuits on missing provider/model) while its `session/event` listener ran unconditionally. The mount is removed from `cordis.patch.yml` (and the tui package dependency) until a caller wires the decision into the turn pipeline; the headless e2e assembly remains the reference integration. Re-mounting is a one-row patch + dependency restore.
 - **A judgment gap exposed by real assembly**: dsh bash does **not mark isError** on a non-zero exit code (measured: 8 times `isError: false` while the command failed; the exit code sits in the text as `[exit code: 1]`) — success/failure judgment = `isError || text contains [exit code: non-zero]`. Another instance of "trust TypeScript, but never trust a single signal".
 - **evidence service-surface gap**: agent-router consuming `evidence?.cooldown()` crashed (the service surface has no such method) — evidence-gate added `cooldownTable()`/`verificationCount()` (exposing state the tracker already holds).
 - **e2e assertion lesson**: the failure-count assertion was first written as isError:true (stale — real failures live in the text); changed to check for the `[exit code: 1]` text.
@@ -43,7 +44,7 @@ The full EFE suite, season/vigor/sensorium, the Tianshu worker/dispatcher/counci
 ## Verification commands
 
 ```sh
-pnpm vitest run packages/guard/agent-router/tests/                     # 4 文件 40 测试全绿
+pnpm vitest run packages/guard/agent-router/tests/                     # 4 文件 42 测试全绿
 npx oxlint packages/guard/agent-router/                                # 0 错误
 npx tsc -p packages/guard/agent-router/tsconfig.json                   # 0 错误
 ```

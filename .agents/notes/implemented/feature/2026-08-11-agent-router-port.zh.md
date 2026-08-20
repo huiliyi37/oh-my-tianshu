@@ -15,15 +15,15 @@ dsh 已有纪律——证据门的"不准做什么"——却没有任何东西�
 - **router.ts**：确定性路由表（纯函数可单测，不做学习/bandit——"之后慢慢改造"）。规则优先级降序：
   1. `escalate`（错误率 ≥0.8）→ delegate verifier（独立通道复核）
   2. `gate`（≥0.6）+ 探针冷却耗尽 → delegate code_scout（新角度侦查）
-  3. 义务未决 + 零验证 → self（先写探针——证据门已拦编辑，路由不重复拦）
-  4. 默认 self
-- **dispatch.ts**：**dsh 原生派发**——`ctx.agents.create({ sessionId, agentOptions })` → `followup` 注入任务文本（Agent 公开方法，最简单可靠的任务入口）→ `whenIdle` 等待 → `dispose` 清理（finally 保证任何路径清理）。**不搬天枢 worker/dispatcher/council 生命周期**。派发走 dsh 子代理 seam：`ctx.subagents.start`（named provider，config `subagentProvider`，默认 `spawn`）把任务作为 child 首条用户消息投递；`await run.result` 结算；`dispose` 清理。seam 自动写 `parentSession`/`origin: 'subagent'`/`delegationDepth`，被路由的 child 进入 `/subagents`/`list_agents`/后代投影，且 zen 永不 arm（zen 按 `parentSession` 跳过）。`execute(action, { sessionId })` 要求活的父会话——seam 从它派生 workspace/血统/深度。profile 工具限制经 `toolFilter` fail loud 安装——未知工具名或缺失服务会中止派发，绝不静默放宽工具面。`profileTools`（Config）覆盖内置默认（如 headless fixture 声明 `['read','bash']` 子集）。
+  3. 默认 self——义务/验证计数已采集进指标但尚无规则消费（注释曾列出一条代码从未实现的义务规则；注释现已与代码一致）
+- **dispatch.ts**：**dsh 原生派发**——**不搬天枢 worker/dispatcher/council 生命周期**。派发走 dsh 子代理 seam：`ctx.subagents.start`（named provider，config `subagentProvider`，默认 `spawn`）把任务作为 child 首条用户消息投递；`await run.result` 结算；`dispose` 清理。seam 自动写 `parentSession`/`origin: 'subagent'`/`delegationDepth`，被路由的 child 进入 `/subagents`/`list_agents`/后代投影，且 zen 永不 arm（zen 按 `parentSession` 跳过）。`execute(action, { sessionId })` 要求活的父会话——seam 从它派生 workspace/血统/深度。profile 工具限制经 `toolFilter` fail loud 安装——未知工具名或缺失服务会中止派发，绝不静默放宽工具面。`profileTools`（Config）覆盖内置默认（如 headless fixture 声明 `['read','bash']` 子集）。
 - **index.ts 接线**：`session/event` tool/result → recordPrediction（isError 判定），按会话隔离并排除 child 会话（`header.parentSession`——镜像 zen 的跳过条件）；evidence tracker 指标经 `ctx.reflect.get('evidence', false)` 可选消费（无 evidence-gate 时 prediction 独立工作）；`ctx.router` 服务面（`metrics`/`decide`/`execute` 均带归属 `sessionId`；`resetPrediction(sessionId?)`）。
 - **归账零新通道**：子代理 tool/result 经既有 session/event 自动归账回 evidence-gate。
+- **决策可审计**：每个被接受的 delegate 在 acceptance 时向父会话落一条 log-only 的 `router/route` 记录（profile/task/targets/child session id）——路由决策可从会话日志重建。
 
 ## 关键验证事实
 
-- 包级测试 40 全绿（prediction 17 / router 8 / dispatch 6 / integration 9）。
+- 包级测试 42 全绿（prediction 17 / router 8 / dispatch 8 / integration 9）。
 - integration（真实 cordis Context + 事件对象，不 mock 中间层）：8 连败 → escalate → delegate verifier → execute 派发调用序断言；3 连成 → tipping point 重置 → decide 回 self；dispatchEnabled:false 不派发。
 - 测试驱动修正：mock Context 覆盖真实 `ctx.reflect` 会崩（`ctx.on` 的 proxy 依赖反射层）——**集成测试永远用真实 `new Context()` + provide**，不手改 reflect。
 - dispatch 走 `ctx.reflect.get('agents', false)`（Cordis 4 注入代理，第 4 个实例——与 T4/compact/evidence-gate tools 同款）。
@@ -36,6 +36,7 @@ EFE 全套、season/vigor/sensorium、天枢 worker/dispatcher/council、bandit-
 ## 真实装配（S7 收尾）
 
 - **examples/headless-agent** 挂 agent-router：cli.cordis.yml 加插件（provider/model: cli-mock）+ mock LLM 连败模式（`DSH_CLI_MOCK_FAIL_LOOP=1`，实例字段 failCount 跨轮计数，8 轮失败后回正常回复防死循环）+ driver 暴露 router 状态（`DSH_ROUTER_DEMO=1` 打印 metrics + decide）。
+- **发货 TUI 摘挂决策**：TUI bundle 曾无配置挂载 agent-router——惰性（decide/execute 无生产调用者，execute 缺 provider/model 即短路）而 session/event 监听无条件运行。挂载行从 `cordis.patch.yml` 移除（连同 tui 包依赖），直到有调用者把决策接线进 turn 流水线；headless e2e 装配仍是参考集成。重新挂载 = 一行 patch + 依赖恢复。
 - **真实装配暴露的判定缺口**：dsh bash 对非零退出码**不标 isError**（实测 8 次 `isError: false` 但命令失败，退出码在文本 `[exit code: 1]`）——成败判定 = `isError || 文本含 [exit code: 非0]`。这是"信任 TypeScript 但别信任单一信号"的又一实例。
 - **evidence 服务面缺口**：agent-router 消费 `evidence?.cooldown()` 崩溃（服务面无此方法）——evidence-gate 补 `cooldownTable()`/`verificationCount()`（暴露 tracker 已持状态）。
 - **e2e 断言教训**：失败计数断言先写 isError:true（过时——真实失败在文本），改为查 `[exit code: 1]` 文本。
@@ -43,7 +44,7 @@ EFE 全套、season/vigor/sensorium、天枢 worker/dispatcher/council、bandit-
 ## 验证命令
 
 ```sh
-pnpm vitest run packages/guard/agent-router/tests/                     # 4 文件 40 测试全绿
+pnpm vitest run packages/guard/agent-router/tests/                     # 4 文件 42 测试全绿
 npx oxlint packages/guard/agent-router/                                # 0 错误
 npx tsc -p packages/guard/agent-router/tsconfig.json                   # 0 错误
 ```
