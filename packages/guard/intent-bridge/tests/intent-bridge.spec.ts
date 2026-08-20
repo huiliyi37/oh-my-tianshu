@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
-import LlmService, { createUserMessage, ReasoningEffortId } from '@huiliyi37/dsh-llm'
+import LlmService, { CallId, createUserMessage, ReasoningEffortId } from '@huiliyi37/dsh-llm'
 import type { UserMessage } from '@huiliyi37/dsh-llm'
 import SessionStore, { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
 import SystemPrompt from '@huiliyi37/dsh-system-prompt'
@@ -21,6 +21,7 @@ import AgentLoop from '@huiliyi37/dsh-agent-loop'
 import ZenPhaseService, { foldZenPhase } from '@huiliyi37/dsh-zen'
 import TaskCardService from '@huiliyi37/dsh-task-card'
 import IntentBridgeService, { type IntentBridgeConfig } from '../src/index.ts'
+import { ALIGN_FACE_STATEMENT } from '../src/align.ts'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 
 const BASE_CONFIG: IntentBridgeConfig = {
@@ -29,6 +30,8 @@ const BASE_CONFIG: IntentBridgeConfig = {
   execProvider: 'deepseek-official',
   execModel: 'deepseek-v4-flash',
 }
+
+const testToolSignal = new AbortController().signal
 
 async function harness(adapter: MockAdapter, config: IntentBridgeConfig = BASE_CONFIG): Promise<Context> {
   const ctx = new Context()
@@ -171,10 +174,39 @@ describe('intent-bridge through the agent loop', () => {
     // Every non-finalize call (bash, glob, zen_anchor) is denied with the face statement.
     expect(denied).toHaveLength(3)
     const text = denied.map(event => event.type === 'tool/result' ? JSON.stringify(event.data.message.content) : '').join(' ')
-    expect(text).toContain('only finalize_alignment is available in this alignment session')
+    expect(text).toContain(ALIGN_FACE_STATEMENT)
     expect(text).not.toContain('unknown tool')
-    // The contract section declares the single tool to the model.
-    expect(adapter.requests[0]?.system ?? '').toContain('Only finalize_alignment is available in this session')
+    // The contract section declares the same face statement to the model.
+    expect(adapter.requests[0]?.system ?? '').toContain(ALIGN_FACE_STATEMENT)
+  })
+
+  it('removes the alignment guard when the plugin fiber is disposed (HMR safety)', async () => {
+    const ctx = await harness(new MockAdapter([]))
+    const align = await ctx.intentBridge.createAlignedSession()
+    const alignAgent = align.handle.agent
+
+    const callBash = async (callId: string): Promise<string> => {
+      const result = await ctx.tools.execute({
+        signal: testToolSignal,
+        callId: CallId(callId),
+        name: 'bash',
+        arguments: { command: 'ls' },
+        agent: alignAgent,
+      })
+      const first = result.content[0]
+      return first?.type === 'text' ? first.text : JSON.stringify(result.content)
+    }
+
+    // The aligned session's face is locked: bash is denied with the face statement.
+    expect(await callBash('hmr-1')).toContain(ALIGN_FACE_STATEMENT)
+
+    const runtime = ctx.registry.get(IntentBridgeService)
+    const [fiber] = runtime?.fibers ?? []
+    if (fiber === undefined) throw new Error('intent-bridge: plugin fiber missing')
+    await fiber.dispose()
+
+    // With the guard disposed, bash falls through to the ordinary unknown-tool error.
+    expect(await callBash('hmr-2')).toContain('unknown tool')
   })
 
   it('forces a template card when the alignment rounds are exhausted', async () => {

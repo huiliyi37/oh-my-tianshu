@@ -12,6 +12,7 @@ Status: implemented
 
 - `intent:policy` 契约（`ALIGN_SECTION`）现在以 face 声明开场：本会话只有 `finalize_alignment`，没有 shell、文件系统或搜索工具——不要调用任何其他工具名。
 - 注册表 guard（镜像 zen 的锁定工具 guard）在调用会话是对齐会话时拒绝一切非 `finalize_alignment` 执行，返回同样的 face 声明。这也覆盖泄漏的 `zen_anchor`，对齐模型不会再看到误导性的阶段后锚定成功。
+- face 声明是单一导出常量（`ALIGN_FACE_STATEMENT`），契约与 guard 逐字插值同一常量，声明面与执行面不会漂移。
 
 ## Alternatives considered
 
@@ -21,12 +22,12 @@ Status: implemented
 
 ## Consequences
 
-对齐模型在提示词层与运行时层都得到单一工具的声明；非 finalize 调用解析为明确拒绝而非 `unknown tool`。`intent:policy` 段落增加两行。`zen_anchor` 在对齐面上保持注册（稳定目录），但其执行被 face 声明拒绝。主会话行为不变。
+对齐模型在提示词层与运行时层都得到单一工具的声明；非 finalize 调用解析为明确拒绝而非 `unknown tool`。`intent:policy` 段落增加一行。`zen_anchor` 在对齐面上保持注册（稳定目录），但其执行被 face 声明拒绝。主会话行为不变。
 
 ## Testing
 
-- `packages/guard/intent-bridge/tests/intent-bridge.spec.ts`——新增：脚本化对齐模型调用 `bash`、`glob`、`zen_anchor`，三次拒绝都含 face 声明且都不含 `unknown tool`；首次请求的系统提示词携带工具清单行。
-- `packages/guard/intent-bridge/tests/align.spec.ts`——契约断言单一工具声明。
+- `packages/guard/intent-bridge/tests/intent-bridge.spec.ts`——新增：脚本化对齐模型调用 `bash`、`glob`、`zen_anchor`，三次拒绝都含 face 声明且都不含 `unknown tool`；首次请求的系统提示词携带工具清单行。配套用例 dispose 插件 fiber（HMR）后观察到拒绝回落为普通的 `unknown tool` 错误。
+- `packages/guard/intent-bridge/tests/align.spec.ts`——契约断言逐字携带共享的 `ALIGN_FACE_STATEMENT`。
 
 ## Related
 

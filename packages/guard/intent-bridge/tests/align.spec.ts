@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { ALIGN_SECTION } from '../src/align.ts'
+import { ALIGN_FACE_STATEMENT, ALIGN_SECTION } from '../src/align.ts'
 import { parseFinalizeArgs } from '../src/finalize.ts'
 
 describe('ALIGN_SECTION', () => {
@@ -28,7 +28,9 @@ describe('ALIGN_SECTION', () => {
   })
 
   it('declares the single available tool so the model never reaches for bash/glob', () => {
-    expect(ALIGN_SECTION).toContain('Only finalize_alignment is available in this session')
+    // The guard's denial returns this same constant — the section must carry
+    // it verbatim so declared face and enforced face never drift apart.
+    expect(ALIGN_SECTION).toContain(ALIGN_FACE_STATEMENT)
     expect(ALIGN_SECTION).toContain('no shell')
   })
 })

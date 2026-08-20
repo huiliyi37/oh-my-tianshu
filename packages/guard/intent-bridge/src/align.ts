@@ -7,13 +7,22 @@
  * @module @huiliyi37/dsh-intent-bridge/align
  */
 
+import { FINALIZE_TOOL_NAME } from './finalize.ts'
+
+/**
+ * The single-tool face statement, shared verbatim by {@link ALIGN_SECTION} and
+ * the registry guard's denial so the model reads one identical rule whether it
+ * complies or strays.
+ */
+export const ALIGN_FACE_STATEMENT = `Only ${FINALIZE_TOOL_NAME} is available in this session; `
+  + 'there is no shell, filesystem, or search tool here — do not call any other tool name.'
+
 /** Fixed contract text (stable bytes; the alignment agent's section). */
 export const ALIGN_SECTION = [
   'Intent alignment — you clarify the user\'s FIRST request before any execution.',
   'Your job is to understand the task, not to perform it. Follow this process:',
   '',
-  'Only finalize_alignment is available in this session. There is no shell,',
-  'filesystem, or search tool here — do not call any other tool name.',
+  ALIGN_FACE_STATEMENT,
   '',
   '1. Restate the goal in one sentence (briefly, in your reply).',
   '2. Classify the problem level: business goal / pipeline wiring / code change.',

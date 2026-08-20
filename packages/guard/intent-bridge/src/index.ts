@@ -37,7 +37,7 @@ import type {} from '@huiliyi37/dsh-session-title' // 'session/title' event decl
 import { ORIGINAL_MARKER, renderTaskCard, templateCard } from '@huiliyi37/dsh-task-card'
 import { defineTool } from '@huiliyi37/dsh-tools'
 import type { ToolDefinition } from '@huiliyi37/dsh-tools'
-import { ALIGN_SECTION } from './align.ts'
+import { ALIGN_FACE_STATEMENT, ALIGN_SECTION } from './align.ts'
 import { FINALIZE_TOOL_NAME, parseFinalizeArgs } from './finalize.ts'
 import type { FinalizeArgs } from './finalize.ts'
 
@@ -258,15 +258,15 @@ export class IntentBridgeService extends Service {
     // already hides every global tool, but a flighty alignment model may
     // still call familiar names (bash/glob) from its priors and read back a
     // bare "unknown tool" with no recovery. This guard turns any non-finalize
-    // call — including the leaked zen_anchor — into the actionable face
-    // statement, mirroring zen's locked-tool guard.
+    // call — including the leaked zen_anchor — into the face statement,
+    // mirroring zen's locked-tool guard but shared verbatim with
+    // ALIGN_SECTION (ALIGN_FACE_STATEMENT) instead of a bare refusal.
     ctx.effect(() => ctx.tools.guard((exec) => {
       const agent = exec.agent
       if (agent === undefined) return undefined
       if (!this.aligns.has(agent.session.id)) return undefined
       if (exec.name === FINALIZE_TOOL_NAME) return undefined
-      return `only ${FINALIZE_TOOL_NAME} is available in this alignment session; `
-        + 'no shell, filesystem, or search tool is registered here'
+      return ALIGN_FACE_STATEMENT
     }), 'dsh-intent-bridge: lock the alignment face to finalize_alignment')
 
     // Record the user's first message verbatim (pre-rewrite) per alignment session.
@@ -301,7 +301,7 @@ export class IntentBridgeService extends Service {
       const state = this.aligns.get(session.id)
       if (state === undefined || state.finalized) return
       if (event.type === 'turn/end' && event.data.reason.kind === 'error') {
-        this.finalizeFromSession(session.id).catch((error) => {
+        this.finalizeFromSession(session.id).catch((error: unknown) => {
           ctx.logger.warn('intent-bridge: error fallback finalize failed: %o', error)
         })
       }
@@ -441,7 +441,7 @@ export class IntentBridgeService extends Service {
     const session = this.ctx.sessions.get(SessionId(sessionId))
     if (session === undefined) return
     const firstUser = session.events.find(event => event.type === 'user/message')
-    const original = firstUser !== undefined && firstUser.type === 'user/message'
+    const original = firstUser !== undefined
       ? originalOf(textOf(firstUser.data))
       : (state.originalText ?? '')
     state.finalized = true

@@ -12,6 +12,7 @@ A real session transcript on the default TUI composition (`dsh-base` + `dsh-tian
 
 - The `intent:policy` contract (`ALIGN_SECTION`) now opens with the face statement: only `finalize_alignment` exists in this session, and there is no shell, filesystem, or search tool — do not call any other tool name.
 - A registry guard (mirroring zen's locked-tool guard) denies every non-`finalize_alignment` execution while the calling session is a live alignment session, returning the same face statement. This covers the leaked `zen_anchor` too, so the alignment model never sees the misleading post-phase anchor success either.
+- The face statement is one exported constant (`ALIGN_FACE_STATEMENT`) interpolated verbatim by both the contract and the guard, so the declared and enforced faces cannot drift apart.
 
 ## Alternatives considered
 
@@ -21,12 +22,12 @@ A real session transcript on the default TUI composition (`dsh-base` + `dsh-tian
 
 ## Consequences
 
-The alignment model gets prompt-level and runtime-level statements of its single tool; non-finalize calls resolve as a clear denial instead of `unknown tool`. The `intent:policy` section grows by two lines. `zen_anchor` stays registered on the alignment face (stable catalog) but its execution is denied with the face statement. Main-session behavior is unchanged.
+The alignment model gets prompt-level and runtime-level statements of its single tool; non-finalize calls resolve as a clear denial instead of `unknown tool`. The `intent:policy` section grows by one line. `zen_anchor` stays registered on the alignment face (stable catalog) but its execution is denied with the face statement. Main-session behavior is unchanged.
 
 ## Testing
 
-- `packages/guard/intent-bridge/tests/intent-bridge.spec.ts` — new: a scripted alignment model calling `bash`, `glob`, and `zen_anchor` gets three denials all containing the face statement and none containing `unknown tool`; the first request's system prompt carries the inventory line.
-- `packages/guard/intent-bridge/tests/align.spec.ts` — the contract asserts the single-tool declaration.
+- `packages/guard/intent-bridge/tests/intent-bridge.spec.ts` — new: a scripted alignment model calling `bash`, `glob`, and `zen_anchor` gets three denials all containing the face statement and none containing `unknown tool`; the first request's system prompt carries the inventory line. A companion case disposes the plugin fiber (HMR) and observes the denial reverting to the ordinary `unknown tool` error.
+- `packages/guard/intent-bridge/tests/align.spec.ts` — the contract asserts it carries the shared `ALIGN_FACE_STATEMENT` verbatim.
 
 ## Related
 
