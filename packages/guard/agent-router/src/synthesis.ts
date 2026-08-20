@@ -1,0 +1,140 @@
+/**
+ * synthesis.ts — 主代理综合提示与采用声明（闭环 Phase 2）。
+ *
+ * 从会话日志推导「未综合的 child 结论」（router/outcome 无配对
+ * router/adoption）与「验证缺口」（最近文件改动后无新验证），渲染主代理
+ * 综合提示（synthesis rubric：主代理拥有最终综合与写入、不混合不平均、
+ * deferred ≠ deleted、冲突显式解决）。纯函数零状态——model-visible 内容
+ * 全部派生自已落盘的日志事件。
+ *
+ * @module @huiliyi37/dsh-agent-router/synthesis
+ */
+
+import type { SessionEvent } from '@huiliyi37/dsh-session'
+
+/** 采用声明工具名。 */
+export const ADOPT_TOOL_NAME = 'router_adopt'
+
+/** 采用/拒绝判定。 */
+export type AdoptVerdict = 'adopt' | 'reject'
+
+/** 已校验的采用声明参数。 */
+export interface AdoptArgs {
+  /** 被采用的 child 会话 id（对应一条 router/outcome 记录）。 */
+  subagentSessionId: string
+  /** 判定：adopt（整合进主代理结论）/ reject（说明理由）。 */
+  verdict: AdoptVerdict
+  /** 判定理由（非空）。 */
+  reason: string
+}
+
+/**
+ * 综合提示 rubric（角色裁定纪律——天枢 team-perspectives 的提示词形态，
+ * 不写合并代码）。Config `synthesis.section` 可覆盖。
+ */
+export const DEFAULT_SYNTHESIS_SECTION = [
+  'You have received findings from dispatched subagents. For each finding, call `router_adopt` exactly once: adopt (integrate it into your work) or reject (state why).',
+  'Synthesis discipline: you own the final synthesis and all writes — findings are skeleton/risk/conflict/alternative inputs, never votes; do not blend or average findings; a deferred decision is not a deletion; resolve conflicts explicitly, never drop one silently.',
+].join(' ')
+
+/** 一条未综合的 child 结论（派生自日志）。 */
+export interface PendingOutcome {
+  /** child 会话 id。 */
+  subagentSessionId: string
+  /** 终态原因。 */
+  stopReason: string
+}
+
+/**
+ * 未综合的 child 结论：router/outcome 减去已配对 router/adoption。
+ * @param events - 会话事件日志（权威来源）。
+ * @returns 按日志顺序的未综合结论。
+ */
+export function pendingOutcomes(events: readonly SessionEvent[]): PendingOutcome[] {
+  const adopted = new Set<string>()
+  const pending: PendingOutcome[] = []
+  for (const event of events) {
+    if (event.type === 'router/outcome') {
+      const { subagentSessionId, stopReason } = event.data as { subagentSessionId?: unknown; stopReason?: unknown }
+      if (typeof subagentSessionId === 'string' && typeof stopReason === 'string') {
+        pending.push({ subagentSessionId, stopReason })
+      }
+    } else if (event.type === 'router/adoption') {
+      const { subagentSessionId } = event.data as { subagentSessionId?: unknown }
+      if (typeof subagentSessionId === 'string') adopted.add(subagentSessionId)
+    }
+  }
+  return pending.filter(entry => !adopted.has(entry.subagentSessionId))
+}
+
+/** 写/改类工具名（claim-audit 的 mutation 面）。 */
+const MUTATION_TOOLS: ReadonlySet<string> = new Set(['write', 'edit', 'str_replace_editor'])
+/** 验证类工具名（claim-audit 的 verification 面）。 */
+const VERIFICATION_TOOLS: ReadonlySet<string> = new Set(['run_tests', 'related_tests'])
+
+/**
+ * 验证缺口（claim-audit 新鲜度概念的 DSH 形态）：最近一次写/改类工具
+ * 成功之后没有新的验证类工具成功——主代理若声称「验证通过」需自证。
+ * @param events - 会话事件日志（权威来源）。
+ * @returns 存在验证缺口时为 true。
+ */
+export function verificationGap(events: readonly SessionEvent[]): boolean {
+  let lastMutation = -1
+  let lastVerification = -1
+  for (let index = 0; index < events.length; index++) {
+    const event = events[index]
+    if (event?.type !== 'tool/call') continue
+    const name = event.data.name
+    if (MUTATION_TOOLS.has(name)) lastMutation = index
+    if (VERIFICATION_TOOLS.has(name)) lastVerification = index
+  }
+  return lastMutation > lastVerification
+}
+
+/**
+ * 渲染主代理综合提示：列出未综合结论 + rubric；含验证缺口时附软提醒
+ * （不硬拦——主代理拥有最终权）。
+ * @param pending - 未综合结论。
+ * @param gap - 验证缺口。
+ * @param rubric - rubric 文本（Config 覆盖或缺省）。
+ * @returns 提示文本；无未综合结论时为 ''。
+ */
+export function renderSynthesisSection(
+  pending: readonly PendingOutcome[],
+  gap: boolean,
+  rubric: string,
+): string {
+  if (pending.length === 0) return ''
+  const lines = pending.map(entry =>
+    `- subagent ${entry.subagentSessionId} (${entry.stopReason}) — declare adopt or reject with router_adopt`)
+  const gapLine = gap
+    ? 'Note: recent file mutations have no fresh verification in the log — if you claim verification passed, point at the verification that proves it.'
+    : ''
+  return [lines.join('\n'), gapLine, rubric].filter(line => line !== '').join('\n')
+}
+
+/**
+ * 校验采用声明参数（工具边界）：subagentSessionId/verdict/reason 形状，
+ * 违规按契约消息拒绝。
+ * @param args - 原始工具参数（wire 边界 unknown）。
+ * @returns 校验后的参数。
+ */
+export function parseAdoptArgs(args: unknown): AdoptArgs {
+  if (typeof args !== 'object' || args === null || Array.isArray(args)) {
+    throw new Error(`${ADOPT_TOOL_NAME}: arguments must be an object with subagentSessionId, verdict, and reason`)
+  }
+  const raw = args as Record<string, unknown>
+  const subagentSessionId = raw.subagentSessionId
+  if (typeof subagentSessionId !== 'string' || subagentSessionId.trim() === '') {
+    throw new Error(`${ADOPT_TOOL_NAME}: subagentSessionId must be a non-empty string`)
+  }
+  const verdict = raw.verdict
+  if (verdict !== 'adopt' && verdict !== 'reject') {
+    throw new Error(`${ADOPT_TOOL_NAME}: verdict must be 'adopt' | 'reject', got ${JSON.stringify(verdict)}`)
+  }
+  const reason = raw.reason
+  if (typeof reason !== 'string' || reason.trim() === '') {
+    throw new Error(`${ADOPT_TOOL_NAME}: reason must be a non-empty string`)
+  }
+  return { subagentSessionId, verdict, reason: reason.trim() }
+}
