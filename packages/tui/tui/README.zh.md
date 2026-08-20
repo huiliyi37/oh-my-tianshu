@@ -19,7 +19,7 @@
 | 字段 | 语义 |
 |---|---|
 | `stdin` / `stdout` | 流注入（测试替身）；缺省 process 全局流 |
-| `initialSessionId` | 启动即切入的会话；缺省新建 |
+| `initialSessionId` | 启动即切入的会话；缺省恢复最近 live 会话，否则新建（`dsh tui --session <id>` 从命令行设置） |
 | `editorKey` | 外部编辑器触发键（Phase 6.4）；缺省 `ctrl_o` |
 | `vimEnabled` | Vim 键位（Phase 6.5）；缺省 `false` |
 | `vision` | 主控模型识图能力与视觉桥状态（图片附件气泡提示数据源：`supportsVision` / `bridgeEnabled` / `bridgeSource`）；由装配方按 vision-bridge 插件配置派生——装配方未派生时，`bridgeEnabled` 经插件 apply 时 provide 的 `visionBridge` 服务自动探测 |

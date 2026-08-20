@@ -19,7 +19,7 @@ The shipped bundle patch (cordis.patch.yml) mounts, besides `tui-runner`: spark-
 | Field | Semantics |
 |---|---|
 | `stdin` / `stdout` | Stream injection (test doubles); defaults to the process global streams |
-| `initialSessionId` | The session to enter at startup; defaults to creating a new one |
+| `initialSessionId` | The session to enter at startup; defaults to the most recent live session, else a new one (`dsh tui --session <id>` sets it from the command line) |
 | `editorKey` | External-editor trigger key (Phase 6.4); defaults to `ctrl_o` |
 | `vimEnabled` | Vim keybindings (Phase 6.5); defaults to `false` |
 | `vision` | Primary-model vision capability and bridge state for the image-attachment bubble hints (`supportsVision` / `bridgeEnabled` / `bridgeSource`); derived by the assembler from the vision-bridge plugin config — when absent, `bridgeEnabled` is auto-probed from the `visionBridge` service the plugin provides at apply time |

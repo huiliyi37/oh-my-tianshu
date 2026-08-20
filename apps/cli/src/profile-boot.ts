@@ -178,6 +178,8 @@ export interface RunProfileOptions {
   deriveFlagPatches?: (rows: ProfileRows) => PatchOptions[]
   /** `tianshu run` task text; requires the composition to mount the headless runner row. */
   task?: string
+  /** Existing persisted session to resume with the task (`run --session <id>`; session-resume 1.4). */
+  sessionId?: string
   /** Inner launcher arguments forwarded to the booted app (tui --help/--version/positional prompt). */
   innerArgs?: string[]
   /** Surface setup registered after Loader installation and before any config-tree entry mounts. */
@@ -201,7 +203,13 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
         + '(the headless profile does)',
       )
     }
-    composed.overlayAndFlags.push({ id: HEADLESS_ROW_ID, config: { task: options.task } })
+    composed.overlayAndFlags.push({
+      id: HEADLESS_ROW_ID,
+      config: {
+        task: options.task,
+        ...options.sessionId === undefined ? {} : { sessionId: options.sessionId },
+      },
+    })
   } else if (composed.rows.has(HEADLESS_ROW_ID)) {
     // The inverse misuse: a one-shot composition booted without its task
     // would otherwise die in the runner row's schema with a raw "required"

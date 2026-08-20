@@ -31,6 +31,11 @@ describe('parseDshArgs', () => {
       .toEqual({ mode: 'run', profile: 'custom', patches: ['a.yml', 'b.yml'], task: 'run the tests' })
     expect(parse(['run', '--', '--profile', 'is', 'task', 'text']))
       .toEqual({ mode: 'run', profile: 'headless', patches: [], task: '--profile is task text' })
+    // session-resume 1.4: --session resumes an existing persisted session
+    expect(parse(['run', '--session', 'session-abc', 'continue', 'the', 'work']))
+      .toEqual({ mode: 'run', profile: 'headless', patches: [], task: 'continue the work', session: 'session-abc' })
+    expect(parse(['run', '--session', 'session-abc', '--patch', 'x.yml', 'task']))
+      .toEqual({ mode: 'run', profile: 'headless', patches: ['x.yml'], task: 'task', session: 'session-abc' })
     expect(parse(['web'])).toEqual({ mode: 'web', dev: false, patches: [], open: true })
     expect(parse(['web', '--patch', 'web.yml'])).toEqual({ mode: 'web', dev: false, patches: ['web.yml'], open: true })
     expect(parse(['web', '--host', '0.0.0.0', '--port', '8080', '--dev', '--workspace-root', '/w']))
@@ -73,6 +78,11 @@ describe('parseDshArgs', () => {
     // port of dsh-tianshu-tui#21: inner args (--help/--version/initial prompt) are forwarded
     expect(parse(['tui', '--help'])).toEqual({ mode: 'tui', patches: [], args: ['--help'] })
     expect(parse(['tui', '修复这个', 'bug'])).toEqual({ mode: 'tui', patches: [], args: ['修复这个', 'bug'] })
+    // session-resume 1.4: --session is captured and forwarded to the TUI app
+    expect(parse(['tui', '--session', 'session-abc']))
+      .toEqual({ mode: 'tui', patches: [], args: ['--session', 'session-abc'] })
+    expect(parse(['tui', '--session', 'session-abc', '继续']))
+      .toEqual({ mode: 'tui', patches: [], args: ['--session', 'session-abc', '继续'] })
   })
 
   it('rejects missing profile, removed flags, and contradictory inputs', () => {

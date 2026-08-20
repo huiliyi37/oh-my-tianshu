@@ -9,11 +9,11 @@
 | 命令 | 用途 |
 |---|---|
 | `oh-my-tianshu --profile <name>` | 启动位于 `$DSH_HOME/profiles/<name>` 的指定 profile。 |
-| `oh-my-tianshu run [--profile <name>] [--patch <path>...] "task"` | 直接在 core 上运行一个新的持久化会话，打印最终答案并退出；profile 默认为 `headless`，且不挂载 Web server。 |
+| `oh-my-tianshu run [--profile <name>] [--patch <path>...] [--session <id>] "task"` | 直接在 core 上运行一个持久化会话（缺省新建，`--session <id>` 恢复既有会话），打印最终答案并退出；profile 默认为 `headless`，且不挂载 Web server。 |
 | `oh-my-tianshu web` | `--profile web` 的别名，附带 Web flag 系列（`--host`、`--port`、`--dev` 等）。 |
 | `oh-my-tianshu plugin --profile <name> <pnpm args>` | 通过在 profile 目录中转发给 pnpm 来管理该 profile 的插件。 |
 
-调用目录是默认 workspace 根目录。`oh-my-tianshu run` 要求任务文本非空白，且所选 profile 必须挂载 `headless-runner` 行；`--profile` 保留对自定义一次性 profile 的支持。`web` 和 `headless` profile 在首次使用时会从随附模板自动初始化；其他任何 profile 都必须通过 `oh-my-tianshu plugin` 创建。
+调用目录是默认 workspace 根目录。`oh-my-tianshu run` 要求任务文本非空白，且所选 profile 必须挂载 `headless-runner` 行；`--profile` 保留对自定义一次性 profile 的支持。`oh-my-tianshu run --session <id>` 恢复指定 id 的持久化会话，id 未知时 fails loud 并给出恢复指引；`oh-my-tianshu tui --session <id>` 启动 TUI 并切入该会话。`web` 和 `headless` profile 在首次使用时会从随附模板自动初始化；其他任何 profile 都必须通过 `oh-my-tianshu plugin` 创建。
 
 ## Profile
 

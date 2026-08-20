@@ -80,6 +80,7 @@ switch (invocation.mode) {
       profile: invocation.profile,
       patchFiles: invocation.patches,
       task: invocation.task,
+      ...invocation.session === undefined ? {} : { sessionId: invocation.session },
     })
     break
   }

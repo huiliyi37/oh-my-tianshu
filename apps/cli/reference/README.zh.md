@@ -25,9 +25,9 @@ oh-my-tianshu --profile web --patch ./extra.yml --dump-config
 
 ## 一次性运行
 
-`oh-my-tianshu run [--profile <name>] [--patch <path>...] <task...>` 会用空格拼接任务参数，拒绝缺失或空白任务，并让 `--profile` 默认为 `headless`。可重复使用的 `--patch` overlay 与 profile 启动的 overlay 位于同一层。所选的自定义 profile 必须挂载 `headless-runner`；否则启动器会在启动前失败，并在诊断中指明缺少该行。
+`oh-my-tianshu run [--profile <name>] [--patch <path>...] [--session <id>] <task...>` 会用空格拼接任务参数，拒绝缺失或空白任务，并让 `--profile` 默认为 `headless`。可重复使用的 `--patch` overlay 与 profile 启动的 overlay 位于同一层。所选的自定义 profile 必须挂载 `headless-runner`；否则启动器会在启动前失败，并在诊断中指明缺少该行。
 
-启动器把任务文本 patch 进运行器行。Loader 结算后，运行器读取共享的 `ctx.agentDefaultModel` 默认值，通过 `ctx.agents` 创建一个全新的持久化 Agent（智能体），提交任务、等待完全停稳并对 Session 执行 flush，再从其持久化事件区间中推导最后一个非空 assistant 文本与最终 `turn/end` 原因。它在 stdout 打印文本，并在原因为 `completed` 时以 0 退出，否则以 1 退出。随附 headless profile 不挂载 ApiProxy、Host、HTTP 服务器、Web 运行时或浏览器客户端；成功运行不会向 stderr 写入任何内容，也不会打开监听端口。
+启动器把任务文本 patch 进运行器行。Loader 结算后，运行器读取共享的 `ctx.agentDefaultModel` 默认值，通过 `--session <id>` 恢复指定持久化会话（session-resume：任务提交前恢复历史与血缘；未知 id 在 stderr 上 fails loud 并给出恢复指引、以 1 退出——绝不静默新建会话），缺省时则通过 `ctx.agents` 创建一个全新的持久化 Agent（智能体）。随后提交任务、等待完全停稳并对 Session 执行 flush，再从其持久化事件区间中推导最后一个非空 assistant 文本与最终 `turn/end` 原因。它在 stdout 打印文本，并在原因为 `completed` 时以 0 退出，否则以 1 退出。随附 headless profile 不挂载 ApiProxy、Host、HTTP 服务器、Web 运行时或浏览器客户端；成功运行不会向 stderr 写入任何内容，也不会打开监听端口。
 
 ## 插件管理
 

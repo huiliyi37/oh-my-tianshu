@@ -27,7 +27,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { ReadStream, WriteStream } from 'node:tty'
 import type { Context } from '@huiliyi37/cordis'
-import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
+import { SessionId, lastActivityTime, type SessionEvent } from '@huiliyi37/dsh-session'
 import type { CallId, ImageBlock, ReasoningEffortId, TokenUsage } from '@huiliyi37/dsh-llm'
 import type { IntentBridgeService } from '@huiliyi37/dsh-intent-bridge' // 'intent-bridge/handoff' event + ctx.intentBridge declaration merge
 import { installModelSelection, type Agent, type AgentHandle, type ModelSelection, type ModelSelectionRef } from '@huiliyi37/dsh-agent'
@@ -56,7 +56,7 @@ import { createTranscript, type Transcript, type TranscriptMessage, type Transcr
 import { resolveToolViews, type ToolPresenterSource } from '../adapter/tool-view.js'
 import { trackAgent, type LiveAgent } from '../adapter/live.js'
 import { controlsFromHandle, controlsFromRegistry, type AgentControls } from '../adapter/send.js'
-import { listSessions, flushAll, getSession, type SessionSummary } from '../adapter/sessions.js'
+import { listSessions, flushAll, getSession, loadHistory, type SessionSummary } from '../adapter/sessions.js'
 import { supportsOsc52 } from '../term-caps.js'
 import { getTheme, getActiveThemeName, setTheme, THEME_NAMES, type RivetTheme, type ThemeName } from '../theme.js'
 import { displayWidth, ambiguousWideEnabled } from '../width.js'
@@ -229,7 +229,8 @@ import { RewindOverlay, type RewindMode, type RewindResult } from '../format/rew
 import { openInEditorDetailed, getEditorCommand } from '../external-editor.js'
 import { FluencyTracker } from '../fluency-hook.js'
 import { expandMentions } from '../mention-expand.js'
-import { formatSessionAge } from '../restore-session.js'
+import { formatSessionAge, formatRestorablePickerList, projectRestorableSessions, wasCrashRepaired, type RestorableSession } from '../restore-session.js'
+import { sessionTitleFor } from '../adapter/session-title.js'
 // 副作用声明合并：让 ctx.on('approval/request') 的 handler 参数由 cordis 事件
 // 类型推导（user-approval 的 module augmentation）。不 import 具体类型——
 // 该包的 lib 声明带 .ts 后缀相对导入，跨包 tsc 解析会触发 rootDir 冲突。
@@ -256,6 +257,7 @@ import { renderBtwPanel } from '../format/btw-panel.js'
 import { CHROME_GUTTER, formatWelcomeCard, formatWelcomeHero, pickWelcomeTip, type WelcomeEnvCheck, type WelcomeTipItem } from '../format/welcome.js'
 import { formatWhaleLogo, WHALE_MIN_ROWS } from '../format/whale.js'
 import { formatTopBar } from '../format/top-bar.js'
+import { formatSeparator } from '../format/separator.js'
 import { formatTurnStatus } from '../format/turn-status.js'
 import { formatPromptFooter } from '../format/prompt-footer.js'
 import { formatInputFrame, promptBorderColor } from '../format/input-frame.js'
@@ -372,6 +374,7 @@ const USAGE_TEXT = `oh-my-tianshu tui — oh-my-tianshu 交互式终端界面 / 
 用法 / Usage:
   oh-my-tianshu tui                   启动交互式 TUI / start the interactive TUI
   oh-my-tianshu tui "<提示词>"        启动并直接发送提示词 / start and send a prompt
+  oh-my-tianshu tui --session <id>    恢复指定会话 / resume the session with <id>
   oh-my-tianshu tui --help            显示本帮助 / show this help
   oh-my-tianshu tui --version         输出版本 / print the version
 
@@ -1018,22 +1021,50 @@ export class TuiApp {
   get sessionId(): SessionId | null { return this.activeSessionId }
 
   /**
+   * 欢迎页数字键直达的编号行（renderRestorableSessions 落列表时填充；
+   * 索引 = 行号 - 1）。仅在欢迎阶段（welcomeDigitsActive）路由数字键。
+   */
+  private welcomeSessionRows: RestorableSession[] = []
+  /**
+   * 欢迎阶段标记：冷启动欢迎页列出可恢复会话后置真，首次输入任意字符或
+   * 会话切换后置假。置真期间空输入行 + 纯数字键 = 恢复对应编号会话；置假后
+   * 数字键一律回输入行（不劫持正常打字）。
+   */
+  private welcomeDigitsActive = false
+
+  /**
    * 接管终端：切主题（'auto' 探测背景）、装配会话、注册键路由与 resize、启动渲染 ticker。
    * @param initialSessionId - 覆盖构造选项的起始会话；缺省用构造 initialSessionId，
    *   再缺省恢复最近会话（live store 为空才新建）。
    */
   async attach(initialSessionId?: SessionId): Promise<void> {
     if (this.disposed) throw new Error('TuiApp already disposed')
-    // A3：处理 launcher 转发的命令行参数（`oh-my-tianshu tui <args>`）：
+    // A3 + 1.4：处理 launcher 转发的命令行参数（`oh-my-tianshu tui <args>`）：
     // --help/-h 输出用法、--version/-v 输出版本后经 appExit 退出；纯位置参数
-    // 作为初始 prompt（attach 完成后发送）。含其它 flag 时不发 prompt（避免
-    // 与 --resume 等未实现参数的组合语义冲突）。port of dsh-tianshu-tui#21。
+    // 作为初始 prompt（attach 完成后发送）；--session <id> 提取为恢复目标。
+    // 含其它 flag 时不发 prompt（与既有组合语义一致）。port of dsh-tianshu-tui#21。
     const cmdline = this.ctx.reflect.get('cmdlineArgs', false) as { get(): string[] } | undefined
     const args = cmdline?.get() ?? []
-    const flags = args.filter(a => a.startsWith('-'))
+    // 提取 --session <id>（恢复既有会话；值从参数流移除，不参与 flag 判定）。
+    let cliSessionId: SessionId | undefined
+    const rest: string[] = []
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i]
+      if (arg === '--session') {
+        const value = args[i + 1]
+        if (value !== undefined) {
+          cliSessionId = SessionId(value)
+          i += 1
+          continue
+        }
+      }
+      /* v8 ignore next -- 循环下标在 length 守卫内必有值；noUncheckedIndexedAccess 防御 */
+      if (arg !== undefined) rest.push(arg)
+    }
+    const flags = rest.filter(a => a.startsWith('-'))
     const wantHelp = flags.includes('--help') || flags.includes('-h')
     const wantVersion = flags.includes('--version') || flags.includes('-v')
-    const initialPrompt = flags.length === 0 ? args.filter(a => !a.startsWith('-')).join(' ') : ''
+    const initialPrompt = flags.length === 0 ? rest.filter(a => !a.startsWith('-')).join(' ') : ''
     if (wantHelp || wantVersion) {
       const exit = this.ctx.reflect.get('appExit', false) as ((code?: number) => void) | undefined
       this.stdout.write(wantHelp
@@ -1069,12 +1100,26 @@ export class TuiApp {
     // （有界；未注册跳过）——否则 newSession/resume 在创建时快照到的是 config
     // 默认模型（settings 未加载），且欢迎页误报 API Key ✗。
     await this.waitForServicesReady(['settings', 'credentials'])
-    const target = initialSessionId ?? this.initialSessionId ?? this.ctx.sessions.list()[0]?.id
+    let target = cliSessionId ?? initialSessionId ?? this.initialSessionId ?? this.ctx.sessions.list()[0]?.id
+    if (cliSessionId !== undefined) {
+      // 1.4：--session 指向未知会话 fails loud + 入口指引——回落到正常启动路径，
+      // 欢迎页可恢复列表即指引（不静默吞掉错误）。
+      const known = (await listSessions(this.ctx)).some(s => s.id === cliSessionId)
+      if (!known) {
+        target = initialSessionId ?? this.initialSessionId ?? this.ctx.sessions.list()[0]?.id
+        this.commitToScrollback({
+          text: color(`⚠ 会话不存在: ${cliSessionId} —— 可用入口: 欢迎页数字键 / /session list / ctrl+s 恢复最近`, this.theme.warning),
+          trailingNewline: true,
+        })
+      }
+    }
     if (target !== undefined) await this.switchSession(target)
     else await this.newSession()
 
-    // Phase 9b：会话恢复面板——启动时把可恢复会话列表写进 scrollback
-    // （当前会话除外；无其他可恢复会话时静默）。live 标注取 live store。
+    // Phase 9b + 1.1：会话恢复面板——启动时把可恢复会话编号列表写进
+    // scrollback（当前会话除外；无其他可恢复会话时静默），数字键直达。
+    // live 标注取 live store（listSessions 的 header 无 live 字段，
+    // 经 ctx.sessions.list() 的 id 集合判定）。
     await this.renderRestorableSessions()
     // 会话 tab 栏初始快照（attach 后；后续 newSession/switchSession 刷新）。
     void this.refreshSessionTabs()
@@ -1508,8 +1553,9 @@ export class TuiApp {
   }
 
   /**
-   * Phase 9b：把可恢复会话列表写进 scrollback（启动时）。
-   * 排除当前活跃会话；无其他可恢复会话时静默（不占位）。
+   * Phase 9b + 1.1：把可恢复会话编号列表写进 scrollback（启动时）。
+   * 排除当前活跃会话；无其他可恢复会话时静默（不占位）。列表行带 `[N]`
+   * 编号，欢迎阶段（welcomeDigitsActive）按数字键直达对应会话。
    * live 标注取 live store（listSessions 的 header 无 live 字段，
    * 经 ctx.sessions.list() 的 id 集合判定）。
    */
@@ -1554,6 +1600,19 @@ export class TuiApp {
       ? '恢复会话'
       : `恢复 · ${formatSessionAge(recent.createdAt, Date.now())}`
 
+    // 1.1：可恢复会话编号列表（数字键直达）。标题经 loadHistory + sessionTitleFor
+    // 计算——仅对展示行数（WELCOME_RESTORE_MAX_ROWS）做 IO，折叠计数取全量。
+    // 冷启动默认行为（新建 vs 自动恢复）是未定决策点：列表只补可见性，不改默认。
+    const WELCOME_RESTORE_MAX_ROWS = 3
+    const liveIds = new Set(this.ctx.sessions.list().map(s => s.id))
+    const restoreRows = projectRestorableSessions(others, { liveIds }).slice(0, WELCOME_RESTORE_MAX_ROWS)
+    const restoreRowsWithTitles = await Promise.all(restoreRows.map(async (s) => {
+      const events = await loadHistory(this.ctx, s.id).catch(() => [])
+      return { ...s, title: sessionTitleFor(events) }
+    }))
+    this.welcomeSessionRows = restoreRowsWithTitles
+    this.welcomeDigitsActive = restoreRowsWithTitles.length > 0
+
     // 品牌鲸鱼像素画（omp 风格对角渐变——truecolor 轨；窄屏/矮屏/低色深/
     // legacy conhost 时降级为纯文字品牌区）。卡盒内容宽 = cols - 4。
     const whale = formatWhaleLogo({ width: Math.max(0, cols - 4), rows: this.stdout.rows, bodyGradient: true })
@@ -1581,6 +1640,17 @@ export class TuiApp {
     for (const line of formatWelcomeCard({ width: cols, lines: heroLines }, this.theme)) {
       commitLine(line)
     }
+    // 1.1：可恢复会话编号列表（卡与随机 Tip 之间；仅存在其他会话时出现）。
+    if (this.welcomeSessionRows.length > 0) {
+      commitLine(color('恢复会话', this.theme.brandColor, { bold: true }))
+      for (const line of formatRestorablePickerList(this.welcomeSessionRows, {
+        now: Date.now(),
+        maxRows: WELCOME_RESTORE_MAX_ROWS,
+      })) {
+        commitLine(line)
+      }
+      commitLine(color('[1-9] 恢复 · ctrl+n 新会话', this.theme.muted))
+    }
     commitLine(color(pickWelcomeTip(), this.theme.muted, { italic: true }))
     // 空行收尾：命令回显（如「模型已切换」）与欢迎页在视觉上自然分离。
     commitLine('')
@@ -1597,6 +1667,8 @@ export class TuiApp {
    * @returns 新会话的 id（本层铸造的 session-<uuid>）。
    */
   async newSession(): Promise<SessionId> {
+    // 1.1：新建会话结束欢迎阶段（数字键列表只在冷启动首屏有效）。
+    this.welcomeDigitsActive = false
     // P3 side conversation：切换时保留旧会话 agent（keepHandle 让渡 registry）——
     // /session new 后旧会话可切回。退出（dispose）时 detachProjections 默认
     // 释放全部 handle（见 dispose 路径）。
@@ -1965,6 +2037,8 @@ export class TuiApp {
    * @param id - 目标会话 id；必须是 live store 中已存在的会话。
    */
   async switchSession(id: SessionId): Promise<void> {
+    // 1.1：任何会话切换都结束欢迎阶段（数字键列表只在冷启动首屏有效）。
+    this.welcomeDigitsActive = false
     // P3 side conversation：切走时保留旧会话 agent（keepHandle 让渡 registry；
     // 切回时走下方 agents.get 兜底分支——不 create 不 resume，transcript 重放）。
     await this.detachProjections({ keepHandle: true })
@@ -2110,7 +2184,28 @@ export class TuiApp {
         }),
       }),
     })
+    // 1.2/1.3：恢复挂载的可见信号。仅既有历史（resume/switch 到有内容的会话）
+    // 时渲染：回放前横幅（标题 · 最后活动 · cwd）+ 崩溃修复告知，回放末尾
+    // 「上次进行到此处」分隔；新会话（无历史）三者都不渲染。
+    const restored = session.events.length > 0
+    if (restored) {
+      const banner = [`已恢复会话 ${sessionTitleFor(session.events)}`]
+      const lastAt = lastActivityTime(session.events)
+      if (lastAt !== undefined) banner.push(formatSessionAge(lastAt, Date.now()))
+      const cwd = session.header.cwd
+      if (cwd !== undefined && cwd !== '') banner.push(cwd)
+      this.commitToScrollback({ text: color(banner.join(' · '), this.theme.brandColor), trailingNewline: true })
+      // 1.3：修复信号——日志含 repair 合成的 interrupted turn/end 标记。
+      if (wasCrashRepaired(session.events)) {
+        this.commitToScrollback({ text: color('⚠ 上次运行被中断，已自动闭合未完成回合', this.theme.warning), trailingNewline: true })
+      }
+    }
     this.commitRows(rows)
+    if (restored && rows.length > 0) {
+      for (const line of formatSeparator({ width: this.stdout.columns, label: '上次进行到此处' }, this.theme)) {
+        this.commitToScrollback({ text: line })
+      }
+    }
     this.inputLine.setHistory(this.history)
     // T2.1：委派树预取（listDescendants 是 async——首次 await 入缓存；
     // subagent/start|end 事件触发 re-await + renderLive 刷新）。
@@ -2381,6 +2476,8 @@ export class TuiApp {
    * @param images - 输入框携带的图片附件 data URL 列表（可省略）
    */
   handleSubmit(text: string, images?: string[]): void {
+    // 1.1：提交输入即结束欢迎阶段（数字键回归输入行语义由 handleKey 收尾兜底）。
+    this.welcomeDigitsActive = false
     // 入口先规范化图片数组：只保留合法 data URL，上限 MAX_IMAGES。
     images = normalizeSubmitImages(images)
     let trimmed = text.trim()
@@ -3072,6 +3169,15 @@ export class TuiApp {
       }
       return
     }
+    // 1.1：欢迎页数字键直达——仅欢迎阶段（列表刚渲染、尚未输入/切换）且空输入行
+    // 时劫持纯数字键（行号 = 欢迎列表编号）；其余时候数字键一律进输入行。
+    if (this.welcomeDigitsActive && !key.meta && !key.ctrl && /^[1-9]$/.test(key.char) && this.inputLine.value === '') {
+      const row = this.welcomeSessionRows[Number(key.char) - 1]
+      if (row !== undefined) {
+        void this.switchSession(row.id)
+        return
+      }
+    }
     // Esc 打断：对齐 Claude Code 单次 Esc 停止输出。位于挂起交互分支之后——
     // overlay/菜单打开时 Esc 仍先关面板；仅「无挂起交互 + 忙碌」才打断；
     // 空闲不动作（不退出、不触发任何东西）。Kitty CSI u 的 Esc（CSI 27 u）
@@ -3233,6 +3339,8 @@ export class TuiApp {
       }
       return
     }
+    // 欢迎阶段收尾：任何未路由的可见字符输入后，数字键回归输入行（不劫持打字）。
+    if (this.welcomeDigitsActive && key.char !== '') this.welcomeDigitsActive = false
     const event = this.inputLine.handleKey(key.name, key.char, key.ctrl, key.meta, key.shift, key.inline === true)
     // 选区剪切/复制的 OSC52 drain：Ctrl+K 剪切 / Alt+W 复制写系统剪贴板
     // （终端支持 OSC52 时生效，不支持者无害忽略）。vim yank（p/P、Alt+Y）走

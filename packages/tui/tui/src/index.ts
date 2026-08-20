@@ -25,7 +25,7 @@ export interface TuiRunnerConfig {
   stdin?: ReadStream
   /** 渲染输出流；缺省 process.stdout。 */
   stdout?: WriteStream
-  /** 启动即切入的会话 id；缺省新建会话。 */
+  /** 启动即切入的会话 id；缺省恢复最近 live 会话（live store 为空才新建）。 */
   initialSessionId?: SessionId
   /** 外部编辑器触发键（Phase 6.4）；缺省 ctrl_e（ctrl+o 已恢复为推理展开）。 */
   editorKey?: KeyName

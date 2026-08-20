@@ -26,6 +26,8 @@ interface RunInvocation {
   patches: string[]
   /** Non-blank task text joined from the variadic positional arguments. */
   task: string
+  /** Existing persisted session to resume with the task (session-resume 1.4). */
+  session?: string
 }
 
 /** Print a composed profile tree and exit without booting. */
@@ -108,6 +110,8 @@ interface WebOptions {
 interface RunOptions {
   profile: string
   patch?: string[]
+  /** Existing persisted session to resume with the task (session-resume 1.4). */
+  session?: string
 }
 
 /**
@@ -186,6 +190,7 @@ Examples:
   run
     .option('--profile <name>', 'one-shot profile under $DSH_HOME/profiles', 'headless')
     .option('--patch <path>', 'extra patch-list overlay applied after the profile layer (repeatable)', collect)
+    .option('--session <id>', 'resume an existing persisted session with the task instead of creating a fresh one')
     .argument('<task...>', 'task text')
     .action((task: string[], options: RunOptions) => {
       rejectParentOptions('run')
@@ -193,9 +198,14 @@ Examples:
       if (profile === '') program.error('error: --profile needs a name')
       const patches = options.patch ?? []
       if (patches.includes('')) program.error('error: --patch needs a path')
+      const session = options.session
+      if (session !== undefined && session === '') program.error('error: --session needs an id')
       const joined = task.join(' ')
       if (joined.trim() === '') program.error('error: run needs a non-blank task')
-      resolved = { mode: 'run', profile, patches, task: joined }
+      resolved = {
+        mode: 'run', profile, patches, task: joined,
+        ...session === undefined ? {} : { session },
+      }
     })
 
   const web = program.command('web').description('serve the browser UI (alias of --profile web) on the configured host and port')
@@ -248,23 +258,34 @@ Examples:
 
   const tui = program.command('tui').description('boot the terminal UI profile (alias of --profile tui)')
   tui
-    // --help/--version belong to the TUI app (port of dsh-tianshu-tui#21):
-    // capture them as explicit options and forward them inside the inner args,
-    // alongside positional arguments (the initial prompt).
+    // --help/--version/--session belong to the TUI app (port of dsh-tianshu-tui#21;
+    // session-resume 1.4): capture them as explicit options and forward them
+    // inside the inner args, alongside positional arguments (the initial prompt).
     .helpOption(false)
     .option('--help', 'show the TUI usage (forwarded to the TUI app)')
     .option('-h', 'alias of --help')
     .option('--version', 'print the TUI version (forwarded to the TUI app)')
     .option('-v', 'alias of --version')
+    .option('--session <id>', 'resume an existing persisted session at startup (forwarded to the TUI app)')
     .option('--patch <path>', 'extra patch-list overlay applied after the profile layer (repeatable)', collect)
-    .argument('[args...]', 'arguments for the booted TUI app (--help/--version or an initial prompt)')
-    .action((args: string[], options: { patch?: string[]; help?: boolean; h?: boolean; version?: boolean; v?: boolean }) => {
+    .argument('[args...]', 'arguments for the booted TUI app (--help/--version/--session or an initial prompt)')
+    .action((args: string[], options: {
+      patch?: string[]
+      help?: boolean
+      h?: boolean
+      version?: boolean
+      v?: boolean
+      session?: string
+    }) => {
       rejectParentOptions('tui')
       const patches = options.patch ?? []
       if (patches.includes('')) program.error('error: --patch needs a path')
+      const session = options.session
+      if (session !== undefined && session === '') program.error('error: --session needs an id')
       const tuiFlags: string[] = []
       if (options.help || options.h) tuiFlags.push('--help')
       if (options.version || options.v) tuiFlags.push('--version')
+      if (session !== undefined) tuiFlags.push('--session', session)
       resolved = { mode: 'tui', patches, args: [...tuiFlags, ...args] }
     })
 

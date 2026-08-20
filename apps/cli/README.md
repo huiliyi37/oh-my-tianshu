@@ -9,11 +9,11 @@ The `dsh` command is the product launcher for profiles: ordered stacks of plugin
 | Command | Purpose |
 |---|---|
 | `oh-my-tianshu --profile <name>` | Boot the named profile under `$DSH_HOME/profiles/<name>`. |
-| `oh-my-tianshu run [--profile <name>] [--patch <path>...] "task"` | Run one fresh persisted session directly over core, print the final answer, and exit; the profile defaults to `headless` and mounts no Web server. |
+| `oh-my-tianshu run [--profile <name>] [--patch <path>...] [--session <id>] "task"` | Run one persisted session directly over core (fresh by default, resumed with `--session <id>`), print the final answer, and exit; the profile defaults to `headless` and mounts no Web server. |
 | `oh-my-tianshu web` | Alias of `--profile web` with the Web flag family (`--host`, `--port`, `--dev`, ...). |
 | `oh-my-tianshu plugin --profile <name> <pnpm args>` | Manage a profile's plugins by forwarding to pnpm in the profile directory. |
 
-The invoking directory is the default workspace root. `oh-my-tianshu run` requires non-blank task text and the selected profile must mount the `headless-runner` row; `--profile` preserves custom one-shot profiles. The `web` and `headless` profiles auto-initialize on first use from shipped templates; any other profile must be created through `oh-my-tianshu plugin`.
+The invoking directory is the default workspace root. `oh-my-tianshu run` requires non-blank task text and the selected profile must mount the `headless-runner` row; `--profile` preserves custom one-shot profiles. `oh-my-tianshu run --session <id>` resumes the persisted session with that id and fails loud with recovery guidance when the id is unknown; `oh-my-tianshu tui --session <id>` boots the TUI into that session. The `web` and `headless` profiles auto-initialize on first use from shipped templates; any other profile must be created through `oh-my-tianshu plugin`.
 
 ## Profiles
 

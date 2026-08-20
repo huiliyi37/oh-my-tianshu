@@ -29,10 +29,14 @@ export const inject = ['agentDefaultModel', 'agents', 'sessions']
 export interface Config {
   /** The prompt text for the single run. */
   task: string
+  /** Existing persisted session to resume with the task (`run --session <id>`; absent = fresh session). */
+  sessionId?: string
 }
 
 export const Config: z<Config> = z.object({
   task: z.string().required(),
+  // schemastery 对象属性缺省可选：缺省即新建会话。
+  sessionId: z.string(),
 })
 
 /** Outcome of one owned run interval. */
@@ -90,12 +94,13 @@ function fail(io: HeadlessIo, error: unknown): void {
 }
 
 /**
- * Run one task through a freshly created Agent and request process exit.
+ * Run one task through a freshly created or resumed Agent and request process exit.
  * @param ctx - plugin context carrying the Agent, default model, Session, and launcher IO services.
  * @param task - one-shot task text.
+ * @param sessionId - existing persisted session to resume (undefined = fresh session).
  * @param io - process-facing effects.
  */
-async function run(ctx: Context, task: string, io: HeadlessIo): Promise<void> {
+async function run(ctx: Context, task: string, sessionId: string | undefined, io: HeadlessIo): Promise<void> {
   // Loader siblings mount concurrently. Await the complete application before
   // creating an Agent so its scoped tools and adapters are not half-composed.
   await ctx.get('loader')?.await()
@@ -106,15 +111,26 @@ async function run(ctx: Context, task: string, io: HeadlessIo): Promise<void> {
   if (agents === undefined || defaultModel === undefined || sessions === undefined) return
 
   const selection = defaultModel.currentSelection()
-  const { agent } = await agents.create({
-    sessionId: SessionId(`session-${randomUUID()}`),
-    meta: { cwd: process.cwd() },
-    agentOptions: { provider: selection.provider, model: selection.model },
-    setup: (agentCtx) => {
-      const selected: ModelSelectionRef = { current: selection, assembled: undefined }
-      installModelSelection(agentCtx, selected)
-    },
-  })
+  const agentOptions = { provider: selection.provider, model: selection.model }
+  // session-resume 1.4：--session 恢复既有会话（上下文重建）；缺省新建。
+  const { agent } = sessionId !== undefined
+    ? await agents.resume({
+      resumeSessionId: SessionId(sessionId),
+      agentOptions,
+      setup: (agentCtx) => {
+        const selected: ModelSelectionRef = { current: selection, assembled: undefined }
+        installModelSelection(agentCtx, selected)
+      },
+    })
+    : await agents.create({
+      sessionId: SessionId(`session-${randomUUID()}`),
+      meta: { cwd: process.cwd() },
+      agentOptions,
+      setup: (agentCtx) => {
+        const selected: ModelSelectionRef = { current: selection, assembled: undefined }
+        installModelSelection(agentCtx, selected)
+      },
+    })
   await agent.whenIdle()
   const firstSeq = agent.session.seq
   agent.followup(createUserMessage({
@@ -141,5 +157,18 @@ export function apply(ctx: Context, config: Config): void {
   if (io === undefined) {
     throw new Error('headless-runner: the launcher must provide ctx.headlessIo before the tree mounts')
   }
-  void run(ctx, config.task, io).catch((error: unknown) => { fail(io, error) })
+  void run(ctx, config.task, config.sessionId, io).catch((error: unknown) => {
+    if (config.sessionId === undefined) {
+      fail(io, error)
+      return
+    }
+    // --session 恢复失败（含未知会话 id）fails loud，并给出可用入口指引：
+    // 绝不静默降级为新建会话（会话内容会因此丢失上下文）。
+    const message = error instanceof Error ? error.message : String(error)
+    const hint = message.includes('not found')
+      ? 'dsh: session not found — list recoverable sessions with `dsh tui` or `/session list`, then retry with --session <id>'
+      : 'dsh: resume failed — the session log stays intact; retry, or drop --session to start fresh'
+    io.stderr.write(`dsh: ${message}\n${hint}\n`)
+    io.exit(1)
+  })
 }

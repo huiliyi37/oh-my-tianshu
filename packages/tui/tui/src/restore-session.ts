@@ -4,7 +4,7 @@
  * 输入 adapter/sessions.ts 的 SessionSummary[] → 可恢复会话视图。
  * 不接管启动流程、不读 ctx——读取由装配层调 listSessions 后喂入。
  */
-import type { SessionId } from '@huiliyi37/dsh-session'
+import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
 import type { SessionSummary } from './adapter/sessions.js'
 
 /** 可恢复会话视图行（live = 当前进程内仍活跃）。 */
@@ -16,6 +16,8 @@ export interface RestorableSession {
   live: boolean
   /** Agent preset id（创建值 + 切换值 fold；未记录时 undefined）。 */
   agentPreset: string | undefined
+  /** 展示标题（sessionTitleFor 折叠；未计算时 undefined）。 */
+  title: string | undefined
 }
 
 /** 投影/格式化选项。 */
@@ -46,6 +48,7 @@ export function projectRestorableSessions(
     parentSession: s.parentSession,
     live: liveIds !== undefined && liveIds.has(s.id),
     agentPreset: s.agentPreset,
+    title: undefined,
   }))
 }
 
@@ -81,8 +84,9 @@ function basename(cwd: string | undefined): string | undefined {
 }
 
 /**
- * 展示行：live ● / persisted ○ + 相对年龄 + cwd basename + 短 id + fork 短父 id；
- * 空列表占位提示。maxRows 限高时超出部分折叠为一行提示（「… 还有 N 个会话」）。
+ * 展示行：live ● / persisted ○ + 标题（已计算时）+ 相对年龄 + cwd basename +
+ * 短 id + fork 短父 id；空列表占位提示。maxRows 限高时超出部分折叠为一行
+ * 提示（「… 还有 N 个会话」）。
  * @param rows - 可恢复会话视图行。
  * @param opts - 格式化选项（取 now 与 maxRows）。
  * @returns 每会话一行的展示文本。
@@ -96,7 +100,8 @@ export function formatRestorableSessions(
   const maxRows = opts.maxRows !== undefined && opts.maxRows > 0 ? opts.maxRows : undefined
   const shown = maxRows !== undefined ? rows.slice(0, maxRows) : rows
   const out = shown.map((r) => {
-    const parts: string[] = [`${r.live ? '●' : '○'} ${formatSessionAge(r.createdAt, now)}`]
+    const title = r.title !== undefined && r.title !== '' ? `${r.title} · ` : ''
+    const parts: string[] = [`${r.live ? '●' : '○'} ${title}${formatSessionAge(r.createdAt, now)}`]
     const base = basename(r.cwd)
     if (base !== undefined) parts.push(base)
     parts.push(`#${shortId(r.id)}`)
@@ -108,4 +113,38 @@ export function formatRestorableSessions(
   const hidden = rows.length - shown.length
   if (hidden > 0) out.push(`… 还有 ${hidden} 个会话`)
   return out
+}
+
+/**
+ * 欢迎页可选择列表（c4 概念 C 3.1）：每行 `[N]` 编号 + 展示行，数字键直达。
+ * 行序 = 输入序（listSessions 新→旧）；maxRows 限高折叠（缺省不限）。
+ * @param rows - 可恢复会话视图行（含 title）。
+ * @param opts - 格式化选项（取 now 与 maxRows）。
+ * @returns 每会话一行 `[N] …`；空列表返回空数组（调用方决定是否占位）。
+ */
+export function formatRestorablePickerList(
+  rows: readonly RestorableSession[],
+  opts: RestorableOptions = {},
+): string[] {
+  if (rows.length === 0) return []
+  const maxRows = opts.maxRows !== undefined && opts.maxRows > 0 ? opts.maxRows : undefined
+  const shown = maxRows !== undefined ? rows.slice(0, maxRows) : rows
+  const out = shown.map((r, i) => `[${i + 1}] ${formatRestorableSessions([r], opts)[0] ?? ''}`)
+  const hidden = rows.length - shown.length
+  if (hidden > 0) out.push(`… 还有 ${hidden} 个会话`)
+  return out
+}
+
+/**
+ * 崩溃修复信号：日志中是否存在持久化后端闭合崩溃孤立回合的 `turn/end`
+ * `interrupted` 标记。该 reason 只由 repair.ts 的合成闭合事件发出（loop 永不
+ * 发出，见 dsh-session types.ts TurnEndReasonMap），因此它的存在即「该会话
+ * 上次运行被中断、已自动闭合」的权威事实——无需触碰持久化写路径。
+ * @param events - 会话事件日志（seq 序）。
+ * @returns true = 该会话曾被崩溃修复（含合成 closers）。
+ */
+export function wasCrashRepaired(events: readonly SessionEvent[]): boolean {
+  return events.some(
+    event => event.type === 'turn/end' && event.data.reason.kind === 'interrupted',
+  )
 }

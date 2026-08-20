@@ -1807,8 +1807,8 @@ describe('TuiApp Phase 9a @mention 摘要展开装配', () => {
   })
 })
 
-describe('TuiApp Phase 9b 欢迎页会话恢复入口', () => {
-  it('存在其他可恢复会话 → 摘要并入恢复会话菜单项', async () => {
+describe('TuiApp Phase 9b + 1.1 欢迎页会话恢复入口', () => {
+  it('存在其他可恢复会话 → 编号列表可见（标题 · 年龄 · cwd 摘要）', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('restore-1')
     const handle = makeHandle(agent)
@@ -1835,16 +1835,19 @@ describe('TuiApp Phase 9b 欢迎页会话恢复入口', () => {
     await app.attach()
 
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    // 摘要并入 Tips「恢复」行（不单独列表）：携带相对时间。
+    // Tips「恢复」行（携带相对时间）与编号列表并存。
     expect(written).toContain('恢复 ·')
     expect(written).toContain('小时前')
-    // 裸 UUID 不再出现（摘要不含 id）
+    // 1.1：编号列表（[N] + 标题「新对话」占位 + 8 位短 id；裸 UUID 不出现）。
+    expect(written).toContain('[1]')
+    expect(written).toContain('新对话')
     expect(written).not.toContain('session-old-2')
     expect(written).not.toContain('session-old-1')
+    expect(written).toContain('[1-9] 恢复')
     await app.dispose()
   })
 
-  it('无可恢复会话 → 恢复会话菜单项降级（无摘要，muted）', async () => {
+  it('无可恢复会话 → 不渲染编号列表（恢复入口仅 tips 降级行）', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('restore-2')
     const handle = makeHandle(agent)
@@ -1859,6 +1862,215 @@ describe('TuiApp Phase 9b 欢迎页会话恢复入口', () => {
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('恢复会话')
     expect(written).not.toContain('小时前') // 无摘要
+    expect(written).not.toContain('[1]') // 无编号列表
+    expect(written).not.toContain('[1-9] 恢复')
+    await app.dispose()
+  })
+
+  it('欢迎阶段数字键 → 恢复对应编号会话（switchSession）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('restore-3')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.agents.get.mockReturnValue(agent) // registry 兜底分支（不 resume）
+    const oldHeader = {
+      id: SessionId('session-old-a'),
+      version: 0,
+      createdAt: Date.now() - 3_600_000,
+      cwd: undefined,
+      parentSession: undefined,
+    }
+    ctx.sessions.list.mockReturnValue([
+      { id: oldHeader.id, header: oldHeader },
+      { id: SessionId('session-old-b'), header: { ...oldHeader, id: SessionId('session-old-b') } },
+    ])
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    // 欢迎列表第 1 行 = session-old-b（others[0]，排除当前 session-old-a）
+    stdin.emit('data', '1')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(app.sessionId).toBe(SessionId('session-old-b'))
+    await app.dispose()
+  })
+
+  it('首次输入字符后欢迎阶段结束 → 数字键回到输入行（不劫持打字）', async () => {
+
+    const ctx = makeCtx()
+    const agent = makeAgent('restore-4')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.agents.get.mockReturnValue(agent)
+    const oldHeader = {
+      id: SessionId('session-old-c'),
+      version: 0,
+      createdAt: Date.now() - 3_600_000,
+      cwd: undefined,
+      parentSession: undefined,
+    }
+    ctx.sessions.list.mockReturnValue([
+      { id: oldHeader.id, header: oldHeader },
+      { id: SessionId('session-old-d'), header: { ...oldHeader, id: SessionId('session-old-d') } },
+    ])
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    // 先输入一个普通字符（结束欢迎阶段），再按数字键 → 输入行接收
+    stdin.emit('data', 'x')
+    await new Promise(resolve => setImmediate(resolve))
+    const before = app.sessionId
+    stdin.emit('data', '1')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(app.sessionId).toBe(before) // 未切换会话
+    await app.dispose()
+  })
+})
+
+describe('TuiApp 1.2/1.3 恢复横幅、历史结束标记与崩溃修复告知', () => {
+  /** 构造带事件历史的 live session 替身（attach 目标 = list()[0]）。 */
+  async function attachToHistory(events: SessionEvent[], cwd?: string): Promise<{ app: TuiApp; stdout: ReturnType<typeof makeStdout> }> {
+    const ctx = makeCtx()
+    const agent = makeAgent('resume-banner')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    // registry 兜底分支（get 返回 agent，不走 resume）
+    ctx.agents.get.mockReturnValue(agent)
+    ;(agent.session as unknown as { events: SessionEvent[] }).events = events
+    if (cwd !== undefined) {
+      ;(agent.session as unknown as { header: { id: SessionId; version: number; createdAt: number; cwd?: string } }).header = {
+        id: SessionId('resume-banner'), version: 0, createdAt: 1, cwd,
+      }
+    }
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.sessions.list.mockReturnValue([
+      { id: SessionId('resume-banner'), header: agent.session.header as never },
+    ])
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.attach()
+    return { app, stdout }
+  }
+
+  const NOW = Date.now() - 60_000
+  const historyEvents = (): SessionEvent[] => [
+    { type: 'user/message', seq: 0, time: NOW, data: { turn: 0, source: { kind: 'user' }, content: [{ type: 'text', text: 'hello resume' }] }, surfaceOp: 'append' },
+    { type: 'assistant/message', seq: 1, time: NOW, data: { turn: 0, step: 0, message: { content: [{ type: 'text', text: 'world' }] } }, surfaceOp: 'append' },
+    { type: 'session/end-seed', seq: 2, time: NOW, data: {} },
+  ] as unknown as SessionEvent[]
+
+  it('恢复挂载 → 横幅（标题 · 最后活动 · cwd）+ 回放末尾「上次进行到此处」', async () => {
+    const { app, stdout } = await attachToHistory(historyEvents(), '/app/x')
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('已恢复会话 hello resume')
+    expect(written).toContain('1 分钟前')
+    expect(written).toContain('/app/x')
+    expect(written).toContain('上次进行到此处')
+    await app.dispose()
+  })
+
+  it('新会话（无历史）→ 无横幅、无分隔', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('resume-fresh')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.sessions.list.mockReturnValue([]) // live store 为空 → attach 走 newSession
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.attach()
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).not.toContain('已恢复会话')
+    expect(written).not.toContain('上次进行到此处')
+    await app.dispose()
+  })
+
+  it('崩溃修复会话（interrupted turn/end）→ 恢复时提示自动闭合', async () => {
+    const events = [
+      { type: 'turn/start', seq: 0, time: NOW, data: { turn: 0 } },
+      { type: 'user/message', seq: 1, time: NOW, data: { turn: 0, source: { kind: 'user' }, content: [{ type: 'text', text: 'hello resume' }] }, surfaceOp: 'append' },
+      { type: 'turn/end', seq: 2, time: NOW, data: { turn: 0, reason: { kind: 'interrupted' } } },
+      { type: 'session/end-seed', seq: 3, time: NOW, data: {} },
+    ] as unknown as SessionEvent[]
+    const { app, stdout } = await attachToHistory(events)
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('上次运行被中断，已自动闭合未完成回合')
+    await app.dispose()
+  })
+
+  it('未修复会话 → 不提示自动闭合', async () => {
+    const { app, stdout } = await attachToHistory(historyEvents())
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).not.toContain('上次运行被中断')
+    await app.dispose()
+  })
+})
+
+describe('TuiApp 1.4 --session 命令行会话参数', () => {
+  /** reflect.get 替身：cmdlineArgs 返回固定内参，其余服务缺失。 */
+  function withCmdline(ctx: ReturnType<typeof makeCtx>, args: string[]): void {
+    ctx.reflect.get.mockImplementation((name: string) => name === 'cmdlineArgs' ? { get: () => args } : undefined)
+  }
+
+  it('--session <id> 存在 → attach 恢复指定会话', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('cli-session')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.agents.get.mockReturnValue(agent)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const header = { id: SessionId('session-cli-1'), version: 0, createdAt: Date.now() - 1000, cwd: undefined, parentSession: undefined }
+    ctx.sessions.list.mockReturnValue([{ id: header.id, header }])
+    withCmdline(ctx, ['--session', 'session-cli-1'])
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.attach()
+    expect(app.sessionId).toBe(SessionId('session-cli-1'))
+    await app.dispose()
+  })
+
+  it('--session 与初始 prompt 并存 → 恢复会话且位置参数仍作 prompt', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('cli-session-2')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.agents.get.mockReturnValue(agent)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const header = { id: SessionId('session-cli-2'), version: 0, createdAt: Date.now() - 1000, cwd: undefined, parentSession: undefined }
+    ctx.sessions.list.mockReturnValue([{ id: header.id, header }])
+    withCmdline(ctx, ['--session', 'session-cli-2', 'hello'])
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.attach()
+    expect(app.sessionId).toBe(SessionId('session-cli-2'))
+    const followups = (agent.followup as ReturnType<typeof vi.fn>).mock.calls
+    expect(followups.some(c => `${c[0]?.content?.[0]?.text ?? ''}` === 'hello')).toBe(true)
+    await app.dispose()
+  })
+
+  it('--session 未知 id → 报错 + 指引，回落到正常启动路径', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('cli-session-3')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.agents.get.mockReturnValue(agent)
+    // live store 有 1 个会话（attach 回落目标）→ 不新建
+    const header = { id: SessionId('session-live-3'), version: 0, createdAt: Date.now() - 1000, cwd: undefined, parentSession: undefined }
+    ctx.sessions.list.mockReturnValue([{ id: header.id, header }])
+    withCmdline(ctx, ['--session', 'session-nope'])
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.attach()
+    expect(app.sessionId).toBe(SessionId('session-live-3'))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('会话不存在: session-nope')
+    expect(written).toContain('/session list')
     await app.dispose()
   })
 })
