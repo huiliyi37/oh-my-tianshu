@@ -2,5 +2,6 @@
 {"jsonrpc":"2.0","id":2,"result":{"sessionId":"{{sessionId}}"}}
 {"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"{{sessionId}}","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"STARTED"}}}}
 {"jsonrpc":"2.0","id":3,"result":{"stopReason":"end_turn"}}
+{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"{{sessionId}}","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"REPORT_NOTED"}}}}
 {"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"{{sessionId}}","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"CHILD_REPORT_OK"}}}}
 {"jsonrpc":"2.0","id":4,"result":{"stopReason":"end_turn"}}

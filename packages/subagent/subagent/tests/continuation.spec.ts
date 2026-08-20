@@ -695,6 +695,38 @@ describe('continuable child ownership', () => {
   })
 })
 
+describe('continuable report delivery', () => {
+  it('wakes an idle parent for a next-step report', async () => {
+    const releaseChild = Promise.withResolvers<undefined>()
+    const adapter = new GatedAdapter([
+      { chunks: textResponse('child answer'), gate: releaseChild.promise },
+      { chunks: textResponse('parent report ack') },
+    ])
+    const { ctx, parent } = await setupWith(adapter)
+    const started = await ctx.subagents.startContinuable(startSpec(parent))
+    await vi.waitFor(() => {
+      expect(adapter.requests.filter(request => request.sessionId === started.childId)).toHaveLength(1)
+    })
+    const child = ctx.agents.get(started.childId)
+    expect(child).toBeDefined()
+
+    const messageId = await ctx.subagents.reportFrom(child!, message('an explicit report'), {
+      delivery: 'next-step',
+      signal: testSignal,
+    })
+
+    await vi.waitFor(() => {
+      expect(adapter.requests.filter(request => request.sessionId === parent.id)).toHaveLength(1)
+    })
+    const report = parent.session.events.flatMap(event => event.type === 'user/message'
+      && event.data.source.kind === 'subagent-report' ? [event.data] : [])[0]
+    expect(report?.id).toBe(messageId)
+
+    releaseChild.resolve(undefined)
+    await waitNoActivation(ctx, started.childId)
+  })
+})
+
 describe('continuable durability and teardown', () => {
   it('settles when the best-effort final flush has no listeners', async () => {
     const releaseResponse = Promise.withResolvers<undefined>()

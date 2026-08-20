@@ -47,6 +47,9 @@ const SESSION_TITLE_CONFIG = fileURLToPath(new URL('../session-title.cordis.yml'
 const SUBAGENT_DURABILITY_FAILURE_CONFIG = fileURLToPath(
   new URL('../subagent-durability-failure.cordis.yml', import.meta.url),
 )
+const SUBAGENT_REPORT_CONFIG = fileURLToPath(
+  new URL('../subagent-report.cordis.yml', import.meta.url),
+)
 const LSP_CONFIG = fileURLToPath(new URL('./lsp.cordis.yml', import.meta.url))
 const WEB_CONFIG = fileURLToPath(new URL('../web.cordis.yml', import.meta.url))
 const FS_SEARCH_CONFIG = fileURLToPath(new URL('./fs-search.cordis.yml', import.meta.url))
@@ -334,13 +337,16 @@ const SCENARIOS: Scenario[] = [
     configPath: SUBAGENT_DURABILITY_FAILURE_CONFIG,
   },
   // Authored child-to-parent transcript: the child calls its scope-local
-  // `report`, quiet delivery reaches the idle parent without waking it, and a
-  // later parent turn consumes the logged report.
+  // `report` through the shipped next-step default. The fence holds the child
+  // until the parent's spawn turn closes, so the waking report starts one
+  // deterministic parent turn, and a later parent turn still reads the logged
+  // report.
   {
     name: 'subagent-report',
     hasModelTurn: true,
     recorded: false,
     pinsChildToolSchemas: [1],
+    configPath: SUBAGENT_REPORT_CONFIG,
   },
   // Authored durable-catalog transcript: the snapshot-only lifecycle marker
   // fences the second parent turn behind the child's Activation end, so

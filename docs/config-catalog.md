@@ -2924,8 +2924,9 @@ Requires: `subagents` · `tools`
 /** Config: how accepted reports are scheduled on the parent. */
 export interface Config {
   /**
-   * Parent scheduling (default `quiet`). `quiet` adds context without waking;
-   * `wakeup` creates one ordinary later parent turn.
+   * Parent scheduling (default `next-step`). `next-step` wakes the parent and
+   * enters at its nearest step boundary; `quiet` adds the same context without
+   * waking, so a parked parent waits for another waking input.
    */
   reportDelivery?: SubagentReportDelivery
 }

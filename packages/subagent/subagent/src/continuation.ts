@@ -70,7 +70,7 @@ declare module '@huiliyi37/dsh-llm' {
 }
 
 /** Deployment scheduling policy for accepted child reports. */
-export type SubagentReportDelivery = 'quiet' | 'wakeup'
+export type SubagentReportDelivery = 'quiet' | 'next-step'
 
 /** Options for one continuable child's report to its direct parent. */
 export interface SubagentReportOptions {
@@ -190,7 +190,7 @@ interface Activation {
   disposal: Promise<void> | undefined
   /**
    * Accepted waking message ids this manager has not yet seen leave the inbox.
-   * `Agent.status` is still `idle` in the window between `followup()` and the
+   * `Agent.status` is still `idle` in the window between a waking send and the
    * microtask that admits it, so settlement must not treat that gap as quiet.
    */
   readonly accepted: Set<MessageId>
@@ -565,7 +565,7 @@ export class SubagentContinuationManager {
       },
     })
     const parentActivation = this.activations.get(parent.id)
-    if (delivery === 'wakeup'
+    if (delivery === 'next-step'
       && parentActivation !== undefined
       && parentActivation.handle.agent === parent) {
       this.admitWaking(parentActivation, message.id, () => {
@@ -584,7 +584,7 @@ export class SubagentContinuationManager {
     delivery: SubagentReportDelivery,
   ): void {
     try {
-      if (delivery === 'wakeup') parent.followup(message)
+      if (delivery === 'next-step') parent.steer(message)
       else parent.inject(message)
     } catch (error: unknown) {
       throw new SubagentError(
@@ -1038,7 +1038,7 @@ export class SubagentContinuationManager {
     messageId: MessageId,
     send: () => void,
   ): MessageId {
-    // `Agent.followup()` publishes inbox events synchronously, so observers must
+    // Waking Agent sends publish inbox events synchronously, so observers must
     // see this Activation as busy before the call begins.
     activation.accepted.add(messageId)
     try {

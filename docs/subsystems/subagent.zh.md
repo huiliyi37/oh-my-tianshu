@@ -238,7 +238,7 @@ interface ContinuableStart {
 
 可选的可继续 child 设置贡献可以在 child 基础组合完成后、Activation 发布前安装限定在作用域内的能力。该注册表按顺序执行且具有事务性：设置失败或被撤销时会回滚未发布的 Activation；child 作用域 dispose 时会释放所有安装；新注册项在下一个 Activation 生效；移除注册项时则会立即撤销每个驻留中的安装。
 
-`SubagentService.reportFrom()` 通过该扩展点实现报告，无需新增第二条队列或承载结果的 child 包装层。调用由确切的在线 child Agent 授权，调用方不能指定接收方。管理器从 child 的持久化 `parentSession` 中推导唯一接收方，要求该 parent Agent 必须在线，将选中内容封装为一条 `subagent-report` 用户消息，并返回该消息的稳定 `MessageId`。静默投递使用 `Agent.inject()`，不产生 inbox 条目实例或 parent 轮次；唤醒投递使用 `Agent.followup()`，会产生一个普通的后续 parent 轮次。两种模式都不会结束 child 轮次，最终回答也不会隐式报告。
+`SubagentService.reportFrom()` 通过该扩展点实现报告，无需新增第二条队列或承载结果的 child 包装层。调用由确切的在线 child Agent 授权，调用方不能指定接收方。管理器从 child 的持久化 `parentSession` 中推导唯一接收方，要求该 parent Agent 必须在线，将选中内容封装为一条 `subagent-report` 用户消息，并返回该消息的稳定 `MessageId`。静默投递使用 `Agent.inject()`，不会唤醒 parent；next-step 投递使用 `Agent.steer()`，会唤醒空闲 parent，或加入运行中 parent 最近的 step 边界。两种模式都不会结束 child 轮次，最终回答也不会隐式报告。
 
 ```ts type-equiv
 /** Durable attribution for a continuable child's explicit parent report. */
@@ -253,7 +253,7 @@ interface SubagentReportMessageSource {
 
 ```ts type-equiv
 /** Deployment scheduling policy for accepted child reports. */
-type SubagentReportDelivery = 'quiet' | 'wakeup'
+type SubagentReportDelivery = 'quiet' | 'next-step'
 ```
 
 ```ts type-equiv

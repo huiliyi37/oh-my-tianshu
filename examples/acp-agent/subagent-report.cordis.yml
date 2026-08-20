@@ -1,0 +1,10 @@
+# Snapshot-only overlay fencing the child behind its parent's spawn turn, so
+# the shipped default next-step report wakes the parked parent into one
+# deterministic turn of its own.
+- id: base
+  name: '@huiliyi37/cordis-plugin-include'
+  config:
+    path: ./cordis.yml
+
+- id: report-fence
+  name: './tests/fixtures/subagent-report-fence.ts'

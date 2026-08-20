@@ -238,7 +238,7 @@ interface ContinuableStart {
 
 An optional continuable-child setup contribution can install scope-local capabilities after base child composition and before Activation publication. The registry is ordered and transactional: a failed or revoked setup rolls back the unpublished Activation, child-scope disposal releases every installation, new registrations affect the next Activation, and registration removal revokes every resident installation immediately.
 
-`SubagentService.reportFrom()` uses that extension point without adding a second queue or a result-bearing child wrapper. The exact live child Agent authorizes the call; callers cannot name a recipient. The manager derives the only recipient from the child's durable `parentSession`, requires that parent Agent to be live, frames the selected content as one `subagent-report` user message, and returns the message's stable `MessageId`. Quiet delivery uses `Agent.inject()` and creates no inbox occurrence or parent turn; waking delivery uses `Agent.followup()` and creates one ordinary later parent turn. Neither mode concludes the child's turn, and no final answer reports implicitly.
+`SubagentService.reportFrom()` uses that extension point without adding a second queue or a result-bearing child wrapper. The exact live child Agent authorizes the call; callers cannot name a recipient. The manager derives the only recipient from the child's durable `parentSession`, requires that parent Agent to be live, frames the selected content as one `subagent-report` user message, and returns the message's stable `MessageId`. Quiet delivery uses `Agent.inject()` and does not wake the parent; next-step delivery uses `Agent.steer()`, waking an idle parent or joining a running parent's nearest step boundary. Neither mode concludes the child's turn, and no final answer reports implicitly.
 
 ```ts type-equiv
 /** Durable attribution for a continuable child's explicit parent report. */
@@ -253,7 +253,7 @@ interface SubagentReportMessageSource {
 
 ```ts type-equiv
 /** Deployment scheduling policy for accepted child reports. */
-type SubagentReportDelivery = 'quiet' | 'wakeup'
+type SubagentReportDelivery = 'quiet' | 'next-step'
 ```
 
 ```ts type-equiv

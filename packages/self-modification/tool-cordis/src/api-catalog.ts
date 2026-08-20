@@ -3575,7 +3575,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SubagentReportDelivery',
-    declaration: 'export type SubagentReportDelivery = \'quiet\' | \'wakeup\';',
+    declaration: 'export type SubagentReportDelivery = \'quiet\' | \'next-step\';',
   },
   {
     name: 'SubagentReportOptions',
