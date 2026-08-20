@@ -28,7 +28,7 @@ function makeContext(config: Record<string, unknown> = {}): {
   const seam = {
     start: vi.fn(async () => ({
       id: SessionId('session-child-1'),
-      result: Promise.resolve({ stopReason: 'completed' }).then((r: unknown) => { counters.result++; return r }),
+      result: Promise.resolve({ stopReason: 'completed', output: [] }).then((r: unknown) => { counters.result++; return r }),
       dispose: vi.fn(async () => { counters.dispose++ }),
     })),
   }
@@ -101,20 +101,24 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     if (action.kind === 'delegate') {
       expect(action.profile).toBe('verifier')
       // execute 派发：返回子代理 id + 调用序（start/result/dispose 真实）
-      const id = await router.execute(action, { sessionId: PARENT_ID })
-      expect(id).toBe(SessionId('session-child-1'))
+      const outcome = await router.execute(action, { sessionId: PARENT_ID })
+      expect(outcome?.sessionId).toBe(SessionId('session-child-1'))
+      expect(outcome?.stopReason).toBe('completed')
       expect(seam.start).toHaveBeenCalledTimes(1)
       expect(counters.result).toBe(1)
       expect(counters.dispose).toBe(1)
       const entry = seam.start.mock.calls[0] as unknown as [string, Record<string, unknown>]
       expect(entry[0]).toBe('spawn')
       expect(entry[1].toolFilter).toEqual({ allow: ['grep', 'read', 'glob', 'repo_graph', 'bash'] })
-      // acceptance 时的路由决策记录（约束：决策可审计）
-      expect(counters.append).toHaveLength(1)
+      // acceptance 的 router/route + settle 后的 router/outcome（终态可自日志重建）
+      expect(counters.append).toHaveLength(2)
       expect(counters.append[0]!.type).toBe('router/route')
-      const record = counters.append[0]!.data as { profile: string; subagentSessionId: string }
-      expect(record.profile).toBe('verifier')
-      expect(record.subagentSessionId).toBe('session-child-1')
+      const route = counters.append[0]!.data as { profile: string; subagentSessionId: string }
+      expect(route.profile).toBe('verifier')
+      expect(route.subagentSessionId).toBe('session-child-1')
+      expect(counters.append[1]!.type).toBe('router/outcome')
+      const outcomeRecord = counters.append[1]!.data as { stopReason: string }
+      expect(outcomeRecord.stopReason).toBe('completed')
     }
   }, 10000)
 

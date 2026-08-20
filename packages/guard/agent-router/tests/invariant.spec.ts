@@ -144,6 +144,37 @@ describe('agent-router route-record invariants', () => {
       .toThrow(/parentSession/)
   })
 
+  it('accepts a well-formed outcome record and rejects malformed ones', async () => {
+    const ctx = await setup()
+    const parent = Session.create(SessionId('parent-1'))
+    ctx.sessions.create(SessionId('child-1'), { meta: { parentSession: SessionId('parent-1') } })
+    const outcome = (over: Record<string, unknown> = {}): SessionEvent => ({
+      type: 'router/outcome',
+      seq: 0,
+      time: 0,
+      data: { subagentSessionId: 'child-1', stopReason: 'completed', ...over },
+    } as SessionEvent)
+    expect(() => { ctx.emit('session/event', parent, outcome()) }).not.toThrow()
+    expect(() => { ctx.emit('session/event', parent, outcome({ subagentSessionId: '' })) })
+      .toThrow(/non-empty subagentSessionId/)
+    expect(() => { ctx.emit('session/event', parent, outcome({ stopReason: '' })) })
+      .toThrow(/non-empty stopReason/)
+  })
+
+  it('rejects an outcome whose live child names another parent', async () => {
+    const ctx = await setup()
+    const parent = Session.create(SessionId('parent-1'))
+    ctx.sessions.create(SessionId('child-1'), { meta: { parentSession: SessionId('parent-2') } })
+    const outcome = {
+      type: 'router/outcome',
+      seq: 0,
+      time: 0,
+      data: { subagentSessionId: 'child-1', stopReason: 'completed' },
+    } as SessionEvent
+    expect(() => { ctx.emit('session/event', parent, outcome) })
+      .toThrow(/parentSession/)
+  })
+
   it('rejects invalid existing state on late registration', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)

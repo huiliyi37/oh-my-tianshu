@@ -13,6 +13,7 @@
  */
 
 import type { Context } from '@huiliyi37/cordis'
+import type { ContentBlock } from '@huiliyi37/dsh-llm'
 import type { SessionId } from '@huiliyi37/dsh-session'
 
 /** 子代理派发选项。 */
@@ -66,7 +67,7 @@ interface SubagentsFacet {
     toolFilter?: { allow: string[] }
   }): Promise<{
     id: SessionId
-    result: Promise<{ stopReason: string }>
+    result: Promise<{ stopReason: string; output: ContentBlock[] }>
     dispose(): Promise<void>
   }>
 }
@@ -76,15 +77,27 @@ interface AgentsFacet {
   get(sessionId: SessionId): unknown
 }
 
+/** 派发终态（execute 回传调用方；与 run.result 一致）。 */
+export interface DispatchOutcome {
+  /** 子代理 sessionId（run.id）。 */
+  sessionId: SessionId
+  /** 终态原因（SubagentResult.stopReason 原样透传）。 */
+  stopReason: string
+  /** 子代理最终 assistant 输出（ContentBlock 数组）。 */
+  output: ContentBlock[]
+}
+
 /**
  * 派发一个子代理：subagents.start（named provider）→ prompt 注入任务 →
  * await run.result → dispose。toolFilter 经 seam 的 fail-loud 校验安装
  * （未知工具名拒绝 start）；父会话必须是活 agent（seam 从它派生血统）。
+ * acceptance 时向父会话落 log-only `router/route`，settle 后落
+ * `router/outcome`（终态可自日志重建）。
  * @param ctx - 宿主上下文（需 subagents 与 agents 服务）。
  * @param opts - 派发选项。
- * @returns 子代理 sessionId（结果经事件流归账）。
+ * @returns 派发终态（sessionId/stopReason/output）。
  */
-export async function dispatchSubagent(ctx: Context, opts: DispatchOptions): Promise<SessionId> {
+export async function dispatchSubagent(ctx: Context, opts: DispatchOptions): Promise<DispatchOutcome> {
   const subagents = ctx.reflect.get('subagents', false) as unknown as SubagentsFacet | undefined
   if (subagents === undefined) throw new Error('agent-router: subagents service unavailable (cannot dispatch subagent)')
   const agents = ctx.reflect.get('agents', false) as unknown as AgentsFacet | undefined
@@ -121,9 +134,13 @@ export async function dispatchSubagent(ctx: Context, opts: DispatchOptions): Pro
     })
     // result 在子级失败时不 reject（stopReason: 'error'）；仅基础设施故障
     // reject——finally dispose 覆盖两条路径（含 append 抛错）。
-    await run.result
+    const result = await run.result
+    parentSession.append('router/outcome', {
+      subagentSessionId: run.id,
+      stopReason: result.stopReason,
+    })
+    return { sessionId: run.id, stopReason: result.stopReason, output: result.output }
   } finally {
     await run.dispose()
   }
-  return run.id
 }

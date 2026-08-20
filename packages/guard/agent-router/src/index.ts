@@ -28,7 +28,7 @@ import {
   shouldTippingPointReset,
 } from './prediction.js'
 import { decideRouterAction, type EscalationPolicy, type RouterAction, type RouterMetrics } from './router.js'
-import { DEFAULT_PROFILE_TOOLS, dispatchSubagent, type DispatchOptions } from './dispatch.js'
+import { DEFAULT_PROFILE_TOOLS, dispatchSubagent, type DispatchOptions, type DispatchOutcome } from './dispatch.js'
 
 /** 插件名（cordis.yml 装配用）。 */
 export const name = 'agent-router'
@@ -48,6 +48,12 @@ declare module '@huiliyi37/dsh-session/types' {
      * auto records the dispatch outcome (subagentSessionId only when
      * dispatched).
      */
+    /**
+     * Durable outcome record on the PARENT session's log: log-only (never
+     * reaches the model surface), whole-value append when the child settles.
+     * Paired one-to-one with the acceptance `router/route` record.
+     */
+    'router/outcome': { subagentSessionId: string; stopReason: string }
     'router/decision': {
       profile: 'code_scout' | 'verifier'
       task: string
@@ -215,8 +221,9 @@ export interface RouterService {
    * @param action - 路由动作。
    * @param options.sessionId - 父会话 id（必须活 agent；子代理血统自此派生）。
    * @param options.signal - 派发取消通道（缺省新建）。
+   * @returns 派发终态（sessionId/stopReason/output）；self 或未派发为 null。
    */
-  execute(action: RouterAction, options: { sessionId: SessionId; signal?: AbortSignal }): Promise<SessionId | null>
+  execute(action: RouterAction, options: { sessionId: SessionId; signal?: AbortSignal }): Promise<DispatchOutcome | null>
   /**
    * 重置预测累计器（环境恢复后调用）。
    * @param sessionId - 目标会话；缺省清空全部会话的累计器。
@@ -257,7 +264,7 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
     action: RouterAction,
     sessionId: SessionId,
     signal?: AbortSignal,
-  ): Promise<SessionId | null> => {
+  ): Promise<DispatchOutcome | null> => {
     if (action.kind !== 'delegate' || !dispatchEnabled) return null
     if (config.provider === undefined || config.model === undefined) return null
     const opts: DispatchOptions = {
@@ -297,7 +304,7 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
         // 缺 provider/model 等短路：决策记录 dispatched false（原因在装配态）。
         decision.dispatched = false
       } else {
-        decision.subagentSessionId = outcome
+        decision.subagentSessionId = outcome.sessionId
       }
     } catch (error) {
       decision.dispatched = false

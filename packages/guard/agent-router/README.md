@@ -11,7 +11,7 @@ The agent routing layer — base metrics → algorithm → MoE routing → dsh-n
   1. escalate (error rate ≥0.8) → `delegate verifier` (independent-channel recheck)
   2. gate (≥0.6) + probe cooldown exhausted → `delegate code_scout` (fresh-angle reconnaissance)
   3. default `self` — obligations/verifications are collected into the metrics but no rule consumes them yet; probe duty stays with the evidence gate
-- **dispatch** (the dsh subagent seam): `ctx.subagents.start` (named provider, default `spawn`) delivers the task as the child's first user message → `await run.result` (structured terminal state) → `dispose` cleans up. The seam stamps the lineage (`parentSession`/`origin: 'subagent'`/`delegationDepth`), so routed children appear under `/subagents`, `list_agents`, and the descendants projection, and zen never arms them. The profile tool restriction installs via `toolFilter` fail-loud — unknown tool names or a missing service abort the dispatch, so a profile never silently runs with the full tool surface. Each accepted delegate appends a log-only `router/route` record on the parent session (decision auditability). Results are accounted back to evidence-gate automatically through session/event (zero new channels).
+- **dispatch** (the dsh subagent seam): `ctx.subagents.start` (named provider, default `spawn`) delivers the task as the child's first user message → `await run.result` (structured terminal state) → `dispose` cleans up. The seam stamps the lineage (`parentSession`/`origin: 'subagent'`/`delegationDepth`), so routed children appear under `/subagents`, `list_agents`, and the descendants projection, and zen never arms them. The profile tool restriction installs via `toolFilter` fail-loud — unknown tool names or a missing service abort the dispatch, so a profile never silently runs with the full tool surface. Each accepted delegate appends a log-only `router/route` record on the parent session (decision auditability), and a paired `router/outcome` record when the child settles (terminal state reconstructable from the log). Results are accounted back to evidence-gate automatically through session/event (zero new channels).
 
 ## Assembly
 
@@ -39,7 +39,7 @@ if (action.kind === 'delegate') {
 |---|---|
 | `metrics({ sessionId })` | Current metrics snapshot (interventionLevel/unresolvedHigh/verifications/probeCooledTargets) for that session's accumulator |
 | `decide({ sessionId })` | Routing decision (pure function, safe to call repeatedly) from that session's accumulator |
-| `execute(action, { sessionId, signal? })` | Executes an action (delegate → dispatches a subagent through the seam and returns the child sessionId; self → null); `sessionId` names the live parent session the child lineage derives from |
+| `execute(action, { sessionId, signal? })` | Executes an action (delegate → dispatches a subagent through the seam and returns `{ sessionId, stopReason, output }`; self → null); `sessionId` names the live parent session the child lineage derives from |
 | `resetPrediction(sessionId?)` | Resets the prediction accumulator (one session; all sessions when omitted) |
 
 ## Configuration

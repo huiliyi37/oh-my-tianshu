@@ -63,6 +63,19 @@ function validateEvent(event: SessionEvent, fail: InvariantFailure): void {
     }
     return
   }
+  if (event.type === 'router/outcome') {
+    const { subagentSessionId, stopReason } = event.data as {
+      subagentSessionId?: unknown
+      stopReason?: unknown
+    }
+    if (typeof subagentSessionId !== 'string' || subagentSessionId === '') {
+      fail('agent-router: an outcome record must carry a non-empty subagentSessionId')
+    }
+    if (typeof stopReason !== 'string' || stopReason === '') {
+      fail('agent-router: an outcome record must carry a non-empty stopReason')
+    }
+    return
+  }
   if (event.type === 'router/decision') {
     const { profile, task, targets, reason, mode, dispatched, subagentSessionId } = event.data as {
       profile?: unknown
@@ -106,7 +119,7 @@ function validateEvent(event: SessionEvent, fail: InvariantFailure): void {
 /** Install validation for live appends and loaded history at late registration. */
 const install: InvariantInstaller = Object.assign((ctx: Context, fail: InvariantFailure) => {
   const track = (session: Session, event: SessionEvent): void => {
-    if (event.type !== 'router/route' && event.type !== 'router/decision') return
+    if (event.type !== 'router/route' && event.type !== 'router/decision' && event.type !== 'router/outcome') return
     validateEvent(event, fail)
     // 血统一致性（child 在场时）：记录所在会话必须是该 child 的 parent。
     const { subagentSessionId } = event.data as { subagentSessionId?: unknown }

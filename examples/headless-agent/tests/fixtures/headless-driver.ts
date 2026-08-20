@@ -46,7 +46,7 @@ try {
       execute(
         action: { kind: string; profile?: string; task?: string; targets?: string[] },
         options: { sessionId: string },
-      ): Promise<unknown>
+      ): Promise<{ sessionId: string; stopReason: string } | null>
     }
     agents?: { list(): Array<{ session: { id: string } }> }
   }).router
@@ -65,8 +65,10 @@ try {
         process.stdout.write(`${JSON.stringify({ type: 'session_event', sessionId: session.id, event })}\n`)
       })
       try {
-        const subagentId = await router.execute(action, { sessionId: mainSessionId })
-        process.stdout.write(`${JSON.stringify({ type: 'router_dispatched', subagentId })}\n`)
+        const outcome = await router.execute(action, { sessionId: mainSessionId })
+        if (outcome !== null) {
+          process.stdout.write(`${JSON.stringify({ type: 'router_dispatched', subagentId: outcome.sessionId, stopReason: outcome.stopReason })}\n`)
+        }
       } catch (error) {
         process.stdout.write(`${JSON.stringify({ type: 'router_dispatch_failed', error: error instanceof Error ? error.message : String(error) })}\n`)
       } finally {

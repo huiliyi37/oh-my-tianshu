@@ -53,7 +53,7 @@ function makeSeam(): {
     requests.push({ name, request })
     return {
       id: CHILD_ID,
-      result: Promise.resolve({ stopReason: 'completed' }).then((r) => { calls.result++; return r }),
+      result: Promise.resolve({ stopReason: 'completed', output: [] }).then((r) => { calls.result++; return r }),
       dispose: vi.fn(async () => { calls.dispose++ }),
     }
   })
@@ -105,24 +105,30 @@ describe('dispatchSubagent', () => {
     expect(task).toContain(SUBAGENT_TASK_PREFIX)
     expect(task).toContain('侦查 src/foo.ts')
     expect(task).toContain('目标文件: src/foo.ts')
-    // result/dispose 各一次，返回子代理 id
+    // result/dispose 各一次，返回派发终态（id/stopReason/output）
     expect(seam.calls.result).toBe(1)
     expect(seam.calls.dispose).toBe(1)
-    expect(id).toBe(CHILD_ID)
+    expect(id.sessionId).toBe(CHILD_ID)
+    expect(id.stopReason).toBe('completed')
+    expect(id.output).toEqual([])
   })
 
-  it('acceptance 时在父会话记录 log-only 路由决策（router/route）', async () => {
+  it('acceptance 落 router/route、settle 后落 router/outcome（终态可自日志重建）', async () => {
     const seam = makeSeam()
     const appended: Array<{ type: string; data: unknown }> = []
     const ctx = makeCtx(seam, makeParent((type, data) => { appended.push({ type, data }) }))
-    await dispatchSubagent(ctx, makeOptions('verifier', '复核修复', ['src/a.ts']))
-    expect(appended).toHaveLength(1)
+    const outcome = await dispatchSubagent(ctx, makeOptions('verifier', '复核修复', ['src/a.ts']))
+    expect(appended).toHaveLength(2)
     expect(appended[0]!.type).toBe('router/route')
-    const data = appended[0]!.data as { profile: string; task: string; targets: string[]; subagentSessionId: string }
-    expect(data.profile).toBe('verifier')
-    expect(data.task).toBe('复核修复')
-    expect(data.targets).toEqual(['src/a.ts'])
-    expect(data.subagentSessionId).toBe(CHILD_ID)
+    const route = appended[0]!.data as { profile: string; task: string; targets: string[]; subagentSessionId: string }
+    expect(route.profile).toBe('verifier')
+    expect(route.task).toBe('复核修复')
+    expect(route.targets).toEqual(['src/a.ts'])
+    expect(route.subagentSessionId).toBe(CHILD_ID)
+    expect(appended[1]!.type).toBe('router/outcome')
+    const outcomeRecord = appended[1]!.data as { subagentSessionId: string; stopReason: string }
+    expect(outcomeRecord.subagentSessionId).toBe(CHILD_ID)
+    expect(outcomeRecord.stopReason).toBe(outcome.stopReason)
   })
 
   it('父 agent 无 session 时记录失败 fail loud 且 dispose 已启动的子代理', async () => {

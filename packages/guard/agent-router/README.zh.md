@@ -11,7 +11,7 @@ agent 路由层——基础指标 → 算法 → MoE 路由 → dsh 原生子代
   1. escalate（错误率 ≥0.8）→ `delegate verifier`（独立通道复核）
   2. gate（≥0.6）+ 探针冷却耗尽 → `delegate code_scout`（新角度侦查）
   3. 默认 `self` — 义务/验证计数已采集进指标但尚无规则消费；先写探针的责任在证据门
-- **dispatch**（dsh 子代理 seam）：`ctx.subagents.start`（named provider，默认 `spawn`）把任务作为 child 首条用户消息投递 → `await run.result`（结构化终态）→ `dispose` 清理。seam 自动写血统（`parentSession`/`origin: 'subagent'`/`delegationDepth`），被路由的 child 进入 `/subagents`、`list_agents` 与后代投影，且 zen 永不 arm 它们。profile 工具限制经 `toolFilter` fail loud 安装——未知工具名或缺失服务会中止派发，profile 绝不带着全量工具面静默运行。每个被接受的 delegate 会在父会话落一条 log-only 的 `router/route` 记录（决策可审计）。结果经 session/event 自动归账回 evidence-gate（零新通道）。
+- **dispatch**（dsh 子代理 seam）：`ctx.subagents.start`（named provider，默认 `spawn`）把任务作为 child 首条用户消息投递 → `await run.result`（结构化终态）→ `dispose` 清理。seam 自动写血统（`parentSession`/`origin: 'subagent'`/`delegationDepth`），被路由的 child 进入 `/subagents`、`list_agents` 与后代投影，且 zen 永不 arm 它们。profile 工具限制经 `toolFilter` fail loud 安装——未知工具名或缺失服务会中止派发，profile 绝不带着全量工具面静默运行。每个被接受的 delegate 会在父会话落一条 log-only 的 `router/route` 记录（决策可审计），child settle 后落配对的 `router/outcome` 记录（终态可自日志重建）。结果经 session/event 自动归账回 evidence-gate（零新通道）。
 
 ## 装配
 
@@ -39,7 +39,7 @@ if (action.kind === 'delegate') {
 |---|---|
 | `metrics({ sessionId })` | 当前指标快照（interventionLevel/unresolvedHigh/verifications/probeCooledTargets），取自该会话的累计器 |
 | `decide({ sessionId })` | 路由决策（纯函数，可重复调用），取自该会话的累计器 |
-| `execute(action, { sessionId, signal? })` | 执行动作（delegate → 经 seam 派发子代理，返回 child sessionId；self → null）；`sessionId` 为父会话（活 agent），child 血统自此派生 |
+| `execute(action, { sessionId, signal? })` | 执行动作（delegate → 经 seam 派发子代理，返回 `{ sessionId, stopReason, output }`；self → null）；`sessionId` 为父会话（活 agent），child 血统自此派生 |
 | `resetPrediction(sessionId?)` | 重置预测累计器（单个会话；缺省清空全部会话） |
 
 ## 配置
