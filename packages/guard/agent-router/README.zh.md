@@ -66,7 +66,7 @@ apply(ctx, {
 - `router.ts` — 确定性路由表（指标 → 动作）
 - `dispatch.ts` — dsh 子代理 seam 派发（start/result/dispose），profile 工具限制 fail loud
 - `index.ts` — Cordis 插件接线（事件采集 + 服务面）
-- `invariant.ts` — 运行时不变量 companion
+- `invariant.ts` — 运行时不变量 companion：校验 `router/route` 记录（payload 形状 + live child 血统；已加载历史在晚注册时重放校验）
 
 ## 验证
 

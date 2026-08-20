@@ -193,6 +193,17 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     expect(router.decide({ sessionId: A }).kind).toBe('self')
   }, 10000)
 
+  it('agent/disposed 时 evict 该会话的累计器', async () => {
+    const { ctx, emit } = makeContext()
+    const router = ctx.get('router') as RouterService
+    const A = SessionId('session-a')
+
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    expect(router.metrics({ sessionId: A }).interventionLevel).toBe('escalate')
+    emit('agent/disposed', { agent: { session: { id: A } } })
+    expect(router.metrics({ sessionId: A }).interventionLevel).toBe('none')
+  }, 10000)
+
   it('resetPrediction 按会话重置（不影响其他会话）', async () => {
     const { ctx, emit } = makeContext()
     const router = ctx.get('router') as RouterService

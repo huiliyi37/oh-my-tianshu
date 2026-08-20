@@ -18,6 +18,7 @@
 
 import type { Context } from '@huiliyi37/cordis'
 import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
+import type {} from '@huiliyi37/dsh-agent' // 'agent/disposed' 事件声明合并'
 import {
   createPredictionAccumulator,
   getInterventionLevel,
@@ -173,6 +174,11 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
     if (shouldTippingPointReset(next)) {
       predictions.set(owner.id, resetAccumulator(next))
     }
+  })
+
+  // —— 会话终结回收：agent 注销时 evict 该会话的累计器（长驻进程防无界增长）——
+  ctx.on('agent/disposed', ({ agent }) => {
+    predictions.delete(agent.session.id)
   })
 
   // —— 指标组装（evidence 可选；prediction 按会话取）——

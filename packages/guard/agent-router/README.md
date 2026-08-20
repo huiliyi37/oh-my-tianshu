@@ -66,7 +66,7 @@ apply(ctx, {
 - `router.ts` — deterministic routing table (metrics → action)
 - `dispatch.ts` — dsh subagent-seam dispatch (start/result/dispose) with fail-loud profile tool restriction
 - `index.ts` — Cordis plugin wiring (event collection + service surface)
-- `invariant.ts` — runtime-invariant companion
+- `invariant.ts` — runtime-invariant companion: validates `router/route` records (payload shape + live-child lineage; loaded history re-validates at late registration)
 
 ## Verification
 
