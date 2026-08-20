@@ -17,13 +17,13 @@ dsh 已有纪律——证据门的"不准做什么"——却没有任何东西�
   2. `gate`（≥0.6）+ 探针冷却耗尽 → delegate code_scout（新角度侦查）
   3. 义务未决 + 零验证 → self（先写探针——证据门已拦编辑，路由不重复拦）
   4. 默认 self
-- **dispatch.ts**：**dsh 原生派发**——`ctx.agents.create({ sessionId, agentOptions })` → `followup` 注入任务文本（Agent 公开方法，最简单可靠的任务入口）→ `whenIdle` 等待 → `dispose` 清理（finally 保证任何路径清理）。**不搬天枢 worker/dispatcher/council 生命周期**。工具限制（restrict 签名未探明）不在本轮范围内——之后慢慢改造。
+- **dispatch.ts**：**dsh 原生派发**——`ctx.agents.create({ sessionId, agentOptions })` → `followup` 注入任务文本（Agent 公开方法，最简单可靠的任务入口）→ `whenIdle` 等待 → `dispose` 清理（finally 保证任何路径清理）。**不搬天枢 worker/dispatcher/council 生命周期**。profile 工具限制经 create `setup` 内的 `tools.restrict({ allow })` 安装——fail loud：未知工具名或缺失 tools 服务会中止派发，绝不静默放宽工具面。`profileTools`（Config）覆盖内置默认（如 headless fixture 声明 `['read','bash']` 子集）。
 - **index.ts 接线**：`session/event` tool/result → recordPrediction（isError 判定）；evidence tracker 指标经 `ctx.reflect.get('evidence', false)` 可选消费（无 evidence-gate 时 prediction 独立工作）；`ctx.router` 服务面（metrics/decide/execute/resetPrediction）。
 - **归账零新通道**：子代理 tool/result 经既有 session/event 自动归账回 evidence-gate。
 
 ## 关键验证事实
 
-- 包级测试 32 全绿（prediction 17 / router 8 / dispatch 4 / integration 3）。
+- 包级测试 36 全绿（prediction 17 / router 8 / dispatch 6 / integration 5）。
 - integration（真实 cordis Context + 事件对象，不 mock 中间层）：8 连败 → escalate → delegate verifier → execute 派发调用序断言；3 连成 → tipping point 重置 → decide 回 self；dispatchEnabled:false 不派发。
 - 测试驱动修正：mock Context 覆盖真实 `ctx.reflect` 会崩（`ctx.on` 的 proxy 依赖反射层）——**集成测试永远用真实 `new Context()` + provide**，不手改 reflect。
 - dispatch 走 `ctx.reflect.get('agents', false)`（Cordis 4 注入代理，第 4 个实例——与 T4/compact/evidence-gate tools 同款）。
@@ -43,7 +43,7 @@ EFE 全套、season/vigor/sensorium、天枢 worker/dispatcher/council、bandit-
 ## 验证命令
 
 ```sh
-pnpm vitest run packages/guard/agent-router/tests/                     # 4 文件 32 测试全绿
+pnpm vitest run packages/guard/agent-router/tests/                     # 4 文件 36 测试全绿
 npx oxlint packages/guard/agent-router/                                # 0 错误
 npx tsc -p packages/guard/agent-router/tsconfig.json                   # 0 错误
 ```
@@ -70,4 +70,4 @@ npx tsc -p packages/guard/agent-router/tsconfig.json                   # 0 错�
 
 路由层是建立在基础指标之上的纯决策函数，因此 32 个包级测试加上跑在真实 Context 上的集成用例就能钉住它；没有 evidence-gate 时 prediction 仍独立工作；归账零新增事件类型。代价是所有自适应能力都留在门外：没有 bandit promotion 和 EFE 全套，路由只对写死在表里的错误率阈值与冷却状态作出反应，扩展它意味着加规则，而不是学规则。
 
-派发继承了同样有界的形态。因为 dsh 的 restrict 签名未探明，派发不带工具限制，被委派的子代理拿到的是父代理的工具面；e2e 证据止于路由决策，未覆盖 verifier 子代理的实际 turn；路由表只带写作时的那几个 profile，没有 doc_scout/verifier 变体；与 evidence-gate 的联系是单向的指标消费——escalate 既不建义务，也不记录 delegate attempt。真实装配换回了两处修正：因为 dsh bash 不标 isError，成败判定改为读取 `[exit code: …]` 文本；evidence-gate 也暴露出 `cooldownTable()`/`verificationCount()`，把 tracker 已持的状态开放出来。
+派发继承了同样有界的形态。profile 工具限制现在 fail loud 安装（restrict 签名已探明：未知工具名抛错），被委派的子代理只拿到 profile 允许的只读/验证工具集；e2e 证据止于路由决策，未覆盖 verifier 子代理的实际 turn；路由表只带写作时的那几个 profile，没有 doc_scout/verifier 变体；与 evidence-gate 的联系是单向的指标消费——escalate 既不建义务，也不记录 delegate attempt。真实装配换回了两处修正：因为 dsh bash 不标 isError，成败判定改为读取 `[exit code: …]` 文本；evidence-gate 也暴露出 `cooldownTable()`/`verificationCount()`，把 tracker 已持的状态开放出来。
