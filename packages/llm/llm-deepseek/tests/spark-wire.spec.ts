@@ -1,6 +1,6 @@
 /**
  * spark wire 接线测试：config 校验（fail loud）+ serialize 截断行为。
- * 行为断言：spark 开/关、route 判定、模型档、passback 规则不变、copy-on-write。
+ * 行为断言：spark 开/关、route 判定、模型档、逐轮 passback 下截断同源、copy-on-write。
  * @module dsh-llm-deepseek/tests/spark-wire
  */
 
@@ -125,7 +125,7 @@ describe('serializeRequest spark 截断', () => {
     expect(assistant.reasoning_content!.length).toBe(5)
   })
 
-  it('无 tool_calls 的轮次不回传 reasoning（passback 规则不变）', () => {
+  it('无 tool_calls 的轮次同样回传 reasoning（逐轮回传），spark 截断照常生效', () => {
     const wire = serializeRequest(
       sparkRequest({ messages: [createMessage({
         role: 'assistant',
@@ -135,7 +135,10 @@ describe('serializeRequest spark 截断', () => {
       { spark: { enabled: true, truncateN: { flash: 300, pro: 0 } } },
     )
     const assistant = wire.messages[0] as { reasoning_content?: string }
-    expect(assistant.reasoning_content).toBeUndefined()
+    // 逐轮回传后纯文本轮也带 reasoning_content；spark route 上仍截断到尾部 300 token。
+    expect(assistant.reasoning_content).toBeDefined()
+    expect(assistant.reasoning_content!.length).toBe(300)
+    expect(LONG_REASONING.endsWith(assistant.reasoning_content!)).toBe(true)
   })
 
   it('copy-on-write：serialize 不 mutate 原 Message（原始推理保留）', () => {

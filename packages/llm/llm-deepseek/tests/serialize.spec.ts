@@ -62,7 +62,7 @@ describe('serializeMessages', () => {
     expect(wire).toEqual([{ role: 'system', content: 'be brief' }])
   })
 
-  it('maps plain assistant text without reasoning_content', () => {
+  it('passes reasoning_content back on tool-call-free turns', () => {
     const wire = serializeMessages([
       createMessage({
         role: 'assistant',
@@ -73,8 +73,10 @@ describe('serializeMessages', () => {
         source: { kind: 'plugin', plugin: 'test' },
       }),
     ])
-    // Tool-call-free turn: reasoning is dropped (ignored by the API anyway).
-    expect(wire).toEqual([{ role: 'assistant', content: 'answer' }])
+    // A gateway that re-encodes the conversation for another vendor recovers
+    // the upstream thinking signature by hashing this exact text, and a turn
+    // that called no tool carries it nowhere else.
+    expect(wire).toEqual([{ role: 'assistant', content: 'answer', reasoning_content: 'thinking…' }])
   })
 
   it('passes reasoning_content back on tool-call turns (official passback rule)', () => {
@@ -319,16 +321,17 @@ describe('review fixes: assistant content shapes', () => {
     expect(wire).toEqual([{ role: 'assistant', content: '' }])
   })
 
-  it('serializes a reasoning-ONLY assistant message as "" content with the reasoning dropped', () => {
+  it('serializes a reasoning-ONLY assistant message as "" content beside its reasoning', () => {
     // The model can answer entirely in the reasoning channel (a v4-flash
-    // greeting did, live). The passback rule keeps reasoning_content off
-    // plain turns, and content must still be SET — a null here poisoned the
-    // session log and bricked every later turn of that session.
+    // greeting did, live). Content must still be SET — a null here poisoned
+    // the session log and bricked every later turn of that session.
     const wire = serializeMessages([createMessage({
       role: 'assistant', content: [{ type: 'reasoning', text: '你好！有什么我可以帮你的吗？' }],
       source: { kind: 'plugin', plugin: 'test' },
     })])
-    expect(wire).toEqual([{ role: 'assistant', content: '' }])
+    expect(wire).toEqual([{
+      role: 'assistant', content: '', reasoning_content: '你好！有什么我可以帮你的吗？',
+    }])
   })
 
   it('serializes tool-call turns with empty string content, not null', () => {

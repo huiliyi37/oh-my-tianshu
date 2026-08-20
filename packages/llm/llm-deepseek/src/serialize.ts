@@ -1,8 +1,10 @@
 /**
  * Serialize harness messages into DeepSeek chat completions. User text is joined; assistant text
  * becomes `content`, tool calls become `tool_calls`, and tool results become separate tool messages.
- * Assistant reasoning is replayed as `reasoning_content` only on tool-call turns, as required by
- * thinking-mode passback. Unknown declaration-merged block types are skipped rather than rejected.
+ * Assistant reasoning is replayed as `reasoning_content` on every reasoning-carrying turn: required
+ * on tool-call turns by thinking-mode passback, and the only place a gateway re-encoding the
+ * conversation for another vendor can recover a plain turn's thinking signature.
+ * Unknown declaration-merged block types are skipped rather than rejected.
  * @module dsh-llm-deepseek/serialize
  */
 
@@ -103,10 +105,13 @@ function serializeAssistant(message: Message, sparkN?: number): WireMessage {
     // the message sits durably in the session log, a null here bricks every
     // later turn of that session.
     content: text,
-    // Official passback rule (guides/thinking_mode.mdx): reasoning_content
-    // must return on tool-call turns; it is ignored on plain turns, so we
-    // drop it there to save tokens.
-    ...toolCalls.length > 0 && reasoning.length > 0
+    // CoT passback on every reasoning-carrying turn. The official rule
+    // (guides/thinking_mode.mdx) requires it on tool-call turns and ignores it
+    // elsewhere; a gateway re-encoding the conversation for another vendor
+    // recovers that turn's upstream thinking signature by hashing this exact
+    // text, which a tool-call-free turn carries nowhere else. spark 截断
+    // 照常生效（回传体有界，与 tool-call 轮同源）。
+    ...reasoning.length > 0
       ? {
         reasoning_content: sparkN !== undefined && sparkN > 0
           ? truncateReasoningTail(reasoning, sparkN, defaultTokenizer)
