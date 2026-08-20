@@ -1181,7 +1181,11 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     })
   })
 
-  it('会话 tab 栏：多会话 attach 渲染（当前 ●）；Ctrl+X 切下一个；Alt+2 跳转', async () => {
+  it('会话 tab 栏已移除：多会话也不渲染 tab 行，Ctrl+X/Alt+数字不再切换', async () => {
+    // chrome tab 栏（短 id 列表）曾把全部持久化会话挤成一排无意义 hex，
+    // 被产品判定移除；会话切换由 /resume、Ctrl+S（带标题的选择器）承载。
+    // live 区的 side-conversation 状态行（renderSessionTabs，≥2 个 mounted
+    // 会话）是另一表面，不受影响。
     const ctx = makeCtx()
     const agent = makeAgent('tab-1')
     const handle = makeHandle(agent)
@@ -1193,7 +1197,6 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     const headerOf = (id: SessionId, createdAt: number) => ({
       id, createdAt, version: 0, cwd: undefined, parentSession: undefined,
     })
-    // listSessions 按 createdAt 降序（新→旧）——s1 最新保证 tab 序 [s1,s2,s3]
     ctx.sessions.list.mockReturnValue([
       { id: s1, header: headerOf(s1, Date.now() - 1_000), events: [] },
       { id: s2, header: headerOf(s2, Date.now() - 2_000), events: [] },
@@ -1205,43 +1208,18 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     const app = new TuiApp({ ctx, stdout, stdin })
     await app.attach()
     expect(app.sessionId).toBe(s1)
-    // tab 栏渲染：短 id + 当前 ●（s1 当前）
     await new Promise(resolve => setTimeout(resolve, 50))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('tab-one●')
-    // Ctrl+X → 下一个（s2）
+    // 不渲染 tab 行（`[短id]` 形态；欢迎页列表的 `#短id` 形态不受影响）
+    expect(written).not.toContain('[tab-one')
+    expect(written).not.toContain('[tab-two')
+    // Ctrl+X / Alt+数字 回归输入行语义：不再切换会话
     stdin.emit('data', '\x18')
     await new Promise(resolve => setTimeout(resolve, 50))
-    expect(app.sessionId).toBe(s2)
-    // Alt+3 → 跳第 3 个（s3）
+    expect(app.sessionId).toBe(s1)
     stdin.emit('data', '\x1b3')
     await new Promise(resolve => setTimeout(resolve, 50))
-    expect(app.sessionId).toBe(s3)
-    // Alt+9 越界 → 无操作（仍 s3）
-    stdin.emit('data', '\x1b9')
-    await new Promise(resolve => setTimeout(resolve, 50))
-    expect(app.sessionId).toBe(s3)
-    await app.dispose()
-  })
-
-  it('会话 tab 栏：单会话也渲染 tab 行（2.3 当前会话标识）', async () => {
-    const ctx = makeCtx()
-    const agent = makeAgent('tab-1')
-    const handle = makeHandle(agent)
-    ctx.agents.create.mockResolvedValue(handle)
-    ctx.sessions.get.mockReturnValue(agent.session)
-    const only = SessionId('session-tab-only')
-    ctx.sessions.list.mockReturnValue([
-      { id: only, header: { id: only, createdAt: Date.now(), version: 0, cwd: undefined, parentSession: undefined }, events: [] },
-    ])
-    ctx.agents.get.mockReturnValue(agent)
-    const stdout = makeStdout()
-    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
-    await app.attach()
-    await new Promise(resolve => setTimeout(resolve, 50))
-    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    // 2.3：单会话 tab 行渲染短 id + ●（任意时刻可见「我在哪个会话」）
-    expect(written).toContain('tab-only●')
+    expect(app.sessionId).toBe(s1)
     await app.dispose()
   })
 

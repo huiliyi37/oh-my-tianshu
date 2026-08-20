@@ -69,7 +69,6 @@ import { lspBadgeText } from '../format/lsp-diagnostics.js'
 import { formatToolViewCard } from '../format/tool-view-card.js'
 import { formatReasoningBlock, formatReasoningLive, reasoningTailBudget } from '../format/reasoning.js'
 import { accumulateUsage, formatSessionCostReport, type SessionCostBucket } from '../format/session-cost.js'
-import { formatSessionTabs, sessionTabLabel, type SessionTab } from '../format/session-tabs.js'
 import { renderKeymapPanel } from '../format/keymap-panel.js'
 import { renderSessionExport } from '../format/export.js'
 import type { TaskItem } from '../format/task-panel.js'
@@ -590,9 +589,6 @@ export class TuiApp {
   private gitDirty = 0
   /** A5：手动展开的进行中工具卡 callId（空输入 Enter 切换；turn/end 复位）。 */
   private expandedToolCallId: string | null = null
-  /** 会话 tab 栏缓存（attach/newSession/switchSession 后经 listSessions 刷新；
-   *  >1 会话时在 chrome 段渲染一行；Ctrl+X / Alt+数字 切换）。 */
-  private sessionTabs: SessionTab[] = []
   /** P2：memory 浏览器 overlay（/memory 记忆列表/过滤/删除）。 */
   private memoryOverlay: MemoryBrowserOverlay | null = null
   /** Phase 9d：流利度追踪（tool 事件 → 渲染策略；stale 提示消费于 renderLive）。 */
@@ -1125,8 +1121,6 @@ export class TuiApp {
     // live 标注取 live store（listSessions 的 header 无 live 字段，
     // 经 ctx.sessions.list() 的 id 集合判定）。
     await this.renderRestorableSessions()
-    // 会话 tab 栏初始快照（attach 后；后续 newSession/switchSession 刷新）。
-    void this.refreshSessionTabs()
     // git 未提交计数快照（footer ●N 数据源）：attach 一次 + 每 turn/end 刷新。
     this.gitDirty = gitDirtyCount()
 
@@ -1505,32 +1499,6 @@ export class TuiApp {
     this.switchSessionGuarded(target)
   }
 
-  /** 会话 tab 栏缓存刷新：listSessions → 短 id + 当前标记 → 缓存并调度重绘。 */
-  private async refreshSessionTabs(): Promise<void> {
-    // tab 栏只列可切换会话：损坏占位无 agent 可挂载（Ctrl+X/Alt+数字切过去
-    // 只会失败）——损坏会话的可见性由列表/选择器/欢迎页承载（2.4）。
-    const rows = (await listSessions(this.ctx).catch(() => []))
-      .filter(row => !row.corrupt)
-    if (this.disposed) return
-    const active = this.activeSessionId
-    this.sessionTabs = rows.map(row => ({
-      id: row.id,
-      label: sessionTabLabel(row.id),
-      current: row.id === active,
-    }))
-    this.renderBatcher.schedule()
-  }
-
-  /** 会话 tab 栏：Ctrl+X 切到下一个会话（循环；仅一个会话时无操作）。 */
-  private switchToNextTab(): void {
-    const tabs = this.sessionTabs
-    const active = this.activeSessionId
-    if (tabs.length <= 1) return
-    const idx = tabs.findIndex(t => t.id === active)
-    const next = tabs[(idx + 1) % tabs.length]
-    if (next !== undefined && next.id !== active) this.switchSessionGuarded(SessionId(next.id))
-  }
-
   /**
    * slash 注册表当前命令名集合（现取——/lsp 等动态注册命令不误判为路径）。
    * 内置表未命中时再查 cordis CommandService：/plan 等仅由插件注册的命令
@@ -1709,8 +1677,6 @@ export class TuiApp {
       this.controls = controlsFromHandle(align.handle)
       this.activeSessionId = SessionId(align.sessionId)
       this.mountSession(this.activeSessionId)
-      // 会话 tab 栏刷新（对齐会话出现在 tab 栏并成为当前）。
-      void this.refreshSessionTabs()
       return this.activeSessionId
     }
     const handle = await this.ctx.agents.create({
@@ -1725,8 +1691,6 @@ export class TuiApp {
     this.controls = controlsFromHandle(handle)
     this.activeSessionId = id
     this.mountSession(id)
-    // 会话 tab 栏刷新（新会话出现在 tab 栏并成为当前）。
-    void this.refreshSessionTabs()
     return id
   }
 
@@ -2088,8 +2052,6 @@ export class TuiApp {
       this.controls = controlsFromHandle(handle)
     }
     this.mountSession(id)
-    // 会话 tab 栏刷新（切换后当前标记跟随）。
-    void this.refreshSessionTabs()
   }
 
   /**
@@ -3005,19 +2967,6 @@ export class TuiApp {
     }
     if (key.name === 'ctrl_s') {
       void this.restoreRecentOtherSession()
-      return
-    }
-    // 会话 tab 栏：Ctrl+X 循环下一个（Ctrl+Tab 终端编码不可靠，不用）。
-    if (key.name === 'ctrl_x') {
-      this.switchToNextTab()
-      return
-    }
-    // 会话 tab 栏：Alt+1..9 直接跳第 N 个（ESC+digit 解析为 meta+char）。
-    if (key.meta && key.char >= '1' && key.char <= '9') {
-      const target = this.sessionTabs[Number(key.char) - 1]
-      if (target !== undefined && target.id !== this.activeSessionId) {
-        this.switchSessionGuarded(SessionId(target.id))
-      }
       return
     }
     if (key.name === 'ctrl_q') {
@@ -3972,14 +3921,6 @@ export class TuiApp {
     // 其后是 slash / vim / 图片 / 输入轨 / footer。溢出裁剪只作用在动态段；
     // slash 菜单行数另计入动态段高水位记账（见下方预算段），高度变化由垫高吸收。
     const chromeStart = lines.length
-
-    // 会话 tab 栏（chrome 段：不参与动态裁剪；>1 会话时显示；Ctrl+X/Alt+数字切换）。
-    // 2.3：单会话也渲染 tab 行——任意时刻可见当前会话标识（短 id + ●）。
-    if (this.sessionTabs.length >= 1) {
-      for (const line of formatSessionTabs(this.sessionTabs, cols, this.theme)) {
-        lines.push(line)
-      }
-    }
 
     // 提问 / 审批紧挨输入轨。
     const questionPeek = this.question.peek()
