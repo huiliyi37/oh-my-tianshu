@@ -482,6 +482,9 @@ export class LiveEngine {
       this.lastDisplayRows = newDisplayRows
       this.lineCache = bounded.map(l => l.text)
       this.hasRendered = true
+      // 区域在此路径从无到有（或 clear 后重建）：屏上几何已变，旧基线
+      // 不再适用（可能来自 clear 窗口期的位置采样），作废等下一响应重建。
+      this.cprBaseline = null
       this.setParked(parking)
       this.requestProbe()
       return
@@ -518,6 +521,16 @@ export class LiveEngine {
     this.stdout.write(ANSI.BEGIN_SYNC + ANSI.HIDE_CURSOR + body + this.buildParkSeq(parking) + ANSI.END_SYNC)
     this.lastDisplayRows = newDisplayRows
     this.lineCache = bounded.map(l => l.text)
+    // 区域 display rows 总数变化 = 合法几何变化（输入折行/增行、面板开合、
+    // 动态段高低变化）：旧 CPR 基线按旧几何折算，继续比对会把合法变化误判
+    // 为外来污染 → 恢复性全量重铺按旧几何回顶 → 欠回顶 → 旧帧顶部残留成
+    // 「输入框多一行」重影。rowsUp 漂移守卫只覆盖 caret 下方行数变化，
+    // caret 行自身增行/折行时 rowsUp 不变、守卫漏过——这里按总数变化作废
+    // 基线，下一个探针响应按新几何重建（外部写入不改变引擎几何，仍会被检出）。
+    // hasRendered 在此路径恒为 true（首帧/clear 路径已提前返回）。
+    if (newDisplayRows !== prevDisplayRows) {
+      this.cprBaseline = null
+    }
     this.setParked(parking)
     this.requestProbe()
   }

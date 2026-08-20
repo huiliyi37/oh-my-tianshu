@@ -188,3 +188,77 @@ describe('LIVE_TOOL_CARD_MAX', () => {
     expect(LIVE_TOOL_CARD_MAX).toBe(3)
   })
 })
+
+describe('LiveEngine CPR 污染判定（基线折算与几何变化守卫）', () => {
+  /** 帧 1：输入 1 行（6 display rows；80 列终端上 caret 行 = 第 28 行 1-based）。 */
+  const frame1 = (): LiveRegionLine[] => [
+    { text: 'STATUS' }, { text: '' }, { text: '╭rail╮' },
+    { text: '❯ ab', caretCol: 3 }, { text: '╰rail╯' }, { text: 'footer' },
+  ]
+  /** 帧 2：输入 Enter 增行为 2 逻辑行（7 display rows；caret 行 = 第 29 行 1-based）。 */
+  const frame2 = (): LiveRegionLine[] => [
+    { text: 'STATUS' }, { text: '' }, { text: '╭rail╮' },
+    { text: '❯ ab' }, { text: '❯ █', caretCol: 2 }, { text: '╰rail╯' }, { text: 'footer' },
+  ]
+
+  it('基线建立：首个响应只记录不判污染', () => {
+    const { stdout } = makeLiveStdout()
+    let polluted = 0
+    const live = new LiveEngine({ stdout, onProbeRequest: () => {}, onPolluted: () => { polluted++ } })
+    live.render(frame1())
+    live.requestProbe()
+    live.noteCpr(28, 4) // 帧 1 caret 行（1-based 28）+ rowsUp(2) → 区域末行 30
+    expect(polluted).toBe(0)
+  })
+
+  it('外部写入把光标推离驻停点 → 判污染并触发恢复重铺', () => {
+    const { stdout, writes } = makeLiveStdout()
+    let polluted = 0
+    const live = new LiveEngine({ stdout, onProbeRequest: () => {}, onPolluted: () => { polluted++ } })
+    live.render(frame1())
+    live.requestProbe()
+    live.noteCpr(28, 4) // 基线 {row: 30}
+    live.render(frame1()) // 同帧（H2 短路，几何不变）
+    live.requestProbe()
+    live.noteCpr(29, 5) // 外来行把光标推下一行 → 区域末行 31 ≠ 30
+    expect(polluted).toBe(1)
+    // 污染后的下一次 render 走恢复重铺：回顶量按旧几何 + CPR 报告行双封顶
+    const before = writes.length
+    live.render(frame1())
+    const rewrite = writes.slice(before).join('')
+    expect(rewrite).toContain('STATUS')
+  })
+
+  it('打字列变（同行）：不判污染', () => {
+    const { stdout } = makeLiveStdout()
+    let polluted = 0
+    const live = new LiveEngine({ stdout, onProbeRequest: () => {}, onPolluted: () => { polluted++ } })
+    live.render(frame1())
+    live.requestProbe()
+    live.noteCpr(28, 4) // 基线
+    live.render([{ text: 'STATUS' }, { text: '' }, { text: '╭rail╮' },
+      { text: '❯ abc', caretCol: 4 }, { text: '╰rail╯' }, { text: 'footer' }])
+    live.requestProbe()
+    live.noteCpr(28, 5) // 同行、列变 → 只比行不比列
+    expect(polluted).toBe(0)
+  })
+
+  it('输入增行（区域 display rows 变化）：作废基线，不误判污染', () => {
+    const { stdout, writes } = makeLiveStdout()
+    let polluted = 0
+    const live = new LiveEngine({ stdout, onProbeRequest: () => {}, onPolluted: () => { polluted++ } })
+    live.render(frame1())
+    live.requestProbe()
+    live.noteCpr(28, 4) // 基线 {row: 30}（帧 1 几何）
+    live.render(frame2()) // 输入增行：区域 6 → 7 display rows，几何已变
+    // 在途探针响应到达（反映帧 2 的 caret 位置）：旧基线折算会误判污染，
+    // 修复后应因「总数变化 → 基线作废」而不判，且不触发恢复性全量重铺。
+    const before = writes.length
+    live.requestProbe()
+    live.noteCpr(29, 3) // 帧 2 caret 行（1-based 29）+ rowsUp(2) → 31；基线已作废
+    expect(polluted).toBe(0)
+    live.render(frame2()) // 正常增量帧，不应出现恢复重铺特有的爬升+全擦序列
+    const next = writes.slice(before).join('')
+    expect(next).not.toContain('\x1b[0J') // ERASE_SCREEN_END 仅在恢复重铺/清屏出现
+  })
+})
