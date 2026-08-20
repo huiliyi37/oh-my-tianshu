@@ -15,6 +15,7 @@ Status: implemented
 - **对齐会话。** `createAlignedSession()` 创建路由到 `alignProvider`/`alignModel` 的顶层 agent，seed 一组已完成的 `zen/phase` 序列（`{zen, arm}` → `{full, timeout}`），zen 的 resume 分支（历史存在）因此绝不 arm 它（`packages/guard/zen/src/index.ts:441-447`）；桥以 agent-scoped 方式注册 `finalize_alignment`（agent-scoped 工具绕过 restrict 的 allow 列表——zen 的 `zen_anchor` 是同一模式）并安装 `tools.restrict({ allow: [] })` 使任何全局工具不可见。`session/title { '意图对齐' }` 事件标记 tab。`intent:policy` 提示段只在对齐会话存活时渲染对齐契约。
 - **多轮澄清就是普通 turn。** 对齐模型提问（纯文本、无工具调用）→ turn 结束 → 用户经 `followup` 回答 → 下一轮。无需挂起等待机制。
 - **交接。** `finalize_alignment` 在边界校验（`parseFinalizeArgs`：非空 title/goal、约束/验收 ≤4 条、非法调用拒绝回模型）、以逐字原文渲染任务卡（task-card 的 `renderTaskCard(card, original)`）、创建主会话（路由到 `execProvider`/`execModel`）、把任务卡作为首条用户消息喂入、在主会话记录 log-only 的 `intent-bridge/handoff`、并 emit `intent-bridge/handoff` 派发事件（TUI 监听并 `switchSession`）。
+- **交接为先创建后提交。** `AlignState.finalizing` 是同步置位的在途哨兵，让 tool、强制、回退三条路径在 create 窗口内串行；`finalized` 只在任务卡送达主会话后置位。create 或投递失败以工具错误浮出并保持可重试；已创建但未收到卡片的主会话会被 dispose，重试铸新会话（不变量禁止同一会话出现第二条 handoff 记录）。
 - **失败路径绝不阻塞任务。** 对齐轮数耗尽（`alignMaxRounds`，默认 5）→ 强制产出模板任务卡并 reject 该 step；对齐 agent 出错 → 逐字原文直通主会话（task-card 单轮改写兜底）。
 - **TUI 接线。** `newSession()` 在装配桥时创建对齐会话（否则行为不变）；handoff 监听自动切到主会话。按次 `exec` 覆盖带上当前 `/model` 选择，以及已设定时的当前 `reasoningEffort`，主会话因此不会回落到适配器默认。切到该 live 主 agent 时会重新安装 `installModelSelection`，之后的 `/effort` 仍可热切。bundle 两条路由都发货为 `deepseek-official/deepseek-v4-flash`（[发货对齐默认](2026-08-19-intent-bridge-shipped-align-flash.md)）。
 - **不变量。** `@huiliyi37/dsh-intent-bridge/invariant` 从权威会话日志验证：每会话至多一条 handoff 记录且 reason 已知；handoff 后的带卡首条用户消息保留非空逐字原文。
@@ -35,16 +36,17 @@ Status: implemented
 ## 测试
 
 - `tests/align.spec.ts` — 对齐契约文本 + finalize 参数校验表（15 测试）。
-- `tests/intent-bridge.spec.ts` — 全链路 scripted-model 集成：多轮对齐 → finalize → 主会话任务卡 → zen arm；轮数耗尽强制模板卡；非法 finalize 拒绝且不建主会话；disabled 响亮失败；per-call `cwd`/`exec` override（含 `reasoningEffort`）生效（5 测试）。
+- `tests/intent-bridge.spec.ts` — 全链路 scripted-model 集成：多轮对齐 → finalize → 主会话任务卡 → zen arm；轮数耗尽强制模板卡；非法 finalize 拒绝且不建主会话；disabled 响亮失败；per-call `cwd`/`exec` override（含 `reasoningEffort`）生效；主会话 create 失败重试、在途回退跳过、卡片投递失败 dispose（10 测试）。
 - `tests/invariant.spec.ts` — handoff 记录不变量（live append 与晚注册，8 测试）。
 - keyless 快照（`examples/headless-agent/tests/intent-bridge.snapshot.ts`，真实 Loader + 双 provider 路由的 replay 适配器）：单轮对齐 → 主会话持久化日志含任务卡 → handoff 记录 → zen arm；对齐会话 seed full 且带标题。
-- 28 包测试 + 快照 macOS 全绿；zen（61）、task-card（28）、TUI app（260）套件重跑无回归。
+- 31 包测试 + 快照 macOS 全绿；zen（61）、task-card（28）、TUI app（260）套件重跑无回归。
 
 ## 执行记录
 
 - `b4af3a63` — 核心包（对齐契约、finalize 工具、pre-step 接线、不变量、27 测试）。
 - `08d0dbcf`/`9f35bf22` — TUI newSession 对齐分支 + handoff 自动切换 + bundle 装配；tsconfig references。
 - `c3d50ead` — keyless 快照；`d8c3f42d` — 文档/索引同步。
+- `8b93a9640c` — 先创建后提交交接：`finalizing` 在途哨兵、失败 create/投递可重试、未收卡片的主会话 dispose（新增 3 测试；README Known Limitation 重写）。
 - 后续优化（`意图链后续优化`）：`createAlignedSession` 接受调用方持有的 `cwd`（对齐会话与其移交的主会话都落入真实项目目录而非 `_no-cwd/`）与 `exec` override（主会话跟随 TUI `/model` 选择；配置仍是 headless 默认）。
 - 审查修复：后续优化最初只给对齐会话落了 `cwd`——两条 `finalize` 路径创建主会话都没带 `meta`，长期存在的 exec 会话被持久化进 `_no-cwd/` 并从 Web 会话列表消失。现在 `AlignState` 把 `cwd` 带进每次主会话创建；包测试断言主会话 `header.cwd`，keyless 快照经夹具传 `cwd` 并钉住无 `_no-cwd` 的落盘布局。
 
