@@ -24,22 +24,58 @@ import { ESCALATION_TARGETS, approveEscalation, canonicalPath, validateEscalatio
 import type { SandboxPolicyService } from '@huiliyi37/dsh-sandbox-policy'
 import { DSH_ENV_PREFIX } from '@huiliyi37/dsh-bash'
 import type { BashRunResult } from '@huiliyi37/dsh-bash'
+import type { SaveTextSpill, SpillRef } from '@huiliyi37/dsh-spill'
+import { composeResultBody, outputShapingDropsLines, type OutputShaping } from './model-output.ts'
 import { processOutcome } from './background.ts'
 import { parseExitStatus, renderProcessRead, renderResult } from './render.ts'
 
 export const name = 'tool-bash'
 export const inject = ['tools', 'bash', 'systemPrompt', 'bashEnv']
 
+/** Default tail lines kept when folding a successful run's verbose output. */
+const DEFAULT_SUCCESS_TAIL_LINES = 20
+/** Default threshold above which a failed run's output gets error-aware selection. */
+const DEFAULT_ERROR_THRESHOLD_LINES = 40
+/** Default total line budget for error-aware selection. */
+const DEFAULT_ERROR_BUDGET_LINES = 60
+
 /** Configuration for the bash tool. */
 export interface Config {
   /** Expose `run_in_background` (default true); disabled calls are also rejected. */
   enableRunInBackground?: boolean
+  /** Fold a successful run's output above the tail threshold to its last N lines (0 disables; default 20). */
+  outputSuccessTailLines?: number
+  /** A failed run's output above this many lines keeps error-relevant lines instead of the whole body (0 disables; default 40). */
+  outputErrorThresholdLines?: number
+  /** Total line budget for the failed-run error-aware selection (default 60). */
+  outputErrorBudgetLines?: number
 }
 
 /** Runtime configuration schema for the bash tool plugin. */
 export const Config: z<Config> = z.object({
   enableRunInBackground: z.boolean().default(true),
+  outputSuccessTailLines: z.number().default(DEFAULT_SUCCESS_TAIL_LINES),
+  outputErrorThresholdLines: z.number().default(DEFAULT_ERROR_THRESHOLD_LINES),
+  outputErrorBudgetLines: z.number().default(DEFAULT_ERROR_BUDGET_LINES),
 })
+
+/** Resolve and validate the shaping knobs once at load (misconfiguration fails loud here, not per call). */
+function resolveShapingConfig(config: Config): Pick<OutputShaping, 'successTailLines' | 'errorThresholdLines' | 'errorBudgetLines'> {
+  const successTailLines = config.outputSuccessTailLines ?? DEFAULT_SUCCESS_TAIL_LINES
+  const errorThresholdLines = config.outputErrorThresholdLines ?? DEFAULT_ERROR_THRESHOLD_LINES
+  const errorBudgetLines = config.outputErrorBudgetLines ?? DEFAULT_ERROR_BUDGET_LINES
+  const fields: Array<[string, number]> = [
+    ['outputSuccessTailLines', successTailLines],
+    ['outputErrorThresholdLines', errorThresholdLines],
+    ['outputErrorBudgetLines', errorBudgetLines],
+  ]
+  for (const [name, value] of fields) {
+    if (!Number.isInteger(value) || value < 0) {
+      throw new Error(`tool-bash: ${name} must be a non-negative integer (got ${JSON.stringify(value)})`)
+    }
+  }
+  return { successTailLines, errorThresholdLines, errorBudgetLines }
+}
 
 /** Parsed tool args; execute validates value constraints absent from ParameterSchemaSpec. */
 interface BashToolArgs {
@@ -75,6 +111,8 @@ function bashDescription(backgroundEnabled: boolean, escalationModes: readonly S
     + `Current harness environment facts are exposed through managed \`$${DSH_ENV_PREFIX}*\` variables; inspect them when needed. `
     + 'Commands may run under a file sandbox; a blocked file operation is reported as `[sandbox: file access denied under <mode> mode]` — a policy denial, not a bug in the command; do not retry another way. '
     + 'Long output is truncated to its tail; the full output is saved to a file whose path is reported when available. '
+    + 'A long SUCCESSFUL output is folded to its tail lines; a long FAILED output keeps the error-relevant lines with an omission count — '
+    + 'never re-run a command just to see dropped output; read the reported full-output path instead. '
     + background
   if (escalationModes.length === 0) return base
   return base + ' Attempting a command the sandbox may deny is safe and expected: run it and read the '
@@ -187,6 +225,7 @@ const BACKGROUND_OUTPUT_PROPERTIES = {
 
 export function apply(ctx: Context, config: Config = {}): void {
   const backgroundEnabled = config.enableRunInBackground ?? true
+  const shapingConfig = resolveShapingConfig(config)
   const defaultMode = ctx.bash.sandboxMode
   const escalationModes: readonly SandboxMode[] = defaultMode === undefined ? [] : ESCALATION_TARGETS
   const sandboxPolicy: SandboxPolicyService | undefined = defaultMode === undefined ? undefined : ctx.get('sandboxPolicy')
@@ -236,6 +275,36 @@ export function apply(ctx: Context, config: Config = {}): void {
     order: 105,
     text: 'Check the [exit code: N] marker on every bash result; investigate failures before moving on.',
   })
+
+  /**
+   * Save the full output body to the session's spill store before shaping
+   * omits lines, so the omission notice can name a durable recovery path.
+   * Best-effort by design: no spill backend, no session owner, or a save
+   * failure all return undefined and the notice degrades to an honest count.
+   * @param exec - the tool execution owning the call (session + call id).
+   * @param body - the composed full output body.
+   * @returns the spill locator, or undefined when no durable copy was made.
+   */
+  const spillFullOutput = async (exec: ToolExecution, body: string): Promise<string | undefined> => {
+    const sessionId = exec.agent?.session.header.id
+    if (sessionId === undefined) return undefined
+    const spillStore = ctx.get('spillStore')
+    if (spillStore === undefined) return undefined
+    const save: SaveTextSpill = {
+      owner: { sessionId },
+      source: { toolName: 'bash', callId: exec.callId, label: 'output' },
+      suggestedName: 'bash.txt',
+      content: body,
+    }
+    try {
+      const ref: SpillRef = await spillStore.saveText(save)
+      return String(ref.locator)
+    } catch (error: unknown) {
+      // 只吞落盘失败：省略通知降级为不带路径，调用保持成功（正文仍在结果里成形输出）。
+      ctx.logger.warn(`tool-bash: spilling full output failed; the omission notice will carry no path: ${String(error)}`)
+      return undefined
+    }
+  }
 
   ctx.tools.register(defineTool({
     name: 'bash',
@@ -304,6 +373,10 @@ export function apply(ctx: Context, config: Config = {}): void {
                   spillPath: { type: 'string' },
                 },
               },
+              outputSpillPath: {
+                type: 'string',
+                description: 'Durable path of the full combined output, present when model-facing shaping omitted lines.',
+              },
               sandbox: {
                 type: 'object',
                 additionalProperties: false,
@@ -322,7 +395,14 @@ export function apply(ctx: Context, config: Config = {}): void {
         type: 'text',
         text: value.kind === 'background'
           ? `started background task ${value.taskId}`
-          : renderResult(value as { kind: 'foreground' } & BashRunResult, escalationModes),
+          : renderResult(value as { kind: 'foreground' } & BashRunResult, escalationModes, {
+            // 失败事实由 renderResult 从 result 本身并入；这里只传配置与恢复路径。
+            failed: false,
+            ...shapingConfig,
+            ...(value as { outputSpillPath?: string }).outputSpillPath !== undefined
+              ? { spillPath: (value as { outputSpillPath?: string }).outputSpillPath }
+              : {},
+          }),
       }],
     },
     async execute(args: BashToolArgs, exec) {
@@ -384,7 +464,19 @@ export function apply(ctx: Context, config: Config = {}): void {
         error.name = 'AbortError'
         throw error
       }
-      return { kind: 'foreground' as const, ...canonicalBashResult(result) }
+      // 成形会丢行时先把完整正文落盘（best-effort）：省略通知才有恢复路径，
+      // 重跑命令有副作用、不可作为恢复手段。无 spill 服务/无会话主/落盘失败
+      // 都降级为不带路径的诚实省略计数——绝不因此让调用失败。
+      const body = composeResultBody(result)
+      const failed = result.exitCode !== 0 || result.signal !== null || result.timedOut
+      const outputSpillPath = outputShapingDropsLines(body, { failed, ...shapingConfig })
+        ? await spillFullOutput(exec, body)
+        : undefined
+      return {
+        kind: 'foreground' as const,
+        ...canonicalBashResult(result),
+        ...outputSpillPath !== undefined ? { outputSpillPath } : {},
+      }
     },
     presentCall: presentBashCall,
     presentResult: presentBashResult,

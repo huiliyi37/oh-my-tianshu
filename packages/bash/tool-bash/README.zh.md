@@ -38,6 +38,12 @@
 
 当 `run_in_background` 为 true 时，此插件会在 spawn 前预检 `ctx.tasks.start()`，把调用方 agent 注册为持有者，并将返回的 `BashProcess` 句柄适配为通用的取消／完成／增量输出钩子。任务运行时持有 id、跨会话隔离、完成通知、等待和 dispose（资源释放）清理；此插件只把 bash 退出／沙箱事实映射为任务输出和结果详情。`enableRunInBackground: false` 会移除该参数，并在执行时拒绝强制后台调用。
 
+## 模型输出成形（token 效率）
+
+前台结果的模型可见正文在 exit 标记之前先成形（上游天枢 `output-store` 脉络的内生化）：成功输出超过 `outputSuccessTailLines`（缺省 20；0 关闭）折叠为尾部行并附精确省略计数；失败输出超过 `outputErrorThresholdLines`（缺省 40）保留错误相关行——每个诊断命中 ±2 行上下文、头尾锚——总量不超过 `outputErrorBudgetLines`（缺省 60），命中数本身超预算时回退为头尾切分。不超过阈值的正文逐字节原样通过；只删不编，每次省略都带计数。
+
+成形省略任何内容之前，完整正文先落盘 `ctx.spillStore`（best-effort：无后端、无会话主或落盘失败都降级为不带路径的省略计数，绝不使调用失败），省略通知携带 spill 定位符——重跑命令永远不是恢复手段（命令可能有副作用）。前台值以 `outputSpillPath` 暴露该路径。
+
 ## UI 展示
 
 工具持有自己的 `presentCall`/`presentResult` 渲染意图。前台调用是终端卡片，包含命令、说明、cwd、输出和解析后的退出状态。由于卡片以独立的 pill 展示退出状态，解析所消耗的 `[exit code: N]` / `[killed by signal: …]` 标记会从输出中移除；其他所有标记（截断、超时、沙箱）都保留在输出中。后台启动只返回 task id，因此使用通用执行卡片；通用 `task_*` 工具持有各自的卡片。这些 presenter 是纯函数，可安全回放。

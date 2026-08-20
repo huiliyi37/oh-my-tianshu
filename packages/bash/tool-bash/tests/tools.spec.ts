@@ -23,6 +23,8 @@ import * as ToolBash from '@huiliyi37/dsh-tool-bash'
 import * as BashEnvPlugin from '@huiliyi37/dsh-bash-env'
 import { processOutcome } from '../src/background.ts'
 import { renderProcessRead, renderResult } from '../src/render.ts'
+import SpillStore, { SpillLocator } from '@huiliyi37/dsh-spill'
+import type { SaveTextSpill, SpillRef } from '@huiliyi37/dsh-spill'
 
 const testToolSignal = new AbortController().signal
 
@@ -1275,5 +1277,76 @@ describe('the model-facing bash tool builds its request from named args only (no
     expect('env' in request).toBe(false)
     expect('stdin' in request).toBe(false)
     expect('stdoutMaxBytes' in request).toBe(false)
+  })
+})
+
+describe('bash tool 模型输出成形（成功折叠 / 失败精选 / 恢复路径）', () => {
+  /** 记录保存请求的假 spill 后端（Service 形态，ctx.spillStore 可解析）。 */
+  class StubSpillStore extends SpillStore {
+    saves: SaveTextSpill[] = []
+    override async saveText(input: SaveTextSpill): Promise<SpillRef> {
+      this.saves.push(input)
+      return {
+        locator: SpillLocator('/spill/bash.txt'),
+        bytes: Buffer.byteLength(input.content, 'utf8'),
+        retrievalHint: 'stub',
+      }
+    }
+  }
+
+  async function setupShaped(withSpill = false): Promise<{ ctx: Context; stub?: StubSpillStore }> {
+    const ctx = await setup()
+    if (withSpill) {
+      await ctx.plugin(StubSpillStore)
+      return { ctx, stub: ctx.spillStore as StubSpillStore }
+    }
+    return { ctx }
+  }
+
+  it('成功长输出折叠为尾部并带省略计数', async () => {
+    const { ctx } = await setupShaped()
+    const result = await call(ctx, 'bash', { command: 'seq 1 50', description: 'numbered output' })
+    const out = text(result)
+    expect(out.startsWith('[30 earlier lines omitted]\n')).toBe(true)
+    expect(out.endsWith('50\n')).toBe(true)
+    expect(out).not.toContain('\n5\n')
+  })
+
+  it('失败长输出保留错误行窗口与头尾锚（真实失败命令）', async () => {
+    const { ctx } = await setupShaped()
+    const command = 'for i in $(seq 1 60); do echo "row $i"; done; echo "FATAL: boom"; exit 1'
+    const result = await call(ctx, 'bash', { command, description: 'fails loudly' })
+    const out = text(result)
+    expect(out).toContain('FATAL: boom')
+    expect(out).toContain('lines omitted — error-relevant lines kept')
+    // 尾锚 + exit 标记仍在正文末尾。
+    expect(out.endsWith('[exit code: 1]')).toBe(true)
+    expect(out).toContain('row 60')
+    expect(out).not.toContain('row 30\n')
+  })
+
+  it('成形丢行时完整正文落盘，省略通知带恢复路径', async () => {
+    const { ctx, stub } = await setupShaped(true)
+    // spill 归属会话主：落盘路径依赖 owner（无 agent 的直调降级为无路径）。
+    const agent = registerFakeAgent(ctx, 'session-spill-1')
+    const result = await call(ctx, 'bash', { command: 'seq 1 50', description: 'spilled' }, agent)
+    const out = text(result)
+    expect(out.startsWith('[30 earlier lines omitted; full output: /spill/bash.txt]\n')).toBe(true)
+    expect(stub?.saves).toHaveLength(1)
+    expect(stub?.saves[0]?.suggestedName).toBe('bash.txt')
+    expect(stub?.saves[0]?.content).toContain('1\n2\n3\n')
+  })
+
+  it('无 spill 后端时降级为不带路径的省略计数（不失败调用）', async () => {
+    const { ctx } = await setupShaped()
+    const result = await call(ctx, 'bash', { command: 'seq 1 50', description: 'no backend' })
+    expect(result.isError).toBe(false)
+    expect(text(result).startsWith('[30 earlier lines omitted]\n')).toBe(true)
+  })
+
+  it('短输出逐字节不变', async () => {
+    const { ctx } = await setupShaped()
+    const result = await call(ctx, 'bash', { command: 'echo hi', description: 'tiny' })
+    expect(text(result)).toBe('hi\n')
   })
 })

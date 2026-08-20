@@ -46,6 +46,7 @@
     "@huiliyi37/cordis": "^4.0.0-rc.7"
   },
   "dependencies": {
+    "@huiliyi37/dsh-spill": "workspace:^",
     "@huiliyi37/schemastery": "^3.18.0"
   },
   "devDependencies": {

@@ -4,39 +4,40 @@
  * @module @huiliyi37/dsh-tool-bash/render
  */
 
-import type { BashProcessRead, BashRunResult, BashSandboxInfo, CollectedOutput } from '@huiliyi37/dsh-bash'
+import type { BashProcessRead, BashRunResult, BashSandboxInfo } from '@huiliyi37/dsh-bash'
 import type { SandboxMode } from '@huiliyi37/dsh-sandbox'
 import { escalationHintMarker, sandboxDenialMarker } from '@huiliyi37/dsh-sandbox'
+import { composeResultBody, shapeModelOutput, type OutputShaping } from './model-output.ts'
 
-/** Append the truncation notice (with the full-output spill path) to a stream's text. */
-function streamText(output: CollectedOutput): string {
-  if (!output.truncated) return output.text
-  return `${output.text}\n[output truncated; full output: ${output.spillPath ?? '(unavailable)'}]`
+/** Whether the run's own facts mark it failed for shaping purposes (non-zero exit, signal, or timeout). */
+function runFailed(result: Pick<BashRunResult, 'exitCode' | 'signal' | 'timedOut'>): boolean {
+  return result.exitCode !== 0 || result.signal !== null || result.timedOut
 }
 
 /**
  * Shape one finished run into the text the model sees: stdout, then a marked
  * stderr section, then exit-status markers. Non-zero exits are reported, not
  * errored — the model decides how to react; only infrastructure failures
- * (spawn errors, aborts) surface as isError results.
+ * (spawn errors, aborts) surface as isError results. When `shaping` is given,
+ * the composed body is first trimmed for the model's context (success tail
+ * folding / error-aware selection, see `@huiliyi37/dsh-bash/model-output`);
+ * exit markers always survive intact after the shaped body.
  * @param result - the completed foreground run from the executor.
  * @param escalationModes - the escalation targets this composition advertises;
  *   non-empty adds the same-turn escalation hint after a denial marker
  *   (default `[]`: no hint).
+ * @param shaping - resolved output-shaping knobs with the run's failure fact
+ *   and recovery spill path (omit for byte-identical legacy behavior).
  * @returns the model-facing text: output body (or `(no output)`), then any timeout/signal/exit markers, each on its own line.
  */
 export function renderResult(
   result: BashRunResult,
   escalationModes: readonly SandboxMode[] = [],
+  shaping?: OutputShaping,
 ): string {
-  const out = streamText(result.stdout)
-  const err = streamText(result.stderr)
-
-  let body = out
-  if (err.length > 0) {
-    // Single newline between sections (stdout usually ends with one already).
-    if (body.length > 0 && !body.endsWith('\n')) body += '\n'
-    body += `[stderr]\n${err}`
+  let body = composeResultBody(result)
+  if (shaping !== undefined) {
+    body = shapeModelOutput(body, { ...shaping, failed: shaping.failed || runFailed(result) })
   }
   if (body.length === 0) body = '(no output)'
 

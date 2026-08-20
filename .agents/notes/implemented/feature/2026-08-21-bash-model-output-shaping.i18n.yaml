@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-21-bash-model-output-shaping.md
+2026-08-21-bash-model-output-shaping.md: a538606ec173ffb5f00f5ba0a1c59dcedfaca80f
+2026-08-21-bash-model-output-shaping.zh.md: 7b5f1a5c16f8d56fa8fab612f4345f43bce0c873

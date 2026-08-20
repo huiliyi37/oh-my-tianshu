@@ -49,6 +49,9 @@
     },
     {
       "path": "../../sandbox/sandbox-policy"
+    },
+    {
+      "path": "../../spill/spill"
     }
   ]
 }

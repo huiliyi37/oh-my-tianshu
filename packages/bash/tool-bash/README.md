@@ -38,6 +38,12 @@ The canonical success is `{ kind: 'foreground', ...BashRunResult }` for a comple
 
 When `run_in_background` is true, this plugin preflights `ctx.tasks.start()` before spawning, registers the calling agent as owner, and adapts the returned `BashProcess` handle into generic cancel/done/incremental-output hooks. The task runtime owns ids, cross-session isolation, completion notices, waiting, and disposal cleanup; this plugin only maps bash exit/sandbox facts into task output and outcome detail. `enableRunInBackground: false` removes the parameter and rejects a forced background call at execution time.
 
+## Model-output shaping (token efficiency)
+
+The model-facing body of a foreground result is shaped before the exit markers (upstream Tianshu `output-store` lineage, internalized): a successful run's output above `outputSuccessTailLines` (default 20; 0 disables) folds to its tail lines with an exact omission count; a FAILED run's output above `outputErrorThresholdLines` (default 40) keeps the error-relevant lines — each diagnostic match ±2 lines of context, head/tail anchors — within `outputErrorBudgetLines` (default 60), falling back to a head+tail split when matches alone exceed the budget. Bodies at or below the thresholds pass through byte-identical; content is only deleted, never invented, and every omission carries its count.
+
+Before shaping omits anything, the full composed body is saved to `ctx.spillStore` (best-effort: no backend, no session owner, or a save failure degrades to a pathless omission count, never a failed call) and the omission notice carries the spill locator — a rerun is never the recovery path because commands may have side effects. The foreground value exposes it as `outputSpillPath`.
+
 ## UI presentation
 
 The tool owns its `presentCall`/`presentResult` render intent. A foreground call is a terminal card carrying command, description, cwd, output, and parsed exit status. Because the card shows the exit as its own pill, the `[exit code: N]` / `[killed by signal: …]` marker the parse consumes leaves the output; every other marker (truncation, timeout, sandbox) stays in it. A background start is a generic execute card because it returns only a task id; the generic `task_*` tools own their own cards. These presenters are pure and replay-safe.
