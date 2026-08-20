@@ -68,6 +68,7 @@ const LAYOUT_CHILDREN = {
 
 async function bench(nodes: ToolResultNode[]) {
   const runtime = await SlotTestRuntime.create()
+  runtime.provide('connection', { api: { settings: {} }, isLoopback: false } as never)
   runtime.provide('layout', { openDetails: vi.fn(), closeDetails: vi.fn() })
   const locale = new LocaleService(runtime.ctx)
   runtime.provide('locale', locale)

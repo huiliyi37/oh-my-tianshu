@@ -112,6 +112,32 @@ describe('tool-call-model', () => {
     expect(toolRowModel('read', running({ name: 'read', argsRaw: '{"path":"/Users/u/ws/a.md"}' }), '').summary).toBe('/Users/u/ws/a.md')
   })
 
+  it('abbreviates leftover POSIX home paths after cwd relativization', () => {
+    const home = '/Users/u'
+    const cwd = '/tmp/ws'
+    expect(toolRowModel('read', running({ name: 'read', argsRaw: '{"path":"/Users/u"}' }), cwd, home).summary).toBe('~')
+    expect(toolRowModel('read', running({ name: 'read', argsRaw: '{"path":"/Users/u/notes.md"}' }), cwd, home).summary)
+      .toBe('~/notes.md')
+    // Workspace-relative wins: a home-and-cwd descendant stays short, not `~/…`.
+    expect(toolRowModel(
+      'read',
+      running({ name: 'read', argsRaw: '{"path":"/Users/u/proj/src/a.ts"}' }),
+      '/Users/u/proj',
+      home,
+    ).summary).toBe('src/a.ts')
+    // Prefix boundary: `/Users/u2` is not under `/Users/u`.
+    expect(toolRowModel('read', running({ name: 'read', argsRaw: '{"path":"/Users/u2/a.ts"}' }), cwd, home).summary)
+      .toBe('/Users/u2/a.ts')
+    expect(toolRowModel(
+      'read',
+      running({ name: 'read', argsRaw: '{"path":"C:\\\\Users\\\\u\\\\a.ts"}' }),
+      cwd,
+      home,
+    ).summary).toBe('C:\\Users\\u\\a.ts')
+    expect(toolRowModel('read', running({ name: 'read', argsRaw: '{"path":"/Users/u/a.ts"}' }), cwd).summary)
+      .toBe('/Users/u/a.ts')
+  })
+
   it('body pretty-prints JSON args, keeps raw non-JSON, null when empty', () => {
     expect(toolRowModel('bash', running({ argsRaw: '{"a":1}' })).body).toBe('{\n  "a": 1\n}')
     expect(toolRowModel('bash', running({ argsRaw: 'raw' })).body).toBe('raw')

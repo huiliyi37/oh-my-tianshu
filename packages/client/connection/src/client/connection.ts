@@ -1,4 +1,4 @@
-import type { IApiClient, HostFrame, MuxFrame, RpcRequest } from './api.ts'
+import type { HostDescription, IApiClient, HostFrame, MuxFrame, RpcRequest } from './api.ts'
 
 /** Reconnect/backoff tunables (deployment-varying — no hardcoded tunables; web-cordis §B.1 lists
  *  these as the future `ctx.connection` plugin Config). All fields optional; defaults below. */
@@ -45,7 +45,7 @@ export interface ConnectionSinks {
   onMuxEnvelope?: (envelope: RpcRequest<MuxFrame>) => void
   onHostEnvelope?: (envelope: RpcRequest<HostFrame>) => void
   /** After each connection generation is established (both streams open + describe succeeded), first connect included. */
-  onConnected?: () => void
+  onConnected?: (description: HostDescription) => void
   /** Coarse state transitions (deduplicated: fires only on change). The initial pre-connect
    *  span reports nothing — the UI treats "no state yet" as connecting, not as an outage. */
   onStateChange?: (state: ConnectionState) => void
@@ -99,6 +99,11 @@ export class ConnectionController {
     return this.running
   }
 
+  /** Re-read both mutable liveness guards after a potentially reentrant sink. */
+  private isGenerationActive(controller: AbortController): boolean {
+    return this.isRunning() && !controller.signal.aborted
+  }
+
   private async loop(): Promise<void> {
     while (this.running) {
       const gen = ++this.generation
@@ -131,15 +136,23 @@ export class ConnectionController {
         // subscribed baseline. The timeout guards against a carrier that never fires onOpen
         // (see ConnectionConfig.streamOpenTimeoutMs).
         const timeout = new AbortController()
-        await Promise.all([
+        const [description] = await Promise.all([
           this.api.host.describe({}),
           Promise.race([streamsOpen, sleep(this.config.streamOpenTimeoutMs, timeout.signal)]),
         ])
         timeout.abort()
+        const descriptionResult = description.result
+        if (!descriptionResult.ok) {
+          throw new Error(`host.describe failed: ${descriptionResult.error.code}: ${descriptionResult.error.message}`)
+        }
         if (ac.signal.aborted) throw new Error('generation aborted during readiness handshake')
         this.attempt = 0
         this.emitState('connected')
-        this.callSink(this.sinks.onConnected)
+        // A state sink may synchronously stop this controller. Do not publish
+        // a description for a generation that no longer exists afterward.
+        if (this.isGenerationActive(ac)) {
+          this.callSink(() => { this.sinks.onConnected?.(descriptionResult.value) })
+        }
       } catch {
         // Transport failure: treat as generation failure, fall through to the shared backoff.
         if (!ac.signal.aborted) ac.abort()

@@ -105,6 +105,8 @@ type SessionTreeProps = Pick<
   WorkspaceBrowserProps,
   'useSessions' | 'startSession' | 'open' | 'forkSession' | 'insertSessionBefore' | 't'
 > & {
+  /** Host account home for POSIX hover-path abbreviation. */
+  home?: string | undefined
   workspaces: readonly WorkspaceView[]
   /** Registry-global archive set (hidden rows). */
   archivedSessionIds: readonly SessionNode['id'][]
@@ -121,7 +123,7 @@ type SessionTreeProps = Pick<
 /** The scrolling session tree; unmounting at collapse settle drops the sessions subscription and expansion state. */
 function SessionTree({
   useSessions, startSession, open, forkSession, workspaces, archivedSessionIds,
-  onRenameRequest, onDeleteRequest, onSessionRename, onSessionArchive, insertSessionBefore, t,
+  onRenameRequest, onDeleteRequest, onSessionRename, onSessionArchive, insertSessionBefore, home, t,
 }: SessionTreeProps) {
   const list = useSessions(s => s)
   const current = list.current
@@ -155,6 +157,7 @@ function SessionTree({
           <div key={group.key} className={css.groupSection}>
             <ProjectRowItem
               group={group}
+              home={home}
               t={t}
               onToggle={() => { setExpandedProjects(l => toggled(l, group.key)) }}
               onCreate={() => {
@@ -358,9 +361,11 @@ export function WorkspaceBrowser({
   searchSessions,
   searchResultLimit,
   useDirectoryFlow,
+  useHostDescription,
   renderSlot,
   t,
 }: WorkspaceBrowserProps) {
+  const home = useHostDescription(description => description?.home)
   const workspaces = useWorkspaces(state => state.items)
   const archivedSessionIds = useWorkspaces(state => state.archivedSessionIds)
   // Live occupancy of this surface's directory-flow hole (the same source the
@@ -658,6 +663,7 @@ export function WorkspaceBrowser({
                 startSession={startSession}
                 open={open}
                 insertSessionBefore={insertSessionBefore}
+                home={home}
                 t={t}
                 onRenameRequest={(workspaceId, currentTitle) => {
                   setRenameTarget({ workspaceId, currentTitle })

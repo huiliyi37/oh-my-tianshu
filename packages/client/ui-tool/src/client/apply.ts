@@ -1,4 +1,5 @@
 /** Register the Tool call tree, details renderer, and built-in atomic views. */
+import type { ConnectionHandle, HostDescriptionSource } from '@huiliyi37/dsh-client-connection/client'
 import type { ClientContext } from '@huiliyi37/dsh-client-runtime/client'
 import type {} from '@huiliyi37/dsh-client-ui-conversation/client'
 import { ToolCallTree } from './tool/ToolCallTree.tsx'
@@ -12,14 +13,25 @@ import { searchToolview } from './tool/toolviews/search-row.tsx'
 import { todoToolview } from './tool/toolviews/todo-row.tsx'
 import { webToolview } from './tool/toolviews/web-row.tsx'
 
-/** Required service: the slot registry that owns both Tool render seats. */
-export const inject = ['slots']
+/** Required services: the slot registry and the Host description used for POSIX `~`. */
+export const inject = ['slots', 'connection']
+
+const absentHostDescription: HostDescriptionSource = {
+  getSnapshot: () => undefined,
+  subscribe: () => () => {},
+}
 
 /**
  * Mount the whole-Tool renderers and built-in atomic Tool registrations.
  * @param ctx - Client root context.
  */
 export function apply(ctx: ClientContext): void {
+  const connection = ctx.get('connection') as ConnectionHandle
+  /* oxlint-disable-next-line typescript/no-unnecessary-condition --
+   * The handle type promises the source, but incomplete test fakes omit it;
+   * the absent fallback keeps those benches rendering unabbreviated paths. */
+  const hostDescription = connection.hostDescription ?? absentHostDescription
+  const toolInject = () => ({ hooks: { hostDescription } })
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
     name: 'conversation.chat.node',
     key: 'tool-call',
@@ -27,11 +39,13 @@ export function apply(ctx: ClientContext): void {
     children: {
       'tool.call.toolview': { kind: 'keyed', scope: 'session' },
     },
+    inject: toolInject,
   }, ToolCallTree))
 
   ctx.slots.inject('conversation.details.tool', () => ctx.slots.register({
     name: 'conversation.details.tool',
     locale: NS,
+    inject: toolInject,
   }, ToolDetails))
 
   ctx.plugin(bashToolviewSample)

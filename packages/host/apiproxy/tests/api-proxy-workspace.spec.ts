@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, mkdtempSync, realpathSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
@@ -215,6 +215,13 @@ describe('host.listDirectory / host.createDirectory', () => {
     expect((await api.host.createDirectory(request({ path: '/x', name: 'y' }))).result).toMatchObject({
       ok: false, error: { code: 'directory-picker-unavailable', details: { capability: 'native' } },
     })
+  })
+})
+
+describe('host.describe', () => {
+  it('reports the host account home directory', async () => {
+    const { api } = await harness()
+    expect(expectOk(await api.host.describe(request({}))).home).toBe(homedir())
   })
 })
 

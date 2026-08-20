@@ -22,6 +22,8 @@ Workspace and Session lists have independent monotone `pending` → `ready` base
 
 SlotsService gives the renderer separate bare observables for `useSessions` and `useWorkspaces`; web-react creates the hooks. Workspace business state does not enter `SessionListState` or an entry store.
 
+`abbreviateHomePath` is the display-only POSIX home abbreviation used by Web Workspace hover cards and Tool summaries; a Windows drive or UNC path stays verbatim, and a missing, empty, or filesystem-root home leaves the path unchanged.
+
 `indexSubagentDescendants()` derives per-parent total and running descendant counts from the retained list mirror. It follows only uninterrupted `origin: 'subagent'` ancestry, so an ordinary fork starts a separate ownership subtree; cycles stop without throwing, and a missing parent remains a harmless key until its summary arrives.
 
 `SessionsService.search(query, signal)` is a stateless one-shot action over the `session.search` RPC. It returns ranked session/snippet pairs without putting query, loading, or error state into the shared Session list, so each UI owner controls debounce, cancellation, stale-response suppression, and fallback presentation. `searchResultLimit` re-exposes `SESSION_SEARCH_RESULT_LIMIT` — the bound the response schema itself enforces — as injected presentation data, so client plugins do not duplicate it. It is a protocol constant rather than per-connection state, so the connection handle does not carry it.

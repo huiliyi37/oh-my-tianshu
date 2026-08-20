@@ -31,6 +31,7 @@
   },
   "dshClient": {
     "inject": [
+      "@huiliyi37/dsh-client-connection",
       "@huiliyi37/dsh-client-runtime",
       "@huiliyi37/dsh-client-locale",
       "@huiliyi37/dsh-client-ui-conversation"
@@ -46,6 +47,7 @@
     "clsx": "^2.0.0"
   },
   "peerDependencies": {
+    "@huiliyi37/dsh-client-connection": "^0.2.0",
     "@huiliyi37/dsh-client-locale": "^0.2.0",
     "@huiliyi37/dsh-client-runtime": "^0.2.0",
     "@huiliyi37/dsh-client-ui-conversation": "^0.2.0",

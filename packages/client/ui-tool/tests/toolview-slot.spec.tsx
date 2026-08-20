@@ -64,6 +64,7 @@ const LAYOUT_CHILDREN = {
  */
 async function bench(nodes: ToolResultNode[]) {
   const runtime = await SlotTestRuntime.create()
+  runtime.provide('connection', { api: { settings: {} }, isLoopback: false } as never)
   const layout = { openDetails: vi.fn(), closeDetails: vi.fn() }
   runtime.provide('layout', layout)
   const locale = new LocaleService(runtime.ctx)
@@ -196,6 +197,7 @@ describe('keyed toolview hole through the real machinery', () => {
 describe('registrant declaration injection', () => {
   it('runs a registrant before ui-tool and waits on the actual toolview declaration', async () => {
     const runtime = await SlotTestRuntime.create()
+    runtime.provide('connection', { api: { settings: {} }, isLoopback: false } as never)
     runtime.provide('layout', { openDetails: vi.fn(), closeDetails: vi.fn() })
     const locale = new LocaleService(runtime.ctx)
     runtime.provide('locale', locale)

@@ -500,7 +500,9 @@ describe('createFixtureApi', () => {
   it('describe answers the fixture identity', async () => {
     const api = createFixtureApi()
     const response = await api.host.describe(req({}))
-    expect(response.result).toMatchObject({ ok: true, value: { version: '0.0.0-fixture', attachedSessions: 1 } })
+    expect(response.result).toMatchObject({
+      ok: true, value: { version: '0.0.0-fixture', attachedSessions: 1, home: '/home/fixture' },
+    })
     const empty = await createFixtureApi({ empty: true }).host.describe(req({}))
     expect(empty.result).toMatchObject({ ok: true, value: { attachedSessions: 0 } })
   })
@@ -525,10 +527,16 @@ describe('createFixtureApi', () => {
     const api = createFixtureApi()
     const listed = await api.workspace.list(req({}))
     if (!listed.result.ok) throw new Error('list failed')
-    expect(listed.result.value.items).toEqual([expect.objectContaining({
-      workspaceId: 'fx-ws-fixture', path: '/tmp/fixture', title: 'fixture',
-      sessionIds: ['fx-alpha', 'fx-beta', 'fx-gamma'],
-    })])
+    expect(listed.result.value.items).toEqual([
+      expect.objectContaining({
+        workspaceId: 'fx-ws-fixture', path: '/tmp/fixture', title: 'fixture',
+        sessionIds: ['fx-alpha', 'fx-beta', 'fx-gamma'],
+      }),
+      expect.objectContaining({
+        workspaceId: 'fx-ws-home', path: '/home/fixture/Documents/project', title: 'project',
+        sessionIds: [],
+      }),
+    ])
     // path collision → the existing entity comes back, created:false, no frame.
     const reused = await api.workspace.create(req({ path: '/tmp/fixture' }))
     if (!reused.result.ok) throw new Error('reuse failed')

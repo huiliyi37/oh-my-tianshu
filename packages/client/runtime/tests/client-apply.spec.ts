@@ -31,6 +31,10 @@ async function mount(): Promise<Bench> {
   const handle: ConnectionHandle = {
     api,
     isLoopback: true,
+    hostDescription: {
+      getSnapshot: () => undefined,
+      subscribe: () => () => {},
+    },
     rpc: {
       call: () => Promise.reject(new Error('unexpected generic RPC call')),
     },
@@ -86,7 +90,7 @@ describe('runtime client apply', () => {
     expect(workspaces.list.getSnapshot().items[0]?.workspaceId).toBe('w-new')
     // Mux sink and onConnected route without throwing (manager semantics own the behavior).
     bench.sinks?.onMuxEnvelope?.({ rpcId: 'r2' as never, payload: { type: 'stream/error', message: 'x' } as never })
-    bench.sinks?.onConnected?.()
+    bench.sinks?.onConnected?.({ version: '0', cwd: '/f', attachedSessions: 0, home: '/h' })
   })
 
   it('selects the recent Workspace once when the first baselines have no current session', async () => {
@@ -99,7 +103,7 @@ describe('runtime client apply', () => {
     }))
     bench.api.onList = () => Promise.resolve(ok({ items: [] }))
 
-    bench.sinks?.onConnected?.()
+    bench.sinks?.onConnected?.({ version: '0', cwd: '/f', attachedSessions: 0, home: '/h' })
     await flushMicrotasks()
 
     const sessions = bench.ctx.get('sessions') as SessionsService

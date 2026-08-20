@@ -21,6 +21,9 @@
       "path": "../ui-primitives"
     },
     {
+      "path": "../connection"
+    },
+    {
       "path": "../runtime"
     },
     {

@@ -8,6 +8,7 @@
  * client half (see the contract module doc). Export discipline:
  * packages/client/AGENTS.md.
  */
+import type { ConnectionHandle, HostDescriptionSource } from '@huiliyi37/dsh-client-connection/client'
 import type { HostObservable } from '@huiliyi37/dsh-client-ui-slots'
 import type { ClientContext } from '@huiliyi37/dsh-client-runtime/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
@@ -42,7 +43,12 @@ const NS = 'workspace'
  * provides a waitable service. apply therefore depends on each slot
  * declaration through `slots.inject()` instead of assuming order.
  */
-export const inject = ['slots', 'sessions', 'workspaces', 'locale']
+export const inject = ['slots', 'sessions', 'workspaces', 'locale', 'connection']
+
+const absentHostDescription: HostDescriptionSource = {
+  getSnapshot: () => undefined,
+  subscribe: () => () => {},
+}
 
 /**
  * Register the browser and picker once their slot declarations are on the
@@ -51,6 +57,11 @@ export const inject = ['slots', 'sessions', 'workspaces', 'locale']
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
+  const connection = ctx.get('connection') as ConnectionHandle
+  /* oxlint-disable-next-line typescript/no-unnecessary-condition --
+   * The handle type promises the source, but incomplete test fakes omit it;
+   * the absent fallback keeps those benches rendering unabbreviated paths. */
+  const hostDescription = connection.hostDescription ?? absentHostDescription
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-workspace: dictionaries')
 
   const searchSessions: WorkspaceBrowserInjected['searchSessions'] = async (query, signal) => {
@@ -96,7 +107,7 @@ export function apply(ctx: ClientContext): void {
       await ctx.workspaces.insertSessionBefore(workspaceId, sessionId, beforeSessionId)
     },
     createWorkspace: input => ctx.workspaces.create(input),
-    hooks: { directoryFlow: browserFlowSource },
+    hooks: { directoryFlow: browserFlowSource, hostDescription },
   })
   const pickerInjected = (): WorkspacePickerInjected => ({
     createWorkspace: input => ctx.workspaces.create(input),

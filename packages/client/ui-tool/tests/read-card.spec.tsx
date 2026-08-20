@@ -103,6 +103,15 @@ describe('readCardModel', () => {
       .toBe('/w/app/src/a.ts')
   })
 
+  it('abbreviates a leftover POSIX home path label', () => {
+    expect(readCardModel(settled({ resultView: resultRead({ path: '/Users/u/notes.md' }) }), '/tmp/ws', '/Users/u')?.label)
+      .toBe('~/notes.md')
+    expect(readCardModel(settled({ resultView: resultRead({ path: '/Users/u/app/src/a.ts' }) }), '/Users/u/app', '/Users/u')?.label)
+      .toBe('src/a.ts')
+    expect(readCardModel(settled({ resultView: resultRead({ path: 'C:\\Users\\u\\a.ts' }) }), '/tmp/ws', '/Users/u')?.label)
+      .toBe('C:\\Users\\u\\a.ts')
+  })
+
   it('carries an omitted language through as undefined', () => {
     const noLang = resultRead()
     delete (noLang as { lang?: string }).lang

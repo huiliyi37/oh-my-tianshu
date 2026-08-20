@@ -9,6 +9,7 @@
 // The block union's defining home is runtime (fold-product types); this
 // contract only forwards it (type-definition authority stays with the layer
 // that produces the values).
+import { abbreviateHomePath } from '@huiliyi37/dsh-client-runtime/client'
 import type { ToolCallBlock, ToolResultNode } from '@huiliyi37/dsh-client-runtime/client'
 
 export type { ToolCallBlock } from '@huiliyi37/dsh-client-runtime/client'
@@ -194,16 +195,19 @@ function deriveBody(variant: ToolRowVariant, argsRaw: string): string | null {
  * @param toolName - wire tool name (dispatch-supplied; survives windowless results).
  * @param block - RunningToolCall or ToolResultNode off the snapshot caches.
  * @param cwd - session workspace root; workspace-rooted path summaries display relative to it.
+ * @param home - host account home; a leftover POSIX home path displays as `~`.
  * @returns the row model.
  */
-export function toolRowModel(toolName: string, block: ToolCallBlock, cwd?: string): ToolRowModel {
+export function toolRowModel(toolName: string, block: ToolCallBlock, cwd?: string, home?: string): ToolRowModel {
   const variant = classifyTool(toolName)
   const done = 'kind' in block
   const argsRaw = (done ? block.call?.argsRaw : block.argsRaw) ?? ''
   const state: ToolRowState = !done ? 'running'
     : block.error?.code === 'interrupted' ? 'stopped'
       : block.isError ? 'error' : 'ok'
-  const base = argsRaw === '' ? block.callId : relativizeToCwd(deriveSummary(variant, argsRaw), cwd)
+  const base = argsRaw === ''
+    ? block.callId
+    : abbreviateHomePath(relativizeToCwd(deriveSummary(variant, argsRaw), cwd), home)
   const toolTitle = TOOL_TITLES[toolName]
   // Others keeps the static "Tool call" title (figma literal); the real tool
   // name rides the mutable summary slot unless the tool owns a specific title.

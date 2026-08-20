@@ -276,10 +276,13 @@ describe('host domain schemas', () => {
   it('validates describe request/value', () => {
     expect(hostDescribeRequestSchema.parse({})).toEqual({})
     const value = hostDescribeValueSchema.parse({
-      version: '1', cwd: '/x', provider: 'p', model: 'm', attachedSessions: 2,
+      version: '1', cwd: '/x', provider: 'p', model: 'm', attachedSessions: 2, home: '/h',
     })
     expect(value).toMatchObject({ provider: 'p', model: 'm', attachedSessions: 2 })
-    expect(hostDescribeValueSchema.parse({ version: '1', cwd: '/x', attachedSessions: 0 }).provider).toBeUndefined()
+    expect(hostDescribeValueSchema.parse({ version: '1', cwd: '/x', attachedSessions: 0, home: '/h' }).provider).toBeUndefined()
+    expect(() => hostDescribeValueSchema.parse({
+      version: '1', cwd: '/x', attachedSessions: 0,
+    })).toThrow()
   })
 
   it('validates the browse listing/creation payloads', () => {

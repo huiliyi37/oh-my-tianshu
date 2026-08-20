@@ -4,7 +4,7 @@
  * controller with its sinks.
  */
 import type { Context } from '@huiliyi37/cordis'
-import type { IApiClient } from './api.ts'
+import type { HostDescription, IApiClient } from './api.ts'
 import { ConnectionController, type ConnectionConfig, type ConnectionSinks, type ConnectionState } from './connection.ts'
 import { FixtureApiClient } from './fixture.ts'
 import { WebApiClient } from './web-api-client.ts'
@@ -24,7 +24,7 @@ export type {
   SubagentsApi, SubagentAddress, SubagentCatalog, SubagentListEntry, SubagentPromptReceipt,
   RpcRequest, RpcResponse, RpcResult, RpcError, RpcErrorCode,
   ClientRequest, ServerResponse, ServerRequest, ClientResponse, RpcMessage, RpcReceipt,
-  IApiClient, SessionId, SessionEvent, ContentBlock, StreamChunk,
+  HostDescription, IApiClient, SessionId, SessionEvent, ContentBlock, StreamChunk,
   GoalsApi, GoalRef,
   SettingsApi, SettingsNamespaceView, SettingsPathOpView, SettingsSecretView,
   CredentialsApi, CredentialView, ConfigurableProviderView, DiscoveredModelView, LlmApi,
@@ -40,6 +40,13 @@ export {
 export type { ConnectionConfig, ConnectionSinks, ConnectionState }
 export type { ClientConnectionRpc } from '../rpc.ts'
 
+/** Observable Host description published by each completed connection handshake. */
+export interface HostDescriptionSource {
+  /** Latest connected-generation description; absent before connect and while reconnecting. */
+  getSnapshot(): HostDescription | undefined
+  /** Subscribe to description replacement and connection loss. */
+  subscribe(listener: () => void): () => void
+}
 
 /** Required services (none — this is the wire root). */
 export const inject: string[] = []
@@ -54,6 +61,8 @@ export interface ConnectionHandle {
   readonly api: IApiClient
   /** Whether the current page authority is loopback; non-browser contexts default to true. */
   readonly isLoopback: boolean
+  /** Generation-scoped Host facts, including the account home. */
+  readonly hostDescription: HostDescriptionSource
   /** Generic logical RPC channels over the same Connection transport. */
   readonly rpc: ClientConnectionRpc
   /**
@@ -78,16 +87,56 @@ export function apply(ctx: Context): void {
   const api: IApiClient = fixtureClient ?? new WebApiClient()
   const rpc = fixtureClient?.rpc ?? createWebConnectionRpc()
   let started = false
+  let description: HostDescription | undefined
+  const descriptionListeners = new Set<() => void>()
+  const publishDescription = (next: HostDescription | undefined): void => {
+    if (Object.is(description, next)) return
+    description = next
+    for (const listener of [...descriptionListeners]) {
+      try {
+        listener()
+      } catch (error) {
+        console.error('[web-runtime] host-description listener threw:', error)
+      }
+    }
+  }
   const handle: ConnectionHandle = {
     api,
     isLoopback: pageLocation === undefined || isLoopbackHostname(pageLocation.hostname),
+    hostDescription: {
+      getSnapshot: () => description,
+      subscribe: (listener) => {
+        descriptionListeners.add(listener)
+        return () => { descriptionListeners.delete(listener) }
+      },
+    },
     rpc,
     start(sinks, config) {
       if (started) throw new Error('connection: the stream loop is already owned by another consumer')
       started = true
-      const controller = new ConnectionController(api, sinks, config ?? {})
+      const controller = new ConnectionController(api, {
+        ...sinks,
+        onConnected: (next) => {
+          publishDescription(next)
+          // A description subscriber may synchronously stop the loop. In that
+          // case publishDescription(undefined) has already retracted this
+          // generation, so do not leak its stale connected notification to
+          // the consumer sink afterward.
+          if (!Object.is(description, next)) return
+          sinks.onConnected?.(next)
+        },
+        onStateChange: (state) => {
+          if (state === 'reconnecting') publishDescription(undefined)
+          sinks.onStateChange?.(state)
+        },
+      }, config ?? {})
       controller.start()
-      return { stop: () => { controller.stop() } }
+      return {
+        stop: () => {
+          controller.stop()
+          publishDescription(undefined)
+        },
+      }
     },
   }
   ctx.provide('connection', handle)

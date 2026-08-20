@@ -44,6 +44,7 @@ function props(
     inspectCall: vi.fn(),
     forkAt: vi.fn(),
     fileMentions: vi.fn(),
+    useHostDescription: (selector => selector(undefined)) as ToolTreeProps['useHostDescription'],
     t,
   } as unknown as ToolTreeProps
 }

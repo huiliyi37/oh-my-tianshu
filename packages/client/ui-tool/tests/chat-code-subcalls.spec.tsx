@@ -154,6 +154,7 @@ async function bench(snapshot: ConversationSnapshot) {
     openPath: vi.fn(async () => {}),
   }
   ctx.provide('workspaces', workspaces)
+  ctx.provide('connection', { api: { settings: {} }, isLoopback: false } as never)
   ctx.provide('layout', layout)
   const locale = new LocaleService(ctx)
   ctx.provide('locale', locale)

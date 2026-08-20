@@ -37,6 +37,9 @@ export type { SessionId, SessionEvent } from '@huiliyi37/dsh-session/types'
 export type { MessageId } from '@huiliyi37/dsh-llm/brand'
 export type { ContentBlock, StreamChunk } from '@huiliyi37/dsh-llm/types'
 
+/** Successful value returned by the connection-generation host handshake. */
+export type HostDescription = import('@huiliyi37/dsh-host-apiproxy/api').ResponseValue<'host.describe'>
+
 import type { RpcResponse, RpcResult } from '@huiliyi37/dsh-host-apiproxy/api'
 
 /**

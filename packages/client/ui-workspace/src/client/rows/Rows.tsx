@@ -13,6 +13,7 @@ import {
   IconTrashOutline16, IconTriangleRightFill14, Menu, StateDot,
 } from '@huiliyi37/dsh-client-ui-primitives'
 import type { StateDotState } from '@huiliyi37/dsh-client-ui-primitives'
+import { abbreviateHomePath } from '@huiliyi37/dsh-client-runtime/client'
 import type { WorkspaceBrowserProps } from '../contract/slots.ts'
 import type { GroupNode, SearchResultNode, SessionNode } from '../tree.ts'
 import { relativeTime } from '../tree.ts'
@@ -50,7 +51,7 @@ function createdLabel(createdAt: number, t: RowTranslate): string {
   return t('hover.created', { time: `${date} ${pad2(d.getHours())}:${pad2(d.getMinutes())}` })
 }
 
-/** Hover-card body: workspace title, full directory path, absolute creation time. */
+/** Hover-card body: workspace title, display directory path, absolute creation time. */
 function WorkspaceHoverContent({ label, cwd, createdAt, t }: {
   label: string
   cwd: string | undefined
@@ -74,15 +75,18 @@ function WorkspaceHoverContent({ label, cwd, createdAt, t }: {
  * @param props.group - derived group node.
  * @param props.onToggle - expand/collapse the group.
  * @param props.onCreate - start a frontend Session inside this Workspace.
+ * @param props.home - host account home for POSIX hover-path abbreviation.
  * @param props.t - the browser root's locale seat.
  * @returns the row element.
  */
-export function ProjectRowItem({ group, onToggle, onCreate, actions, t }: {
+export function ProjectRowItem({ group, onToggle, onCreate, actions, home, t }: {
   group: GroupNode
   onToggle: () => void
   onCreate: () => void
   /** Real-Workspace actions; absent for the ungrouped bucket (no menu shown). */
   actions?: { rename: () => void; delete: () => void } | undefined
+  /** Host account home; POSIX home-rooted hover paths display as `~`. */
+  home?: string | undefined
   t: RowTranslate
 }) {
   const row = group
@@ -157,7 +161,12 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, t }: {
   return (
     <HoverCard
       anchor={ownRow}
-      content={<WorkspaceHoverContent label={row.label} cwd={row.cwd} createdAt={row.createdAt} t={t} />}
+      content={<WorkspaceHoverContent
+        label={row.label}
+        cwd={row.cwd === undefined ? undefined : abbreviateHomePath(row.cwd, home)}
+        createdAt={row.createdAt}
+        t={t}
+      />}
       disabled={menuOpen}
       copyText={row.cwd}
       copyLabel={t('copy')}

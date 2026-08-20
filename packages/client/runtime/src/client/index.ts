@@ -43,7 +43,7 @@ export type { SessionProvideChannelHost } from './sessions/provide.ts'
 export { createScope } from './agents/scope.ts'
 export type { AgentScopeHandle } from './agents/scope.ts'
 export { DirectoryBrowseError, WorkspaceCreateError, WorkspacesService } from './workspaces/service.ts'
-export { resolveWorkspacePath } from './workspaces/path.ts'
+export { abbreviateHomePath, resolveWorkspacePath } from './workspaces/path.ts'
 export type { Session } from './sessions/session.ts'
 export type { ISession, ProjectionsFace, SessionFace } from './contract/session.ts'
 export type {

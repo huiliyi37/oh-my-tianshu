@@ -36,6 +36,9 @@ async function bench() {
     create, startSession, rename, insertSessionBefore,
   } as never)
   ctx.provide('sessions', { open, clear, search, searchResultLimit: 20, binding, fork } as never)
+  ctx.provide('connection', {
+    hostDescription: { getSnapshot: () => undefined, subscribe: () => () => {} },
+  } as never)
   const locale = new LocaleService(ctx)
   ctx.provide('locale', locale)
   return {
@@ -54,7 +57,7 @@ function declare(slots: SlotsService, ...names: HoleName[]): () => void {
 
 describe('ui-workspace apply', () => {
   it('declares the services it drives', () => {
-    expect(inject).toEqual(['slots', 'sessions', 'workspaces', 'locale'])
+    expect(inject).toEqual(['slots', 'sessions', 'workspaces', 'locale', 'connection'])
   })
 
   it('registers browser and pickers for declarations arriving before or after apply', async () => {
@@ -126,6 +129,7 @@ describe('ui-workspace apply', () => {
     const browser = (b.slots.entries('sidebar.workspaces')[0]!.inject as () => WorkspaceBrowserInjected)()
     const picker = (b.slots.entries('conversation.hero.workspace')[0]!.inject as () => WorkspacePickerInjected)()
     expect(browser.hooks.directoryFlow.getSnapshot()).toBe(false)
+    expect(browser.hooks.hostDescription.getSnapshot()).toBeUndefined()
     expect(picker.hooks.directoryFlow.getSnapshot()).toBe(false)
     // A flow occupant flips exactly its own surface, and the source notifies.
     const notified = vi.fn()

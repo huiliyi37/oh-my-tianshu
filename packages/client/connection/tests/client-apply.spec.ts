@@ -87,10 +87,68 @@ describe('connection client apply', () => {
   it('start() hands out one loop, rejects a second consumer, and stop() aborts the streams', async () => {
     ;(globalThis as Win).location = { hostname: 'localhost', search: '?fixture' }
     const handle = await mount()
+    const descriptions: Array<string | undefined> = []
+    const stopDescription = handle.hostDescription.subscribe(() => {
+      descriptions.push(handle.hostDescription.getSnapshot()?.home)
+    })
+    expect(handle.hostDescription.getSnapshot()).toBeUndefined()
     // config omitted: the `config ?? {}` default arm is part of the surface.
     const loop = handle.start({})
     expect(() => handle.start({})).toThrow(/already owned by another consumer/)
+    await vi.waitFor(() => {
+      expect(handle.hostDescription.getSnapshot()?.home).toBe('/home/fixture')
+    })
     loop.stop() // teardown must not throw; the fixture streams abort quietly
+    expect(handle.hostDescription.getSnapshot()).toBeUndefined()
+    expect(descriptions).toEqual(['/home/fixture', undefined])
+    stopDescription()
+  })
+
+  it('isolates description subscribers so later listeners and the consumer sink still run', async () => {
+    ;(globalThis as Win).location = { hostname: 'localhost', search: '?fixture' }
+    const handle = await mount()
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const seen: string[] = []
+    const stopThrowing = handle.hostDescription.subscribe(() => { throw new Error('subscriber bug') })
+    const stopRecording = handle.hostDescription.subscribe(() => {
+      const value = handle.hostDescription.getSnapshot()?.home
+      if (value !== undefined) seen.push(value)
+    })
+    let connected = 0
+    const loop = handle.start({ onConnected: () => { connected++ } })
+    try {
+      await vi.waitFor(() => { expect(connected).toBe(1) })
+      expect(seen).toEqual(['/home/fixture'])
+      expect(errorSpy).toHaveBeenCalledOnce()
+    } finally {
+      stopThrowing()
+      stopRecording()
+      loop.stop()
+      errorSpy.mockRestore()
+    }
+  })
+
+  it('does not announce a generation synchronously stopped by a description subscriber', async () => {
+    ;(globalThis as Win).location = { hostname: 'localhost', search: '?fixture' }
+    const handle = await mount()
+    const owner: { loop?: ReturnType<ConnectionHandle['start']> } = {}
+    let sawDescription = false
+    const stopDescription = handle.hostDescription.subscribe(() => {
+      if (handle.hostDescription.getSnapshot() === undefined) return
+      sawDescription = true
+      owner.loop?.stop()
+    })
+    const connected = vi.fn()
+    const loop = handle.start({ onConnected: connected })
+    owner.loop = loop
+    try {
+      await vi.waitFor(() => { expect(sawDescription).toBe(true) })
+      expect(handle.hostDescription.getSnapshot()).toBeUndefined()
+      expect(connected).not.toHaveBeenCalled()
+    } finally {
+      stopDescription()
+      loop.stop()
+    }
   })
 
   it('WebApiClient keeps unary calls and respond on globalThis.fetch', async () => {

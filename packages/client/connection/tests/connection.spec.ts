@@ -23,10 +23,14 @@ describe('connection lifecycle', () => {
   it('announces connected after describe + both streams open, then pumps frames to sinks', async () => {
     const api = new FakeApiClient()
     const muxSeen: string[] = []
+    const descriptions: string[] = []
     let connected = 0
     const controller = new ConnectionController(api, {
       onMuxEnvelope: envelope => muxSeen.push(envelope.payload.type),
-      onConnected: () => { connected++ },
+      onConnected: (description) => {
+        connected++
+        descriptions.push(description.home)
+      },
     }, FAST)
     controller.start()
     try {
@@ -34,6 +38,7 @@ describe('connection lifecycle', () => {
       api.pushMux(subscribedFrame())
       await vi.waitFor(() => { expect(muxSeen).toEqual(['session/subscribed']) })
       expect(api.callsOf('host.describe')).toHaveLength(1)
+      expect(descriptions).toEqual(['/h'])
     } finally {
       controller.stop()
     }
@@ -75,7 +80,36 @@ describe('connection lifecycle', () => {
     try {
       await vi.waitFor(() => { expect(describeCalls).toBe(2) }) // retried after backoff
       expect(connected).toBe(0) // never announced during the failed generation
-      gate.resolve(ok({ version: '0', cwd: '/f', attachedSessions: 0 }))
+      gate.resolve(ok({ version: '0', cwd: '/f', attachedSessions: 0, home: '/h' }))
+      await vi.waitFor(() => { expect(connected).toBe(1) })
+    } finally {
+      controller.stop()
+      warnSpy.mockRestore()
+    }
+  })
+
+  it('treats a host.describe business error as generation failure', async () => {
+    const api = new FakeApiClient()
+    let describeCalls = 0
+    api.onDescribe = () => {
+      describeCalls += 1
+      if (describeCalls === 1) {
+        return Promise.resolve({
+          rpcId: 'bad-describe' as never,
+          result: {
+            ok: false as const,
+            error: { code: 'internal' as const, message: 'not ready', details: {} },
+          },
+        })
+      }
+      return Promise.resolve(ok({ version: '0', cwd: '/f', attachedSessions: 0, home: '/h' }))
+    }
+    let connected = 0
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const controller = new ConnectionController(api, { onConnected: () => { connected++ } }, FAST)
+    controller.start()
+    try {
+      await vi.waitFor(() => { expect(describeCalls).toBe(2) })
       await vi.waitFor(() => { expect(connected).toBe(1) })
     } finally {
       controller.stop()
@@ -181,6 +215,24 @@ describe('connection lifecycle', () => {
     }
   })
 
+  it('does not announce a generation stopped synchronously by its connected state sink', async () => {
+    const api = new FakeApiClient()
+    const states: ConnectionState[] = []
+    let connected = 0
+    const controller = new ConnectionController(api, {
+      onConnected: () => { connected++ },
+      onStateChange: (state) => {
+        states.push(state)
+        if (state === 'connected') controller.stop()
+      },
+    }, FAST)
+
+    controller.start()
+    await vi.waitFor(() => { expect(states).toEqual(['connected']) })
+    await vi.waitFor(() => { expect(api.openMuxCount).toBe(0) })
+    expect(connected).toBe(0)
+  })
+
   it('deduplicates consecutive reconnecting emissions across two straight failures', async () => {
     const api = new FakeApiClient()
     const gate = deferred<Awaited<ReturnType<FakeApiClient['onDescribe']>>>()
@@ -199,7 +251,7 @@ describe('connection lifecycle', () => {
     controller.start()
     try {
       await vi.waitFor(() => { expect(describeCalls).toBe(3) })
-      gate.resolve(ok({ version: '0', cwd: '/f', attachedSessions: 0 }))
+      gate.resolve(ok({ version: '0', cwd: '/f', attachedSessions: 0, home: '/h' }))
       await vi.waitFor(() => { expect(connected).toBe(1) })
       expect(states).toEqual(['reconnecting', 'connected']) // two failures, one reconnecting emission
     } finally {

@@ -67,7 +67,7 @@ function scriptedApi(overrides: {
       ...overrides.subagents,
     },
     host: {
-      describe: r => ok(r, { version: '0-test', cwd: '/t', attachedSessions: 0 }),
+      describe: r => ok(r, { version: '0-test', cwd: '/t', attachedSessions: 0, home: '/h' }),
       pickDirectory: r => ok(r, { path: null }),
       listDirectory: r => ok(r, { path: '/t', home: '/t', crumbs: [], entries: [], truncated: false }),
       createDirectory: r => ok(r, { path: '/t/new' }),

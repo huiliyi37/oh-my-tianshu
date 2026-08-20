@@ -26,13 +26,15 @@ const PLUGINS: readonly (WebBootEntry & { bundlePath: string })[] = [
   { id: '@huiliyi37/dsh-client-ui-layout', bundlePath: 'packages/client/ui-layout/lib/client.js', url: '/plugins/ui-layout.js', rev: 'fx', inject: ['@huiliyi37/dsh-client-runtime'] },
   { id: '@huiliyi37/dsh-client-ui-sidebar', bundlePath: 'packages/client/ui-sidebar/lib/client.js', url: '/plugins/ui-sidebar.js', rev: 'fx', inject: ['@huiliyi37/dsh-client-ui-layout'] },
   { id: '@huiliyi37/dsh-client-ui-conversation', bundlePath: 'packages/client/ui-conversation/lib/client.js', url: '/plugins/ui-conversation.js', rev: 'fx', inject: ['@huiliyi37/dsh-client-ui-layout'] },
-  { id: '@huiliyi37/dsh-client-ui-tool', bundlePath: 'packages/client/ui-tool/lib/client.js', url: '/plugins/ui-tool.js', rev: 'fx', inject: ['@huiliyi37/dsh-client-runtime', '@huiliyi37/dsh-client-locale', '@huiliyi37/dsh-client-ui-conversation'] },
+  { id: '@huiliyi37/dsh-client-ui-tool', bundlePath: 'packages/client/ui-tool/lib/client.js', url: '/plugins/ui-tool.js', rev: 'fx', inject: ['@huiliyi37/dsh-client-connection', '@huiliyi37/dsh-client-runtime', '@huiliyi37/dsh-client-locale', '@huiliyi37/dsh-client-ui-conversation'] },
   {
     id: '@huiliyi37/dsh-client-ui-workspace',
     bundlePath: 'packages/client/ui-workspace/lib/client.js',
     url: '/plugins/ui-workspace.js',
     rev: 'fx',
     inject: [
+      '@huiliyi37/dsh-client-connection',
+      '@huiliyi37/dsh-client-locale',
       '@huiliyi37/dsh-client-runtime',
       '@huiliyi37/dsh-client-ui-conversation',
       '@huiliyi37/dsh-client-ui-sidebar',

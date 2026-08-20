@@ -22,6 +22,7 @@
  * and a hole has exactly one declaring entry — they carry the same owner
  * contract and the same occupant.
  */
+import type { HostDescription, HostDescriptionSource } from '@huiliyi37/dsh-client-connection/client'
 import type { HostObservable, PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore, SnapshotSelectorHook } from '@huiliyi37/dsh-client-ui-slots'
 // Type-only: pull the owner SlotMap merges into programs that resolve the
 // runtime shares below.
@@ -90,6 +91,10 @@ export type DirectoryPickingHooks = {
  * browsing region drives.
  */
 export type WorkspaceBrowserInjected = DirectoryPickingInjected & {
+  hooks: DirectoryPickingInjected['hooks'] & {
+    /** Current generation's Host description, bound by the slot renderer. */
+    hostDescription: HostDescriptionSource
+  }
   /**
    * Start a New Session in a Workspace: reuse-or-create its blank session
    * and open it; with no workspace, clear the selection into the New Session
@@ -139,6 +144,10 @@ export type WorkspaceBrowserProps =
   & PropsStore<ReturnType<typeof createWorkspaceViewStore>>
   & Omit<WorkspaceBrowserInjected, 'hooks'>
   & DirectoryPickingHooks
+  & {
+    /** Selector hook over the current generation's Host description. */
+    useHostDescription: SnapshotSelectorHook<HostDescription | undefined>
+  }
   & PropsLocale<'workspace'>
 
 /**
