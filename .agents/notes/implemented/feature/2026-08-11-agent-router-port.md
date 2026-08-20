@@ -20,6 +20,7 @@ dsh has discipline — the evidence gate's "what you must not do" — but nothin
 - **index.ts wiring**: `session/event` tool/result → recordPrediction (isError judgment), keyed per session and excluding child sessions (`header.parentSession` — mirroring zen's skip); evidence tracker metrics are optionally consumed via `ctx.reflect.get('evidence', false)` (prediction works standalone without evidence-gate); the `ctx.router` service surface (`metrics`/`decide`/`execute` all take the owning `sessionId`; `resetPrediction(sessionId?)`).
 - **Zero new channels for accounting**: subagent tool/result events are accounted back to evidence-gate automatically through the existing session/event stream.
 - **Decision auditability**: each accepted delegate appends a log-only `router/route` record on the parent session at acceptance (profile/task/targets/child session id) — route decisions are reconstructable from the session log.
+- **Structured result return** (closed-loop Phase 2): `execute` returns `DispatchOutcome { sessionId, stopReason, output }` (was child id only); dispatch appends a paired log-only `router/outcome` record when the child settles, so terminal state is reconstructable and callers can feed it to synthesis.
 - **Route-record invariant**: the package-owned durable state is the `router/route` record; the invariant companion validates payload shape (known profile, non-empty task, string-array targets, non-empty child id) and, when the child is live, lineage consistency (the record's session is the child's `header.parentSession`). A not-live child downgrades to shape-only — a session may route many delegates, so no uniqueness check.
 - **Accumulator eviction**: the per-session prediction map deletes the entry on `agent/disposed`, so a long-lived TUI process does not accumulate one small object per ended session.
 - **Escalation hysteresis** (closed-loop Phase 1): `consecutiveFailed` on the accumulator feeds `RouterMetrics.consecutiveFailures`; the escalate branch fires only when failures ≥ `escalation.minConsecutiveFailures` (default 2) and `escalation.cap` is not `off` — a single sporadic failure never escalates. Policy resolves via `resolveEscalationPolicy` (fail-loud config validation).
@@ -27,7 +28,7 @@ dsh has discipline — the evidence gate's "what you must not do" — but nothin
 
 ## Key verification facts
 
-- Package-level tests: 64 all green (prediction 18 / router 12 / dispatch 8 / integration 14 / invariant 12).
+- Package-level tests: 66 all green (prediction 18 / router 12 / dispatch 8 / integration 14 / invariant 14).
 - Integration (a real cordis Context + real event objects, no mocked middle layers): 8 consecutive failures → escalate → delegate verifier → execute dispatch call-sequence assertion; 3 consecutive successes → tipping-point reset → decide returns self; dispatchEnabled:false does not dispatch.
 - Test-driven correction: a mock Context that overrides the real `ctx.reflect` crashes (`ctx.on`'s proxy depends on the reflection layer) — **integration tests always use a real `new Context()` + provide**, never hand-patch reflect.
 - dispatch resolves `subagents` and `agents` through `ctx.reflect.get(name, false)` (the Cordis 4 injection proxy pattern — the same as T4/compact/evidence-gate); the parent session must be a live agent, else dispatch fails loud.
@@ -48,7 +49,7 @@ The full EFE suite, season/vigor/sensorium, the Tianshu worker/dispatcher/counci
 ## Verification commands
 
 ```sh
-pnpm vitest run packages/guard/agent-router/tests/                     # 5 文件 64 测试全绿
+pnpm vitest run packages/guard/agent-router/tests/                     # 5 文件 66 测试全绿
 npx oxlint packages/guard/agent-router/                                # 0 错误
 npx tsc -p packages/guard/agent-router/tsconfig.json                   # 0 错误
 ```

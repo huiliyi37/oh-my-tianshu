@@ -20,6 +20,7 @@ dsh 已有纪律——证据门的"不准做什么"——却没有任何东西�
 - **index.ts 接线**：`session/event` tool/result → recordPrediction（isError 判定），按会话隔离并排除 child 会话（`header.parentSession`——镜像 zen 的跳过条件）；evidence tracker 指标经 `ctx.reflect.get('evidence', false)` 可选消费（无 evidence-gate 时 prediction 独立工作）；`ctx.router` 服务面（`metrics`/`decide`/`execute` 均带归属 `sessionId`；`resetPrediction(sessionId?)`）。
 - **归账零新通道**：子代理 tool/result 经既有 session/event 自动归账回 evidence-gate。
 - **决策可审计**：每个被接受的 delegate 在 acceptance 时向父会话落一条 log-only 的 `router/route` 记录（profile/task/targets/child session id）——路由决策可从会话日志重建。
+- **结构化结果回传**（闭环 Phase 2）：`execute` 返回 `DispatchOutcome { sessionId, stopReason, output }`（原为只返回 child id）；child settle 后 dispatch 落配对的 log-only `router/outcome` 记录，终态可自日志重建并供调用方喂给综合。
 - **路由记录不变量**：包拥有的 durable 状态是 `router/route` 记录；invariant companion 校验 payload 形状（已知 profile、非空 task、字符串数组 targets、非空 child id），且 child 在场时校验血统一致性（记录所在会话是 child 的 `header.parentSession`）。child 不在场时降级为形状校验——一个会话可多次 route，故无唯一性检查。
 - **累计器回收**：按会话的 prediction map 在 `agent/disposed` 时逐条 evict，长驻 TUI 进程不会为每个已结束会话累积小对象。
 - **升级迟滞**（闭环 Phase 1）：累计器新增 `consecutiveFailed`，经 `RouterMetrics.consecutiveFailures` 供 escalate 分支消费——连续失败 ≥ `escalation.minConsecutiveFailures`（缺省 2）且 `escalation.cap` 非 `off` 才升级，单次偶发失败不触发。策略经 `resolveEscalationPolicy` 解析（非法配置 fail loud）。
@@ -27,7 +28,7 @@ dsh 已有纪律——证据门的"不准做什么"——却没有任何东西�
 
 ## 关键验证事实
 
-- 包级测试 64 全绿（prediction 18 / router 12 / dispatch 8 / integration 14 / invariant 12）。
+- 包级测试 66 全绿（prediction 18 / router 12 / dispatch 8 / integration 14 / invariant 14）。
 - integration（真实 cordis Context + 事件对象，不 mock 中间层）：8 连败 → escalate → delegate verifier → execute 派发调用序断言；3 连成 → tipping point 重置 → decide 回 self；dispatchEnabled:false 不派发。
 - 测试驱动修正：mock Context 覆盖真实 `ctx.reflect` 会崩（`ctx.on` 的 proxy 依赖反射层）——**集成测试永远用真实 `new Context()` + provide**，不手改 reflect。
 - dispatch 走 `ctx.reflect.get('agents', false)`（Cordis 4 注入代理，第 4 个实例——与 T4/compact/evidence-gate tools 同款）。
@@ -48,7 +49,7 @@ EFE 全套、season/vigor/sensorium、天枢 worker/dispatcher/council、bandit-
 ## 验证命令
 
 ```sh
-pnpm vitest run packages/guard/agent-router/tests/                     # 5 文件 64 测试全绿
+pnpm vitest run packages/guard/agent-router/tests/                     # 5 文件 66 测试全绿
 npx oxlint packages/guard/agent-router/                                # 0 错误
 npx tsc -p packages/guard/agent-router/tsconfig.json                   # 0 错误
 ```
