@@ -17,6 +17,9 @@
     },
     {
       "path": "../../typert/type-meta"
+    },
+    {
+      "path": "../../self-modification/cordis-host-runner"
     }
   ]
 }

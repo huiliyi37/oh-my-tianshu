@@ -1,0 +1,44 @@
+# Keyless real-Loader composition for the task-card first-message snapshot.
+# The headless driver sends one short first message; the task-card plugin
+# rewrites it into a structured card (mode: template — deterministic, no model
+# call for the card) before the replay adapter supplies the model response.
+
+- id: persistence
+  name: '@huiliyi37/dsh-session-persistence-jsonl'
+  config:
+    root: './.sessions'
+    compression: none
+
+- id: replay
+  name: '@huiliyi37/dsh-llm-replay'
+  config:
+    file: !!js process.env.DSH_SNAPSHOT_FILE
+    overrideFile: !!js process.env.DSH_SNAPSHOT_OVERRIDE
+
+- id: task-card
+  name: '@huiliyi37/dsh-task-card'
+  config:
+    mode: template
+
+# Managed child-process groups for the bash executor (spawn/kill/output plumbing).
+- id: subprocess
+  name: '@huiliyi37/dsh-subprocess-local'
+
+- id: bash
+  name: '@huiliyi37/dsh-bash-local'
+  config:
+    timeoutMs: 60000
+
+- id: agent
+  name: '@huiliyi37/dsh-agent-spine-demo'
+  config:
+    agents: []
+    workspaceContext: false
+    skills:
+      enabled: false
+    toolTasks: false
+    goals: false
+
+# Publish the snapshot session before the headless driver runs its fixture turn.
+- id: task-card-agent
+  name: './tests/fixtures/task-card-agent.ts'

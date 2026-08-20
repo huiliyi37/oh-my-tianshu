@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/subsystems/git.md
-git.md: 0a2937dab514f0fbd921a7f55e7d660ce6baab83
-git.zh.md: e65ac0d7dcd84d9310bbf4f9ef0856ccdabe6c04
+git.md: 5cccf2ce80d9e0497e169764f4d8f74d59ecb7ca
+git.zh.md: ecef09171ab045f8097345b9f0b2ebff91ac36e2

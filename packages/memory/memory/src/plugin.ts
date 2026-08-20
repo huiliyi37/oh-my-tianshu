@@ -2,7 +2,7 @@
  * dsh-memory 插件：注册 memory 服务（P2 Wave 1）。
  *
  * provider 角色：`ctx.provide('memory', service)` 暴露 MarkdownMemoryStore。
- * consumers（TUI /remember、/memory、未来的 memory_save/search 工具）经
+ * consumers（TUI /remember、/memory、tool-memory 的 memory_save/search）经
  * `ctx.reflect.get('memory', false)` 动态获取——不静态 import 本包
  * （TUI 编译面约定：reflect 动态获取的服务不进 tsconfig references）。
  *

@@ -16,6 +16,10 @@
 
 由 Python SDK 和 JSON-RPC 驱动的无人值守编码 agent。详见 [JSON-RPC 示例参考](jsonrpc-agent/README.md)。
 
+## web-schedule
+
+在出厂 Web 组合之上可选启用的 Schedule 补丁：通过 `schedule_create`/`schedule_list`/`schedule_delete` 使用会话内持久提醒。参见 [web-schedule 示例参考](web-schedule/README.md)。
+
 ## web-cordis
 
 能够检查并更改内存中 Cordis 插件树的自指 agent。详见 [web-cordis 示例参考](web-cordis/README.md)。

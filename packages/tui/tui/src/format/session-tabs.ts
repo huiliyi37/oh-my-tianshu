@@ -23,6 +23,16 @@ export interface SessionTab {
   current?: boolean
 }
 
+/**
+ * 会话 id → tab 短标签：剥掉 `session-` 前缀再取 8 字，避免全部显示成 `[session-]`。
+ * @param id - 完整会话 id。
+ * @returns 至多 8 个字符的展示标签。
+ */
+export function sessionTabLabel(id: string): string {
+  const rest = id.startsWith('session-') ? id.slice(8) : id
+  return rest.slice(0, 8)
+}
+
 /** tab 分隔符。 */
 const TAB_GAP = ' '
 

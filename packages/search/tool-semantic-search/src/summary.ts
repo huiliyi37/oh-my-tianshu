@@ -5,6 +5,11 @@
  * runtime-context content-diff injects it only when the index actually
  * changes (volatile content never enters the frozen system-prompt prefix).
  *
+ * Rendering reads in-memory index state ONLY — no filesystem access, so
+ * prompt assembly never pays index IO (freshness is maintained by
+ * `SemanticIndex.refresh` at plugin mount and per tool execution; see
+ * `.agents/notes/implemented/bug-fix/2026-08-16-semantic-index-async-refresh.md`).
+ *
  * @module @huiliyi37/dsh-tool-semantic-search/summary
  */
 
@@ -17,15 +22,14 @@ export const INDEX_SUMMARY_MAX_CHARS = 2000
 const SUMMARY_MAX_FILES = 80
 
 /**
- * Render the current index summary. Checks staleness first so the summary
- * reflects the freshest state; content is deterministic for the same index
- * state (paths sorted), so the runtime-context diff injects only on real
- * change.
+ * Render the current index summary from in-memory state. Freshness is
+ * whatever the last `refresh()` produced — the summary may lag disk until the
+ * next refresh; content is deterministic for the same index state (paths
+ * sorted), so the runtime-context diff injects only on real change.
  * @param index - the workspace semantic index.
  * @returns the bounded summary text.
  */
 export function renderIndexSummary(index: SemanticIndex): string {
-  if (index.isStale()) index.incrementalUpdate()
   const paths = [...index.listFiles()].sort()
   const chunkCount = index.chunkCount
   const lines = paths.map(path => `- ${path}`)

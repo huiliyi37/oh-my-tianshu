@@ -24,6 +24,9 @@
       "path": "../../feedback/command-feedback"
     },
     {
+      "path": "../../identity/anonymous-user-id"
+    },
+    {
       "path": "../../llm/llm"
     },
     {

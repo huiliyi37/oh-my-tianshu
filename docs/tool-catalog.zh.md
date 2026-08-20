@@ -20,6 +20,7 @@
 | `@huiliyi37/dsh-tool-ask-user` | `ask_user_question` | `ctx.tools`、`ctx.userInteraction` | `tool/call`、`tool/result after a UI/provider answers the question` | - | ask_user_question 会暂停工具调用，直到当前 UI 提供方返回人类答案。 |
 | `@huiliyi37/dsh-tools` | `run_code` | `ctx.tools`、`ctx.codeRuntime (execution time)`、`ctx.systemPrompt` | `tool/call`、`one tool/code-dispatch-start + tool/code-dispatch pair per bridged sub-call`、`tool/result` | - | 在 `mode: code`／`mode: both` 下，它由工具注册表所有，作为可过滤能力层之外的保留传输机制（参见 Code Mode Agent Note）。在 `code` 下，它是注册表对协议格式（wire format）的唯一贡献；其他可见能力在使用已加载运行时语言生成的 SDK 章节中声明。程序通过 binding 调用这些能力，调用按照原生并发约定调度：启动顺序和策略遵循提交顺序，并发安全的函数体最多重叠执行 `maxParallelSubCalls` 个。调用会重新进入完整且受守卫保护的工具流水线，并将每个嵌套执行关联到此外层结果。 |
 | `@huiliyi37/dsh-plan-mode` | `exit_plan_mode` | `ctx.tools`、`ctx.systemPrompt`、`ctx.userInteraction (execution time, opportunistic)` | `tool/call`、`plan/mode inactive on an approved review`、`tool/result` | - | 规划未激活时，exit_plan_mode 仍保留在面向模型的 schema 中，这样状态转换不会在规划策略变更之外额外造成工具目录变动。其执行路径会拒绝规划模式之外的调用；在规划模式下，它通过用户交互 seam 提交计划（批准／根据反馈继续规划），批准后会在步骤边界记录规划模式已停用。 |
+| `@huiliyi37/dsh-schedule` | `schedule_create`、`schedule_delete`、`schedule_list` | `ctx.tools`、`ctx.sessions`、`ctx.agents`、`ctx.sessionPersistence` | `schedule/change`、`tool/call`、`tool/result` | - | schedule_create / schedule_list / schedule_delete 是 agent 作用域的:它们只存在于插件加载后创建的根 agent 上,其持久状态存在于会话日志中。 |
 | `@huiliyi37/dsh-tool-bash` | `bash` | `ctx.tools`、`ctx.bash`、`ctx.systemPrompt`、`ctx.bashEnv`、`ctx.tasks at call time for run_in_background` | `tool/call`、`tool/result` | - | bash 工具是 bash 执行器 seam 面向模型的消费方。使用 `run_in_background` 的运行会注册到通用 `ctx.tasks` 运行时，并通过 `task_*` 工具（来自 `@huiliyi37/dsh-tool-tasks`）收集／停止；禁用 `enableRunInBackground` 配置（默认为 true）后，该参数会被完全移除。 |
 | `@huiliyi37/dsh-tool-pwsh` | `pwsh` | `ctx.tools`、`ctx.bash`、`ctx.systemPrompt`、`ctx.bashEnv`、`ctx.tasks at call time for run_in_background` | `tool/call`、`tool/result` | - | pwsh 工具是 Windows 组合中 bash 执行器 seam 的 PowerShell 方言消费方（由 `@huiliyi37/dsh-pwsh-local` 等 PowerShell 执行器为 `ctx.bash` 提供后端）；除沙箱接口外，它逐项对应 bash 工具调用。使用 `run_in_background` 的运行会注册到通用 `ctx.tasks` 运行时，并通过 `task_*` 工具收集／停止；托管的 `DSH_*` 环境来自 `@huiliyi37/dsh-bash-env`。每次调用都在新进程中运行，不使用持久 PTY 会话；ConPTY 尚在规划中。路径采用原生 `C:\...` 形式，变量采用 `$env:NAME`。 |
 | `@huiliyi37/dsh-tool-cordis` | `cordis_inspect`、`cordis_mount`、`cordis_unmount` | `ctx.tools` | `tool/call`、`tool/result`、`process-local temporary Plugin lifecycle` | - | 不在任何随产品发布的树中，需要有意选择启用；临时 Plugin 代码可以访问真实运行时，见 .agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md。由 cordis_mount 创建的插件在卸载或 DSH 重启之前可以注册**额外的**模型可见工具；发生这类工具集变更时，系统会记录完整且有变动的请求头。 |
@@ -31,6 +32,7 @@
 | `@huiliyi37/dsh-tool-goal` | `create_goal`、`get_goal`、`update_goal` | `ctx.tools`、`ctx.agents`、`ctx.goals`、`ctx.systemPrompt`、`a calling Agent in an authorized open turn` | `tool/call`、`goal/change for mutations`、`tool/result` | - | create、edit、pause 和 resume 要求直接来自人类的根权限；complete 和 blocked 也接受确切的当前 Goal Round。blocked 的默认下限是 3 个获准的 Round。 |
 | `@huiliyi37/dsh-tool-lsp` | `lsp` | `ctx.tools`、`ctx.lsp`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，因此其模型可见 schema 在更换提供方时保持稳定。运行时要求已注册提供方，例如 `@huiliyi37/dsh-lsp-local`；如果没有提供方，查询会返回结构化 `LSP_UNAVAILABLE` 错误，而不会改变 schema。 |
 | `@huiliyi37/dsh-tool-ralph` | `ralph` | `ctx.tools`、`ctx.workflows`、`ctx.subagents`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents every fresh round)` | `tool/call`、`tool/result`、`workflow and child session events during execution` | - | 固定的前台工作流会在每个 Round 启动一个全新的结构化子级；模型只能选择不可变目标和可选的 Round 上限。 |
+| `@huiliyi37/dsh-tool-run-tests` | `related_tests`、`run_tests` | `ctx.tools`、`ctx.bash`、`ctx.tasks at call time for run_in_background` | `tool/call`、`tool/result` | - | run_tests 通过 bash seam 执行检测到的框架（或显式 command），并返回通过/失败计数；related_tests 按文件名约定列出附近的测试文件。evidence-gate 从普通会话流为每一次 run_tests 调用归账，包括无 command、无 path 的裸调用。解析到会话 cwd 之外的 related_tests 路径会响亮失败。 |
 | `@huiliyi37/dsh-tool-skill` | `skill` | `ctx.tools`、`ctx.agents`、`ctx.skills` | `tool/call`、`tool/result`、`user/message replacement catalogs via agent.inject()` | - | - |
 | `@huiliyi37/dsh-tool-session-query` | `session_event_read`、`session_event_search`、`session_event_trace`、`session_search`、`session_trace` | `ctx.tools`、`ctx.systemPrompt`、`ctx.sessionQuery`、`a calling Agent for workspace authority` | `tool/call`、`tool/result` | - | 这 5 个只读工具会隐藏提供方游标，并根据不可变的调用 agent 会话为每个结果授权。该包需要选择启用；需要强制截止时间或限制行内输出的组合还会挂载通用超时或 spill 策略。 |
 | `@huiliyi37/dsh-tool-subagent` | `subagent` | `ctx.tools`、`ctx.subagents` | `tool/call`、`tool/result`、`child session events through the chosen provider` | `subagent`、`subagent_fork` | 注册的工具名称取决于加载时 `toolName` 配置（默认为 `subagent`）；上述 schema 对应默认值。随产品发布的示例 agent 会为每个 subagent 后端加载一次该包，因此模型还会看到 schema 相同、绑定到 fork 后端的 `subagent_fork`；见 `packages/bundle/base/cordis.patch.yml` 和 `examples/acp-agent/cordis.yml`。 |
@@ -41,8 +43,9 @@
 | `@huiliyi37/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflows`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
 | `@huiliyi37/dsh-tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
 | `@huiliyi37/dsh-tool-file-info` | `file_info` | `ctx.tools`、`ctx.fs` | `tool/call`、`tool/result` | - | file_info 通过 ctx.fs 报告元数据（大小、类型、修改时间），不会把文件内容读进模型上下文。 |
-| `@huiliyi37/dsh-tool-git` | `git` | `ctx.tools`、`ctx.git`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | git_status／git_diff／git_log／git_commit 消费有类型的 ctx.git seam（工具层不接触子进程）；git_commit 要求提供提交信息且独占运行（非并发安全），提交不会弹出审批卡——文件变更仍走 fs 审批面。 |
+| `@huiliyi37/dsh-tool-git` | `git` | `ctx.tools`、`ctx.git`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | git 通过一个 `operation` 判别（status \| diff \| log \| commit）消费有类型的 ctx.git seam（工具层不接触子进程）；commit 要求提供提交信息且独占运行（非并发安全），提交不会弹出审批卡——文件变更仍走 fs 审批面。 |
 | `@huiliyi37/dsh-tool-memory` | `memory_save`、`memory_search` | `ctx.tools`、`ctx.systemPrompt`、`ctx.memory (execution time)` | `tool/call`、`tool/result` | - | memory_save 与 memory_search 在执行时才惰性访问项目记忆存储，因此 schema 与记忆后端无关。 |
+| `@huiliyi37/dsh-tool-memory-recall` | `memory_deep_recall` | `ctx.tools`、`ctx.systemPrompt`、`ctx.sessionQuery (execution time)`、`ctx.subagents (execution time)` | `tool/call`、`tool/result` | - | memory_deep_recall 把问题扇出给只读 reader 子代理，返回按预算钳制的蒸馏结果；执行时缺 sessionQuery、session-query 工具或能力完整的 subagent provider 会 fail loud。原始转录永不进入父上下文。 |
 | `@huiliyi37/dsh-tool-meridian` | `repo_graph` | `ctx.tools`、`ctx.systemPrompt`、`ctx.meridian (execution time)` | `tool/call`、`tool/result` | - | repo_graph 在执行时才惰性查询代码图索引（仓库地图、影响分析、流查询）；其系统提示词区段仅在索引存在时由 runtime-context 内容差异注入。 |
 | `@huiliyi37/dsh-tool-semantic-search` | `semantic_search` | `ctx.tools`、`ctx.systemPrompt`、`ctx.semanticIndex (execution time)` | `tool/call`、`tool/result` | - | semantic_search 在执行时才惰性执行工作区检索（定义对齐的 BM25，可选向量融合）；其系统提示词区段仅在索引存在时由 runtime-context 内容差异注入。 |
 
@@ -172,6 +175,101 @@ ask_user_question 会暂停工具调用，直到当前 UI 提供方返回人类�
 来源：[`packages/plan/plan-mode/src/index.ts`](../packages/plan/plan-mode/src/index.ts)
 
 规划未激活时，exit_plan_mode 仍保留在面向模型的 schema 中，这样状态转换不会在规划策略变更之外额外造成工具目录变动。其执行路径会拒绝规划模式之外的调用；在规划模式下，它通过用户交互 seam 提交计划（批准／根据反馈继续规划），批准后会在步骤边界记录规划模式已停用。
+
+## `@huiliyi37/dsh-schedule`
+
+### `schedule_create`
+
+在当前会话中创建一条提醒。提供一个非空 prompt 且恰好一个选择器:正整数安全整数 after_seconds 延迟、at 严格偏移日期时间或本地日期/时间对象,或至少 300 秒的 safe-integer every_seconds。定频提醒保持创建对齐、跳过错过的发生,并按逾期规则合并每次最新一次发生。投递是会话本地的:提醒仅在本会话存活时准时运行,否则转为逾期,直到会话恢复。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "prompt": {
+      "type": "string",
+      "description": "Reminder content to present when the target becomes due."
+    },
+    "after_seconds": {
+      "type": "number",
+      "description": "Positive safe-integer delay in seconds."
+    },
+    "every_seconds": {
+      "type": "number",
+      "description": "Fixed-rate safe-integer interval in seconds, at least 300."
+    },
+    "at": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "date": {
+              "type": "string"
+            },
+            "time": {
+              "type": "string"
+            },
+            "time_zone": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "date",
+            "time",
+            "time_zone"
+          ]
+        }
+      ],
+      "description": "Absolute target as strict offset RFC 3339 or local date/time with an explicit IANA zone."
+    }
+  },
+  "required": [
+    "prompt"
+  ]
+}
+```
+
+来源：[`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts)
+
+### `schedule_delete`
+
+按 schedule_create 或 schedule_list 返回的精确 id 删除当前会话中的一条活跃提醒。未知或已结束的 id 返回 deleted false。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Exact session-local schedule id."
+    }
+  },
+  "required": [
+    "id"
+  ]
+}
+```
+
+来源：[`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts)
+
+### `schedule_list`
+
+按创建顺序列出当前会话的每一条活跃提醒,包括精确 id、UTC 目标、scheduled 或 overdue 状态,以及会话本地投递模式。
+
+```json
+{
+  "type": "object",
+  "properties": {}
+}
+```
+
+来源：[`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts)
+
+schedule_create / schedule_list / schedule_delete 是 agent 作用域的:它们只存在于插件加载后创建的根 agent 上,其持久状态存在于会话日志中。
 
 ## `@huiliyi37/dsh-tool-bash`
 
@@ -914,6 +1012,60 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 
 固定的前台工作流会在每个 Round 启动一个全新的结构化子级；模型只能选择不可变目标和可选的 Round 上限。
 
+## `@huiliyi37/dsh-tool-run-tests`
+
+### `related_tests`
+
+按文件名约定列出与某个源路径相关的测试文件：同目录的 `<name>.(test|spec).<ext>` 与 `_test` 变体，以及 `__tests__`/`tests`/`test` 目录中的条目或根部测试镜像。有界且为启发式——从不解析代码。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "Source file or directory to find tests for."
+    }
+  },
+  "required": [
+    "path"
+  ]
+}
+```
+
+来源：[`packages/tests/tool-run-tests/src/index.ts`](../packages/tests/tool-run-tests/src/index.ts)
+
+### `run_tests`
+
+运行项目测试并返回机器可读的通过/失败计数。测试运行请优先使用本工具而非 bash：harness 的验证门禁会为结果归账。提供 `command` 以运行一条确切命令行，或提供 `path` 以选择测试文件/目录，并由 harness 从工作区元数据检测框架（vitest/jest/mocha/npm/pytest/go）。非零退出会作为结果上报，而非错误。长时间套件可设 `run_in_background: true`：调用返回 task id；用 `task_output` 读取输出，用 `task_kill` 停止。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "string",
+      "description": "Exact command line to run. Omit to use framework detection."
+    },
+    "path": {
+      "type": "array",
+      "description": "Test files or directories to run (relative to the workspace). Used with framework detection.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "run_in_background": {
+      "type": "boolean",
+      "description": "Run the suite as a background task and return a task id."
+    }
+  }
+}
+```
+
+来源：[`packages/tests/tool-run-tests/src/index.ts`](../packages/tests/tool-run-tests/src/index.ts)
+
+run_tests 通过 bash seam 执行检测到的框架（或显式 command），并返回通过/失败计数；related_tests 按文件名约定列出附近的测试文件。evidence-gate 从普通会话流为每一次 run_tests 调用归账，包括无 command、无 path 的裸调用。解析到会话 cwd 之外的 related_tests 路径会响亮失败。
+
 ## `@huiliyi37/dsh-tool-skill`
 
 ### `skill`
@@ -1642,7 +1794,7 @@ file_info 通过 ctx.fs 报告元数据（大小、类型、修改时间），�
 
 来源：[`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
 
-git_status／git_diff／git_log／git_commit 消费有类型的 ctx.git seam（工具层不接触子进程）；git_commit 要求提供提交信息且独占运行（非并发安全），提交不会弹出审批卡——文件变更仍走 fs 审批面。
+git 通过一个 `operation` 判别（status | diff | log | commit）消费有类型的 ctx.git seam（工具层不接触子进程）；commit 要求提供提交信息且独占运行（非并发安全），提交不会弹出审批卡——文件变更仍走 fs 审批面。
 
 ## `@huiliyi37/dsh-tool-memory`
 
@@ -1680,7 +1832,7 @@ git_status／git_diff／git_log／git_commit 消费有类型的 ctx.git seam（�
 
 ### `memory_search`
 
-在项目记忆中检索知识（关键词子串匹配，大小写不敏感；空 query 列出全部）。开始新任务、需要历史决策/项目约定/用户偏好时使用。
+在项目记忆中检索知识（关键词子串匹配，大小写不敏感；空 query 列出全部）。开始新任务、需要历史决策/项目约定/用户偏好时使用。已在当前上下文出现的条目用 excludeIds 排除，避免重复占用上下文。
 
 ```json
 {
@@ -1692,7 +1844,14 @@ git_status／git_diff／git_log／git_commit 消费有类型的 ctx.git seam（�
     },
     "limit": {
       "type": "number",
-      "description": "返回条数上限（缺省 10）"
+      "description": "返回条数上限（缺省且封顶 10）"
+    },
+    "excludeIds": {
+      "type": "array",
+      "description": "要排除的记忆 id（完整 id 或已展示的短 id 前缀）",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "required": [
@@ -1704,6 +1863,31 @@ git_status／git_diff／git_log／git_commit 消费有类型的 ctx.git seam（�
 来源：[`packages/memory/tool-memory/src/index.ts`](../packages/memory/tool-memory/src/index.ts)
 
 memory_save 与 memory_search 在执行时才惰性访问项目记忆存储，因此 schema 与记忆后端无关。
+
+## `@huiliyi37/dsh-tool-memory-recall`
+
+### `memory_deep_recall`
+
+深度召回：回答关于历史会话具体经过的问题（"上次为什么改用 X"、"某错误当时怎么解决的"）。派出只读 reader 子代理检索历史会话转录，返回蒸馏答案（answer + evidence + uncertainties + confidence）；原始转录不进入本会话上下文。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "question": {
+      "type": "string",
+      "description": "要问历史的问题（具体、自成一体）"
+    }
+  },
+  "required": [
+    "question"
+  ]
+}
+```
+
+来源：[`packages/memory/tool-memory-recall/src/index.ts`](../packages/memory/tool-memory-recall/src/index.ts)
+
+memory_deep_recall 把问题扇出给只读 reader 子代理，返回按预算钳制的蒸馏结果；执行时缺 sessionQuery、session-query 工具或能力完整的 subagent provider 会 fail loud。原始转录永不进入父上下文。
 
 ## `@huiliyi37/dsh-tool-meridian`
 

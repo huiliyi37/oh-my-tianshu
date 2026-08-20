@@ -2,9 +2,10 @@
  * tool-semantic-search 单测。
  *
  * mock ctx：tools.register 捕获 defineTool 定义、systemPrompt.context 捕获
- * 摘要注册。行为契约：semantic_search 执行 stale→update→hybrid 检索闭环、
+ * 摘要注册。行为契约：semantic_search 执行 refresh→hybrid 检索闭环、
  * root 缺失 fail loud、摘要走动态区（context 而非 section）、摘要确定性
- * 且 ≤2000 字符。
+ * 且 ≤2000 字符、摘要渲染只读内存态（不做文件系统 IO——prompt 组装路径
+ * 永不为索引新鲜度买单）。
  *
  * @module @huiliyi37/dsh-tool-semantic-search/tests/tool
  */
@@ -44,6 +45,8 @@ function makeCtx(): {
         contexts.push(section)
       }),
     },
+    // apply 的挂载预热失败路径走 ctx.logger.warn——桩掉以免竞态下打穿 mock。
+    logger: { warn: vi.fn() },
   } as unknown as Context
   return { ctx, tools, contexts }
 }
@@ -107,13 +110,24 @@ describe('tool-semantic-search', () => {
     writeFileSync(join(root, 'a.ts'), 'export function alpha() { return 1 }', 'utf-8')
     writeFileSync(join(root, 'b.py'), 'def helper():\n    return 2', 'utf-8')
     const index = new SemanticIndex(root)
-    index.rebuild()
+    await index.rebuild()
     const first = renderIndexSummary(index)
     const second = renderIndexSummary(index)
     expect(first).toBe(second) // 同一索引状态 → 相同文本
     expect(first.length).toBeLessThanOrEqual(INDEX_SUMMARY_MAX_CHARS)
     expect(first).toContain('a.ts')
     expect(first).toContain('b.py')
+  })
+
+  it('摘要渲染只读内存态：索引过期时不做文件系统 IO（prompt 组装路径不阻塞）', async () => {
+    writeFileSync(join(root, 'a.ts'), 'export function alpha() { return 1 }', 'utf-8')
+    const index = new SemanticIndex(root, undefined, { staleTtlMs: 0 })
+    await index.rebuild()
+    // 磁盘状态大幅漂移（文件全删）：摘要仍按内存态渲染，不触发重扫/重建。
+    rmSync(join(root, 'a.ts'))
+    const summary = renderIndexSummary(index)
+    expect(summary).toContain('a.ts')
+    expect(index.listFiles()).toContain('a.ts')
   })
 
   it('无 root 配置时缺省为 deployment workdir（装配不抛）', () => {

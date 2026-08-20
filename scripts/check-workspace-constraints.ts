@@ -120,6 +120,10 @@ function workspaceManifests(): WorkspaceManifest[] {
 }
 
 const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
+  // The argv-prefix runner entry ships beside the lib as its own bundle;
+  // sandbox-local resolves it through the package's ./runner export. tsdown
+  // also shares its generated FFI code through a hashed runtime chunk.
+  '@huiliyi37/dsh-sandbox-windows-acl': ['lib/runner.js', 'lib/types-*.js'],
   // Profile bundles publish their dsh.bundle.patch layer beside the lib.
   '@huiliyi37/dsh-base': ['cordis.patch.yml'],
   '@huiliyi37/dsh-web-app': ['cordis.patch.yml'],

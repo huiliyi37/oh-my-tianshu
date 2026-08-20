@@ -80,3 +80,52 @@ describe('InputLine ghost 预览', () => {
     expect(changes).toBe(0)
   })
 })
+
+describe('多行 ↑↓ 导航 grapheme 列保持（CJK/emoji 不拆簇）', () => {
+  // 回归（移植 dsh-tui ba45980）：列号曾以 code-unit 计——跨行移动时落在
+  // 代理对/ZWJ 簇中间，光标错乱且后续插入拆碎 emoji（上游 dfe8b6f41 同款）。
+
+  it('Up 保留 grapheme 列：光标落在完整 ZWJ emoji 簇之后', () => {
+    const family = '👨‍👩‍👧' // ZWJ 簇：8 code units / 1 grapheme
+    const il = new InputLine({ value: `${family}x\nz` })
+    il.setValue(il.value, il.value.length) // 光标停在末行行尾（grapheme 列 1）
+
+    il.handleKey('up', '', false, false)
+
+    // 期望光标 = family.length（簇整体之后），而非簇中间的 code-unit 位置
+    expect(il.cursor).toBe(family.length)
+    il.handleKey('unknown', 'Q', false, false)
+    expect(il.value).toBe(`${family}Qx\nz`)
+  })
+
+  it('Down 保留 grapheme 列：光标落在完整代理对之后', () => {
+    const il = new InputLine({ value: 'z\n😀x' }) // 😀 = 2 code units / 1 grapheme
+    il.setValue(il.value, 1) // 首行 grapheme 列 1
+
+    il.handleKey('down', '', false, false)
+
+    // z\n(2) + 😀(2 units) = 4；code-unit 直取会得到 3（代理对中间）
+    expect(il.cursor).toBe(4)
+    il.handleKey('unknown', 'Q', false, false)
+    expect(il.value).toBe('z\n😀Qx')
+  })
+
+  it('CJK 混排跨行：列号按 grapheme 计保持到第 N 个字之后', () => {
+    const il = new InputLine({ value: '你好世界\nab' })
+    il.setValue(il.value, 7) // 末行行尾（grapheme 列 2）
+
+    il.handleKey('up', '', false, false)
+    expect(il.cursor).toBe(2) // 第 2 个 CJK 字之后（每字 1 code unit）
+
+    il.handleKey('down', '', false, false)
+    expect(il.cursor).toBe(7) // 回到末行同列
+  })
+
+  it('col 超出目标行 grapheme 数时贴到行尾（不越界）', () => {
+    const il = new InputLine({ value: 'abcdefgh\nx' })
+    il.setValue(il.value, 8) // 首行行尾（grapheme 列 8）
+
+    il.handleKey('down', '', false, false)
+    expect(il.cursor).toBe(il.value.length) // 末行行尾
+  })
+})

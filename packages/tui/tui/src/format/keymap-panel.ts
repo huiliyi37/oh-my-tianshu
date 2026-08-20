@@ -24,7 +24,7 @@ export interface KeymapEntry {
  *  由审批卡自带提示承担，不在此列。 */
 export const KEYMAP_ENTRIES: KeymapEntry[] = [
   { keys: 'Enter', action: '发送' },
-  { keys: 'Shift+Enter', action: '换行（或 \\+Enter 续行）' },
+  { keys: 'Shift+Enter', action: '切换换行模式' },
   { keys: 'Ctrl+N', action: '新会话' },
   { keys: 'Ctrl+S', action: '恢复最近会话' },
   { keys: 'Ctrl+Q', action: '退出' },
@@ -36,11 +36,11 @@ export const KEYMAP_ENTRIES: KeymapEntry[] = [
   { keys: 'Ctrl+T', action: '中轮转向' },
   { keys: 'Ctrl+V', action: '粘贴剪贴板图片/文本' },
   { keys: 'Ctrl+U', action: '删除到行首' },
-  { keys: 'Ctrl+C', action: '打断当前回合（空闲双击退出）' },
+  { keys: 'Ctrl+C', action: '打断；再按退出进程' },
   { keys: 'Shift+Tab', action: '模式循环 normal→plan→always-approve' },
   { keys: 'Tab', action: '@-路径补全 / 接受 slash 选中项' },
-  { keys: '↑/↓', action: '输入历史（菜单打开时为选择）' },
-  { keys: 'PageUp/PageDown', action: 'slash 菜单翻页' },
+  { keys: '↑/↓', action: '历史；多行或折行时移光标' },
+  { keys: 'PageUp/PageDown', action: '输入框或 slash 菜单翻页' },
   { keys: 'Alt+W', action: '复制选区到系统剪贴板（OSC52）' },
   { keys: 'Esc', action: '取消/关闭' },
 ]

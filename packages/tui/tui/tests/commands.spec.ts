@@ -22,7 +22,7 @@ import {
 import { getActiveThemeName, setTheme } from '../src/theme.js'
 
 /** 最小 ctx 替身：/session list 需要的 sessions.list + get('sessionPersistence')。 */
-function makeCtx(overrides: Partial<Record<'sessions' | 'agents' | 'compact' | 'agentDefaultModel' | 'goals' | 'tasks' | 'agentPresets', unknown>> = {}): Context {
+function makeCtx(overrides: Partial<Record<'sessions' | 'agents' | 'compact' | 'agentDefaultModel' | 'goals' | 'tasks' | 'agentPresets' | 'subagents', unknown>> = {}): Context {
   const ctx = {
     sessions: {
       list: vi.fn(() => []),
@@ -841,9 +841,20 @@ describe('内置命令 — /preset（agent 预设模式切换）', () => {
     expect(echo).toHaveBeenCalledWith(expect.stringContaining('无会话'))
   })
 
-  it('agent-presets 服务缺失时回显不可用（fails loud）', async () => {
+  it('agent-presets 服务缺失时回显不可用（fails loud；模拟 Cordis 注入代理）', async () => {
     const { cmd } = presetByName()
-    const { args, echo } = makeArgs({ text: '' })
+    // 模拟真实 Cordis 4 注入代理：未声明属性访问抛 "without inject"（makeCtx
+    // 平对象属性访问返回 undefined，掩盖了该行为——回归：/preset 曾用属性访问
+    // 读可选服务，真实运行时在 degrade 分支前先抛错，runSlash 回显
+    // "命令执行失败: cannot get property ... without inject"）。
+    const base = makeCtx()
+    const ctx = new Proxy(base, {
+      get(target, prop) {
+        if (Reflect.has(target, prop)) return Reflect.get(target, prop) as unknown
+        throw new Error(`cannot get property "${String(prop)}" without inject`)
+      },
+    })
+    const { args, echo } = makeArgs({ text: '', ctx })
     await cmd.run(args)
     expect(echo).toHaveBeenCalledWith(expect.stringContaining('不可用'))
   })
@@ -1066,6 +1077,136 @@ describe('内置命令 — /subagents（T2.1 委派树面板）', () => {
     const { args } = makeArgs({ text: '' })
     await cmd.run(args)
     expect(deps.toggleSubagentsPanel).toHaveBeenCalledTimes(1)
+  })
+
+  it('kill 用当前树条目的直接父调用 interrupt，不读 list()[0]', async () => {
+    const { cmd } = commandByName('subagents')
+    const interrupt = vi.fn()
+    const listDescendants = vi.fn(async () => [
+      {
+        kind: 'child',
+        id: 'child-nested',
+        parentId: 'mid-parent',
+        depth: 2,
+        activity: 'running',
+        mode: 'continuable',
+        hasChildren: false,
+        label: 'nested',
+      },
+    ])
+    const list = vi.fn(() => [{ id: 'unrelated-first' }])
+    const ctx = makeCtx({
+      subagents: { listDescendants, interrupt },
+      sessions: { list, get: vi.fn(() => undefined) },
+    })
+    const { args, echo } = makeArgs({
+      text: 'kill child-nested',
+      ctx,
+      sessionId: 'session-root' as SessionId,
+    })
+    await cmd.run(args)
+    expect(list).not.toHaveBeenCalled()
+    expect(listDescendants).toHaveBeenCalledWith('session-root')
+    expect(interrupt).toHaveBeenCalledWith('child-nested', {
+      kind: 'user',
+      parentSessionId: 'mid-parent',
+    })
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('child-nested'))
+  })
+
+  it('kill 已结束子代理不调用 interrupt，回显已不在运行', async () => {
+    const { cmd } = commandByName('subagents')
+    const interrupt = vi.fn()
+    const listDescendants = vi.fn(async () => [
+      {
+        kind: 'child',
+        id: 'child-done',
+        parentId: 'session-root',
+        depth: 1,
+        activity: 'inactive',
+        mode: 'continuable',
+        hasChildren: false,
+        label: 'done',
+      },
+    ])
+    const ctx = makeCtx({ subagents: { listDescendants, interrupt } })
+    const { args, echo } = makeArgs({
+      text: 'kill child-done',
+      ctx,
+      sessionId: 'session-root' as SessionId,
+    })
+    await cmd.run(args)
+    expect(interrupt).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('已不在运行'))
+  })
+
+  it('kill 一次性子代理不调用 interrupt，回显不可终止', async () => {
+    const { cmd } = commandByName('subagents')
+    const interrupt = vi.fn()
+    const listDescendants = vi.fn(async () => [
+      {
+        kind: 'child',
+        id: 'oneshot-1',
+        parentId: 'session-root',
+        depth: 1,
+        activity: 'running',
+        mode: 'one-shot',
+        hasChildren: false,
+      },
+    ])
+    const ctx = makeCtx({ subagents: { listDescendants, interrupt } })
+    const { args, echo } = makeArgs({
+      text: 'kill oneshot-1',
+      ctx,
+      sessionId: 'session-root' as SessionId,
+    })
+    await cmd.run(args)
+    expect(interrupt).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('一次性'))
+  })
+
+  it('kill 不在当前树的 id 不调用 interrupt', async () => {
+    const { cmd } = commandByName('subagents')
+    const interrupt = vi.fn()
+    const listDescendants = vi.fn(async () => [])
+    const ctx = makeCtx({ subagents: { listDescendants, interrupt } })
+    const { args, echo } = makeArgs({
+      text: 'kill stranger',
+      ctx,
+      sessionId: 'session-root' as SessionId,
+    })
+    await cmd.run(args)
+    expect(interrupt).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('当前委派树'))
+  })
+
+  it('kill 无活动会话不列举、不 interrupt', async () => {
+    const { cmd } = commandByName('subagents')
+    const interrupt = vi.fn()
+    const listDescendants = vi.fn(async () => [])
+    const ctx = makeCtx({ subagents: { listDescendants, interrupt } })
+    const { args, echo } = makeArgs({ text: 'kill child-1', ctx, sessionId: null })
+    await cmd.run(args)
+    expect(listDescendants).not.toHaveBeenCalled()
+    expect(interrupt).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('无活动会话'))
+  })
+
+  it('kill 缺 id 回显用法', async () => {
+    const { cmd } = commandByName('subagents')
+    const interrupt = vi.fn()
+    const ctx = makeCtx({ subagents: { listDescendants: vi.fn(), interrupt } })
+    const { args, echo } = makeArgs({ text: 'kill', ctx, sessionId: 'session-root' as SessionId })
+    await cmd.run(args)
+    expect(interrupt).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('/subagents kill'))
+  })
+
+  it('subagents 服务缺失时 kill 报不可用', async () => {
+    const { cmd } = commandByName('subagents')
+    const { args, echo } = makeArgs({ text: 'kill child-1', sessionId: 'session-root' as SessionId })
+    await cmd.run(args)
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('不可用'))
   })
 })
 

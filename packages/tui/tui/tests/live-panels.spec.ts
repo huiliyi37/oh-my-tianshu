@@ -63,8 +63,6 @@ function baseSnapshot(): LiveSnapshot {
     sessionTotals: { turns: 0, toolCalls: 0, elapsedMs: 0 },
     subagentsPanelVisible: false,
     delegationEntries: null,
-    subagentIdentities: new Map(),
-    subagentTimings: new Map(),
     workflowPanelVisible: false,
     workflowRuns: [],
     configPanelVisible: false,
@@ -98,14 +96,17 @@ describe('renderTasksPanel', () => {
     expect(renderTasksPanel({ ...baseSnapshot(), taskPanelVisible: true, taskItems: null })).toEqual([])
   })
 
-  it('后台任务区：taskSnapshots 逐行渲染（running/completed 标记）', () => {
+  it('后台任务区：taskSnapshots 走活区卡（running ⠋ + 可选 ⎿ detail）', () => {
     const snap = { ...baseSnapshot(), taskPanelVisible: true, taskSnapshots: [
-      { id: 't1', kind: 'build', label: 'pnpm build', status: 'running' as const, startedAt: 1 },
+      { id: 't1', kind: 'build', label: 'pnpm build', status: 'running' as const, startedAt: 1, detail: 'compiling' },
       { id: 't2', kind: 'test', label: 'vitest', status: 'completed' as const, startedAt: 2 },
     ] }
     const text = renderTasksPanel(snap).join('\n')
-    expect(text).toContain('⏳ pnpm build')
-    expect(text).toContain('✓ vitest')
+    expect(text).toContain('⠋')
+    expect(text).toContain('pnpm build')
+    expect(text).toContain('compiling')
+    expect(text).toContain('›')
+    expect(text).toContain('vitest')
   })
 })
 
@@ -168,8 +169,6 @@ describe('renderDelegationPanel', () => {
       delegationEntries: [
         { kind: 'child' as const, id: 's1', parentId: 'root', depth: 1, activity: 'running' as const, hasChildren: false, mode: 'one-shot' as const },
       ],
-      subagentIdentities: new Map([['s1', { mode: 'one-shot' as const, seq: 1 }]]),
-      subagentTimings: new Map([['s1', { settledMs: 1500 }]]),
     }
     const rows = renderDelegationPanel(snap)
     expect(rows.length).toBeGreaterThan(0)

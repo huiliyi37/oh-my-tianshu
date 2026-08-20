@@ -65,3 +65,41 @@ describe('非 bracketed paste 粘贴流：内联 return 合并为一次提交', 
     expect(onSubmit.mock.calls[1]?.[0]).toBe('二')
   })
 })
+
+describe('换行模式（粘滞）下粘贴流并入草稿，不提交', () => {
+  it('inline return 累积行 + 当前行 + 尾随换行并入 value，onSubmit 不触发', () => {
+    const onSubmit = vi.fn()
+    const line = new InputLine({ onSubmit })
+    line.setNewlineMode(true)
+    line.insertText('草稿')
+    line.handleKey('return', '', false, false, false, true) // 粘贴流行分隔
+    line.insertText('第一行')
+    line.handleKey('return', '', false, false, false, true)
+    line.insertText('第二行')
+    // 流结束（普通 return）：换行模式下并入草稿，而不是提交
+    line.handleKey('return', '', false, false, false, false)
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(line.value).toBe('草稿\n第一行\n第二行\n')
+  })
+
+  it('换行模式无粘贴流时普通 Enter 仍插入换行', () => {
+    const onSubmit = vi.fn()
+    const line = new InputLine({ onSubmit })
+    line.setNewlineMode(true)
+    line.insertText('a')
+    line.handleKey('return', '', false, false, false, false)
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(line.value).toBe('a\n')
+  })
+
+  it('换行模式下提交需退出模式后 Enter（行为不变）', () => {
+    const onSubmit = vi.fn()
+    const line = new InputLine({ onSubmit })
+    line.setNewlineMode(true)
+    line.insertText('a')
+    line.setNewlineMode(false)
+    line.handleKey('return', '', false, false, false, false)
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onSubmit).toHaveBeenCalledWith('a', [])
+  })
+})

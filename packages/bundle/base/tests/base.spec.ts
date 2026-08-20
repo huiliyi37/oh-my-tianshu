@@ -21,5 +21,17 @@ describe('dsh-base bundle', () => {
     const rows = (parsed as Array<{ insert?: { id?: string }[] }>).flatMap(patch => patch.insert ?? [])
     expect(rows.length).toBeGreaterThan(50)
     expect(rows.some(row => row.id === 'agent-loop')).toBe(true)
+    expect(rows.some(row => row.id === 'command-memory')).toBe(false)
+    expect(rows.some(row => row.id === 'next-workflow')).toBe(false)
+  })
+
+  it('caps un-roled subagent children at the official-minimal ∪ explore allow list', () => {
+    const root = fileURLToPath(new URL('..', import.meta.url))
+    const parsed = yaml.load(readFileSync(resolve(root, 'cordis.patch.yml'), 'utf8'), { schema: entryListSchema })
+    const rows = (parsed as Array<{ insert?: Array<{ id?: string; config?: { toolFilter?: { allow?: string[] } } }> }>)
+      .flatMap(patch => patch.insert ?? [])
+    const allow = ['bash', 'str_replace_editor', 'todo_write', 'grep', 'read', 'glob', 'semantic_search']
+    expect(rows.find(row => row.id === 'tool-subagent')?.config?.toolFilter?.allow).toEqual(allow)
+    expect(rows.find(row => row.id === 'tool-subagent-fork')?.config?.toolFilter?.allow).toEqual(allow)
   })
 })

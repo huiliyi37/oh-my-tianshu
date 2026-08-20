@@ -23,6 +23,10 @@ export interface FormatPromptFooterInput {
   alwaysApprove?: boolean
   /** 审批挂起：快捷键换成 y/n/a/esc，避免仍提示「Enter 发送」。 */
   approvalPending?: boolean
+  /** agent 正在跑：提示 esc/ctrl+c 打断（优先于普通快捷键，窄宽也尽量留下）。 */
+  agentBusy?: boolean
+  /** 手工换行模式：Enter 插入换行，Shift+Enter 退出该模式。 */
+  newlineMode?: boolean
   /** 右侧状态段（token/模型/API 等）；右对齐合并进同一行，放不下从后丢段。 */
   rightSegments?: readonly string[]
 }
@@ -43,7 +47,11 @@ export function formatPromptFooter(input: FormatPromptFooterInput, theme: RivetT
     : alwaysApprove === true ? theme.error : CHROME_INACTIVE_SHIMMER
   const hints = input.approvalPending === true
     ? ['y 允许', 'n 拒绝', 'a 放行', 'esc 取消']
-    : ['/ 命令', 'ctrl+p 面板']
+    : input.agentBusy === true
+      ? ['esc 打断', 'ctrl+c 打断']
+      : input.newlineMode === true
+        ? ['换行中', 'enter 换行', 'shift+enter 退出', 'pgup 翻页']
+        : ['/ 命令', 'ctrl+j 换行', 'ctrl+p 面板']
   // 从后往前丢段直到放得下（mode 恒保留）。
   let segs = hints
   for (;;) {

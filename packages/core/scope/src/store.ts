@@ -5,7 +5,7 @@
  */
 
 import type { Context } from '@huiliyi37/cordis'
-import { scopeOf } from './index.ts'
+import { scopeChainOf, scopeOf } from './index.ts'
 import type { ScopeKey } from './index.ts'
 
 /** One scope's aggregate contribution to a registry. */
@@ -170,7 +170,10 @@ export class ScopedLayers<L extends ScopeLayer> {
   }
 
   /**
-   * Read an existing exact-scope overlay.
+   * Read an existing exact-scope overlay. Deliberately chain-blind: callers
+   * addressing one scope's OWN contributions (its restrictions, its guards)
+   * must not silently pick up an ancestor's — use {@link chainLayers} where
+   * inheritance is the point.
    * @param scope - exact scope key; `undefined` denotes no overlay.
    * @returns the existing scoped layer, or `undefined` without creating one.
    */
@@ -180,8 +183,25 @@ export class ScopedLayers<L extends ScopeLayer> {
   }
 
   /**
-   * Materialize global named entries followed by exact-scope shadows.
-   * @param scope - exact viewing scope, or `undefined` for the global view.
+   * Existing overlays along the scope's parent chain ({@link scopeChainOf}),
+   * farthest ancestor first and the exact scope last, so a caller layering
+   * them in order gives the nearest scope the final word.
+   * @param scope - viewing scope, or `undefined` for no overlays.
+   * @returns the existing layers, nearest last; absent overlays are skipped.
+   */
+  chainLayers(scope: ScopeKey | undefined): L[] {
+    const layers: L[] = []
+    for (const key of scopeChainOf(scope).reverse()) {
+      const layer = this.scoped.get(key)
+      if (layer !== undefined) layers.push(layer)
+    }
+    return layers
+  }
+
+  /**
+   * Materialize global named entries followed by scope-chain shadows,
+   * farthest ancestor first, so the nearest scope's entry wins a name.
+   * @param scope - viewing scope, or `undefined` for the global view.
    * @param pick - select the named table from a layer.
    * @returns an insertion-ordered effective map.
    */
@@ -190,9 +210,9 @@ export class ScopedLayers<L extends ScopeLayer> {
     pick: (layer: L) => NamedEntries<V>,
   ): Map<string, V> {
     const merged = new Map(pick(this.global).entries())
-    const layer = this.peek(scope)
-    if (layer === undefined) return merged
-    for (const [name, value] of pick(layer).entries()) merged.set(name, value)
+    for (const layer of this.chainLayers(scope)) {
+      for (const [name, value] of pick(layer).entries()) merged.set(name, value)
+    }
     return merged
   }
 
@@ -239,7 +259,7 @@ export class ScopedLayers<L extends ScopeLayer> {
         if (scope !== undefined && layer.isEmpty()) this.scoped.delete(scope)
         if (notify) this.onChange()
       }
-      if (notify) { this.onChange() }
+      if (notify) this.onChange()
     }.bind(this), options.label)
     // oxlint-disable-next-line typescript/no-misused-promises -- exact synchronous disposer preserves Cordis effect identity
     return dispose

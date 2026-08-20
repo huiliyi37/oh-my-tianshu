@@ -11,7 +11,9 @@ import {
 import {
   ambiguousWidthMode,
   ambiguousWideEnabled,
+  charDisplayWidth,
   displayWidth,
+  resetCharWidthCache,
   resetWidthModeCache,
   truncateToDisplayWidth,
 } from '../src/width.js'
@@ -424,5 +426,31 @@ describe('detectTerminalBackground', () => {
     await expect(
       detectTerminalBackground({ stdin, stdout: makeTtyStdout(), env: {} }),
     ).resolves.toBe('dark')
+  })
+})
+
+describe('charDisplayWidth（单字符宽度缓存）', () => {
+  afterEach(() => {
+    resetCharWidthCache()
+    resetWidthModeCache()
+  })
+
+  it('与 displayWidth 逐字符求和一致（narrow 与 wide 两档）', () => {
+    const samples = ['a', 'Z', ' ', '中', '—', '…', '█', '─', '🎉', '你', '0', '.', '\u00AD']
+    for (const wide of [false, true]) {
+      for (const ch of samples) {
+        expect(charDisplayWidth(ch, wide)).toBe(displayWidth(ch, { ambiguousAsWide: wide }))
+      }
+    }
+  })
+
+  it('命中缓存返回同一值（两档互不污染）', () => {
+    const wNarrow = charDisplayWidth('中', false)
+    const wWide = charDisplayWidth('中', true)
+    expect(wNarrow).toBe(displayWidth('中', { ambiguousAsWide: false }))
+    expect(wWide).toBe(displayWidth('中', { ambiguousAsWide: true }))
+    // 再次调用走缓存
+    expect(charDisplayWidth('中', false)).toBe(wNarrow)
+    expect(charDisplayWidth('中', true)).toBe(wWide)
   })
 })

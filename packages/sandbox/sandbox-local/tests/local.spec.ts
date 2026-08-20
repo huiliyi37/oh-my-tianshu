@@ -209,13 +209,10 @@ describe('the platform chains', () => {
     expect(probeSeatbelt).not.toHaveBeenCalled()
   })
 
-  it('win32 is a reserved EMPTY chain: fails closed identically until a Windows runner fills it', async () => {
-    // The slot exists so Windows support is an additive fill-in (chain entry
-    // + runner union member), never a redesign — and reserving it must not
-    // weaken the fail-closed end in the meantime.
-    const { sandbox } = await setup({}, { platform: 'win32' })
-    expect(() => sandbox.confine(['true'], RO)).toThrow(expect.objectContaining({ code: SANDBOX_UNAVAILABLE }))
-  })
+  // The win32 chain's argv contract, denial dialect, and runner-failure rules
+  // live in @huiliyi37/dsh-sandbox-windows-acl/tests/provider-chain.spec.ts
+  // (platform-independent assertions that run in every CI lane, including
+  // Windows where this package's POSIX-only suites are excluded).
 
   it('caches the verdict for the provider lifetime: one chain walk across wraps', async () => {
     const probeBwrap = vi.fn(() => true)

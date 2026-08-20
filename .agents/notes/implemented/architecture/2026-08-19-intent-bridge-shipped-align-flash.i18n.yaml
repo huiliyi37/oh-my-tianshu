@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-19-intent-bridge-shipped-align-flash.md
+2026-08-19-intent-bridge-shipped-align-flash.md: b8eb0508f039e6995b2738450b02c8930951ae24
+2026-08-19-intent-bridge-shipped-align-flash.zh.md: 3094822fffded994efe7365ee2bc376396839cbf

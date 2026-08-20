@@ -25,4 +25,4 @@
 - **仅三种语言**（TS/Python/Go）——其他源码语言不解析。
 - **调用边是命名匹配启发式**——重载降级为 `ambiguous`，动态 callee 丢弃。
 - **SQLite 单写者**——并发索引实例在 DB 文件上串行。
-- **schema v1 单调递增**——旧磁盘格式被拒绝（fails loud）。
+- **schema v1 落在 `.rivet/dsh-meridian.db`**——不是天枢的 `.rivet/meridian.db`（schema 2，含额外生态表）。不匹配的 `dsh-meridian.db` 在查询时被拒绝；动态 context 摘要省略该块，不把错误变成回合失败。

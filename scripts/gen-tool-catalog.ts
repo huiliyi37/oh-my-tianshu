@@ -8,7 +8,7 @@
 
 import { globSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
-import { Context } from '@huiliyi37/cordis'
+import { Context, Service } from '@huiliyi37/cordis'
 import type { ToolSchema } from '@huiliyi37/dsh-llm'
 import AgentRegistry from '@huiliyi37/dsh-agent'
 import type { Agent } from '@huiliyi37/dsh-agent'
@@ -48,6 +48,7 @@ import * as ToolFileInfo from '@huiliyi37/dsh-tool-file-info'
 import GitLocal from '@huiliyi37/dsh-git'
 import * as ToolGit from '@huiliyi37/dsh-tool-git'
 import * as ToolMemory from '@huiliyi37/dsh-tool-memory'
+import * as ToolMemoryRecall from '@huiliyi37/dsh-tool-memory-recall'
 import * as ToolMeridian from '@huiliyi37/dsh-tool-meridian'
 import * as ToolSemanticSearch from '@huiliyi37/dsh-tool-semantic-search'
 import * as ToolStrReplaceEditor from '@huiliyi37/dsh-tool-str-replace-editor'
@@ -64,6 +65,10 @@ import * as ToolSubagent from '@huiliyi37/dsh-tool-subagent'
 import * as ToolWeb from '@huiliyi37/dsh-tool-web'
 import VmWorkflowEngine from '@huiliyi37/dsh-workflow-workerthread'
 import * as ToolRalph from '@huiliyi37/dsh-tool-ralph'
+import * as ToolRunTests from '@huiliyi37/dsh-tool-run-tests'
+import * as SchedulePlugin from '@huiliyi37/dsh-schedule'
+import LlmService from '@huiliyi37/dsh-llm'
+import AgentLoop from '@huiliyi37/dsh-agent-loop'
 import * as ToolWorkflow from '@huiliyi37/dsh-tool-workflow'
 
 const root = resolve(import.meta.dirname, '..')
@@ -89,6 +94,9 @@ function registerCatalogSubagentProvider(ctx: Context, name: string): void {
 
 /** Minted child-scope keys for packages whose tools are never global. */
 const catalogChildScopes = new WeakMap<Context, Agent>()
+
+/** Root agents minted per catalog context for agent-scoped schedule tools. */
+const scheduleRootAgents = new WeakMap<Context, Agent>()
 
 /**
  * Install one scope-local tool package into an agent-like child scope for
@@ -195,6 +203,38 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-interaction seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary.',
+  },
+  {
+    pkg: '@huiliyi37/dsh-schedule',
+    dir: 'schedule',
+    source: 'packages/schedule/schedule/src/index.ts',
+    requires: ['ctx.tools', 'ctx.sessions', 'ctx.agents', 'ctx.sessionPersistence'],
+    writes: ['schedule/change', 'tool/call', 'tool/result'],
+    scope: ctx => scheduleRootAgents.get(ctx) as Agent,
+    async mount(ctx) {
+      // Schema harvest never executes tools, so the flush barrier needs only a
+      // service presence + no-op listener, not a real persistence backend.
+      class SchedulePersistenceProbe extends Service {
+        constructor(c: Context) {
+          super(c, 'sessionPersistence')
+        }
+      }
+      // AgentRegistry.create needs a registered factory (agent-loop). The
+      // catalog already mounted SystemPrompt + ToolRegistry; add the remaining
+      // loop deps, and the loop never starts a turn here.
+      await ctx.plugin(LlmService)
+      await ctx.plugin(SessionStore)
+      await ctx.plugin(AgentRegistry)
+      await ctx.plugin(AgentLoop, { agents: [] })
+      await ctx.plugin(SchedulePersistenceProbe)
+      ctx.on('session/flush', () => {})
+      await ctx.plugin(SchedulePlugin)
+      // The plugin installs tools only on root agents created after it loads.
+      const root = await ctx.agents.create({ sessionId: SessionId('tool-catalog-schedule') })
+      scheduleRootAgents.set(ctx, root.agent)
+    },
+    note:
+      'schedule_create / schedule_list / schedule_delete are agent-scoped: they exist only on root agents created after the plugin loads, and their durable state lives in the session log.',
   },
   {
     pkg: '@huiliyi37/dsh-tool-bash',
@@ -355,6 +395,21 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'A fixed foreground workflow starts one fresh structured child per round; the model selects only the immutable objective and an optional round cap.',
+  },
+  {
+    pkg: '@huiliyi37/dsh-tool-run-tests',
+    dir: 'tool-run-tests',
+    source: 'packages/tests/tool-run-tests/src/index.ts',
+    requires: ['ctx.tools', 'ctx.bash', 'ctx.tasks at call time for run_in_background'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(LocalSubprocessService)
+      await ctx.plugin(BashEnvPlugin)
+      await ctx.plugin(LocalBashExecutor)
+      await ctx.plugin(ToolRunTests)
+    },
+    note:
+      'run_tests executes the detected framework (or an explicit command) through the bash seam and returns pass/fail counts; related_tests lists nearby test files by filename convention. evidence-gate accounts every run_tests call from the ordinary session stream, including a bare call with no command or path. A related_tests path that resolves outside the session cwd fails loud.',
   },
   {
     pkg: '@huiliyi37/dsh-tool-skill',
@@ -528,7 +583,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       await ctx.plugin(ToolGit)
     },
     note:
-      'git_status / git_diff / git_log / git_commit consume the typed ctx.git seam (no subprocess contact in the tool layer); git_commit requires a message and runs exclusively (not concurrency-safe), and commits do not raise an approval card — file mutations still go through the fs approval surface.',
+      'git consumes the typed ctx.git seam (no subprocess contact in the tool layer) through one `operation` discriminator (status | diff | log | commit); commit requires a message and runs exclusively (not concurrency-safe), and commits do not raise an approval card — file mutations still go through the fs approval surface.',
   },
   {
     pkg: '@huiliyi37/dsh-tool-memory',
@@ -541,6 +596,18 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'memory_save and memory_search reach the project-memory store lazily at execution time, so the schemas are independent of the memory backend.',
+  },
+  {
+    pkg: '@huiliyi37/dsh-tool-memory-recall',
+    dir: 'tool-memory-recall',
+    source: 'packages/memory/tool-memory-recall/src/index.ts',
+    requires: ['ctx.tools', 'ctx.systemPrompt', 'ctx.sessionQuery (execution time)', 'ctx.subagents (execution time)'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(ToolMemoryRecall)
+    },
+    note:
+      'memory_deep_recall fans out to a read-only reader subagent and returns a budget-clamped distillation; missing sessionQuery, session-query tools, or a full-capability subagent provider fail loud at execute. Raw transcripts never enter the parent context.',
   },
   {
     pkg: '@huiliyi37/dsh-tool-meridian',
@@ -584,8 +651,15 @@ interface CatalogPackage {
 export type ToolCatalog = CatalogPackage[]
 
 /**
+ * `tool-*` packages that wrap a non-tool seam and never register on `ctx.tools`.
+ * The completeness glob is name-based (`packages/<group>/tool-*`); these stay
+ * out of {@link TOOL_PACKAGES} so the catalog does not grow empty sections.
+ */
+const NOT_TOOL_SURFACE = new Set(['tool-json-repair'])
+
+/**
  * Assert the boot manifest covers every shipped tool package on disk (a
- * `tool-*` leaf under `packages/`).
+ * `tool-*` leaf under `packages/`), minus {@link NOT_TOOL_SURFACE}.
  * Booting has no source declaration to enumerate, so this glob restores the
  * "a new tool cannot be silently undocumented" guarantee: an unlisted package
  * fails the generator (and the freshness gate) until it is added to
@@ -594,7 +668,10 @@ export type ToolCatalog = CatalogPackage[]
  * `scanRoot` defaults to the repo root; a test may point it at a fixture tree.
  */
 export function assertManifestComplete(packages: ToolPackage[] = TOOL_PACKAGES, scanRoot: string = root): void {
-  const onDisk = globSync('packages/*/tool-*', { cwd: scanRoot }).map(p => basename(p)).sort()
+  const onDisk = globSync('packages/*/tool-*', { cwd: scanRoot })
+    .map(p => basename(p))
+    .filter(dir => !NOT_TOOL_SURFACE.has(dir))
+    .sort()
   const listed = new Set(packages.map(p => p.dir))
   const missing = onDisk.filter(dir => !listed.has(dir))
   if (missing.length > 0) {

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-19-tool-json-repair.md
+2026-08-19-tool-json-repair.md: 665e5a1105e540efcb440a3f88e279b022d9fa9b
+2026-08-19-tool-json-repair.zh.md: 24d3cf0bb93ae87e49a16ae89b0883913db38fa6

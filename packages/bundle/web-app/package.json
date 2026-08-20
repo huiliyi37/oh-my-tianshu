@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-web-app",
   "description": "The dsh browser-surface bundle: the web patch layer over dsh-base plus the runtime glue plugin (frontend dist serving, web-surface prompt, bash runtime variables, URL line)",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },
@@ -39,6 +39,7 @@
     }
   },
   "dependencies": {
+    "@huiliyi37/dsh-agent-presets": "workspace:^",
     "@huiliyi37/dsh-client-connection": "workspace:^",
     "@huiliyi37/dsh-client-hmr": "workspace:^",
     "@huiliyi37/dsh-client-locale": "workspace:^",
@@ -66,6 +67,7 @@
     "@huiliyi37/dsh-client-ui-trajectory": "workspace:^",
     "@huiliyi37/dsh-client-ui-workspace": "workspace:^",
     "@huiliyi37/dsh-code-runtime-worker": "workspace:^",
+    "@huiliyi37/dsh-command-memory": "workspace:^",
     "@huiliyi37/dsh-frontend": "workspace:^",
     "@huiliyi37/dsh-frontend-static": "workspace:^",
     "@huiliyi37/dsh-host-apiproxy": "workspace:^",
@@ -73,6 +75,7 @@
     "@huiliyi37/dsh-host-directory-picker-browse": "workspace:^",
     "@huiliyi37/dsh-host-directory-picker-native": "workspace:^",
     "@huiliyi37/dsh-host-webserver": "workspace:^",
+    "@huiliyi37/dsh-memory": "workspace:^",
     "@huiliyi37/dsh-session-projection-cache": "workspace:^",
     "@huiliyi37/dsh-storage": "workspace:^",
     "@huiliyi37/dsh-storage-domain": "workspace:^",

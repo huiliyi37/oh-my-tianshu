@@ -4,6 +4,8 @@
 
 模型可见的 `bash(command)`，底层复用一个按所有者隔离的 `ctx.pty` shell。该包拥有工具约定和 shell 复用；PTY 后端与沙箱策略由部署选择。
 
+本插件与 [`@huiliyi37/dsh-tool-bash`](../../bash/tool-bash/README.md) 都注册全局名 `bash`。它们是二选一的组合，不是叠在同一张目录上的一对：一个 agent 目录只挂其中一个。`minimal` preset 挂载本插件；`standard` 挂载 `dsh-tool-bash`。
+
 ## 配置
 
 | 键 | 默认值 | 含义 |

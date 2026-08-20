@@ -1,13 +1,17 @@
 /**
  * delegation-panel.spec.ts — 委派树面板纯函数（grok-build tasks_pane 分组行移植）。
  *
- * 覆盖：标题行与空输入、depth 层级缩进、activity 状态标记（running ● /
- * inactive ○）、mode 标记（one-shot ▶ / continuable ↻）、label 渲染与缺失
- * 回退 id 短哈希、耗时（subagentTiming settledMs）、diagnostic 警示行、
- * 窄宽截断、极端窄宽不抛错、identities/timings 投影覆盖。
+ * 覆盖：标题行与空输入、depth 层级缩进、卡片状态形（进行中 ⠋ / 终态 ›/✗）、
+ * mode 标记（one-shot ▶ / continuable ↻）、label 与短哈希、运行态投影段
+ * （进行中 ⎿ body：activity / token / 工具计数；header suffix：终态词 / 耗时）、
+ * 宽度预算、diagnostic 警示行、极端窄宽不抛错。条目自带 identity/progress/timing。
  */
 import { describe, expect, it } from 'vitest'
-import { projectDelegationTree, type DelegationIdentityProjection, type DelegationTreeEntry } from '../src/delegation-panel.js'
+import {
+  projectDelegationTree,
+  type DelegationProgressProjection,
+  type DelegationTreeEntry,
+} from '../src/delegation-panel.js'
 import { displayWidth } from '../src/width.js'
 
 /** child 条目：running + continuable，depth 1。 */
@@ -42,13 +46,27 @@ const diagnosticEntry: DelegationTreeEntry = {
   reason: 'corrupt',
 }
 
+/** 运行中 progress：一次进行中的 bash 调用。 */
+const progressRunningTool: DelegationProgressProjection = {
+  turns: 0,
+  toolCalls: 1,
+  tokensUsed: 12_300,
+  lastTool: 'bash',
+  toolInFlight: true,
+}
+
+const withProgress = (
+  base: DelegationTreeEntry,
+  progress: DelegationProgressProjection,
+): DelegationTreeEntry => (base.kind === 'child' ? { ...base, progress } : base)
+
 describe('projectDelegationTree 标题与空输入', () => {
   it('空 entries 返回空数组（无委派树则不渲染面板）', () => {
-    expect(projectDelegationTree([], new Map(), new Map(), { width: 80 })).toEqual([])
+    expect(projectDelegationTree([], { width: 80 })).toEqual([])
   })
 
   it('非空 entries 首行为标题行', () => {
-    const rows = projectDelegationTree([childRunningContinuable], new Map(), new Map(), { width: 80 })
+    const rows = projectDelegationTree([childRunningContinuable], { width: 80 })
     expect(rows[0]).toBe('🌳 委派')
   })
 })
@@ -57,38 +75,36 @@ describe('projectDelegationTree 层级缩进（depth 驱动）', () => {
   it('depth 1 缩进 2 空格，depth 2 缩进 4 空格', () => {
     const rows = projectDelegationTree(
       [childRunningContinuable, childInactiveOneShotNoLabel],
-      new Map(),
-      new Map(),
       { width: 80 },
     )
     const line1 = rows.find(r => r.includes('主探索'))
     const line2 = rows.find(r => r.includes('aaaaaaaa'))
-    expect(line1).toMatch(/^  ● /)
-    expect(line2).toMatch(/^    ○ /)
+    expect(line1).toMatch(/^  › /)
+    expect(line2).toMatch(/^    › /)
   })
 })
 
 describe('projectDelegationTree activity/mode 标记', () => {
-  it('running → ●，continuable → ↻', () => {
-    const rows = projectDelegationTree([childRunningContinuable], new Map(), new Map(), { width: 80 })
-    expect(rows).toContain('  ● ↻ 主探索')
+  it('running 无 in-flight → ›，continuable → ↻', () => {
+    const rows = projectDelegationTree([childRunningContinuable], { width: 80 })
+    expect(rows).toContain('  › ↻ 主探索')
   })
 
-  it('inactive → ○，one-shot → ▶', () => {
-    const rows = projectDelegationTree([childInactiveOneShotNoLabel], new Map(), new Map(), { width: 80 })
+  it('inactive → ›，one-shot → ▶', () => {
+    const rows = projectDelegationTree([childInactiveOneShotNoLabel], { width: 80 })
     const line = rows.find(r => r.includes('aaaaaaaa'))
-    expect(line).toMatch(/^    ○ ▶ /)
+    expect(line).toMatch(/^    › ▶ /)
   })
 })
 
 describe('projectDelegationTree label 与短哈希回退', () => {
   it('label 存在时渲染 label', () => {
-    const rows = projectDelegationTree([childRunningContinuable], new Map(), new Map(), { width: 80 })
+    const rows = projectDelegationTree([childRunningContinuable], { width: 80 })
     expect(rows.some(r => r.includes('主探索'))).toBe(true)
   })
 
   it('label 缺失回退 id 前 8 位短哈希', () => {
-    const rows = projectDelegationTree([childInactiveOneShotNoLabel], new Map(), new Map(), { width: 80 })
+    const rows = projectDelegationTree([childInactiveOneShotNoLabel], { width: 80 })
     expect(rows.some(r => r.includes('aaaaaaaa'))).toBe(true)
     expect(rows.some(r => r.includes('aaaaaaaa-bbbb'))).toBe(false)
   })
@@ -104,62 +120,126 @@ describe('projectDelegationTree label 与短哈希回退', () => {
   })
 })
 
-describe('projectDelegationTree identities 投影覆盖', () => {
-  it('identities 的 label 优先于 entry 自带 label', () => {
-    const identities = new Map([
-      ['11111111-2222-4333-8444-555555555555', { mode: 'continuable', label: '投影新标签', seq: 5 }],
-    ]) as ReadonlyMap<string, DelegationIdentityProjection>
-    const rows = projectDelegationTree([childRunningContinuable], identities, new Map(), { width: 80 })
-    expect(rows.some(r => r.includes('投影新标签'))).toBe(true)
-    expect(rows.some(r => r.includes('主探索'))).toBe(false)
+describe('projectDelegationTree 运行态投影段', () => {
+  it('进行中工具 → header ⠋ + ⎿ `Running: <tool>`', () => {
+    const rows = projectDelegationTree([withProgress(childRunningContinuable, progressRunningTool)], { width: 80 })
+    expect(rows.some(r => r.includes('⠋') && r.includes('主探索'))).toBe(true)
+    expect(rows.some(r => r.includes('Running: bash'))).toBe(true)
+    expect(rows.some(r => r.includes('⎿'))).toBe(true)
   })
 
-  it('identities 提供 label 时无 label 条目不再回退短哈希', () => {
-    const identities = new Map([
-      ['aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', { mode: 'one-shot', label: '来自投影', seq: 3 }],
-    ]) as ReadonlyMap<string, DelegationIdentityProjection>
-    const rows = projectDelegationTree([childInactiveOneShotNoLabel], identities, new Map(), { width: 80 })
-    expect(rows.some(r => r.includes('来自投影'))).toBe(true)
-    expect(rows.some(r => r.includes('aaaaaaaa'))).toBe(false)
+  it('工具已完成且 turn 未结束 → ⎿ `Done: <tool>`', () => {
+    const done: DelegationProgressProjection = {
+      ...progressRunningTool, toolInFlight: false,
+    }
+    const rows = projectDelegationTree([withProgress(childRunningContinuable, done)], { width: 80 })
+    expect(rows.some(r => r.includes('Done: bash'))).toBe(true)
+    expect(rows.some(r => r.includes('⎿'))).toBe(true)
+  })
+
+  it('token 段复用紧凑格式（12.3k tok），工具计数段在 body', () => {
+    const rows = projectDelegationTree([withProgress(childRunningContinuable, progressRunningTool)], { width: 80 })
+    const body = rows.find(r => r.includes('Running: bash'))
+    expect(body).toContain('12.3k tok')
+    expect(body).toContain('1 工具')
+  })
+
+  it('终态词：completed → `✓ 已完成`；error → `✗ 出错`', () => {
+    const done: DelegationProgressProjection = {
+      ...progressRunningTool, toolInFlight: false, lastTurnEnd: 'completed',
+    }
+    const rows = projectDelegationTree([withProgress(childRunningContinuable, done)], { width: 80 })
+    expect(rows.some(r => r.includes('✓ 已完成'))).toBe(true)
+    expect(rows.some(r => r.includes('⎿'))).toBe(false)
+    const failed: DelegationProgressProjection = {
+      ...progressRunningTool, toolInFlight: false, lastTurnEnd: 'error',
+    }
+    const rows2 = projectDelegationTree([withProgress(childRunningContinuable, failed)], { width: 80 })
+    expect(rows2.some(r => r.includes('✗ 出错'))).toBe(true)
+    expect(rows2.some(r => r.startsWith('  ✗ '))).toBe(true)
+    expect(rows2.some(r => r.includes('⎿'))).toBe(false)
   })
 })
 
-describe('projectDelegationTree 耗时（subagentTiming settledMs）', () => {
-  it('有 settledMs 时渲染耗时（秒，一位小数）', () => {
-    const timings = new Map([
-      ['11111111-2222-4333-8444-555555555555', { settledMs: 2300 }],
-    ])
-    const rows = projectDelegationTree([childRunningContinuable], new Map(), timings, { width: 80 })
+describe('projectDelegationTree 耗时', () => {
+  it('entry.timing settledMs 渲染耗时（秒，一位小数）', () => {
+    const entry: DelegationTreeEntry = { ...childRunningContinuable, timing: { settledMs: 2300 } }
+    const rows = projectDelegationTree([entry], { width: 80 })
     expect(rows.some(r => r.includes('2.3s'))).toBe(true)
   })
 
-  it('无 timing 投影时不渲染耗时', () => {
-    const rows = projectDelegationTree([childRunningContinuable], new Map(), new Map(), { width: 80 })
+  it('无 progress/timing 时不渲染运行信息段', () => {
+    const rows = projectDelegationTree([childRunningContinuable], { width: 80 })
     const line = rows.find(r => r.includes('主探索'))
-    expect(line).toBe('  ● ↻ 主探索')
+    expect(line).toBe('  › ↻ 主探索')
   })
 
-  it('settledMs 为 0 时渲染 0.0s', () => {
-    const timings = new Map([
-      ['11111111-2222-4333-8444-555555555555', { settledMs: 0 }],
-    ])
-    const rows = projectDelegationTree([childRunningContinuable], new Map(), timings, { width: 80 })
-    expect(rows.some(r => r.includes('0.0s'))).toBe(true)
+  it('active turn + now → 实时耗时 = settledMs + (now - since)', () => {
+    const entry: DelegationTreeEntry = {
+      ...childRunningContinuable,
+      timing: { settledMs: 1000, active: { since: 10_000, through: 10_000 } },
+    }
+    const rows = projectDelegationTree([entry], { width: 80, now: 13_000 })
+    expect(rows.some(r => r.includes('4.0s'))).toBe(true)
+  })
+
+  it('active turn 无 now → 回落 settledMs', () => {
+    const entry: DelegationTreeEntry = {
+      ...childRunningContinuable,
+      timing: { settledMs: 1000, active: { since: 10_000, through: 10_000 } },
+    }
+    const rows = projectDelegationTree([entry], { width: 80 })
+    expect(rows.some(r => r.includes('1.0s'))).toBe(true)
+  })
+})
+
+describe('projectDelegationTree 宽度预算（suffix 从右往左丢）', () => {
+  it('行放不下时先丢尾部 suffix，再截 label', () => {
+    const entry: DelegationTreeEntry = {
+      ...childRunningContinuable,
+      progress: progressRunningTool,
+      timing: { settledMs: 2300 },
+    }
+    const rows = projectDelegationTree([entry], { width: 16 })
+    for (const row of rows) {
+      expect(displayWidth(row)).toBeLessThanOrEqual(16)
+    }
+    const header = rows.find(r => r.includes('主探索'))
+    expect(header).toBeDefined()
+    expect(header).not.toContain('2.3s')
+    const rows2 = projectDelegationTree([entry], { width: 10 })
+    for (const row of rows2) {
+      expect(displayWidth(row)).toBeLessThanOrEqual(10)
+    }
+    const header2 = rows2.find(r => r.includes('Running') || r.includes('主'))
+    expect(header2).toBeDefined()
+    expect(rows2.some(r => r.includes('Running'))).toBe(false)
+  })
+
+  it('宽幅下完整渲染（header 耗时 + ⎿ 活动段）', () => {
+    const entry: DelegationTreeEntry = {
+      ...childRunningContinuable,
+      progress: progressRunningTool,
+      timing: { settledMs: 2300 },
+    }
+    const rows = projectDelegationTree([entry], { width: 80 })
+    expect(rows[1]).toBe('  ⠋ ↻ 主探索 · 2.3s')
+    expect(rows[2]).toBe('  ⎿  Running: bash · 12.3k tok · 1 工具')
   })
 })
 
 describe('projectDelegationTree diagnostic 警示行', () => {
   it('diagnostic 条目渲染警示行（不伪造 activity/mode）', () => {
-    const rows = projectDelegationTree([diagnosticEntry], new Map(), new Map(), { width: 80 })
+    const rows = projectDelegationTree([diagnosticEntry], { width: 80 })
     const line = rows.find(r => r.includes('dddddddd'))
     expect(line).toMatch(/⚠/)
-    expect(line).not.toMatch(/[●○]/)
+    expect(line).not.toMatch(/[⠋›✗]/)
   })
 
   it('unavailable reason → 不可用 警示文本', () => {
     const rows = projectDelegationTree(
       [{ kind: 'diagnostic', id: 'uuuuuuuu-0000-4aaa-8bbb-cccccccccccc', parentId: 'root-session', depth: 1, reason: 'unavailable' }],
-      new Map(), new Map(), { width: 80 },
+      { width: 80 },
     )
     expect(rows.some(r => r.includes('不可用'))).toBe(true)
   })
@@ -167,7 +247,7 @@ describe('projectDelegationTree diagnostic 警示行', () => {
   it('unsupported reason → 不支持 警示文本', () => {
     const rows = projectDelegationTree(
       [{ kind: 'diagnostic', id: 'ssssssss-0000-4aaa-8bbb-cccccccccccc', parentId: 'root-session', depth: 1, reason: 'unsupported' }],
-      new Map(), new Map(), { width: 80 },
+      { width: 80 },
     )
     expect(rows.some(r => r.includes('不支持'))).toBe(true)
   })
@@ -185,7 +265,7 @@ describe('projectDelegationTree 窄宽截断', () => {
       mode: 'continuable',
       label: '这是一个非常非常长的委派任务描述，用来验证窄宽截断降级逻辑是否正常工作',
     }
-    const rows = projectDelegationTree([longEntry], new Map(), new Map(), { width: 16 })
+    const rows = projectDelegationTree([longEntry], { width: 16 })
     for (const row of rows) {
       expect(displayWidth(row)).toBeLessThanOrEqual(16)
     }
@@ -195,12 +275,12 @@ describe('projectDelegationTree 窄宽截断', () => {
 
   it('极端窄宽（width ≤ 1）不抛错', () => {
     expect(() =>
-      projectDelegationTree([childRunningContinuable], new Map(), new Map(), { width: 1 }),
+      projectDelegationTree([childRunningContinuable], { width: 1 }),
     ).not.toThrow()
   })
 
   it('宽幅下不截断', () => {
-    const rows = projectDelegationTree([childRunningContinuable], new Map(), new Map(), { width: 80 })
-    expect(rows).toContain('  ● ↻ 主探索')
+    const rows = projectDelegationTree([childRunningContinuable], { width: 80 })
+    expect(rows).toContain('  › ↻ 主探索')
   })
 })

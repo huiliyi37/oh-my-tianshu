@@ -18,6 +18,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@huiliyi37/dsh-tool-ask-user` | `ask_user_question` | `ctx.tools`, `ctx.userInteraction` | `tool/call`, `tool/result after a UI/provider answers the question` | - | ask_user_question pauses the tool call until the active UI provider returns a human answer. |
 | `@huiliyi37/dsh-tools` | `run_code` | `ctx.tools`, `ctx.codeRuntime (execution time)`, `ctx.systemPrompt` | `tool/call`, `one tool/code-dispatch-start + tool/code-dispatch pair per bridged sub-call`, `tool/result` | - | Owned by the tool registry as a reserved transport outside filterable capability layers under `mode: code` / `mode: both` (see the Code Mode Agent Note). Under `code` it is the registry's only wire contribution; the other visible capabilities are declared in a generated SDK section in the loaded runtime's language, and a program calls them through bindings scheduled under the native concurrency contract (submission-ordered starts and policy; concurrency-safe bodies overlap up to `maxParallelSubCalls`) that re-enter the complete guarded tool pipeline and link each nested execution to this outer result. |
 | `@huiliyi37/dsh-plan-mode` | `exit_plan_mode` | `ctx.tools`, `ctx.systemPrompt`, `ctx.userInteraction (execution time, opportunistic)` | `tool/call`, `plan/mode inactive on an approved review`, `tool/result` | - | exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-interaction seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary. |
+| `@huiliyi37/dsh-schedule` | `schedule_create`, `schedule_delete`, `schedule_list` | `ctx.tools`, `ctx.sessions`, `ctx.agents`, `ctx.sessionPersistence` | `schedule/change`, `tool/call`, `tool/result` | - | schedule_create / schedule_list / schedule_delete are agent-scoped: they exist only on root agents created after the plugin loads, and their durable state lives in the session log. |
 | `@huiliyi37/dsh-tool-bash` | `bash` | `ctx.tools`, `ctx.bash`, `ctx.systemPrompt`, `ctx.bashEnv`, `ctx.tasks at call time for run_in_background` | `tool/call`, `tool/result` | - | The bash tool is the model-facing consumer of the bash executor seam. A `run_in_background` run registers with the generic `ctx.tasks` runtime and is collected/stopped through the `task_*` tools from `@huiliyi37/dsh-tool-tasks`; the `enableRunInBackground` config (default true) removes the parameter entirely when disabled. |
 | `@huiliyi37/dsh-tool-pwsh` | `pwsh` | `ctx.tools`, `ctx.bash`, `ctx.systemPrompt`, `ctx.bashEnv`, `ctx.tasks at call time for run_in_background` | `tool/call`, `tool/result` | - | The pwsh tool is the PowerShell-dialect consumer of the bash executor seam for Windows compositions (a PowerShell executor such as `@huiliyi37/dsh-pwsh-local` backs `ctx.bash`); it mirrors the bash tool call-for-call minus the sandbox surface — `run_in_background` runs register with the generic `ctx.tasks` runtime and are collected/stopped through the `task_*` tools, and the managed `DSH_*` environment comes from `@huiliyi37/dsh-bash-env`. Each call runs in a fresh process (no persistent PTY session; ConPTY is roadmap work), with native `C:\...` paths and `$env:NAME` variables. |
 | `@huiliyi37/dsh-tool-cordis` | `cordis_inspect`, `cordis_mount`, `cordis_unmount` | `ctx.tools` | `tool/call`, `tool/result`, `process-local temporary Plugin lifecycle` | - | Not in any shipped tree (a deliberate opt-in — temporary Plugin code reaches the real runtime, see .agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md). Plugins created by cordis_mount may register ADDITIONAL model-visible tools until unmounted or DSH restarts; a full changed request header logs those tool-set changes. |
@@ -29,6 +30,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@huiliyi37/dsh-tool-goal` | `create_goal`, `get_goal`, `update_goal` | `ctx.tools`, `ctx.agents`, `ctx.goals`, `ctx.systemPrompt`, `a calling Agent in an authorized open turn` | `tool/call`, `goal/change for mutations`, `tool/result` | - | create, edit, pause, and resume require direct-human root authority; complete and blocked also accept the exact current goal round. The default blocked lower bound is three admitted rounds. |
 | `@huiliyi37/dsh-tool-lsp` | `lsp` | `ctx.tools`, `ctx.lsp`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | The lsp tool keeps provider selection and language-server subprocesses behind ctx.lsp, so its model-visible schema stays stable across providers. Requires a registered provider (e.g. `@huiliyi37/dsh-lsp-local`) at runtime; without one, a query returns the structured `LSP_UNAVAILABLE` error rather than changing the schema. |
 | `@huiliyi37/dsh-tool-ralph` | `ralph` | `ctx.tools`, `ctx.workflows`, `ctx.subagents`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents every fresh round)` | `tool/call`, `tool/result`, `workflow and child session events during execution` | - | A fixed foreground workflow starts one fresh structured child per round; the model selects only the immutable objective and an optional round cap. |
+| `@huiliyi37/dsh-tool-run-tests` | `related_tests`, `run_tests` | `ctx.tools`, `ctx.bash`, `ctx.tasks at call time for run_in_background` | `tool/call`, `tool/result` | - | run_tests executes the detected framework (or an explicit command) through the bash seam and returns pass/fail counts; related_tests lists nearby test files by filename convention. evidence-gate accounts every run_tests call from the ordinary session stream, including a bare call with no command or path. A related_tests path that resolves outside the session cwd fails loud. |
 | `@huiliyi37/dsh-tool-skill` | `skill` | `ctx.tools`, `ctx.agents`, `ctx.skills` | `tool/call`, `tool/result`, `user/message replacement catalogs via agent.inject()` | - | - |
 | `@huiliyi37/dsh-tool-session-query` | `session_event_read`, `session_event_search`, `session_event_trace`, `session_search`, `session_trace` | `ctx.tools`, `ctx.systemPrompt`, `ctx.sessionQuery`, `a calling Agent for workspace authority` | `tool/call`, `tool/result` | - | The five read-only tools hide provider cursors and authorize every result from the immutable calling agent session. The package is opt-in; compositions that need enforced deadlines or bounded inline output also mount the generic timeout or spill policies. |
 | `@huiliyi37/dsh-tool-subagent` | `subagent` | `ctx.tools`, `ctx.subagents` | `tool/call`, `tool/result`, `child session events through the chosen provider` | `subagent`, `subagent_fork` | The registered tool name is the load-time `toolName` config (default `subagent`); the schema above is that default. The shipped example agents load this package once per subagent backend, so the model additionally sees `subagent_fork` (bound to the fork backend) with an identical schema — see `packages/bundle/base/cordis.patch.yml` and `examples/acp-agent/cordis.yml`. |
@@ -39,8 +41,9 @@ This table connects model-visible tool names to the plugin package and service s
 | `@huiliyi37/dsh-tool-workflow` | `workflow` | `ctx.tools`, `ctx.workflows`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents the script children)` | `tool/call`, `tool/result` | - | - |
 | `@huiliyi37/dsh-tool-web` | `web_fetch`, `web_search` | `ctx.tools`, `ctx.web`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps. |
 | `@huiliyi37/dsh-tool-file-info` | `file_info` | `ctx.tools`, `ctx.fs` | `tool/call`, `tool/result` | - | file_info reports metadata (size, kind, mtime) through ctx.fs without reading file contents into model context. |
-| `@huiliyi37/dsh-tool-git` | `git` | `ctx.tools`, `ctx.git`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | git_status / git_diff / git_log / git_commit consume the typed ctx.git seam (no subprocess contact in the tool layer); git_commit requires a message and runs exclusively (not concurrency-safe), and commits do not raise an approval card — file mutations still go through the fs approval surface. |
+| `@huiliyi37/dsh-tool-git` | `git` | `ctx.tools`, `ctx.git`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | git consumes the typed ctx.git seam (no subprocess contact in the tool layer) through one `operation` discriminator (status \| diff \| log \| commit); commit requires a message and runs exclusively (not concurrency-safe), and commits do not raise an approval card — file mutations still go through the fs approval surface. |
 | `@huiliyi37/dsh-tool-memory` | `memory_save`, `memory_search` | `ctx.tools`, `ctx.systemPrompt`, `ctx.memory (execution time)` | `tool/call`, `tool/result` | - | memory_save and memory_search reach the project-memory store lazily at execution time, so the schemas are independent of the memory backend. |
+| `@huiliyi37/dsh-tool-memory-recall` | `memory_deep_recall` | `ctx.tools`, `ctx.systemPrompt`, `ctx.sessionQuery (execution time)`, `ctx.subagents (execution time)` | `tool/call`, `tool/result` | - | memory_deep_recall fans out to a read-only reader subagent and returns a budget-clamped distillation; missing sessionQuery, session-query tools, or a full-capability subagent provider fail loud at execute. Raw transcripts never enter the parent context. |
 | `@huiliyi37/dsh-tool-meridian` | `repo_graph` | `ctx.tools`, `ctx.systemPrompt`, `ctx.meridian (execution time)` | `tool/call`, `tool/result` | - | repo_graph queries the code-graph index (repo map, impact analysis, flow queries) lazily at execution time; its system-prompt section is injected by the runtime-context content-diff only when the index is present. |
 | `@huiliyi37/dsh-tool-semantic-search` | `semantic_search` | `ctx.tools`, `ctx.systemPrompt`, `ctx.semanticIndex (execution time)` | `tool/call`, `tool/result` | - | semantic_search runs workspace retrieval (definition-aligned BM25 with optional vector fusion) lazily at execution time; its system-prompt section is injected by the runtime-context content-diff only when the index is present. |
 
@@ -170,6 +173,101 @@ Use only in plan mode. Present your plan for the user's review and, on approval,
 Source: [`packages/plan/plan-mode/src/index.ts`](../packages/plan/plan-mode/src/index.ts)
 
 exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-interaction seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary.
+
+## `@huiliyi37/dsh-schedule`
+
+### `schedule_create`
+
+Create one reminder in the current session. Supply a non-empty prompt and exactly one selector: a positive safe-integer after_seconds delay, at as a strict offset date-time or local date/time object, or safe-integer every_seconds of at least 300. Fixed-rate reminders stay creation-aligned, skip missed occurrences, and batch one latest occurrence per overdue rule. Delivery is session-local: the reminder runs on time only while this session is live and otherwise becomes overdue until the session is resumed.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "prompt": {
+      "type": "string",
+      "description": "Reminder content to present when the target becomes due."
+    },
+    "after_seconds": {
+      "type": "number",
+      "description": "Positive safe-integer delay in seconds."
+    },
+    "every_seconds": {
+      "type": "number",
+      "description": "Fixed-rate safe-integer interval in seconds, at least 300."
+    },
+    "at": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "date": {
+              "type": "string"
+            },
+            "time": {
+              "type": "string"
+            },
+            "time_zone": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "date",
+            "time",
+            "time_zone"
+          ]
+        }
+      ],
+      "description": "Absolute target as strict offset RFC 3339 or local date/time with an explicit IANA zone."
+    }
+  },
+  "required": [
+    "prompt"
+  ]
+}
+```
+
+Source: [`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts)
+
+### `schedule_delete`
+
+Delete one active reminder in the current session by the exact id returned by schedule_create or schedule_list. Unknown or already-finished ids return deleted false.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Exact session-local schedule id."
+    }
+  },
+  "required": [
+    "id"
+  ]
+}
+```
+
+Source: [`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts)
+
+### `schedule_list`
+
+List every active reminder in the current session in creation order, including its exact id, UTC target, scheduled or overdue state, and session-local delivery mode.
+
+```json
+{
+  "type": "object",
+  "properties": {}
+}
+```
+
+Source: [`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts)
+
+schedule_create / schedule_list / schedule_delete are agent-scoped: they exist only on root agents created after the plugin loads, and their durable state lives in the session log.
 
 ## `@huiliyi37/dsh-tool-bash`
 
@@ -910,6 +1008,60 @@ Source: [`packages/workflow/tool-ralph/src/index.ts`](../packages/workflow/tool-
 
 A fixed foreground workflow starts one fresh structured child per round; the model selects only the immutable objective and an optional round cap.
 
+## `@huiliyi37/dsh-tool-run-tests`
+
+### `related_tests`
+
+List test files related to one source path, by filename convention: co-located `<name>.(test|spec).<ext>` and `_test` variants, and entries in `__tests__`/`tests`/`test` directories or the root test mirror. Bounded and heuristic — it never parses code.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "Source file or directory to find tests for."
+    }
+  },
+  "required": [
+    "path"
+  ]
+}
+```
+
+Source: [`packages/tests/tool-run-tests/src/index.ts`](../packages/tests/tool-run-tests/src/index.ts)
+
+### `run_tests`
+
+Run the project's tests and return machine-readable pass/fail counts. Prefer this over bash for test runs: the harness verification gate accounts the result. Provide `command` to run one exact command line, or `path` to select test files/directories and let the harness detect the framework (vitest/jest/mocha/npm/pytest/go) from workspace metadata. A non-zero exit is reported, not an error. Set `run_in_background: true` for long suites: the call returns a task id; read output with `task_output` and stop with `task_kill`.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "string",
+      "description": "Exact command line to run. Omit to use framework detection."
+    },
+    "path": {
+      "type": "array",
+      "description": "Test files or directories to run (relative to the workspace). Used with framework detection.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "run_in_background": {
+      "type": "boolean",
+      "description": "Run the suite as a background task and return a task id."
+    }
+  }
+}
+```
+
+Source: [`packages/tests/tool-run-tests/src/index.ts`](../packages/tests/tool-run-tests/src/index.ts)
+
+run_tests executes the detected framework (or an explicit command) through the bash seam and returns pass/fail counts; related_tests lists nearby test files by filename convention. evidence-gate accounts every run_tests call from the ordinary session stream, including a bare call with no command or path. A related_tests path that resolves outside the session cwd fails loud.
+
 ## `@huiliyi37/dsh-tool-skill`
 
 ### `skill`
@@ -1637,7 +1789,7 @@ Run a git operation in the repository: status (branch + dirty), diff (uncommitte
 
 Source: [`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
 
-git_status / git_diff / git_log / git_commit consume the typed ctx.git seam (no subprocess contact in the tool layer); git_commit requires a message and runs exclusively (not concurrency-safe), and commits do not raise an approval card — file mutations still go through the fs approval surface.
+git consumes the typed ctx.git seam (no subprocess contact in the tool layer) through one `operation` discriminator (status | diff | log | commit); commit requires a message and runs exclusively (not concurrency-safe), and commits do not raise an approval card — file mutations still go through the fs approval surface.
 
 ## `@huiliyi37/dsh-tool-memory`
 
@@ -1675,7 +1827,7 @@ Source: [`packages/memory/tool-memory/src/index.ts`](../packages/memory/tool-mem
 
 ### `memory_search`
 
-在项目记忆中检索知识（关键词子串匹配，大小写不敏感；空 query 列出全部）。开始新任务、需要历史决策/项目约定/用户偏好时使用。
+在项目记忆中检索知识（关键词子串匹配，大小写不敏感；空 query 列出全部）。开始新任务、需要历史决策/项目约定/用户偏好时使用。已在当前上下文出现的条目用 excludeIds 排除，避免重复占用上下文。
 
 ```json
 {
@@ -1687,7 +1839,14 @@ Source: [`packages/memory/tool-memory/src/index.ts`](../packages/memory/tool-mem
     },
     "limit": {
       "type": "number",
-      "description": "返回条数上限（缺省 10）"
+      "description": "返回条数上限（缺省且封顶 10）"
+    },
+    "excludeIds": {
+      "type": "array",
+      "description": "要排除的记忆 id（完整 id 或已展示的短 id 前缀）",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "required": [
@@ -1699,6 +1858,31 @@ Source: [`packages/memory/tool-memory/src/index.ts`](../packages/memory/tool-mem
 Source: [`packages/memory/tool-memory/src/index.ts`](../packages/memory/tool-memory/src/index.ts)
 
 memory_save and memory_search reach the project-memory store lazily at execution time, so the schemas are independent of the memory backend.
+
+## `@huiliyi37/dsh-tool-memory-recall`
+
+### `memory_deep_recall`
+
+深度召回：回答关于历史会话具体经过的问题（"上次为什么改用 X"、"某错误当时怎么解决的"）。派出只读 reader 子代理检索历史会话转录，返回蒸馏答案（answer + evidence + uncertainties + confidence）；原始转录不进入本会话上下文。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "question": {
+      "type": "string",
+      "description": "要问历史的问题（具体、自成一体）"
+    }
+  },
+  "required": [
+    "question"
+  ]
+}
+```
+
+Source: [`packages/memory/tool-memory-recall/src/index.ts`](../packages/memory/tool-memory-recall/src/index.ts)
+
+memory_deep_recall fans out to a read-only reader subagent and returns a budget-clamped distillation; missing sessionQuery, session-query tools, or a full-capability subagent provider fail loud at execute. Raw transcripts never enter the parent context.
 
 ## `@huiliyi37/dsh-tool-meridian`
 

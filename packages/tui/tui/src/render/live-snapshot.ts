@@ -17,8 +17,6 @@ import type { TaskItem } from '../format/task-panel.js'
 import type { RivetTheme } from '../theme.js'
 import type { GoalProjectionInput, PlanProjectionInput, SessionTotalsInput } from '../status-panel.js'
 import type {
-  DelegationIdentityProjection,
-  DelegationTimingProjection,
   DelegationTreeEntry,
 } from '../delegation-panel.js'
 import type { WorkflowRunView } from '../workflow-panel.js'
@@ -80,10 +78,6 @@ export interface LiveSnapshot {
   subagentsPanelVisible: boolean
   /** 委派树条目（listDescendants 预取；null = 服务缺失/未预取 → 降级不渲染）。 */
   delegationEntries: DelegationTreeEntry[] | null
-  /** 按 id 键控的 subagent 身份投影（label/mode 覆盖）。 */
-  subagentIdentities: ReadonlyMap<string, DelegationIdentityProjection>
-  /** 按 id 键控的 subagent 耗时投影。 */
-  subagentTimings: ReadonlyMap<string, DelegationTimingProjection>
 
   // workflow 面板（运行中 + 已结算 run）
   /** /workflow 面板显隐。 */

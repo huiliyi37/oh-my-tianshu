@@ -163,10 +163,16 @@ interface AgentOptions {
   model?: string
   /** Maximum output tokens for each conversation-model request. */
   maxTokens?: number
+  /**
+   * Adapter-owned reasoning effort for conversation-model requests.
+   * An explicit value wins over the exact-model adapter default; omission
+   * leaves that default, or the provider's own default, in control.
+   */
+  reasoningEffort?: ReasoningEffortId
 }
 ```
 
-Dispatch requires `provider` and `model` after `agent/request`. When present, `maxTokens` must be a positive safe integer and caps every conversation-model request; omission allows the exact-model adapter default to materialize before the request header, or otherwise leaves provider behavior unchanged. An agent-scoped `deployment:persona` prompt section may shadow the global default persona.
+Dispatch requires `provider` and `model` after `agent/request`. When present, `maxTokens` must be a positive safe integer and caps every conversation-model request; omission allows the exact-model adapter default to materialize before the request header, or otherwise leaves provider behavior unchanged. When present, `reasoningEffort` must be a non-empty adapter-owned identifier and is an explicit conversation setting; omission lets `prepareCall` materialize the exact-model `defaultEffort` and mark it as an adapter default. An agent-scoped `deployment:persona` prompt section may shadow the global default persona.
 
 The inbox is the delivery vocabulary — two ordered pending-message lists the agent owns as a durable projection:
 
@@ -375,7 +381,178 @@ async resume(ownerCtx: Context, options: ResumeAgentOptions): Promise<AgentHandl
 
 Types: [SessionHeader](persistence.md)
 
-Source: [`packages/core/agent-loop/src/index.ts:277`](../../packages/core/agent-loop/src/index.ts)
+Source: [`packages/core/agent-loop/src/index.ts:281`](../../packages/core/agent-loop/src/index.ts)
+
+<a id="ctxagentpresets--agentpresets"></a>
+
+### `ctx.agentPresets` — `AgentPresets`
+
+Registry over the deployment's agent presets.
+
+Discovery is unmemoized: `list()` and `resolve()` re-read the roots on every call so a preset authored while the process runs is visible immediately, and a preset deleted underneath a picker disappears from the next read.
+
+```ts cordis-catalog
+/**
+ * Every preset the configured roots currently supply.
+ * @returns the presets, first-root-wins per id.
+ */
+async list(): Promise<AgentPreset[]>
+
+/**
+ * Resolve one preset by id.
+ *
+ * A broken preset resolves — deleting one, reading one, and reporting one
+ * all need the row — and the mounting paths refuse it AFTER resolution
+ * through {@link resolveMountable}.
+ * @param id - the preset id, or `undefined` for {@link defaultId}.
+ * @returns the resolved preset.
+ * @throws when no configured root supplies that id.
+ */
+async resolve(id?: string): Promise<AgentPreset>
+
+/**
+ * Compose one agent from a preset: ensure the preset's standing mount, then
+ * parent the agent's scope key to it so the mount's registrations and
+ * listeners cover this agent.
+ *
+ * Call from the agent factory's `setup(agentCtx)`; a rejection there rolls
+ * the agent creation back, so a broken preset never yields a half-composed
+ * session.
+ * @param agentCtx - the agent's scope context.
+ * @param id - the preset id, or `undefined` for {@link defaultId}.
+ * @returns the preset that was composed, for the caller to record.
+ * @throws when the preset is unknown or its composition is unusable.
+ */
+async mount(agentCtx: Context, id?: string): Promise<AgentPreset>
+
+/**
+ * Join one agent to the SAME standing composition another already runs on.
+ *
+ * This is how a child agent inherits its parent's capabilities. It is a bind,
+ * not a mount: the parent's generation is already composed, so the child gets
+ * that exact instance — the same plugin objects, the same tool registrations,
+ * the same prompt sections. Re-resolving the parent's preset by id instead
+ * would re-read the roster, and a composition file edited since the parent
+ * started would hand the child a DIFFERENT generation than the one its
+ * parent's history was produced under (and a preset deleted since would fail
+ * the child outright while its parent keeps running).
+ *
+ * Synchronous, and with no composition failure mode of its own — it reads no
+ * roster, mounts nothing, and touches no file — which is what lets a child
+ * creation window use it: the two in-process subagent drivers compose their
+ * children inside a synchronous `setup`. It still rejects a caller error, as
+ * the `@throws` below record.
+ *
+ * A parent that joined no preset — a rosterless deployment — yields no join
+ * and no error: there, the model-facing rows sit in the host composition and
+ * the child already sees them through the global layer.
+ * @param agentCtx - the joining agent's scope context.
+ * @param parentCtx - the scope context of the agent whose composition to join.
+ * @returns the preset id joined, or undefined when the parent joined none.
+ * @throws when `agentCtx` carries no scope, or has already joined a preset.
+ */
+composeFrom(agentCtx: Context, parentCtx: Context): string | undefined
+
+/**
+ * The preset one live agent runs on.
+ *
+ * Read from the live scope chain rather than from the session, so it answers
+ * for an agent whose session has not recorded a preset yet — a child agent
+ * whose durable header is being built from its parent's composition.
+ * @param agentCtx - the agent's scope context.
+ * @returns the preset id, or undefined when the agent joined none.
+ */
+composedPreset(agentCtx: Context): string | undefined
+
+/**
+ * Read one preset's composition text.
+ * @param id - the preset id.
+ * @returns the composition exactly as stored.
+ * @throws when no configured root supplies that id.
+ */
+async read(id: string): Promise<string>
+
+/**
+ * Create a locally authored preset by copying an existing one whole.
+ *
+ * Copy is the only authoring write. Composition text never crosses this
+ * seam: the source is named by id and its directory is copied as it stands,
+ * so the copy is exactly as loadable as its source and authoring grants no
+ * capability the roster did not already carry. The copy is NOT mounted to
+ * validate — a source that mounts today yields a copy that mounts today.
+ * @param from - the preset the copy starts from; shipped presets are the
+ * primary source, so any trust is accepted.
+ * @param id - the new preset's id, which becomes its directory name.
+ * @param name - display name for the copy; absent falls back to the id.
+ * @throws when the source is unknown, the id is unusable or already taken,
+ * or the deployment configures no writable root.
+ */
+async copy(from: string, id: string, name?: string): Promise<void>
+
+/**
+ * Delete a locally authored preset.
+ * @param id - the preset id.
+ * @throws when the preset is unknown or ships with the deployment.
+ */
+async remove(id: string): Promise<void>
+
+/**
+ * One agent's instance of a service its preset mounted.
+ *
+ * A preset publishes services behind `isolate` realms, which are invisible
+ * outside the group that declares them — including to the host. This is how a
+ * caller holding the agent reads one anyway: a request that is ABOUT a
+ * session but arrives from outside it, which is every browser RPC.
+ *
+ * Read addressing only. A host row that `inject`s a service cannot use this,
+ * because injection resolves before any session exists and has no agent to
+ * key by; such a service belongs on the host plane instead.
+ * @param agent - the agent whose composition to look inside.
+ * @param name - the service name as the preset's rows resolve it.
+ * @returns the agent's instance, or undefined when its preset mounts none.
+ */
+serviceFor<K extends string & keyof Context>(agent: { ctx: Context }, name: K): Context[K] | undefined
+
+/**
+ * Re-link one agent to a different preset's standing composition.
+ *
+ * Only valid while the agent has produced nothing: swapping tools mid
+ * conversation would leave logged tool calls the new composition cannot
+ * make. The CALLER owns that check — this method does not read session
+ * history.
+ *
+ * The swap is a parent re-link, not an unmount: standing mounts are shared
+ * and permanent, so the old composition stays for its other agents and the
+ * new one is ensured BEFORE the link moves. An unknown or unusable preset
+ * therefore throws with the agent exactly as it was — there is no torn-down
+ * state to restore. The re-link runs through the binding this roster kept
+ * from the agent's mount — dsh-scope's only re-link authority. An agent
+ * that never composed one has nothing to re-link: the switch is then the
+ * agent's first bind, exactly a mount.
+ * @param agentCtx - the agent's scope context.
+ * @param id - the preset to compose the agent from instead.
+ * @returns the preset now installed.
+ * @throws when the preset is unknown or its composition is unusable.
+ */
+async recompose(agentCtx: Context, id: string): Promise<AgentPreset>
+
+/**
+ * The standing scope key of one preset, for a host reader with no agent.
+ *
+ * A cold transcript read resolves tool presenters against the composition
+ * the session recorded, and the standing mount makes that possible without
+ * resuming anything: ensuring the mount composes plugins but starts no
+ * agent, no session, and no turn.
+ * @param id - the preset id, or `undefined` for {@link defaultId}.
+ * @returns the standing scope key readers pass as a registry view scope.
+ * @throws when the preset is unknown or its composition is unusable.
+ */
+async standingKeyFor(id?: string): Promise<ScopeKey>
+```
+
+Types: [ScopeKey](scope.md)
+
+Source: [`packages/preset/agent-presets/src/index.ts:82`](../../packages/preset/agent-presets/src/index.ts)
 
 <a id="ctxagents--agentregistry"></a>
 
@@ -549,6 +726,37 @@ roots(): Agent[]
 
 Source: [`packages/core/agent/src/index.ts:254`](../../packages/core/agent/src/index.ts)
 
+<a id="ctxintentbridge--intentbridgeservice"></a>
+
+### `ctx.intentBridge` — `IntentBridgeService`
+
+`ctx.intentBridge`: owns alignment sessions and the handoff. UIs observe the handoff through the `intent-bridge/handoff` dispatch event; the main session is a plain session that needs no special handling.
+
+```ts cordis-catalog
+/**
+ * Create a fresh alignment session: seeded zen-completed (never arms),
+ * tool face restricted to `finalize_alignment`, titled for the tab list.
+ * Caller-owned options: `cwd` lands BOTH the alignment session and the main
+ * session it hands off to in a real project directory (omitted → `_no-cwd/`),
+ * `exec` overrides the main-session route for this alignment's handoff
+ * (omitted → config exec route) and may carry `reasoningEffort`.
+ *
+ * @param options - per-call options (all optional).
+ * @returns the session id and the owned handle (drive it after resolve).
+ */
+async createAlignedSession(options: CreateAlignedSessionOptions = {}): Promise<{ sessionId: string; handle: AgentHandle }>
+```
+
+Source: [`packages/guard/intent-bridge/src/index.ts:218`](../../packages/guard/intent-bridge/src/index.ts)
+
+<a id="ctxtaskcard--taskcardservice"></a>
+
+### `ctx.taskCard` — `TaskCardService`
+
+`ctx.taskCard`: owns the first-message rewrite. UIs observe the rewritten message as a plain `user/message` in the session log; there is no extra event surface.
+
+Source: [`packages/guard/task-card/src/index.ts:152`](../../packages/guard/task-card/src/index.ts)
+
 <a id="agent-events"></a>
 
 ### `agent/*` events
@@ -575,7 +783,7 @@ A fully configured agent and live session were published. Setup is composition-o
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts:178`](../../packages/core/agent/src/runtime-types.ts)
+Source: [`packages/core/agent/src/runtime-types.ts:184`](../../packages/core/agent/src/runtime-types.ts)
 
 <a id="agentdisposed--emit"></a>
 
@@ -597,7 +805,7 @@ An agent left the registry; AgentLoop emits this after driver quiescence and sco
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts:187`](../../packages/core/agent/src/runtime-types.ts)
+Source: [`packages/core/agent/src/runtime-types.ts:193`](../../packages/core/agent/src/runtime-types.ts)
 
 <a id="agenterror--emit"></a>
 
@@ -621,7 +829,7 @@ A step or turn errored. The machine reports a failure here even when the error h
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts:327`](../../packages/core/agent/src/runtime-types.ts)
+Source: [`packages/core/agent/src/runtime-types.ts:333`](../../packages/core/agent/src/runtime-types.ts)
 
 <a id="agentinboxclaimed--emit"></a>
 
@@ -645,7 +853,7 @@ One message left the inbox inside its open turn. If the proposed step is rejecte
 
 Types: [Scoped](scope.md) · [UserMessage](session.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts:216`](../../packages/core/agent/src/runtime-types.ts)
+Source: [`packages/core/agent/src/runtime-types.ts:222`](../../packages/core/agent/src/runtime-types.ts)
 
 <a id="agentinboxdiscarded--emit"></a>
 
@@ -666,7 +874,7 @@ One message was discarded from the live inbox.
 
 Types: [Scoped](scope.md) · [UserMessage](session.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts:224`](../../packages/core/agent/src/runtime-types.ts)
+Source: [`packages/core/agent/src/runtime-types.ts:230`](../../packages/core/agent/src/runtime-types.ts)
 
 <a id="agentinboxinserted--emit"></a>
 
@@ -687,7 +895,7 @@ One message entered the live inbox.
 
 Types: [Scoped](scope.md) · [UserMessage](session.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts:205`](../../packages/core/agent/src/runtime-types.ts)
+Source: [`packages/core/agent/src/runtime-types.ts:211`](../../packages/core/agent/src/runtime-types.ts)
 
 <a id="agentpre-step--waterfall"></a>
 
@@ -712,7 +920,7 @@ Reject a proposed step or replace the messages that enter it. Calling `next()` p
 
 Types: [Scoped](scope.md) · [UserMessage](session.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts:250`](../../packages/core/agent/src/runtime-types.ts)
+Source: [`packages/core/agent/src/runtime-types.ts:256`](../../packages/core/agent/src/runtime-types.ts)
 
 <a id="agentpre-tool-commit--waterfall"></a>
 
@@ -743,7 +951,7 @@ Rewrite one response's tool calls before anything durable is committed. Fired by
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts:268`](../../packages/core/agent/src/runtime-types.ts)
+Source: [`packages/core/agent/src/runtime-types.ts:274`](../../packages/core/agent/src/runtime-types.ts)
 
 <a id="agentrequest--waterfall"></a>
 
@@ -769,7 +977,7 @@ Replace the frozen call configuration. `await next()` yields the config the mach
 
 Types: [LlmCallConfig](llm-streaming.md) · [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts:281`](../../packages/core/agent/src/runtime-types.ts)
+Source: [`packages/core/agent/src/runtime-types.ts:287`](../../packages/core/agent/src/runtime-types.ts)
 
 <a id="agentrequest-error--waterfall"></a>
 
@@ -798,7 +1006,7 @@ Handle one failed model-request attempt before the loop retries or closes its st
 
 Types: [LlmFailure](llm-streaming.md) · [ResolvedRetryPolicy](llm-streaming.md) · [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts:297`](../../packages/core/agent/src/runtime-types.ts)
+Source: [`packages/core/agent/src/runtime-types.ts:303`](../../packages/core/agent/src/runtime-types.ts)
 
 <a id="agentsession-start--emit"></a>
 
@@ -822,7 +1030,7 @@ The session lifecycle began, once before the first turn. Use `agent.inject()` to
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts:236`](../../packages/core/agent/src/runtime-types.ts)
+Source: [`packages/core/agent/src/runtime-types.ts:242`](../../packages/core/agent/src/runtime-types.ts)
 
 <a id="agentstatus--emit"></a>
 
@@ -845,7 +1053,7 @@ Agent status changed (`idle` ⇄ `running`). A waking delivery enters `running` 
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts:197`](../../packages/core/agent/src/runtime-types.ts)
+Source: [`packages/core/agent/src/runtime-types.ts:203`](../../packages/core/agent/src/runtime-types.ts)
 
 <a id="agentturn-stopping--serial"></a>
 
@@ -876,7 +1084,7 @@ The turn is about to close: the model owes no response (no live tool calls, no f
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts:315`](../../packages/core/agent/src/runtime-types.ts)
+Source: [`packages/core/agent/src/runtime-types.ts:321`](../../packages/core/agent/src/runtime-types.ts)
 
 <a id="agent-loop-events"></a>
 
@@ -901,5 +1109,52 @@ A declarative agent entry failed before it could publish a live agent. Consumers
 'agent-loop/config-start-failed'(payload: { sessionId: SessionId; error: unknown }): void
 ```
 
-Source: [`packages/core/agent-loop/src/index.ts:182`](../../packages/core/agent-loop/src/index.ts)
+Source: [`packages/core/agent-loop/src/index.ts:186`](../../packages/core/agent-loop/src/index.ts)
+
+<a id="agent-preset-events"></a>
+
+### `agent-preset/*` events
+
+<a id="agent-presetselected--emit"></a>
+
+#### `agent-preset/selected` — emit
+
+One session committed a different agent preset to its durable log. Consumers invalidate only state derived from that session's composition.
+
+```ts cordis-catalog
+/**
+ * One session committed a different agent preset to its durable log.
+ * Consumers invalidate only state derived from that session's composition.
+ * @mode emit
+ * @param sessionId - the session whose composition changed.
+ * @param agentPreset - the preset recorded by the committed selection.
+ */
+'agent-preset/selected'(sessionId: SessionId, agentPreset: string): void
+```
+
+Source: [`packages/preset/agent-presets/src/types.ts:13`](../../packages/preset/agent-presets/src/types.ts)
+
+<a id="intent-bridge-events"></a>
+
+### `intent-bridge/*` events
+
+<a id="intent-bridgehandoff--emit"></a>
+
+#### `intent-bridge/handoff` — emit
+
+An alignment session handed off to its main session. The main session already received the rendered task card as its first user message.
+
+```ts cordis-catalog
+/**
+ * An alignment session handed off to its main session. The main session
+ * already received the rendered task card as its first user message.
+ * @mode emit
+ * @param payload.alignSessionId - the alignment session that completed.
+ * @param payload.mainSessionId - the fresh main session to switch to.
+ * @param payload.title - the task card's title ('' on failure fallback).
+ */
+'intent-bridge/handoff'(this: unknown, payload: IntentBridgeHandoff): void
+```
+
+Source: [`packages/guard/intent-bridge/src/index.ts:57`](../../packages/guard/intent-bridge/src/index.ts)
 <!-- END GENERATED cordis-surface -->

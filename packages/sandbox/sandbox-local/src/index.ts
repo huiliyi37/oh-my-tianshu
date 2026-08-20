@@ -7,6 +7,10 @@
  */
 
 import { spawnSync } from 'node:child_process'
+import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   LAUNCHER_BIN,
   LAUNCHER_FAILURE_EXIT,
@@ -16,6 +20,8 @@ import {
 import { Context } from '@huiliyi37/cordis'
 import z from '@huiliyi37/schemastery'
 import { assertNever } from '@huiliyi37/dsh-llm'
+import type { SessionId } from '@huiliyi37/dsh-session'
+import { AclWriteGrant, assertTempRootOutsideWorkspace, tempWriteSid, workspaceWriteSid } from '@huiliyi37/dsh-sandbox-windows-acl'
 import { SandboxProvider, SandboxUnavailableError } from '@huiliyi37/dsh-sandbox'
 import type { ConfinedArgv, ConfinedSandboxMode, RunnerFailureRule, SandboxEnforcement, SandboxPolicy } from '@huiliyi37/dsh-sandbox'
 import { bwrapProfileArgs, landlockProfileArgs, seatbeltProfileArgs } from './profiles.ts'
@@ -47,6 +53,27 @@ export interface Config {
 /** Probe whether `bwrap` can create the profile; the provider caches the bounded result. */
 function defaultProbeBwrap(timeoutMs: number): boolean {
   const probe = spawnSync('bwrap', ['--ro-bind', '/', '/', '--dev', '/dev', '--proc', '/proc', '--die-with-parent', '--', 'true'], {
+    timeout: timeoutMs,
+    stdio: 'ignore',
+  })
+  return probe.status === 0
+}
+
+/**
+ * Probe whether the windows-acl runner can confine a trivial command; the
+ * provider caches the bounded result.
+ * @param runnerInvocation - the resolved runner argv prefix.
+ * @param timeoutMs - bounded probe window.
+ * @returns true when the runner exits 0 under a read-only wrap.
+ */
+function defaultProbeWindowsAcl(runnerInvocation: string[], timeoutMs: number): boolean {
+  const program = runnerInvocation[0]
+  if (program === undefined) return false
+  const probe = spawnSync(program, [
+    ...runnerInvocation.slice(1),
+    '--workspace', tmpdir(), '--temp', tmpdir(), '--mode', 'read-only',
+    '--', 'cmd', '/c', 'exit', '0',
+  ], {
     timeout: timeoutMs,
     stdio: 'ignore',
   })
@@ -86,10 +113,25 @@ export interface SandboxInternals {
   landlockLauncher?: string
   /** Replaces the `sandbox-exec` executable the probe and wraps invoke (a fake script). */
   seatbeltExec?: string
+  /** Replaces the resolved windows-acl runner argv prefix (a fake runner). */
+  windowsAclRunnerArgs?: string[]
+  /** Replaces the resolved windows-acl runner built entry path (a fake lib/runner.js location). */
+  windowsAclRunnerEntry?: string
+  /** Replaces the functional windows-acl probe (the win32 chain's sole rung — only consulted if that chain ever grows). */
+  probeWindowsAcl?: () => boolean
+  /** Replaces the private-temp-directory removal at provider dispose (a throwing fake exercises the cleanup-failure path). */
+  rmTempDir?: (path: string) => void
 }
 
 /** The chain's verdict: which runner confines, and how completely it enforces. */
-type SelectedRunner = { runner: 'bwrap' | 'landlock' | 'seatbelt'; enforcement: SandboxEnforcement }
+type SelectedRunner = { runner: 'bwrap' | 'landlock' | 'seatbelt' | 'windows-acl'; enforcement: SandboxEnforcement }
+
+/** One live session/workspace pair's private temp directory and capability. */
+interface AclTempCapability {
+  dir: string
+  writeSid: string
+  grant: AclWriteGrant
+}
 
 /**
  * The runner chain per platform — selection is BY PLATFORM first, probes
@@ -103,11 +145,10 @@ type SelectedRunner = { runner: 'bwrap' | 'landlock' | 'seatbelt'; enforcement: 
 const PLATFORM_CHAINS: Record<string, readonly SelectedRunner['runner'][]> = {
   linux: ['bwrap', 'landlock'],
   darwin: ['seatbelt'],
-  // Reserved slot, deliberately empty: Windows support fills it with a confinement runner
-  // (AppContainer / restricted-token family, shipped from its own repository on the
-  // landlock-run template) plus a SelectedRunner['runner'] union member — the switches'
-  // assertNever guards then walk the implementer to every site.
-  win32: [],
+  // The Windows restricted-token runner (@huiliyi37/dsh-sandbox-windows-acl):
+  // a sole candidate, selected without a probe — its execution-time refusal
+  // fails closed through its stderr signature (windows-acl-run:) and exit 127.
+  win32: ['windows-acl'],
 }
 
 /**
@@ -123,6 +164,12 @@ const STATIC_ENFORCEMENT: Record<SelectedRunner['runner'], SandboxEnforcement> =
   bwrap: 'full',
   landlock: 'full',
   seatbelt: 'full',
+  // WRITE_RESTRICTED needs Everyone in both restricting lists for process
+  // initialization. An external object that grants Everyone write access
+  // therefore remains writable, and NTFS hard links can alias a granted
+  // workspace file to a path outside it. The backend enforces the remaining
+  // ACL-addressable surface but must not advertise the absolute promise.
+  'windows-acl': 'partial',
 }
 
 /**
@@ -145,6 +192,9 @@ const DENIAL_SIGNATURES = {
   bwrap: ['read-only file system'],
   landlock: ['permission denied'],
   seatbelt: ['operation not permitted'],
+  // pwsh/.NET: "Access to the path '...' is denied."; cmd: "Access is denied.";
+  // node EACCES: "permission denied".
+  'windows-acl': ['access is denied', 'access to the path', 'permission denied'],
   runnerCommand: ['read-only file system', 'permission denied'],
 } as const satisfies Record<SelectedRunner['runner'] | 'runnerCommand', readonly string[]>
 
@@ -156,6 +206,9 @@ const DENIAL_SIGNATURES = {
  * Keep the Landlock tuple aligned with the assembled snapshot fixture at
  * `examples/acp-agent/tests/fixtures/partial-landlock-sandbox.ts`.
  */
+/** The windows-acl runner's documented failure exit (its own RUNNER_FAILURE_EXIT contract, distinct from Landlock's 125). */
+const WINDOWS_ACL_RUNNER_FAILURE_EXIT = 127
+
 const RUNNER_FAILURE_RULES = {
   bwrap: [{ fatalSignatures: ['bwrap: '] }],
   landlock: [{
@@ -164,6 +217,7 @@ const RUNNER_FAILURE_RULES = {
     informationalLines: [`${LAUNCHER_BIN}: partial enforcement (older Landlock ABI)`],
   }],
   seatbelt: [{ fatalSignatures: ['sandbox-exec: '] }],
+  'windows-acl': [{ allowedExitCodes: [WINDOWS_ACL_RUNNER_FAILURE_EXIT], fatalSignatures: ['windows-acl-run: '] }],
 } as const satisfies Record<SelectedRunner['runner'], readonly RunnerFailureRule[]>
 
 /**
@@ -187,6 +241,15 @@ export class LocalSandboxProvider extends SandboxProvider {
   private readonly probeTimeoutMs: number
   /** Cached chain verdict; undefined until the first confined wrap needs it. */
   private selectedRunner: SelectedRunner | 'unavailable' | undefined
+  /**
+   * Server-lifetime write grants (windows-acl rung): the STANDING
+   * workspace-root grant per workspace (its ACE is the cross-session reuse
+   * cache and outlives the provider — never revoked) and the REVOCABLE
+   * private-temp grant per live session/workspace pair (revoked on provider
+   * dispose).
+   */
+  private readonly workspaceGrants = new Map<string, AclWriteGrant>()
+  private readonly tempCapabilities = new Map<string, AclTempCapability>()
 
   constructor(ctx: Context, config: Config) {
     super(ctx)
@@ -207,6 +270,13 @@ export class LocalSandboxProvider extends SandboxProvider {
     this.runnerCommand = runner.length > 0 ? runner : undefined
     this.configuredRunnerFailureSignatures = runnerFailureSignatures
     this.probeTimeoutMs = config.probeTimeoutMs as number
+    // The temp grants are revoked with the provider: a clean server
+    // shutdown leaves no temp ACEs behind (workspace ACEs stand by design —
+    // the reuse cache; an unclean shutdown leaves them for the next
+    // provision's exact-ACE skip).
+    ctx.effect(() => () => {
+      this.revokeAclGrants()
+    })
     assertPositiveFinite('probeTimeoutMs', this.probeTimeoutMs)
   }
 
@@ -246,6 +316,7 @@ export class LocalSandboxProvider extends SandboxProvider {
       case 'bwrap': return ['bwrap', ...bwrapProfileArgs(policy)]
       case 'landlock': return [this.landlockLauncher(), ...landlockProfileArgs(policy)]
       case 'seatbelt': return [this.seatbeltExec(), ...seatbeltProfileArgs(policy)]
+      case 'windows-acl': return this.windowsAclRunnerArgv(policy)
       default: return assertNever(runner)
     }
   }
@@ -296,6 +367,11 @@ export class LocalSandboxProvider extends SandboxProvider {
         const probe = this.internals.probeSeatbelt ?? (exec => defaultProbeSeatbelt(exec, this.probeTimeoutMs))
         return probe(this.seatbeltExec()) ? 'full' : 'unusable'
       }
+      case 'windows-acl': {
+        const probe = this.internals.probeWindowsAcl
+          ?? (() => defaultProbeWindowsAcl(this.windowsAclRunnerInvocation(), this.probeTimeoutMs))
+        return probe() ? 'partial' : 'unusable'
+      }
       default: return assertNever(runner)
     }
   }
@@ -308,6 +384,156 @@ export class LocalSandboxProvider extends SandboxProvider {
   /** The `sandbox-exec` executable to probe and exec (test hook over the system one). */
   private seatbeltExec(): string {
     return this.internals.seatbeltExec ?? 'sandbox-exec'
+  }
+
+  /**
+   * The windows-acl runner argv for one policy. With a calling session (the
+   * policy's `sessionId`) under workspace-write, the grants are materialized
+   * once per provider lifetime — the standing workspace-root grant per
+   * workspace and a revocable, RANDOM private-temp capability per live
+   * session/workspace pair. The runner receives `--write-sid` plus
+   * `--temp-write-sid` and grants nothing itself. Agentless workspace-write
+   * calls pass the ambient temp ROOT and no SID flags: the runner creates and
+   * removes a random private child directory for that one invocation.
+   * @param policy - the resolved per-call policy.
+   * @returns the runner invocation.
+   */
+  private windowsAclRunnerArgv(policy: SandboxPolicy): string[] {
+    const sessionId = policy.sessionId
+    if (sessionId === undefined || policy.mode === 'read-only') {
+      return [
+        ...this.windowsAclRunnerInvocation(),
+        '--workspace', policy.workspaceRoot,
+        '--temp', tmpdir(),
+        '--mode', policy.mode,
+      ]
+    }
+    const temp = this.materializeAclGrant(sessionId, policy.workspaceRoot)
+    return [
+      ...this.windowsAclRunnerInvocation(),
+      '--workspace', policy.workspaceRoot,
+      '--temp', temp.dir,
+      '--mode', policy.mode,
+      '--write-sid', workspaceWriteSid(policy.workspaceRoot),
+      '--temp-write-sid', temp.writeSid,
+    ]
+  }
+
+  /**
+   * The windows-acl runner argv prefix: the built lib/runner.js entry when
+   * present (production), else the package source through tsx (development).
+   * The prefix stays `[node, runner, ...]` — a future native-exe runner keeps
+   * the same argv contract and only swaps these entries.
+   */
+  private windowsAclRunnerInvocation(): string[] {
+    const override = this.internals.windowsAclRunnerArgs
+    if (override !== undefined) return override
+    const builtEntry = this.internals.windowsAclRunnerEntry ?? fileURLToPath(import.meta.resolve('@huiliyi37/dsh-sandbox-windows-acl/runner'))
+    if (existsSync(builtEntry)) return [process.execPath, builtEntry]
+    const sourceEntry = fileURLToPath(import.meta.resolve('@huiliyi37/dsh-sandbox-windows-acl/src/runner.ts'))
+    return [process.execPath, '--import', 'tsx/esm', sourceEntry]
+  }
+
+  /**
+   * Materialize one workspace-write policy's ACEs once per provider
+   * lifetime: the standing workspace-root grant (its ACE is the cross-session
+   * reuse cache) and a revocable private-temp capability per live
+   * session/workspace pair.
+   * @param sessionId - the calling session.
+   * @param workspaceRoot - the policy's canonical workspace root.
+   * @returns the pair's private temp directory and write capability.
+   */
+  private materializeAclGrant(sessionId: SessionId, workspaceRoot: string): AclTempCapability {
+    assertTempRootOutsideWorkspace(workspaceRoot, tmpdir())
+    const writeSid = workspaceWriteSid(workspaceRoot)
+    if (!this.workspaceGrants.has(workspaceRoot)) {
+      const grant = AclWriteGrant.create(writeSid)
+      try {
+        grant.add(workspaceRoot, true)
+      } catch (error) {
+        // Free the SID; a standing ACE (if the apply succeeded before a
+        // post-apply throw) is the intended end state, not an error
+        // artifact — nothing to revoke.
+        try {
+          grant.dispose()
+        } catch (cleanupError) {
+          throw new AggregateError([error, cleanupError], 'sandbox-local windows-acl workspace grant failed and its cleanup also failed')
+        }
+        throw error
+      }
+      this.workspaceGrants.set(workspaceRoot, grant)
+    }
+    const key = JSON.stringify([String(sessionId), workspaceRoot])
+    const existing = this.tempCapabilities.get(key)
+    if (existing !== undefined) return existing
+    const tempDir = mkdtempSync(join(tmpdir(), 'dsh-'))
+    const tempSid = tempWriteSid(tempDir)
+    let grant: AclWriteGrant | undefined
+    try {
+      grant = AclWriteGrant.create(tempSid)
+      grant.add(tempDir)
+    } catch (error) {
+      const cleanupFailures: unknown[] = []
+      if (grant !== undefined) {
+        try {
+          grant.dispose()
+        } catch (cleanupError) {
+          cleanupFailures.push(cleanupError)
+        }
+      }
+      try {
+        this.removeTempDir(tempDir)
+      } catch (cleanupError) {
+        cleanupFailures.push(cleanupError)
+      }
+      if (cleanupFailures.length > 0) {
+        throw new AggregateError([error, ...cleanupFailures], 'sandbox-local windows-acl temp grant materialization failed and its cleanup also failed')
+      }
+      throw error
+    }
+    const capability = { dir: tempDir, writeSid: tempSid, grant }
+    this.tempCapabilities.set(key, capability)
+    return capability
+  }
+
+  /**
+   * Dispose every write grant (provider dispose): the revocable temp ACEs
+   * are revoked, the private temp directories this provider created are
+   * removed, and every SID allocation is freed; the standing workspace ACEs
+   * stay (the reuse cache). Cleanup failures are reported, not thrown:
+   * cordis teardown must not be aborted by grant cleanup. A crash skips all
+   * of it, but a new provider never reuses the residue's random path or SID;
+   * OS temp hygiene (or manual removal) eventually reclaims it.
+   */
+  private revokeAclGrants(): void {
+    if (this.workspaceGrants.size === 0 && this.tempCapabilities.size === 0) return
+    const failures: unknown[] = []
+    for (const grant of [...this.workspaceGrants.values(), ...[...this.tempCapabilities.values()].map(capability => capability.grant)]) {
+      try {
+        grant.dispose()
+      } catch (error) {
+        failures.push(error)
+      }
+    }
+    for (const { dir } of this.tempCapabilities.values()) {
+      try {
+        this.removeTempDir(dir)
+      } catch (error) {
+        failures.push(error)
+      }
+    }
+    this.workspaceGrants.clear()
+    this.tempCapabilities.clear()
+    if (failures.length > 0) {
+      this.ctx.logger.warn(`sandbox-local: windows-acl grant cleanup completed with ${failures.length} failure(s)`)
+      for (const error of failures) this.ctx.logger.warn(error)
+    }
+  }
+
+  /** Remove one provider-owned private temp directory (injectable for cleanup tests). */
+  private removeTempDir(dir: string): void {
+    const remove = this.internals.rmTempDir ?? ((path: string) => { rmSync(path, { recursive: true, force: true }) })
+    remove(dir)
   }
 }
 

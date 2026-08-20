@@ -127,7 +127,8 @@ export function createLspManager(spawnFn: SpawnFn, cwd: string): LspManager {
   return {
     async initialize() {
       try {
-        proc = spawnFn()
+        const child: ChildProcess = spawnFn()
+        proc = child
 
         // stdin is writable (we send requests), stdout is readable (we receive responses)
         const stdin = proc.stdin as Writable
@@ -140,22 +141,31 @@ export function createLspManager(spawnFn: SpawnFn, cwd: string): LspManager {
           })
         }
 
-        proc.on('error', () => {
-          ready = false
+        // rpc.request 无超时：进程在 initialize 应答前死掉（spawn 异步 ENOENT、
+        // server 启动即崩）时 pending 请求永不 settle，ensure() 将永久挂起。
+        // 进程早夭 promise 参与竞速使 initialize 落入下方 catch；error/close 亦
+        // 翻 ready=false（原语义：后续查询直接返回空，不挂在死连接上）。
+        // （移植 dsh-tui e33052c）
+        const procDied = new Promise<never>((_, reject) => {
+          child.on('error', (err: Error) => { ready = false; reject(err) })
+          child.on('close', () => { ready = false; reject(new Error('lsp server exited before initialize')) })
         })
 
         rpc = createRpcClient(stdout, stdin)
 
-        const initResult = await rpc.request('initialize', {
-          processId: process.pid,
-          rootUri: pathToFileURL(cwd).href,
-          capabilities: {
-            textDocument: {
-              definition: { linkSupport: false },
-              references: {},
+        const initResult = await Promise.race([
+          rpc.request('initialize', {
+            processId: process.pid,
+            rootUri: pathToFileURL(cwd).href,
+            capabilities: {
+              textDocument: {
+                definition: { linkSupport: false },
+                references: {},
+              },
             },
-          },
-        }) as { capabilities: ServerCapabilities }
+          }),
+          procDied,
+        ]) as { capabilities: ServerCapabilities }
 
         capabilities = initResult.capabilities
         rpc.notify('initialized', {})

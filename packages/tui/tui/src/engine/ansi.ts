@@ -43,10 +43,27 @@ export const ANSI = {
   BRACKETED_PASTE_ON: '\x1B[?2004h',
   /** 关闭 bracketed paste（退出时恢复终端默认） */
   BRACKETED_PASTE_OFF: '\x1B[?2004l',
+  /**
+   * Kitty keyboard protocol flag 1（disambiguate escape codes）。
+   * Esc / Shift+Enter / Ctrl+字母变成 CSI u（Ctrl+C 是 `CSI 99;5u`，不再是 0x03 / SIGINT）；
+   * 无修饰的可打印字符仍走原字节。不支持的终端静默忽略。
+   */
+  KITTY_KEYBOARD_DISAMBIGUATE_ON: '\x1B[>1u',
+  /** 弹出 Kitty keyboard protocol 栈（与 DISAMBIGUATE_ON 成对）。 */
+  KITTY_KEYBOARD_OFF: '\x1B[<u',
   /** 隐藏光标 */
   HIDE_CURSOR: '\x1B[?25l',
   /** 显示光标 */
   SHOW_CURSOR: '\x1B[?25h',
+  /**
+   * DECSCUSR：光标形状设为稳态竖条（不闪）。
+   * 终端原生光标闪烁会叠加在应用自管的 DECTCEM 翻转上，导致闪烁频率不稳、
+   * 静止光标也在闪——输入类 overlay 激活期间统一切到稳态竖条，
+   * 闪烁节奏完全由应用控制。竖条画在字符格左缘，天然落在格子边界上。
+   */
+  CURSOR_STEADY_BAR: '\x1B[6 q',
+  /** DECSCUSR：光标形状恢复终端默认（退出 overlay 时写）。 */
+  CURSOR_SHAPE_DEFAULT: '\x1B[0 q',
   /** 重置所有 SGR 属性 */
   RESET: '\x1B[0m',
   /** 粗体 */

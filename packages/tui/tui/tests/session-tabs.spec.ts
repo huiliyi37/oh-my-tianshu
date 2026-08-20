@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RivetTheme } from '../src/theme.js'
 import { displayWidth } from '../src/width.js'
-import { formatSessionTabs, type SessionTab } from '../src/format/session-tabs.js'
+import { formatSessionTabs, sessionTabLabel, type SessionTab } from '../src/format/session-tabs.js'
 
 function fakeTheme(): RivetTheme {
   return {
@@ -71,5 +71,16 @@ describe('formatSessionTabs', () => {
         expect(displayWidth(row.text)).toBeLessThanOrEqual(width)
       }
     }
+  })
+})
+
+describe('sessionTabLabel', () => {
+  it('剥掉 session- 前缀再取 8 字', () => {
+    expect(sessionTabLabel('session-ab0a7d2d-ffff')).toBe('ab0a7d2d')
+    expect(sessionTabLabel('session-tab-one')).toBe('tab-one')
+  })
+
+  it('无前缀则直接取 8 字', () => {
+    expect(sessionTabLabel('ab0a7d2d-rest')).toBe('ab0a7d2d')
   })
 })

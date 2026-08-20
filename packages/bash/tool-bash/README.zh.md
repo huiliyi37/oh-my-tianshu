@@ -10,6 +10,8 @@
 
 插件还会提供 `tool:bash` 提示词段落（顺序 105）：检查每个结果中的 `[exit code: N]` 标记，发现失败时先调查原因再继续。
 
+本插件与 [`@huiliyi37/dsh-tool-bash-persistent`](../../pty/tool-bash-persistent/README.md) 都注册全局名 `bash`。它们是二选一的组合，不是叠在同一张目录上的一对：一个 agent 目录只挂其中一个。
+
 ## 工具
 
 ### `bash`

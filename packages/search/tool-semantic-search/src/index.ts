@@ -2,14 +2,18 @@
  * `semantic_search` tool — workspace code retrieval over
  * `@huiliyi37/dsh-semantic-index` (Tianshu `semantic_search` port). The
  * plugin owns one index instance per configured root; each execution runs the
- * stale check → incremental update → hybrid search pipeline, and a bounded
- * index summary is contributed to the dynamic context (order 120) so the
- * agent sees the workspace shape without a full dump.
+ * single-flight refresh (staleness check → incremental update, all
+ * asynchronous IO) → hybrid search pipeline, and a bounded index summary is
+ * contributed to the dynamic context (order 120) so the agent sees the
+ * workspace shape without a full dump.
  *
- * The summary is volatile content (it changes as the index changes) and is
- * therefore registered as a *context* contribution, never as a system-prompt
- * section — the runtime-context content-diff injects it only when it actually
- * changes, preserving prefix-cache byte stability (Wave 4 discipline).
+ * The summary renders in-memory index state only (freshness comes from the
+ * mount-time warm-up refresh and per-execution refreshes) — prompt assembly
+ * never touches the filesystem. The summary is volatile content (it changes
+ * as the index changes) and is therefore registered as a *context*
+ * contribution, never as a system-prompt section — the runtime-context
+ * content-diff injects it only when it actually changes, preserving
+ * prefix-cache byte stability (Wave 4 discipline).
  *
  * @module @huiliyi37/dsh-tool-semantic-search
  */
@@ -34,7 +38,7 @@ export interface Config {
   root?: string
   /** Max source files indexed in one pass. */
   maxFiles?: number
-  /** `isStale()` verdict cache window (ms). */
+  /** Staleness-verdict cache window (ms) reused by each refresh. */
   staleTtlMs?: number
   /** Cooperative tool-call timeout budget (ms). */
   timeoutMs?: number
@@ -79,6 +83,13 @@ export function apply(ctx: Context, config: Config): void {
 
   const index = new SemanticIndex(root, undefined, { staleTtlMs: resolved.staleTtlMs })
 
+  // Off the critical path: warm the index (and thus the summary) without
+  // blocking plugin apply or prompt assembly. A failed warm-up degrades to a
+  // cold index — the next tool execution retries the refresh.
+  void index.refresh().catch((error: unknown) => {
+    ctx.logger.warn('semantic index warm-up refresh failed: %o', error)
+  })
+
   const tool = defineTool({
     name: 'semantic_search',
     description:
@@ -122,7 +133,7 @@ export function apply(ctx: Context, config: Config): void {
     isConcurrencySafe: () => true,
     async execute(args) {
       const limit = Math.min(Math.max(1, Math.floor(args.limit ?? 10)), 50)
-      if (index.isStale()) index.incrementalUpdate()
+      await index.refresh()
       const { hits, backend } = await index.searchHybrid(args.query, limit)
       return {
         hits: hits.map(hit => ({

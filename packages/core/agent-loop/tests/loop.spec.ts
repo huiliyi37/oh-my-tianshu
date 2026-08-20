@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
-import LlmService, { createUserMessage, CallId, LlmError, StreamChunk  } from '@huiliyi37/dsh-llm'
+import LlmService, { createUserMessage, CallId, LlmError, ReasoningEffortId, StreamChunk  } from '@huiliyi37/dsh-llm'
 import SessionStore, { SessionId, TurnEndReason } from '@huiliyi37/dsh-session'
 import SystemPrompt from '@huiliyi37/dsh-system-prompt'
 import ToolRegistry, { defineContentToolFixture } from '@huiliyi37/dsh-tools'
@@ -75,6 +75,36 @@ describe('agent loop', () => {
     await waitForIdle(ctx, agent)
 
     expect(adapter.requests[0]?.maxTokens).toBe(256)
+  })
+
+  it('rejects an empty AgentOptions.reasoningEffort before publication', async () => {
+    const ctx = await harness(new MockAdapter([]))
+    expect(() => ctx.agentLoop.create(
+      SessionId('invalid-reasoning-effort'),
+      { provider: 'mock', model: 'mock', reasoningEffort: '' as never },
+    )).toThrow('agent reasoningEffort must be a non-empty string')
+    expect(ctx.agents.list()).toEqual([])
+    expect(ctx.sessions.list()).toEqual([])
+  })
+
+  it('seeds a valid AgentOptions.reasoningEffort into the first model request', async () => {
+    const adapter = new MockAdapter([textResponse('explicit')], {
+      efforts: [
+        { id: ReasoningEffortId('high'), name: 'High' },
+        { id: ReasoningEffortId('max'), name: 'Max' },
+      ],
+      defaultEffort: ReasoningEffortId('high'),
+    })
+    const ctx = await harness(adapter)
+    const agent = ctx.agentLoop.create(
+      SessionId('valid-reasoning-effort'),
+      { provider: 'mock', model: 'mock', reasoningEffort: ReasoningEffortId('max') },
+    )
+
+    send(agent, 'use the configured reasoning effort')
+    await waitForIdle(ctx, agent)
+
+    expect(adapter.requests[0]?.reasoningEffort).toBe(ReasoningEffortId('max'))
   })
 
   it('cancels queued wakeup work together with an active maintenance task', async () => {
@@ -1192,15 +1222,29 @@ describe('agent loop', () => {
       { type: 'block-end', index: 0, block: { type: 'text', text: 'partial text' } },
       { type: 'block-start', index: 1, blockType: 'tool-call' },
       { type: 'tool-call-delta', index: 1, id: callId, name: 'echo', argumentsDelta: '{"text"' },
-      { type: 'finish', reason: { kind: 'max-tokens' } },
-    ]])
+      {
+        type: 'finish',
+        reason: { kind: 'max-tokens' },
+        replayState: { response: { responseId: 'resp-1' }, blocks: ['text-meta', 'tool-meta'] },
+      },
+    ], textResponse('continued')])
     const ctx = await harness(adapter)
     const agent = ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
 
     send(agent, 'go')
     await waitForIdle(ctx, agent)
+    send(agent, 'continue')
+    await waitForIdle(ctx, agent)
 
     expect(agent.session.events.some(e => e.type === 'tool/call')).toBe(false)
+    // The follow-up request replays the truncated message with its replay
+    // metadata pruned in step with the dropped tool call.
+    expect(adapter.requests[1]?.messages[1]?.source).toEqual({
+      kind: 'model',
+      provider: 'mock',
+      model: 'mock',
+      replayState: { response: { responseId: 'resp-1' }, blocks: ['text-meta'] },
+    })
     expect(agent.session.deriveMessages()).toEqual([
       {
         id: expect.any(String) as unknown,
@@ -1212,6 +1256,23 @@ describe('agent loop', () => {
         id: expect.any(String) as unknown,
         role: 'assistant',
         content: [{ type: 'text', text: 'partial text' }],
+        source: {
+          kind: 'model',
+          provider: 'mock',
+          model: 'mock',
+          replayState: { response: { responseId: 'resp-1' }, blocks: ['text-meta'] },
+        },
+      },
+      {
+        id: expect.any(String) as unknown,
+        role: 'user',
+        content: [{ type: 'text', text: 'continue' }],
+        source: { kind: 'user' },
+      },
+      {
+        id: expect.any(String) as unknown,
+        role: 'assistant',
+        content: [{ type: 'text', text: 'continued' }],
         source: { kind: 'model', provider: 'mock', model: 'mock' },
       },
     ])

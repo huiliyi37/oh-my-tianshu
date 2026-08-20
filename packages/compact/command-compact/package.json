@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-command-compact",
   "description": "Human-facing slash command for explicit session compaction",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

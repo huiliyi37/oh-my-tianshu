@@ -2,6 +2,38 @@
 
 [English](CHANGELOG.md) | 中文
 
+## 2026-08-19 — 0.3.0
+
+0.3.0 是 2026-08-12 TUI 落地之后的第一个产品切口。新的顶层 TUI 会话从禅相位起步，首条消息可改写成任务卡或经意图对齐桥澄清，测试运行与 JSON-in-content 工具调用各有专用插件，活区对工具、子代理与后台任务使用同一套卡片语言。
+
+### 禅相位（`dsh-zen`）
+
+新的顶层会话前几步跑在最小锚定工具面上——DeepSeek 评测配方（`bash`、`str_replace_editor`、`todo_write`）加上代理作用域的 `zen_anchor`——直到宿主验证的谓词晋升到完整工具面（`d0345e66`）。晋升条件是 `zen_anchor`（目标 + 地标 + 证据）、步数预算超时，或对极短首条消息的分流跳过；模型自称就绪不被采信。晋升后 TUI 隐藏与 `bash` 抢同一意图的栈（`promoteDeny`）并裁剪工具描述（`c9b3641a`）。子代理会话不进入禅相位。意图对齐桥的对齐会话以已晋升状态播种，避免再次进入禅相位。
+
+### 任务卡与意图对齐桥
+
+`dsh-task-card` 把会话的首条用户消息改写成结构化任务卡（`# title`、目标 / 约束 / 验收、标记下的原文逐字保留），经一次有界 LLM 调用，失败则回退语义模板（`1dcaac77`、`387f940c`）。`dsh-intent-bridge` 拆分新会话：低成本对齐模型在专用会话里多轮澄清，然后 `finalize_alignment` 把任务卡交给全新主会话，主会话不继承对齐上下文（`b4af3a63`、`08d0dbcf`）。主会话跟随父会话的 cwd 与当前 `/model` 选择（含 reasoning effort）（`545cf209`、`a9ea3806`）。发货 TUI 装配两者；产品对齐路由走 DeepSeek flash（`5de8be64`）。
+
+### 记忆族
+
+`dsh-tool-memory-recall` 在发货 TUI 的完整工具面上增加 `memory_deep_recall`（禅相位不含）：只读进程内 reader 子代理蒸馏 session-query 命中，原始转录不进入主上下文（`256fa609`）。发货 Web 的 `/remember` 与 `/memory` 由 `dsh-command-memory` 拥有（`a46dcb56`）；TUI 保留私有注册表，不挂该插件。`dsh-memory-sqlite`、`dsh-adaptive-memory`、`dsh-memory-consolidate` 已上树，不进任何发货组合（`635ce8e7`、`7482e836`）。`tool-memory` 的 digest 注入默认关闭（`dc5e12a5`）。
+
+### 测试运行器、JSON 修复、doom-loop 守卫
+
+`dsh-tool-run-tests` 在 `ctx.tools` 上注册 `run_tests` 与 `related_tests`，并接入 `dsh-base`（`45e7d2ab`）。`run_tests` 经 bash 缝执行并做框架探测；evidence-gate 对显式 `command` 原样归账，仅有 `path` 时记为 `run_tests <paths…>`，裸调用记为 `run_tests`。`related_tests` 在目标解析出会话 cwd 时失败即报（`94e30c0e`）。`dsh-tool-json-repair` 包装 `llm/stream`：整块文本恰好是带工具 `name` 的单个 JSON 对象时，重放为 tool-call 流，使 DeepSeek 的 JSON-in-content 响应能真正执行（`45e7d2ab`）。`dsh-doom-loop-guard` 与 repeat-tool-guard 并列，对交替调用对、同一路径连续失败编辑、以及输出不变的失败测试运行注入建议提醒（`45e7d2ab`、`b256a630`）。
+
+### TUI 活区与委派
+
+进程类活区行共用一套卡片语言：进行中 `⠋`、成功 `›`、失败 `✗`、正文行 `⎿`（`10558e6d`）。`/subagents` 树携带子代理运行态（活动、token、工具次数、耗时、终态词），`/subagents kill` 可终止仍可续的后代（`288b4095`）。输入：vim 双 Esc 不再误开 rewind；Ctrl+C 提示写明退出进程；CSI u Esc 可打断；长文本输入保持响应（`0049197e`、`3b3e5942`、`b67e8f4f`）。
+
+### 上游 rc.7 回移植
+
+`node-pty` 1.2.0-beta.15（`865810e5`）；max-tokens 回放信封对齐（`ae694c20`）；Safari 输入框换行恢复（`bc4e7a25`）；大历史分页不再用会撑爆栈的参数展开（`041577ae`）。
+
+### 其他
+
+Meridian 磁盘库改为 `dsh-meridian.db`，不再与同一 cwd 下的天枢 schema-2 数据库冲突（`3e37f191`）。
+
 ## 2026-08-12 — 2026-08-09 基线快照以来的 222 个提交
 
 基线快照 `snapshots/20260809T140917Z` 之后共有 222 个提交（2026-08-10 至 2026-08-12）。本版本在 SDK 插件骨架上新增了完整终端 UI、验证门、代码智能与会话持久化能力。

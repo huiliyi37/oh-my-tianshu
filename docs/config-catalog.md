@@ -80,6 +80,56 @@ Depends on: [`agentCore`](../packages/examples/agent-spine-demo/src/index.ts) ·
 
 Source: [`packages/examples/acp-demo/src/index.ts:39`](../packages/examples/acp-demo/src/index.ts)
 
+## `@huiliyi37/dsh-adaptive-memory`
+
+Requires: `systemPrompt`
+
+```ts config-catalog
+/** 插件配置：全部预算/阈值经 schemastery 校验，缺省值在 schema 上。 */
+export interface Config {
+  /** 整份 STM 快照的估算 token 预算（缺省 600；汉字按 1 token、其余按 1/4 估算）。 */
+  stmTokenBudget?: number
+  /** STM 候选数上限（缺省 12）。 */
+  maxEntries?: number
+  /** intentKey 保留的关键词数上限（缺省 6）。 */
+  maxIntentTokens?: number
+  /** 实体提取数上限（缺省 24）。 */
+  maxEntities?: number
+  /** pressure 阀门：距上次刷新满 N 轮强制重评估（缺省 8）。 */
+  reviewIntervalTurns?: number
+  /** 目标动词表：含动词的用户消息成为新 intent 锚点（拉丁词按词边界、CJK 按子串匹配）。 */
+  goalVerbs?: string[]
+  /** 始终入选 STM 候选的 tag（安全/用户约束类条目；缺省 ['safety', 'constraint', 'preference']）。 */
+  alwaysIncludeTags?: string[]
+  /** 每行摘要的字符数上限（缺省 120）。 */
+  summaryMaxChars?: number
+  /** 每条目的关键词数上限（缺省 5）。 */
+  maxKeywords?: number
+  /**
+   * 置信度门高阈值（缺省 0.82，占位待调参）：结构化 provider 的归一化
+   * score ≥ 此值时条目全文注入 STM；只在 provider 产出 score 时生效。
+   */
+  confidenceHigh?: number
+  /** 置信度门中阈值（缺省 0.55，占位待调参）：score ≥ 此值注入索引行；低于此不注入。 */
+  confidenceMedium?: number
+  /** 结构化路径每次 search/list 的候选拉取上限（缺省 24）。 */
+  retrievalLimit?: number
+  /**
+   * 按 topic 的加分权重（缺省 {}）：topic → 0..1 的加性 score 提升，在置信度
+   * 门层级判定前施加（封顶 1；只作用于带 score 的检索命中）。小语料上 BM25
+   * 归一化得分天然趋零，procedure 等高价值 topic 可经此抬升——例如
+   * `{ procedure: 0.2 }` 让巩固产出的做法条目更易进入 STM 候选集。
+   */
+  topicBoosts?: Record<string, number>
+  /** 兜底提醒每轮上限（缺省 1）。 */
+  maxRemindersPerTurn?: number
+  /** 兜底提醒每 intent 上限（缺省 3）。 */
+  maxRemindersPerIntent?: number
+}
+```
+
+Source: [`packages/memory/adaptive-memory/src/index.ts:81`](../packages/memory/adaptive-memory/src/index.ts)
+
 ## `@huiliyi37/dsh-agent-default-model`
 
 ```ts config-catalog
@@ -158,7 +208,43 @@ export interface Config {
 
 Depends on: [`AgentOptions`](subsystems/core.md) · [`SessionId`](subsystems/core.md)
 
-Source: [`packages/core/agent-loop/src/index.ts:236`](../packages/core/agent-loop/src/index.ts)
+Source: [`packages/core/agent-loop/src/index.ts:240`](../packages/core/agent-loop/src/index.ts)
+
+## `@huiliyi37/dsh-agent-presets`
+
+Requires: `loader`
+
+```ts config-catalog
+/** Plugin config: which preset is the default, and where presets live. */
+export interface Config {
+  /** Preset id mounted when a caller names none. Missing at mount time fails loud. */
+  default: string
+  /** Scanned roots in precedence order; an earlier root wins a duplicate id. */
+  roots: PresetRoot[]
+  /**
+   * Append the harness home's `USER_PRESET_DIR` as a `user` root, after every
+   * configured root. False mounts a roster over `roots` alone.
+   */
+  includeUserRoot: boolean
+}
+
+/** One directory scanned for preset subdirectories. */
+export interface PresetRoot {
+  /** Directory holding one subdirectory per preset; a leading `~` expands. */
+  path: string
+  /** Trust recorded on every preset discovered under this root. */
+  trust: PresetTrust
+}
+
+/**
+ * Where a preset's composition came from. A `system` preset ships with the
+ * deployment; a `user` preset was authored locally, by a person or by an
+ * agent, and therefore carries the same trust as shell access.
+ */
+export type PresetTrust = 'system' | 'user'
+```
+
+Source: [`packages/preset/agent-presets/src/preset.ts:52`](../packages/preset/agent-presets/src/preset.ts)
 
 ## `@huiliyi37/dsh-agent-router`
 
@@ -259,6 +345,48 @@ export interface GoalConfig {
 Depends on: [`AgentLoopConfig`](#huiliyi37dsh-agent-loop) · [`GoalDomainConfig`](#huiliyi37dsh-goal) · [`InvariantConfig`](#huiliyi37dsh-invariants) · [`SessionTitleConfig`](#huiliyi37dsh-session-title) · [`SkillLocal`](../packages/skill/skill-local/src/index.ts) · [`SkillRegistryConfig`](#huiliyi37dsh-skill) · [`SystemPromptConfig`](#huiliyi37dsh-system-prompt) · [`toolBash`](../packages/bash/tool-bash/src/index.ts) · [`toolGoal`](../packages/goal/tool-goal/src/index.ts) · [`ToolsConfig`](#huiliyi37dsh-tools) · [`toolSkill`](../packages/skill/tool-skill/src/index.ts) · [`toolTasks`](../packages/tasks/tool-tasks/src/index.ts) · [`workspaceContext`](../packages/context/workspace-context/src/index.ts)
 
 Source: [`packages/examples/agent-spine-demo/src/index.ts:90`](../packages/examples/agent-spine-demo/src/index.ts)
+
+## `@huiliyi37/dsh-agent-tool-presentation`
+
+Requires: `tools`
+
+```ts config-catalog
+/** Plugin config. */
+export interface Config {
+  /**
+   * The form this agent's model sees. `native` sends every visible schema,
+   * `code` sends only `run_code` plus a generated SDK, `both` sends both.
+   * Required rather than defaulted: the deployment default is what a preset
+   * without this row already gets, so an omitted value would mean the row was
+   * composed for nothing.
+   */
+  mode: ToolPresentationMode
+}
+```
+
+Depends on: [`ToolPresentationMode`](../packages/core/tools/src/index.ts)
+
+Source: [`packages/core/agent-tool-presentation/src/index.ts:38`](../packages/core/agent-tool-presentation/src/index.ts)
+
+## `@huiliyi37/dsh-attachment-local`
+
+```ts config-catalog
+/** Local attachment backend configuration. */
+export interface Config {
+  /** Explicit harness home; omitted follows `DSH_HOME`, then `~/.dsh`. */
+  dshHome?: string
+  /** Maximum encoded bytes accepted for one image. */
+  maxImageBytes?: number
+  /** Maximum image count accepted in one submitted message. */
+  maxImagesPerMessage?: number
+  /** Maximum aggregate encoded image bytes accepted in one submitted message. */
+  maxMessageImageBytes?: number
+  /** Maximum intrinsic width multiplied by height accepted for one image. */
+  maxImagePixels?: number
+}
+```
+
+Source: [`packages/attachment/attachment-local/src/index.ts:24`](../packages/attachment/attachment-local/src/index.ts)
 
 ## `@huiliyi37/dsh-bash-env`
 
@@ -447,6 +575,20 @@ export interface ToolResultPruneConfig {
 
 Source: [`packages/compact/compact-tool-result-prune/src/types.ts:4`](../packages/compact/compact-tool-result-prune/src/types.ts)
 
+## `@huiliyi37/dsh-cordis-host-runner`
+
+Requires: `tools`
+
+```ts config-catalog
+/** Runner configuration. */
+export interface Config {
+  /** Maximum synchronous VM evaluation time in milliseconds. */
+  vmTimeoutMs?: number
+}
+```
+
+Source: [`packages/self-modification/cordis-host-runner/src/index.ts:88`](../packages/self-modification/cordis-host-runner/src/index.ts)
+
 ## `@huiliyi37/dsh-credentials-local`
 
 ```ts config-catalog
@@ -464,6 +606,33 @@ export interface Config {
 ```
 
 Source: [`packages/credentials/credentials-local/src/index.ts:54`](../packages/credentials/credentials-local/src/index.ts)
+
+## `@huiliyi37/dsh-doom-loop-guard`
+
+```ts config-catalog
+/**
+ * Plugin config, validated by the same-named schemastery schema plus the
+ * load-time checks in `apply` (misconfiguration fails loud: a threshold below
+ * 2, a sub-1 `argumentsPreviewChars`, or a sub-1 `reminderBudget` throws at
+ * plugin load, never a silent fall-back).
+ */
+export interface Config {
+  /** Alternating-pair length that trips the oscillation detector (default `2` → A,B,A,B). */
+  oscillationPairs?: number
+  /** Consecutive failed same-file edits that trip the edit spiral (default `3`). */
+  editRetryThreshold?: number
+  /** Consecutive identical failing test runs that trip the churn detector (default `3`). */
+  testChurnThreshold?: number
+  /** Tool-name patterns transparent to every detector (default: read-only discovery tools). */
+  exclude?: string[]
+  /** Maximum characters of canonical arguments quoted in detailed reminders (default `200`). */
+  argumentsPreviewChars?: number
+  /** Reminders per agent per user-turn (default `3`); observation continues past the budget. */
+  reminderBudget?: number
+}
+```
+
+Source: [`packages/guard/doom-loop-guard/src/index.ts:29`](../packages/guard/doom-loop-guard/src/index.ts)
 
 ## `@huiliyi37/dsh-e2b`
 
@@ -683,7 +852,33 @@ export interface Config {
 }
 ```
 
-Source: [`packages/host/webserver/src/index.ts:45`](../packages/host/webserver/src/index.ts)
+Source: [`packages/host/webserver/src/index.ts:47`](../packages/host/webserver/src/index.ts)
+
+## `@huiliyi37/dsh-intent-bridge`
+
+Requires: `agents` · `tools` · `systemPrompt` · `sessions`
+
+```ts config-catalog
+/** Deployment-owned intent-bridge policy. */
+export interface IntentBridgeConfig {
+  /** Master switch; `false` mounts the service with no behavior. Default true. */
+  enabled?: boolean
+  /** Alignment agent route. REQUIRED. */
+  alignProvider?: string
+  /** Alignment agent route. REQUIRED. */
+  alignModel?: string
+  /** Main (execution) agent route. REQUIRED. */
+  execProvider?: string
+  /** Main (execution) agent route. REQUIRED. */
+  execModel?: string
+  /** Alignment rounds before a template card is force-finalized. Default 5. */
+  alignMaxRounds?: number
+  /** Custom alignment contract; defaults to the built-in {@link ALIGN_SECTION}. */
+  section?: string
+}
+```
+
+Source: [`packages/guard/intent-bridge/src/index.ts:83`](../packages/guard/intent-bridge/src/index.ts)
 
 ## `@huiliyi37/dsh-invariants`
 
@@ -1121,6 +1316,115 @@ export interface StreamableHttpConfig {
 
 Source: [`packages/mcp/mcp-client/src/index.ts:99`](../packages/mcp/mcp-client/src/index.ts)
 
+## `@huiliyi37/dsh-memory-consolidate`
+
+```ts config-catalog
+/** 插件配置：全部阈值经 schemastery 校验，缺省值在 schema 上。 */
+export interface Config {
+  /** 总开关（缺省 true；false 时完全不监听会话结束）。 */
+  enabled?: boolean
+  /** 成功门控级别（缺省 'standard'：末轮范围；'strict'：全会话范围）。 */
+  gate?: GateLevel
+  /** 门控未通过的会话是否记录 failure-pattern 经验（缺省 true）。 */
+  recordFailures?: boolean
+  /** 是否巩固子代理会话（缺省 false：reader 等子会话的一次性工作不产生经验）。 */
+  consolidateChildSessions?: boolean
+  /** 单次巩固写入的候选数上限（缺省 8）。 */
+  maxCandidatesPerSession?: number
+  /** 单条候选文本字符上限（缺省 280）。 */
+  maxTextChars?: number
+  /** 单条候选实体数上限（缺省 8）。 */
+  maxEntities?: number
+  /** 退役开关（缺省 true；store 不支持 retireStale 能力时自动跳过）。 */
+  retirementEnabled?: boolean
+  /** superseded 版本保留天数（缺省 30；超过即退役）。 */
+  supersededRetentionDays?: number
+  /** 巩固期未使用阈值（缺省 8；连续这么多次巩固未被检索命中的事实退役）。 */
+  unusedConsolidations?: number
+  /**
+   * 提取器选择（缺省 'heuristic'——零额外模型请求是契约点）：'llm' 时在会话
+   * 结束后做一次有界结构化调用，产出会话摘要 + 模型质量候选 + 可选做法条目；
+   * 失败回退启发式（log-only）。
+   */
+  extractor?: ExtractorKind
+  /** LLM 提取的显式路由对（与 llmModel 成对；缺省取会话最后一条 assistant 消息的来源路由）。 */
+  llmProvider?: string
+  /** LLM 提取的显式路由对（与 llmProvider 成对；缺省取会话路由）。 */
+  llmModel?: string
+  /** LLM 提取输入转写的字符上限（缺省 20000；超出截断）。 */
+  llmMaxInputChars?: number
+  /** LLM 提取的输出 token 上限（缺省 2000）。 */
+  llmMaxOutputTokens?: number
+  /** LLM 提取的 reasoning effort（缺省 'off'：提取是机械摘要，不烧思考 token）。 */
+  llmEffort?: string
+  /** LLM 提取的端到端超时毫秒数（缺省 30000）。 */
+  llmTimeoutMs?: number
+  /** 会话摘要条目的字符上限（缺省 600）。 */
+  maxSummaryChars?: number
+  /** 是否产出 procedure（做法沉淀）条目（缺省 true；两条提取路径共用）。 */
+  proceduresEnabled?: boolean
+}
+
+/** 门控级别：standard（缺省；末轮范围）或 strict（全会话范围）。 */
+export type GateLevel = 'standard' | 'strict'
+
+/** 提取器选择：heuristic（缺省，零额外模型请求）或 llm（一次有界结构化调用）。 */
+export type ExtractorKind = 'heuristic' | 'llm'
+```
+
+Source: [`packages/memory/memory-consolidate/src/index.ts:77`](../packages/memory/memory-consolidate/src/index.ts)
+
+## `@huiliyi37/dsh-message-feedback`
+
+Requires: `storageDomain` · `sessionPersistence` · `sessions`
+
+```ts config-catalog
+/** Required deployment policy for optional notes. */
+export interface Config {
+  /** Maximum UTF-8 byte length accepted for one note. */
+  readonly maxNoteBytes: number
+}
+```
+
+Source: [`packages/feedback/message-feedback/src/index.ts:49`](../packages/feedback/message-feedback/src/index.ts)
+
+## `@huiliyi37/dsh-next-workflow`
+
+Requires: `commands`
+
+```ts config-catalog
+/** Deployment policy for the fixed intent pipeline. */
+export interface Config {
+  /** One-shot structured-output provider for every subagent phase (default `spawn`). */
+  provider?: string
+  /** Artifact root; one `<run-id>` directory per run holding `SPEC.md`/`PLAN.md`/`REVIEW.md`
+   * (plus `PLAN-*.md`/`SELECTION.md` for best-of-N). Default `$DSH_HOME/workflows`. */
+  workflowsRoot?: string
+  /** Deterministic VERIFY gate command run through the bash executor (default unset: report `unverified`). */
+  verifyCommand?: string
+  /** Timeout for one `verifyCommand` run in milliseconds (default 120000). */
+  verifyTimeoutMs?: number
+  /** Maximum critique-driven PLAN revisions (default 1). */
+  maxCritiqueRounds?: number
+  /** Candidate plans per PLAN round; above 1 an independent fresh-context judge selects the winner (default 1: no selection; maximum 5). */
+  planCandidates?: number
+  /** Maximum characters of one candidate plan artifact (default 32768; bounds the judge prompt at `planCandidates` × this). */
+  maxCandidateChars?: number
+  /** Maximum verify-failure retries steered back into IMPLEMENT (default 1). */
+  maxVerifyRetries?: number
+  /** Per-phase reasoning effort for main-session requests (default plan/critique/review `high`; unset inherit; select rides critique). */
+  phaseEfforts?: Record<string, string>
+  /** Maximum characters of one phase artifact (default 32768; longer subagent output is truncated). */
+  maxArtifactChars?: number
+  /** Maximum characters of verify output steered back on failure (default 8192). */
+  maxVerifyOutputChars?: number
+  /** Maximum characters of the git diff offered to the reviewer (default 32768). */
+  maxDiffChars?: number
+}
+```
+
+Source: [`packages/workflow/next-workflow/src/index.ts:102`](../packages/workflow/next-workflow/src/index.ts)
+
 ## `@huiliyi37/dsh-permission`
 
 Requires: `bash` · `approval` · `sessions`
@@ -1157,6 +1461,28 @@ export interface PresetSpec {
 Depends on: [`ApprovalPolicy`](subsystems/approval.md) · [`SandboxMode`](subsystems/sandbox.md)
 
 Source: [`packages/interaction/permission/src/index.ts:140`](../packages/interaction/permission/src/index.ts)
+
+## `@huiliyi37/dsh-persona`
+
+Requires: `systemPrompt`
+
+```ts config-catalog
+/** Plugin config: the persona text this composition contributes. */
+export interface Config {
+  /**
+   * Persona prose rendered as the `deployment:persona` section. A template:
+   * complete `{{…}}` groups interpolate strictly against registered prompt
+   * variables. Empty text drops the section at render, matching the registry.
+   */
+  text: string
+  /** Make this persona the complete system prompt, suppressing every other section. */
+  complete?: boolean
+  /** Suppress dynamic runtime-context snapshots for this persona's agent scope. */
+  includeRuntimeContext?: boolean
+}
+```
+
+Source: [`packages/preset/persona/src/index.ts:34`](../packages/preset/persona/src/index.ts)
 
 ## `@huiliyi37/dsh-plan-mode`
 
@@ -1253,6 +1579,26 @@ export interface Config {
 
 Source: [`packages/bash/pwsh-local/src/index.ts:54`](../packages/bash/pwsh-local/src/index.ts)
 
+## `@huiliyi37/dsh-pwsh-sandbox`
+
+Requires: `subprocess` · `sandbox` · `sandboxPolicy`
+
+```ts config-catalog
+/**
+ * Plugin config: the local executor's knobs, verbatim. The sandbox policy —
+ * the default mode and fallback `workspace-write` root — is NOT here: it lives
+ * on `ctx.sandboxPolicy` (`@huiliyi37/dsh-sandbox-policy`), which resolves
+ * each calling session's mode and cwd for every enforcing capability. The
+ * runner choice is likewise the `ctx.sandbox` provider's config, not this
+ * executor's.
+ */
+export type Config = LocalConfig
+```
+
+Depends on: [`LocalConfig`](#huiliyi37dsh-pwsh-local)
+
+Source: [`packages/bash/pwsh-sandbox/src/index.ts:40`](../packages/bash/pwsh-sandbox/src/index.ts)
+
 ## `@huiliyi37/dsh-repeat-tool-guard`
 
 ```ts config-catalog
@@ -1313,7 +1659,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/sandbox/sandbox-local/src/index.ts:24`](../packages/sandbox/sandbox-local/src/index.ts)
+Source: [`packages/sandbox/sandbox-local/src/index.ts:30`](../packages/sandbox/sandbox-local/src/index.ts)
 
 ## `@huiliyi37/dsh-sandbox-policy`
 
@@ -1982,7 +2328,37 @@ export interface Config {
 }
 ```
 
-Source: [`packages/core/system-prompt/src/index.ts:166`](../packages/core/system-prompt/src/index.ts)
+Source: [`packages/core/system-prompt/src/index.ts:179`](../packages/core/system-prompt/src/index.ts)
+
+## `@huiliyi37/dsh-task-card`
+
+```ts config-catalog
+/** Deployment-owned task-card policy. */
+export interface TaskCardConfig {
+  /** Master switch; `false` mounts the service with no behavior. Default true. */
+  enabled?: boolean
+  /**
+   * `'llm'` generates the card with one bounded LLM call and falls back to
+   * the semantic template on any failure; `'template'` skips the model and
+   * uses the zero-cost template directly. Default `'llm'`.
+   */
+  mode?: 'llm' | 'template'
+  /** LLM route; REQUIRED when `mode: 'llm'` (the first message has no assistant message to derive a route from). */
+  provider?: string
+  /** LLM route; REQUIRED when `mode: 'llm'`. */
+  model?: string
+  /** End-to-end card-generation deadline. Default 5000. */
+  timeoutMs?: number
+  /** Messages longer than this are left untouched. Default 4000. */
+  maxInputChars?: number
+  /** Card-generation output budget. Default 300. */
+  maxOutputTokens?: number
+  /** Reserved for a future rendered card guidance section; accepted but unused in the MVP. */
+  section?: string
+}
+```
+
+Source: [`packages/guard/task-card/src/index.ts:48`](../packages/guard/task-card/src/index.ts)
 
 ## `@huiliyi37/dsh-time-context`
 
@@ -2169,6 +2545,26 @@ export interface Config {
 
 Source: [`packages/goal/tool-goal/src/index.ts:26`](../packages/goal/tool-goal/src/index.ts)
 
+## `@huiliyi37/dsh-tool-json-repair`
+
+```ts config-catalog
+/**
+ * Plugin config, validated by the same-named schemastery schema plus the
+ * load-time checks in `apply` (misconfiguration fails loud: a non-integer or
+ * sub-1 `maxBlockChars` throws at plugin load, never a silent fall-back).
+ */
+export interface Config {
+  /** Whether the stream wrapper converts tool-JSON text blocks (default `true`). */
+  enabled?: boolean
+  /** Text blocks longer than this never convert (default `65536`). */
+  maxBlockChars?: number
+  /** Accept one ```json … ``` fence around the object (default `true`). */
+  allowFenced?: boolean
+}
+```
+
+Source: [`packages/llm/tool-json-repair/src/index.ts:30`](../packages/llm/tool-json-repair/src/index.ts)
+
 ## `@huiliyi37/dsh-tool-lsp`
 
 Requires: `tools` · `lsp` · `systemPrompt`
@@ -2194,12 +2590,42 @@ Requires: `tools` · `systemPrompt`
 ```ts config-catalog
 /** 插件配置。 */
 export interface ToolMemoryConfig {
-  /** 摘要注入开关（缺省 true）。 */
+  /**
+   * 调试开关（缺省 false）：在 system prompt 追加最近 20 条记忆摘要。
+   * 摘要在每次 save 后刷新，会重写请求前缀并击穿 provider 前缀缓存——
+   * 仅供缓存对比实验使用，生产组合保持关闭。
+   */
   digest?: boolean
+  /** memory_search 单次调用的结果数预算（缺省 10；模型的 limit 参数被钳制到此值）。 */
+  searchLimit?: number
 }
 ```
 
-Source: [`packages/memory/tool-memory/src/index.ts:60`](../packages/memory/tool-memory/src/index.ts)
+Source: [`packages/memory/tool-memory/src/index.ts:63`](../packages/memory/tool-memory/src/index.ts)
+
+## `@huiliyi37/dsh-tool-memory-recall`
+
+Requires: `tools` · `systemPrompt`
+
+```ts config-catalog
+/** 插件配置：reader 规模与返回预算，缺省值在 schema 上。 */
+export interface Config {
+  /** reader 使用的 ctx.subagents provider 名（缺省 'spawn'，进程内一次性）。 */
+  provider?: string
+  /** reader 可用的只读搜索工具（缺省 session_query 三件套；缺失即报告不可用）。 */
+  readerTools?: string[]
+  /** 返回主上下文的 answer 字符上限（缺省 2000；超出截断）。 */
+  maxAnswerChars?: number
+  /** 返回的 evidence 条数上限（缺省 5；uncertainties 同受此数限制）。 */
+  maxEvidence?: number
+  /** 单条 evidence quote 的字符上限（缺省 240；超出截断）。 */
+  maxQuoteChars?: number
+  /** reader 子代理的最大委托深度（缺省 1：reader 位于深度 1，不得再委托）。 */
+  maxDepth?: number
+}
+```
+
+Source: [`packages/memory/tool-memory-recall/src/index.ts:85`](../packages/memory/tool-memory-recall/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-meridian`
 
@@ -2271,6 +2697,29 @@ export interface Config {
 
 Source: [`packages/workflow/tool-ralph/src/index.ts:23`](../packages/workflow/tool-ralph/src/index.ts)
 
+## `@huiliyi37/dsh-tool-run-tests`
+
+Requires: `tools` · `bash`
+
+```ts config-catalog
+/**
+ * Plugin config, validated by the same-named schemastery schema plus the
+ * load-time checks in `apply` (misconfiguration fails loud: a non-integer or
+ * sub-1 `outputTailChars`, an unknown framework id, or an empty
+ * `commandOverrides` value throws at plugin load, never a silent fall-back).
+ */
+export interface Config {
+  /** Framework id → command base; replaces one DEFAULT_COMMANDS entry. */
+  commandOverrides?: Record<string, string>
+  /** Characters of combined output kept in the canonical value's `tail` (default `8000`). */
+  outputTailChars?: number
+  /** Expose `run_in_background` (default true); disabled calls are also rejected. */
+  enableRunInBackground?: boolean
+}
+```
+
+Source: [`packages/tests/tool-run-tests/src/index.ts:46`](../packages/tests/tool-run-tests/src/index.ts)
+
 ## `@huiliyi37/dsh-tool-semantic-search`
 
 Requires: `tools` · `systemPrompt`
@@ -2282,14 +2731,14 @@ export interface Config {
   root?: string
   /** Max source files indexed in one pass. */
   maxFiles?: number
-  /** `isStale()` verdict cache window (ms). */
+  /** Staleness-verdict cache window (ms) reused by each refresh. */
   staleTtlMs?: number
   /** Cooperative tool-call timeout budget (ms). */
   timeoutMs?: number
 }
 ```
 
-Source: [`packages/search/tool-semantic-search/src/index.ts:32`](../packages/search/tool-semantic-search/src/index.ts)
+Source: [`packages/search/tool-semantic-search/src/index.ts:36`](../packages/search/tool-semantic-search/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-session-query`
 
@@ -2319,7 +2768,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/skill/tool-skill/src/index.ts:61`](../packages/skill/tool-skill/src/index.ts)
+Source: [`packages/skill/tool-skill/src/index.ts:62`](../packages/skill/tool-skill/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-str-replace-editor`
 
@@ -2411,7 +2860,7 @@ export interface Config {
 
 Depends on: [`AgentOptions`](subsystems/core.md)
 
-Source: [`packages/subagent/tool-subagent/src/index.ts:40`](../packages/subagent/tool-subagent/src/index.ts)
+Source: [`packages/subagent/tool-subagent/src/index.ts:41`](../packages/subagent/tool-subagent/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-subagent-report`
 
@@ -2537,7 +2986,7 @@ export interface Config {
 export type ToolPresentationMode = 'native' | 'code' | 'both'
 ```
 
-Source: [`packages/core/tools/src/index.ts:624`](../packages/core/tools/src/index.ts)
+Source: [`packages/core/tools/src/index.ts:634`](../packages/core/tools/src/index.ts)
 
 ## `@huiliyi37/dsh-tui`
 
@@ -2628,7 +3077,7 @@ export type KeyName =
 
 Depends on: `ReadStream` (`node:tty`) · [`SessionId`](subsystems/core.md) · `WriteStream` (`node:tty`)
 
-Source: [`packages/tui/tui/src/index.ts:22`](../packages/tui/tui/src/index.ts)
+Source: [`packages/tui/tui/src/index.ts:23`](../packages/tui/tui/src/index.ts)
 
 ## `@huiliyi37/dsh-typert-loader`
 
@@ -2772,7 +3221,7 @@ Requires: `httpServer`
 ```ts config-catalog
 /** Plugin config: the surface facts the launcher patches over this bundle's defaults. */
 export interface Config {
-  /** Whether this process mounted the client-plugin HMR receiver (`oh-my-tianshu web --dev`). */
+  /** Whether this process mounted the client-plugin HMR receiver (`tianshu web --dev`). */
   mode: WebMode
   /** Print the URL line on activation; a headless layer over this bundle turns it off. */
   printUrl: boolean
@@ -2948,6 +3397,84 @@ export interface Config {
 
 Source: [`packages/context/workspace-context/src/config.ts:18`](../packages/context/workspace-context/src/config.ts)
 
+## `@huiliyi37/dsh-zen`
+
+Requires: `tools` · `systemPrompt`
+
+```ts config-catalog
+/** Deployment-owned zen-phase policy. */
+export interface ZenConfig {
+  /** Guidance rendered as the `zen:policy` prompt section while the zen phase is active. */
+  section: string
+  /**
+   * Global tool names visible during the zen phase (the anchored face);
+   * `zen_anchor` is agent-scoped and always visible on top. Every name must
+   * be a registered global tool — an unknown name fails agent creation loud.
+   * Default: `['bash', 'str_replace_editor', 'todo_write']` (the official
+   * DeepSeek evaluation recipe plus plan bookkeeping).
+   */
+  face?: readonly string[]
+  /**
+   * The zen phase's step budget: promotion fires on the budget's final step
+   * (assembly precedes the boundary), so the full face is visible from the
+   * following step. Default 4.
+   */
+  timeoutSteps?: number
+  /**
+   * Whether `zen_anchor` requires ≥1 successful non-bookkeeping tool result
+   * (`todo_write` and `zen_anchor` do not count) before it promotes; a bare
+   * anchor is rejected back to the model with the probe-first instruction.
+   * Default true.
+   */
+  requireEvidence?: boolean
+  /** First-message triage heuristic: skip the zen phase for trivially short prompts. */
+  triage?: {
+    /** Whether triage runs at all. Default true. */
+    enabled?: boolean
+    /**
+     * A first user message at most this many characters, single-line and
+     * text-only, promotes to the full face before the first request.
+     * Default 80.
+     */
+    maxChars?: number
+  }
+  /**
+   * Task-conditioned one-shot face: classify the first user message and freeze
+   * the resulting tool face for the rest of the session. The selected face is
+   * always `face` plus extras bash cannot substitute; promotion (anchor,
+   * timeout, short-prompt triage) is disabled so the prefix is filled once.
+   * Default off — the binary skip-or-stay triage remains the shipped path.
+   */
+  faceSelection?: {
+    /** Whether the first message selects a frozen face. Default false. */
+    enabled?: boolean
+  }
+  /**
+   * Clip every assembled tool `description` to this many characters. Saves
+   * tokens; does not change which tool the model picks (H-arm: names without
+   * schemas did not induce calls). Omitted = no clipping. Applied at
+   * `system-prompt/assemble`, so the registered catalog is unchanged.
+   */
+  diet?: {
+    /** Inclusive character budget; a positive integer. */
+    maxDescriptionChars: number
+  }
+  /**
+   * Global tool names hidden after promotion (the curated top face). Empty
+   * (the default) lifts the zen restriction and exposes every registered
+   * global tool. Non-empty installs `restrict({ deny })` so overlapping
+   * stacks stay registered for subagent roles but leave the parent catalog.
+   * Unknown names fail at agent creation; a name that also appears in `face`
+   * fails at plugin load. The TUI ships {@link BASH_OVERLAP_TOOLS}.
+   */
+  promoteDeny?: readonly string[]
+  /** Master switch; `false` mounts the service with no behavior. Default true. */
+  enabled?: boolean
+}
+```
+
+Source: [`packages/guard/zen/src/index.ts:77`](../packages/guard/zen/src/index.ts)
+
 ## Loadable plugins with no config
 
 These load from a `cordis.yml` entry with no `config:` block; they declare no config surface.
@@ -2962,6 +3489,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@huiliyi37/dsh-client-ui-conversation` ([`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts))
 - `@huiliyi37/dsh-client-ui-deliverables` ([`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts))
 - `@huiliyi37/dsh-client-ui-goal` ([`packages/client/ui-goal/src/index.ts`](../packages/client/ui-goal/src/index.ts))
+- `@huiliyi37/dsh-client-ui-input-trigger` ([`packages/client/ui-input-trigger/src/index.ts`](../packages/client/ui-input-trigger/src/index.ts))
 - `@huiliyi37/dsh-client-ui-layout` ([`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts))
 - `@huiliyi37/dsh-client-ui-model` ([`packages/client/ui-model/src/index.ts`](../packages/client/ui-model/src/index.ts))
 - `@huiliyi37/dsh-client-ui-models` ([`packages/client/ui-models/src/index.ts`](../packages/client/ui-models/src/index.ts))
@@ -2981,18 +3509,23 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@huiliyi37/dsh-command-compact` — requires `commands` · `compact` ([`packages/compact/command-compact/src/index.ts`](../packages/compact/command-compact/src/index.ts))
 - `@huiliyi37/dsh-command-feedback` — requires `commands` ([`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts))
 - `@huiliyi37/dsh-command-goal` — requires `commands` · `goals` ([`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts))
+- `@huiliyi37/dsh-command-memory` — requires `commands` ([`packages/memory/command-memory/src/index.ts`](../packages/memory/command-memory/src/index.ts))
 - `@huiliyi37/dsh-commands` ([`packages/interaction/commands/src/index.ts`](../packages/interaction/commands/src/index.ts))
+- `@huiliyi37/dsh-cordis-client-runner` ([`packages/self-modification/cordis-client-runner/src/index.ts`](../packages/self-modification/cordis-client-runner/src/index.ts))
 - `@huiliyi37/dsh-fs-e2b` — requires `e2b` ([`packages/e2b/fs-e2b/src/index.ts`](../packages/e2b/fs-e2b/src/index.ts))
 - `@huiliyi37/dsh-fs-policy` ([`packages/fs/fs-policy/src/index.ts`](../packages/fs/fs-policy/src/index.ts))
 - `@huiliyi37/dsh-goal-session` — requires `agents` · `goals` · `sessions` ([`packages/goal/goal-session/src/index.ts`](../packages/goal/goal-session/src/index.ts))
 - `@huiliyi37/dsh-host-directory-picker-auto` — requires `httpServer` · `loader` ([`packages/host/directory-picker-auto/src/index.ts`](../packages/host/directory-picker-auto/src/index.ts))
 - `@huiliyi37/dsh-host-directory-picker-native` ([`packages/host/directory-picker-native/src/index.ts`](../packages/host/directory-picker-native/src/index.ts))
+- `@huiliyi37/dsh-host-plugin-inventory` — requires `loader` ([`packages/host/plugin-inventory/src/index.ts`](../packages/host/plugin-inventory/src/index.ts))
 - `@huiliyi37/dsh-llm` ([`packages/llm/llm/src/index.ts`](../packages/llm/llm/src/index.ts))
 - `@huiliyi37/dsh-lsp` ([`packages/lsp/lsp/src/index.ts`](../packages/lsp/lsp/src/index.ts))
 - `@huiliyi37/dsh-pty` ([`packages/pty/pty/src/index.ts`](../packages/pty/pty/src/index.ts))
+- `@huiliyi37/dsh-schedule` — requires `agents` · `sessions` · `tools` · `sessionPersistence` ([`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts))
 - `@huiliyi37/dsh-session` ([`packages/core/session/src/index.ts`](../packages/core/session/src/index.ts))
 - `@huiliyi37/dsh-session-checkpoint-policy` — requires `llm` · `sessionPersistence` · `sessions` · `tools` ([`packages/session/session-checkpoint-policy/src/index.ts`](../packages/session/session-checkpoint-policy/src/index.ts))
 - `@huiliyi37/dsh-session-projection` ([`packages/session/session-projection/src/index.ts`](../packages/session/session-projection/src/index.ts))
+- `@huiliyi37/dsh-session-stats` — requires `sessionProjections` ([`packages/session/session-stats/src/index.ts`](../packages/session/session-stats/src/index.ts))
 - `@huiliyi37/dsh-skill-badge` — requires `skills` ([`packages/skill/skill-badge/src/index.ts`](../packages/skill/skill-badge/src/index.ts))
 - `@huiliyi37/dsh-storage` ([`packages/storage/storage/src/index.ts`](../packages/storage/storage/src/index.ts))
 - `@huiliyi37/dsh-subagent` ([`packages/subagent/subagent/src/index.ts`](../packages/subagent/subagent/src/index.ts))
@@ -3001,6 +3534,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@huiliyi37/dsh-timeout-policy` — requires `tools` ([`packages/guard/timeout-policy/src/index.ts`](../packages/guard/timeout-policy/src/index.ts))
 - `@huiliyi37/dsh-tool-ask-user` — requires `tools` · `userInteraction` ([`packages/interaction/tool-ask-user/src/index.ts`](../packages/interaction/tool-ask-user/src/index.ts))
 - `@huiliyi37/dsh-tool-subagent-control` — requires `tools` · `subagents` ([`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.ts))
+- `@huiliyi37/dsh-ui-cordis` ([`packages/self-modification/ui-cordis/src/index.ts`](../packages/self-modification/ui-cordis/src/index.ts))
 - `@huiliyi37/dsh-user-interaction` ([`packages/interaction/user-interaction/src/index.ts`](../packages/interaction/user-interaction/src/index.ts))
 - `@huiliyi37/dsh-workspace` — requires `storageDomain` · `sessionPersistence` ([`packages/workspace/workspace/src/index.ts`](../packages/workspace/workspace/src/index.ts))
 
@@ -3008,6 +3542,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 
 Abstract service classes — a deployment loads a concrete implementation package instead ([capability seams](../.agents/notes/implemented/architecture/2026-06-13-capability-seams.md)).
 
+- `@huiliyi37/dsh-attachment` — abstract `AttachmentStore` ([`packages/attachment/attachment/src/index.ts`](../packages/attachment/attachment/src/index.ts))
 - `@huiliyi37/dsh-bash` — abstract `BashExecutor` ([`packages/bash/bash/src/index.ts`](../packages/bash/bash/src/index.ts))
 - `@huiliyi37/dsh-code-runtime` — abstract `CodeRuntime` ([`packages/code-runtime/code-runtime/src/index.ts`](../packages/code-runtime/code-runtime/src/index.ts))
 - `@huiliyi37/dsh-compact` — abstract `CompactService` ([`packages/compact/compact/src/index.ts`](../packages/compact/compact/src/index.ts))
@@ -3029,6 +3564,7 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
 
 - `@huiliyi37/dsh-acp-snapshot` ([`packages/support/acp-snapshot/src/index.ts`](../packages/support/acp-snapshot/src/index.ts))
 - `@huiliyi37/dsh-agent-loop-testkit` ([`packages/support/agent-loop-testkit/src/index.ts`](../packages/support/agent-loop-testkit/src/index.ts))
+- `@huiliyi37/dsh-anonymous-user-id` ([`packages/identity/anonymous-user-id/src/index.ts`](../packages/identity/anonymous-user-id/src/index.ts))
 - `@huiliyi37/dsh-app-boot` ([`packages/boot/app-boot/src/index.ts`](../packages/boot/app-boot/src/index.ts))
 - `@huiliyi37/dsh-atomic-write` ([`packages/util/atomic-write/src/index.ts`](../packages/util/atomic-write/src/index.ts))
 - `@huiliyi37/dsh-base` ([`packages/bundle/base/src/index.ts`](../packages/bundle/base/src/index.ts))
@@ -3046,11 +3582,13 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
 - `@huiliyi37/dsh-llm-mock-server` ([`packages/support/llm-mock-server/src/index.ts`](../packages/support/llm-mock-server/src/index.ts))
 - `@huiliyi37/dsh-loader-smoke` ([`packages/support/loader-smoke/src/index.ts`](../packages/support/loader-smoke/src/index.ts))
 - `@huiliyi37/dsh-memory` ([`packages/memory/memory/src/index.ts`](../packages/memory/memory/src/index.ts))
+- `@huiliyi37/dsh-memory-sqlite` ([`packages/memory/memory-sqlite/src/index.ts`](../packages/memory/memory-sqlite/src/index.ts))
 - `@huiliyi37/dsh-meridian` ([`packages/search/meridian/src/index.ts`](../packages/search/meridian/src/index.ts))
 - `@huiliyi37/dsh-native-command` ([`packages/util/native-command/src/index.ts`](../packages/util/native-command/src/index.ts))
 - `@huiliyi37/dsh-paths` ([`packages/util/paths/src/index.ts`](../packages/util/paths/src/index.ts))
 - `@huiliyi37/dsh-pheromone` ([`packages/guard/pheromone/src/index.ts`](../packages/guard/pheromone/src/index.ts))
 - `@huiliyi37/dsh-retention` ([`packages/util/retention/src/index.ts`](../packages/util/retention/src/index.ts))
+- `@huiliyi37/dsh-sandbox-windows-acl` ([`packages/sandbox/sandbox-windows-acl/src/index.ts`](../packages/sandbox/sandbox-windows-acl/src/index.ts))
 - `@huiliyi37/dsh-scope` ([`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.ts))
 - `@huiliyi37/dsh-sdk-client` ([`packages/scaffold/client/src/index.ts`](../packages/scaffold/client/src/index.ts))
 - `@huiliyi37/dsh-sdk-protocol` ([`packages/scaffold/protocol/src/index.ts`](../packages/scaffold/protocol/src/index.ts))

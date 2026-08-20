@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tui",
   "description": "The dsh terminal UI profile bundle: an interactive TUI layer over dsh-base (scaffold; the render core lands with tui-render-core)",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },
@@ -62,9 +62,20 @@
     "@huiliyi37/dsh-user-interaction": "workspace:^"
   },
   "dependencies": {
+    "@huiliyi37/dsh-agent-presets": "workspace:^",
+    "@huiliyi37/dsh-agent-router": "workspace:^",
+    "@huiliyi37/dsh-evidence-gate": "workspace:^",
+    "@huiliyi37/dsh-fs-snapshot": "workspace:^",
+    "@huiliyi37/dsh-intent-bridge": "workspace:^",
+    "@huiliyi37/dsh-memory": "workspace:^",
     "@huiliyi37/dsh-permission": "workspace:^",
     "@huiliyi37/dsh-spark-anchors": "workspace:^",
+    "@huiliyi37/dsh-task-card": "workspace:^",
+    "@huiliyi37/dsh-tool-memory": "workspace:^",
+    "@huiliyi37/dsh-tool-memory-recall": "workspace:^",
+    "@huiliyi37/dsh-tool-session-query": "workspace:^",
     "@huiliyi37/dsh-vision-bridge": "workspace:^",
+    "@huiliyi37/dsh-zen": "workspace:^",
     "chalk": "^6.0.0",
     "diff": "^9.0.0",
     "get-east-asian-width": "^1.6.0",

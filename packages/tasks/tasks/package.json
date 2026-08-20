@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tasks",
   "description": "Background task registry (ctx.tasks) for the Tianshu Harness — shared ids, owner isolation, polling, cancellation, and completion listeners for long-running tool work",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

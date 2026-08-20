@@ -7,6 +7,7 @@ import { PassThrough } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Context } from '@huiliyi37/cordis'
 import type { WriteStream } from 'node:tty'
+import { ReasoningEffortId } from '@huiliyi37/dsh-llm'
 import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
 import type { Agent, AgentHandle } from '@huiliyi37/dsh-agent'
 import { TuiApp, parseSlashCommand } from '../src/ui/app.js'
@@ -175,7 +176,7 @@ function makeAgent(id: string): Agent & MockAgent {
     },
     inbox: { nextTurn: [], nextStep: [] },
     status: 'idle',
-    ctx: undefined,
+    ctx: { on: vi.fn(() => () => {}) },
     followup: vi.fn(),
     steer: vi.fn(),
     inject: vi.fn(),
@@ -254,6 +255,9 @@ describe('TuiApp agent-ensure 三分支', () => {
       sessionId: id,
       agentOptions: { provider: 'mock', model: 'mock' },
     }))
+    expect('reasoningEffort' in (
+      (ctx.agents.create.mock.calls[0]?.[0] as { agentOptions: object }).agentOptions
+    )).toBe(false)
     expect(ctx.sessions.create).not.toHaveBeenCalled()
     // controls 来自 handle.agent：followup 打到 handle 下的 agent
     app.handleSubmit('hello')
@@ -261,6 +265,31 @@ describe('TuiApp agent-ensure 三分支', () => {
     await app.dispose()
     // 自有 handle 由本层 dispose
     expect(handle.dispose).toHaveBeenCalledTimes(1)
+  })
+
+  it('newSession 无桥时把当前 reasoningEffort 写入 agentOptions', async () => {
+    const ctx = makeCtx()
+    ctx.agentDefaultModel.currentSelection.mockReturnValue({
+      provider: 'deepseek-spark',
+      model: 'deepseek-v4-flash',
+      reasoningEffort: 'max',
+    })
+    const agent = makeAgent('effort-create-1')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+    await app.newSession()
+
+    expect(ctx.agents.create).toHaveBeenCalledWith(expect.objectContaining({
+      agentOptions: {
+        provider: 'deepseek-spark',
+        model: 'deepseek-v4-flash',
+        reasoningEffort: 'max',
+      },
+    }))
+    await app.dispose()
   })
 
   it('newSession 把 process.cwd() 写入 create meta.cwd（Web 会话列表可见）', async () => {
@@ -276,6 +305,106 @@ describe('TuiApp agent-ensure 三分支', () => {
     expect(ctx.agents.create).toHaveBeenCalledWith(expect.objectContaining({
       meta: { cwd: process.cwd() },
     }))
+    await app.dispose()
+  })
+
+  it('newSession 经 reflect.get 读 intentBridge：属性访问抛 without inject 时仍建常规会话', async () => {
+    const ctx = makeCtx()
+    Object.defineProperty(ctx, 'intentBridge', {
+      get(): never {
+        throw new Error('cannot get property "intentBridge" without inject')
+      },
+      configurable: true,
+    })
+    const agent = makeAgent('bridge-proxy-1')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+    await expect(app.newSession()).resolves.toEqual(expect.any(String))
+    expect(ctx.agents.create).toHaveBeenCalledTimes(1)
+    await app.dispose()
+  })
+
+  it('newSession 在 intentBridge 装配时走 createAlignedSession，主会话跟随当前模型', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('align-1')
+    const handle = makeHandle(agent)
+    const createAlignedSession = vi.fn(async () => ({ sessionId: 'align-session', handle }))
+    ctx.reflect.get.mockImplementation((name: string) => (
+      name === 'intentBridge' ? { createAlignedSession } : undefined
+    ))
+    ctx.sessions.get.mockReturnValue(agent.session)
+
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+    const id = await app.newSession()
+
+    expect(id).toBe(SessionId('align-session'))
+    expect(createAlignedSession).toHaveBeenCalledWith({
+      cwd: process.cwd(),
+      exec: { provider: 'mock', model: 'mock' },
+    })
+    // The zero-arg mock widens calls to an empty tuple; read the first
+    // argument through unknown, then guard before the `in` probe.
+    const firstOptions = (createAlignedSession.mock.calls[0] as unknown as Array<{ exec: object }>)[0]
+    expect(firstOptions !== undefined && 'reasoningEffort' in firstOptions.exec)
+      .toBe(false)
+    expect(ctx.agents.create).not.toHaveBeenCalled()
+    await app.dispose()
+  })
+
+  it('newSession 在 intentBridge 装配时把当前 reasoningEffort 传给主会话 exec', async () => {
+    const ctx = makeCtx()
+    ctx.agentDefaultModel.currentSelection.mockReturnValue({
+      provider: 'deepseek-spark',
+      model: 'deepseek-v4-flash',
+      reasoningEffort: 'max',
+    })
+    const agent = makeAgent('align-effort')
+    const handle = makeHandle(agent)
+    const createAlignedSession = vi.fn(async () => ({ sessionId: 'align-session', handle }))
+    ctx.reflect.get.mockImplementation((name: string) => (
+      name === 'intentBridge' ? { createAlignedSession } : undefined
+    ))
+    ctx.sessions.get.mockReturnValue(agent.session)
+
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+    await app.newSession()
+
+    expect(createAlignedSession).toHaveBeenCalledWith({
+      cwd: process.cwd(),
+      exec: {
+        provider: 'deepseek-spark',
+        model: 'deepseek-v4-flash',
+        reasoningEffort: 'max',
+      },
+    })
+    await app.dispose()
+  })
+
+  it('提交路径在 followup 前先画一帧：驱动同步阻塞不吞输入框（提交卡顿回归）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('order-1')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.newSession()
+    const write = stdout.write as ReturnType<typeof vi.fn>
+    write.mockClear()
+    // followup 触发时刻截屏：此刻 stdout 已写入的内容必须已含输入轨 chrome
+    //（❯ 提示符）——commitUserPrompt 擦除 live 区后、进入可能同步阻塞数秒的
+    // 驱动调用前，先画回一帧（2026-08-16 semantic-index 同步重建根修的防御层）。
+    let writtenAtFollowup = ''
+    agent.followup.mockImplementation(() => {
+      writtenAtFollowup = write.mock.calls.map(call => String(call[0])).join('')
+    })
+    app.handleSubmit('hello')
+    expect(agent.followup).toHaveBeenCalledTimes(1)
+    expect(writtenAtFollowup).toContain('❯')
     await app.dispose()
   })
 
@@ -477,12 +606,64 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     expect(onExit).not.toHaveBeenCalled()
     expect(agent.cancel).not.toHaveBeenCalled()
     const afterFirst = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(afterFirst).toContain('再按 Ctrl+C 退出')
+    expect(afterFirst).toContain('再按 Ctrl+C 退出进程')
 
     stdin.emit('data', '\x03')
     await new Promise(resolve => setImmediate(resolve))
     expect(onExit).toHaveBeenCalledTimes(1)
     expect(agent.cancel).not.toHaveBeenCalled()
+    await app.dispose()
+  })
+
+  it('Kitty CSI 99;5u 空闲空输入：窗口内第二次才 onExit', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('exit-csi-c')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const onExit = vi.fn()
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin, onExit })
+    await app.attach()
+
+    stdin.emit('data', '\x1b[99;5u')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).not.toHaveBeenCalled()
+    expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('再按 Ctrl+C 退出进程')
+
+    stdin.emit('data', '\x1b[99;5u')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).toHaveBeenCalledTimes(1)
+    await app.dispose()
+  })
+
+  it('ctrl_c 空闲非空：清输入行，不退出、不打印已取消', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('clear-line')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const onExit = vi.fn()
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin, onExit })
+    await app.attach()
+    stdin.emit('data', 'hello')
+    await new Promise(resolve => setImmediate(resolve))
+    stdout.write.mockClear()
+    stdin.emit('data', '\x03')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).not.toHaveBeenCalled()
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).not.toContain('已取消')
+    expect(written).not.toContain('hello')
+    // 清空草稿同时布防连按窗口：窗口内第二次 Ctrl+C 即退出
+    stdin.emit('data', '\x03')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).toHaveBeenCalledTimes(1)
     await app.dispose()
   })
 
@@ -541,6 +722,68 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     await app.dispose()
   })
 
+  it('agent running 时空输入连按两次 Ctrl+C：第一次打断，窗口内第二次 onExit', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('abort-then-exit')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const onExit = vi.fn()
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin, onExit })
+    await app.attach()
+    const id = app.sessionId
+    if (id === null) throw new Error('sessionId missing after attach')
+    const statusHandlers = ctx.on.mock.calls
+      .filter((call: unknown[]) => call[0] === 'agent/status')
+      .map(call => call[1] as (payload: { agent: { id: SessionId }; status: string }) => void)
+    for (const handler of statusHandlers) handler({ agent: { id }, status: 'running' })
+
+    stdin.emit('data', '\x03')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).not.toHaveBeenCalled()
+    expect(agent.cancel).toHaveBeenCalledTimes(1)
+
+    stdin.emit('data', '\x03')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).toHaveBeenCalledTimes(1)
+    await app.dispose()
+  })
+
+  it('agent running 且输入行有草稿：第一次打断并布防，窗口内第二次仍 onExit', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('abort-draft-exit')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const onExit = vi.fn()
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin, onExit })
+    await app.attach()
+    stdin.emit('data', 'draft')
+    await new Promise(resolve => setImmediate(resolve))
+    const id = app.sessionId
+    if (id === null) throw new Error('sessionId missing after attach')
+    const statusHandlers = ctx.on.mock.calls
+      .filter((call: unknown[]) => call[0] === 'agent/status')
+      .map(call => call[1] as (payload: { agent: { id: SessionId }; status: string }) => void)
+    for (const handler of statusHandlers) handler({ agent: { id }, status: 'running' })
+
+    stdin.emit('data', '\x03')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).not.toHaveBeenCalled()
+    expect(agent.cancel).toHaveBeenCalledTimes(1)
+
+    stdin.emit('data', '\x03')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(onExit).toHaveBeenCalledTimes(1)
+    await app.dispose()
+  })
+
   it('agent running 时 Esc → handleAbort（对齐 Claude Code 单次 Esc 打断）', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('abort-esc')
@@ -562,6 +805,33 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     // lone ESC 走 80ms 防误触超时才派发
     stdin.emit('data', '\x1b')
     await new Promise(resolve => setTimeout(resolve, 150))
+    expect(onExit).not.toHaveBeenCalled()
+    expect(agent.cancel).toHaveBeenCalledTimes(1)
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('已取消')
+    await app.dispose()
+  })
+
+  it('agent running 时 Kitty CSI 27 u Esc → handleAbort', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('abort-esc-csi')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const onExit = vi.fn()
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin, onExit })
+    await app.attach()
+    const id = app.sessionId
+    if (id === null) throw new Error('sessionId missing after attach')
+    const statusHandlers = ctx.on.mock.calls
+      .filter((call: unknown[]) => call[0] === 'agent/status')
+      .map(call => call[1] as (payload: { agent: { id: SessionId }; status: string }) => void)
+    for (const handler of statusHandlers) handler({ agent: { id }, status: 'running' })
+
+    stdin.emit('data', '\x1b[27u')
+    await new Promise(resolve => setImmediate(resolve))
     expect(onExit).not.toHaveBeenCalled()
     expect(agent.cancel).toHaveBeenCalledTimes(1)
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
@@ -635,11 +905,12 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
       seq: 1, time: 1, type: 'assistant/message',
       data: { turn: 1, step: 0, message: { role: 'assistant', content: [{ type: 'text', text: 'hi' }] }, usage: { inputTokens: 10, outputTokens: 5 } },
     })
-    // 单次 Esc → 不打开
+    // 单次 Esc → 不打开（断言 overlay 标题而非裸 'rewind'——随机欢迎 Tip
+    // 可能抽中 "/rewind 回退到任意一条消息"，裸关键字会误伤）
     stdin.emit('data', '\x1b')
     await new Promise(resolve => setTimeout(resolve, 150))
     let written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).not.toContain('rewind')
+    expect(written).not.toContain('⟲ rewind 回退')
     // 非 Esc 键清除待定双击窗口（避免单次检查污染下面的双击）
     stdin.emit('data', 'x')
     await new Promise(resolve => setTimeout(resolve, 50))
@@ -676,6 +947,36 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     await new Promise(resolve => setTimeout(resolve, 150))
     // 等窗口过期(1s)后再按第二次
     await new Promise(resolve => setTimeout(resolve, 1100))
+    stdin.emit('data', '\x1b')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).not.toContain('⟲ rewind 回退')
+    await app.dispose()
+  })
+
+  it('vim 开启时双击 Esc 不触发 rewind（含 insert→normal 的第一次 Esc）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('vim-dbl-esc')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin, vimEnabled: true })
+    await app.attach()
+    ;(agent.session as { id: SessionId }).id = app.sessionId ?? SessionId('vim-dbl-esc')
+    // 会话需有消息（rewindSession 空消息不打开）——确保窗口内双击本会触发
+    const bus = sessionEventBus(ctx)
+    const id = app.sessionId
+    if (id === null) throw new Error('sessionId missing')
+    bus(id, {
+      seq: 1, time: 1, type: 'assistant/message',
+      data: { turn: 1, step: 0, message: { role: 'assistant', content: [{ type: 'text', text: 'hi' }] }, usage: { inputTokens: 10, outputTokens: 5 } },
+    })
+    // 默认 insert：第一次 Esc 切到 normal；vim 开启时空闲 Esc 不布防 rewind
+    stdin.emit('data', '\x1b')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    // 习惯性补按：仍不触发（若只守卫 normal，第一次会布防、这次会弹出）
     stdin.emit('data', '\x1b')
     await new Promise(resolve => setTimeout(resolve, 150))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
@@ -2083,9 +2384,15 @@ describe('TuiApp Phase 9d 流利度装配', () => {
           },
         },
       })
-      // 推进 200s：ticker（120ms）触发多轮渲染，tool action 档（180s）已过，
-      // 最后一次 renderLive 读到 stale 提示必须上屏
-      vi.advanceTimersByTime(200_000)
+      // stale 判定 = renderLive 时的 Date.now() - lastEventAt（fluency-hook
+      // 快照），与经过多少轮 ticker 无关——时间跳跃而非逐帧推进：
+      // setSystemTime 直接跨过 tool action 档（180s），再推进 1s 触发少量
+      // ticker/batcher 渲染即可。此前 advanceTimersByTime(200_000) 要同步跑
+      // ~1700 次全量 renderLive，真实 CPU 耗时随全量并发负载膨胀直至撞穿
+      // 20s 测试预算（跨四批复现的 flaky 根因；移植 dsh-tui 86cea46）。
+      // async 版在每轮定时器间排空微任务，写入顺序确定。
+      vi.setSystemTime(Date.now() + 200_000)
+      await vi.advanceTimersByTimeAsync(1_000)
     } finally {
       vi.useRealTimers()
     }
@@ -2131,6 +2438,42 @@ describe('TuiApp Phase 6.1 slash 命令系统', () => {
     await new Promise(resolve => setImmediate(resolve))
 
     expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('已清空')
+    await app.dispose()
+  })
+
+  it('/clear 收起命令切换的 live 面板（/config /skills 不再重绘）', async () => {
+    const ctx = makeCtx()
+    const fallback = ctx.reflect.get.getMockImplementation() as ((name: string) => unknown) | undefined
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'settings') return { describe: vi.fn(() => [{ ns: 'model', value: 'deepseek' }]) }
+      if (name === 'permission') return { names: ['run_shell'], current: vi.fn(() => 'ask') }
+      if (name === 'credentials') return { describe: vi.fn(async () => ({ configured: true, source: 'file', writable: false })) }
+      if (name === 'skills') return { list: vi.fn(async () => [{ name: 'code-review', description: '代码审查', provider: 'mock', source: 'builtin', invocation: 'manual' }]) }
+      return fallback ? fallback(name) : undefined
+    })
+    const agent = makeAgent('slash-clear-panels')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.attach()
+
+    app.handleSubmit('/config')
+    app.handleSubmit('/skills')
+    await new Promise(resolve => setTimeout(resolve, 40))
+    let written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('⚙ 配置')      // 配置面板已渲染
+    expect(written).toContain('code-review') // 技能面板已渲染
+
+    app.handleSubmit('/clear')
+    await new Promise(resolve => setTimeout(resolve, 40))
+    written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('已清空')
+    // /clear 光标回顶（\x1b[H）之后的 live 区全量重绘不应再包含命令面板
+    const tail = written.slice(written.lastIndexOf('\x1b[H'))
+    expect(tail).not.toContain('⚙ 配置')
+    expect(tail).not.toContain('已配置')
+    expect(tail).not.toContain('code-review')
     await app.dispose()
   })
 
@@ -2301,7 +2644,7 @@ describe('TuiApp Phase 6.1 slash 命令系统', () => {
     const app = new TuiApp({ ctx, stdout, stdin, theme: 'paper' })
     await app.attach()
     stdin.emit('data', '/theme paper\r') // 键入命令 + 回车
-    await new Promise(resolve => setImmediate(resolve))
+    await new Promise(resolve => setTimeout(resolve, 40))
 
     expect(getActiveThemeName()).toBe('paper')
     expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('主题已切换: paper')
@@ -3278,14 +3621,14 @@ describe('TuiApp switchLiveModel（C2 项 4 模型热切）', () => {
     await app.dispose()
   })
 
-  it('switchSession 到 registry 兜底会话（agent 已存在）→ 热切不可用（ref 归 null）', async () => {
+  it('switchSession 到 registry 已有 live agent → 仍可热切（交接主会话）', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('hot-registry-1')
-    ctx.agents.get.mockReturnValue(agent) // registry 已有 live agent
-    ctx.sessions.get.mockReturnValue(agent.session) // mountSession 需要 session
+    ctx.agents.get.mockReturnValue(agent)
+    ctx.sessions.get.mockReturnValue(agent.session)
     const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
     await app.switchSession(SessionId('hot-registry-1'))
-    expect(app.switchLiveModel({ provider: 'openai', model: 'gpt-5' })).toBe(false)
+    expect(app.switchLiveModel({ provider: 'openai', model: 'gpt-5', reasoningEffort: ReasoningEffortId('max') })).toBe(true)
     await app.dispose()
   })
 
@@ -3888,8 +4231,15 @@ describe('TuiApp resume 模型定路分支', () => {
     const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
     await app.switchSession(SessionId('eff-1'))
     expect(ctx.agents.resume).toHaveBeenCalledTimes(1)
-    // agentOptions 只传 provider/model；reasoningEffort 经 selection 进 setup（installModelSelection）
-    const options = ctx.agents.resume.mock.calls[0]?.[0] as { setup?: (c: unknown) => void }
+    const options = ctx.agents.resume.mock.calls[0]?.[0] as {
+      agentOptions?: { provider: string; model: string; reasoningEffort?: string }
+      setup?: (c: unknown) => void
+    }
+    expect(options.agentOptions).toEqual({
+      provider: 'deepseek',
+      model: 'deepseek-r1',
+      reasoningEffort: 'high',
+    })
     expect(options.setup).toBeTypeOf('function')
     await app.dispose()
   })
@@ -4536,9 +4886,11 @@ describe('TuiApp subagent / workflow / tasks 服务接线', () => {
     stdin.emit('data', '\r')
     await new Promise(resolve => setImmediate(resolve))
     let written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('⏳ 跑测试')
-    expect(written).toContain('✓ 构建 · ok')
-    expect(written).toContain('✗ 清理')
+    // 完成/失败卡的标题走 muted 着色，剥掉 SGR 后断言用户可见行。
+    const plain = written.replaceAll(/\u001b\[[0-9;]*m/g, '')
+    expect(plain).toContain('⠋ 跑测试')
+    expect(plain).toContain('› 构建 · ok')
+    expect(plain).toContain('✗ 清理')
 
     stdout.write.mockClear()
     ;(taskDone as ((s: { label: string }) => void) | null)?.({ label: '编译' })
@@ -5017,9 +5369,11 @@ describe('TuiApp /model slash 走 switchLiveModel 闭包', () => {
 
     app.handleSubmit('/model deepseek/v4-turbo')
     await new Promise(resolve => setTimeout(resolve, 30))
-    // 热切路径：modelRef.current 更新（switchLiveModel 闭包生效）
+    // 热切路径：modelRef.current 更新（switchLiveModel 闭包生效）。
+    // dispose 会清空 modelRef（a63f90de 拆除语义），先读后拆。
+    const hotSwitch = (app as unknown as { modelRef: { current: unknown } | null }).modelRef?.current
     await app.dispose()
-    expect((app as unknown as { modelRef: { current: unknown } | null }).modelRef?.current).toEqual({ provider: 'deepseek', model: 'v4-turbo' })
+    expect(hotSwitch).toEqual({ provider: 'deepseek', model: 'v4-turbo' })
   })
 })
 
@@ -5637,9 +5991,29 @@ describe('bracketed paste 接线（多行/长文本粘贴不逐行提交）', ()
     await app.attach()
     let written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('\x1b[?2004h') // DECSET 2004 on
+    expect(written).toContain('\x1b[>1u') // Kitty disambiguate
     await app.dispose()
     written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('\x1b[?2004l') // DECSET 2004 off
+    expect(written).toContain('\x1b[<u')
+  })
+
+  it('Shift+Enter（CSI 13;2u）切换手工换行：Enter 插换行，再切回后提交', async () => {
+    const { agent, stdin, stdout, app } = boot()
+    await app.attach()
+    stdin.emit('data', '\x1b[13;2u')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('换行中')
+    stdin.emit('data', 'hello\r')
+    await new Promise(resolve => setTimeout(resolve, 40))
+    expect(agent.followup).not.toHaveBeenCalled()
+    stdin.emit('data', '\x1b[13;2u')
+    await new Promise(resolve => setImmediate(resolve))
+    stdin.emit('data', '\r')
+    await new Promise(resolve => setTimeout(resolve, 40))
+    expect(agent.followup).toHaveBeenCalledTimes(1)
+    expect(firstCallText(agent.followup)).toBe('hello')
+    await app.dispose()
   })
 
   it('非 bracketed paste 终端粘贴多行（\\r 逐行裸入）→ 合并为一次发送', async () => {
@@ -5675,11 +6049,11 @@ describe('bracketed paste 接线（多行/长文本粘贴不逐行提交）', ()
     const { stdin, stdout, app } = boot()
     await app.attach()
     stdout.write.mockClear()
-    const longText = Array.from({ length: 20 }, (_, i) => `line-${i}`).join('\n')
+    const longText = Array.from({ length: 120 }, (_, i) => `line-${i}`).join('\n')
     stdin.emit('data', `\x1b[200~${longText}\x1b[201~`)
     await new Promise(resolve => setTimeout(resolve, 40))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('[paste #1 +20 lines]') // 折叠标记
+    expect(written).toContain('[paste #1 +120 lines]') // 折叠标记（阈值已抬至 100 行/10K 字符）
     await app.dispose()
   })
 })
@@ -5754,9 +6128,13 @@ describe('TuiApp 剪贴板图片与复制（opencode 接线移植）', () => {
     stdout.write.mockClear()
     // 右键粘贴图片：终端把图片字节作为文本 paste 进来（乱码）
     stdin.emit('data', '\x1b[200~���PNG\x1b[201~')
-    await new Promise(resolve => setTimeout(resolve, 40))
+    // 条件轮询替代固定 40ms：附图渲染异步落定，全量并发负载下固定等待
+    // 曾欠额（与本文件流利度 flaky 同类根因；移植 dsh-tui 86cea46）
+    await vi.waitFor(() => {
+      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('📎 1 image')
+    }, { timeout: 5_000, interval: 25 })
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('📎 1 image')
     expect(written).not.toContain('���PNG') // 乱码被吞
     await app.dispose()
   })
@@ -5770,9 +6148,11 @@ describe('TuiApp 剪贴板图片与复制（opencode 接线移植）', () => {
       await app.attach()
       stdout.write.mockClear()
       stdin.emit('data', `\x1b[200~${pngPath}\x1b[201~`)
-      await new Promise(resolve => setTimeout(resolve, 60))
-      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-      expect(written).toContain('📎 1 image')
+      // 条件轮询替代固定 60ms（同上：异步加载 + 渲染在全量并发下不定时落定）
+      await vi.waitFor(() => {
+        const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+        expect(written).toContain('📎 1 image')
+      }, { timeout: 5_000, interval: 25 })
       await app.dispose()
     } finally {
       rmSync(dir, { recursive: true, force: true })
@@ -6230,6 +6610,96 @@ describe('TuiApp cmdline 参数处理（A3）', () => {
     const app = new TuiApp({ ctx, stdout, stdin })
     await app.attach()
     expect(firstCallText(agent.followup)).toBe('修复这个 bug')
+    await app.dispose()
+  })
+})
+
+describe('会话切换稳健性（switchSession 竞态 / restore 失败 / 委派树重绘）', () => {
+  it('快速连续切换：迟到的 resume 不得覆盖新会话的挂载', async () => {
+    const ctx = makeCtx()
+    ctx.sessions.list.mockReturnValue([])
+    const sA = SessionId('session-race-a')
+    const sB = SessionId('session-race-b')
+    // 完整 session 形状（requestHeader/events 等）——mountSession 会读
+    ctx.sessions.get.mockImplementation((id: SessionId) => makeAgent(String(id)).session)
+    ctx.agents.create.mockResolvedValue(makeHandle(makeAgent('race-boot')))
+    // A 的 resume 挂起（手动放行），B 的立即完成
+    let releaseA!: (handle: AgentHandle) => void
+    const resumeA = new Promise<AgentHandle>((resolve) => { releaseA = resolve })
+    const disposeB = vi.fn()
+    const handleB = makeHandle(makeAgent('race-b'), disposeB)
+    ctx.agents.resume.mockImplementation((req: { resumeSessionId: SessionId }) =>
+      req.resumeSessionId === sA ? resumeA : Promise.resolve(handleB))
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    // 先切 A（resume 挂起中），B 随即跟上并先完成
+    const switchA = app.switchSession(sA)
+    await new Promise(resolve => setImmediate(resolve))
+    const switchB = app.switchSession(sB)
+    await switchB
+    expect(app.sessionId).toBe(sB)
+    // A 的 resume 这时才完成（迟到）：不得挂载 A / 覆盖 ownedHandle
+    releaseA(makeHandle(makeAgent('race-a')))
+    await switchA
+    await app.dispose()
+    // 退出时 dispose 的是当前挂载（B）的 handle——若迟到的 A 覆盖过
+    // ownedHandle，这里 dispose 的会是 A 的 handle 而 B 泄漏
+    expect(disposeB).toHaveBeenCalledTimes(1)
+  })
+
+  it('restoreRecentOtherSession：listSessions 拒绝 → 静默降级不产生 unhandled rejection', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('restore-fail')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.agents.get.mockReturnValue(agent)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    // attach 完成后再让 list 失败（attach 自身要读 live store 判空）
+    ctx.sessions.list.mockImplementation(() => { throw new Error('boom') })
+    const internal = app as unknown as { restoreRecentOtherSession(): Promise<void> }
+    await expect(internal.restoreRecentOtherSession()).resolves.toBeUndefined()
+    await app.dispose()
+  })
+
+  it('委派树刷新失败 → 置空并调度重绘（面板不滞留旧树）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('deleg-fail')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.sessions.list.mockReturnValue([])
+    const okEntries = [{
+      kind: 'child', id: 'child-1', parentId: 'root', depth: 1,
+      activity: 'running', hasChildren: false, mode: 'one-shot', label: '探查',
+    }]
+    let descendants: (id: SessionId) => Promise<typeof okEntries> = async () => okEntries
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'subagents') return { listDescendants: (id: SessionId) => descendants(id) }
+      return undefined
+    })
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    const internal = app as unknown as {
+      refreshDelegationTree(id: SessionId): void
+      subagentsPanelVisible: boolean
+    }
+    // 委派树面板门控打开（renderDelegationPanel 只在可见时渲染）
+    internal.subagentsPanelVisible = true
+    internal.refreshDelegationTree(SessionId('session-deleg'))
+    await new Promise(resolve => setTimeout(resolve, 60))
+    const writesAfterOk = stdout.write.mock.calls.length
+    expect(writesAfterOk).toBeGreaterThan(0)
+    // 刷新失败：面板须清空（重绘），而不是滞留旧树
+    descendants = () => Promise.reject(new Error('boom'))
+    internal.refreshDelegationTree(SessionId('session-deleg'))
+    await new Promise(resolve => setTimeout(resolve, 150))
+    expect(stdout.write.mock.calls.length).toBeGreaterThan(writesAfterOk)
     await app.dispose()
   })
 })

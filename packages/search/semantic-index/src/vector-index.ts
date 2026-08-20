@@ -8,16 +8,23 @@
  * @module @huiliyi37/dsh-semantic-index/vector-index
  */
 
+/** One nearest-neighbour hit from a brute-force cosine scan. */
 export interface VectorHit {
+  /** Chunk id. */
   id: string
+  /** Cosine similarity in [0, 1]. */
   score: number
 }
 
 /** On-disk snapshot shape of a {@link VectorIndex}. */
 export interface VectorIndexSnapshot {
+  /** Snapshot format version. */
   version: number
+  /** Embedder identity stamp. */
   providerId: string
+  /** Vector dimension. */
   dim: number
+  /** Stored vectors keyed by chunk id. */
   entries: Array<{ id: string; vector: number[] }>
 }
 
@@ -61,6 +68,10 @@ export class VectorIndex {
     return this._providerId
   }
 
+  /**
+   * Provider id whose embeddings this store holds.
+   * @param id - embedder identity stamp.
+   */
   set providerId(id: string) {
     this._providerId = id
   }

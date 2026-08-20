@@ -9,6 +9,7 @@
 | [`sandbox/`](sandbox/README.md) | 定义进程沙箱服务和共享升权词汇 | `ctx.sandbox` |
 | [`sandbox-local/`](sandbox-local/README.md) | 提供本地平台限制后端 | 注册到 `ctx.sandbox` |
 | [`sandbox-policy/`](sandbox-policy/README.md) | 解析持久的逐会话沙箱策略 | `ctx.sandboxPolicy` |
+| [`sandbox-windows-acl/`](sandbox-windows-acl/README.md) | Windows 受限令牌写限制后端 | `ctx.sandbox` 的 rung |
 
 [沙箱决策](../../.agents/notes/implemented/feature/2026-07-06-sandbox.md)记录了能力边界，[文件系统集成决策](../../.agents/notes/implemented/feature/2026-07-14-cross-family-fs-sandbox.md)记录了跨家族策略的使用方式。
 

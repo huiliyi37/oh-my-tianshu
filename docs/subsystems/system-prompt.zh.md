@@ -53,6 +53,13 @@ interface PromptSection {
    */
   readonly order: number
   /**
+   * Treat this contribution as the complete system prompt. Assembly still
+   * runs its waterfall, but the effective complete section is restored as the
+   * sole prompt section afterwards. More than one effective complete section
+   * makes assembly fail.
+   */
+  readonly complete?: boolean
+  /**
    * Static text or a provider evaluated at each assembly with that assembly's
    * {@link AssembleContext}. The text may reference `{{variable}}`s — they are
    * interpolated later, by {@link renderPrompt}.
@@ -103,6 +110,14 @@ Registry service for the prompt inputs assembled before each model step.
 section(section: PromptSection): () => void
 
 /**
+ * Suppress every dynamic runtime-context contribution in the calling
+ * context's scope without changing the services that own or enforce those
+ * facts. Multiple suppressors remain independently disposable.
+ * @returns the exact Cordis effect disposer.
+ */
+suppressRuntimeContext(): () => void
+
+/**
  * Register ordered dynamic context in the calling context's scope. Scoped
  * entries shadow global entries with the same name.
  * @param context - the context contribution to register.
@@ -139,7 +154,7 @@ variable(name: string, provider: (context: AssembleContext) => string | undefine
 async assemble(context: AssembleContext = {}): Promise<PromptAssembly>
 ```
 
-Source: [`packages/core/system-prompt/src/index.ts:314`](../../packages/core/system-prompt/src/index.ts)
+Source: [`packages/core/system-prompt/src/index.ts:329`](../../packages/core/system-prompt/src/index.ts)
 
 <a id="system-prompt-events"></a>
 

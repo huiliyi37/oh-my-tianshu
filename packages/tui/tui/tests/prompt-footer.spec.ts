@@ -35,6 +35,7 @@ describe('formatPromptFooter', () => {
     expect(line).toContain('normal')
     expect(line).not.toContain('Enter 发送')
     expect(line).toContain('/ 命令')
+    expect(line).toContain('ctrl+j')
     expect(line).toContain('ctrl+p')
   })
 
@@ -132,17 +133,18 @@ describe('formatPromptFooter', () => {
   })
 
   it('右侧段恰好填满：pad=0 仍合并，不丢末段', () => {
-    // 新 hint 集（无 Enter 发送）左侧满档 29 列；width 41 → 右段 12 列恰好 pad=0 合并。
+    // 新 hint 集左侧满档 `normal · / 命令 · ctrl+j 换行 · ctrl+p 面板` = 43 列；
+    // width 55 → 右段 12 列恰好 pad=0 合并。
     const [line = ''] = plain(formatPromptFooter(base({
-      width: 41,
+      width: 55,
       rightSegments: ['xxxxxxxxxxxx'],
     }), fakeTheme()))
     expect(line).toContain('normal')
     expect(line).toContain('xxxxxxxxxxxx')
     expect(displayWidth(formatPromptFooter(base({
-      width: 41,
+      width: 55,
       rightSegments: ['xxxxxxxxxxxx'],
-    }), fakeTheme())[0] ?? '')).toBe(41)
+    }), fakeTheme())[0] ?? '')).toBe(55)
   })
 
   it('空右侧段：与缺省行为一致', () => {
@@ -157,5 +159,20 @@ describe('formatPromptFooter', () => {
     expect(line).toContain('\x1B[38;2;170;178;194m')
     expect(line).toContain('\x1B[38;2;94;102;115m')
     expect(line).not.toContain('\x1B[38;2;17;17;17m')
+  })
+
+  it('agentBusy：提示 esc/ctrl+c 打断', () => {
+    const [line = ''] = plain(formatPromptFooter(base({ agentBusy: true }), fakeTheme()))
+    expect(line).toContain('esc 打断')
+    expect(line).toContain('ctrl+c 打断')
+    expect(line).not.toContain('/ 命令')
+  })
+
+  it('newlineMode：提示换行中', () => {
+    const [line = ''] = plain(formatPromptFooter(base({ newlineMode: true }), fakeTheme()))
+    expect(line).toContain('换行中')
+    expect(line).toContain('enter 换行')
+    expect(line).toContain('shift+enter 退出')
+    expect(line).toContain('pgup 翻页')
   })
 })

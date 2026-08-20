@@ -59,6 +59,19 @@
     - id: workspace
       name: '@huiliyi37/dsh-workspace'
 
+    # Cross-session memory service (provide 'memory'): `/remember` and
+    # `/memory` from command-memory share this backend. Storage lands at
+    # `<cwd>/.dsh/memory/`. TUI mounts its own copy and does not load
+    # command-memory (it owns those names in its private registry).
+    - id: memory
+      name: '@huiliyi37/dsh-memory'
+
+    # Host `/remember` + `/memory` for command adapters without a TUI
+    # registry. Missing memory answers the unavailable text; this bundle
+    # mounts the service above so the shipped Web path writes.
+    - id: command-memory
+      name: '@huiliyi37/dsh-command-memory'
+
     - id: session-projection-cache
       name: '@huiliyi37/dsh-session-projection-cache'
       config:
@@ -162,6 +175,21 @@
     # it (ui-command), and the two reference sources (ui-skill / ui-subagent).
     - id: ui-slash
       name: '@huiliyi37/dsh-client-ui-slash'
+
+    # The preset roster. `config/agent-presets/` ships with the deployment and
+    # is read-only (its entries carry `system` trust); `$DSH_HOME/.agent-presets`
+    # is where a person — or an agent — authors their own, and carries the same
+    # trust as shell access because a preset IS a composition.
+    #
+    # Only the SHIPPED root is an assembly fact: it sits beside the installed
+    # app's own config, so `apps/cli`'s `composeProfile` resolves and patches it
+    # in. The writable root is `dsh-agent-presets`' own default
+    # (`includeUserRoot`), so a composition that never reaches that patch still
+    # finds a person's presets.
+    - id: agent-presets
+      name: '@huiliyi37/dsh-agent-presets'
+      config:
+        default: standard
 
     - id: ui-command
       name: '@huiliyi37/dsh-client-ui-command'

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-19-intent-bridge-exec-effort.md
+2026-08-19-intent-bridge-exec-effort.md: e9374d2c4da905076b350b276b883e070541e234
+2026-08-19-intent-bridge-exec-effort.zh.md: 84992a7cabbb9b82b703658e7da2fce7e01f3d71

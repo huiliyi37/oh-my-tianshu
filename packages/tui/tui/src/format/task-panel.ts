@@ -3,13 +3,13 @@
  *
  * 纯函数层：projectTaskPanel 把 sessionProjections 注册表的任务投影
  * （全量快照或 null）投影为面板行。null = 从未写过任务（面板不渲染）；
- * 空数组 = 已清空（渲染占位）。TuiApp 消费注册表的任务单元，/tasks 命令
- * 切换显隐，行渲染进 live 区。
+ * 空数组 = 已清空（渲染占位）。行是 checklist（`[ ]` / `⏳` / `[x]`），
+ * 不是进程卡——后台任务快照的 ›/⠋/⎿ 语汇在 live-panels 里走 formatLiveCard。
  *
  * @module @huiliyi37/dsh-tui/format/task-panel
  */
 
-import { displayWidth } from '../width.js'
+import { truncateToLiveWidth } from './live-card.js'
 
 /** 任务条目（与 session-projection 任务单元的 wire 形状一致）。 */
 export interface TaskItem {
@@ -41,23 +41,7 @@ export function projectTaskPanel(tasks: TaskItem[] | null, width: number): strin
     return rows
   }
   for (const task of tasks) {
-    rows.push(truncateByWidth(` ${statusMark(task.status)} ${task.content}`, Math.max(1, width)))
-    /* jscpd:ignore-start */
+    rows.push(truncateToLiveWidth(` ${statusMark(task.status)} ${task.content}`, Math.max(1, width)))
   }
   return rows
 }
-
-/** 按显示宽度截断字符串（仅发生截断时尾部补 …）。 */
-function truncateByWidth(text: string, max: number): string {
-  if (max <= 1) return '…'
-  let out = ''
-  let w = 0
-  for (const ch of text) {
-    const cw = displayWidth(ch)
-    if (w + cw > max - 1) break
-    out += ch
-    w += cw
-  }
-  return w < displayWidth(text) ? `${out}…` : out
-}
-/* jscpd:ignore-end */

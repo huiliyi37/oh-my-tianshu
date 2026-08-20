@@ -199,6 +199,15 @@ interface TypeRTClientRemote extends TypeRTRemoteNamespaceMap {
    * @returns disposer after namespace services and concrete methods are ready.
    */
   $mount(contribution: TypeRTRemoteContribution): Promise<TypeRTDisposer>
+  /**
+   * Subscribe to one Host-forwarded event. The local Gateway does not yet
+   * forward events, so consumers guard the call (absent at runtime); the
+   * typing mirrors the official surface for ported consumers.
+   * @param event - forwarded event name.
+   * @param listener - the Host's own argument list for that event.
+   * @returns the exact subscription disposer.
+   */
+  $on?(event: string, listener: (...args: unknown[]) => void): () => void
 }
 ```
 

@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-本家族通过 subagent 运行由模型编写的编排工作流，并将通用工具与固定策略工具公开给模型。
+本家族通过 subagent 运行由模型编写的编排工作流，并将通用工具与固定策略工具公开给模型。`@huiliyi37/dsh-next-workflow` 是同组里宿主拥有的人类命令，已上树，不进任何发货组合。
 
 | 包 | 职责 | ctx 键 |
 |---|---|---|
@@ -10,6 +10,7 @@
 | [`workflow-workerthread/`](workflow-workerthread/README.md) | 在线程中运行工作流脚本 | 注册到 `ctx.workflows` |
 | [`tool-workflow/`](tool-workflow/README.md) | 向模型公开通用工作流执行 | 注册到 `ctx.tools` |
 | [`tool-ralph/`](tool-ralph/README.md) | 公开使用全新 agent（智能体）的固定 Ralph 工作流 | 注册到 `ctx.tools` |
+| [`next-workflow/`](next-workflow/README.md) | 人类 `/next-workflow` 意图流水线 | 注册到 `ctx.commands` |
 
 worker thread 将工作流执行与宿主事件循环隔离，但不构成安全边界。参见[动态工作流](../../.agents/notes/implemented/feature/2026-07-05-dynamic-workflows.md)和 [Ralph 工具](../../.agents/notes/implemented/feature/2026-07-19-fresh-agent-ralph-workflow-tool.md)决策。
 

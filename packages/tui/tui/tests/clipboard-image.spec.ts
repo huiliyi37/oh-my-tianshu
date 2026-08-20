@@ -10,6 +10,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   readImageFromClipboard,
+  readTextFromClipboard,
   setClipboardReader,
   tryShellClipboard,
 } from '../src/engine/clipboard-image.js'
@@ -47,6 +48,29 @@ describe('readImageFromClipboard 注入点', () => {
       async readImage() { throw new Error('osascript missing') },
     })
     expect(await readImageFromClipboard()).toBeNull()
+    setClipboardReader(null)
+  })
+
+  it('readText 注入：走 mock 不落真实 pbpaste；抛错静默 null（移植 dsh-tui ba45980）', async () => {
+    setClipboardReader({
+      async readImage() { return null },
+      async readText() { return '剪贴板文本' },
+    })
+    expect(await readTextFromClipboard()).toBe('剪贴板文本')
+    setClipboardReader(null)
+
+    setClipboardReader({
+      async readImage() { return null },
+      async readText() { throw new Error('pbpaste missing') },
+    })
+    expect(await readTextFromClipboard()).toBeNull()
+    setClipboardReader(null)
+  })
+
+  it('无 readText 注入的 reader → 文本路径保持原 shell 链（不抛错）', async () => {
+    setClipboardReader({ async readImage() { return null } })
+    const r = await readTextFromClipboard()
+    expect(r === null || typeof r === 'string').toBe(true)
     setClipboardReader(null)
   })
 })

@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-spill-local",
   "description": "Local-filesystem implementation of the Tianshu Harness spill storage seam (private session-scoped files)",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

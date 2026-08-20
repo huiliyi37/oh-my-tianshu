@@ -215,5 +215,73 @@ async resolveByPath(path: string): Promise<Workspace | undefined>
 
 Types: [SessionId](core.md)
 
-Source: [`packages/workspace/workspace/src/index.ts:81`](../../packages/workspace/workspace/src/index.ts)
+Source: [`packages/workspace/workspace/src/index.ts:83`](../../packages/workspace/workspace/src/index.ts)
+
+<a id="ctxworkspaceregistry--workspaceregistry"></a>
+
+### `ctx.workspaceRegistry` — `WorkspaceRegistry`
+
+Durable workspace registry. Startup waits for `sessionPersistence`, builds one canonical-cwd header index, and completes the one-time history bootstrap before the service becomes active. The persistence dependency is mandatory so an unavailable peer can never be mistaken for an empty history and commit the initialized marker.
+
+```ts cordis-catalog
+/**
+ * Create or reuse a workspace for an existing directory. The path is
+ * canonicalized through `fs.realpath`; a nonexistent path rejects with the
+ * original error and a non-directory rejects. Repeated calls for the same
+ * canonical path return the existing entity without changing its title.
+ * A newly created workspace is prepended to the durable registry order.
+ * Different canonical paths may share a display title.
+ * @param path - Existing directory to own, in any path spelling.
+ * @param title - Display title used only when a new record is created.
+ * @returns the existing or newly durable workspace.
+ */
+async create(path: string, title?: string): Promise<Workspace>
+
+/**
+ * Look up a workspace by id.
+ * @param id - Workspace id.
+ * @returns the workspace, or `undefined` when unknown.
+ */
+get(id: WorkspaceId): Workspace | undefined
+
+/**
+ * Synchronous workspace projection in durable registry order. Every
+ * entity's `sessionIds` getter is already filtered by the startup/live
+ * canonical-cwd header index; this method performs no persistence reads.
+ * @returns a fresh ordered array of workspace entities.
+ */
+list(): Workspace[]
+
+/**
+ * Delete one workspace registration while retaining its directory and every
+ * session log. The durable order is updated before the table deletion; a
+ * failed table write restores the prior order and keeps the entity
+ * published. Unknown ids are an idempotent no-op for domain callers.
+ * @param id - Workspace registration to remove.
+ * @returns `true` when a record was deleted, `false` when it was unknown.
+ */
+delete(id: WorkspaceId): Promise<boolean>
+
+/**
+ * Archive one session durably. The session must exist (live or in session
+ * persistence); its workspace accounting — or lack of one — is irrelevant.
+ * An already archived id resolves without writing.
+ * @param sessionId - The session to archive.
+ * @returns resolution after durability.
+ */
+archiveSession(sessionId: SessionId): Promise<void>
+
+/**
+ * Resolve by canonical directory path without creating or mutating a
+ * workspace. A missing path rejects during `realpath`; an existing unowned
+ * directory returns `undefined`.
+ * @param path - Existing directory path in any spelling.
+ * @returns the workspace owning the canonical path, when one exists.
+ */
+async resolveByPath(path: string): Promise<Workspace | undefined>
+```
+
+Types: [SessionId](core.md)
+
+Source: [`packages/workspace/workspace/src/index.ts:83`](../../packages/workspace/workspace/src/index.ts)
 <!-- END GENERATED cordis-surface -->

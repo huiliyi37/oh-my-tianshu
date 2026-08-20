@@ -78,7 +78,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }[T]
 ```
 
-Sources: [`packages/core/session/src/types.ts:310`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:317`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:345`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:377`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:318`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:325`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:353`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:385`](../packages/core/session/src/types.ts)
 
 ## Events
 
@@ -109,13 +109,15 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 
 ```ts persistence-catalog
 /**
- * 用户经 `/preset` 选定 agent 预设的事实记录。载荷 `agentPreset` 是选中的预设名;
- * log-only,只供投影与审计回放,不进模型派生历史。
+ * The session's agent preset was chosen after creation, while the session
+ * was still blank. Log-only: it records the composition later turns ran
+ * under, so a resumed or forked session rebuilds the same one instead of
+ * the header's creation-time value.
  */
 'agent-preset/selected': { agentPreset: string }
 ```
 
-Source: [`packages/tui/tui/src/commands/registry.ts:36`](../packages/tui/tui/src/commands/registry.ts)
+Source: [`packages/preset/agent-presets/src/session.ts:26`](../packages/preset/agent-presets/src/session.ts)
 
 ### `approval/*`
 
@@ -189,7 +191,7 @@ Source: [`packages/interaction/user-approval/src/index.ts:67`](../packages/inter
 
 Types: [StreamChunk](subsystems/llm-streaming.md)
 
-Source: [`packages/core/session/src/types.ts:238`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:246`](../packages/core/session/src/types.ts)
 
 #### `assistant/message` — surface
 
@@ -205,7 +207,7 @@ Source: [`packages/core/session/src/types.ts:238`](../packages/core/session/src/
 
 Types: [TokenUsage](subsystems/llm-streaming.md)
 
-Source: [`packages/core/session/src/types.ts:245`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:253`](../packages/core/session/src/types.ts)
 
 ### `command/*`
 
@@ -426,6 +428,21 @@ Source: [`packages/hooks/hook-protocol/src/types.ts:19`](../packages/hooks/hook-
 
 Source: [`packages/hooks/hook-protocol/src/types.ts:33`](../packages/hooks/hook-protocol/src/types.ts)
 
+### `intent-bridge/*`
+
+#### `intent-bridge/handoff` — log-only
+
+```ts persistence-catalog
+/**
+ * Durable handoff record on the MAIN session's log: log-only (never
+ * reaches the model surface), whole-value append. At most one per
+ * session — the invariant checks it.
+ */
+'intent-bridge/handoff': { alignSessionId: string; reason: string }
+```
+
+Source: [`packages/guard/intent-bridge/src/index.ts:68`](../packages/guard/intent-bridge/src/index.ts)
+
 ### `llm/*`
 
 #### `llm/retry` — log-only
@@ -445,6 +462,82 @@ Source: [`packages/llm/llm-retry/src/types.ts:9`](../packages/llm/llm-retry/src/
 ```
 
 Source: [`packages/llm/llm-retry/src/types.ts:11`](../packages/llm/llm-retry/src/types.ts)
+
+### `memory/*`
+
+#### `memory/cache-hit` — log-only
+
+```ts persistence-catalog
+/** 门控保持：本轮评估后 STM 逐字节不变 — log-only（无 surfaceOp）。 */
+'memory/cache-hit': { intentId: string; intentKey: string; turn: number }
+```
+
+Source: [`packages/memory/adaptive-memory/src/types.ts:65`](../packages/memory/adaptive-memory/src/types.ts)
+
+#### `memory/cache-miss` — log-only
+
+```ts persistence-catalog
+/** 门控触发一次 STM 刷新 — log-only（无 surfaceOp）；选择结果见紧随的 memory/stm-selected。 */
+'memory/cache-miss': { intentId: string; intentKey: string; turn: number; reason: StmRefreshReason }
+```
+
+Source: [`packages/memory/adaptive-memory/src/types.ts:67`](../packages/memory/adaptive-memory/src/types.ts)
+
+#### `memory/reminder` — log-only
+
+```ts persistence-catalog
+/**
+ * 一次规则兜底提醒的触发决策 — log-only（无 surfaceOp）。提醒文本本身经
+ * memory:reminder context 贡献进入下一份 context-snapshot（模型可见面由
+ * 快照机制记录）；本事件只记决策（kind/subject/预算基准），供指标与审计。
+ */
+'memory/reminder': { intentId: string; turn: number; kind: 'unknown-entity' | 'error-code'; subject: string }
+```
+
+Source: [`packages/memory/adaptive-memory/src/types.ts:73`](../packages/memory/adaptive-memory/src/types.ts)
+
+#### `memory/stm-selected` — log-only
+
+```ts persistence-catalog
+/**
+ * 一次 STM 刷新的选择结果 — log-only（无 surfaceOp，不进模型可见面）。
+ * 与紧随其后的 context-snapshot user/message 共同满足 model-visible ⟺
+ * logged：快照里渲染的短 id 必须能以本事件 entryIds 的前缀匹配还原。
+ */
+'memory/stm-selected': { intentId: string; intentKey: string; turn: number; entryIds: string[] }
+```
+
+Source: [`packages/memory/adaptive-memory/src/types.ts:63`](../packages/memory/adaptive-memory/src/types.ts)
+
+### `next-workflow/*`
+
+#### `next-workflow/end` — log-only
+
+```ts persistence-catalog
+/**
+ * A `/next-workflow` run settled. Log-only; pairs with its
+ * `next-workflow/phase` records by `runId`. `detail` carries the verify
+ * disposition (`verified`/`unverified`) or the failure message.
+ */
+'next-workflow/end': { runId: string; outcome: NextWorkflowOutcome; detail?: string }
+```
+
+Source: [`packages/workflow/next-workflow/src/index.ts:97`](../packages/workflow/next-workflow/src/index.ts)
+
+#### `next-workflow/phase` — log-only
+
+```ts persistence-catalog
+/**
+ * One `/next-workflow` phase settled. Log-only (never the model surface or
+ * derived history); `artifact` points at the on-disk phase handoff, which
+ * survives compaction, and `detail` carries a short human summary such as
+ * the critique verdict or the verify outcome. A `select` phase additionally
+ * carries `selection`, so best-of-N plan selection is auditable from the log.
+ */
+'next-workflow/phase': { runId: string; phase: NextWorkflowPhase; artifact?: string; detail?: string; selection?: SelectionAudit }
+```
+
+Source: [`packages/workflow/next-workflow/src/index.ts:91`](../packages/workflow/next-workflow/src/index.ts)
 
 ### `permission/*`
 
@@ -504,7 +597,7 @@ Source: [`packages/plan/plan-mode/src/index.ts:64`](../packages/plan/plan-mode/s
 'request/context': RequestContext
 ```
 
-Source: [`packages/core/session/src/types.ts:283`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:291`](../packages/core/session/src/types.ts)
 
 #### `request/header` — log-only
 
@@ -516,7 +609,7 @@ Source: [`packages/core/session/src/types.ts:283`](../packages/core/session/src/
 'request/header': { header: EpochHeader; reason: RequestHeaderReason }
 ```
 
-Source: [`packages/core/session/src/types.ts:278`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:286`](../packages/core/session/src/types.ts)
 
 ### `sandbox/*`
 
@@ -538,6 +631,20 @@ Source: [`packages/core/session/src/types.ts:278`](../packages/core/session/src/
 ```
 
 Source: [`packages/sandbox/sandbox-policy/src/session-mode.ts:33`](../packages/sandbox/sandbox-policy/src/session-mode.ts)
+
+### `schedule/*`
+
+#### `schedule/change` — log-only
+
+```ts persistence-catalog
+/**
+ * Versioned Schedule mutation. The owning package validates the complete
+ * session-local transition stream before accepting a candidate event.
+ */
+'schedule/change': ScheduleChange
+```
+
+Source: [`packages/schedule/schedule/src/types.ts:219`](../packages/schedule/schedule/src/types.ts)
 
 ### `session/*`
 
@@ -569,7 +676,7 @@ Source: [`packages/sandbox/sandbox-policy/src/session-mode.ts:33`](../packages/s
 'session/end-seed': Record<string, never>
 ```
 
-Source: [`packages/core/session/src/types.ts:306`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:314`](../packages/core/session/src/types.ts)
 
 #### `session/title` — log-only
 
@@ -605,7 +712,7 @@ Source: [`packages/session/session-title-llm/src/index.ts:43`](../packages/sessi
 'step/end': { turn: number; step: number }
 ```
 
-Source: [`packages/core/session/src/types.ts:228`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:236`](../packages/core/session/src/types.ts)
 
 #### `step/start` — log-only
 
@@ -614,7 +721,7 @@ Source: [`packages/core/session/src/types.ts:228`](../packages/core/session/src/
 'step/start': { turn: number; step: number }
 ```
 
-Source: [`packages/core/session/src/types.ts:226`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:234`](../packages/core/session/src/types.ts)
 
 ### `subagent/*`
 
@@ -644,7 +751,7 @@ Source: [`packages/subagent/subagent/src/descriptor.ts:37`](../packages/subagent
 
 Types: [TodoItem](subsystems/session.md)
 
-Source: [`packages/core/session/src/types.ts:273`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:281`](../packages/core/session/src/types.ts)
 
 ### `tool/*`
 
@@ -663,7 +770,7 @@ Source: [`packages/core/session/src/types.ts:273`](../packages/core/session/src/
 
 Types: [CallId](subsystems/core.md)
 
-Source: [`packages/core/session/src/types.ts:253`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:261`](../packages/core/session/src/types.ts)
 
 #### `tool/code-dispatch` — log-only
 
@@ -732,7 +839,7 @@ Source: [`packages/core/tools/src/types.ts:40`](../packages/core/tools/src/types
 }
 ```
 
-Source: [`packages/core/session/src/types.ts:265`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:273`](../packages/core/session/src/types.ts)
 
 ### `turn/*`
 
@@ -752,7 +859,7 @@ Source: [`packages/core/session/src/types.ts:265`](../packages/core/session/src/
 
 Types: [TurnEndReason](subsystems/session.md)
 
-Source: [`packages/core/session/src/types.ts:224`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:232`](../packages/core/session/src/types.ts)
 
 #### `turn/start` — log-only
 
@@ -766,7 +873,7 @@ Source: [`packages/core/session/src/types.ts:224`](../packages/core/session/src/
 'turn/start': { turn: number }
 ```
 
-Source: [`packages/core/session/src/types.ts:215`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:223`](../packages/core/session/src/types.ts)
 
 ### `user/*`
 
@@ -783,7 +890,7 @@ Source: [`packages/core/session/src/types.ts:215`](../packages/core/session/src/
 'user/message': UserMessage
 ```
 
-Source: [`packages/core/session/src/types.ts:236`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:244`](../packages/core/session/src/types.ts)
 
 ### `web/*`
 
@@ -795,3 +902,20 @@ Source: [`packages/core/session/src/types.ts:236`](../packages/core/session/src/
 ```
 
 Source: [`packages/web/web-search-deepseek/src/provider.ts:83`](../packages/web/web-search-deepseek/src/provider.ts)
+
+### `zen/*`
+
+#### `zen/phase` — log-only
+
+```ts persistence-catalog
+/**
+ * Which zen phase is in force from this point on: log-only, non-surface,
+ * whole-value replace. The last `zen/phase` wins; a log with none folds to
+ * `'full'` (never armed) through {@link foldZenPhase}. `reason` names the
+ * transition: `'arm'` (session start, always with phase `'zen'`) or one of
+ * the promotions `'anchor' | 'timeout' | 'triage'` (always with `'full'`).
+ */
+'zen/phase': { phase: ZenPhase; reason: ZenTransitionReason }
+```
+
+Source: [`packages/guard/zen/src/index.ts:57`](../packages/guard/zen/src/index.ts)

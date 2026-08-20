@@ -1,6 +1,6 @@
 {
   "name": "@huiliyi37/oh-my-tianshu-root",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.7.0",
@@ -104,6 +104,7 @@
     "verify-export-jsdoc": "tsx scripts/verify-export-jsdoc.ts",
     "gen-tool-catalog": "tsx scripts/gen-tool-catalog.ts",
     "verify-tool-catalog": "tsx scripts/gen-tool-catalog.ts --check",
+    "verify-capability-coverage": "tsx scripts/verify-capability-coverage.ts",
     "gen-config-catalog": "tsx scripts/gen-config-catalog.ts",
     "verify-config-catalog": "tsx scripts/gen-config-catalog.ts --check",
     "gen-doc-graphs": "tsx scripts/gen-doc-graphs.ts",
@@ -138,6 +139,7 @@
     "@huiliyi37/dsh-tool-file-info": "workspace:^",
     "@huiliyi37/dsh-tool-git": "workspace:^",
     "@huiliyi37/dsh-tool-memory": "workspace:^",
+    "@huiliyi37/dsh-tool-memory-recall": "workspace:^",
     "@huiliyi37/dsh-tool-meridian": "workspace:^",
     "@huiliyi37/dsh-tool-semantic-search": "workspace:^",
     "@huiliyi37/dsh-tool-session-query": "workspace:^",

@@ -28,7 +28,8 @@ import { fileURLToPath } from 'node:url'
 import type { ReadStream, WriteStream } from 'node:tty'
 import type { Context } from '@huiliyi37/cordis'
 import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
-import type { CallId, TokenUsage } from '@huiliyi37/dsh-llm'
+import type { CallId, ReasoningEffortId, TokenUsage } from '@huiliyi37/dsh-llm'
+import type { IntentBridgeService } from '@huiliyi37/dsh-intent-bridge' // 'intent-bridge/handoff' event + ctx.intentBridge declaration merge
 import { installModelSelection, type Agent, type AgentHandle, type ModelSelection, type ModelSelectionRef } from '@huiliyi37/dsh-agent'
 // 空类型导入引入 Context 上 agentDefaultModel 服务的声明合并（headless 同款）。
 import type {} from '@huiliyi37/dsh-agent-default-model'
@@ -37,7 +38,7 @@ import { ANSI, color, imageProtocol, osc52Clipboard } from '../engine/ansi.js'
 import { LiveEngine, LIVE_TOOL_CARD_MAX, liveMaxRowsFor, nextDynamicBudget, padDynamicRegion, type LiveRegionLine } from '../engine/live-engine.js'
 import { WriteBatcher } from '../engine/write-batcher.js'
 import { InputHandler, type KeyPress, type KeyName } from '../engine/input-handler.js'
-import { InputLine } from '../engine/input-line.js'
+import { InputLine, inputViewportMaxLines } from '../engine/input-line.js'
 import { InputController, type SlashHintEntry } from '../engine/input-controller.js'
 import { ResizeHandler } from '../engine/resize-handler.js'
 import { BlockStreamWriter } from '../block-stream-writer.js'
@@ -94,8 +95,6 @@ import { formatTurnSummary as renderTurnSummaryLine } from '../format/turn-summa
 import { getToolFamily } from '../format/tool-meta.js'
 import type {
   DelegationTreeEntry,
-  DelegationIdentityProjection,
-  DelegationTimingProjection,
 } from '../delegation-panel.js'
 import type { WorkflowRunView, WorkflowResultInfoInput } from '../workflow-panel.js'
 import {
@@ -141,6 +140,8 @@ type DelegationEntry = DelegationTreeEntry
 /** T2.1：subagents 服务最小面（listDescendants 预取；事件经 ctx.on('subagent/…')）。 */
 interface SubagentsFacet {
   listDescendants(rootSessionId: SessionId, signal?: AbortSignal): Promise<DelegationEntry[]>
+  /** 终止一个 live continuable 子代理的当前 turn（one-shot 目标是服务层 no-op）。 */
+  interrupt(targetSessionId: SessionId, authority: { kind: 'user'; parentSessionId: SessionId }): void
 }
 
 /** T2.3：tasks 服务最小面（不引入 dsh-tasks 依赖；id 运行时即 string）。 */
@@ -263,6 +264,7 @@ import { formatSlashMenu, SLASH_MENU_MAX_ROWS } from '../format/slash-menu.js'
 import { formatSubagentRunning, formatSubagentDone } from '../format/subagent-line.js'
 import { glanceBarSegments } from '../format/glance-bar.js'
 import { MemoryBrowserOverlay } from '../format/memory-overlay.js'
+import { zenPhaseLabel } from '../preset-surface.js'
 
 /**
  * A1：CommandService 的最小消费面（不引入 dsh-commands 依赖）。
@@ -307,7 +309,7 @@ export interface TuiAppOptions {
   initialSessionId?: SessionId
   /** 主题名；'auto' 走系统终端配色探测，缺省 'auto'。 */
   theme?: string
-  /** 输入行为空时 Ctrl+C 连按两次的退出回调（raw-mode 下 Ctrl+C 是数据字节非 SIGINT；窗口内第二次触发）。 */
+  /** Ctrl+C 连按窗口内第二次的退出回调（不要求空输入；raw-mode 下 Ctrl+C 是数据字节非 SIGINT）。 */
   onExit?: () => void
   /** /restart：请求重启当前 dsh 进程（装配方负责 dispose + spawn 同 argv + 退出）。 */
   onRestart?: () => void
@@ -359,7 +361,7 @@ const USAGE_TEXT = `oh-my-tianshu tui — oh-my-tianshu 交互式终端界面 / 
   oh-my-tianshu tui --help            显示本帮助 / show this help
   oh-my-tianshu tui --version         输出版本 / print the version
 
-快捷键 / Keys: ctrl+n 新会话 · ctrl+s 恢复 · ctrl+p 命令面板 · / slash 命令 · ctrl+o 展开推理 · shift+tab 模式循环
+快捷键 / Keys: ctrl+n 新会话 · ctrl+s 恢复 · ctrl+p 命令面板 · / slash 命令 · esc 打断 · shift+enter 换行模式 · ctrl+j 换行 · ctrl+o 展开推理 · shift+tab 模式循环 · ctrl+c 连按退出进程
 `
 
 /** C3 项 3：写工具名判定（与 fs-snapshot 的 trackEdit 钩子同一集合）。 */
@@ -411,7 +413,7 @@ function looksLikeFilePath(
 /** 检测当前目录是否为 git 仓库（静默，失败返回 false）。 */
 function isGitRepo(): boolean {
   try {
-    execFileSync('git', ['rev-parse', '--is-inside-work-tree'], { stdio: 'pipe', encoding: 'utf-8' })
+    execFileSync('git', ['rev-parse', '--is-inside-work-tree'], { stdio: 'pipe', encoding: 'utf-8', windowsHide: true })
     return true
   } catch {
     return false
@@ -427,6 +429,7 @@ function gitBranch(): string | undefined {
     const out = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
       stdio: ['ignore', 'pipe', 'ignore'],
       encoding: 'utf-8',
+      windowsHide: true,
     }).trim()
     return out === '' || out === 'HEAD' ? undefined : out
   } catch {
@@ -444,6 +447,7 @@ function gitDirtyCount(): number {
     const out = execSync('git status --short', {
       stdio: ['ignore', 'pipe', 'ignore'],
       encoding: 'utf-8',
+      windowsHide: true,
     })
     return out.split('\n').filter(l => l.trim() !== '').length
   } catch {
@@ -463,6 +467,23 @@ export function parseSlashCommand(input: string): { kind: string; text: string }
 }
 
 /** 命令 → InputController 提示条目的投影（slash hint / Tab 补全数据源）。 */
+/**
+ * Spread one selection into create/resume/exec options without inventing an omitted effort.
+ * @param selection - current or persisted provider/model/effort.
+ * @returns the same fields, with `reasoningEffort` present only when selected.
+ */
+function callConfigFrom(selection: ModelSelection): {
+  provider: string
+  model: string
+  reasoningEffort?: ReasoningEffortId
+} {
+  return {
+    provider: selection.provider,
+    model: selection.model,
+    ...selection.reasoningEffort === undefined ? {} : { reasoningEffort: selection.reasoningEffort },
+  }
+}
+
 function toSlashHint(command: { name: string; description: string; argsHint?: string }): SlashHintEntry {
   return {
     name: command.name,
@@ -508,6 +529,10 @@ function readDistributionVersion(): string | undefined {
   return fallback
 }
 
+/**
+ * TUI 应用装配体：把渲染引擎（live/commit/输入行）、会话适配层与命令面
+ * 组装为一个可挂载/可 dispose 的终端应用（tui-runner 插件的宿主对象）。
+ */
 export class TuiApp {
   private readonly ctx: Context
   private readonly stdout: WriteStream
@@ -643,8 +668,10 @@ export class TuiApp {
   private taskSurfaceDisposer: (() => void) | null = null
   /** T1.4：plan 投影 active 态（驱动 statusline [plan] 徽标；服务缺失时为 false）。 */
   private planState: { active: boolean; pending: boolean } = { active: false, pending: false }
-  /** C2 项 4：当前会话的模型选择 ref（newSession/switchSession 挂载；registry 兜底为 null）。 */
+  /** C2 项 4：当前会话的模型选择 ref（newSession/switchSession 挂载）。 */
   private modelRef: ModelSelectionRef | null = null
+  /** installModelSelection 的 disposer；切会话时卸掉，避免 live agent 叠装监听。 */
+  private modelSelectionDisposer: (() => void) | null = null
   /** C2 项 2：历史搜索 overlay（Ctrl+F；attach 时注册，消息快照激活时提供）。 */
   private searchOverlay: HistorySearchOverlay | null = null
   /** T1.2：/status 面板显隐（/status 切换；数据源为投影缓存）。 */
@@ -675,6 +702,8 @@ export class TuiApp {
   /** 进行中工具的 presentCall 标题覆盖（callId → title）；result/abort/换会话清理。 */
   private readonly pendingCallTitles = new Map<CallId, string>()
   private activeSessionId: SessionId | null = null
+  /** switchSession 代际号：连续切换时旧代作废，迟到的 resume 不再挂载。 */
+  private switchEpoch = 0
   private history: string[] = []
   private tick = 0
   private ticker: ReturnType<typeof setInterval> | null = null
@@ -683,6 +712,8 @@ export class TuiApp {
   private osc52WarningShown = false
   /** bracketed paste 处理器 disposer（attach 注册，dispose 释放）。 */
   private pasteDisposer: (() => void) | null = null
+  /** intent-bridge handoff listener (re-registered on attach, cleared on dispose). */
+  private intentBridgeDisposer: (() => void) | null = null
   /**
    * 动态段高水位（display rows），跨轮保留。回缩会使输入框上跳，并把旧轨线
    * 留在空隙里（重影）。新会话 / 切会话时归零。
@@ -790,6 +821,19 @@ export class TuiApp {
       forkSession: () => this.forkSession(),
       switchLiveModel: selection => this.switchLiveModel(selection),
       clearScrollback: () => {
+        // 命令切换的 live 信息面板（/config /skills /lsp /tasks /status
+        // /subagents /workflow）随清屏一并收起：这些面板渲染在 live 区，
+        // 只清 scrollback 不清可见性标志的话，2J 清屏后的全量重绘会把面板
+        // 内容原样画回来——用户看到的便是「/clear 清不掉命令输出」（如
+        // /config 的配置面板残留）。与既有语义一致：会话切换时 task/status
+        // 面板同样被重置（见 mountSession）。
+        this.configPanelVisible = false
+        this.skillsPanelVisible = false
+        this.lspPanelVisible = false
+        this.taskPanelVisible = false
+        this.statusPanelVisible = false
+        this.subagentsPanelVisible = false
+        this.workflowPanelVisible = false
         this.commit.reset()
         // 真实清屏（对齐 README「清空滚动区视图」）：2J 擦可见屏、3J 清终端
         // 滚动缓冲（不支持的终端无害忽略）、光标回顶；live 区状态复位后从
@@ -1004,8 +1048,15 @@ export class TuiApp {
     // bracketed paste：粘贴的多行文本被终端包裹为整段（行尾 CR 不再逐行触发
     // Enter 提交）；onPaste 处理器把整段插入输入行（超阈值折叠为标记）。
     this.stdout.write(ANSI.BRACKETED_PASTE_ON)
+    this.stdout.write(ANSI.KITTY_KEYBOARD_DISAMBIGUATE_ON)
     this.pasteDisposer?.()
     this.pasteDisposer = this.input.onPaste((text) => { void this.handlePaste(text) })
+    // 意图对齐桥：对齐完成时自动切到主会话（handoff 由 bridge 创建主会话并
+    // 注入任务卡）。重复 attach 先解绑旧 disposer。
+    this.intentBridgeDisposer?.()
+    this.intentBridgeDisposer = this.ctx.on('intent-bridge/handoff', ({ mainSessionId }) => {
+      void this.switchSession(SessionId(mainSessionId))
+    })
     // 目标 6：'auto' 才走系统终端配色探测（OSC 11 → dark/light）；显式主题直接生效。
     if (this.themeName === 'auto') {
       const background = await detectTerminalBackground()
@@ -1398,7 +1449,9 @@ export class TuiApp {
    * live store 没有时走 switchSession → resume。
    */
   private async restoreRecentOtherSession(): Promise<void> {
-    const others = (await listSessions(this.ctx)).filter(s => s.id !== this.activeSessionId)
+    // listSessions 失败静默降级（与 refreshSessionTabs 的 catch 对称）：
+    // 调用点为 void 触发（Ctrl+S），无 catch 会成为 unhandled rejection。
+    const others = (await listSessions(this.ctx).catch(() => [])).filter(s => s.id !== this.activeSessionId)
     const target = others[0]?.id
     if (target !== undefined) await this.switchSession(target)
   }
@@ -1548,14 +1601,32 @@ export class TuiApp {
     // 下一次 agent 步进的 prompt assembly 自动生效）。
     this.modelRef = { current: selection, assembled: undefined }
     const ref = this.modelRef
-    // header.cwd 是 Web 会话列表与 workspace 挂载的门槛：缺省会被持久化进
-    // `_no-cwd/` 并从 web API 可见列表过滤掉（issue #5）。TUI 工作区 = 启动目录。
+    // 意图对齐桥装配时，新会话先进对齐会话（辅模型多轮澄清）；主会话在对齐
+    // 完成（intent-bridge/handoff）时由 bridge 创建并自动切回。对齐会话的
+    // 模型路由由 bridge 配置（alignProvider/alignModel）；主会话跟随当前
+    // 模型选择与 reasoningEffort（exec override），cwd 与常规新会话一致。
+    // 经 reflect.get 读取：runtimeCtx 只 inject sessions/agents/agentDefaultModel，
+    // 属性访问未声明的 intentBridge 在 Cordis 4 抛 without inject（真实装配已复现）。
+    const intentBridge = this.ctx.reflect.get('intentBridge', false) as IntentBridgeService | undefined
+    if (intentBridge !== undefined) {
+      const align = await intentBridge.createAlignedSession({
+        cwd: process.cwd(),
+        exec: callConfigFrom(selection),
+      })
+      this.ownedHandle = align.handle
+      this.controls = controlsFromHandle(align.handle)
+      this.activeSessionId = SessionId(align.sessionId)
+      this.mountSession(this.activeSessionId)
+      // 会话 tab 栏刷新（对齐会话出现在 tab 栏并成为当前）。
+      void this.refreshSessionTabs()
+      return this.activeSessionId
+    }
     const handle = await this.ctx.agents.create({
       sessionId: id,
       meta: { cwd: process.cwd() },
-      agentOptions: { provider: selection.provider, model: selection.model },
+      agentOptions: callConfigFrom(selection),
       setup: (agentCtx) => {
-        installModelSelection(agentCtx, ref)
+        this.bindModelSelection(agentCtx, ref)
       },
     })
     this.ownedHandle = handle
@@ -1569,8 +1640,7 @@ export class TuiApp {
 
   /**
    * C2 项 4：热切当前会话的模型。改 modelRef.current——下一次 agent 步进
-   * （prompt assembly）自动生效，不中断当前步骤。registry 兜底的会话
-   * （ref 由其他装配方持有）返回 false，调用方提示不可热切。
+   * （prompt assembly）自动生效，不中断当前步骤。无挂载会话时返回 false。
    * @param selection - 新的 provider/model。
    * @returns 是否已热切（modelRef 存在）。
    */
@@ -1581,6 +1651,31 @@ export class TuiApp {
     this.glanceEffort = selection.reasoningEffort ?? null
     this.refreshVisionForSelection(selection)
     return true
+  }
+
+  /**
+   * Fold the durable header's explicit route, else the current default selection.
+   * @param id - mounted session id.
+   * @returns provider/model and an explicit effort when the header recorded one.
+   */
+  private selectionForSession(id: SessionId): ModelSelection {
+    const persisted = getSession(this.ctx, id)?.requestHeader()?.config
+    if (persisted === undefined) return this.ctx.agentDefaultModel.currentSelection()
+    return {
+      provider: persisted.provider,
+      model: persisted.model,
+      ...persisted.reasoningEffort === undefined ? {} : { reasoningEffort: persisted.reasoningEffort },
+    }
+  }
+
+  /**
+   * Install one selection onto an agent scope and replace any previous install.
+   * @param agentCtx - the selected agent's scoped context.
+   * @param ref - the mutable selection this front door owns.
+   */
+  private bindModelSelection(agentCtx: Context, ref: ModelSelectionRef): void {
+    this.modelSelectionDisposer?.()
+    this.modelSelectionDisposer = installModelSelection(agentCtx, ref)
   }
 
   /**
@@ -1860,36 +1955,36 @@ export class TuiApp {
    * @param id - 目标会话 id；必须是 live store 中已存在的会话。
    */
   async switchSession(id: SessionId): Promise<void> {
+    // 代际号：快速连续切换（Alt+数字连按）时旧代作废——resume 是异步的，
+    // 迟到完成的旧代不得再挂载（否则乱序完成会把旧目标的 transcript 挂到
+    // 新 active 上，tab 高亮与内容错位）。
+    const epoch = ++this.switchEpoch
     // P3 side conversation：切走时保留旧会话 agent（keepHandle 让渡 registry；
     // 切回时走下方 agents.get 兜底分支——不 create 不 resume，transcript 重放）。
     await this.detachProjections({ keepHandle: true })
+    if (epoch !== this.switchEpoch) return
     this.dynamicRowsHighWater = 0
     this.activeSessionId = id
     const agent = this.ctx.agents.get(id)
+    const selection = this.selectionForSession(id)
+    this.modelRef = { current: selection, assembled: undefined }
+    const ref = this.modelRef
     if (agent !== undefined) {
       /* v8 ignore next -- agent 已确认存在（if 分支外），controlsFromRegistry 恒返回非空 */
       this.controls = controlsFromRegistry(this.ctx, id) ?? null
-      // registry 兜底：ref 由其他装配方持有，本层不可热切
-      this.modelRef = null
+      this.bindModelSelection(agent.ctx, ref)
     } else {
-      const persisted = getSession(this.ctx, id)?.requestHeader()?.config
-      const selection: ModelSelection = persisted === undefined
-        ? this.ctx.agentDefaultModel.currentSelection()
-        : {
-          provider: persisted.provider,
-          model: persisted.model,
-          ...persisted.reasoningEffort === undefined ? {} : { reasoningEffort: persisted.reasoningEffort },
-        }
-      // C2 项 4：持有可变 ref（resume 续模的 selection 也进 ref.current）
-      this.modelRef = { current: selection, assembled: undefined }
-      const ref = this.modelRef
       const handle = await this.ctx.agents.resume({
         resumeSessionId: id,
-        agentOptions: { provider: selection.provider, model: selection.model },
+        agentOptions: callConfigFrom(selection),
         setup: (agentCtx) => {
-          installModelSelection(agentCtx, ref)
+          this.bindModelSelection(agentCtx, ref)
         },
       })
+      // 迟到的旧代：更新的切换已接管（其 detach 已清理本代投影）。handle
+      // 让渡 registry（与 keepHandle 同语义：agent 保持 live，后续切回走
+      // agents.get 兜底；退出时 factory 统一清理）——不 mount 不改 active。
+      if (epoch !== this.switchEpoch) return
       this.ownedHandle = handle
       this.controls = controlsFromHandle(handle)
     }
@@ -1962,7 +2057,17 @@ export class TuiApp {
       const statusLine = this.statusLine as WorkflowStatusLine | null
       statusLine?.setPlanState(this.planState)
       this.projectionDisposer = projections.onChanged((s, key, value) => {
-        if (s.id !== id) return
+        if (s.id !== id) {
+          // T2.1：子会话运行态变化 → 重拉当前根的 listDescendants（同一 cut）。
+          // 仅面板可见且 id 已在树上时才拉；冷子代仍可能走持久化 inspect。
+          // 父会话自身的投影走下方原分流路径。
+          if (this.subagentsPanelVisible
+            && (key === 'subagentProgress' || key === 'subagentTiming')
+            && this.delegationEntries?.some(e => e.kind === 'child' && e.id === s.id) === true) {
+            this.refreshDelegationTree(id)
+          }
+          return
+        }
         // 按 key 分流缓存（5 域总线）；todos/plan 有专有消费，其余域仅进缓存。
         /* v8 ignore next -- projectionCache 在快照后恒非 null（L766 赋值），null 仅类型收窄 */
         if (this.projectionCache !== null) {
@@ -2135,9 +2240,11 @@ export class TuiApp {
       this.delegationEntries = entries
       this.renderBatcher.schedule()
     }).catch(() => {
-      /* v8 ignore next -- dispose 后 reject 的竞态守卫（同步测试无法构造） */
+      // 非 dispose 原因的失败同样要重绘（置空清面板），否则滞留旧树直到
+      // 120ms ticker 自愈；与 then 分支对称调度。
       if (this.disposed) return
       this.delegationEntries = null
+      this.renderBatcher.schedule()
     })
   }
 
@@ -2260,6 +2367,7 @@ export class TuiApp {
   /**
    * 当前会话是否 blank：无消息且无未结算工具调用。
    * /preset recompose 与更新后自动重启的守卫共用（非空白不打断会话）。
+   * @returns blank 返回 true。
    */
   isBlankSession(): boolean {
     const view = this.transcript?.view
@@ -2313,6 +2421,12 @@ export class TuiApp {
     // 异步 prepare 后在同一写窗口追加终端图片（见 commitUserPrompt 时序说明）。
     this.commitUserPrompt(expanded, images)
     this.inputLine.clearImages()
+    // 提交前先同步画一帧：commitUserPrompt 已把 live 区（含输入框）整体擦除，
+    // 而 followup 的同步前缀（inbox 事件 + prompt 组装 + pre-step 监听者的同步段）
+    // 可能耗时数秒——期间无帧可画、ticker 也不触发，输入框就"消失"到驱动返回。
+    // 先画回输入框（空闲态），再进入可能阻塞的驱动调用（防御性不变量，见
+    // .agents/notes/implemented/bug-fix/2026-08-16-semantic-index-async-refresh.md）。
+    this.flushLiveRender()
     // 图片不可达时不发送（气泡已警告「图片未发送」）；可达时直发或经视觉桥转描述。
     this.controls?.followup(expanded, imagesReachable ? images : undefined)
     this.flushLiveRender()
@@ -2463,6 +2577,8 @@ export class TuiApp {
     this.history = [trimmed, ...this.history.filter(h => h !== trimmed)].slice(0, 100)
     this.inputLine.setHistory(this.history)
     this.commitToScrollback({ text: formatSteerMessage({ content: trimmed, width: this.stdout.columns }, this.theme).join('\n'), trailingNewline: true })
+    // 与 handleSubmit 同一防御：擦除 live 区后、进入可能阻塞的驱动调用前先画一帧。
+    this.flushLiveRender()
     this.controls?.steer(trimmed)
     this.flushLiveRender()
   }
@@ -2490,6 +2606,16 @@ export class TuiApp {
     this.approval.settle(outcome)
   }
 
+  /**
+   * 当前会话是否在跑（含工具执行中 / inbox 排队）：Esc 与 Ctrl+C 都应打断。
+   * 只看 status==='running' 会漏掉 tool/call 已发出、status 尚未翻成 running 的缝。
+   */
+  private isAgentBusy(): boolean {
+    const state = this.liveAgent?.state
+    if (state === undefined) return false
+    return state.status === 'running' || state.activity !== undefined || state.inbox.length > 0
+  }
+
   /** 取消当前运行（Esc/Ctrl+C）：cancel agent、丢弃未发出的流式/推理缓冲并重置流渲染。 */
   handleAbort(): void {
     // 防御：打断优先于 overlay——释放任何激活的全屏 overlay（palette/search/
@@ -2507,29 +2633,30 @@ export class TuiApp {
     this.flushLiveRender()
   }
 
-  /** 连按退出提示占位的恢复定时器；null = 未激活。 */
+  /** 连按退出提示的恢复定时器；null = 未激活。 */
   private ctrlCExitHintTimer: ReturnType<typeof setTimeout> | null = null
 
-  /** 第一次空闲 Ctrl+C：输入行显示连按退出提示，窗口超时自动复位。 */
+  /**
+   * 进入连按退出窗口（输入轨上方渲染提示行，窗口超时自动复位）。
+   * 忙碌打断与空闲清草稿都会走到这里；提示行而非 placeholder——
+   * 有草稿时 placeholder 不可见。
+   */
   private showCtrlCExitHint(): void {
-    this.inputLine.setPlaceholder('再按 Ctrl+C 退出 · Ctrl+Q 立即退出')
     if (this.ctrlCExitHintTimer !== null) clearTimeout(this.ctrlCExitHintTimer)
     this.ctrlCExitHintTimer = setTimeout(() => {
       this.ctrlCExitHintTimer = null
       this.inputController.ctrlCPendingSince = 0
-      this.inputLine.setPlaceholder('')
       this.flushLiveRender()
     }, InputController.EXIT_WINDOW_MS)
     this.flushLiveRender()
   }
 
-  /** 终止连按窗口：复位提示占位与恢复定时器。 */
+  /** 终止连按窗口：复位提示与恢复定时器。 */
   private clearCtrlCExitHint(): void {
     if (this.ctrlCExitHintTimer !== null) {
       clearTimeout(this.ctrlCExitHintTimer)
       this.ctrlCExitHintTimer = null
     }
-    if (this.inputLine.placeholder !== '') this.inputLine.setPlaceholder('')
   }
 
   /**
@@ -2683,7 +2810,7 @@ export class TuiApp {
 
   /** 键路由：Enter 提交 / Ctrl-C 取消或退出 / 上下键历史 / 其余交给 InputLine。 */
   private handleKey(key: KeyPress): void {
-    // 任何非 Ctrl+C 键都终止连按退出窗口（提示占位随窗口一起复位）。
+    // 任何非 Ctrl+C 键都终止连按退出窗口（提示行随窗口一起复位）。
     if (key.name !== 'ctrl_c' && this.inputController.ctrlCPendingSince !== 0) {
       this.inputController.ctrlCPendingSince = 0
       this.clearCtrlCExitHint()
@@ -2921,51 +3048,75 @@ export class TuiApp {
       return
     }
     // Esc 打断：对齐 Claude Code 单次 Esc 停止输出。位于挂起交互分支之后——
-    // overlay/菜单打开时 Esc 仍先关面板；仅「无挂起交互 + running」才打断；
-    // 空闲不动作（不退出、不触发任何东西）。lone ESC 走 80ms 防误触派发，
-    // 与 Ctrl+C 的即时打断形成互补。
+    // overlay/菜单打开时 Esc 仍先关面板；仅「无挂起交互 + 忙碌」才打断；
+    // 空闲不动作（不退出、不触发任何东西）。Kitty CSI u 的 Esc（CSI 27 u）
+    // 与 lone ESC 走同一 name；忙碌时 escapeImmediate，不跟 80ms 防误触。
     if (key.name === 'escape' && !this.inputController.slashMenu.open) {
-      if (this.liveAgent?.state.status === 'running') {
+      if (this.isAgentBusy()) {
         this.handleAbort()
         return
       }
       // 空闲：双击 Esc（窗口内第二次）触发 rewind（CC 的 Esc+Esc 时间回溯）；
-      // 第一次只记时间戳并继续流向后续分支（vim 等空闲 Esc 语义保留），
-      // 窗口过期后第二次仅刷新时间戳。
-      const now = Date.now()
-      if (this.escRewindPendingSince !== 0 && now - this.escRewindPendingSince < REWIND_DOUBLE_ESC_MS) {
-        this.escRewindPendingSince = 0
-        this.rewindSession()
-        return
+      // 第一次只记时间戳并继续流向后续分支，窗口过期后第二次仅刷新时间戳。
+      // vim 开启时整段跳过：离开 insert 的那一次 Esc 当时仍是 insert，
+      // 若按 normal 才守卫，第一次会布防、习惯性补按就会弹出 overlay。
+      // 忙碌打断在本分支之前；时间回溯走 /rewind。
+      if (!this.vimEnabled) {
+        const now = Date.now()
+        if (this.escRewindPendingSince !== 0 && now - this.escRewindPendingSince < REWIND_DOUBLE_ESC_MS) {
+          this.escRewindPendingSince = 0
+          this.rewindSession()
+          return
+        }
+        this.escRewindPendingSince = now
       }
-      this.escRewindPendingSince = now
     }
     if (key.name === 'ctrl_c') {
       // Windows 控制台（PowerShell/conhost）下 Ctrl+C 可能同时产生 0x03 字节
       // 与 SIGINT：记录字节处理时间，供 index.ts 的 SIGINT 防抖（双触发时
       // SIGINT 忽略，避免刚打断的 TUI 被 teardown 拆掉——「输入框消失」）。
-      this.lastCtrlCAt = Date.now()
-      // raw-mode 下 Ctrl+C 是 0x03 数据字节而非 SIGINT。
-      // 在途：打断当前 turn（连按窗口一并复位）；空闲空输入：连按两次才
-      // onExit——单次误触不拆 TUI，第一次提示、窗口内第二次才退出
-      // （Claude Code 同款；Ctrl+Q 仍立即退出）。
-      if (this.liveAgent?.state.status === 'running') {
+      // Kitty flag 1 下 Ctrl+C 是 CSI 99;5u 而不是 0x03，同样走此分支。
+      const now = Date.now()
+      this.lastCtrlCAt = now
+      const empty = this.inputLine.value === ''
+      const pending = this.inputController.ctrlCPendingSince
+      const within = pending !== 0 && now - pending < InputController.EXIT_WINDOW_MS
+      // 窗口内第二次 Ctrl+C 恒退出（不要求空输入）：第一次（无论打断、清空还是
+      // 布防提示）已表达退出意图，草稿/在途不再拦路——「连按两次退出」对
+      // 「有草稿想退出」与「打断后立刻退出」同样成立。
+      if (this.onExit !== undefined && within) {
         this.inputController.ctrlCPendingSince = 0
         this.clearCtrlCExitHint()
-        this.handleAbort()
+        this.onExit()
         return
       }
-      if (this.inputLine.value === '' && this.onExit !== undefined) {
-        const now = Date.now()
-        const pending = this.inputController.ctrlCPendingSince
-        if (pending !== 0 && now - pending < InputController.EXIT_WINDOW_MS) {
+      if (this.isAgentBusy()) {
+        this.handleAbort()
+        // 打断同时布防连按窗口（有草稿也布防）：agent 落定前第二次 Ctrl+C
+        // 直接退出（within 分支先行），不再要求等 agent 变 idle 后重按。
+        if (this.onExit !== undefined) {
+          this.inputController.ctrlCPendingSince = now
+          this.showCtrlCExitHint()
+        } else {
           this.inputController.ctrlCPendingSince = 0
           this.clearCtrlCExitHint()
-          this.onExit()
-          return
         }
+        return
+      }
+      if (empty && this.onExit !== undefined) {
         this.inputController.ctrlCPendingSince = now
         this.showCtrlCExitHint()
+        return
+      }
+      if (!empty) {
+        // 空闲草稿：清空输入行（shell 语义；setValue 记 undo，Ctrl+Z 可恢复）
+        // 并布防连按窗口——第二次 Ctrl+C 即退出，无「已取消」噪音。
+        this.inputLine.setValue('')
+        this.flushLiveRender()
+        if (this.onExit !== undefined) {
+          this.inputController.ctrlCPendingSince = now
+          this.showCtrlCExitHint()
+        }
         return
       }
       this.inputController.ctrlCPendingSince = 0
@@ -3021,7 +3172,7 @@ export class TuiApp {
         this.acceptSlashCompletion()
         return
       }
-      if (key.name === 'return') {
+      if (key.name === 'return' && !key.shift) {
         this.acceptSlashCompletion({ submit: true })
         return
       }
@@ -3030,6 +3181,11 @@ export class TuiApp {
         this.flushLiveRender()
         return
       }
+    }
+    if (key.name === 'return' && key.shift) {
+      this.inputLine.setNewlineMode(!this.inputLine.newlineMode)
+      this.flushLiveRender()
+      return
     }
     if (key.name === 'up' || key.name === 'down') {
       // 交给 InputLine 的历史导航（InputLineEvent 'history' 不消费即已处理）
@@ -3386,6 +3542,9 @@ export class TuiApp {
     // alternate screen buffer——跳过主屏 live 写屏，避免流式帧逐帧盖住面板；
     // overlay 退出后 120ms ticker 下一帧自然重绘，内部状态由事件驱动照常更新。
     if (this.overlay !== null && this.overlay.activeId() !== null) return
+    this.input.setEscapeImmediate(
+      this.question.isPending || this.approval.isPending || this.isAgentBusy(),
+    )
     const renderStart = performance.now()
     const theme = this.theme
     const termCols = this.stdout.columns
@@ -3446,10 +3605,6 @@ export class TuiApp {
       },
       subagentsPanelVisible: this.subagentsPanelVisible,
       delegationEntries: this.delegationEntries,
-      subagentIdentities: (this.projectionCache?.subagent as
-        ReadonlyMap<string, DelegationIdentityProjection> | undefined) ?? new Map(),
-      subagentTimings: (this.projectionCache?.subagentTiming as
-        ReadonlyMap<string, DelegationTimingProjection> | undefined) ?? new Map(),
       workflowPanelVisible: this.workflowPanelVisible,
       workflowRuns,
       configPanelVisible: this.configPanelVisible,
@@ -3686,6 +3841,10 @@ export class TuiApp {
     }
     // 阶段 2：slash 菜单选中命令 → 输入行 ghost 预览（补全剩余/参数占位）。
     this.inputLine.setGhost(this.slashGhostText())
+    // Ctrl+C 连按退出窗口激活中：输入轨上方渲染提示行（窗口由定时器复位）。
+    if (this.inputController.ctrlCPendingSince !== 0) {
+      lines.push({ text: color('再按 Ctrl+C 退出进程 · Ctrl+Q 立即退出', theme.muted) })
+    }
     // CC PromptInput marginTop={1}：轨前 1 行呼吸，不填视口。
     lines.push({ text: '' })
     // 输入轨（Claude Code 形态）：上下圆角横线、左右不封。顶轨嵌 omp 风格
@@ -3701,7 +3860,10 @@ export class TuiApp {
       ? theme.warning
       : modeFlags.alwaysApprove ? theme.error : theme.secondary
     const promptColor = this.liveAgent?.state.status === 'running' ? theme.dim : modeColor
-    const inputView = this.inputLine.displayLinesWithCaret({ maxWidth: cols })
+    const inputView = this.inputLine.displayLinesWithCaret({
+      maxWidth: cols,
+      maxLines: inputViewportMaxLines(this.stdout.rows),
+    })
     const framedLines = inputView.lines.map(line => (
       line.startsWith('❯ ') ? `${color('❯', promptColor)}${line.slice(1)}` : line
     ))
@@ -3713,9 +3875,13 @@ export class TuiApp {
       (bottomMetrics?.modelName !== undefined ? 1 : 0) + (bottomMetrics?.effort != null ? 1 : 0),
       allSegs.length,
     )
+    // 禅相位徽章：zen/phase 日志折叠（官方 foldZenPhase），布防中显示、晋升后消失。
+    const zenBadge = this.activeSessionId === null
+      ? undefined
+      : zenPhaseLabel(getSession(this.ctx, this.activeSessionId)?.events)
     const topLine = formatTopStatusBar({
       width: cols,
-      left: allSegs.slice(0, leftCount),
+      left: [...allSegs.slice(0, leftCount), ...(zenBadge === undefined ? [] : [zenBadge])],
       // A3：git 未提交 ●N 段置于右段末尾（丢段从右丢 → ●N 最次要先丢，不挤 metrics）。
       right: [...allSegs.slice(leftCount), `API ${this.apiKeyReady ? '✓' : '✗'}`, ...(this.gitDirty > 0 ? [`●${this.gitDirty}`] : [])],
       borderColor: promptBorderColor(modeFlags, theme),
@@ -3737,6 +3903,8 @@ export class TuiApp {
       width: cols,
       ...modeFlags,
       approvalPending: this.approval.isPending,
+      agentBusy: this.isAgentBusy(),
+      newlineMode: this.inputLine.newlineMode,
     }, theme)
     for (const line of footerLines) lines.push({ text: line })
 
@@ -3786,7 +3954,7 @@ export class TuiApp {
    * 卸载当前会话的投影与控制面，并按 opts 处理本层持有的 handle：
    * - keepHandle（P3 side conversation 切换）：所有权让渡 registry——agent
    *   保持 live（可切回复用），退出时由 agent-loop factory 统一 teardown；
-   *   modelRef 同步让渡（registry 兜底语义：不可热切）。
+   *   本层卸掉 modelRef 与 selection 监听，切回时再装。
    * - 缺省（dispose 退出）：释放本层 handle（create/resume 铸造的）。
    * registry 兜底的裸 agent 非自有，两种情况都不 dispose。会话本身所有权归
    * 持有方，不销毁。
@@ -3821,6 +3989,9 @@ export class TuiApp {
     this.projectionCache = null
     this.taskItems = null
     this.planState = { active: false, pending: false }
+    this.modelSelectionDisposer?.()
+    this.modelSelectionDisposer = null
+    this.modelRef = null
     // C3 项 4：always-approve 是会话级本地态——切会话/退出时复位，
     // 防止残留到新会话（planState 同上复位；徽章由 statusLine 重建）。
     this.approval.setAlwaysApprove(false)
@@ -3840,7 +4011,6 @@ export class TuiApp {
       if (opts?.keepHandle === true) {
         // P3：切换保留——让渡 registry（agent 保持 live；退出时 factory 统一清理）。
         this.ownedHandle = null
-        this.modelRef = null
       } else {
         const handle = this.ownedHandle
         this.ownedHandle = null
@@ -3893,8 +4063,11 @@ export class TuiApp {
     // 终端会把用户留在备用屏。
     this.overlay?.deactivate()
     this.stdout.write(ANSI.BRACKETED_PASTE_OFF)
+    this.stdout.write(ANSI.KITTY_KEYBOARD_OFF)
     this.pasteDisposer?.()
     this.pasteDisposer = null
+    this.intentBridgeDisposer?.()
+    this.intentBridgeDisposer = null
     this.input.dispose()
     this.resize.dispose()
     this.glance.dispose()

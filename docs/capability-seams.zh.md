@@ -83,6 +83,12 @@ flowchart LR
   svc_userInteraction["ctx.userInteraction<br/>Human question/answer seam"]
   pkg_plan_mode["plan-mode"]
   svc_planMode["ctx.planMode<br/>Plan collaboration state"]
+  pkg_zen["zen"]
+  svc_zen["ctx.zen<br/>Zen-phase first-face gate"]
+  pkg_task_card["task-card"]
+  svc_taskCard["ctx.taskCard<br/>First-message task-card rewrite"]
+  pkg_intent_bridge["intent-bridge"]
+  svc_intentBridge["ctx.intentBridge<br/>Intent-alignment handoff"]
   pkg_commands["commands"]
   svc_commands["ctx.commands<br/>Human command registry"]
   pkg_session_projection["session-projection"]
@@ -174,11 +180,23 @@ flowchart LR
   svc_directoryPicker["ctx.directoryPicker<br/>Workspace-directory picking seam"]
   pkg_directory_picker_native["directory-picker-native"]
   pkg_directory_picker_browse["directory-picker-browse"]
+  pkg_agent_presets["agent-presets"]
+  svc_agentPresets["ctx.agentPresets<br/>Per-session agent composition"]
+  pkg_attachment["attachment"]
+  svc_attachments["ctx.attachments<br/>Durable binary attachment storage"]
+  pkg_attachment_local["attachment-local"]
+  pkg_cordis_host_runner["cordis-host-runner"]
+  svc_cordisInspect["ctx.cordisInspect<br/>Dynamic Cordis inspect registry"]
+  svc_dynamicCordisRunner["ctx.dynamicCordisRunner<br/>Dynamic Cordis package host runner"]
   pkg_webserver["webserver"]
-  svc_httpServer["ctx.httpServer<br/>HTTP route registration"]
+  svc_webServer["ctx.webServer<br/>HTTP route registration"]
   pkg_connection["connection"]
   pkg_modules["modules"]
   pkg_hmr["hmr"]
+  pkg_message_feedback["message-feedback"]
+  svc_messageFeedback["ctx.messageFeedback<br/>Lifecycle-bound message feedback"]
+  svc_workspaceRegistry["ctx.workspaceRegistry<br/>Workspace entity registry"]
+  svc_httpServer["ctx.httpServer<br/>HTTP route registration"]
   svc_clientModuleHost["ctx.clientModuleHost<br/>Client plugin graph host"]
   pkg_workflow["workflow"]
   svc_workflows["ctx.workflows<br/>Workflow script engine"]
@@ -189,8 +207,11 @@ flowchart LR
   pkg_agent_default_model --> svc_agentDefaultModel
   pkg_agent_definitions --> svc_agentDefinitions
   pkg_agent_loop --> svc_agentLoop
+  pkg_agent_presets --> svc_agentPresets
   pkg_api_gateway --> svc_typertGateway
   pkg_approval --> svc_approval
+  pkg_attachment --> svc_attachments
+  pkg_attachment_local --> svc_attachments
   pkg_bash --> svc_bash
   pkg_bash_env --> svc_bashEnv
   pkg_bash_local --> svc_bash
@@ -201,6 +222,8 @@ flowchart LR
   pkg_compact --> svc_compact
   pkg_compact_basic --> svc_compact
   pkg_compact_tool_result_prune --> svc_toolResultPrune
+  pkg_cordis_host_runner --> svc_cordisInspect
+  pkg_cordis_host_runner --> svc_dynamicCordisRunner
   pkg_credentials --> svc_credentials
   pkg_credentials_local --> svc_credentials
   pkg_directory_picker --> svc_directoryPicker
@@ -213,11 +236,13 @@ flowchart LR
   pkg_fs_sandbox --> svc_fs
   pkg_git --> svc_git
   pkg_goal --> svc_goals
+  pkg_intent_bridge --> svc_intentBridge
   pkg_invariants --> svc_invariants
   pkg_llm --> svc_llm
   pkg_llm_deepseek --> svc_llm
   pkg_llm_pi_ai --> svc_llm
   pkg_llm_replay --> svc_llm
+  pkg_message_feedback --> svc_messageFeedback
   pkg_modules --> svc_clientModuleHost
   pkg_permission --> svc_permission
   pkg_plan_mode --> svc_planMode
@@ -263,6 +288,7 @@ flowchart LR
   pkg_subprocess_e2b --> svc_subprocess
   pkg_subprocess_local --> svc_subprocess
   pkg_system_prompt --> svc_systemPrompt
+  pkg_task_card --> svc_taskCard
   pkg_tasks --> svc_tasks
   pkg_tasks_local --> svc_tasks
   pkg_token_meter --> svc_tokenMeter
@@ -275,9 +301,12 @@ flowchart LR
   pkg_web_search_exa --> svc_web
   pkg_web_search_perplexity --> svc_web
   pkg_webserver --> svc_httpServer
+  pkg_webserver --> svc_webServer
   pkg_workflow --> svc_workflows
   pkg_workflow_workerthread --> svc_workflows
   pkg_workspace --> svc_workspace
+  pkg_workspace --> svc_workspaceRegistry
+  pkg_zen --> svc_zen
   svc_agentDefaultModel --> pkg_headless
   svc_agentDefaultModel --> pkg_host_apiproxy
   svc_agentDefinitions --> pkg_tool_subagent
@@ -296,10 +325,12 @@ flowchart LR
   svc_clientModuleHost --> pkg_hmr
   svc_codeRuntime --> pkg_tools
   svc_compact --> pkg_compact_basic
+  svc_cordisInspect --> pkg_tool_cordis
   svc_credentials --> pkg_apiproxy
   svc_credentials --> pkg_llm_deepseek
   svc_credentials --> pkg_llm_pi_ai
   svc_directoryPicker --> pkg_apiproxy
+  svc_dynamicCordisRunner --> pkg_tool_cordis
   svc_e2b --> pkg_fs_e2b
   svc_e2b --> pkg_subprocess_e2b
   svc_fs --> pkg_tool_fs
@@ -380,9 +411,13 @@ flowchart LR
   svc_typert --> pkg_typert_loader
   svc_userInteraction --> pkg_tool_ask_user
   svc_web --> pkg_tool_web
+  svc_webServer --> pkg_connection
+  svc_webServer --> pkg_hmr
+  svc_webServer --> pkg_modules
   svc_workflows --> pkg_tool_ralph
   svc_workflows --> pkg_tool_workflow
   svc_workspace --> pkg_apiproxy
+  svc_workspaceRegistry --> pkg_apiproxy
   svc_fs -. event gate .-> pkg_fs_policy
 ```
 
@@ -409,6 +444,9 @@ flowchart LR
 | `ctx.tools` | `core` | [`tools`](../packages/core/tools) | - | [`agent-loop`](../packages/core/agent-loop)、[`tool-ask-user`](../packages/interaction/tool-ask-user)、[`tool-bash`](../packages/bash/tool-bash)、[`tool-cordis`](../packages/self-modification/tool-cordis)、[`tool-fs`](../packages/fs/tool-fs)、[`tool-pty`](../packages/pty/tool-pty)、[`tool-skill`](../packages/skill/tool-skill)、[`tool-subagent`](../packages/subagent/tool-subagent)、[`tool-todo`](../packages/todo/tool-todo)、[`tool-web`](../packages/web/tool-web) | - | 注册能力，负责 Code Mode 传输，并让调用依次经过策略前处理、单调守卫、环绕分派、策略后处理和最终结果观测。 |
 | `ctx.userInteraction` | `seam` | [`user-interaction`](../packages/interaction/user-interaction) | - | [`tool-ask-user`](../packages/interaction/tool-ask-user) | - | UI 入口提供当前生效的人工回答提供方；tool-ask-user 在提供方无关的 ask() promise 上暂停工具调用。 |
 | `ctx.planMode` | `core` | [`plan-mode`](../packages/plan/plan-mode) | - | - | - | 折叠已记录的计划／模式状态，在轮次边界刷新用户选择，渲染由部署方拥有的指导信息，注册 /plan，并在状态转换期间保持计划退出 schema 稳定。 |
+| `ctx.zen` | `core` | [`zen`](../packages/guard/zen) | - | - | - | 折叠已记录的 zen/phase 状态，把新的顶层会话限制在锚定工具面上，并在宿主校验的立锚、分诊或步数预算谓词满足时晋升到全量面。 |
+| `ctx.taskCard` | `core` | [`task-card`](../packages/guard/task-card) | - | - | - | 在 agent/pre-step 把顶层会话的首条用户消息改写为结构化任务卡（LLM 一次性调用、模板回退），逐字原文保留在标记之下。 |
+| `ctx.intentBridge` | `core` | [`intent-bridge`](../packages/guard/intent-bridge) | - | - | - | 在仅限 finalize_alignment 的对齐会话中运行低成本澄清对话，随后把结构化任务卡移交给全新主会话，并发出 intent-bridge/handoff 供 UI 切换。 |
 | `ctx.commands` | `core` | [`commands`](../packages/interaction/commands) | - | - | - | 插件注册直接面向人的命令，而不会把调用发送给模型。 |
 | `ctx.sessionProjections` | `core` | [`session-projection`](../packages/session/session-projection) | - | [`tool-todo`](../packages/todo/tool-todo)、[`session-title`](../packages/session/session-title)、[`host-apiproxy`](../packages/host/apiproxy) | - | 各领域注册由状态驱动的折叠单元；主动驱动过程维护每个会话的水位状态，api-proxy 提供基线并推送发生变化的值。 |
 | `ctx.sessionProjectionCache` | `core` | [`session-projection-cache`](../packages/session/session-projection-cache) | - | [`host-apiproxy`](../packages/host/apiproxy) | - | 按会话持久保存投影单元状态的检查点（节流检查点，以及轮次／结束／分离时的必选检查点），并提供冷读取阶梯：缓存行加持久化尾部回放，因此列表读取永远不需要加载完整日志。 |
@@ -436,6 +474,13 @@ flowchart LR
 | `ctx.web` | `seam` | [`web`](../packages/web/web) | [`web-search-exa`](../packages/web/web-search-exa)、[`web-search-perplexity`](../packages/web/web-search-perplexity)、[`web-search-deepseek`](../packages/web/web-search-deepseek)、[`web-fetch-local`](../packages/web/web-fetch-local) | [`tool-web`](../packages/web/tool-web) | - | 搜索和抓取提供方注册到同一个 ctx.web seam；tool-web 负责稳定的面向模型名称。 |
 | `ctx.spillStore` | `seam` | [`spill`](../packages/spill/spill) | [`spill-local`](../packages/spill/spill-local) | [`spill-policy`](../packages/spill/spill-policy) | - | 后端保存过大的工具文本，并返回面向模型的定位信息和取回提示；spill-policy 是 tools/post-execute 消费方，负责决定何时 spill。 |
 | `ctx.directoryPicker` | `seam` | `directory-picker` | `directory-picker-native`、`directory-picker-browse` | `apiproxy` | - | 带判别标记的交互能力：原生后端在 Host 显示设备上打开一个操作系统选择器，浏览后端为应用内浏览器提供列表与创建原语；双端后端通过其浏览器侧填充 ui-workspace 目录流程的 slot（不通过协议发布）。 |
+| `ctx.agentPresets` | `core` | [`agent-presets`](../packages/preset/agent-presets) | - | - | - | 发现受信任与用户自建根目录下的预设目录，并在创建时把一个预设 cordis.yml 挂载到 agent scope 下；拒绝从未激活或向根服务域发布的行。 |
+| `ctx.attachments` | `seam` | [`attachment`](../packages/attachment/attachment) | [`attachment-local`](../packages/attachment/attachment-local) | - | - | 宿主在会话事件前提交已接受的图片；提供方适配器把经授权的持久引用解析为提供方原生内容。 |
+| `ctx.cordisInspect` | `core` | [`cordis-host-runner`](../packages/self-modification/cordis-host-runner) | - | [`tool-cordis`](../packages/self-modification/tool-cordis) | - | 注册 host 检查提供方，镜像 client 提供方清单，并经由动态 Cordis 传输路由 client 查询。 |
+| `ctx.dynamicCordisRunner` | `core` | [`cordis-host-runner`](../packages/self-modification/cordis-host-runner) | - | [`tool-cordis`](../packages/self-modification/tool-cordis) | - | 拥有内存定义注册表、宿主半的 vm 沙箱与 request-run 往返；浏览器页面经其 remote 命名空间在线上触达同一服务。 |
+| `ctx.webServer` | `core` | `webserver` | - | `connection`, `modules`, `hmr` | - | 纯 node:http 载体：命名路由注册表、index 变换挂接点与静态 dist 回退；web 传输插件注册自己的路由。 |
+| `ctx.messageFeedback` | `core` | [`message-feedback`](../packages/feedback/message-feedback) | - | - | - | 拥有本地逐助手消息反馈、生命周期与目标校验、逐项 CAS 与 Host unary Remote 契约,不进入 Session 历史或 telemetry。 |
+| `ctx.workspaceRegistry` | `core` | [`workspace`](../packages/workspace/workspace) | - | `apiproxy` | - | 在域设施之上拥有 WorkspaceId 标记的记录；稳定 sessionIds 账户驱动 Host RPC 与 GUI 投影。 |
 | `ctx.httpServer` | `core` | `webserver` | - | `connection`、`modules`、`hmr` | - | 普通的 node:http 载体：具名路由注册表、索引转换 tap，以及静态 dist 回退；Web 传输插件注册自己的路由。 |
 | `ctx.clientModuleHost` | `core` | `modules` | - | `hmr` | - | 通过增量 dshClient 扫描组合 __DSH_BOOT__ 入口图，提供插件组合包，并通知重建／图变更订阅方。 |
 | `ctx.workflows` | `seam` | [`workflow`](../packages/workflow/workflow) | [`workflow-workerthread`](../packages/workflow/workflow-workerthread) | [`tool-workflow`](../packages/workflow/tool-workflow)、[`tool-ralph`](../packages/workflow/tool-ralph) | - | 每个上下文使用一个引擎（bash 形态，无具名提供方注册表）；通用工作流与固定 Ralph 消费方启动运行，其中的 agent() 调用通过 ctx.subagents 扇出。 |

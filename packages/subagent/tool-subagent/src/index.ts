@@ -32,6 +32,7 @@ import type { TaskOutcome } from '@huiliyi37/dsh-tasks'
 // Type-only: resolve the optional `ctx.agentDefinitions` service when the
 // deployment loads role definitions; the tool works unchanged without it.
 import type { AgentDefinition, AgentDefinitionSummary } from '@huiliyi37/dsh-agent-definitions'
+import { scopeOf } from '@huiliyi37/dsh-scope'
 
 export const name = 'tool-subagent'
 export const inject = ['tools', 'subagents']
@@ -460,10 +461,13 @@ export function apply(ctx: Context, config: Config): void {
       },
     })
     disposeTool = ctx.tools.register(definition)
-    activeTool = ctx.tools.get(definition.name)
+    // Scoped visibility: a preset-mounted tool lives in the standing scope's
+    // layer, so the registration check reads through the calling scope rather
+    // than the global view.
+    activeTool = ctx.tools.get(definition.name, scopeOf(ctx))
     /* v8 ignore next 3 -- register() publishes synchronously or throws; this guards future registry drift. */
     if (activeTool === undefined) {
-      throw new Error('dsh-tool-subagent: registered subagent tool is not visible in the global registry')
+      throw new Error('dsh-tool-subagent: registered subagent tool is not visible in the calling scope')
     }
   }
 

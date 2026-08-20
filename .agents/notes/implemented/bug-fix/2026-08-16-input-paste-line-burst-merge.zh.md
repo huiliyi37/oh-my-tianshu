@@ -10,11 +10,11 @@ Status: implemented
 
 ## 决策
 
-`InputHandler` 现在给 `return` 键打上 `inline: true` 标记——当同一输入缓冲在该键**之后还有字节**时（`dispatchKeys`：`i + consumed < buf.length`）。用户按 Enter 时缓冲已空；粘贴行的 CR 后紧跟下一行文本（同一 flush）。`InputLine` 把内联 return 当作行分隔：累积当前值（`_inlinePasteLines`）并清空输入行、不提交；下一次普通 return（缓冲耗尽——即粘贴的最后一个 CR 或用户自己的 Enter）把所有累积行按 `\n` 合并为一次提交。Vim normal 的 return 路径同样合并。bracketed paste 流程不受影响（永不产生内联 return）；普通单次 Enter 不变（无累积 → 立即单行提交）；人工快速连按两次 Enter 仍是两次独立提交（每个 CR 独立成 chunk）。
+`InputHandler` 现在给 `return` 键打上 `inline: true` 标记——当同一输入缓冲在该键**之后还有字节**时（`dispatchKeys`：`i + consumed < buf.length`）。用户按 Enter 时缓冲已空；粘贴行的 CR 后紧跟下一行文本（同一 flush）。落在 chunk 末尾、且同一 chunk 在它前面还有其它字节的 return 先按住 12ms：若窗口内又到一个 `data` 事件，按住的 return 按 inline 派出，于是「一行一个 flush」的终端不再逐行提交。孤立的 CR（用户 Enter）立即派发；Shift/Meta/Ctrl+Enter 从不按住。`InputLine` 把内联 return 当作行分隔：累积当前值（`_inlinePasteLines`）并清空输入行、不提交；下一次普通 return（按住超时后缓冲耗尽——即粘贴的最后一个 CR 或用户自己的 Enter）把所有累积行按 `\n` 合并为一次提交。Vim normal 的 return 路径同样合并。bracketed paste 流程不受影响（永不产生内联 return）；普通单次 Enter 不变（孤立 CR 立即派发）；人工连按两次 Enter 仍是两次独立提交。
 
 两个仓库同步应用：`tianshu-public`（`packages/tui/tui`）与插件库 `dsh-tui`（`src/`）——两边源文件同源但无共同 git 祖先，以生成补丁按语义分别落地。
 
-已知残余：终端把粘贴拆成多个 flush（如 >64KB、pipe buffer 边界）时仍按 flush 逐批提交；支持 bracketed paste 的终端永不进入此路径。
+已知残余：flush 间隔超过 12ms 的粘贴仍按 flush 逐批提交；支持 bracketed paste 的终端永不进入此路径。
 
 ## Alternatives considered
 

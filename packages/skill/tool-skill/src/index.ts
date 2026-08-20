@@ -11,6 +11,7 @@ import type { Agent, PreStepDecision } from '@huiliyi37/dsh-agent'
 import { defineTool } from '@huiliyi37/dsh-tools'
 import { createUserMessage } from '@huiliyi37/dsh-llm'
 import type { UserMessage } from '@huiliyi37/dsh-session'
+import { scopeOf } from '@huiliyi37/dsh-scope'
 import {
   escapeText,
   isModelInvocable,
@@ -155,10 +156,13 @@ export function apply(ctx: Context, config: Config = {}): void {
     },
   })
   ctx.tools.register(skillTool)
-  const registeredSkillTool = ctx.tools.get(skillTool.name)
+  // Scoped visibility: a preset-mounted tool lives in the standing scope's
+  // layer, so the registration check reads through the calling scope rather
+  // than the global view.
+  const registeredSkillTool = ctx.tools.get(skillTool.name, scopeOf(ctx))
   /* v8 ignore next 3 -- register() publishes synchronously or throws; this guards future registry drift. */
   if (registeredSkillTool === undefined) {
-    throw new Error('dsh-tool-skill: registered skill tool is not visible in the global registry')
+    throw new Error('dsh-tool-skill: registered skill tool is not visible in the calling scope')
   }
 
   // User-explicit skill invocation: a claimed user message whose first line

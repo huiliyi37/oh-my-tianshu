@@ -80,9 +80,9 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }[T]
 ```
 
-来源：[`packages/core/session/src/types.ts:310`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:317`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:345`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:377`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:318`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:325`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:353`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:385`](../packages/core/session/src/types.ts)
 
-## 事件
+## Events
 
 ### `agent/*`
 
@@ -103,7 +103,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }
 ```
 
-来源：[`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types.ts)
+Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types.ts)
 
 ### `agent-preset/*`
 
@@ -111,13 +111,15 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 ```ts persistence-catalog
 /**
- * 用户经 `/preset` 选定 agent 预设的事实记录。载荷 `agentPreset` 是选中的预设名;
- * log-only,只供投影与审计回放,不进模型派生历史。
+ * The session's agent preset was chosen after creation, while the session
+ * was still blank. Log-only: it records the composition later turns ran
+ * under, so a resumed or forked session rebuilds the same one instead of
+ * the header's creation-time value.
  */
 'agent-preset/selected': { agentPreset: string }
 ```
 
-来源:[`packages/tui/tui/src/commands/registry.ts:36`](../packages/tui/tui/src/commands/registry.ts)
+来源：[`packages/preset/agent-presets/src/session.ts:26`](../packages/preset/agent-presets/src/session.ts)
 
 ### `approval/*`
 
@@ -428,6 +430,21 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 来源：[`packages/hooks/hook-protocol/src/types.ts:33`](../packages/hooks/hook-protocol/src/types.ts)
 
+### `intent-bridge/*`
+
+#### `intent-bridge/handoff` — log-only
+
+```ts persistence-catalog
+/**
+ * Durable handoff record on the MAIN session's log: log-only (never
+ * reaches the model surface), whole-value append. At most one per
+ * session — the invariant checks it.
+ */
+'intent-bridge/handoff': { alignSessionId: string; reason: string }
+```
+
+来源：[`packages/guard/intent-bridge/src/index.ts:68`](../packages/guard/intent-bridge/src/index.ts)
+
 ### `llm/*`
 
 #### `llm/retry` — log-only
@@ -447,6 +464,82 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 ```
 
 来源：[`packages/llm/llm-retry/src/types.ts:11`](../packages/llm/llm-retry/src/types.ts)
+
+### `memory/*`
+
+#### `memory/cache-hit` — log-only
+
+```ts persistence-catalog
+/** 门控保持：本轮评估后 STM 逐字节不变 — log-only（无 surfaceOp）。 */
+'memory/cache-hit': { intentId: string; intentKey: string; turn: number }
+```
+
+来源：[`packages/memory/adaptive-memory/src/types.ts:65`](../packages/memory/adaptive-memory/src/types.ts)
+
+#### `memory/cache-miss` — log-only
+
+```ts persistence-catalog
+/** 门控触发一次 STM 刷新 — log-only（无 surfaceOp）；选择结果见紧随的 memory/stm-selected。 */
+'memory/cache-miss': { intentId: string; intentKey: string; turn: number; reason: StmRefreshReason }
+```
+
+来源：[`packages/memory/adaptive-memory/src/types.ts:67`](../packages/memory/adaptive-memory/src/types.ts)
+
+#### `memory/reminder` — log-only
+
+```ts persistence-catalog
+/**
+ * 一次规则兜底提醒的触发决策 — log-only（无 surfaceOp）。提醒文本本身经
+ * memory:reminder context 贡献进入下一份 context-snapshot（模型可见面由
+ * 快照机制记录）；本事件只记决策（kind/subject/预算基准），供指标与审计。
+ */
+'memory/reminder': { intentId: string; turn: number; kind: 'unknown-entity' | 'error-code'; subject: string }
+```
+
+来源：[`packages/memory/adaptive-memory/src/types.ts:73`](../packages/memory/adaptive-memory/src/types.ts)
+
+#### `memory/stm-selected` — log-only
+
+```ts persistence-catalog
+/**
+ * 一次 STM 刷新的选择结果 — log-only（无 surfaceOp，不进模型可见面）。
+ * 与紧随其后的 context-snapshot user/message 共同满足 model-visible ⟺
+ * logged：快照里渲染的短 id 必须能以本事件 entryIds 的前缀匹配还原。
+ */
+'memory/stm-selected': { intentId: string; intentKey: string; turn: number; entryIds: string[] }
+```
+
+来源：[`packages/memory/adaptive-memory/src/types.ts:63`](../packages/memory/adaptive-memory/src/types.ts)
+
+### `next-workflow/*`
+
+#### `next-workflow/end` — log-only
+
+```ts persistence-catalog
+/**
+ * A `/next-workflow` run settled. Log-only; pairs with its
+ * `next-workflow/phase` records by `runId`. `detail` carries the verify
+ * disposition (`verified`/`unverified`) or the failure message.
+ */
+'next-workflow/end': { runId: string; outcome: NextWorkflowOutcome; detail?: string }
+```
+
+来源：[`packages/workflow/next-workflow/src/index.ts:97`](../packages/workflow/next-workflow/src/index.ts)
+
+#### `next-workflow/phase` — log-only
+
+```ts persistence-catalog
+/**
+ * One `/next-workflow` phase settled. Log-only (never the model surface or
+ * derived history); `artifact` points at the on-disk phase handoff, which
+ * survives compaction, and `detail` carries a short human summary such as
+ * the critique verdict or the verify outcome. A `select` phase additionally
+ * carries `selection`, so best-of-N plan selection is auditable from the log.
+ */
+'next-workflow/phase': { runId: string; phase: NextWorkflowPhase; artifact?: string; detail?: string; selection?: SelectionAudit }
+```
+
+来源：[`packages/workflow/next-workflow/src/index.ts:91`](../packages/workflow/next-workflow/src/index.ts)
 
 ### `permission/*`
 
@@ -541,6 +634,19 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 来源：[`packages/sandbox/sandbox-policy/src/session-mode.ts:33`](../packages/sandbox/sandbox-policy/src/session-mode.ts)
 
+### `schedule/*`
+
+#### `schedule/change` — log-only
+
+```ts persistence-catalog
+/**
+ * Versioned Schedule mutation. The owning package validates the complete
+ * session-local transition stream before accepting a candidate event.
+ */
+'schedule/change': ScheduleChange
+```
+
+来源：[`packages/schedule/schedule/src/types.ts:219`](../packages/schedule/schedule/src/types.ts)
 ### `session/*`
 
 #### `session/end-seed` — log-only
@@ -797,3 +903,20 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 ```
 
 来源：[`packages/web/web-search-deepseek/src/provider.ts:83`](../packages/web/web-search-deepseek/src/provider.ts)
+
+### `zen/*`
+
+#### `zen/phase` — log-only
+
+```ts persistence-catalog
+/**
+ * Which zen phase is in force from this point on: log-only, non-surface,
+ * whole-value replace. The last `zen/phase` wins; a log with none folds to
+ * `'full'` (never armed) through {@link foldZenPhase}. `reason` names the
+ * transition: `'arm'` (session start, always with phase `'zen'`) or one of
+ * the promotions `'anchor' | 'timeout' | 'triage'` (always with `'full'`).
+ */
+'zen/phase': { phase: ZenPhase; reason: ZenTransitionReason }
+```
+
+来源：[`packages/guard/zen/src/index.ts:50`](../packages/guard/zen/src/index.ts)

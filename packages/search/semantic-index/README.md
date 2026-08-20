@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Semantic workspace index for code retrieval: file-level BM25 (CJK-bigram aware) over definition-aligned chunks, an optional vector layer fused via Reciprocal Rank Fusion, incremental updates, and JSON persistence under `.rivet/`. Used by the `semantic_search` tool and consumable by other retrieval plugins.
+Semantic workspace index for code retrieval: file-level BM25 (CJK-bigram aware) over definition-aligned chunks, an optional vector layer fused via Reciprocal Rank Fusion, incremental updates, and JSON persistence under `.rivet/`. Used by the `semantic_search` tool and consumable by other retrieval plugins. All filesystem work — staleness scans, incremental updates, snapshot writes — goes through `node:fs/promises`, so a `refresh()` never blocks the host event loop.
 
 ## Model Experience
 

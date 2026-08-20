@@ -49,7 +49,7 @@ export interface SlashMenuState {
  * manages the state values.
  */
 export class InputController {
-  /** 空闲时空输入 Ctrl+C 连按退出的时间窗（ms）。 */
+  /** Ctrl+C 连按退出的时间窗（ms）；窗口内第二次即退出进程，不要求空输入。 */
   static readonly EXIT_WINDOW_MS = 2000
   /** slash 命令列表（外部注入，提示 + Tab 补全用） */
   slashCommands: SlashHintEntry[] = []

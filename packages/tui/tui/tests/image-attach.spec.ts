@@ -158,12 +158,14 @@ describe('loadImageAttachment（三级自适应压缩）', () => {
     }) satisfies ImageToolRunner)
     const p = await withFile(paddedPng(200), 'big.png')
     const attachment = await loadImageAttachment(p, { maxBytes: 100 })
-    // L1 命中：resizeCandidates 首候选 sips -Z 1568，输出 out.png
+    // L1 命中：resizeCandidates 首候选 sips -Z 1568，输出 out.png；
+    // -s format png 显式指定输出格式（不靠 out 路径扩展名猜，移植 dsh-tui ba45980）
     expect(calls.length).toBe(1)
     expect(calls[0]?.bin).toBe('sips')
     expect(calls[0]?.args).toContain('-Z')
     expect(calls[0]?.args).toContain('1568')
     expect(calls[0]?.args[0]).toBe('-Z')
+    expect(calls[0]?.args).toEqual(expect.arrayContaining(['-s', 'format', 'png']))
     expect(attachment.mime).toBe('image/png')
     expect(attachment.width).toBe(1)
     expect(attachment.height).toBe(1)

@@ -15,6 +15,15 @@
 | `turn-summary.ts` | turn 内工具统计模型（数量/耗时/家族分布） | **已接线**：`handleStreamEvent` fold → `turn/end`（非 aborted 且有工具调用）经 `format/turn-summary.ts` 渲染摘要行进 scrollback（`turn N · 读X 改Y · elapsed`）；读/改计数复用 `format/tool-meta.ts` 的 read\|find\|write 家族 |
 | `summary-state.ts` | 会话级跨 turn 汇总 | **已接线**：`handleStreamEvent` fold + `mountSession` 经 `summarizeSession` 从事件日志重放重建 → `/status` 面板「Σ 会话」段（`render/live-snapshot.ts` 的 `sessionTotals` 字段）；不依赖宿主投影总线，总线缺失时仍有数据 |
 
+
+子代理运行态投影（宿主侧 fold，`dsh-subagent` 包注册，委派树面板消费）：
+
+| 模块 | 职责 | 接线现状 |
+|---|---|---|
+| `subagent`（身份） | mode/label/seq，descriptor 折叠 | 宿主注册（`subagent/src/projection.ts`）；`listDescendants` 同 cut 解析进条目，委派树面板消费 |
+| `subagentTiming`（耗时） | 已完成 turn 累积毫秒 + 进行中 turn 边界 | 宿主注册；**由 `listDescendants` 条目携带**（`timing`）→ 委派树卡 header 耗时段。面板不从活动会话 `projectionCache` 读子会话投影（那些 key 折叠的是子日志，父会话下恒空） |
+| `subagentProgress`（运行态） | turn/tool 计数 + 最新 token + 当前工具活动（`Running: <tool>`），descriptor 重置；`turn/start` 清除 `lastTurnEnd` | 宿主注册；**由 `listDescendants` 条目携带**（`progress`）→ 委派树卡：进行中 `⎿` body 画 activity/token/工具计数，终态词留在 header。`listChildren` 行不带这两项。live 子会话经 `sessionProjections.onChanged` 按树上 `s.id` 触发整树 `listDescendants` 刷新 |
+
 设计曾承诺、至今未落地的模块：`cache-telemetry.ts`、`cache-panel-source.ts`、`history-replay.ts`、`adapter/projections.ts`——处置见 [README《Known Limitations and Deferred Work》](../README.md#known-limitations-and-deferred-work)。
 
 ## 关键契约

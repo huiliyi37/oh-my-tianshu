@@ -1,0 +1,22 @@
+[
+  {
+    "kind": "chunks",
+    "chunks": [
+      { "type": "block-start", "index": 0, "blockType": "tool-call" },
+      { "type": "tool-call-delta", "index": 0, "id": "ib1", "name": "finalize_alignment", "argumentsDelta": "{\"tit" },
+      { "type": "tool-call-delta", "index": 0, "id": "ib1", "name": "finalize_alignment", "argumentsDelta": "le\":\"重构登录逻辑\",\"goal\":\"重写 src/auth.ts 的登录流程\",\"constraints\":[\"不改变 API 签名\"],\"acceptance\":[\"pnpm test 全绿\"]}" },
+      { "type": "block-end", "index": 0, "block": { "type": "tool-call", "id": "ib1", "name": "finalize_alignment", "arguments": "{\"title\":\"重构登录逻辑\",\"goal\":\"重写 src/auth.ts 的登录流程\",\"constraints\":[\"不改变 API 签名\"],\"acceptance\":[\"pnpm test 全绿\"]}" } },
+      { "type": "usage", "usage": { "inputTokens": 10, "outputTokens": 5 } },
+      { "type": "finish", "reason": { "kind": "tool-calls" } }
+    ]
+  },
+  {
+    "kind": "chunks",
+    "chunks": [
+      { "type": "block-start", "index": 0, "blockType": "text" },
+      { "type": "text-delta", "index": 0, "text": "任务卡收到，开始执行。" },
+      { "type": "block-end", "index": 0, "block": { "type": "text", "text": "任务卡收到，开始执行。" } },
+      { "type": "finish", "reason": { "kind": "stop" } }
+    ]
+  }
+]

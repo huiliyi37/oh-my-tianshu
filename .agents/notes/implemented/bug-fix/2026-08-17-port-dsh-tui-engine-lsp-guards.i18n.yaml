@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-17-port-dsh-tui-engine-lsp-guards.md
+2026-08-17-port-dsh-tui-engine-lsp-guards.md: 9572c85d3026eb4232459f4cf9981546f96b3ba0
+2026-08-17-port-dsh-tui-engine-lsp-guards.zh.md: 28f5fa4f9ffdd13287f4d22e11334f1f4a67b1ed

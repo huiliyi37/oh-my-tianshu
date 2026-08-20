@@ -110,6 +110,13 @@ export interface InputHandlerOptions {
    * 500ms 对齐 Node readline 的 `escapeCodeTimeout` 默认值。
    */
   partialSequenceTimeoutMs?: number
+  /**
+   * 缓冲末尾的 return 先按住再派发（ms）。下一 chunk 若立刻到达，把这次
+   * return 标成 inline——非 bracketed paste 终端把粘贴拆成「一行一个 data
+   * 事件」时，行尾 \\r 不再被当成用户 Enter 逐行提交。仅当同一 chunk 在
+   * return 之前已有其它字节时按住；孤立 \\r 立即派发。
+   */
+  returnHoldMs?: number
 }
 
 /** Bracketed paste 标记（DEC 2004） */
@@ -206,7 +213,10 @@ export class InputHandler {
   private cprHandlers = new Set<(row: number, col: number) => void>()
   private escapeTimeoutMs: number
   private partialSequenceTimeoutMs: number
+  private returnHoldMs: number
   private escapeTimer: ReturnType<typeof setTimeout> | null = null
+  private returnHoldTimer: ReturnType<typeof setTimeout> | null = null
+  private heldReturn: KeyPress | null = null
   /** 当为 true 时，单独的 ESC 字节立即派发为 escape，不等待超时。
    *  用于 overlay 激活场景，避免 ESC 关闭/退出有 40ms 可感知延迟。 */
   private escapeImmediate = false
@@ -231,6 +241,7 @@ export class InputHandler {
     this.mode = options.mode ?? 'input'
     this.escapeTimeoutMs = options.escapeTimeoutMs ?? 80
     this.partialSequenceTimeoutMs = options.partialSequenceTimeoutMs ?? 500
+    this.returnHoldMs = options.returnHoldMs ?? 12
     // WSL 边缘情况：stdin 可能不是 TTY（如管道输入），setRawMode 会抛错
     if (this.stdin.isTTY) {
       try { this.stdin.setRawMode(true) } catch { /* best-effort */ }
@@ -316,6 +327,11 @@ export class InputHandler {
       clearTimeout(this.escapeTimer)
       this.escapeTimer = null
     }
+    if (this.returnHoldTimer) {
+      clearTimeout(this.returnHoldTimer)
+      this.returnHoldTimer = null
+    }
+    this.heldReturn = null
     this.pendingData = ''
     this.inputBuffer = ''
     this.stdin.removeAllListeners('data')
@@ -332,6 +348,9 @@ export class InputHandler {
   // ── internal ─────────────────────────────────────────────────
 
   private handleData(data: string): void {
+    // 跨 chunk 粘贴：上一包停在行尾 return 上，本包到达 → 那次 return 是行分隔。
+    if (this.heldReturn !== null) this.flushHeldReturn(true)
+
     // 0. 拼接上次未处理完的代理对片段
     if (this.pendingData) {
       data = this.pendingData + data
@@ -374,11 +393,54 @@ export class InputHandler {
         if (parsed.key.name === 'return' && i + parsed.consumed < buf.length) {
           parsed.key.inline = true
         }
+        // 同一 chunk 里文本后面跟着行尾 return（「一行一个 flush」的粘贴）才按住：
+        // 孤立的 \r（用户 Enter）立即派发；Shift/Meta/Ctrl+Enter 不是粘贴 CR。
+        const holdable = parsed.key.name === 'return'
+          && parsed.key.inline !== true
+          && i + parsed.consumed >= buf.length
+          && i > 0
+          && !parsed.key.shift
+          && !parsed.key.meta
+          && !parsed.key.ctrl
+        if (holdable) {
+          this.holdReturn(parsed.key)
+          i += parsed.consumed
+          break
+        }
         this.dispatch(parsed.key) // CPR 等非按键事件只消费不派发
       }
       i += parsed.consumed
     }
     return i
+  }
+
+  /** 缓冲末尾的 return 先按住：等下一 chunk 或超时再派发。 */
+  private holdReturn(key: KeyPress): void {
+    if (this.returnHoldTimer !== null) {
+      clearTimeout(this.returnHoldTimer)
+      this.returnHoldTimer = null
+    }
+    this.heldReturn = key
+    this.returnHoldTimer = setTimeout(() => {
+      this.returnHoldTimer = null
+      this.flushHeldReturn(false)
+    }, this.returnHoldMs)
+  }
+
+  /**
+   * 派出按住的 return。
+   * @param inline - true：后续 chunk 已到，当作粘贴行分隔；false：超时，当作用户 Enter。
+   */
+  private flushHeldReturn(inline: boolean): void {
+    if (this.returnHoldTimer !== null) {
+      clearTimeout(this.returnHoldTimer)
+      this.returnHoldTimer = null
+    }
+    const key = this.heldReturn
+    this.heldReturn = null
+    if (key === null) return
+    if (inline) key.inline = true
+    this.dispatch(key)
   }
 
   /** 处理跨 chunk 缓冲的输入缓冲区，按 paste → ESC 序列 → 普通字符优先级解析。 */
@@ -519,7 +581,7 @@ export class InputHandler {
       if (data.length === 1) return { key: null, consumed: 0 }
 
       // CSI 序列（方向键、功能键、带修饰键的序列等）
-      const csiMatch = data.match(/^\x1B\[[0-9;]*[A-Za-z~]/)
+      const csiMatch = data.match(/^\x1B\[[0-9;:]*[A-Za-z~]/)
       if (csiMatch) {
         const seq = csiMatch[0]
         // CPR（DSR 响应 `\x1B[{row};{col}R`）：不是按键——路由给 cprHandlers，
@@ -528,6 +590,21 @@ export class InputHandler {
         if (cprMatch) {
           for (const handler of this.cprHandlers) handler(Number(cprMatch[1]), Number(cprMatch[2]))
           return { key: null, consumed: seq.length }
+        }
+        const enhanced = decodeEnhancedKey(seq)
+        if (enhanced !== null) {
+          if ('skip' in enhanced) return { key: null, consumed: seq.length }
+          return {
+            key: {
+              raw: seq,
+              char: enhanced.char,
+              name: enhanced.name,
+              ctrl: enhanced.ctrl,
+              meta: enhanced.meta,
+              shift: enhanced.shift,
+            },
+            consumed: seq.length,
+          }
         }
         const name = this.resolveEscapeSequence(seq)
         const meta = seq.includes(';3') || seq.includes(';4')
@@ -563,7 +640,7 @@ export class InputHandler {
       }
 
       // 看起来是未完整的 CSI/SS3 序列，等待后续字节
-      if (/^\x1B(\[([0-9;]*)|O)$/.test(data)) {
+      if (/^\x1B(\[([0-9;:]*)|O)$/.test(data)) {
         return { key: null, consumed: 0 }
       }
 
@@ -636,6 +713,54 @@ export class InputHandler {
 
     return null
   }
+}
+
+/** Kitty CSI u / xterm modifyOtherKeys：功能键、Ctrl+字母、带修饰的可打印键。 */
+function decodeEnhancedKey(
+  seq: string,
+): { skip: true } | { name: KeyName; ctrl: boolean; meta: boolean; shift: boolean; char: string } | null {
+  const body = seq.startsWith('\x1B') ? seq.slice(1) : seq
+  const kitty = body.match(/^\[(\d+)(?::[^;]*)?(?:;(\d+)(?::(\d+))?)?(?:;(\d+))?(?:;[^u]*)?u$/)
+  if (kitty !== null) {
+    const event = kitty[3] !== undefined ? Number(kitty[3]) : kitty[4] !== undefined ? Number(kitty[4]) : 1
+    if (event === 3) return { skip: true }
+    return enhancedKeyFromCode(Number(kitty[1]), kitty[2] === undefined ? 1 : Number(kitty[2]))
+  }
+  const xterm = body.match(/^\[27;(\d+);(\d+)~$/)
+  if (xterm !== null) {
+    return enhancedKeyFromCode(Number(xterm[2]), Number(xterm[1]))
+  }
+  return null
+}
+
+/** Kitty 修饰键：1 + shift + alt*2 + ctrl*4。flag 1 下 Ctrl+C 是 code 99（'c'）+ mod 5。 */
+function enhancedKeyFromCode(
+  code: number,
+  mod: number,
+): { name: KeyName; ctrl: boolean; meta: boolean; shift: boolean; char: string } | null {
+  const bits = Math.max(0, mod - 1)
+  const shift = (bits & 1) !== 0
+  const meta = (bits & 2) !== 0
+  const ctrl = (bits & 4) !== 0
+  let name: KeyName | null = null
+  let char = ''
+  if (code === 27) name = 'escape'
+  else if (code === 13) name = 'return'
+  else if (code === 9) name = shift ? 'shift_tab' : 'tab'
+  else if (code === 127 || code === 8) name = 'backspace'
+  else if (ctrl && code >= 97 && code <= 122) name = CTRL_CODES[code - 96] ?? 'unknown'
+  else if (ctrl && code >= 65 && code <= 90) name = CTRL_CODES[code - 64] ?? 'unknown'
+  else if (code >= 1 && code <= 26) name = CTRL_CODES[code] ?? 'unknown'
+  else if (ctrl && code === 46) name = 'ctrl_.'
+  else if (ctrl && (code === 45 || code === 95)) name = 'ctrl_minus'
+  else if (ctrl && code === 93) name = 'ctrl_]'
+  else if (ctrl && code === 91) name = 'escape'
+  if (name === null && code >= 32 && code !== 127) {
+    char = String.fromCodePoint(code)
+    name = char === ' ' ? 'space' : 'unknown'
+  }
+  if (name === null) return null
+  return { name, ctrl, meta, shift, char }
 }
 
 /** 返回 `buf` 后缀中是 `marker` 前缀的最长长度（0 表示没有）。

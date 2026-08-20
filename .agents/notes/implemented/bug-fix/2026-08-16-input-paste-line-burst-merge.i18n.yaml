@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-16-input-paste-line-burst-merge.md
-2026-08-16-input-paste-line-burst-merge.md: 2cf631539c3e8c8fbe239db93abfd0911e261bb0
-2026-08-16-input-paste-line-burst-merge.zh.md: 9694f2c87feacc7892caabecad67b3f1c2a615b3
+2026-08-16-input-paste-line-burst-merge.md: 9b317dce4469627aa3b60976ae9937eae8aea7ba
+2026-08-16-input-paste-line-burst-merge.zh.md: 990a5ba361c378bbfdf13cae8699ef43464f8117

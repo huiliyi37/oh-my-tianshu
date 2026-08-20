@@ -41,6 +41,9 @@ export function homePatchPath(): string {
   return join(resolveDshHome(), PROFILE_PATCH_FILENAME)
 }
 
+/** Shipped agent-preset root: beside this app's own config, in both source and built layouts. */
+const SHIPPED_PRESET_ROOT = fileURLToPath(new URL('../config/agent-presets/', import.meta.url))
+
 /** Absolute path of this dsh installation's package.json (both anchors: src/ and lib/ sit one level under apps/cli). */
 export const INSTALL_ANCHOR = fileURLToPath(new URL('../package.json', import.meta.url))
 
@@ -147,6 +150,19 @@ function composeProfile(
     if (typeof row.id === 'string') rows.set(row.id, row)
   }
   const overlayAndFlags = [...overlays, ...deriveFlagPatches(rows)]
+  // The SHIPPED root is the part of the roster only this app can resolve: it
+  // sits beside this app's own config, in both the source and built layouts.
+  // The writable root the roster appends is `dsh-agent-presets`' own, so a
+  // launcher that never reaches this patch still finds a person's presets.
+  if (rows.has('agent-presets')) {
+    overlayAndFlags.push({
+      id: 'agent-presets',
+      config: {
+        ...(rows.get('agent-presets')?.config ?? {}) as Record<string, unknown>,
+        roots: [{ path: SHIPPED_PRESET_ROOT, trust: 'system' }],
+      },
+    })
+  }
   const telemetryPatch = resolveTelemetryPatch(process.env.DSH_TELEMETRY_DISABLED, rows.has(TELEMETRY_ROW_ID))
   if (telemetryPatch !== undefined) overlayAndFlags.push(telemetryPatch)
   return { profile, bundlePatches, homePatches, overlayAndFlags, rows }

@@ -1,6 +1,6 @@
 /**
- * Pure session projections for subagent identity (mode/label) and active-turn
- * duration.
+ * Pure session projections for subagent identity (mode/label), active-turn
+ * duration, and running-state progress.
  *
  * @module @huiliyi37/dsh-subagent/projection
  */
@@ -10,7 +10,11 @@ import type { ProjectionDefinition } from '@huiliyi37/dsh-session-projection'
 import type { SessionEvent } from '@huiliyi37/dsh-session'
 import { foldSubagentDescriptor } from './descriptor.ts'
 import type { SubagentDescriptorData } from './descriptor.ts'
-import type { SubagentIdentityProjection, SubagentTimingProjection } from './projection-types.ts'
+import type {
+  SubagentIdentityProjection,
+  SubagentProgressProjection,
+  SubagentTimingProjection,
+} from './projection-types.ts'
 
 interface TimingState {
   /** Milliseconds accumulated across completed post-descriptor turns. */
@@ -153,4 +157,124 @@ ProjectionDefinition<'subagent', IdentityState> = {
   // Bumped when the identity gained its `seq` field: an older checkpoint row
   // would replay into a value the schema rejects, so it must refold instead.
   stateVersion: 2,
+}
+
+interface ProgressState {
+  /** Whether the fold has crossed a descriptor in this logical log. */
+  descriptorSeen: boolean
+  /** `turn/end` count after the child's own descriptor. */
+  turns: number
+  /** `tool/call` count after the child's own descriptor. */
+  toolCalls: number
+  /** Billed total of the latest `assistant/message` usage (last-wins). */
+  tokensUsed: number
+  /** `reasoningTokens` of the latest usage (last-wins). */
+  reasoningTokens?: number
+  /** Name of the latest `tool/call`. */
+  lastTool?: string
+  /** Kind of the latest post-descriptor `turn/end` reason. */
+  lastTurnEnd?: string
+  /** callId → tool name for calls that have not reached `tool/result`. Plain JSON (persisted-cache precondition). */
+  pending: Record<string, string>
+  /** callId of the latest `tool/call`. */
+  lastCallId?: string
+}
+
+const progressSchema = z.object({
+  turns: z.number().int().nonnegative(),
+  toolCalls: z.number().int().nonnegative(),
+  tokensUsed: z.number().int().nonnegative(),
+  reasoningTokens: z.number().int().nonnegative().optional(),
+  lastTool: z.string().min(1).optional(),
+  toolInFlight: z.boolean(),
+  lastTurnEnd: z.enum([
+    'completed', 'aborted', 'blocked', 'error', 'max-tokens', 'interrupted',
+  ]).optional(),
+}).strict() as unknown as z.ZodType<SubagentProgressProjection>
+
+/**
+ * Fold running activity facts from the child's own log: turn/tool counts,
+ * latest token accounting, and the current tool activity. Every fact traces
+ * to an existing session event — `turn/end`, `tool/call`, `tool/result`,
+ * `assistant/message` usage — so no new event vocabulary is introduced
+ * (Model-visible ⟺ logged). The descriptor resets accumulation (a fork seed
+ * may replay an ancestor's work), and a malformed payload never throws: it
+ * folds to no value, mirroring the identity unit's damage discipline.
+ */
+export const subagentProgressProjectionDefinition:
+ProjectionDefinition<'subagentProgress', ProgressState> = {
+  key: 'subagentProgress',
+  schema: progressSchema,
+  init: () => ({ descriptorSeen: false, turns: 0, toolCalls: 0, tokensUsed: 0, pending: {} }),
+  apply: (state, event) => {
+    if (event.type === 'subagent/descriptor') {
+      return { descriptorSeen: true, turns: 0, toolCalls: 0, tokensUsed: 0, pending: {} }
+    }
+    if (!state.descriptorSeen) return state
+    switch (event.type) {
+      case 'turn/start': {
+        if (state.lastTurnEnd === undefined) return state
+        const { lastTurnEnd: _closed, ...rest } = state
+        return rest
+      }
+      case 'tool/call': {
+        const { name, callId } = event.data
+        return {
+          ...state,
+          toolCalls: state.toolCalls + 1,
+          lastTool: name,
+          lastCallId: callId,
+          pending: { ...state.pending, [callId]: name },
+        }
+      }
+      case 'tool/result': {
+        const callId = event.data.message.source.callId
+        if (!Object.hasOwn(state.pending, callId)) return state
+        return {
+          ...state,
+          pending: Object.fromEntries(Object.entries(state.pending).filter(([id]) => id !== callId)),
+        }
+      }
+      case 'assistant/message': {
+        const usage = event.data.usage
+        if (usage === undefined) return state
+        const tokensUsed = usage.inputTokens + usage.outputTokens
+          + (usage.cacheReadTokens ?? 0) + (usage.cacheWriteTokens ?? 0)
+        const { reasoningTokens: _prior, ...rest } = state
+        return {
+          ...rest,
+          tokensUsed,
+          ...usage.reasoningTokens !== undefined ? { reasoningTokens: usage.reasoningTokens } : {},
+        }
+      }
+      case 'turn/end': {
+        const kind = event.data.reason.kind
+        if (kind === 'completed' || kind === 'aborted' || kind === 'blocked'
+          || kind === 'error' || kind === 'max-tokens' || kind === 'interrupted') {
+          return { ...state, turns: state.turns + 1, lastTurnEnd: kind }
+        }
+        // An unknown merged reason kind is not our vocabulary: count the turn
+        // but ignore the kind rather than guess (no record ≠ zero value).
+        return { ...state, turns: state.turns + 1 }
+      }
+      default:
+        return state
+    }
+  },
+  view: (state) => {
+    const toolInFlight = state.lastCallId !== undefined
+      && Object.hasOwn(state.pending, state.lastCallId)
+    return {
+      turns: state.turns,
+      toolCalls: state.toolCalls,
+      tokensUsed: state.tokensUsed,
+      ...state.reasoningTokens !== undefined ? { reasoningTokens: state.reasoningTokens } : {},
+      ...state.lastTool !== undefined ? { lastTool: state.lastTool } : {},
+      toolInFlight,
+      ...state.lastTurnEnd !== undefined
+        ? { lastTurnEnd: state.lastTurnEnd as NonNullable<SubagentProgressProjection['lastTurnEnd']> }
+        : {},
+    }
+  },
+  stateVersion: 1,
 }

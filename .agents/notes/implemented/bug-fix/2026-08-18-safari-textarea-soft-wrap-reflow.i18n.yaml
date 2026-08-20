@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-18-safari-textarea-soft-wrap-reflow.md
+2026-08-18-safari-textarea-soft-wrap-reflow.md: cfa72b854eccc839de1a6432acb7e0973cba115f
+2026-08-18-safari-textarea-soft-wrap-reflow.zh.md: fd7c2a2f07182c985d40d7b7f20ed4c60dbed7e6

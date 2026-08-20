@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-client-ui-permission",
   "description": "Permission surfaces: a new-session default in General settings and a current-session /permission popup over the permissions projection",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

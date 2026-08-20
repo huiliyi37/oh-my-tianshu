@@ -1,0 +1,53 @@
+{
+  "name": "@huiliyi37/dsh-sandbox-windows-acl",
+  "description": "Windows ACL write-restriction sandbox backend for the Tianshu Harness",
+  "version": "0.3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/oh-my-tianshu.git",
+    "directory": "packages/sandbox/sandbox-windows-acl"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json",
+    "./runner": {
+      "types": "./lib/types/runner.d.ts",
+      "default": "./lib/runner.js"
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/runner.js",
+    "lib/types-*.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "Apache-2.0",
+  "dependencies": {
+    "koffi": "^3.1.0"
+  },
+  "peerDependencies": {
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
+  },
+  "devDependencies": {
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/dsh-pwsh-local": "workspace:^",
+    "@huiliyi37/dsh-sandbox-local": "workspace:^",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
+  }
+}

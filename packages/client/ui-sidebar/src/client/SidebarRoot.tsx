@@ -177,9 +177,11 @@ export function SidebarRoot({
         })}
       </div>
 
-      {/* Foot seat: ui-settings registers the trigger row + panel here. */}
+      {/* Foot seat: ui-settings registers the trigger row + panel here; the
+          footer-action seat hosts frame-wide action panels (ui-cordis). */}
       <div className={css.footArea}>
         {renderSlot('sidebar.settings', { wide })}
+        {renderSlot('sidebar.footer.action', { wide })}
       </div>
     </div>
   )

@@ -8,9 +8,20 @@
  * 以 packages/interaction/user-interaction/src/types.ts 实测为准（intent 唯一
  * kind 'plan-review' 带 approve: string；multiSelect 缺省单选）。
  */
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { resetTermCapsCache } from '../src/term-caps.js'
 import { projectQuestionPanel, type QuestionItemInput } from '../src/question-panel.js'
 import { displayWidth } from '../src/width.js'
+import { pinTuiEnvBaseline } from './env-baseline.ts'
+
+// 环境基线：面板字形接 useAsciiGlyphs 后，测试进程（非 TTY，chalk.level<3）
+// 恒为 ASCII 档——本 spec 的 Unicode 断言统一在 pin 基线之上固定 '0' 覆盖，
+// 降级用例在测试体内自行切 '1'。
+pinTuiEnvBaseline()
+beforeEach(() => {
+  process.env.RIVET_ASCII_UI = '0'
+  resetTermCapsCache()
+})
 
 const BOLD = '\x1B[1m'
 const RESET = '\x1B[0m'
@@ -216,5 +227,25 @@ describe('窄宽截断', () => {
     const rows = projectQuestionPanel({ questions: [plainSingle] }, { width: 80 })
     expect(rows).toContain('❓ 请选择发布策略')
     expect(rows).toContain('  1. 金丝雀发布')
+  })
+})
+
+describe('legacy conhost ASCII 降级（RIVET_ASCII_UI=1）', () => {
+  it('❓/🧭/✓/✗ 全部降级为 ?/>/+/x（GBK conhost 不出豆腐）', () => {
+    process.env.RIVET_ASCII_UI = '1'
+    resetTermCapsCache()
+    const rows = projectQuestionPanel({ questions: [planReview, plainSingle] }, { width: 80 })
+    const text = rows.join('\n')
+    expect(text).toContain('? 提问')
+    expect(text).toContain('> 评审以下计划')
+    expect(text).toContain('+ 1. 批准')
+    expect(text).toContain('x 2. 修改后重提')
+    expect(text).toContain('? 请选择发布策略')
+    expect(text).not.toContain('❓')
+    expect(text).not.toContain('🧭')
+    expect(text).not.toContain('✓')
+    expect(text).not.toContain('✗')
+    process.env.RIVET_ASCII_UI = '0'
+    resetTermCapsCache()
   })
 })

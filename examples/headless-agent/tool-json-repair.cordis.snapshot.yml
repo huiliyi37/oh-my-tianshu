@@ -1,0 +1,14 @@
+# Keyless tool-json-repair composition for the headless stream-json snapshot.
+- id: base
+  name: '@huiliyi37/cordis-plugin-include'
+  config:
+    path: ./cordis.yml
+    patches:
+      - id: llm-deepseek
+        name: '@huiliyi37/dsh-llm-deepseek'
+        disabled: true
+      - insert:
+          - id: tool-json-repair
+            name: '@huiliyi37/dsh-tool-json-repair'
+          - id: repair-snapshot-backend
+            name: './tests/fixtures/tool-json-repair-backend.mjs'

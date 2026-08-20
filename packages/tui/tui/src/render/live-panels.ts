@@ -10,13 +10,13 @@
  *
  * 每个面板复用既有 project* 纯函数（format/task-panel、status-panel、
  * delegation-panel、workflow-panel、config-panel、skill-panel、
- * format/glance-bar），本模块只做「snapshot → 既有面板函数输入」的适配与
- * 顺序编排，不重复实现渲染逻辑。依赖方向保持 app.ts → render/ 单向。
+ * format/glance-bar）。后台任务快照没有独立 project*，本模块用
+ * formatLiveCard 适配。依赖方向保持 app.ts → render/ 单向。
  *
  * @module @huiliyi37/dsh-tui/render/live-panels
  */
 
-import type { LiveSnapshot } from './live-snapshot.js'
+import type { LiveSnapshot, TaskSnapshotView } from './live-snapshot.js'
 import { projectTaskPanel } from '../format/task-panel.js'
 import { projectStatusPanel } from '../status-panel.js'
 import { projectDelegationTree } from '../delegation-panel.js'
@@ -24,12 +24,13 @@ import { projectWorkflow, type WorkflowRunView } from '../workflow-panel.js'
 import { projectConfigPanel } from '../config-panel.js'
 import { projectSkillPanel } from '../skill-panel.js'
 import { projectLspPanel, groupLspDiagnostics } from '../format/lsp-diagnostics.js'
+import { formatLiveCard, liveCardGlyph, type LiveCardStatus } from '../format/live-card.js'
 
-/** 后台任务区状态标记（与 renderLive 现状一致：running ⏳ / completed ✓ / 其余 ✗）。 */
-function taskSnapshotMark(status: string): string {
-  if (status === 'running') return '⏳'
-  if (status === 'completed') return '✓'
-  return '✗'
+/** 后台任务快照 → 活区卡状态形（running ⠋ / completed › / 其余 ✗）。 */
+function taskSnapshotStatus(status: TaskSnapshotView['status']): LiveCardStatus {
+  if (status === 'running') return 'running'
+  if (status === 'completed') return 'success'
+  return 'error'
 }
 
 /**
@@ -67,9 +68,9 @@ export function renderSessionTabs(snapshot: LiveSnapshot): string[] {
 }
 
 /**
- * 渲染任务面板：任务窗格（projectTaskPanel） + 后台任务区（taskSnapshots
- * 逐行）。面板隐藏 → 空数组；taskItems 为 null（服务缺失/未写入）→ 窗格不
- * 渲染，后台任务区独立渲染（与 renderLive 现状同语义）。
+ * 渲染任务面板：任务窗格（projectTaskPanel，todo 仍是 checkbox）+ 后台任务
+ * 区（taskSnapshots 走 formatLiveCard）。面板隐藏 → 空数组；taskItems 为
+ * null（服务缺失/未写入）→ 窗格不渲染，后台任务区独立渲染。
  * @param snapshot - 当前帧快照。
  * @returns 面板行数组（窗格行在前，后台任务区行在后）。
  */
@@ -78,8 +79,17 @@ export function renderTasksPanel(snapshot: LiveSnapshot): string[] {
   const rows: string[] = []
   rows.push(...projectTaskPanel(snapshot.taskItems, snapshot.cols))
   for (const t of snapshot.taskSnapshots) {
-    const detail = t.detail === undefined ? '' : ` · ${t.detail}`
-    rows.push(`${taskSnapshotMark(t.status)} ${t.label}${detail}`)
+    const running = t.status === 'running'
+    const detail = t.detail
+    rows.push(...formatLiveCard({
+      glyph: liveCardGlyph(taskSnapshotStatus(t.status)),
+      title: t.label,
+      ...(running || detail === undefined ? {} : { suffixes: [detail] }),
+      ...(running && detail !== undefined ? { body: [detail] } : {}),
+      width: snapshot.cols,
+      dim: !running,
+      theme: snapshot.theme,
+    }))
   }
   return rows
 }
@@ -130,7 +140,7 @@ export function renderLspPanel(snapshot: LiveSnapshot): string[] {
 }
 
 /**
- * 渲染 /subagents 委派树面板（标题 + 每层委派一行）。面板隐藏或 entries 为
+ * 渲染 /subagents 委派树面板（标题 + 每层一张卡）。面板隐藏或 entries 为
  * null（服务缺失/未预取）→ 空数组（降级不渲染）。
  * @param snapshot - 当前帧快照。
  * @returns 面板行数组。
@@ -138,12 +148,10 @@ export function renderLspPanel(snapshot: LiveSnapshot): string[] {
 export function renderDelegationPanel(snapshot: LiveSnapshot): string[] {
   if (!snapshot.subagentsPanelVisible) return []
   if (snapshot.delegationEntries === null) return []
-  return projectDelegationTree(
-    snapshot.delegationEntries,
-    snapshot.subagentIdentities,
-    snapshot.subagentTimings,
-    { width: snapshot.cols },
-  )
+  return projectDelegationTree(snapshot.delegationEntries, {
+    width: snapshot.cols,
+    theme: snapshot.theme,
+  })
 }
 
 /**

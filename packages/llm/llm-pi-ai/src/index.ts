@@ -184,7 +184,16 @@ export function apply(ctx: Context, config: Config): void {
     )
   }
 
-  const adapter = new PiAiAdapter({ profiles, resolveApiKey })
+  const adapter = new PiAiAdapter({
+    profiles,
+    resolveApiKey,
+    onReplayDegrade: ({ provider, model, reason }) => {
+      ctx.logger.warn(
+        `llm-pi-ai: unusable replay state on assistant history for route "${provider}/${model}";`
+        + ` sending that message as provider-neutral content (${reason})`,
+      )
+    },
+  })
   // The full installed catalog is configurable from the moment the plugin
   // mounts — dormant or not — so configuration surfaces can offer every
   // pi-ai provider before any route exists. Hand-declared routes join it as

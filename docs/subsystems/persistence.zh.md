@@ -77,6 +77,11 @@ interface SessionHeader {
    * resume — a runtime-only depth would reset a resumed child to top-level.
    */
   readonly delegationDepth?: number
+  /**
+   * The agent preset the session was created under. A resume that restored a
+   * different composition would replay history the model can no longer act on.
+   */
+  readonly agentPreset?: string
 }
 ```
 
@@ -104,6 +109,7 @@ interface CreateSessionOptions {
     readonly seedLength?: number
     readonly origin?: 'subagent'
     readonly delegationDepth?: number
+    readonly agentPreset?: string
   }
 }
 ```

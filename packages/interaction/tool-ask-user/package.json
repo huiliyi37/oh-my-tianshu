@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tool-ask-user",
   "description": "Model-facing ask_user_question tool over the ctx.userInteraction seam",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

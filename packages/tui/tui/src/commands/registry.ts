@@ -24,19 +24,12 @@ import { listSessions, loadHistory } from '../adapter/sessions.js'
 import { sessionTitleFor } from '../adapter/session-title.js'
 import { collectDoctorReport, getDoctorFixGuidance } from '../format/doctor-report.js'
 
-// agent-preset/selected 事件由 host 的 dsh-agent-presets 声明扩展（官方同款
-// declare module）；插件本地声明同型合并——host 包进入依赖后 interface 合并
-// 且属性类型一致（{ agentPreset: string }），无冲突。此扩展使
-// Session.append('agent-preset/selected', ...) 获得完整类型检查。
-declare module '@huiliyi37/dsh-session/types' {
-  interface SessionEventMap {
-    /**
-     * 用户经 `/preset` 选定 agent 预设的事实记录。载荷 `agentPreset` 是选中的预设名;
-     * log-only,只供投影与审计回放,不进模型派生历史。
-     */
-    'agent-preset/selected': { agentPreset: string }
-  }
-}
+// agent-preset/selected 会话事件由 dsh-agent-presets 声明扩展（persistence
+// catalog 门禁要求全仓单一声明）；此处仅以 type-only 引用把该合并引入本包
+// 编译面,使 Session.append('agent-preset/selected', ...) 获得完整类型检查。
+// /preset 的运行时服务面仍走 ctx.reflect.get('agentPresets') 最小接口,
+// 不引入 dsh-agent-presets 运行时依赖。
+import type {} from '@huiliyi37/dsh-agent-presets'
 
 /**
  * Slash 命令执行上下文——TuiApp 在分发时注入。
@@ -125,6 +118,22 @@ interface GoalFacet {
 }
 
 /** /tasks kill 所需的最小 tasks 服务面（不引入 dsh-tasks 依赖；id 运行时即 string）。 */
+/** One `listDescendants` row the kill path reads (direct parent + mode). */
+interface SubagentsKillEntry {
+  readonly kind: 'child' | 'diagnostic'
+  readonly id: string
+  readonly parentId: string
+  readonly activity?: 'running' | 'inactive'
+  readonly mode?: 'one-shot' | 'continuable'
+}
+
+/** /subagents kill 所需的最小 subagents 服务面（不引入 dsh-subagent 依赖；
+ *  reflect.get 动态获取——TUI 编译面约定）。 */
+interface SubagentsFacet {
+  listDescendants(rootSessionId: SessionId, signal?: AbortSignal): Promise<readonly SubagentsKillEntry[]>
+  interrupt(targetSessionId: SessionId, authority: { kind: 'user'; parentSessionId: SessionId }): void
+}
+
 interface TasksFacet {
   kill(id: string, caller?: unknown, reason?: string): 'requested' | 'already-finished'
 }
@@ -508,9 +517,10 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
       description: '查看/切换 agent 预设模式（标准 / PTC / 极简 / 创造）',
       argsHint: '[id]',
       run: async ({ text, echo, ctx }) => {
-        // as unknown as：Context 声明合并的 agentPresets 是完整服务面，
-        // 这里只消费最小读/切三方法（本地 PresetFacet）。
-        const facet = (ctx as unknown as { agentPresets?: PresetFacet }).agentPresets
+        // reflect.get 读取可选服务（Cordis 4 注入代理：未声明属性访问抛
+        // "without inject"——/compact /goal 同款；agentPresets 未装配时返回
+        // undefined → 降级 fails loud，禁止静默空操作）。
+        const facet = ctx.reflect.get('agentPresets', false) as PresetFacet | undefined
         if (facet === undefined) {
           echo('⚠ agent-presets 服务不可用（host 未装配 agent 预设）')
           return
@@ -569,7 +579,7 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
     },
     {
       name: 'clear',
-      description: '清空当前会话滚动区',
+      description: '清空当前会话滚动区并收起命令面板',
       run: ({ echo }) => {
         deps.clearScrollback()
         echo('已清空当前会话滚动区')
@@ -719,8 +729,56 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
     },
     {
       name: 'subagents',
-      description: '切换委派树面板（subagent 层级投影）',
-      run: () => { deps.toggleSubagentsPanel() },
+      description: '委派树：无参切换；kill <id> 终止运行中的 continuable 子代理',
+      argsHint: '[kill <id>]',
+      run: async ({ text, echo, ctx, sessionId }) => {
+        const sub = text.split(/\s+/)[0] ?? ''
+        if (sub === 'kill') {
+          const id = text.slice(sub.length).trim()
+          if (id === '') {
+            echo('用法: /subagents kill <id>')
+            return
+          }
+          const subagents = ctx.reflect.get('subagents', false) as SubagentsFacet | undefined
+          if (subagents === undefined) {
+            echo('⚠ subagents 服务不可用（未加载 subagent 插件）')
+            return
+          }
+          if (sessionId === null) {
+            echo('⚠ 无活动会话，无法终止子代理')
+            return
+          }
+          const entry = (await subagents.listDescendants(sessionId))
+            .find(row => row.kind === 'child' && row.id === id)
+          if (entry === undefined) {
+            echo(`⚠ 该 id 不在当前委派树中: ${id}`)
+            return
+          }
+          if (entry.mode === 'one-shot') {
+            echo(`⚠ 一次性子代理不能经 /subagents kill 终止: ${id}`)
+            return
+          }
+          if (entry.activity === 'inactive') {
+            echo(`⚠ 子代理已不在运行: ${id}`)
+            return
+          }
+          try {
+            subagents.interrupt(id as SessionId, {
+              kind: 'user',
+              parentSessionId: entry.parentId as SessionId,
+            })
+            echo(`已请求终止子代理: ${id}`)
+          } catch (error: unknown) {
+            echo(`⚠ 终止失败: ${error instanceof Error ? error.message : String(error)}`)
+          }
+          return
+        }
+        if (sub !== '') {
+          echo('用法: /subagents [kill <id>]')
+          return
+        }
+        deps.toggleSubagentsPanel()
+      },
     },
     {
       name: 'workflow',

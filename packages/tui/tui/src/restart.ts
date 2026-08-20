@@ -15,6 +15,7 @@
 
 import { spawn } from 'node:child_process'
 
+/** {@link spawnSelfRestart} 的选项。 */
 export interface SpawnSelfRestartOptions {
   /** 重启命令行；缺省 process.argv（argv[0]=node 可执行，argv[1..]=脚本+参数）。 */
   argv?: string[]
@@ -27,6 +28,8 @@ export interface SpawnSelfRestartOptions {
  * 应随后退出当前进程，让新进程接管终端；resolve false = 无法启动
  * （argv 无效 / spawn error 如 ENOENT）。不等待新进程退出——成功后
  * unref，父进程随时可 exit。
+ * @param options - 重启命令行覆盖（缺省重放 process.argv）。
+ * @returns 新进程成功启动返回 true，无法启动返回 false。
  */
 export function spawnSelfRestart(options: SpawnSelfRestartOptions = {}): Promise<boolean> {
   const argv = options.argv ?? process.argv

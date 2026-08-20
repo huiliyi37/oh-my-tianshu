@@ -220,7 +220,7 @@ describe('ScopedLayers', () => {
     let failFactory = true
     const layers = new ScopedLayers(
       (selected) => {
-        if (selected !== undefined && failFactory) { throw new Error('factory failed') }
+        if (selected !== undefined && failFactory) throw new Error('factory failed')
         return new TestLayer(selected)
       },
       vi.fn(),

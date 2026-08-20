@@ -1,0 +1,75 @@
+{
+  "name": "@huiliyi37/dsh-cordis-client-runner",
+  "description": "Browser half of a dual-half dynamic package: evaluates the definition into a live browser plugin and answers the run request",
+  "version": "0.3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/oh-my-tianshu.git",
+    "directory": "packages/self-modification/cordis-client-runner"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/client.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "Apache-2.0",
+  "dependencies": {},
+  "peerDependencies": {
+    "@huiliyi37/cordis-plugin-loader": "workspace:^",
+    "@huiliyi37/dsh-api-remotes": "^0.2.0",
+    "@huiliyi37/dsh-client-connection": "^0.2.0",
+    "@huiliyi37/dsh-client-modules": "^0.2.0",
+    "@huiliyi37/dsh-client-runtime": "^0.2.0",
+    "@huiliyi37/dsh-client-ui-slots": "^0.2.0",
+    "@huiliyi37/dsh-client-ui-theme": "^0.2.0",
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.7",
+    "react": "^18.0.0"
+  },
+  "devDependencies": {
+    "@huiliyi37/cordis-plugin-loader": "workspace:^",
+    "@huiliyi37/dsh-api-remotes": "workspace:^",
+    "@huiliyi37/dsh-client-connection": "workspace:^",
+    "@huiliyi37/dsh-client-modules": "workspace:^",
+    "@huiliyi37/dsh-client-runtime": "workspace:^",
+    "@huiliyi37/dsh-client-ui-slots": "workspace:^",
+    "@huiliyi37/dsh-client-ui-theme": "workspace:^",
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/cordis": "^4.0.0-rc.7",
+    "@types/react": "~18.3.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "dshClient": {
+    "inject": [
+      "@huiliyi37/dsh-client-runtime",
+      "@huiliyi37/dsh-api-remotes",
+      "@huiliyi37/dsh-client-modules",
+      "@huiliyi37/dsh-client-ui-theme"
+    ],
+    "platform": "web"
+  }
+}

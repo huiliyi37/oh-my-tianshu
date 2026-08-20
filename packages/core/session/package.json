@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-session",
   "description": "Event-sourced session store for the Tianshu Harness",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },

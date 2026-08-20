@@ -33,6 +33,15 @@ declare module '@huiliyi37/dsh-client-ui-slots' {
 /** Theme token dictionary: --dsw-alias-* overrides keyed by variable name. */
 export type ThemeTokens = Record<string, string>
 
+/** One override token's per-palette values. */
+export interface ThemeTokenModes {
+  readonly light: string
+  readonly dark: string
+}
+
+/** Partial token-layer input to {@link ThemeService.overrideTokens}. */
+export type ThemeTokenOverrides = Record<string, ThemeTokenModes>
+
 /** Theme preference: a concrete theme id or follow-the-OS. */
 export type ThemePreference = 'light' | 'dark' | 'system'
 
@@ -103,6 +112,9 @@ export class ThemeService {
   private revision = 0
   private snapshot: ThemeSnapshot
   private readonly media: MediaQueryList | undefined
+  /** Token override layers keyed by source, folded into the active snapshot. */
+  private readonly overrides = new Map<string, { seq: number; tokens: ThemeTokenOverrides }>()
+  private overrideSeq = 0
 
   /**
    * @param ctx - owning context (change events are emitted on it; the
@@ -133,6 +145,26 @@ export class ThemeService {
    */
   getTheme(): ThemeSnapshot {
     return this.snapshot
+  }
+
+  /**
+   * Stack one partial token layer over the active theme without touching the
+   * registry. The source names the layer (a dynamic package's id) so a later
+   * call from the same source replaces its own layer and unload restores.
+   * @param source - layer owner identity, surfaced in teaching errors.
+   * @param tokens - per-token `{ light, dark }` pairs; a bare string throws.
+   * @returns disposer removing exactly the layer this call created; a no-op
+   * once the source has re-overridden (the newer layer is not torn down).
+   */
+  overrideTokens(source: string, tokens: ThemeTokenOverrides): () => void {
+    const layer = { seq: this.overrideSeq++, tokens: validateOverrides(source, tokens) }
+    this.overrides.set(source, layer)
+    this.publish()
+    return () => {
+      if (this.overrides.get(source) !== layer) return
+      this.overrides.delete(source)
+      this.publish()
+    }
   }
 
   /**
@@ -187,10 +219,27 @@ export class ThemeService {
     if (active === undefined) throw new Error(`theme registry lost "${resolvedId}"`)
     return Object.freeze({
       preference: this.preference,
-      active,
+      active: this.composeActive(active),
       themes: Object.freeze([...this.themes]),
       revision: this.revision,
     })
+  }
+
+  /**
+   * Fold the override layers into the active definition: seq order, later
+   * layers win per-token, each value picked for the active color scheme (the
+   * presenter consumes the composed snapshot and needs no override awareness).
+   * Without layers the registered definition passes through by identity.
+   */
+  private composeActive(active: ThemeDefinition): ThemeDefinition {
+    if (this.overrides.size === 0) return active
+    const tokens: ThemeTokens = { ...active.tokens }
+    for (const layer of [...this.overrides.values()].sort((a, b) => a.seq - b.seq)) {
+      for (const [name, modes] of Object.entries(layer.tokens)) {
+        tokens[name] = modes[active.colorScheme]
+      }
+    }
+    return Object.freeze({ ...active, tokens: Object.freeze(tokens) })
   }
 
   private publish(): void {
@@ -262,4 +311,34 @@ export function apply(ctx: ClientContext): void {
     locale: SETTINGS_NS,
     inject: injected,
   }, AppearanceRow))
+}
+
+/**
+ * Validate one override layer defensively: teaching errors for bare strings
+ * and malformed pairs, with a per-token copy so later caller mutation cannot
+ * reach the stored layer.
+ * @param source - layer owner identity for the error text.
+ * @param tokens - raw caller-supplied overrides.
+ * @returns the validated per-token copy.
+ */
+function validateOverrides(source: string, tokens: ThemeTokenOverrides): ThemeTokenOverrides {
+  const validated: ThemeTokenOverrides = {}
+  for (const [name, value] of Object.entries<unknown>(tokens)) {
+    if (typeof value === 'string') {
+      throw new TypeError(
+        `theme override "${name}" from "${source}" is a bare string — pass { light: ${JSON.stringify(value)}, dark: ${JSON.stringify(value)} } `
+        + '(repeat the value when it is the same in both palettes); a single value goes illegible when the user switches color scheme',
+      )
+    }
+    if (typeof value !== 'object' || value === null
+      || typeof (value as { light?: unknown }).light !== 'string'
+      || typeof (value as { dark?: unknown }).dark !== 'string') {
+      throw new TypeError(
+        `theme override "${name}" from "${source}" must map to a { light, dark } pair of strings — one value per color scheme`,
+      )
+    }
+    const modes = value as ThemeTokenModes
+    validated[name] = { light: modes.light, dark: modes.dark }
+  }
+  return validated
 }

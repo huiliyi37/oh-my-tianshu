@@ -1,0 +1,66 @@
+# Keyless real-Loader composition for the intent-bridge first-message snapshot.
+# The headless driver sends one first message to the alignment session; the
+# replay adapter supplies a finalize_alignment call (alignment completes in
+# one round), the bridge hands a task card to a fresh main session, and the
+# replay adapter then serves the main session's first turn. Two provider
+# routes (minimax for alignment, deepseek-official for the main session) are
+# both served by the replay adapter.
+
+- id: persistence
+  name: '@huiliyi37/dsh-session-persistence-jsonl'
+  config:
+    root: './.sessions'
+    compression: none
+
+- id: replay
+  name: '@huiliyi37/dsh-llm-replay'
+  config:
+    file: !!js process.env.DSH_SNAPSHOT_FILE
+    overrideFile: !!js process.env.DSH_SNAPSHOT_OVERRIDE
+    providers:
+      - id: minimax
+      - id: deepseek-official
+
+- id: task-card
+  name: '@huiliyi37/dsh-task-card'
+  config:
+    mode: template
+
+- id: zen
+  name: '@huiliyi37/dsh-zen'
+  config:
+    section: >-
+      Zen phase — the toolset is reduced while you anchor the task.
+      Verify one landmark read-only, then call zen_anchor to unlock.
+    face: [bash]
+
+- id: intent-bridge
+  name: '@huiliyi37/dsh-intent-bridge'
+  config:
+    alignProvider: minimax
+    alignModel: MiniMax-M3
+    execProvider: deepseek-official
+    execModel: deepseek-v4-flash
+
+# Managed child-process groups for the bash executor (spawn/kill/output plumbing).
+- id: subprocess
+  name: '@huiliyi37/dsh-subprocess-local'
+
+- id: bash
+  name: '@huiliyi37/dsh-bash-local'
+  config:
+    timeoutMs: 60000
+
+- id: agent
+  name: '@huiliyi37/dsh-agent-spine-demo'
+  config:
+    agents: []
+    workspaceContext: false
+    skills:
+      enabled: false
+    toolTasks: false
+    goals: false
+
+# Publish the alignment session before the headless driver runs its fixture turn.
+- id: intent-bridge-agent
+  name: './tests/fixtures/intent-bridge-agent.ts'

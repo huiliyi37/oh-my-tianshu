@@ -2,7 +2,7 @@
 
 English | [中文](git.zh.md)
 
-Typed git capability seam owned by [`@huiliyi37/dsh-git`](../../packages/git/git): the abstract `Git` service defines four repository operations with explicit `cwd` and cancellation, and the co-located `GitLocal` provider executes them through the external `git` CLI, mapping failures to a typed `GitError`. The [tool package](../../packages/git/tool-git/README.md) owns the model-facing `git_status` / `git_diff` / `git_log` / `git_commit` surface; the package [README](../../packages/git/git/README.md) owns provider behavior and error mapping.
+Typed git capability seam owned by [`@huiliyi37/dsh-git`](../../packages/git/git): the abstract `Git` service defines four repository operations with explicit `cwd` and cancellation, and the co-located `GitLocal` provider executes them through the external `git` CLI, mapping failures to a typed `GitError`. The [tool package](../../packages/git/tool-git/README.md) owns the model-facing `git` tool (`operation`: status | diff | log | commit); the package [README](../../packages/git/git/README.md) owns provider behavior and error mapping.
 
 Source: [`packages/git/git/src/index.ts`](../../packages/git/git/src/index.ts)
 

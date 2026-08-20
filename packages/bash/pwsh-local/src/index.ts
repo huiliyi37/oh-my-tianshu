@@ -162,12 +162,27 @@ export class PwshLocalExecutor extends BashExecutor {
     }
   }
 
-  /** Map one resolved bash spec onto a fully-specified subprocess spawn. */
-  private spawnSpec(spec: BashExecSpec, stdoutMaxBytes: number, signal: AbortSignal | undefined): SubprocessSpawnSpec {
+  /**
+   * The exact pwsh invocation argv for one spec — the single source both the
+   * plain spawn and a sandbox-confining subclass hand to the subprocess path.
+   * @param spec - resolved execution spec whose command runs under `-Command`.
+   * @returns the argv with the encoding preamble folded into the command.
+   */
+  protected argv(spec: BashExecSpec): string[] {
+    return [this.pwshPath, '-NoLogo', '-NoProfile', '-NonInteractive', '-Command', `${ENCODING_PREAMBLE}${spec.command}`]
+  }
+
+  /** Map one resolved spec and explicit argv onto a fully-specified subprocess spawn. */
+  private spawnSpec(
+    spec: BashExecSpec,
+    argv: readonly string[],
+    stdoutMaxBytes: number,
+    signal: AbortSignal | undefined,
+  ): SubprocessSpawnSpec {
     const collect = (maxBytes: number): SubprocessCollect =>
       ({ maxBytes, spill: { maxBytes: this.config.maxSpillBytes } })
     return {
-      argv: [this.pwshPath, '-NoLogo', '-NoProfile', '-NonInteractive', '-Command', `${ENCODING_PREAMBLE}${spec.command}`],
+      argv: [...argv],
       cwd: spec.workdir,
       stdio: {
         stdin: spec.stdin !== undefined ? { data: spec.stdin } : 'ignore',
@@ -192,9 +207,21 @@ export class PwshLocalExecutor extends BashExecutor {
   }
 
   async run(spec: BashExecSpec): Promise<BashRunResult> {
+    return this.runArgv(spec, this.argv(spec))
+  }
+
+  /**
+   * Run an explicit argv with the foreground lifecycle, environment, output,
+   * timeout, and cancellation semantics of this executor. Subclasses use this
+   * after replacing the public command's pwsh argv at an execution boundary.
+   * @param spec - resolved execution settings and caller-owned command metadata.
+   * @param argv - exact executable and arguments to hand to `ctx.subprocess`.
+   * @returns the settled foreground result with collected output and cause facts.
+   */
+  protected async runArgv(spec: BashExecSpec, argv: readonly string[]): Promise<BashRunResult> {
     // One deadline combines timeout and upstream cancellation; disposal clears its timer.
     using d = deadline(spec.signal, spec.timeoutMs, 'BASH_TIMEOUT')
-    const handle = this.ctx.subprocess.spawn(this.spawnSpec(spec, spec.stdoutMaxBytes, d.signal))
+    const handle = this.ctx.subprocess.spawn(this.spawnSpec(spec, argv, spec.stdoutMaxBytes, d.signal))
     const outcome = await handle.done
     const collected = PwshLocalExecutor.collected(handle)
     // Only this executor's timeout reason counts as timedOut; outer deadlines count as aborts.
@@ -211,8 +238,21 @@ export class PwshLocalExecutor extends BashExecutor {
   }
 
   start(spec: BashExecSpec): BashProcess {
+    return this.startArgv(spec, this.argv(spec))
+  }
+
+  /**
+   * Start an explicit argv with the background lifecycle, environment, output,
+   * cancellation, and process-tree ownership semantics of this executor.
+   * Subclasses use this after replacing the public command's pwsh argv at an
+   * execution boundary.
+   * @param spec - resolved execution settings and caller-owned command metadata.
+   * @param argv - exact executable and arguments to hand to `ctx.subprocess`.
+   * @returns the live background handle; spawn rejection settles it as killed.
+   */
+  protected startArgv(spec: BashExecSpec, argv: readonly string[]): BashProcess {
     // Background runs ignore timeoutMs; callers stop them through kill() or spec.signal.
-    const running = this.ctx.subprocess.spawn(this.spawnSpec(spec, this.config.maxOutputBytes, spec.signal))
+    const running = this.ctx.subprocess.spawn(this.spawnSpec(spec, argv, this.config.maxOutputBytes, spec.signal))
     const collected = PwshLocalExecutor.collected(running)
 
     // A spawn failure produces no process output, so the subprocess service has nothing
@@ -237,12 +277,12 @@ export class PwshLocalExecutor extends BashExecutor {
         }
         proc.exitCode = outcome.exitCode
         proc.signal = outcome.signal
-        this.onProcessDone(proc, collected.stderr.readFrom(0).text)
+        this.onProcessDone(proc, collected.stderr.readFrom(0).text, false)
       }, (error: unknown) => {
         // Background spawn failures settle as killed and surface through the read path.
         proc.status = 'killed'
         spawnFailureNote = `spawn failed: ${String(error)}`
-        this.onProcessDone(proc, spawnFailureNote)
+        this.onProcessDone(proc, spawnFailureNote, true, error)
       }),
       readOutput: (): BashProcessRead => {
         const out = collected.stdout.readFrom(stdoutOffset)
@@ -279,12 +319,13 @@ export class PwshLocalExecutor extends BashExecutor {
    * Settlement hook for subclasses that attach execution facts to a process.
    * The base implementation is intentionally empty. Mirrored from
    * `dsh-bash-local` (whose sandboxing subclass consumes the same hook); it is
-   * the protected extension point for a future pwsh-confining subclass and has no consumer
-   * in this package yet.
+   * the protected extension point consumed by the pwsh-confining subclass.
    * @param _proc - the settled process handle.
    * @param _stderr - the process's retained stderr tail used by subclasses for settlement classification.
+   * @param _spawnFailed - whether the subprocess promise rejected before a process started.
+   * @param _spawnError - the original spawn rejection reason, which may itself be undefined.
    */
-  protected onProcessDone(_proc: BashProcess, _stderr: string): void {}
+  protected onProcessDone(_proc: BashProcess, _stderr: string, _spawnFailed: boolean, _spawnError?: unknown): void {}
 }
 /* jscpd:ignore-end */
 

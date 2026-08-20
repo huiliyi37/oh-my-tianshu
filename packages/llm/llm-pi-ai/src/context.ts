@@ -23,9 +23,10 @@ function flattenText(message: Message): string {
  * block — it is recovered from the preceding assistant tool-call with the
  * same id.
  * @param options - the harness request; `options.system` maps to pi-ai's single `systemPrompt` slot.
+ * @param onReplayDegrade - forwarded to {@link toPiAssistant} for each assistant message.
  * @returns the pi-ai context; `tools` is omitted entirely when the request declares none.
  */
-export function toPiContext(options: GenerateOptions): PiContext {
+export function toPiContext(options: GenerateOptions, onReplayDegrade?: (reason: string) => void): PiContext {
   const toolNames = new Map<CallId, string>()
   const messages: Array<PiMessage> = []
 
@@ -38,7 +39,7 @@ export function toPiContext(options: GenerateOptions): PiContext {
       continue
     }
     if (message.role === 'assistant') {
-      const assistant = toPiAssistant(message)
+      const assistant = toPiAssistant(message, onReplayDegrade)
       for (const block of assistant.content) {
         if (block.type === 'toolCall') toolNames.set(CallId(block.id), block.name)
       }

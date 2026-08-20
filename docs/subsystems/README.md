@@ -38,6 +38,10 @@ One page per subsystem of the Tianshu Harness: what it is, the data structures i
 | [web.md](web.md) | the web access seam: `WebSearchRequest`/`Result`, `WebFetchRequest`/`Result`, `WebFetchBody`, provider availability, `WebError` |
 | [spill.md](spill.md) | the spill storage seam: `SaveTextSpill`, `SpillOwner`/`SpillSource`, `SpillRef`, the branded `SpillLocator` |
 | [workflow.md](workflow.md) | the workflow seam: `WorkflowStartRequest`, `WorkflowMeta`, `WorkflowRun`/`Result`, the `workflow/*` event payloads, `WorkflowError` fatality |
+| [schedule.md](schedule.md) | durable session-local reminders: the `schedule/*` change and dispatch events, `ScheduleRecord` shapes, delivery modes |
+| [attachment.md](attachment.md) | durable image attachments: `ImageAttachmentRef`/`SaveImageAttachment`, verified-read payloads, admission limits |
+| [extensions.md](extensions.md) | dynamic Cordis packages: the `cordis/*` inspect and run events, `ctx.cordisInspect`/`ctx.dynamicCordisRunner` surfaces |
+| [feedback.md](feedback.md) | per-message rating/note sidecar: `MessageFeedbackItem`, CAS version tokens, `ctx.messageFeedback` contract |
 | [tasks.md](tasks.md) | the background-task runtime: branded `TaskId`s, the producer contract, consumer views, `ctx.tasks` service behavior |
 | [permission.md](permission.md) | the permission-preset layer: `PresetSpec`/`PresetOption`, the derived `custom` state, the log-only `permission/preset` event |
 | [plan.md](plan.md) | plan mode: the log-only `plan/mode` state, pending-selection flush, `PlanModeConfig`, the `exit_plan_mode` review arc |

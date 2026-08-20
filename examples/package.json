@@ -39,6 +39,7 @@
     "@huiliyi37/dsh-goal-session": "workspace:*",
     "@huiliyi37/dsh-hooks-claude": "workspace:*",
     "@huiliyi37/dsh-hooks-codex": "workspace:*",
+    "@huiliyi37/dsh-intent-bridge": "workspace:*",
     "@huiliyi37/dsh-invariants": "workspace:*",
     "@huiliyi37/dsh-jsonrpc": "workspace:*",
     "@huiliyi37/dsh-llm": "workspace:*",
@@ -57,6 +58,7 @@
     "@huiliyi37/dsh-sandbox": "workspace:*",
     "@huiliyi37/dsh-sandbox-local": "workspace:*",
     "@huiliyi37/dsh-sandbox-policy": "workspace:^",
+    "@huiliyi37/dsh-schedule": "workspace:*",
     "@huiliyi37/dsh-scope": "workspace:*",
     "@huiliyi37/dsh-session": "workspace:*",
     "@huiliyi37/dsh-session-checkpoint-policy": "workspace:*",
@@ -84,6 +86,7 @@
     "@huiliyi37/dsh-subprocess-e2b": "workspace:*",
     "@huiliyi37/dsh-subprocess-local": "workspace:*",
     "@huiliyi37/dsh-system-prompt": "workspace:*",
+    "@huiliyi37/dsh-task-card": "workspace:*",
     "@huiliyi37/dsh-tasks-local": "workspace:*",
     "@huiliyi37/dsh-time-context": "workspace:*",
     "@huiliyi37/dsh-timeout-policy": "workspace:*",
@@ -95,6 +98,7 @@
     "@huiliyi37/dsh-tool-fs": "workspace:*",
     "@huiliyi37/dsh-tool-fs-search": "workspace:*",
     "@huiliyi37/dsh-tool-goal": "workspace:*",
+    "@huiliyi37/dsh-tool-json-repair": "workspace:^",
     "@huiliyi37/dsh-tool-lsp": "workspace:*",
     "@huiliyi37/dsh-tool-pty": "workspace:*",
     "@huiliyi37/dsh-tool-pwsh": "workspace:*",
@@ -116,6 +120,7 @@
     "@huiliyi37/dsh-web": "workspace:*",
     "@huiliyi37/dsh-web-fetch-local": "workspace:*",
     "@huiliyi37/dsh-workflow-workerthread": "workspace:*",
-    "@huiliyi37/dsh-workspace-context": "workspace:*"
+    "@huiliyi37/dsh-workspace-context": "workspace:*",
+    "@huiliyi37/dsh-zen": "workspace:*"
   }
 }

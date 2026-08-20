@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
-import { carrierKeyOf, createScope, isScopeCarrier, scopeOf, scopeTarget } from '@huiliyi37/dsh-scope'
+import { bindScopeParent, carrierKeyOf, createScope, isScopeCarrier, scopeChainOf, scopeOf, scopeParentOf, scopeTarget } from '@huiliyi37/dsh-scope'
 import type { Scope, Scoped } from '@huiliyi37/dsh-scope'
 
 declare module '@huiliyi37/cordis' {
@@ -151,5 +151,72 @@ describe('scopeTarget', () => {
     expect(carrierKeyOf(subject)).toBeUndefined()
     expect('value' in carrier).toBe(false)
     expectTypeOf(carrier).toEqualTypeOf<Scoped<typeof subject>>()
+  })
+})
+
+describe('scope parent chain', () => {
+  it('links at mint, walks to the root, and rejects cycles', () => {
+    const ctx = new Context()
+    const preset = { kind: 'preset' }
+    const agent = { kind: 'agent' }
+    createScope(ctx, preset)
+    createScope(ctx, agent, { parent: preset })
+
+    expect(scopeParentOf(agent)).toBe(preset)
+    expect(scopeParentOf(preset)).toBeUndefined()
+    expect(scopeChainOf(agent)).toEqual([agent, preset])
+    expect(scopeChainOf(undefined)).toEqual([])
+    expect(() => { bindScopeParent(preset, agent) }).toThrow(/cycle/)
+    expect(() => { bindScopeParent(preset, preset) }).toThrow(/cycle/)
+  })
+
+  it('re-links only through the binding held by the original binder', () => {
+    const ctx = new Context()
+    const presetA = { id: 'a' }
+    const presetB = { id: 'b' }
+    const agent = { id: 'agent' }
+    createScope(ctx, presetA)
+    createScope(ctx, presetB)
+    const binding = bindScopeParent(agent, presetA)
+    createScope(ctx, agent)
+
+    // A bound key cannot be re-bound from the outside; only the binding moves it.
+    expect(() => bindScopeParent(agent, presetB)).toThrow(/already bound/)
+    binding.rebind(presetB)
+
+    expect(scopeChainOf(agent)).toEqual([agent, presetB])
+    // The rebind keeps the cycle check: a parent may not adopt its ancestor.
+    const child = { id: 'child' }
+    const childBinding = bindScopeParent(child, agent)
+    void childBinding
+    expect(() => { binding.rebind(child) }).toThrow(/cycle/)
+  })
+
+  it('admits an ancestor-tagged listener for a descendant dispatch, never the reverse', () => {
+    const ctx = new Context()
+    const preset = { kind: 'preset' }
+    const agent = { kind: 'agent' }
+    const other = { kind: 'other-preset' }
+    const presetScope = createScope(ctx, preset)
+    const agentScope = createScope(ctx, agent, { parent: preset })
+    const otherScope = createScope(ctx, other)
+
+    const seen: string[] = []
+    ctx.on('probe/event' as never, ((): void => { seen.push('untagged') }) as never)
+    presetScope.ctx.on('probe/event' as never, ((): void => { seen.push('preset') }) as never)
+    agentScope.ctx.on('probe/event' as never, ((): void => { seen.push('agent') }) as never)
+    otherScope.ctx.on('probe/event' as never, ((): void => { seen.push('other') }) as never)
+
+    const emit = ctx as unknown as { emit: (carrier: object, type: string) => void }
+    // Dispatch at the AGENT key: its own tag and its ancestor's admit; a
+    // sibling root does not.
+    emit.emit(scopeTarget({}, agent), 'probe/event')
+    expect(seen.sort()).toEqual(['agent', 'preset', 'untagged'])
+
+    // Dispatch at the PRESET key: the agent-tagged listener sits BELOW the
+    // dispatch key and stays excluded — events flow up the chain, not down.
+    seen.length = 0
+    emit.emit(scopeTarget({}, preset), 'probe/event')
+    expect(seen.sort()).toEqual(['preset', 'untagged'])
   })
 })

@@ -35,10 +35,12 @@ export interface MultiLspOptions {
 type LspSpawnFn = (cmd: string, args: string[], opts: Record<string, unknown>) => ChildProcess
 
 /**
- * Default spawn for LSP servers: plain child_process.spawn. The TUI runs in a
- * normal Node process whose PATH carries npx (the CLI is launched via
- * `npx dsh`), so `npx -y typescript-language-server --stdio` resolves directly;
- * other servers are launched by their bare command names.
+ * Default spawn for LSP servers: plain child_process.spawn (non-win32).
+ * Windows 上 npx 与 npm 全局装的 langserver 都是 .cmd，不经 shell 直接
+ * spawn 抛 EINVAL（CVE-2024-27980 后行为）——win32 经 ComSpec（cmd.exe）
+ * /d /c 以 argv 数组显式派发；shell 保持 false，避开 DEP0190 弃用警告
+ * 渲染进 TUI。command/args 均来自仓内 server-registry 固定表，无用户输入，
+ * 无注入面（移植 dsh-tui e33052c）。
  * @param def - Server definition (command + args) to launch.
  * @param cwd - Working directory for the spawned server.
  * @param spawnFn - Process launcher; injectable for tests, defaults to node:child_process spawn.
@@ -49,9 +51,13 @@ export function defaultLspSpawn(
   cwd: string,
   spawnFn: LspSpawnFn = spawn,
 ): ChildProcess {
-  return spawnFn(def.command, def.args, {
+  const isWin = process.platform === 'win32'
+  const command = isWin ? (process.env.ComSpec ?? 'cmd.exe') : def.command
+  const args = isWin ? ['/d', '/c', def.command, ...def.args] : def.args
+  return spawnFn(command, args, {
     cwd,
     stdio: ['pipe', 'pipe', 'pipe'],
+    windowsHide: true,
   })
 }
 

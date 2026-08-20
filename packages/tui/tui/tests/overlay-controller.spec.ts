@@ -140,3 +140,60 @@ describe('activate / deactivate 生命周期', () => {
     expect(ctrl.isActive()).toBe(false)
   })
 })
+
+/** 带可变 caret 的渲染器（输入类 overlay 形状；移植 dsh-tui ba45980）。 */
+function makeCaretRenderer(caret: OverlayRenderer['caret']) {
+  return {
+    render: () => ['filter: /th'],
+    // exactOptionalPropertyTypes: an explicit `undefined` violates the
+    // optional `caret` contract — omit the key instead.
+    ...(caret === undefined ? {} : { caret }),
+    onActivate: vi.fn(),
+    onDeactivate: vi.fn(),
+  } satisfies OverlayRenderer
+}
+
+describe('caret 钩子（输入类 overlay 硬件光标）', () => {
+  it('caret 返回落点 → 稳态竖条 + SHOW_CURSOR 定位写入', () => {
+    const { ctrl, stdout } = makeController()
+    ctrl.register('palette', makeCaretRenderer(() => ({ row: 3, col: 7 })))
+    ctrl.activate('palette')
+    expect(stdout.write).toHaveBeenCalledWith('\x1B[3;7H' + ANSI.CURSOR_STEADY_BAR + ANSI.SHOW_CURSOR)
+  })
+
+  it('caret 返回 null → HIDE_CURSOR（无硬件光标）', () => {
+    const { ctrl, stdout } = makeController()
+    ctrl.register('palette', makeCaretRenderer(() => null))
+    ctrl.activate('palette')
+    expect(stdout.write).toHaveBeenCalledWith(ANSI.HIDE_CURSOR)
+  })
+
+  it('闪烁帧（行内容无 diff）仍写光标——caret 不被空 diff 短路丢弃', () => {
+    const { ctrl, stdout } = makeController()
+    let caretPos: { row: number; col: number } | null = null
+    const renderer = makeCaretRenderer(() => caretPos)
+    ctrl.register('palette', renderer)
+    ctrl.activate('palette')
+    // 行内容不变，仅 caret null → 落点翻转：必须仍产生输出（硬件光标显隐）
+    const writesBefore = (stdout.write as unknown as ReturnType<typeof vi.fn>).mock.calls.length
+    caretPos = { row: 1, col: 1 }
+    ctrl.rerender()
+    const writesAfter = (stdout.write as unknown as ReturnType<typeof vi.fn>).mock.calls.length
+    expect(writesAfter).toBeGreaterThan(writesBefore)
+    expect(stdout.write).toHaveBeenCalledWith('\x1B[1;1H' + ANSI.CURSOR_STEADY_BAR + ANSI.SHOW_CURSOR)
+  })
+
+  it('deactivate 恢复终端默认光标形状（DECSCUSR 0）再退出 alt screen', () => {
+    const { ctrl, stdout } = makeController()
+    ctrl.register('palette', makeCaretRenderer(() => ({ row: 1, col: 1 })))
+    ctrl.activate('palette')
+    ctrl.deactivate()
+    const calls = (stdout.write as unknown as ReturnType<typeof vi.fn>).mock.calls.map(c => `${c[0]}`)
+    const shapeIdx = calls.indexOf(ANSI.CURSOR_SHAPE_DEFAULT)
+    const showIdx = calls.indexOf(ANSI.SHOW_CURSOR)
+    const altOffIdx = calls.indexOf(ANSI.ALT_SCREEN_OFF)
+    expect(shapeIdx).toBeGreaterThan(-1)
+    expect(shapeIdx).toBeLessThan(showIdx)
+    expect(showIdx).toBeLessThan(altOffIdx)
+  })
+})

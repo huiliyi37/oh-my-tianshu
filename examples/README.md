@@ -16,6 +16,10 @@ A non-interactive agent that accepts one task, runs it, and emits a selected mac
 
 An unattended coding agent driven through the Python SDK and JSON-RPC. See the [JSON-RPC example reference](jsonrpc-agent/README.md).
 
+## web-schedule
+
+An opt-in Schedule patch over the shipped Web composition: session-local durable reminders via `schedule_create`/`schedule_list`/`schedule_delete`. See the [web-schedule example reference](web-schedule/README.md).
+
 ## web-cordis
 
 A self-referential agent that can inspect and change its in-memory Cordis plugin tree. See the [web-cordis example reference](web-cordis/README.md).

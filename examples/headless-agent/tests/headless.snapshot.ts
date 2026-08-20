@@ -33,6 +33,8 @@ const goalScenarioDir = join(snapshotsDir, 'goal-tools')
 const goalConfigPath = fileURLToPath(new URL('../goal.cordis.snapshot.yml', import.meta.url))
 const retryScenarioDir = join(snapshotsDir, 'provider-retry')
 const retryConfigPath = fileURLToPath(new URL('../retry.cordis.snapshot.yml', import.meta.url))
+const toolJsonRepairScenarioDir = join(snapshotsDir, 'tool-json-repair')
+const toolJsonRepairConfigPath = fileURLToPath(new URL('../tool-json-repair.cordis.snapshot.yml', import.meta.url))
 const compactionScenarioDir = join(snapshotsDir, 'compaction-recovery')
 const compactionSessionFixture = join(compactionScenarioDir, 'session.jsonl')
 const compactionStreamExpected = join(compactionScenarioDir, 'stream-json.expected.jsonl')
@@ -318,6 +320,50 @@ describe('headless stream-json snapshots', () => {
           delayMs: 1,
           failure: { message: 'snapshot transient failure', code: 'RATE_LIMIT', status: 429 },
         })
+      },
+    })
+
+    expect(result.stderr).toBe('')
+    const normalized = normalizeHeadlessStream(result.stdout, runCwd)
+    if (refreshing) await writeFile(streamExpected, normalized)
+    expect(normalized).toBe(await readFile(streamExpected, 'utf8'))
+  }, LOADER_SMOKE_TEST_TIMEOUT_MS)
+
+  it('executes the tool call the model serialized as JSON text', async () => {
+    const prompt = await scenarioPrompt(toolJsonRepairScenarioDir, 'tool-json-repair')
+    const streamExpected = join(toolJsonRepairScenarioDir, 'stream-json.expected.jsonl')
+    let runCwd = ''
+    const result = await runLoaderSmoke({
+      label: 'tool json repair headless stream-json snapshot',
+      tempDirPrefix: 'headless-snapshot-tool-json-repair-',
+      binScript,
+      libBinScript: binScript,
+      configPath: toolJsonRepairConfigPath,
+      binArgs: [toolJsonRepairConfigPath, prompt],
+      tsconfigPath,
+      env: {
+        DSH_SNAPSHOT: 'replay',
+        NODE_OPTIONS: [process.env.NODE_OPTIONS, '--disable-warning=ExperimentalWarning'].filter(Boolean).join(' '),
+      },
+      prepare: (cwd) => { runCwd = cwd },
+      inspect: async (cwd) => {
+        const logs = await persistedLogs(cwd)
+        expect(logs).toHaveLength(1)
+        const records = parseJsonl(logs[0]?.content ?? '')
+        const calls = records.filter(record => record.type === 'tool/call')
+        expect(calls).toHaveLength(1)
+        expect(calls[0]?.data).toMatchObject({
+          name: 'todo_write',
+          arguments: '{"todos":[{"content":"repair probe","status":"in_progress"}]}',
+        })
+        // The repaired stream is what was logged: a tool-call delta and no
+        // surviving text delta in the first step.
+        const chunks = records.filter(record => record.type === 'assistant/chunk')
+        const chunkType = (record: JsonObject): unknown => (record.data as { chunk?: { type?: unknown } } | undefined)?.chunk?.type
+        expect(chunks.some(record => chunkType(record) === 'tool-call-delta')).toBe(true)
+        const message = records.find(record => record.type === 'assistant/message')
+        expect(JSON.stringify(message)).toContain('todo_write')
+        expect(records.some(record => record.type === 'tool/result')).toBe(true)
       },
     })
 

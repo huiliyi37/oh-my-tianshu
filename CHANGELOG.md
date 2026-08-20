@@ -2,6 +2,38 @@
 
 English | [中文](CHANGELOG.zh.md)
 
+## 2026-08-19 — 0.3.0
+
+0.3.0 is the first product cut after the 2026-08-12 TUI landing. New top-level TUI sessions start in a zen phase, first messages can become task cards or pass through an intent-alignment bridge, test runs and JSON-in-content tool calls have dedicated plugins, and the live area uses one card language for tools, subagents, and background tasks.
+
+### Zen phase (`dsh-zen`)
+
+A fresh top-level session's first steps run on a minimal anchored face — DeepSeek's evaluation recipe (`bash`, `str_replace_editor`, `todo_write`) plus agent-scoped `zen_anchor` — until a host-verified predicate promotes to the full face (`d0345e66`). Promotion is `zen_anchor` (goal + landmarks + evidence), a step-budget timeout, or first-message triage for trivially short prompts; the model's own claim of readiness is never trusted. After promotion the TUI hides stacks that compete with `bash` (`promoteDeny`) and clips tool descriptions (`c9b3641a`). Subagent sessions never arm. Alignment sessions from the intent bridge are seeded already-promoted so they do not re-enter zen.
+
+### Task card and intent bridge
+
+`dsh-task-card` rewrites the session's first user message into a structured card (`# title`, goal / constraints / acceptance, verbatim original under a marker) via a bounded LLM call with a semantic-template fallback (`1dcaac77`, `387f940c`). `dsh-intent-bridge` splits a fresh session: a low-cost alignment model clarifies in a dedicated session, then `finalize_alignment` hands the card to a fresh main session that never inherits the alignment context (`b4af3a63`, `08d0dbcf`). The main session follows the parent's cwd and the live `/model` selection, including reasoning effort (`545cf209`, `a9ea3806`). The shipped TUI mounts both; the product alignment route uses DeepSeek flash (`5de8be64`).
+
+### Memory family
+
+`dsh-tool-memory-recall` adds `memory_deep_recall` on the shipped TUI full face (not the zen face): a read-only in-process reader subagent distills session-query hits so raw transcripts never enter the main context (`256fa609`). `/remember` and `/memory` on the shipped Web bundle are owned by `dsh-command-memory` (`a46dcb56`); TUI keeps its private registry and does not mount that plugin. `dsh-memory-sqlite`, `dsh-adaptive-memory`, and `dsh-memory-consolidate` are on the tree and out of every shipping composition (`635ce8e7`, `7482e836`). `tool-memory` digest injection is off by default (`dc5e12a5`).
+
+### Test runner, JSON repair, doom-loop guard
+
+`dsh-tool-run-tests` registers `run_tests` and `related_tests` on `ctx.tools` and is wired into `dsh-base` (`45e7d2ab`). `run_tests` executes through the bash seam with framework detection; evidence-gate accounts an explicit command as-is, a path-only call as `run_tests <paths…>`, and a bare call as `run_tests`. `related_tests` fails loud when the target resolves outside the session cwd (`94e30c0e`). `dsh-tool-json-repair` wraps `llm/stream`: a text block that is exactly one JSON object with a tool `name` is re-emitted as a tool-call stream so DeepSeek JSON-in-content responses execute (`45e7d2ab`). `dsh-doom-loop-guard` sits beside repeat-tool-guard and injects advisory reminders for oscillating call pairs, failing same-path edit spirals, and unchanged failing test runs (`45e7d2ab`, `b256a630`).
+
+### TUI live area and delegation
+
+Process-like live rows share one card language: in-flight `⠋`, success `›`, error `✗`, body lines `⎿` (`10558e6d`). The `/subagents` tree carries child progress (activity, tokens, tool count, elapsed, terminal word) and `/subagents kill` stops a live continuable descendant (`288b4095`). Input: vim double-Esc no longer opens rewind; Ctrl+C states that it exits the process; CSI u Esc interrupts; long input stays responsive (`0049197e`, `3b3e5942`, `b67e8f4f`).
+
+### Upstream rc.7 backports
+
+`node-pty` 1.2.0-beta.15 (`865810e5`); max-tokens replay envelope alignment (`ae694c20`); Safari input-box wrap recovery (`bc4e7a25`); large-history pagination without a spread that overflowed the stack (`041577ae`).
+
+### Other
+
+Meridian's on-disk library is `dsh-meridian.db`, so it no longer collides with a 天枢 schema-2 database in the same cwd (`3e37f191`).
+
 ## 2026-08-12 — 222 commits since the 2026-08-09 baseline
 
 The baseline snapshot `snapshots/20260809T140917Z` precedes 222 commits (2026-08-10 to 2026-08-12). The release adds a full terminal UI, a verification gate, code intelligence, and session durability, on top of the SDK's plugin spine.

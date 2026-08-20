@@ -1,0 +1,52 @@
+{
+  "name": "@huiliyi37/dsh-pwsh-sandbox",
+  "description": "Sandbox-consuming implementation of the Tianshu Harness PowerShell executor seam (confines every command via ctx.sandbox, reports denial/enforcement result facts)",
+  "version": "0.3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/oh-my-tianshu.git",
+    "directory": "packages/bash/pwsh-sandbox"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "Apache-2.0",
+  "peerDependencies": {
+    "@huiliyi37/dsh-bash": "^0.2.0",
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/dsh-pwsh-local": "^0.2.0",
+    "@huiliyi37/dsh-sandbox": "^0.2.0",
+    "@huiliyi37/dsh-sandbox-policy": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
+  },
+  "devDependencies": {
+    "@huiliyi37/dsh-bash": "workspace:^",
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/dsh-pwsh-local": "workspace:^",
+    "@huiliyi37/dsh-sandbox": "workspace:^",
+    "@huiliyi37/dsh-sandbox-local": "workspace:^",
+    "@huiliyi37/dsh-sandbox-policy": "workspace:^",
+    "@huiliyi37/dsh-subprocess-local": "workspace:^",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
+  }
+}

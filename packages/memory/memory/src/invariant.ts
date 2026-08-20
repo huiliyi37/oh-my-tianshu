@@ -1,10 +1,10 @@
 /**
  * Runtime invariant companion for @huiliyi37/dsh-memory.
  *
- * The memory service owns its own store file and quality gate; its state is
- * package-local (no other plugin writes memory records), and recall/write
- * behavior is asserted by package tests over the real store. No cross-plugin
- * event/data relation is owned here.
+ * The memory service owns Markdown files under `.dsh/memory/`; its state is
+ * package-local (no other plugin writes those records), and save/search/list
+ * /delete behavior is asserted by package tests over the real store. No
+ * cross-plugin event/data relation is owned here.
  *
  * @module @huiliyi37/dsh-memory/invariant
  */

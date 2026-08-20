@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-18-memory-seam-prefix-stable-digest.md
+2026-08-18-memory-seam-prefix-stable-digest.md: 3dbde1e6f96d27847188d128ba9604c93a2f080b
+2026-08-18-memory-seam-prefix-stable-digest.zh.md: 53dcf67ae35776fc04a6d2090337d0ec839ceefe

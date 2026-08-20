@@ -66,7 +66,11 @@ import type { ContinuableSetupContribution } from './activation-setup-registry.t
 import { listChildren as listSubagentChildren, listDescendants as listSubagentDescendants } from './list-children.ts'
 import type { SubagentDescendantListEntry, SubagentListEntry } from './list-children.ts'
 import { snapshotSubagentDescriptor } from './descriptor.ts'
-import { subagentIdentityProjectionDefinition, subagentTimingProjectionDefinition } from './projection.ts'
+import {
+  subagentIdentityProjectionDefinition,
+  subagentProgressProjectionDefinition,
+  subagentTimingProjectionDefinition,
+} from './projection.ts'
 
 export * from './out-of-process.ts'
 export { SubagentRunId } from './types.ts'
@@ -193,6 +197,7 @@ export class SubagentService extends Service {
     ctx.inject(['sessionProjections'], (projectionCtx) => {
       projectionCtx.sessionProjections.register(subagentTimingProjectionDefinition)
       projectionCtx.sessionProjections.register(subagentIdentityProjectionDefinition)
+      projectionCtx.sessionProjections.register(subagentProgressProjectionDefinition)
     })
   }
 
@@ -320,7 +325,8 @@ export class SubagentService extends Service {
    * never a list-time descriptor parse. Absent persistence, enumeration is
    * live-only (a cold child cannot be resumed then either, so its absence is
    * capability absence, not an error). This service consults no Agent
-   * registrations, Activations, or providers.
+   * registrations, Activations, or providers. Direct-child rows do not carry
+   * `progress` or `timing`; those runtime fields are descendant-listing only.
    *
    * Every persistence read receives `signal`, and the listing rechecks
    * cancellation around each of those awaits. Read rejections that settle
@@ -341,9 +347,11 @@ export class SubagentService extends Service {
    * pre-order from one live-preferred corpus, without loading or resuming an
    * Agent. Ordinary sessions and one-shot children remain traversal nodes so
    * continuable descendants below them are discovered; each returned entry
-   * adds its durable `parentId` and root-relative `depth`. Identity resolution,
-   * diagnostics, optional persistence, and cancellation follow the same
-   * projection-backed contract as {@link listChildren}.
+   * adds its durable `parentId` and root-relative `depth`. Each `child` row
+   * may also carry `progress` and `timing` from that same cut when the fold
+   * is meaningful; {@link listChildren} never embeds them. Identity resolution,
+   * diagnostics, optional persistence, and cancellation otherwise follow the
+   * same projection-backed contract as {@link listChildren}.
    * @param rootSessionId - session whose complete descendant tree is listed.
    * @param signal - caller-owned cancellation forwarded to persistence reads
    *   and observed around every read await.

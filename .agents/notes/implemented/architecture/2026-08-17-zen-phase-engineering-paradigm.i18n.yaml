@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-17-zen-phase-engineering-paradigm.md
+2026-08-17-zen-phase-engineering-paradigm.md: 008279ad6862b1c1c226b7dcb9b1b3bb1468943f
+2026-08-17-zen-phase-engineering-paradigm.zh.md: 38476f58fd3b00e95575a8f86a7467d18b8a9d60

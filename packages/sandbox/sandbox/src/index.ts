@@ -7,6 +7,7 @@
 
 import { Context, Service } from '@huiliyi37/cordis'
 import { HarnessError } from '@huiliyi37/dsh-llm'
+import type { SessionId } from '@huiliyi37/dsh-session'
 
 export {
   ESCALATION_TARGETS,
@@ -60,6 +61,15 @@ export type SandboxEnforcement = 'full' | 'partial'
 export interface SandboxPolicy extends SandboxExecutionPolicy {
   /** The file-effect mode this execution runs under. */
   mode: ConfinedSandboxMode
+  /**
+   * The calling session, when any: a per-session private temp capability is
+   * materialized under it (the windows-acl rung grants a revocable
+   * session/workspace-pair temp authority, so sibling sessions do not share
+   * temp write access — while the workspace SID and standing grant remain
+   * per-workspace); absent for agentless calls, which fall back to per-call
+   * backend state.
+   */
+  sessionId?: SessionId
 }
 
 /**
