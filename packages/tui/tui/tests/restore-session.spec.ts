@@ -245,16 +245,27 @@ describe('formatRestorablePickerList — 欢迎页编号列表', () => {
   })
 })
 
-describe('wasCrashRepaired — 崩溃修复信号', () => {
+describe('wasCrashRepaired — 崩溃修复信号（尾部标记语义）', () => {
   const endSeed = { type: 'session/end-seed', seq: 0, time: NOW, data: {} } as const
   const turnEnd = (seq: number, reason: unknown) => ({ type: 'turn/end', seq, time: NOW, data: { turn: 0, reason } }) as const
 
-  it('含 interrupted turn/end 标记 → true', () => {
+  it('尾部 interrupted turn/end 标记 → true（修复刚生效）', () => {
     const events = [
       endSeed,
       turnEnd(1, { kind: 'interrupted' }),
     ]
     expect(wasCrashRepaired(events as never)).toBe(true)
+  })
+
+  it('interrupted 之后又有正常完成的回合 → false（不粘滞误报）', () => {
+    // 修复标记永久留在日志里；用户恢复后正常完成新回合，之后的恢复不得
+    // 再报「上次运行被中断」。
+    const events = [
+      endSeed,
+      turnEnd(1, { kind: 'interrupted' }),
+      turnEnd(2, { kind: 'completed' }),
+    ]
+    expect(wasCrashRepaired(events as never)).toBe(false)
   })
 
   it('仅正常闭合（completed）→ false', () => {

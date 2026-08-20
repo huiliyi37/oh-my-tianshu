@@ -141,15 +141,16 @@ export function formatRestorablePickerList(
 }
 
 /**
- * 崩溃修复信号：日志中是否存在持久化后端闭合崩溃孤立回合的 `turn/end`
- * `interrupted` 标记。该 reason 只由 repair.ts 的合成闭合事件发出（loop 永不
- * 发出，见 dsh-session types.ts TurnEndReasonMap），因此它的存在即「该会话
- * 上次运行被中断、已自动闭合」的权威事实——无需触碰持久化写路径。
+ * 崩溃修复信号：日志的**最后一个** `turn/end` 是否为持久化后端闭合崩溃
+ * 孤立回合的 `interrupted` 标记。该 reason 只由 repair.ts 的合成闭合事件
+ * 发出（loop 永不发出，见 dsh-session types.ts TurnEndReasonMap），且
+ * closers 永远追加在日志尾部，所以「尾部标记」精确等价于「最近一次运行
+ * 被中断并已自动闭合」。不扫全量：修复标记永久留在日志里，若只看存在性，
+ * 用户修复后正常完成的新回合会让之后每次恢复都误报「上次被中断」。
  * @param events - 会话事件日志（seq 序）。
- * @returns true = 该会话曾被崩溃修复（含合成 closers）。
+ * @returns true = 该会话最近一次运行的崩溃修复生效（尾部 interrupted）。
  */
 export function wasCrashRepaired(events: readonly SessionEvent[]): boolean {
-  return events.some(
-    event => event.type === 'turn/end' && event.data.reason.kind === 'interrupted',
-  )
+  const last = events.findLast(event => event.type === 'turn/end')
+  return last?.data.reason.kind === 'interrupted'
 }
