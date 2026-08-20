@@ -303,12 +303,18 @@ export const WELCOME_TIPS: readonly string[] = [
   '/export 把会话导出成 Markdown',
 ]
 
+/** 贴士池的恢复条目（2.5：存在可恢复会话且首屏列表未展示时动态加入）。 */
+export const RESUME_TIP = 'Ctrl+S 恢复上次会话'
+
 /**
- * 从贴士池随机取一条。
+ * 从贴士池随机取一条。恢复条目按 2.5 动态化：有可恢复会话且首屏列表不可见
+ * 时入池（恢复入口始终可见），首屏列表可见时不重复引导。
  * @param rng - 随机源（测试注入；缺省 Math.random）。
+ * @param opts - resumeVisible = 应加入恢复条目（有可恢复会话且列表未展示）。
  * @returns 贴士文本（含 'Tip: ' 前缀）。
  */
-export function pickWelcomeTip(rng: () => number = Math.random): string {
-  const tip = WELCOME_TIPS[Math.floor(rng() * WELCOME_TIPS.length) % WELCOME_TIPS.length] ?? WELCOME_TIPS[0] ?? ''
+export function pickWelcomeTip(rng: () => number = Math.random, opts: { resumeVisible?: boolean } = {}): string {
+  const pool = opts.resumeVisible === true ? [...WELCOME_TIPS, RESUME_TIP] : WELCOME_TIPS
+  const tip = pool[Math.floor(rng() * pool.length) % pool.length] ?? WELCOME_TIPS[0] ?? ''
   return `Tip: ${tip}`
 }

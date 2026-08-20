@@ -1013,7 +1013,11 @@ export class PersistenceCoordinator<TornMarker = unknown> {
 
   private assertVersion(meta: SessionHeader): void {
     if (meta.version !== SESSION_FORMAT_VERSION) {
-      throw new Error(`unsupported session format version ${meta.version} for "${meta.id}" (only v${SESSION_FORMAT_VERSION} is supported)`)
+      // 2.6：版本不符给可操作指引——升级 dsh 或把会话根指向隔离目录。
+      throw new Error(
+        `unsupported session format version ${meta.version} for "${meta.id}" (only v${SESSION_FORMAT_VERSION} is supported)`
+        + ' — upgrade the dsh installation to read newer artifacts, or point the session root at a separate directory to keep old-version artifacts',
+      )
     }
   }
 

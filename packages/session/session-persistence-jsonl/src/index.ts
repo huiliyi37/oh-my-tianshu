@@ -10,7 +10,7 @@ import { Context } from '@huiliyi37/cordis'
 import z from '@huiliyi37/schemastery'
 import { readdirSync } from 'node:fs'
 import { open, mkdir, readFile, readdir, realpath, link, rename, rm, stat, truncate } from 'node:fs/promises'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { performance } from 'node:perf_hooks'
 import { scheduler } from 'node:timers/promises'
 import { randomBytes } from 'node:crypto'
@@ -20,9 +20,9 @@ import {
   type PersistenceBackend, type SessionLocation, type SessionPersistenceSnapshot,
   type SessionInspection, type SessionPersistenceRevision as PersistenceRevision, type StoredPrefix,
 } from '@huiliyi37/dsh-session-persistence'
-import type { SessionEvent, SessionId, SessionHeader, SessionPreparation } from '@huiliyi37/dsh-session'
+import { SessionId, type SessionEvent, type SessionHeader, type SessionPreparation } from '@huiliyi37/dsh-session'
 import {
-  encodeSegment, eventLines, logPath, logSuffix, parseHeaderMeta, projectDir, scanLog, sessionDir,
+  decodeSegment, encodeSegment, eventLines, logPath, logSuffix, parseHeaderMeta, projectDir, scanLog, sessionDir,
   SessionLogScanner, toHeaderLine,
   type JsonlCompression,
 } from './format.ts'
@@ -412,7 +412,11 @@ export class SessionPersistenceJsonl extends SessionPersistence implements Persi
     if (repairedEvents.length > 0) await this.appendLines(meta, repairedEvents)
   }
 
-  /** List valid unique stored sessions' metadata (header line only — no full-log parse). */
+  /**
+   * List unique stored sessions' metadata (header line only — no full-log parse).
+   * Corrupt/half-written artifacts stay listed as `version: -1` placeholders so
+   * consumers can surface them as unrecoverable instead of silently losing them.
+   */
   async list(signal?: AbortSignal): Promise<SessionHeader[]> {
     return (await this.listArtifacts(signal)).map(artifact => artifact.header)
   }
@@ -461,9 +465,19 @@ export class SessionPersistenceJsonl extends SessionPersistence implements Persi
           ? await this.readFirstZstdLine(path, signal)
           : await this.readFirstLine(path, signal)
         signal?.throwIfAborted()
-        if (first === undefined) continue // empty/half-written file
+        if (first === undefined || parseHeaderMeta(first) === undefined) {
+          // 损坏/半写工件不静默消失：保留为 version -1 的不可恢复条目，id 从
+          // 目录名解码（头部不可读时无从验证身份）。id 已存在（有效工件）时
+          // 让位给有效条目；目录名不可解码时无法归属，跳过。
+          const decoded = decodeSegment(basename(dir))
+          if (decoded === undefined || ids.has(SessionId(decoded))) continue
+          const corrupt: SessionHeader = { id: SessionId(decoded), version: -1, createdAt: 0 }
+          ids.add(corrupt.id)
+          artifacts.push({ header: corrupt, path })
+          continue
+        }
         const meta = parseHeaderMeta(first)
-        if (meta === undefined) continue // not a session header
+        if (meta === undefined) continue // 上一分支已判过，不可达
         await this.assertStoredIdentity(path, meta, undefined, signal)
         signal?.throwIfAborted()
         if (ids.has(meta.id)) {

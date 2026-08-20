@@ -18,6 +18,8 @@ export interface RestorableSession {
   agentPreset: string | undefined
   /** 展示标题（sessionTitleFor 折叠；未计算时 undefined）。 */
   title: string | undefined
+  /** 持久化工件损坏（version -1 占位）：不可恢复，列表标注原因。 */
+  corrupt: boolean
 }
 
 /** 投影/格式化选项。 */
@@ -49,6 +51,7 @@ export function projectRestorableSessions(
     live: liveIds !== undefined && liveIds.has(s.id),
     agentPreset: s.agentPreset,
     title: undefined,
+    corrupt: s.corrupt,
   }))
 }
 
@@ -100,6 +103,8 @@ export function formatRestorableSessions(
   const maxRows = opts.maxRows !== undefined && opts.maxRows > 0 ? opts.maxRows : undefined
   const shown = maxRows !== undefined ? rows.slice(0, maxRows) : rows
   const out = shown.map((r) => {
+    // 损坏会话：头部不可读，年龄/cwd/血缘均未知——只标注原因与短 id。
+    if (r.corrupt) return `○ 不可恢复 · #${shortId(r.id)}`
     const title = r.title !== undefined && r.title !== '' ? `${r.title} · ` : ''
     const parts: string[] = [`${r.live ? '●' : '○'} ${title}${formatSessionAge(r.createdAt, now)}`]
     const base = basename(r.cwd)

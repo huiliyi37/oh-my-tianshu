@@ -25,7 +25,10 @@ import {
 const NOW = 1_700_000_000_000
 
 function summary(id: string, createdAt: number, over: Partial<SessionSummary> = {}): SessionSummary {
-  return { id: id as SessionId, version: 0, createdAt, cwd: undefined, parentSession: undefined, agentPreset: undefined, ...over }
+  return {
+    id: id as SessionId, version: 0, createdAt, cwd: undefined, parentSession: undefined,
+    agentPreset: undefined, corrupt: false, ...over,
+  }
 }
 
 describe('projectRestorableSessions', () => {
@@ -87,8 +90,8 @@ describe('formatSessionAge — 相对时间', () => {
 
 describe('formatRestorableSessions — 展示行', () => {
   const rows: RestorableSession[] = [
-    { id: 's-live' as SessionId, createdAt: NOW - 60_000, cwd: '/app/x', parentSession: undefined, live: true, agentPreset: undefined, title: undefined },
-    { id: 's-fork' as SessionId, createdAt: NOW - 3_600_000, cwd: undefined, parentSession: 's-parent' as SessionId, live: false, agentPreset: undefined, title: undefined },
+    { id: 's-live' as SessionId, createdAt: NOW - 60_000, cwd: '/app/x', parentSession: undefined, live: true, agentPreset: undefined, title: undefined, corrupt: false },
+    { id: 's-fork' as SessionId, createdAt: NOW - 3_600_000, cwd: undefined, parentSession: 's-parent' as SessionId, live: false, agentPreset: undefined, title: undefined, corrupt: false },
   ]
 
   it('live 行带 ●、相对年龄、cwd basename 与短 id', () => {
@@ -100,17 +103,17 @@ describe('formatRestorableSessions — 展示行', () => {
   })
 
   it('live 行但无 cwd → 不渲染 cwd 段', () => {
-    const row: RestorableSession = { id: 's-x' as SessionId, createdAt: NOW - 1000, cwd: undefined, parentSession: undefined, live: true, agentPreset: undefined, title: undefined }
+    const row: RestorableSession = { id: 's-x' as SessionId, createdAt: NOW - 1000, cwd: undefined, parentSession: undefined, live: true, agentPreset: undefined, title: undefined, corrupt: false }
     expect(formatRestorableSessions([row], { now: NOW })).toEqual(['● 刚刚 · #s-x'])
   })
 
   it('persisted 行无 parentSession → 不渲染 fork 段', () => {
-    const row: RestorableSession = { id: 's-y' as SessionId, createdAt: NOW - 1000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined }
+    const row: RestorableSession = { id: 's-y' as SessionId, createdAt: NOW - 1000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined, corrupt: false }
     expect(formatRestorableSessions([row], { now: NOW })).toEqual(['○ 刚刚 · #s-y'])
   })
 
   it('now 缺省 → 走 Date.now()（不抛错且产出单行）', () => {
-    const row: RestorableSession = { id: 's-z' as SessionId, createdAt: Date.now() - 1000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined }
+    const row: RestorableSession = { id: 's-z' as SessionId, createdAt: Date.now() - 1000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined, corrupt: false }
     const lines = formatRestorableSessions([row])
     expect(lines).toHaveLength(1)
     expect(lines[0]).toContain('s-z')
@@ -130,7 +133,7 @@ describe('formatRestorableSessions — 展示行', () => {
       parentSession: undefined,
       live: false,
       agentPreset: undefined,
-      title: undefined,
+      title: undefined, corrupt: false,
     }
     const [line] = formatRestorableSessions([row], { now: NOW })
     expect(line).toBe('○ 刚刚 · #2b054afd')
@@ -139,7 +142,7 @@ describe('formatRestorableSessions — 展示行', () => {
   it('agent preset 已记录 → 行尾追加 preset 标注', () => {
     const row: RestorableSession = {
       id: 's-p' as SessionId, createdAt: NOW - 1000, cwd: undefined,
-      parentSession: undefined, agentPreset: 'liangshen', live: false, title: undefined,
+      parentSession: undefined, agentPreset: 'liangshen', live: false, title: undefined, corrupt: false,
     }
     expect(formatRestorableSessions([row], { now: NOW })).toEqual(['○ 刚刚 · #s-p · preset:liangshen'])
   })
@@ -147,16 +150,16 @@ describe('formatRestorableSessions — 展示行', () => {
   it('agent preset 未记录 → 不渲染 preset 段（不制造噪音）', () => {
     const row: RestorableSession = {
       id: 's-n' as SessionId, createdAt: NOW - 1000, cwd: undefined,
-      parentSession: undefined, agentPreset: undefined, live: true, title: undefined,
+      parentSession: undefined, agentPreset: undefined, live: true, title: undefined, corrupt: false,
     }
     expect(formatRestorableSessions([row], { now: NOW })).toEqual(['● 刚刚 · #s-n'])
   })
 
   it('maxRows=1：只展示最近 1 行 + 折叠提示', () => {
     const many = [
-      { id: 's-1' as SessionId, createdAt: NOW - 1000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined },
-      { id: 's-2' as SessionId, createdAt: NOW - 2000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined },
-      { id: 's-3' as SessionId, createdAt: NOW - 3000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined },
+      { id: 's-1' as SessionId, createdAt: NOW - 1000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined, corrupt: false },
+      { id: 's-2' as SessionId, createdAt: NOW - 2000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined, corrupt: false },
+      { id: 's-3' as SessionId, createdAt: NOW - 3000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined, corrupt: false },
     ]
     const lines = formatRestorableSessions(many, { now: NOW, maxRows: 1 })
     expect(lines).toHaveLength(2)
@@ -167,16 +170,16 @@ describe('formatRestorableSessions — 展示行', () => {
 
   it('maxRows 超过总数：不折叠、全量展示', () => {
     const two = [
-      { id: 's-1' as SessionId, createdAt: NOW - 1000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined },
-      { id: 's-2' as SessionId, createdAt: NOW - 2000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined },
+      { id: 's-1' as SessionId, createdAt: NOW - 1000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined, corrupt: false },
+      { id: 's-2' as SessionId, createdAt: NOW - 2000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined, corrupt: false },
     ]
     expect(formatRestorableSessions(two, { now: NOW, maxRows: 5 })).toHaveLength(2)
   })
 
   it('maxRows ≤ 0：视为不限制（兼容缺省语义）', () => {
     const two = [
-      { id: 's-1' as SessionId, createdAt: NOW - 1000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined },
-      { id: 's-2' as SessionId, createdAt: NOW - 2000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined },
+      { id: 's-1' as SessionId, createdAt: NOW - 1000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined, corrupt: false },
+      { id: 's-2' as SessionId, createdAt: NOW - 2000, cwd: undefined, parentSession: undefined, live: false, agentPreset: undefined, title: undefined, corrupt: false },
     ]
     expect(formatRestorableSessions(two, { now: NOW, maxRows: 0 })).toHaveLength(2)
     expect(formatRestorableSessions(two, { now: NOW, maxRows: -3 })).toHaveLength(2)
@@ -189,7 +192,7 @@ describe('formatRestorableSessions — 展示行', () => {
   it('title 已计算 → 行首渲染标题（标题 · 年龄 · cwd 顺序）', () => {
     const row: RestorableSession = {
       id: 's-t' as SessionId, createdAt: NOW - 60_000, cwd: '/app/x',
-      parentSession: undefined, agentPreset: undefined, live: false, title: '重构 tui 拆分',
+      parentSession: undefined, agentPreset: undefined, live: false, title: '重构 tui 拆分', corrupt: false,
     }
     expect(formatRestorableSessions([row], { now: NOW })).toEqual(['○ 重构 tui 拆分 · 1 分钟前 · x · #s-t'])
   })
@@ -197,9 +200,17 @@ describe('formatRestorableSessions — 展示行', () => {
   it('title 为空串 → 不渲染标题段', () => {
     const row: RestorableSession = {
       id: 's-t2' as SessionId, createdAt: NOW - 1000, cwd: undefined,
-      parentSession: undefined, agentPreset: undefined, live: false, title: '',
+      parentSession: undefined, agentPreset: undefined, live: false, title: '', corrupt: false,
     }
     expect(formatRestorableSessions([row], { now: NOW })).toEqual(['○ 刚刚 · #s-t2'])
+  })
+
+  it('损坏会话 → 标注「不可恢复」（年龄/cwd/血缘未知不渲染）', () => {
+    const row: RestorableSession = {
+      id: 's-broken' as SessionId, createdAt: 0, cwd: undefined,
+      parentSession: undefined, agentPreset: undefined, live: false, title: undefined, corrupt: true,
+    }
+    expect(formatRestorableSessions([row], { now: NOW })).toEqual(['○ 不可恢复 · #s-broken'])
   })
 })
 
@@ -207,6 +218,7 @@ describe('formatRestorablePickerList — 欢迎页编号列表', () => {
   const row = (id: string, createdAt: number): RestorableSession => ({
     id: id as SessionId, createdAt, cwd: '/app/x', parentSession: undefined,
     live: false, agentPreset: undefined, title: `标题-${id}`,
+    corrupt: false,
   })
 
   it('每行 `[N]` 编号 + 展示行（行序 = 输入序）', () => {

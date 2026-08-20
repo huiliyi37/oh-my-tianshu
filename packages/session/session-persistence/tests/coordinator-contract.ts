@@ -1379,6 +1379,23 @@ export function runCoordinatorContract(name: string, makeFixture: () => Promise<
       }
     })
 
+    it('version error carries actionable guidance (2.6 升级/隔离目录)', async () => {
+      const fix = await makeFixture()
+      const { ctx, fiber } = await freshCtx(fix)
+      try {
+        const m = { version: 99, id: SessionId('v99-guidance'), createdAt: 1, cwd: WORK }
+        await ctx.sessionPersistence.create(m)
+        await ctx.sessionPersistence.append(m.id, oneTurnLog())
+        await expect(ctx.sessionPersistence.load(m.id))
+          .rejects.toThrow(/upgrade the dsh installation/)
+        await expect(ctx.sessionPersistence.load(m.id))
+          .rejects.toThrow(/separate directory/)
+      } finally {
+        await fiber.dispose()
+        await fix.cleanup()
+      }
+    })
+
     it('round-trips a header with parentSession (fork lineage)', async () => {
       const fix = await makeFixture()
       const { ctx, fiber } = await freshCtx(fix)

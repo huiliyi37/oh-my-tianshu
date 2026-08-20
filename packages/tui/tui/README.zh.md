@@ -34,6 +34,8 @@
 
 **LSP 诊断**（移植自天枢 LSP 栈）：agent 触碰文件时，桥按扩展名懒启动语言 server（typescript 经 `npx -y` 默认可用；pyright/gopls/rust-analyzer/clangd/jdtls 按 PATH 探测）拉取诊断——live 工具卡标题带 `⚠ N错 M警` 徽标，`/lsp` 面板按文件分组展示。诊断只进 TUI 本地展示缓存：不写会话事件、不注册任何模型面，dispose 时 kill 全部 server。装配了 `getDiagnostics` 形状的外部服务（`provide('lsp')`，如 dsh-lsp 伴生插件）时直接消费、与模型工具面共享 server 集；官方 `ctx.lsp` seam 经 `query(getDiagnostics)` 操作适配，官方操作落地前恒空。
 
+**会话恢复可见性**（session-resume）：冷启动在欢迎卡渲染可恢复会话编号列表（标题 · 年龄 · cwd）——欢迎阶段（任意输入字符即结束）内按数字键 1–9 直达对应会话，`ctrl+s` 恢复最近的其他会话，`/resume [id]` 无参恢复最近、带参切换指定会话。恢复挂载时输出横幅（标题 · 最后活动 · cwd）与回放末尾的「上次进行到此处」分隔；日志含崩溃修复闭合事件时追加「上次运行被中断」提示。`dsh tui --session <id>` 与 `dsh run --session <id> "task"` 从命令行恢复指定会话；未知 id fails loud 并给出恢复指引。损坏的持久化工件保留在列表中并标注「不可恢复」而非消失；会话 tab 行恒显示当前会话（短 id + ●），单会话也不例外。
+
 依赖服务：`sessions`/`agents`/`agentDefaultModel` 必需；`goals`/`subagents`/`agentPresets` 可选——未装配时 `/goal` 命令、委派树面板与 `/preset` 命令降级（fails loud 报不可用，不静默吞）。`/session list` 标题 fold 官方 `session/title` 事件（dsh-base 已装配）。TUI 同时注册 `userInteraction` provider（终端内答题）并订阅 `approval/request`（挂起审批卡片）。
 
 ## 分层

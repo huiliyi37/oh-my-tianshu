@@ -229,7 +229,7 @@ import { RewindOverlay, type RewindMode, type RewindResult } from '../format/rew
 import { openInEditorDetailed, getEditorCommand } from '../external-editor.js'
 import { FluencyTracker } from '../fluency-hook.js'
 import { expandMentions } from '../mention-expand.js'
-import { formatSessionAge, formatRestorablePickerList, projectRestorableSessions, wasCrashRepaired, type RestorableSession } from '../restore-session.js'
+import { formatRestorableSessions, formatSessionAge, formatRestorablePickerList, projectRestorableSessions, wasCrashRepaired, type RestorableSession } from '../restore-session.js'
 import { sessionTitleFor } from '../adapter/session-title.js'
 // 副作用声明合并：让 ctx.on('approval/request') 的 handler 参数由 cordis 事件
 // 类型推导（user-approval 的 module augmentation）。不 import 具体类型——
@@ -1596,9 +1596,6 @@ export class TuiApp {
     // 最近可恢复会话摘要（并入 tips「恢复」项，不单独占屏）。
     const recent = others[0]
     const resumeAvailable = others.length > 0
-    const resumeLabel = recent === undefined
-      ? '恢复会话'
-      : `恢复 · ${formatSessionAge(recent.createdAt, Date.now())}`
 
     // 1.1：可恢复会话编号列表（数字键直达）。标题经 loadHistory + sessionTitleFor
     // 计算——仅对展示行数（WELCOME_RESTORE_MAX_ROWS）做 IO，折叠计数取全量。
@@ -1620,6 +1617,11 @@ export class TuiApp {
     // 顶栏与欢迎之间留 1 行。live overlay 不再填剩余视口。
     commitLine('')
 
+    // 2.5：首屏列表可见时 tip 只留快捷键语义（不重复引导），列表隐藏时带摘要。
+    const listVisible = this.welcomeSessionRows.length > 0
+    const resumeLabel = recent === undefined
+      ? '恢复会话'
+      : listVisible ? '恢复最近' : `恢复 · ${formatSessionAge(recent.createdAt, Date.now())}`
     const tips: WelcomeTipItem[] = [
       { keyHint: 'ctrl+n', label: '新会话' },
       { keyHint: 'ctrl+s', label: resumeLabel, available: resumeAvailable },
@@ -1651,7 +1653,8 @@ export class TuiApp {
       }
       commitLine(color('[1-9] 恢复 · ctrl+n 新会话', this.theme.muted))
     }
-    commitLine(color(pickWelcomeTip(), this.theme.muted, { italic: true }))
+    // 2.5：随机贴士池按需含恢复条目（有可恢复会话且首屏列表未展示时）。
+    commitLine(color(pickWelcomeTip(undefined, { resumeVisible: resumeAvailable && !listVisible }), this.theme.muted, { italic: true }))
     // 空行收尾：命令回显（如「模型已切换」）与欢迎页在视觉上自然分离。
     commitLine('')
   }
@@ -1883,16 +1886,30 @@ export class TuiApp {
       return
     }
     const active = this.activeSessionId
+    // 2.2：行标签 = formatRestorableSessions 单行摘要（标题 · 年龄 · cwd ·
+    // 当前标记）——无需记忆 UUID 即可辨认会话。标题经 loadHistory +
+    // sessionTitleFor 计算；损坏行直接标注（loadHistory 失败不回退空标题）。
+    const liveIds = new Set(this.ctx.sessions.list().map(s => s.id))
+    const projected = projectRestorableSessions(rows, { liveIds })
+    const withTitles = await Promise.all(projected.map(async (r) => {
+      if (r.corrupt) return { ...r, title: undefined }
+      const events = await loadHistory(this.ctx, r.id).catch(() => [])
+      return { ...r, title: sessionTitleFor(events) }
+    }))
     const items: PickerItem[] = []
     let selectedIndex = 0
-    for (const row of rows) {
-      const label = `${row.id}${row.id === active ? '（当前）' : ''}`
+    for (const row of withTitles) {
+      const summary = formatRestorableSessions([row], { now: Date.now() })[0] ?? row.id
+      const label = `${summary}${row.id === active ? '（当前）' : ''}`
       const item: PickerItem = { label, value: row.id, current: row.id === active }
       if (row.id === active) selectedIndex = items.length
       items.push(item)
     }
     picker.open('选择会话', items, (item) => {
-      void this.switchSession(SessionId(item.value))
+      // 损坏会话切换抛错——fails loud（提示不可恢复，不静默吞掉）。
+      void this.switchSession(SessionId(item.value)).catch(() => {
+        this.echoWarn(`⚠ 会话不可恢复: ${item.value}`)
+      })
     }, selectedIndex)
     overlay.activate('picker')
   }
@@ -3911,7 +3928,8 @@ export class TuiApp {
     const chromeStart = lines.length
 
     // 会话 tab 栏（chrome 段：不参与动态裁剪；>1 会话时显示；Ctrl+X/Alt+数字切换）。
-    if (this.sessionTabs.length > 1) {
+    // 2.3：单会话也渲染 tab 行——任意时刻可见当前会话标识（短 id + ●）。
+    if (this.sessionTabs.length >= 1) {
       for (const line of formatSessionTabs(this.sessionTabs, cols, this.theme)) {
         lines.push(line)
       }

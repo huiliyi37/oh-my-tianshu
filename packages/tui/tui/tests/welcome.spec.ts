@@ -15,6 +15,7 @@ import {
   WELCOME_HERO_WIDE_MIN,
   WELCOME_TIPS,
   CHROME_GUTTER,
+  RESUME_TIP,
   formatBrandWelcome,
   formatEnvCheckLine,
   formatWelcomeCard,
@@ -261,5 +262,13 @@ describe('pickWelcomeTip（随机贴士）', () => {
     for (const tip of WELCOME_TIPS) {
       expect(pickWelcomeTip(() => WELCOME_TIPS.indexOf(tip) / WELCOME_TIPS.length)).toBe(`Tip: ${tip}`)
     }
+  })
+
+  it('2.5：resumeVisible → 池内动态加入恢复条目（rng 指向末位）', () => {
+    expect(pickWelcomeTip(() => 0.9999, { resumeVisible: true })).toBe(`Tip: ${RESUME_TIP}`)
+  })
+
+  it('2.5：未声明 resumeVisible → 不含恢复条目', () => {
+    expect(pickWelcomeTip(() => 0.9999)).not.toBe(`Tip: ${RESUME_TIP}`)
   })
 })

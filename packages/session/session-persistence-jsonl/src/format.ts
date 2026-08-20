@@ -130,6 +130,36 @@ export function encodeSegment(raw: string): string {
 }
 
 /**
+ * Decode one path segment escaped by {@link encodeSegment}; not a session dir
+ * when the segment contains anything else. Corrupt-artifact listing uses this
+ * to recover a session id from its directory name when the header line is
+ * unreadable.
+ * @param segment - the escaped path segment (one directory name).
+ * @returns the decoded string, or undefined when the segment is not a valid
+ *   `encodeSegment` output.
+ */
+export function decodeSegment(segment: string): string | undefined {
+  if (segment.length === 0) return undefined
+  let out = ''
+  for (let i = 0; i < segment.length; i++) {
+    const ch = segment[i]
+    /* v8 ignore next -- 循环下标在 length 内必有值；noUncheckedIndexedAccess 防御 */
+    if (ch === undefined) return undefined
+    if (ch === '~') {
+      const hex = segment.slice(i + 1, i + 5)
+      if (!/^[0-9A-F]{4}$/.test(hex)) return undefined
+      out += String.fromCharCode(Number.parseInt(hex, 16))
+      i += 4
+    } else if (/^[A-Za-z0-9._-]$/.test(ch)) {
+      out += ch
+    } else {
+      return undefined
+    }
+  }
+  return out
+}
+
+/**
  * Build the readable directory key for a project path.
  * Filesystem separators and drive separators become `-`; unsafe code units use
  * the same `~XXXX` escape as session ids. The key is bounded for filesystem

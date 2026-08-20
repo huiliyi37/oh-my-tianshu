@@ -1224,7 +1224,7 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     await app.dispose()
   })
 
-  it('会话 tab 栏：仅一个会话时不渲染 tab 行', async () => {
+  it('会话 tab 栏：单会话也渲染 tab 行（2.3 当前会话标识）', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('tab-1')
     const handle = makeHandle(agent)
@@ -1240,8 +1240,8 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
     await app.attach()
     await new Promise(resolve => setTimeout(resolve, 50))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    // 单会话：tab 行不渲染（避免占一行）
-    expect(written).not.toContain('session-tab-only'.slice(0, 8) + '●')
+    // 2.3：单会话 tab 行渲染短 id + ●（任意时刻可见「我在哪个会话」）
+    expect(written).toContain('tab-only●')
     await app.dispose()
   })
 
@@ -1419,7 +1419,7 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
       await app.dispose()
     })
 
-    it('/session 无参 → 会话选择器（列表渲染 + 当前 ● 高亮）', async () => {
+    it('/session 无参 → 会话选择器（2.2 摘要行：标题 · 年龄 · cwd · 当前标记）', async () => {
       const { ctx, app, written, type } = await bootPicker()
       const headerOf = (id: string, createdAt: number) => ({
         id: SessionId(id), createdAt, version: 0, cwd: undefined, parentSession: undefined,
@@ -1430,8 +1430,25 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
       ])
       await type('/session')
       expect(written()).toContain('选择会话')
-      expect(written()).toContain('s-1')
-      expect(written()).toContain('s-2')
+      // 2.2：单行摘要替代裸 UUID——标题（新对话）+ 短 id
+      expect(written()).toContain('新对话')
+      expect(written()).toContain('#s-1')
+      expect(written()).toContain('#s-2')
+      await app.dispose()
+    })
+
+    it('/session 选择器：损坏会话行标注「不可恢复」', async () => {
+      const { ctx, app, written, type } = await bootPicker()
+      const headerOf = (id: string, createdAt: number) => ({
+        id: SessionId(id), createdAt, version: 0, cwd: undefined, parentSession: undefined,
+      })
+      ctx.sessions.list.mockReturnValue([
+        { id: 's-ok', header: headerOf('s-ok', 2_000) },
+        { id: 's-bad', header: { ...headerOf('s-bad', 1_000), version: -1 } },
+      ])
+      await type('/session')
+      expect(written()).toContain('不可恢复')
+      expect(written()).toContain('#s-bad')
       await app.dispose()
     })
   })
@@ -1835,9 +1852,8 @@ describe('TuiApp Phase 9b + 1.1 欢迎页会话恢复入口', () => {
     await app.attach()
 
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    // Tips「恢复」行（携带相对时间）与编号列表并存。
-    expect(written).toContain('恢复 ·')
-    expect(written).toContain('小时前')
+    // 2.5：首屏列表可见 → tip 只留快捷键语义（「恢复最近」，摘要进列表行）。
+    expect(written).toContain('恢复最近')
     // 1.1：编号列表（[N] + 标题「新对话」占位 + 8 位短 id；裸 UUID 不出现）。
     expect(written).toContain('[1]')
     expect(written).toContain('新对话')
@@ -6192,11 +6208,14 @@ describe('slash 命令菜单接线（grok slash_dropdown 移植）', () => {
     stdin.emit('data', '/')
     await writtenOf(stdout)
     stdout.write.mockClear()
-    stdin.emit('data', '\x1b[6~') // PageDown → 菜单翻页（MRU 序命令集，落点随命令集变化——实测 /clear，preset 加入后分页边界移动）
+    // PageDown → 翻一页：选择离开顶部（落点随命令集/页宽变化，不断言具体命令，
+    // 只断言「离开了 /theme 且仍有选中项」——避免每次加命令都改断言）。
+    stdin.emit('data', '\x1b[6~')
     let written = await writtenOf(stdout)
-    expect(written).toMatch(/❯ \/clear/)
+    expect(written).not.toMatch(/❯ \/theme/)
+    expect(written).toMatch(/❯ \//)
     stdout.write.mockClear()
-    stdin.emit('data', '\x1b[5~') // PageUp → 回顶部
+    stdin.emit('data', '\x1b[5~') // PageUp → 回顶部（clamp）
     written = await writtenOf(stdout)
     expect(written).toMatch(/❯ \/theme/)
     await app.dispose()

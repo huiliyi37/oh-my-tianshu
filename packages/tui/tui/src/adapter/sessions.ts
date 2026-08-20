@@ -40,6 +40,8 @@ export interface SessionSummary {
    * undefined = 未记录（host 未装配 preset 或从未切换）。
    */
   readonly agentPreset: string | undefined
+  /** true = 持久化工件损坏（version -1 占位），不可恢复且应标注原因。 */
+  readonly corrupt: boolean
 }
 
 function toSummary(header: Session['header']): SessionSummary {
@@ -52,6 +54,8 @@ function toSummary(header: Session['header']): SessionSummary {
     // 本地 session header 无 agentPreset 字段（dsh-tui 的上游 fork 扩展）；
     // preset 创建值不可得，展示值只来自事件 fold（见 listSessions）。
     agentPreset: undefined,
+    // 损坏占位 header 以 version -1 标记（JSONL listArtifacts 保留损坏工件）。
+    corrupt: header.version < 0,
   }
   return summary
 }
@@ -117,24 +121,22 @@ export function forkSession(
  * Load a session's event log for display. A live session's in-process log is
  * authoritative (it includes events not yet flushed); a persisted-only session
  * is loaded through `ctx.sessionPersistence.inspect` when available.
+ * Load failures (unknown or corrupt persisted sessions) PROPAGATE so list and
+ * picker surfaces can mark the row with the reason instead of silently showing
+ * an empty conversation; live lookups never throw.
  * @param ctx - any context exposing `ctx.sessions` and optionally
  *   `ctx.sessionPersistence`.
  * @param id - the session whose log is requested.
- * @returns the immutable event log, or an empty array when the session is unknown.
+ * @returns the immutable event log.
+ * @throws when a persisted session cannot be read (corrupt/unknown/backend fault).
  */
 export async function loadHistory(ctx: Context, id: SessionId): Promise<readonly SessionEvent[]> {
   const live = ctx.sessions.get(id)
   if (live !== undefined) return live.events
   const persistence = ctx.get('sessionPersistence') as SessionPersistenceFacet | undefined
   if (persistence !== undefined) {
-    try {
-      const inspected = await persistence.inspect(id)
-      return inspected.events
-    } catch {
-      // Unknown/corrupt persisted session: report an empty history; the list
-      // surface still shows the row so the TUI can surface the failure itself.
-      return []
-    }
+    const inspected = await persistence.inspect(id)
+    return inspected.events
   }
   return []
 }

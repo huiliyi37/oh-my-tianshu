@@ -1124,12 +1124,13 @@ describe('SessionPersistenceJsonl: edge cases', () => {
     await expect(ctx.sessionPersistence.load(m.id)).rejects.toThrow(/unsupported flat-file layout/)
   })
 
-  it('list skips empty and non-header session logs (metadata-only read)', async () => {
+  it('list keeps corrupt/half-written logs as version -1 entries (2.4 不静默消失)', async () => {
     // A real session…
     await ctx.sessionPersistence.create(meta('real', '/p'))
     await ctx.sessionPersistence.append(SessionId('real'), oneTurnLog())
     // …alongside junk session directories whose fixed transcript is empty or
-    // lacks a header. Both remain unmaterialized and are skipped.
+    // lacks a header. They stay visible as unrecoverable (version -1) with
+    // their id recovered from the directory name.
     for (const [id, content] of [
       ['empty', ''],
       ['notheader', '{"type":"turn/start"}\n'],
@@ -1140,8 +1141,13 @@ describe('SessionPersistenceJsonl: edge cases', () => {
       await writeFile(path, content)
     }
 
-    const ids = (await ctx.sessionPersistence.list()).map(x => x.id).sort()
-    expect(ids).toEqual(['real'])
+    const headers = (await ctx.sessionPersistence.list())
+      .sort((a, b) => a.id.localeCompare(b.id))
+    expect(headers.map(h => h.id)).toEqual(['badjson', 'empty', 'notheader', 'real'])
+    for (const corrupt of headers.slice(0, 3)) {
+      expect(corrupt.version).toBe(-1)
+    }
+    expect(headers[3]?.version).toBe(0)
   })
 
   it('list reads a header line longer than the 8KB read chunk', async () => {

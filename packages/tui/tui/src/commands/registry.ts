@@ -16,7 +16,7 @@
  */
 
 import type { Context } from '@huiliyi37/cordis'
-import type { SessionId } from '@huiliyi37/dsh-session'
+import { SessionId } from '@huiliyi37/dsh-session'
 import type { Agent } from '@huiliyi37/dsh-agent'
 import { getActiveThemeName, setTheme, THEME_NAMES } from '../theme.js'
 import { formatWireSurface, wirePhaseLabel, wireToolNames } from '../preset-surface.js'
@@ -175,7 +175,7 @@ interface MemoryFacet {
  * /subagents、/workflow、/tasks 的命令定义在 createBuiltinCommands（deps 注入
  * TuiApp 的显隐切换）；/status 保持 TuiApp 内注册。
  */
-export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'preset', 'tasks', 'density', 'goal', 'status', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'export', 'exit', 'yolo', 'cost', 'help', 'restart'] as const
+export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'resume', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'preset', 'tasks', 'density', 'goal', 'status', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'export', 'exit', 'yolo', 'cost', 'help', 'restart'] as const
 
 /**
  * /model 一键切换别名（TUI 便捷层）：展开为 deepseek-spark route 的
@@ -389,9 +389,14 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
           // `session/title` 事件（dsh-base 装配的 session-title + session-title-llm
           // 在会话活跃时自动生成）；无标题事件的历史会话展示首条真人消息的
           // 确定性 fallback；无聊天记录的会话显示「新对话」。只读纯函数，
-          // 不调 API、不写 sidecar、不写 session log。
+          // 不调 API、不写 sidecar、不写 session log。损坏会话标注原因
+          // （loadHistory 失败不回退成空会话标题——不可恢复要可见）。
           for (const row of rows) {
-            const events = await loadHistory(ctx, row.id)
+            if (row.corrupt) {
+              echo(`${row.id} · 不可恢复（工件损坏，无法读取）`)
+              continue
+            }
+            const events = await loadHistory(ctx, row.id).catch(() => [])
             echo(`${row.id} · ${sessionTitleFor(events)} · ${new Date(row.createdAt).toISOString()}`)
           }
           return
@@ -408,6 +413,34 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
           return
         }
         echo('用法: /session new|list|switch <id>')
+      },
+    },
+    {
+      // session-resume 2.1：/resume 无参恢复最近可恢复会话（含持久化），
+      // 带参切换指定会话；与 Ctrl+S、欢迎页列表共享 listSessions 数据源。
+      // 损坏会话切换时 switchSession 抛错——命令层回显失败（不静默新建）。
+      name: 'resume',
+      description: '恢复会话：无参恢复最近可恢复会话，带参切换指定会话',
+      argsHint: '[id]',
+      run: async ({ text, echo, ctx, sessionId }) => {
+        const id = text.trim()
+        const rows = await listSessions(ctx)
+        if (id === '') {
+          const target = rows.find(r => r.id !== sessionId)
+          if (target === undefined) {
+            echo('无可恢复会话（/session new 新建）')
+            return
+          }
+          await deps.switchSession(target.id)
+          echo(`已恢复会话: ${target.id}`)
+          return
+        }
+        if (!rows.some(r => r.id === id as SessionId)) {
+          echo(`会话不存在: ${id}。可用: /session list 或欢迎页恢复列表`)
+          return
+        }
+        await deps.switchSession(SessionId(id))
+        echo(`已恢复会话: ${id}`)
       },
     },
     {

@@ -379,6 +379,83 @@ describe('内置命令 — /session list 会话标题（官方 session/title 事
     // oxlint-disable-next-line unbound-method -- ctx 整体 cast 成 Context 后 reflect.get 是方法面；测试只断言调用
     expect(ctx.reflect.get).not.toHaveBeenCalledWith('llm', false)
   })
+
+  it('list 损坏会话（version -1）→ 标注「不可恢复」而非空标题', async () => {
+    const { cmd } = commandByName('session')
+    const sid = 'session-corrupt-1' as SessionId
+    const ctx = makeCtx({
+      sessions: {
+        list: vi.fn(() => [{ id: sid, header: { id: sid, version: -1, createdAt: 0 } }]),
+        get: vi.fn(() => undefined),
+      },
+    })
+    const { args, echo } = makeArgs({ text: 'list', ctx })
+    await cmd.run(args)
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('session-corrupt-1 · 不可恢复'))
+  })
+})
+
+describe('内置命令 — /resume（session-resume 2.1）', () => {
+  const row = (id: string, createdAt: number) => ({
+    id: id as SessionId,
+    header: { id: id as SessionId, version: 0, createdAt },
+  })
+
+  it('无参 → 恢复最近的其他可恢复会话（排除当前）', async () => {
+    const { cmd, deps } = commandByName('resume')
+    const ctx = makeCtx({
+      sessions: {
+        list: vi.fn(() => [row('session-r1', 3), row('session-r2', 2), row('session-r3', 1)]),
+        get: vi.fn(() => undefined),
+      },
+    })
+    const { args, echo } = makeArgs({ text: '', ctx, sessionId: 'session-r1' as SessionId })
+    await cmd.run(args)
+    expect(deps.switchSession).toHaveBeenCalledWith('session-r2')
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('session-r2'))
+  })
+
+  it('带参 → 切换指定会话', async () => {
+    const { cmd, deps } = commandByName('resume')
+    const ctx = makeCtx({
+      sessions: {
+        list: vi.fn(() => [row('session-r1', 3), row('session-r2', 2)]),
+        get: vi.fn(() => undefined),
+      },
+    })
+    const { args, echo } = makeArgs({ text: 'session-r2', ctx })
+    await cmd.run(args)
+    expect(deps.switchSession).toHaveBeenCalledWith('session-r2')
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('session-r2'))
+  })
+
+  it('未知 id → 明确错误 + 可用入口指引', async () => {
+    const { cmd, deps } = commandByName('resume')
+    const ctx = makeCtx({
+      sessions: {
+        list: vi.fn(() => [row('session-r1', 3)]),
+        get: vi.fn(() => undefined),
+      },
+    })
+    const { args, echo } = makeArgs({ text: 'session-nope', ctx })
+    await cmd.run(args)
+    expect(deps.switchSession).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('会话不存在: session-nope'))
+  })
+
+  it('无任何其他会话 → 占位提示', async () => {
+    const { cmd, deps } = commandByName('resume')
+    const ctx = makeCtx({
+      sessions: {
+        list: vi.fn(() => [row('session-r1', 3)]),
+        get: vi.fn(() => undefined),
+      },
+    })
+    const { args, echo } = makeArgs({ text: '', ctx, sessionId: 'session-r1' as SessionId })
+    await cmd.run(args)
+    expect(deps.switchSession).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('无可恢复会话'))
+  })
 })
 
 describe('内置命令 — /fork 与 /branch（A3 会话分叉）', () => {
