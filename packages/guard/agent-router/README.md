@@ -65,6 +65,9 @@ apply(ctx, {
     cap: 'verifier',       // 'off' 关闭升级分支
     minConsecutiveFailures: 2,
   },
+  synthesis: {             // 可选：主代理综合提示 rubric（缺省内置角色裁定纪律）
+    section: '...',        // 覆盖 rubric 文本；存在未综合 child 结论时渲染
+  },
 })
 
 ```
@@ -95,6 +98,7 @@ None directly; the delegate session is an independent model request, and the par
 - **Dispatch requires explicit model configuration** — with `dispatchEnabled: true`, `provider`/`model` must be supplied; unconfigured, the router only decides without dispatching (decision results stay queryable).
 - **Dispatch requires a live parent session** — `execute` takes the parent `sessionId` and fails loud when that session is not a live agent; the seam derives the child's workspace, lineage, and delegation depth from it.
 - **Turn-end trigger ships in shadow** — the shipped TUI mounts `trigger: { mode: 'shadow', onTurnEnd: true }`: delegate decisions are recorded as log-only `router/decision` but never dispatched. Switching to `auto` is a product call after the closed loop is verified; `auto` requires `provider`/`model`.
+- **Synthesis is the main agent's act** — when unresolved child findings exist, a `router:synthesis` prompt section lists them and the `router_adopt` tool records adopt/reject declarations as log-only `router/adoption` (one per outcome, validated by the invariant companion). The router never merges or votes; it only carries findings and declarations.
 - **The prediction window is in-memory** — the sliding window and tipping-point state vanish with the process. Accumulation is keyed per session and child sessions (`header.parentSession`) are excluded, so routed children never pollute their parent's window.
 - **The routing table is a fixed policy** — the three intervention thresholds (0.4/0.6/0.8) and the action mapping are the Tianshu constants from the port; configurability waits for real tuning demand.
 - **Profile tool sets are deployment-scoped** — the built-in defaults name the shipped tool catalog (`grep`/`read`/`glob`/`repo_graph`/`semantic_search`/`bash`); a slim assembly declares its own subset via `profileTools`, and unknown names fail the dispatch loudly rather than widening the tool face.

@@ -76,6 +76,22 @@ function validateEvent(event: SessionEvent, fail: InvariantFailure): void {
     }
     return
   }
+  if (event.type === 'router/adoption') {
+    const { subagentSessionId, verdict, reason } = event.data as {
+      subagentSessionId?: unknown
+      verdict?: unknown
+      reason?: unknown
+    }
+    if (typeof subagentSessionId !== 'string' || subagentSessionId === '') {
+      fail('agent-router: an adoption record must carry a non-empty subagentSessionId')
+    }
+    if (verdict !== 'adopt' && verdict !== 'reject') {
+      fail(`agent-router: an adoption record must carry a known verdict (adopt | reject), got ${JSON.stringify(verdict)}`)
+    }
+    if (typeof reason !== 'string' || reason === '') {
+      fail('agent-router: an adoption record must carry a non-empty reason')
+    }
+  }
   if (event.type === 'router/decision') {
     const { profile, task, targets, reason, mode, dispatched, subagentSessionId } = event.data as {
       profile?: unknown
@@ -118,9 +134,35 @@ function validateEvent(event: SessionEvent, fail: InvariantFailure): void {
 
 /** Install validation for live appends and loaded history at late registration. */
 const install: InvariantInstaller = Object.assign((ctx: Context, fail: InvariantFailure) => {
+  // 每会话配对状态：outcome 已见 / 已声明（adoption 必须引用本会话在先的
+  // outcome，且每条 outcome 至多一条声明）。
+  const seen = new WeakMap<Session, { outcomes: Set<string>; adopted: Set<string> }>()
   const track = (session: Session, event: SessionEvent): void => {
-    if (event.type !== 'router/route' && event.type !== 'router/decision' && event.type !== 'router/outcome') return
+    if (event.type !== 'router/route' && event.type !== 'router/decision' && event.type !== 'router/outcome' && event.type !== 'router/adoption') return
+    // 形状校验先行：配对簿记只在形状通过后提交（失败记录不留配对状态）。
     validateEvent(event, fail)
+    if (event.type === 'router/outcome') {
+      const state = seen.get(session) ?? { outcomes: new Set(), adopted: new Set() }
+      const { subagentSessionId } = event.data as { subagentSessionId?: unknown }
+      if (typeof subagentSessionId === 'string' && subagentSessionId !== '') {
+        state.outcomes.add(subagentSessionId)
+      }
+      seen.set(session, state)
+    }
+    if (event.type === 'router/adoption') {
+      const state = seen.get(session) ?? { outcomes: new Set(), adopted: new Set() }
+      const { subagentSessionId } = event.data as { subagentSessionId?: unknown }
+      if (typeof subagentSessionId === 'string' && subagentSessionId !== '') {
+        if (!state.outcomes.has(subagentSessionId)) {
+          fail(`agent-router: adoption on ${session.id} names child ${subagentSessionId} without a prior outcome record`)
+        }
+        if (state.adopted.has(subagentSessionId)) {
+          fail(`agent-router: adoption on ${session.id} repeats child ${subagentSessionId} — at most one declaration per outcome`)
+        }
+        state.adopted.add(subagentSessionId)
+      }
+      seen.set(session, state)
+    }
     // 血统一致性（child 在场时）：记录所在会话必须是该 child 的 parent。
     const { subagentSessionId } = event.data as { subagentSessionId?: unknown }
     if (typeof subagentSessionId !== 'string' || subagentSessionId === '') return

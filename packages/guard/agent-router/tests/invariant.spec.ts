@@ -175,6 +175,49 @@ describe('agent-router route-record invariants', () => {
       .toThrow(/parentSession/)
   })
 
+  it('accepts a well-formed adoption after its outcome and rejects violations', async () => {
+    const ctx = await setup()
+    const parent = Session.create(SessionId('parent-1'))
+    ctx.sessions.create(SessionId('child-1'), { meta: { parentSession: SessionId('parent-1') } })
+    const outcome = {
+      type: 'router/outcome',
+      seq: 0,
+      time: 0,
+      data: { subagentSessionId: 'child-1', stopReason: 'completed' },
+    } as SessionEvent
+    const adoption = (over: Record<string, unknown> = {}): SessionEvent => ({
+      type: 'router/adoption',
+      seq: 1,
+      time: 1,
+      data: { subagentSessionId: 'child-1', verdict: 'adopt', reason: '整合进结论', ...over },
+    } as SessionEvent)
+    ctx.emit('session/event', parent, outcome)
+    expect(() => { ctx.emit('session/event', parent, adoption()) }).not.toThrow()
+    // 每条 outcome 至多一条声明
+    expect(() => { ctx.emit('session/event', parent, adoption()) }).toThrow(/at most one declaration/)
+  })
+
+  it('rejects an adoption without a prior outcome, a bad verdict, and a bad reason', async () => {
+    const ctx = await setup()
+    const parent = Session.create(SessionId('parent-1'))
+    const adoption = (over: Record<string, unknown> = {}): SessionEvent => ({
+      type: 'router/adoption',
+      seq: 0,
+      time: 0,
+      data: { subagentSessionId: 'child-x', verdict: 'adopt', reason: 'r', ...over },
+    } as SessionEvent)
+    expect(() => { ctx.emit('session/event', parent, adoption()) }).toThrow(/without a prior outcome/)
+    const withOutcome = Session.create(SessionId('parent-2'))
+    ctx.emit('session/event', withOutcome, {
+      type: 'router/outcome',
+      seq: 0,
+      time: 0,
+      data: { subagentSessionId: 'child-x', stopReason: 'completed' },
+    } as SessionEvent)
+    expect(() => { ctx.emit('session/event', withOutcome, adoption({ verdict: 'maybe' })) }).toThrow(/known verdict/)
+    expect(() => { ctx.emit('session/event', withOutcome, adoption({ reason: '' })) }).toThrow(/non-empty reason/)
+  })
+
   it('rejects invalid existing state on late registration', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)

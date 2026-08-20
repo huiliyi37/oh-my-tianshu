@@ -9,7 +9,7 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
-import { SessionId } from '@huiliyi37/dsh-session'
+import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
 import { apply as applyAgentRouter, resolveProfileTools, type RouterService } from '../src/index.js'
 
 const PARENT_ID = SessionId('session-1')
@@ -18,6 +18,9 @@ function makeContext(config: Record<string, unknown> = {}): {
   ctx: Context
   seam: { start: ReturnType<typeof vi.fn> }
   counters: { result: number; dispose: number; append: Array<{ type: string; data: unknown }> }
+  registeredTools: Array<Record<string, unknown>>
+  registeredSections: Array<{ name: string; text: (context: { agent?: { session: { events: SessionEvent[] } } }) => string }>
+  parentSession: { header: { id: SessionId }; events: SessionEvent[]; append(type: string, data: unknown): void }
   emit: (name: string, ...args: unknown[]) => void
 } {
   const counters: { result: number; dispose: number; append: Array<{ type: string; data: unknown }> } = {
@@ -33,15 +36,23 @@ function makeContext(config: Record<string, unknown> = {}): {
     })),
   }
   const ctx = new Context()
+  const registeredTools: Array<Record<string, unknown>> = []
+  const registeredSections: Array<{ name: string; text: (context: { agent?: { session: { events: SessionEvent[] } } }) => string }> = []
+  ctx.provide('tools', { register: (definition: Record<string, unknown>) => { registeredTools.push(definition); return () => {} } })
+  ctx.provide('systemPrompt', { section: (section: { name: string; text: (context: unknown) => string }) => { registeredSections.push(section); return () => {} } })
   ctx.provide('subagents', seam)
   const appended: Array<{ type: string; data: unknown }> = []
+  const parentEvents: SessionEvent[] = []
+  const parentSession = {
+    header: { id: PARENT_ID },
+    events: parentEvents,
+    append: (type: string, data: unknown) => {
+      appended.push({ type, data })
+      parentEvents.push({ type, data } as SessionEvent)
+    },
+  }
   ctx.provide('agents', {
-    get: (_id: SessionId) => ({
-      session: {
-        header: { id: PARENT_ID },
-        append: (type: string, data: unknown) => { appended.push({ type, data }) },
-      },
-    }),
+    get: (_id: SessionId) => ({ session: parentSession }),
   })
   applyAgentRouter(ctx, { provider: 'mock', model: 'mock', ...config })
   counters.append = appended
@@ -51,7 +62,7 @@ function makeContext(config: Record<string, unknown> = {}): {
     // @ts-expect-error -- name: string 非 keyof Events；payload 形状宽松
     (ctx.emit)(name, ...args)
   }
-  return { ctx, seam, counters, emit }
+  return { ctx, seam, counters, registeredTools, registeredSections, parentSession, emit }
 }
 
 function toolResult(isError: boolean): unknown {
@@ -153,6 +164,8 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
 
   it('dispatchEnabled: false 时 execute 不派发（返回 null）', async () => {
     const ctx = new Context()
+    ctx.provide('tools', { register: () => () => {} })
+    ctx.provide('systemPrompt', { section: () => () => {} })
     const seam = { start: vi.fn(async () => ({ id: SessionId('session-child-1'), result: Promise.resolve({}), dispose: async () => {} })) }
     ctx.provide('subagents', seam)
     ctx.provide('agents', { get: () => ({}) })
@@ -274,6 +287,41 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     expect(() => applyAgentRouter(new Context(), { escalation: { cap: 'strong' as never } })).toThrow(/escalation.cap/)
     expect(() => applyAgentRouter(new Context(), { escalation: { minConsecutiveFailures: 0 } })).toThrow(/minConsecutiveFailures/)
   })
+
+  it('综合提示：存在未综合 child 结论时渲染，adoption 后清除', async () => {
+    const { ctx, registeredTools, registeredSections, parentSession, emit } = makeContext()
+    const router = ctx.get('router') as RouterService
+    const A = SessionId('session-a')
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    const action = router.decide({ sessionId: A })
+    if (action.kind !== 'delegate') throw new Error('expected delegate')
+    await router.execute(action, { sessionId: A })
+
+    const section = registeredSections.find(s => s.name === 'router:synthesis')
+    if (section === undefined) throw new Error('router:synthesis section missing')
+    const text = section.text({ agent: { session: parentSession } })
+    expect(text).toContain('session-child-1')
+    expect(text).toContain('router_adopt')
+
+    // 采用声明工具：逐条恰好一次；重复声明被拒
+    const adopt = registeredTools.find(tool => tool.name === 'router_adopt') as Record<string, unknown>
+    if (adopt === undefined) throw new Error('router_adopt tool missing')
+    type AdoptExec = { agent?: { session: { events: SessionEvent[]; append(type: string, data: unknown): void } } }
+    const execute = adopt.execute as (args: unknown, exec: AdoptExec) => Promise<unknown>
+    await execute(
+      { subagentSessionId: 'session-child-1', verdict: 'adopt', reason: '整合进结论' },
+      { agent: { session: parentSession } },
+    )
+    await expect(execute(
+      { subagentSessionId: 'session-child-1', verdict: 'reject', reason: '再想想' },
+      { agent: { session: parentSession } },
+    )).rejects.toThrow(/no pending finding/)
+    await expect(execute(
+      { subagentSessionId: 'session-none', verdict: 'adopt', reason: 'x' },
+      { agent: { session: parentSession } },
+    )).rejects.toThrow(/no pending finding/)
+    expect(section.text({ agent: { session: parentSession } })).toBe('')
+  }, 10000)
 
   it('agent/disposed 时 evict 该会话的累计器', async () => {
     const { ctx, emit } = makeContext()

@@ -248,6 +248,8 @@ Source: [`packages/preset/agent-presets/src/preset.ts:52`](../packages/preset/ag
 
 ## `@huiliyi37/dsh-agent-router`
 
+Requires: `tools` · `systemPrompt`
+
 ```ts config-catalog
 /** 插件配置。 */
 export interface AgentRouterConfig {
@@ -280,6 +282,14 @@ export interface AgentRouterConfig {
     onTurnEnd?: boolean
   }
   /**
+   * 主代理综合提示（Phase 2）：存在未综合 child 结论时渲染；rubric 可覆盖。
+   * 缺省用内置 rubric（角色裁定纪律：主代理拥有最终综合与写入）。
+   */
+  synthesis?: {
+    /** 综合提示 rubric 文本（覆盖内置缺省）。 */
+    section?: string
+  }
+  /**
    * 升级迟滞（escalate 分支的钳制与最小连续失败数）。缺省 cap 'verifier'、
    * minConsecutiveFailures 2——单次偶发失败不触发升级。
    */
@@ -292,7 +302,7 @@ export interface AgentRouterConfig {
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:87`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:105`](../packages/guard/agent-router/src/index.ts)
 
 ## `@huiliyi37/dsh-agent-spine-demo`
 
@@ -1485,6 +1495,15 @@ export interface Config {
 
 Source: [`packages/feedback/message-feedback/src/index.ts:49`](../packages/feedback/message-feedback/src/index.ts)
 
+## `@huiliyi37/dsh-model-roles`
+
+```ts config-catalog
+/** Composition entry: empty by contract, since every pin lives in the settings user layer. */
+export type Config = Record<string, never>
+```
+
+Source: [`packages/core/model-roles/src/index.ts:65`](../packages/core/model-roles/src/index.ts)
+
 ## `@huiliyi37/dsh-next-workflow`
 
 Requires: `commands`
@@ -2510,10 +2529,16 @@ Requires: `tools` · `bash` · `systemPrompt` · `bashEnv`
 export interface Config {
   /** Expose `run_in_background` (default true); disabled calls are also rejected. */
   enableRunInBackground?: boolean
+  /** Fold a successful run's output above the tail threshold to its last N lines (0 disables; default 20). */
+  outputSuccessTailLines?: number
+  /** A failed run's output above this many lines keeps error-relevant lines instead of the whole body (0 disables; default 40). */
+  outputErrorThresholdLines?: number
+  /** Total line budget for the failed-run error-aware selection (default 60). */
+  outputErrorBudgetLines?: number
 }
 ```
 
-Source: [`packages/bash/tool-bash/src/index.ts:34`](../packages/bash/tool-bash/src/index.ts)
+Source: [`packages/bash/tool-bash/src/index.ts:43`](../packages/bash/tool-bash/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-bash-persistent`
 

@@ -18,7 +18,9 @@
 
 import type { Context } from '@huiliyi37/cordis'
 import type { Session, SessionEvent, SessionId } from '@huiliyi37/dsh-session'
-import type {} from '@huiliyi37/dsh-agent' // 'agent/disposed' 事件声明合并'
+import type {} from '@huiliyi37/dsh-agent' // 'agent/disposed' 事件声明合并
+import type {} from '@huiliyi37/dsh-tools' // ctx.tools 声明合并
+import type {} from '@huiliyi37/dsh-system-prompt' // ctx.systemPrompt 声明合并'
 import {
   createPredictionAccumulator,
   getConsecutiveFailures,
@@ -29,9 +31,12 @@ import {
 } from './prediction.js'
 import { decideRouterAction, type EscalationPolicy, type RouterAction, type RouterMetrics } from './router.js'
 import { DEFAULT_PROFILE_TOOLS, dispatchSubagent, type DispatchOptions, type DispatchOutcome } from './dispatch.js'
+import { ADOPT_TOOL_NAME, DEFAULT_SYNTHESIS_SECTION, parseAdoptArgs, pendingOutcomes, renderSynthesisSection, verificationGap } from './synthesis.js'
 
 /** 插件名（cordis.yml 装配用）。 */
 export const name = 'agent-router'
+/** 服务依赖（Cordis reactive coeffect：装配按序激活）。 */
+export const inject = ['tools', 'systemPrompt']
 
 declare module '@huiliyi37/dsh-session/types' {
   interface SessionEventMap {
@@ -54,6 +59,13 @@ declare module '@huiliyi37/dsh-session/types' {
      * Paired one-to-one with the acceptance `router/route` record.
      */
     'router/outcome': { subagentSessionId: string; stopReason: string }
+    /**
+     * Durable adoption record on the parent session's own log: log-only
+     * (never reaches the model surface), whole-value append via the
+     * `router_adopt` tool. Pairs with a `router/outcome` record — the main
+     * agent declares adopt/reject with a reason; at most one per outcome.
+     */
+    'router/adoption': { subagentSessionId: string; verdict: 'adopt' | 'reject'; reason: string }
     'router/decision': {
       profile: 'code_scout' | 'verifier'
       task: string
@@ -118,6 +130,14 @@ export interface AgentRouterConfig {
     mode?: 'off' | 'shadow' | 'auto'
     /** 是否在 turn/end 触发（缺省 false）。 */
     onTurnEnd?: boolean
+  }
+  /**
+   * 主代理综合提示（Phase 2）：存在未综合 child 结论时渲染；rubric 可覆盖。
+   * 缺省用内置 rubric（角色裁定纪律：主代理拥有最终综合与写入）。
+   */
+  synthesis?: {
+    /** 综合提示 rubric 文本（覆盖内置缺省）。 */
+    section?: string
   }
   /**
    * 升级迟滞（escalate 分支的钳制与最小连续失败数）。缺省 cap 'verifier'、
@@ -240,6 +260,60 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
   if (typeof subagentProvider !== 'string' || subagentProvider.trim() === '') {
     throw new Error('agent-router: subagentProvider must be a non-empty provider name')
   }
+  const synthesisSection = config.synthesis?.section ?? DEFAULT_SYNTHESIS_SECTION
+  if (typeof synthesisSection !== 'string' || synthesisSection.trim() === '') {
+    throw new Error('agent-router: synthesis.section must be a non-empty string')
+  }
+
+  // —— 采用声明工具：主代理对每条 child 结论逐条声明 adopt/reject ——
+  ctx.tools.register({
+    name: ADOPT_TOOL_NAME,
+    description: 'Declare your adoption decision for one dispatched subagent finding: '
+      + 'adopt (integrate it) or reject (state why). Call exactly once per finding listed in your synthesis prompt.',
+    parameters: {
+      subagentSessionId: { type: 'string', required: true, description: 'The subagent session id from the synthesis prompt.' },
+      verdict: { type: 'string', required: true, enum: ['adopt', 'reject'], description: 'adopt or reject the finding.' },
+      reason: { type: 'string', required: true, description: 'Why you adopt or reject it.' },
+    },
+    output: {
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { adopted: { type: 'boolean', const: true } },
+      },
+      render: () => [{ type: 'text', text: 'Finding adoption recorded.' }],
+    },
+    execute: async (args, exec) => {
+      const agent = exec.agent
+      if (agent === undefined) throw new Error(`${ADOPT_TOOL_NAME} requires a calling agent`)
+      const parsed = parseAdoptArgs(args)
+      // 声明必须引用本会话一条未综合的 child 结论（契约：逐条、恰好一次）。
+      const session = agent.session
+      const pending = pendingOutcomes(session.events)
+      if (!pending.some(entry => entry.subagentSessionId === parsed.subagentSessionId)) {
+        throw new Error(`${ADOPT_TOOL_NAME}: no pending finding for subagent ${parsed.subagentSessionId} — declare each finding exactly once`)
+      }
+      session.append('router/adoption', {
+        subagentSessionId: parsed.subagentSessionId,
+        verdict: parsed.verdict,
+        reason: parsed.reason,
+      })
+      return { adopted: true as const }
+    },
+  })
+
+  // —— 主代理综合提示：存在未综合 child 结论时渲染（model-visible 内容
+  //    全部派生自已落盘的 router/outcome 与 router/adoption 记录）——
+  ctx.systemPrompt.section({
+    name: 'router:synthesis',
+    order: 51,
+    text: (context) => {
+      const agent = context.agent
+      if (agent === undefined) return ''
+      const events = agent.session.events
+      return renderSynthesisSection(pendingOutcomes(events), verificationGap(events), synthesisSection)
+    },
+  })
   const predictions = new Map<SessionId, ReturnType<typeof createPredictionAccumulator>>()
   const dispatchEnabled = config.dispatchEnabled ?? true
 
@@ -378,4 +452,5 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
 
 export { createPredictionAccumulator, getConsecutiveFailures, getErrorRate, getInterventionLevel, recordPrediction, resetAccumulator, shouldTippingPointReset } from './prediction.js'
 export { decideRouterAction, type EscalationPolicy, type RouterAction, type RouterMetrics } from './router.js'
-export { dispatchSubagent, SUBAGENT_TASK_PREFIX, type DispatchOptions } from './dispatch.js'
+export { dispatchSubagent, SUBAGENT_TASK_PREFIX, type DispatchOptions, type DispatchOutcome } from './dispatch.js'
+export { ADOPT_TOOL_NAME, DEFAULT_SYNTHESIS_SECTION, parseAdoptArgs, pendingOutcomes, renderSynthesisSection, verificationGap, type AdoptArgs, type AdoptVerdict, type PendingOutcome } from './synthesis.js'
