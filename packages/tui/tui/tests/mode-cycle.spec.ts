@@ -59,7 +59,8 @@ function makeAgent(name: string): Agent {
     },
     inbox: { nextTurn: [], nextStep: [] },
     status: 'idle',
-    ctx: undefined,
+    // switchSession 会给 agent.ctx 装 model-selection 监听（on 需返 disposer）。
+    ctx: { on: vi.fn(() => () => {}) },
     followup: vi.fn(),
     steer: vi.fn(),
     inject: vi.fn(),

@@ -35,7 +35,7 @@ describe('dsh-tui bundle', () => {
     expect(rows.find(row => row.id === 'agent-presets')?.config).toEqual({ default: 'standard' })
     // The zen row must ship its policy section (resolveConfig rejects a blank
     // one at load) and leave the face/predicates on package defaults.
-    const zen = rows.find(row => row.id === 'zen')?.config as Record<string, unknown> | undefined
+    const zen = rows.find(row => row.id === 'zen')?.config
     expect(typeof zen?.section).toBe('string')
     expect((zen?.section as string).length).toBeGreaterThan(0)
     expect(zen?.face).toEqual(['bash', 'str_replace_editor', 'todo_write', 'subagent'])
@@ -44,12 +44,12 @@ describe('dsh-tui bundle', () => {
     expect(Object.keys(zen ?? {}).sort()).toEqual(['diet', 'face', 'promoteDeny', 'section'])
     // The task-card row ships template mode: the bundle has no provider
     // default, so llm mode would fail loud at load; deployments opt in.
-    const taskCard = rows.find(row => row.id === 'task-card')?.config as Record<string, unknown> | undefined
+    const taskCard = rows.find(row => row.id === 'task-card')?.config
     expect(taskCard).toEqual({ mode: 'template' })
     // The intent-bridge row ships both routes on the out-of-box DeepSeek
     // adapter (same key as /model); resolveConfig fails loud at load without
     // them. MiniMax remains a deployment overlay, not the shipped default.
-    const intentBridge = rows.find(row => row.id === 'intent-bridge')?.config as Record<string, unknown> | undefined
+    const intentBridge = rows.find(row => row.id === 'intent-bridge')?.config
     expect(intentBridge).toMatchObject({
       alignProvider: 'deepseek-official',
       alignModel: 'deepseek-v4-flash',
