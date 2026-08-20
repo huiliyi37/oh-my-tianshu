@@ -1046,7 +1046,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: 'async prepare( agent: Agent, content: ContentBlock[], references: SessionReferenceInput[], signal?: AbortSignal, ): Promise<PreparedReferencedMessage>',
-        jsDoc: '/**\n * Snapshot all references before enqueue and return one aggregated durable context.\n * @param agent - target agent; references to it are rejected.\n * @param content - already host-normalized readable message content.\n * @param references - structured source sessions in mention order.\n * @param signal - optional cancellation boundary for host request teardown.\n * @returns detached content and optional referenced-session context.\n */',
+        jsDoc: '/**\n * Snapshot all references for one accepted direct message and return one aggregated durable context.\n * @param agent - target agent; references to it are rejected.\n * @param content - already host-normalized readable message content.\n * @param references - structured source sessions in mention order.\n * @param signal - optional cancellation boundary for the active turn.\n * @returns detached content and optional referenced-session context.\n */',
       },
     ],
   },

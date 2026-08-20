@@ -2,7 +2,7 @@
 // InputBar behavior over the machine wiring: Enter-send semantics (IME guard,
 // Shift newline, busy Enter policy, Ctrl/Meta steering, repeat suppression), running
 // semantics (input stays free; continuable children keep Send beside Stop), the machine pending lock,
-// decoration backdrop, error/notice strips, and the focus-keeping mousedown.
+// decoration backdrop, error banners, status strips, and the focus-keeping mousedown.
 
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
@@ -12,6 +12,7 @@ import { makeTranslate } from '@huiliyi37/dsh-client-test-runtime'
 import { zh as commonZh } from '@huiliyi37/dsh-client-locale/src/locales/zh.ts'
 import type { ClientContext, ConversationSnapshot, SessionId } from '@huiliyi37/dsh-client-runtime/client'
 import { SessionInputShell } from '../src/client/input/facade.ts'
+import type { SubmitOutcome } from '../src/client/input/contract.ts'
 import { InputBar } from '../src/client/skeleton/InputBar.tsx'
 import type { InputBarProps } from '../src/client/skeleton/InputBar.tsx'
 import { zh } from '../src/client/locales.ts'
@@ -72,7 +73,9 @@ interface BenchOptions {
 
 /** Real machine behind the bar entry: sink spy, no slash pipeline (plain text goes straight to the sink). */
 function bench(over?: BenchOptions) {
-  const sink = vi.fn()
+  const sink = vi.fn<(text: string, mode: 'queue' | 'steer', signal: AbortSignal) => Promise<SubmitOutcome>>(
+    () => Promise.resolve({ kind: 'success' }),
+  )
   const lex = over?.lexicon
   type ShellDeps = ConstructorParameters<typeof SessionInputShell>[0]
   const shell = new SessionInputShell({
@@ -158,7 +161,7 @@ describe('Enter semantics', () => {
   it('plain Enter submits queue mode through the machine; repeat and empty are suppressed', () => {
     const { textarea, sink } = bench({ draft: 'hello' })
     fireEvent.keyDown(textarea, { key: 'Enter' })
-    expect(sink).toHaveBeenCalledWith('hello', 'queue')
+    expect(sink).toHaveBeenCalledWith('hello', 'queue', expect.any(AbortSignal))
     fireEvent.keyDown(textarea, { key: 'Enter', repeat: true })
     expect(sink).toHaveBeenCalledTimes(1)
     const empty = bench({ draft: '   ' })
@@ -183,15 +186,15 @@ describe('Enter semantics', () => {
   it('Ctrl/Meta+Enter sends normally while idle and steers while running', () => {
     const idle = bench({ draft: 'hello' })
     fireEvent.keyDown(idle.textarea, { key: 'Enter', metaKey: true })
-    expect(idle.sink).toHaveBeenCalledWith('hello', 'queue')
+    expect(idle.sink).toHaveBeenCalledWith('hello', 'queue', expect.any(AbortSignal))
 
     const busyCtrl = bench({ running: true, draft: 'steer with ctrl' })
     fireEvent.keyDown(busyCtrl.textarea, { key: 'Enter', ctrlKey: true })
-    expect(busyCtrl.sink).toHaveBeenCalledWith('steer with ctrl', 'steer')
+    expect(busyCtrl.sink).toHaveBeenCalledWith('steer with ctrl', 'steer', expect.any(AbortSignal))
 
     const busyMeta = bench({ running: true, draft: 'steer with cmd' })
     fireEvent.keyDown(busyMeta.textarea, { key: 'Enter', metaKey: true })
-    expect(busyMeta.sink).toHaveBeenCalledWith('steer with cmd', 'steer')
+    expect(busyMeta.sink).toHaveBeenCalledWith('steer with cmd', 'steer', expect.any(AbortSignal))
   })
 
   it('platform undo/redo chords route to the machine, never the browser stack', () => {
@@ -232,7 +235,7 @@ describe('running and lock semantics (queue cut 1)', () => {
     expect(textarea.disabled).toBe(false) // running no longer locks
     fireEvent.change(textarea, { target: { value: '排队消息2' } })
     fireEvent.keyDown(textarea, { key: 'Enter' })
-    expect(sink).toHaveBeenCalledWith('排队消息2', 'queue')
+    expect(sink).toHaveBeenCalledWith('排队消息2', 'queue', expect.any(AbortSignal))
     expect(button.getAttribute('aria-label')).toBe('停止生成')
     fireEvent.click(button)
     expect(stop).toHaveBeenCalledTimes(1)
@@ -241,17 +244,17 @@ describe('running and lock semantics (queue cut 1)', () => {
   it('running plain Enter follows the busy-state Steer preference', () => {
     const { textarea, sink } = bench({ running: true, busyEnter: 'steer', draft: '直接插话' })
     fireEvent.keyDown(textarea, { key: 'Enter' })
-    expect(sink).toHaveBeenCalledWith('直接插话', 'steer')
+    expect(sink).toHaveBeenCalledWith('直接插话', 'steer', expect.any(AbortSignal))
   })
 
   it('running Cmd/Ctrl+Enter uses the opposite of the busy-state Enter preference', () => {
     const meta = bench({ running: true, busyEnter: 'steer', draft: '排到下一轮' })
     fireEvent.keyDown(meta.textarea, { key: 'Enter', metaKey: true })
-    expect(meta.sink).toHaveBeenCalledWith('排到下一轮', 'queue')
+    expect(meta.sink).toHaveBeenCalledWith('排到下一轮', 'queue', expect.any(AbortSignal))
 
     const ctrl = bench({ running: true, busyEnter: 'steer', draft: 'also queue' })
     fireEvent.keyDown(ctrl.textarea, { key: 'Enter', ctrlKey: true })
-    expect(ctrl.sink).toHaveBeenCalledWith('also queue', 'queue')
+    expect(ctrl.sink).toHaveBeenCalledWith('also queue', 'queue', expect.any(AbortSignal))
   })
 
   it('running continuable subagent keeps Send beside an independent Stop', () => {
@@ -271,7 +274,7 @@ describe('running and lock semantics (queue cut 1)', () => {
     expect(interruptButton).not.toBeNull()
     expect(textarea.disabled).toBe(false)
     fireEvent.click(button)
-    expect(sink).toHaveBeenCalledWith('后续消息', 'queue')
+    expect(sink).toHaveBeenCalledWith('后续消息', 'queue', expect.any(AbortSignal))
     fireEvent.click(interruptButton!)
     expect(stop).toHaveBeenCalledTimes(1)
   })
@@ -328,11 +331,11 @@ describe('running and lock semantics (queue cut 1)', () => {
     }
     const plain = bench({ running: true, busyEnter: 'steer', draft: 'plain', subagent })
     fireEvent.keyDown(plain.textarea, { key: 'Enter' })
-    expect(plain.sink).toHaveBeenCalledWith('plain', 'queue')
+    expect(plain.sink).toHaveBeenCalledWith('plain', 'queue', expect.any(AbortSignal))
 
     const accelerated = bench({ running: true, draft: 'accelerated', subagent })
     fireEvent.keyDown(accelerated.textarea, { key: 'Enter', metaKey: true })
-    expect(accelerated.sink).toHaveBeenCalledWith('accelerated', 'queue')
+    expect(accelerated.sink).toHaveBeenCalledWith('accelerated', 'queue', expect.any(AbortSignal))
   })
 
   it('disabled (session removed) locks the textarea and chrome', () => {
@@ -345,7 +348,7 @@ describe('running and lock semantics (queue cut 1)', () => {
   it('idle primary sends and disables on empty draft', () => {
     const { button, sink } = bench({ draft: 'go' })
     fireEvent.click(button)
-    expect(sink).toHaveBeenCalledWith('go', 'queue')
+    expect(sink).toHaveBeenCalledWith('go', 'queue', expect.any(AbortSignal))
     const empty = bench()
     expect(empty.button.disabled).toBe(true)
   })
@@ -753,23 +756,92 @@ describe('decorations', () => {
     expect(view.container.querySelector('[data-decoration="hint"]')?.textContent).toBe('输入目标，智能体将持续执行')
   })
 
-  it('an inserted reference renders as a chip at its placeholder offset', () => {
+  it('an inserted reference decorates its complete inline display range', () => {
     const { view, shell } = bench()
+    const reference = {
+      source: 'reference', ref: 'w1', label: '会话一', appearance: 'session' as const, clipboardText: '@w1',
+    }
     act(() => {
       shell.setDraft('参考 @w1 内容')
       shell.insertReference(
-        { source: 'subagent', ref: 'w1', label: '@w1', clipboardText: '@w1' },
+        reference,
         { start: 3, end: 6, draftRev: shell.snapshot.draftRev },
       )
     })
     const chip = view.container.querySelector('[data-decoration="chip"]')
-    expect(chip?.textContent).toBe('@w1')
+    expect(chip?.textContent).toBe('@会话一')
+    expect(chip?.getAttribute('data-reference-appearance')).toBe('session')
+    expect(chip?.querySelector('svg')).not.toBeNull()
     expect(shell.snapshot.occurrences).toHaveLength(1)
-    // The draft carries exactly one placeholder char where the token was.
-    expect(shell.snapshot.draft).toBe('参考 \uFFFC 内容')
+    expect(shell.snapshot.draft).toBe('参考 @会话一 内容')
+    expect(shell.snapshot.occurrences[0]).toMatchObject({ offset: 3, length: 4 })
   })
 
-  it('a lexicon-matched plain token renders the text-ref mark (decision 21)', () => {
+  it('keeps the textarea glyph layer transparent when a structured reference becomes disabled', () => {
+    const { view, shell, session, textarea } = bench()
+    act(() => {
+      shell.setDraft('@w1')
+      shell.insertReference({
+        source: 'reference', ref: 'w1', label: '会话一', appearance: 'session', clipboardText: '@w1',
+      }, { start: 0, end: 3, draftRev: shell.snapshot.draftRev })
+      session.set(snapshotOf({ removed: true }))
+    })
+    const backdrop = view.container.querySelector('[data-input-backdrop]')
+    expect(textarea.disabled).toBe(true)
+    expect(backdrop?.getAttribute('data-disabled')).toBe('true')
+    expect(backdrop?.querySelector('[data-decoration="chip"] svg')).not.toBeNull()
+  })
+
+  it('Backspace and Delete remove a reference as one range at its boundaries', () => {
+    const reference = {
+      source: 'reference', ref: 'w1', label: '会话一', appearance: 'session' as const, clipboardText: '@w1',
+    }
+    const backspace = bench()
+    act(() => {
+      backspace.shell.setDraft('前 @w1 后')
+      backspace.shell.insertReference(
+        reference,
+        { start: 2, end: 5, draftRev: backspace.shell.snapshot.draftRev },
+      )
+    })
+    backspace.textarea.setSelectionRange(6, 6)
+    fireEvent.keyDown(backspace.textarea, { key: 'Backspace' })
+    expect(backspace.shell.snapshot).toMatchObject({ draft: '前  后', occurrences: [] })
+
+    const forwardDelete = bench()
+    act(() => {
+      forwardDelete.shell.setDraft('前 @w1 后')
+      forwardDelete.shell.insertReference(
+        reference,
+        { start: 2, end: 5, draftRev: forwardDelete.shell.snapshot.draftRev },
+      )
+    })
+    forwardDelete.textarea.setSelectionRange(2, 2)
+    fireEvent.keyDown(forwardDelete.textarea, { key: 'Delete' })
+    expect(forwardDelete.shell.snapshot).toMatchObject({ draft: '前  后', occurrences: [] })
+  })
+
+  it('copy and cut expand a partial reference selection to its structured range', () => {
+    const { shell, textarea } = bench()
+    act(() => {
+      shell.setDraft('前 @w1 后')
+      shell.insertReference({
+        source: 'reference', ref: 'w1', label: '会话一', appearance: 'session', clipboardText: '@w1',
+      }, { start: 2, end: 5, draftRev: shell.snapshot.draftRev })
+    })
+    const setData = vi.fn()
+    textarea.setSelectionRange(3, 4)
+    fireEvent.copy(textarea, { clipboardData: { setData } })
+    expect(setData).toHaveBeenCalledWith('text/plain', '@w1')
+    expect(shell.snapshot.draft).toBe('前 @会话一 后')
+
+    textarea.setSelectionRange(3, 4)
+    fireEvent.cut(textarea, { clipboardData: { setData } })
+    expect(setData).toHaveBeenLastCalledWith('text/plain', '@w1')
+    expect(shell.snapshot).toMatchObject({ draft: '前  后', occurrences: [] })
+  })
+
+  it('a lexicon-matched plain token renders the text-ref mark', () => {
     const lexicon = new Map<'/' | '@', readonly string[]>([['/', ['fixture-demo']]])
     const { view, shell } = bench({ lexicon })
     act(() => { shell.setDraft('use /fixture-demo now') })
@@ -778,6 +850,15 @@ describe('decorations', () => {
     // Editing the token out of match shape drops the decoration.
     act(() => { shell.setDraft('use /fixture-dem now') })
     expect(view.container.querySelector('[data-decoration="text-ref"]')).toBeNull()
+  })
+
+  it('a directory completion renders a folder glyph without changing its plain text', () => {
+    const { view, shell } = bench()
+    act(() => { shell.setDraft('see @src/components/') })
+    const mark = view.container.querySelector('[data-decoration="text-ref"]')
+    expect(mark?.textContent).toBe('@src/components/')
+    expect(mark?.querySelector('svg')).not.toBeNull()
+    expect(shell.snapshot.draft).toBe('see @src/components/')
   })
 })
 
@@ -800,16 +881,40 @@ describe('insertText (decision 21 scoped event body)', () => {
 })
 
 describe('strips and variants', () => {
-  it('derives the failure strip from promptError (ordinary failure — no transaction UI, no Retry)', () => {
-    const send = bench({ promptError: { op: 'send', error: { code: 'agent-busy', message: 'boom', details: { reason: 'boom' } } } })
-    expect(send.view.container.querySelector('[role="alert"]')?.textContent).toBe('boom (agent-busy)')
-    expect(send.view.queryByRole('button', { name: 'Retry' })).toBeNull()
+  it('announces promptError as a fading toast (ordinary failure — no transaction UI, no Retry)', () => {
+    vi.useFakeTimers()
+    try {
+      const send = bench({ promptError: { op: 'send', error: { code: 'agent-busy', message: 'boom', details: { reason: 'boom' } } } })
+      // The toast body-portals (transformed ancestors must not trap it), so
+      // queries go through the view's document-bound helpers.
+      expect(send.view.getByRole('alert').textContent).toContain('boom (agent-busy)')
+      expect(send.view.queryByRole('button', { name: 'Retry' })).toBeNull()
+      act(() => { vi.advanceTimersByTime(4000) })
+      expect(send.view.queryByRole('alert')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
-  it('renders the notice strip from the machine notice store', () => {
+  it('announces an error notice from the machine store as a fading toast', () => {
+    vi.useFakeTimers()
+    try {
+      const { view, shell } = bench()
+      act(() => { shell.notify('error', '命令失败了') })
+      expect(view.getByRole('alert').textContent).toContain('命令失败了')
+      expect(view.queryByRole('status')).toBeNull()
+      act(() => { vi.advanceTimersByTime(4000) })
+      expect(view.queryByRole('alert')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('renders an information notice from the machine store as a status strip', () => {
     const { view, shell } = bench()
-    act(() => { shell.notify('error', '命令失败了') })
-    expect(view.getByText('命令失败了')).toBeTruthy()
+    act(() => { shell.notify('info', '命令完成了') })
+    expect(view.getByRole('status').textContent).toBe('命令完成了')
+    expect(view.queryByRole('alert')).toBeNull()
   })
 
   it('hero variant adds the hero class and accessory row renders', () => {

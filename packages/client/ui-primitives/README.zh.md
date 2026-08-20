@@ -2,7 +2,11 @@
 
 [English](README.md) | 中文
 
-纯 React 原子组件（零 cordis）：StateDot、DisclosureRow、ic_ds_* 图标、Button/Pill/Menu/Modal/Input、OnboardingSurface 首次使用接管层（portal 到 body 的遮罩加不透明展示层，在且仅在自身生命周期内保持 `#root` 为 `inert`）、markdown 家族（MessageText/MarkdownText/JsonBlock）、只读 JsonTree 检查器、`useAnchoredMaxHeight` 钩子（把底部锚定的浮层高度收敛到锚点上方的视口空间，并在 resize、scroll 与调用方提供的依赖变化时重新测量）、TerminalBlock、DiffBlock、ReadBlock、SearchBlock，以及 WebBlock。约定：api-contracts v3 §8。
+纯 React 原子组件（零 cordis）：StateDot、DisclosureRow、ic_ds_* 图标、Button/Pill/Menu/Modal/Input、Toast 短时横幅、OnboardingSurface 首次使用接管层（portal 到 body 的遮罩加不透明展示层，在且仅在自身生命周期内保持 `#root` 为 `inert`）、markdown 家族（MessageText/MarkdownText/JsonBlock）、只读 JsonTree 检查器、`useAnchoredMaxHeight` 钩子（把底部锚定的浮层高度收敛到锚点上方的视口空间，并在 resize、scroll 与调用方提供的依赖变化时重新测量）、TerminalBlock、DiffBlock、ReadBlock、SearchBlock，以及 WebBlock。约定：api-contracts v3 §8。
+
+## Toast
+
+`Toast` 是顶部的短时横幅：滑入后满不透明度停留三秒，再用一秒淡出，随后调用 `onDone` 由持有方卸载。它渲染 `role="alert"`，带可选的前置图标插槽，文案是必填 prop（零 cordis，由持有方本地化）。它经 body portal 渲染且 `pointer-events: none`，距视口顶部 120px，水平中心跟随可选的 `anchor` 元素（窗口尺寸变化时重测）——composer 传入自己的卡片，横幅因此在聊天列而非整个窗口上居中——不传则回退到视口居中。重复展示同一条消息需要重新挂载，持有方用每次展示递增的序号作为 key，让相同文案重新走完停留与淡出，而不是静默复用已淡出的横幅。`prefers-reduced-motion: reduce` 下去掉滑入，只保留延迟淡出。它的层级高于 1000 级的浮层遮罩，浮层打开时报出的失败仍然可读。
 
 ## 悬浮卡片
 

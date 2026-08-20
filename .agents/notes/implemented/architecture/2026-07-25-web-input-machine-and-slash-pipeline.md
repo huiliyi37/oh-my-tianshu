@@ -39,14 +39,14 @@ The event surface (`dispatch(ev)` is the single write entry; one transaction per
 
 The effect surface (executed by the shell): `adjudicate` (calls SlashController.adjudicate), `begin-submit` (the claim.submit transaction), `default-sink` (ordinary messages, hub-orchestrated), `notice`.
 
-The occurrence table and the chip's three projections:
+The occurrence table and the reference's three projections:
 
-- Each reference occupies one `U+FFFC` in the draft; a table entry is `{occurrenceId, source, ref, offset, label, clipboardText, invalid?}`; same-named chips stay independent through occurrenceId.
-- Every edit updates the draft and the table in one transaction: ranges shift; a deletion/replacement intersecting a placeholder acts on the whole chip.
-- The single-character placeholder makes keyboard atomicity mostly hold natively (the caret has no interior position; Backspace / arrow keys / Shift extension natively take the whole chip); a mouse click on a chip goes backdrop hit → whole-chip setSelectionRange.
-- The visual projection = label: the backdrop renders the chip at the placeholder offset (the textarea glyph is invisible), with invalid taking the invalid style.
-- The clipboard/persistence projection = clipboardText: copy/cut expands placeholders inside the selection; the draft-persistence mirror writes the same projection (the chat store always holds plain text; the refresh seed semantics = select-all copy → reopen → paste, with chips degrading to text across a refresh).
-- The model projection = generated per chip at submit through the source's `codec.serialize` (owned by the submit attempt's signal and stale guard; a missing owner / failure / cancel means no send, never a downgrade to `/name`).
+- Each reference keeps its complete inline display text (`@label`) in the draft; a table entry is `{occurrenceId, source, ref, offset, length, label, appearance?, clipboardText, invalid?}`; same-named references stay independent through occurrenceId.
+- Every edit updates the draft and the table in one transaction: ranges shift; an edit intersecting a range drops its occurrence, and the remaining characters become ordinary text.
+- Keyboard atomicity is explicit at the bar: Backspace/Delete at a range boundary widens to the whole reference; a mouse click on a reference goes backdrop hit → whole-range setSelectionRange.
+- The visual projection keeps native text metrics: the complete `@label` display text stays in the transparent textarea while the aligned backdrop colors that range and swaps its leading marker for the domain glyph; invalid takes the invalid style. Width, wrapping, selection, and caret placement stay native — no capsule.
+- The clipboard/persistence projection = clipboardText: copy/cut expands ranges intersecting the selection; the draft-persistence mirror writes the same projection (the chat store always holds canonical parseable text, so a remount without the occurrence table restores resolvable references).
+- The model projection = generated per reference at submit through the source's `codec.serialize` (owned by the submit attempt's signal and stale guard; a missing owner / failure / cancel means no send, never a downgrade to `/name`).
 
 ### Cross-plugin input rewrites: three scoped bail events
 
@@ -72,19 +72,19 @@ A trigger/menu/pick pipeline with zero knowledge of "commands":
 - Each materialized Session has exactly one `SessionInputShell` (the facade), created and torn down with the session scope; with no session, no input machine is built. `ConversationRoot` is itself the `session-maybe` resident shell, holding HeroShell, the Workspace picker, the composer stack, and the chain-fallback frame. It always owns the same scrollport and composer seat; separate strict-session header and body outlets fill those fixed regions after a Session appears.
 - The composer bar is one `session-maybe` slot entry rendered unconditionally: with no session the same InputBar renders inert (machine faces absent, `disabled` owner prop), and once `connectWorkspace` returns a blank session the same instance goes live — the textarea DOM survives the no-session → blank transition and every later phase flip; `ConversationRoot`, the Hero, and the layout skeleton hold throughout.
 - ConversationRoot's Hero criterion is `sessionId === undefined || (composerPhase === 'blank' && (openState === 'open' || summaryBlank === true))`: a summary-proven blank Session remains Hero in every open state, while an unproven Session settles during loading. The first submit enters engaging synchronously, and a failure keeps the composer and the error context rather than falling back to the blank Hero; the sidebar's blank bit flips false only after a prompt is successfully accepted.
-- Sending unifies in the hub defaultSink: after an optimistic draft clear it goes only through `session.prompt` with `mode:'queue'` (the Web UI has no steer entry; host-wire `mode:'steer'` remains outside this machine); backfill happens only when it fails and the live draft is still empty — a user who has kept typing is never overwritten. No Draft materialize or attach transaction exists.
+- Sending unifies in the hub defaultSink: the draft stays in the machine through the round trip and clears only on an accepted outcome (`submit-settled`); failure returns the same draft to editing under the drift guard (text typed during flight wins). It goes only through `session.prompt` with `mode:'queue'` (the Web UI has no steer entry; host-wire `mode:'steer'` remains outside this machine) and carries the attempt's AbortSignal, so shell disposal aborts Host-side preparation. No Draft materialize or attach transaction exists.
 - When the blank Hero re-picks the Workspace, the shell calls `connectWorkspace`; if the target session differs, the non-empty draft moves from the current shell to the target shell before the new id is opened, and the old blank session survives but is no longer current.
 - The Notifier's two-bit contract: `dirty` (snapshot freshness, clearable by an `ensureFresh` pull) and `notifyPending` (notification debt, cleared only by a flush) are mutually independent — a pull must not swallow a push, and object-layer push subscribers (watchTransaction) depend on this guarantee.
 
 ### Plain-text references (Decision 21): text outcomes and lexicon decoration
 
-skill/@subagent references skip the placeholder + occurrence identity chain — a pick inserts the literal `/name ` `@name ` text straight into the draft, with the chip visual purely derived:
+skill/@subagent references carry no occurrence identity — a pick inserts the literal `/name ` `@name ` text straight into the draft, with the mark visual purely derived (structured session references ride the occurrence chain above):
 
 - PickOutcome gains a `{text}` arm; the new scoped bail event `slash/input-insert-text` `{text, span}` (the same contract as the other three: draftRev CAS, returning true ⟺ an actual rewrite); facade.insertText goes through setDraft concatenation — zero machine changes.
 - Sources get an optional `lexicon?(session)` hook: a synchronous hot-snapshot name roster, with `undefined` = data not warm — zero decoration, never triggering a fetch (the render path stays synchronous and side-effect-free); the paired optional `subscribeLexicon?(session, listener)` hook is the invalidation channel for rolls that change after warm (catalog settles, children spawn/exit). The controller aggregates the rolls into its `lexicon` snapshot store (re-polling on each source notification); sources registered after scope birth are warmed and folded in via the service's live-controller broadcast.
 - `decorations.scanTextRefs`: a word-boundary scan of the draft (`/name`, `@name` at line start / after whitespace; `x/name` never hits) against the roster; a hit gets the `.textRef` mark (a pure range highlight on the backdrop, same as hlToken); an edit breaking the match shape simply disappears on the next scan.
 - Sending is the literal text (no more `<skill>` serialization); on the bubble side MessageItem decorates both shapes (the legacy `<skill>` tag + plain-text tokens).
-- The old occurrence/paste/serialize chain stays on disk in full, undeleted (additive; deletion is a separate future cut). Decoration reactivity: InputBar subscribes to the shell's lexicon source (uSES), so a roll that settles after the scope-birth prewarm lights existing draft tokens up without any menu interaction or unrelated re-render.
+- The occurrence/serialize chain now serves structured session references; the lexicon-decorated plain tokens stay identity-free. Decoration reactivity: InputBar subscribes to the shell's lexicon source (uSES), so a roll that settles after the scope-birth prewarm lights existing draft tokens up without any menu interaction or unrelated re-render.
 
 ### Per-session provide contributions and the private keyboard surface
 

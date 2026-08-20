@@ -179,9 +179,10 @@ export class Session implements SessionFace {
    * Send (queue/steer passed through 1:1); failures land in the snapshot's promptError.
    * @param content - core content blocks verbatim.
    * @param mode - queue appends after the current turn; steer interrupts it.
+   * @param signal - optional cancellation for Host-side pre-enqueue preparation.
    * @returns the prompt result (also mirrored into promptError on failure).
    */
-  async prompt(content: ContentBlock[], mode: 'queue' | 'steer'): Promise<RpcResult<{ accepted: true }>> {
+  async prompt(content: ContentBlock[], mode: 'queue' | 'steer', signal?: AbortSignal): Promise<RpcResult<{ accepted: true }>> {
     this.promptError = null
     this.lastAgentError = null
     // Synchronous, before the first await: the blank → engaging edge must be
@@ -193,7 +194,7 @@ export class Session implements SessionFace {
     let result: RpcResult<{ accepted: true }>
     try {
       if (this.address === undefined) {
-        result = (await this.api.sessions.prompt({ sessionId: this.sessionId, mode, content })).result
+        result = (await this.api.sessions.prompt({ sessionId: this.sessionId, mode, content }, signal)).result
       } else if (this.address.mode === 'one-shot') {
         result = {
           ok: false,
@@ -204,7 +205,7 @@ export class Session implements SessionFace {
           },
         }
       } else {
-        const routed = (await this.api.subagents.prompt({ ...this.address, content })).result
+        const routed = (await this.api.subagents.prompt({ ...this.address, content }, signal)).result
         result = routed.ok ? { ok: true, value: { accepted: true } } : routed
       }
     } catch (error) {

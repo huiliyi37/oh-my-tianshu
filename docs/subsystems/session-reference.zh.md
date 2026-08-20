@@ -92,11 +92,11 @@ Exact-read consumer that prepares immutable cross-session message context.
 async listCandidates( agent: Agent, query: string = '', limit: number = this.config.candidateLimit, signal?: AbortSignal, ): Promise<SessionReferenceCandidate[]>
 
 /**
- * Snapshot all references before enqueue and return one aggregated durable context.
+ * Snapshot all references for one accepted direct message and return one aggregated durable context.
  * @param agent - target agent; references to it are rejected.
  * @param content - already host-normalized readable message content.
  * @param references - structured source sessions in mention order.
- * @param signal - optional cancellation boundary for host request teardown.
+ * @param signal - optional cancellation boundary for the active turn.
  * @returns detached content and optional referenced-session context.
  */
 async prepare( agent: Agent, content: ContentBlock[], references: SessionReferenceInput[], signal?: AbortSignal, ): Promise<PreparedReferencedMessage>
@@ -104,5 +104,5 @@ async prepare( agent: Agent, content: ContentBlock[], references: SessionReferen
 
 Types: [Agent](core.md) · [ContentBlock](llm-streaming.md)
 
-Source: [`packages/context/session-reference/src/index.ts:70`](../../packages/context/session-reference/src/index.ts)
+Source: [`packages/context/session-reference/src/index.ts:71`](../../packages/context/session-reference/src/index.ts)
 <!-- END GENERATED cordis-surface -->

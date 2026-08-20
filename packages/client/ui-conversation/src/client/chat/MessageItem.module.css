@@ -17,9 +17,19 @@
   line-height: 16px;
 }
 
+/* Bubble column: the bubble itself plus the reference summary line under it. */
+.userStack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 0;
+  max-width: min(525px, 82%);
+}
+
 .bubble {
   /* 525px cap inside the 736 column; percentage keeps narrow windows sane. */
-  max-width: min(525px, 82%);
+  max-width: 100%;
   background: var(--dsw-specific-bubble);
   border-radius: 22px;
   /* 44px single-line bubble: 24 line + 10 vertical padding each side. */
@@ -27,6 +37,12 @@
   font-size: 16px;
   line-height: 24px;
   color: var(--dsw-alias-label-primary);
+}
+
+.referenceSummary {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .contextRow {
@@ -263,17 +279,19 @@
   }
 }
 
-/* Reference chip projection inside a user bubble (`<skill>name</skill>` model
-   spans render as chips; free geometry — no textarea pairing here). */
+/* Inline references use domain glyphs and business-color text without another
+   container inside the user bubble. */
 .refChip {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin: 0 2px;
-  padding: 0 8px;
-  border-radius: 6px;
-  background: rgba(97, 135, 216, 0.22);
-  color: var(--dsw-alias-label-primary);
-  font-size: 0.85em;
-  line-height: 1.6;
+  color: var(--dsw-alias-state-business-primary);
+  font-weight: 500;
   white-space: nowrap;
   vertical-align: baseline;
+}
+
+.refIcon {
+  flex: none;
 }

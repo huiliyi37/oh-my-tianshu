@@ -35,6 +35,10 @@ export interface SlashCandidate {
   readonly description?: string
   readonly icon?: string
   readonly hint?: string
+  /** Optional visual heading shared by adjacent candidates; sectioned groups omit their source-title row. */
+  readonly section?: string
+  /** Opaque source-owned pick payload. */
+  readonly value?: string
 }
 
 /** Pick-moment snapshot of the trigger token span. CAS: stale draftRev ⇒ the whole action no-ops. */
@@ -58,15 +62,18 @@ export interface CommandClaim {
 }
 
 /**
- * Inline reference insertion. The draft holds one U+FFFC placeholder per
- * occurrence; the owner supplies both user-facing projections at insert time
- * (the model representation is serialized on submit via the source codec).
+ * Inline reference insertion. The draft holds the complete display text while
+ * the occurrence retains its range; the owner supplies both user-facing
+ * projections at insert time (the model representation is serialized on
+ * submit via the source codec).
  */
 export interface ReferenceInsert {
   readonly source: string
   readonly ref: string
-  /** Chip display label (fallback-cached on the occurrence). */
+  /** Inline display label (fallback-cached on the occurrence). */
   readonly label: string
+  /** Optional domain glyph shown beside the label. */
+  readonly appearance?: 'session' | 'file' | 'folder'
   /** Clipboard / persistence projection, e.g. `/name` (never the model form). */
   readonly clipboardText: string
 }
@@ -88,13 +95,15 @@ export interface SubmitOutcome {
 export type PickOutcome =
   | { readonly claim: CommandClaim }
   | { readonly insert: ReferenceInsert }
-  | { readonly text: string }
+  | { readonly text: string; readonly continue?: boolean }
   | 'handled'
   | undefined
 
 /** Candidate request passed to a source. The signal is superseded on query change / menu close. */
 export interface CandidateRequest {
   readonly query: string
+  /** Whether the active @file token is an open quoted path. */
+  readonly quoted?: boolean
   readonly position: TriggerPosition
   readonly signal: AbortSignal
 }
@@ -139,6 +148,8 @@ export interface SlashSource {
   readonly name: string
   /** Menu group display order (lower = higher in the list; default 0). */
   readonly order?: number
+  /** Whether the menu renders the source-title row; defaults to true. */
+  readonly showGroupTitle?: boolean
   candidates(session: ClientSessionContext, req: CandidateRequest): Promise<readonly SlashCandidate[]>
   /** Every pick lands here; claim/insert outcomes are executed by the pipeline via the scoped input events. */
   onPick(pick: SlashPick): PickOutcome
@@ -216,6 +227,8 @@ export interface InsertTextRequest {
   /** Literal replacement for the trigger token span (e.g. `/name `). */
   readonly text: string
   readonly span: TokenSpan
+  /** Keep completion open after the splice (directory descent): the input re-tracks at the caret. */
+  readonly continue?: boolean
 }
 
 declare module '@huiliyi37/cordis' {

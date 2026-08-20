@@ -35,9 +35,10 @@ export interface ISession {
    * Send a prompt into the session.
    * @param content - model-facing content blocks.
    * @param mode - 'queue' appends a turn; 'steer' interrupts the running one.
+   * @param signal - optional cancellation for Host-side pre-enqueue preparation.
    * @returns acceptance, or the business error (also mirrored into snapshot.promptError).
    */
-  prompt(content: ContentBlock[], mode: 'queue' | 'steer'): Promise<RpcResult<{ accepted: true }>>
+  prompt(content: ContentBlock[], mode: 'queue' | 'steer', signal?: AbortSignal): Promise<RpcResult<{ accepted: true }>>
   /**
    * Apply one edit, remove, or strict steer action to a still-pending queue occurrence.
    * @param itemId - agent-owned inbox occurrence identity.

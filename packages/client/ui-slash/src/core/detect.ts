@@ -55,6 +55,7 @@ export const detectTrigger: DetectTrigger = (draft, caret, guard) => {
     return {
       trigger: ch,
       query: draft.slice(i + 1, caret),
+      quoted: false,
       position: draft.search(/\S/) === i ? 'leading' : 'inline',
       span: { start: i, end: caret, draftRev: 0 },
     }

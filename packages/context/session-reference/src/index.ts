@@ -7,8 +7,8 @@
 
 import { Context, Service } from '@huiliyi37/cordis'
 import z from '@huiliyi37/schemastery'
-import type { Agent } from '@huiliyi37/dsh-agent'
-import { createUserMessage } from '@huiliyi37/dsh-llm'
+import type { Agent, PreStepDecision } from '@huiliyi37/dsh-agent'
+import { createUserMessage, freezeMessage } from '@huiliyi37/dsh-llm'
 import type { ContentBlock, UserMessage } from '@huiliyi37/dsh-llm'
 import type { SessionId } from '@huiliyi37/dsh-session'
 import type { SessionSurfaceSnapshot, SessionTitleObservationResult } from '@huiliyi37/dsh-session-query'
@@ -22,6 +22,7 @@ import {
 import { retainReferencedSession, type ReferenceRetentionStats, type ReferencedSessionData } from './projection.ts'
 import { stringifyTagSafeJson } from './serialization.ts'
 import type { PreparedReferencedMessage, SessionReferenceCandidate, SessionReferenceInput, SessionReferenceSource } from './types.ts'
+import { parseSessionReferenceText } from './uri.ts'
 
 export type * from './types.ts'
 export type { Config, SessionReferenceErrorCode } from './config.ts'
@@ -98,6 +99,48 @@ export class SessionReferenceService extends Service {
         'SESSION_REFERENCE_INVALID_CONFIG',
       )
     }
+    ctx.on('agent/pre-step', async ({ agent, signal }, next): Promise<PreStepDecision> => {
+      const decision = await next()
+      if (decision.kind === 'reject') return decision
+      return {
+        kind: 'enter',
+        messages: await this.prepareDirectMessages(agent, decision.messages, signal),
+      }
+    }, { prepend: true })
+  }
+
+  /**
+   * Replace canonical mentions in direct user messages and place each prepared
+   * snapshot immediately after the message that cited it.
+   * @param agent - agent entering the model step.
+   * @param messages - messages accepted by downstream pre-step listeners.
+   * @param signal - active turn cancellation.
+   * @returns direct messages followed by their session-reference context in citation order.
+   */
+  private async prepareDirectMessages(
+    agent: Agent,
+    messages: readonly UserMessage[],
+    signal: AbortSignal,
+  ): Promise<UserMessage[]> {
+    const prepared = await Promise.all(messages.map(async (message): Promise<UserMessage[]> => {
+      if (message.source.kind !== 'user') return [message]
+      const references: SessionReferenceInput[] = []
+      const content = message.content.map((block): ContentBlock => {
+        if (block.type !== 'text') return block
+        const parsed = parseSessionReferenceText(block.text)
+        references.push(...parsed.references)
+        return { type: 'text', text: parsed.text }
+      })
+      if (references.length === 0) return [message]
+      const resolved = await this.prepare(agent, content, references, signal)
+      const direct = freezeMessage({ ...message, content: resolved.content })
+      /* v8 ignore if -- a parsed canonical mention always leaves one normalized reference */
+      if (resolved.additionalContext === undefined) {
+        throw new Error('session-reference preparation omitted context for a canonical mention')
+      }
+      return [direct, resolved.additionalContext]
+    }))
+    return prepared.flat()
   }
 
   /**
@@ -159,11 +202,11 @@ export class SessionReferenceService extends Service {
   }
 
   /**
-   * Snapshot all references before enqueue and return one aggregated durable context.
+   * Snapshot all references for one accepted direct message and return one aggregated durable context.
    * @param agent - target agent; references to it are rejected.
    * @param content - already host-normalized readable message content.
    * @param references - structured source sessions in mention order.
-   * @param signal - optional cancellation boundary for host request teardown.
+   * @param signal - optional cancellation boundary for the active turn.
    * @returns detached content and optional referenced-session context.
    */
   async prepare(

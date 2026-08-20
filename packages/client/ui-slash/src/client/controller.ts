@@ -100,6 +100,7 @@ export class SlashController {
     const prev = this.menu.getSnapshot()
     const same = !launched && prev.open && prev.hit !== null
       && prev.hit.trigger === hit.trigger && prev.hit.query === hit.query
+      && prev.hit.quoted === hit.quoted
       && prev.hit.span.start === hit.span.start && prev.hit.span.end === hit.span.end
     this.hit = hit
     if (same) return
@@ -110,7 +111,7 @@ export class SlashController {
       return
     }
     if (launched || !prev.open || prev.hit === null || prev.hit.trigger !== hit.trigger) {
-      this.menu.set(seedGroups(this.menu.getSnapshot(), roster.map(s => s.name)))
+      this.menu.set(seedGroups(this.menu.getSnapshot(), roster))
     }
     this.reduce({ type: 'hit', hit })
     this.fetchCandidates(hit, roster)
@@ -138,7 +139,7 @@ export class SlashController {
     this.stopFetch()
     this.hit = hit
     this.launcher.set(source)
-    this.menu.set(seedGroups(this.menu.getSnapshot(), [source]))
+    this.menu.set(seedGroups(this.menu.getSnapshot(), [match]))
     this.reduce({ type: 'hit', hit })
     this.fetchCandidates(hit, [match])
   }
@@ -321,7 +322,11 @@ export class SlashController {
       return actx.bail(actx, 'slash/input-begin-command', { claim: outcome.claim, span }) === true
     }
     if ('text' in outcome) {
-      return actx.bail(actx, 'slash/input-insert-text', { text: outcome.text, span }) === true
+      return actx.bail(actx, 'slash/input-insert-text', {
+        text: outcome.text,
+        span,
+        ...outcome.continue === true ? { continue: true } : {},
+      }) === true
     }
     return actx.bail(actx, 'slash/input-insert-reference', { reference: outcome.insert, span }) === true
   }
@@ -364,7 +369,12 @@ export class SlashController {
     const projection = this.project()
     for (const source of roster) {
       void source
-        .candidates(projection, { query: hit.query, position: hit.position, signal: controller.signal })
+        .candidates(projection, {
+          query: hit.query,
+          quoted: hit.quoted,
+          position: hit.position,
+          signal: controller.signal,
+        })
         .then(
           (items) => {
             if (controller.signal.aborted) return

@@ -64,7 +64,7 @@ function mountBar(shell: SessionInputShell, over?: { running?: boolean; disabled
 }
 
 function bench(over?: { running?: boolean; disabled?: boolean; submit?: (args: string) => Promise<SubmitOutcome> }) {
-  const sink = vi.fn()
+  const sink = vi.fn(() => Promise.resolve({ kind: 'success' as const }))
   const shell = new SessionInputShell({ actx: SCTX, defaultSink: sink })
   const wiring = shell
   const view = mountBar(shell, over)
@@ -85,13 +85,15 @@ function bench(over?: { running?: boolean; disabled?: boolean; submit?: (args: s
 }
 
 describe('matrix row: plain', () => {
-  it('enter falls to the default sink; no claim on the currency; edits free', () => {
+  it('enter falls to the default sink; no claim on the currency; edits free', async () => {
     const { textarea, shell, sink } = bench()
     fireEvent.change(textarea, { target: { value: '普通消息' } })
     expect(shell.snapshot.claim).toBeUndefined()
     fireEvent.keyDown(textarea, { key: 'Enter' })
-    expect(sink).toHaveBeenCalledWith('普通消息', 'queue')
-    expect(shell.snapshot.phase).toBe('plain')
+    expect(sink).toHaveBeenCalledWith('普通消息', 'queue', expect.any(AbortSignal))
+    expect(shell.snapshot.phase).toBe('submitting')
+    await vi.waitFor(() => { expect(shell.snapshot.phase).toBe('plain') })
+    expect(shell.snapshot.claim).toBeUndefined()
   })
 })
 
@@ -189,7 +191,7 @@ describe('matrix row: locked (session disabled)', () => {
     expect((textarea).disabled).toBe(false)
     fireEvent.change(textarea, { target: { value: '排队' } })
     fireEvent.keyDown(textarea, { key: 'Enter' })
-    expect(sink).toHaveBeenCalledWith('排队', 'queue')
+    expect(sink).toHaveBeenCalledWith('排队', 'queue', expect.any(AbortSignal))
   })
 })
 

@@ -10,14 +10,14 @@ import type { ClientContext, ObservableSnapshot, SnapshotStore } from '@huiliyi3
 import { createSnapshotStore } from '@huiliyi37/dsh-client-runtime/client'
 import type {
   ArbitrateKey, ArbitrateOutcome, CommandClaim, ConsumeTokenRequest, PickOutcome,
-  ReferenceInsert, SlashController, TokenSpan,
+  ReferenceInsert, SlashController, SubmitOutcome, TokenSpan,
 } from '@huiliyi37/dsh-client-ui-slash/client'
 import type {
   EditRange, EditSelection, InputActions, InputEffect, InputNotice, InputState,
   PasteComponent, QueuedMessage, SessionInput, SubmitAttempt,
 } from './contract.ts'
 import type { InputSubmitMode } from '../contract/composer-submission.ts'
-import { InputMachine } from './machine.ts'
+import { InputMachine, projectClipboard } from './machine.ts'
 
 /** Popup face the shell needs (dismissal only; typed structurally to avoid a value import). */
 export interface PopupDismissFace {
@@ -40,7 +40,7 @@ export interface SessionInputDeps {
   /** Queue read face; overlaid onto InputState.queue (absent = empty). */
   queue?: ObservableSnapshot<readonly QueuedMessage[]> | undefined
   /** The plain-message sink (send choreography / materialize fork — the hub owns it). */
-  defaultSink(text: string, mode: InputSubmitMode): void
+  defaultSink(text: string, mode: InputSubmitMode, signal: AbortSignal): Promise<SubmitOutcome>
 }
 
 /** Guard tier from the machine phase. */
@@ -64,7 +64,7 @@ const EMPTY_LEXICON: ReadonlyMap<'/' | '@', readonly string[]> = new Map()
 export class SessionInputShell implements SessionInput {
   /** Published machine state + queue overlay (the InputZone currency source). */
   readonly state: SnapshotStore<InputState>
-  /** Latest surfaced notice (null after clear); the wiring renders it beside the error strip. */
+  /** Latest surfaced notice (null after clear); the bar renders errors as banners and information inline. */
   readonly notices: SnapshotStore<InputNotice | null> = createSnapshotStore<InputNotice | null>(null)
   /** The public provide-channel action face (one stable identity per session — decision 20). */
   readonly actions: InputActions = {
@@ -76,9 +76,9 @@ export class SessionInputShell implements SessionInput {
   // production (the machine's no-clock default is a constant for pure tests).
   private readonly core = new InputMachine({ now: () => Date.now() })
   private noticeSeq = 0
-  private lastDraft = ''
+  private lastMirroredDraft = ''
   private disposed = false
-  /** Draft persistence mirror (chat store write; receives the clipboard projection, never raw placeholders). */
+  /** Draft persistence mirror (chat store write; receives the clipboard projection, never display-only ranges). */
   private mirrorFn: ((text: string) => void) | undefined
 
   constructor(private readonly deps: SessionInputDeps) {
@@ -96,15 +96,6 @@ export class SessionInputShell implements SessionInput {
    */
   setDraft(text: string, editRange?: EditRange): void {
     this.run(this.core.dispatch({ type: 'draft-changed', draft: text, ...(editRange !== undefined ? { editRange } : {}) }))
-  }
-
-  /**
-   * Clear the draft as a successful-send commit: no undo unit is recorded and
-   * the undo history is cut, so Ctrl/Cmd-Z cannot resurrect sent content
-   * (the command path gets the same discipline from submit-settled success).
-   */
-  commitSend(): void {
-    this.run(this.core.dispatch({ type: 'send-committed' }))
   }
 
   /** Undo the latest transaction (InputBar intercepts the platform chord). */
@@ -259,13 +250,21 @@ export class SessionInputShell implements SessionInput {
    * a scan-derived decoration, never state.
    * @param text - the plain reference text to splice in (e.g. `/name `).
    * @param span - pick-time span snapshot (draftRev CAS).
+   * @param keepCompleting - re-track at the caret after the splice so an open
+   * token (a directory pick's trailing slash) reopens the menu.
    * @returns whether the text was applied.
    */
-  insertText(text: string, span: TokenSpan): boolean {
+  insertText(text: string, span: TokenSpan, keepCompleting = false): boolean {
     const snapshot = this.core.state
     if (span.draftRev !== snapshot.draftRev) return false
     const draft = snapshot.draft
     this.setDraft(draft.slice(0, span.start) + text + draft.slice(span.end))
+    if (keepCompleting) {
+      // Machine-driven draft replacement never passes through onChange, so
+      // re-track at the caret inside the still-open token (see space()).
+      const next = this.snapshot
+      this.deps.slash?.()?.track(next.draft, span.start + text.length, { tier: guardOf(next.phase) }, next.draftRev)
+    }
     return true
   }
 
@@ -330,7 +329,7 @@ export class SessionInputShell implements SessionInput {
         return
       }
       case 'default-sink': {
-        this.sinkSerialized(fx.draft, fx.mode)
+        this.sinkSerialized(fx.attempt, fx.draft, fx.mode)
         return
       }
       default:
@@ -339,42 +338,70 @@ export class SessionInputShell implements SessionInput {
   }
 
   /**
-   * Prompt serialization before the sink (design §3.12): expand each
-   * placeholder to its owner's model form via the session controller's
+   * Prompt serialization before the sink: expand each
+   * inline reference range to its owner's model form via the session controller's
    * codec routing. Owner missing / serialize failure / disposal blocks the
    * send — notice + draft and chips retained, never a silent downgrade to
    * the clipboard text. Chip-free drafts skip the async detour.
    */
-  private sinkSerialized(draft: string, mode: InputSubmitMode): void {
+  private sinkSerialized(attempt: SubmitAttempt, draft: string, mode: InputSubmitMode): void {
     const occurrences = this.core.state.occurrences
     if (occurrences.length === 0) {
-      this.deps.defaultSink(draft.trim(), mode)
+      this.settleSubmit(attempt, this.deps.defaultSink(draft.trim(), mode, attempt.signal))
       return
     }
     const slash = this.deps.slash?.()
     const controller = new AbortController()
     void Promise.all(occurrences.map(async (o) => {
       if (slash === undefined) throw new Error(`no serializer for reference source "${o.source}"`)
-      return { offset: o.offset, text: await slash.serializeReference(o.source, o.ref, controller.signal) }
+      return {
+        offset: o.offset,
+        length: o.length,
+        text: await slash.serializeReference(o.source, o.ref, controller.signal),
+      }
     })).then(
       (parts) => {
         if (this.disposed) return
-        // Splice model forms over their placeholders (offsets are draft-time;
+        // Splice model forms over their display ranges (offsets are draft-time;
         // parts arrive offset-sorted since the table is).
         let out = ''
         let cursor = 0
         for (const part of parts) {
           out += draft.slice(cursor, part.offset) + part.text
-          cursor = part.offset + 1
+          cursor = part.offset + part.length
         }
         out += draft.slice(cursor)
-        this.deps.defaultSink(out.trim(), mode)
+        this.settleSubmit(attempt, this.deps.defaultSink(out.trim(), mode, attempt.signal))
       },
       (error: unknown) => {
         controller.abort()
-        if (this.disposed) return
+        if (this.dead(attempt)) return
         const message = error instanceof Error ? error.message : String(error)
-        this.notify('error', message)
+        this.run(this.core.dispatch({ type: 'submit-settled', attempt, ok: false, message }))
+      },
+    )
+  }
+
+  /** Settle one admission attempt against the sink promise. */
+  private settleSubmit(attempt: SubmitAttempt, pending: Promise<SubmitOutcome>): void {
+    pending.then(
+      (outcome) => {
+        if (this.dead(attempt)) return
+        this.run(this.core.dispatch({
+          type: 'submit-settled',
+          attempt,
+          ok: outcome.kind === 'success',
+          outcome,
+        }))
+      },
+      (error: unknown) => {
+        if (this.dead(attempt)) return
+        this.run(this.core.dispatch({
+          type: 'submit-settled',
+          attempt,
+          ok: false,
+          message: error instanceof Error ? error.message : String(error),
+        }))
       },
     )
   }
@@ -409,6 +436,7 @@ export class SessionInputShell implements SessionInput {
           if (this.dead(attempt)) return
           this.run(this.core.dispatch({
             type: 'submit-settled', attempt, ok: outcome.kind === 'success', outcome,
+            ...(outcome.kind === 'error' && outcome.text === undefined ? { message: 'command failed' } : {}),
           }))
         },
         (error: unknown) => {
@@ -432,9 +460,10 @@ export class SessionInputShell implements SessionInput {
   private publish(): void {
     const next = this.compose()
     this.state.set(next)
-    if (next.draft !== this.lastDraft) {
-      this.lastDraft = next.draft
-      this.mirrorFn?.(next.draft)
+    const mirroredDraft = projectClipboard(next)
+    if (mirroredDraft !== this.lastMirroredDraft) {
+      this.lastMirroredDraft = mirroredDraft
+      this.mirrorFn?.(mirroredDraft)
     }
   }
 }

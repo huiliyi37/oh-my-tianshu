@@ -39,13 +39,13 @@ Status: implemented
 
 效果面（shell 执行）：`adjudicate`（调 SlashController.adjudicate）、`begin-submit`（claim.submit 事务）、`default-sink`（普通消息，hub 编排）、`notice`。
 
-occurrence 表与 chip 三投影：
+occurrence 表与引用三投影：
 
-- 每颗引用在 draft 中占一个 `U+FFFC`；表项 `{occurrenceId, source, ref, offset, label, clipboardText, invalid?}`；同名 chip 因 occurrenceId 独立。
-- 一切编辑同 transaction 更新 draft 与表：区间平移；与占位符相交的删除/替换作用于整颗。
-- 单字符占位使键盘原子性大半原生成立（caret 无内部位；Backspace/方向键/Shift 扩选原生即整颗）；鼠标点 chip 由 backdrop 命中 → 整颗 setSelectionRange。
-- 视觉投影 = label：backdrop 在占位符 offset 渲染 chip（textarea 字形不可见），invalid 走失效样式。
-- 剪贴板/持久化投影 = clipboardText：copy/cut 把选区内占位符展开；draft 持久化 mirror 写同一投影（chat store 里永远是普通文本，刷新 seed 语义 = 全选复制→重开→粘贴，chip 跨刷新降级为文本）。
+- 每颗引用在 draft 中保留完整的行内显示文本（`@label`）；表项 `{occurrenceId, source, ref, offset, length, label, appearance?, clipboardText, invalid?}`；同名引用因 occurrenceId 独立。
+- 一切编辑同 transaction 更新 draft 与表：区间平移；与区间相交的编辑丢弃该 occurrence，剩余字符转为普通文本。
+- 键盘原子性由输入栏显式实现：在区间边界的 Backspace/Delete 扩为整颗删除；鼠标点击引用由 backdrop 命中 → 整区间 setSelectionRange。
+- 视觉投影保持原生文本度量：完整的 `@label` 显示文本留在透明 textarea 中，对齐的 backdrop 为该区间着色并把前导标记换成领域字形；invalid 走失效样式。宽度、折行、选区与光标位置全部原生——没有胶囊。
+- 剪贴板/持久化投影 = clipboardText：copy/cut 把与选区相交的区间展开；draft 持久化 mirror 写同一投影（chat store 里永远是可解析的规范文本，因此没有 occurrence 表的重新挂载恢复的仍是可解析引用）。
 - 模型投影 = submit 时经 source `codec.serialize` 逐颗生成（归 submit attempt 的 signal 与 stale guard；owner 缺失/失败/取消则不发送，不降级为 `/name`）。
 
 ### 跨插件输入改写：三个 scoped bail 事件
@@ -72,19 +72,19 @@ occurrence 表与 chip 三投影：
 - 每个实体 Session 只有一个 `SessionInputShell`（facade），随 session scope 创建和拆除；无 session 时不造 input machine。`ConversationRoot` 自身是 `session-maybe` 常驻外壳，持有 HeroShell、Workspace picker、composer stack 与 chain fallback 外框。它始终拥有同一个 scrollport 与 composer seat；Session 出现后，彼此独立的严格 session header 和 body outlet 只填入这些固定区域。
 - composer bar 是一个无条件渲染的 `session-maybe` slot entry：无 session 时同一个 InputBar 以惰性态渲染（machine face 缺席、`disabled` owner prop），`connectWorkspace` 返回 blank session 后同一实例转为 live——textarea DOM 在无 session → blank 切换及其后每次 phase 翻转中都不重建；`ConversationRoot`、Hero 与布局骨架全程保持。
 - ConversationRoot 的 Hero 判据是 `sessionId === undefined || (composerPhase === 'blank' && (openState === 'open' || summaryBlank === true))`：summary 已证实为空的 Session 在任何 open state 下都保持 Hero，未经证实的 Session 则在 loading 期间进入 settling。首次 submit 同步进入 engaging，失败也保留 composer 与错误上下文，不退回 blank Hero；sidebar 的 blank 位只在 prompt 成功受理后翻 false。
-- 发送统一在 hub defaultSink：乐观清稿后只走 `session.prompt` 且固定 `mode:'queue'`（Web UI 无 steer 入口；host 线缆上的 `mode:'steer'` 不经此 machine）；失败且 live draft 仍为空才回填，用户已经继续输入则不覆盖。不存在 Draft materialize 或 attach 事务。
+- 发送统一在 hub defaultSink：草稿在往返期间留在机器里，仅在结果被接受（`submit-settled`）后清稿；失败时在漂移守卫下把同一草稿还回编辑（往返期间键入的文本优先）。只走 `session.prompt` 且固定 `mode:'queue'`（Web UI 无 steer 入口；host 线缆上的 `mode:'steer'` 不经此 machine），并携带 attempt 的 AbortSignal——shell 销毁即中止 Host 侧准备。不存在 Draft materialize 或 attach 事务。
 - blank Hero 改选 Workspace 时，外壳调用 `connectWorkspace`；目标 session 不同时把非空 draft 从当前 shell 搬到目标 shell，再 open 新 id，旧 blank session 留存但不再 current。
 - Notifier 双位约定：`dirty`（快照新鲜度，`ensureFresh` 拉取可清）与 `notifyPending`（通知欠账，只有 flush 清）各自独立——拉取不得吞推送，对象层推订阅者（watchTransaction）依赖这一保证。
 
 ### 纯文本引用（决策 21）：text outcome 与 lexicon 装饰
 
-skill/@subagent 引用不走占位符 + occurrence 身份链——pick 直接把 `/name ` `@name ` 原文插进 draft，chip 视觉纯派生：
+skill/@subagent 引用不带 occurrence 身份——pick 直接把 `/name ` `@name ` 原文插进 draft，mark 视觉纯派生（结构化会话引用走上面的 occurrence 链）：
 
 - PickOutcome 增 `{text}` arm；新 scoped bail 事件 `slash/input-insert-text` `{text, span}`（与另三个同约定：draftRev CAS、返回 true ⟺ 实际改写）；facade.insertText 走 setDraft 拼接，机器零改动。
 - source 可选 `lexicon?(session)` 钩子：同步热快照名录，`undefined` = 数据未热——零装饰、永不触发 fetch（渲染路径保持同步无副作用）；配对的可选 `subscribeLexicon?(session, listener)` 钩子是名录在 warm 之后仍会变化（目录 settle、子代生灭）时的失效通道。controller 把各名录聚合进自己的 `lexicon` snapshot store（每次 source 通知重拉）；scope 出生后才注册的 source 由 service 广播给活 controller，补 warm 并并入名录。
 - `decorations.scanTextRefs`：词边界扫描 draft（行首/空白后的 `/name`、`@name`，`x/name` 永不命中）对照名录，命中即 `.textRef` mark（backdrop 纯 range 高亮，同 hlToken）；编辑破坏匹配形状下次扫描自然消失。
 - 发送即原文（不再 `<skill>` 序列化）；气泡侧 MessageItem 双形状装饰（legacy `<skill>` 标签 + 纯文本 token）。
-- 旧 occurrence/paste/serialize 链全部保留在盘未删（additive；删除另成将来一刀）。装饰响应性：InputBar 以 uSES 订阅 shell 的 lexicon source，scope 出生预热后才 settle 的名录会直接点亮已有 draft token，无需菜单交互或无关重渲染。
+- occurrence/serialize 链现服务于结构化会话引用；lexicon 装饰的纯文本 token 保持无身份。装饰响应性：InputBar 以 uSES 订阅 shell 的 lexicon source，scope 出生预热后才 settle 的名录会直接点亮已有 draft token，无需菜单交互或无关重渲染。
 
 ### per-session 供数贡献与键盘私面
 

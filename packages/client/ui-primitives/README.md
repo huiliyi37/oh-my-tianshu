@@ -2,7 +2,11 @@
 
 English | [中文](README.zh.md)
 
-Pure React atoms (zero cordis): StateDot, DisclosureRow, ic_ds_* icons, Button/Pill/Menu/Modal/Input, the OnboardingSurface first-run takeover (body-portaled mask + opaque stage that holds `#root` inert for exactly its own lifetime), the markdown family (MessageText/MarkdownText/JsonBlock), the read-only JsonTree inspector, the `useAnchoredMaxHeight` hook that clamps a bottom-anchored overlay to the viewport space above its anchor (re-measured on resize, scroll, and a caller-supplied dependency), TerminalBlock, DiffBlock, ReadBlock, SearchBlock, and WebBlock. Contract: api-contracts v3 §8.
+Pure React atoms (zero cordis): StateDot, DisclosureRow, ic_ds_* icons, Button/Pill/Menu/Modal/Input, the Toast transient banner, the OnboardingSurface first-run takeover (body-portaled mask + opaque stage that holds `#root` inert for exactly its own lifetime), the markdown family (MessageText/MarkdownText/JsonBlock), the read-only JsonTree inspector, the `useAnchoredMaxHeight` hook that clamps a bottom-anchored overlay to the viewport space above its anchor (re-measured on resize, scroll, and a caller-supplied dependency), TerminalBlock, DiffBlock, ReadBlock, SearchBlock, and WebBlock. Contract: api-contracts v3 §8.
+
+## Toast
+
+`Toast` is the transient top banner: it slides in, holds at full opacity for three seconds, fades over one second, then calls `onDone` so the owner can unmount it. It renders `role="alert"` with an optional leading icon slot and takes its copy as a required prop (zero-cordis: the owner localizes). It body-portals with `pointer-events: none`, sits 120px from the viewport top, and centers horizontally over the optional `anchor` element (re-measured on window resizes) — the composer passes its card so the banner centers over the chat column rather than the whole window — falling back to the viewport center without one. Re-showing the same message requires a remount — owners key the element by a per-show sequence so an identical repeated message restarts the hold-and-fade cycle instead of silently reusing the faded banner. Under `prefers-reduced-motion: reduce` the slide-in is dropped and only the delayed fade remains. It layers above 1000-level overlay backdrops so a failure reported while one is open stays readable.
 
 ## Hover cards
 

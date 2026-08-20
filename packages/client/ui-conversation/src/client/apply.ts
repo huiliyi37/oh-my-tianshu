@@ -283,6 +283,7 @@ export function apply(ctx: Context): void {
             slash.toggleSource('command', {
               trigger: '/',
               query: '',
+              quoted: false,
               position: snapshot.draft.slice(0, selection.start).trim() === '' ? 'leading' : 'inline',
               span: { ...selection, draftRev: snapshot.draftRev },
             })
@@ -340,10 +341,7 @@ export function apply(ctx: Context): void {
         fileMentions: owner => ctx.get('chatFileMentions')?.forClosing(owner),
         openFile: (path) => {
           const cwd = sessions.list.getSnapshot().byId[sessionId]?.cwd
-          void workspaces.openPath(resolveWorkspacePath(cwd, path)).catch(() => {
-            // Host/OS open failures stay silent in the chat row; the native
-            // app surfaces its own error dialog when the path is unusable.
-          })
+          return workspaces.openPath(resolveWorkspacePath(cwd, path))
         },
         loadOlder: () => { void scoped.loadOlder() },
         // Unregistered 'trajectory' id is safe: the tab ring falls back to

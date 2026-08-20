@@ -485,6 +485,27 @@ describe('endpoint interrogation', () => {
     ])
   })
 
+  it('selects and clears every discovered candidate in one action', async () => {
+    const discover = vi.fn(() => Promise.resolve(ok({
+      models: [{ id: 'a' }, { id: 'b' }, { id: 'c' }],
+    })))
+    await mountSection({ discover })
+    openEditor('openai')
+
+    fireEvent.click(screen.getByText(en.fetchModels))
+    const dialog = await screen.findByRole('dialog')
+    const boxes = [...dialog.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')]
+    expect(boxes.map(box => box.checked)).toEqual([true, true, true])
+
+    fireEvent.click(within_(dialog, en.fetchDeselectAll))
+    expect(boxes.map(box => box.checked)).toEqual([false, false, false])
+    expect(within_(dialog, en.fetchSelectAll)).toBeTruthy()
+
+    fireEvent.click(within_(dialog, en.fetchSelectAll))
+    expect(boxes.map(box => box.checked)).toEqual([true, true, true])
+    expect(within_(dialog, en.fetchDeselectAll)).toBeTruthy()
+  })
+
   it('keeps the rows editable when the provider cannot be interrogated', async () => {
     const discover = vi.fn(() => Promise.resolve(
       fail('https://proxy.example/v1/models answered 401; check the API key', 'model-discovery-failed'),

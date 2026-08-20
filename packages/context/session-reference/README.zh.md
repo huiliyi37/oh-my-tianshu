@@ -7,14 +7,14 @@
 ## 公开 API
 
 - `listCandidates(agent, query?, limit?)` 会列出 `agent.id` 之外的会话，按 id、cwd 或以日志为依据的最新标题进行不区分大小写的筛选，再按同 cwd、无 cwd、其他 cwd 记录排序，同时保持每组内的 `listSessions()` 创建顺序。每个已选候选会话都使用该标题作为 mention label；标题不存在或无法读取时回退到会话 id。不搜索消息主体。
-- `prepare(agent, content, references, signal?)` 会保留首次 mention 顺序、对 id 去重，并拒绝自引用或超过已配置不同源上限的情况。它会并行读取所有源，返回与输入脱离的内容，外加零个或一个聚合且带标识的 `UserMessage` 上下文。任何无效引用、读取失败、取消或预算失败，都会使准备操作在宿主调用 `followup()` 或 `steer()` 之前失败。
+- `prepare(agent, content, references, signal?)` 会保留首次 mention 顺序、对 id 去重，并拒绝自引用或超过已配置不同源上限的情况。它会并行读取所有源，返回与输入脱离的内容，外加零个或一个聚合且带标识的 `UserMessage` 上下文。服务会在下游 `agent/pre-step` 监听器接受该步之后，为直接 user 消息中的规范 mention 调用它。
 - `encodeSessionReferenceUri()` 与 `decodeSessionReferenceUri()` 实现 `dsh-session:<base64url(JSON.stringify(sessionId))>`，因此每个 JavaScript 字符串 id 都能精确往返。`formatSessionReferenceMention()` 发出 `@[label](uri)`，`parseSessionReferenceText()` 将 Markdown mention 或裸规范 URI 替换为可读的 `@label` 文本，并返回结构化引用。解析器会拒绝显式 Markdown mention 中任何格式错误的 URI；只当 scheme 后跟非空、符合 base64url 形状的 payload 时，裸文本才被视为引用，匹配但非规范的候选项仍会失败。空 scheme mention 或只含标点符号的 scheme mention 仍是普通讨论文本。
 
 ## 快照语义
 
-准备阶段会对每个不同源调用一次 `ctx.sessionQuery.readSurface()`，入队后绝不重读。它仅投影折叠后当前表层中的用户直接发出的 `user/message`、assistant 文本，以及 `user/message` 检查点；这类检查点携带规范 `dsh-compact` 源标记。对于已经包含固化前缀上下文的源提示词，投影只读取其对模型隐藏的显示内容，以防止快照递归传播。已遮蔽的压缩（compaction）前事件、工具、推理（reasoning）、上下文、除已标记 compact 检查点外的插件生成 user 消息，以及未完成的 assistant 分片均会被排除。因此，已压缩源只会提供最新检查点及其后保留的会话内容，不会还原已遮蔽的文本。
+当目标消息到达 `agent/pre-step` 时，准备阶段会对每个不同源调用一次 `ctx.sessionQuery.readSurface()`。已入队消息因此在模型步骤入口捕获源状态，生成的上下文在此之后不可变。投影只保留折叠后当前表层中的用户直接发出的 `user/message`、assistant 文本，以及携带规范 `dsh-compact` 源标记的 `user/message` 检查点。单独带来源的 session-reference 消息属于注入上下文，会被排除，以防止快照递归传播。已遮蔽的压缩（compaction）前事件、工具、推理（reasoning）、上下文、除已标记 compact 检查点外的其他插件生成 user 消息，以及未完成的 assistant 分片也会被排除。因此，已压缩源只会提供最新检查点及其后保留的会话内容，不会还原已遮蔽的文本。
 
-上下文源为 `{ kind: 'session-reference', version: 1, references }`；每条引用会记录其源 id 与 label、捕获 seq、是否存在 compact、已保留／已省略消息数、已省略 UTF-8 字节数与截断状态。agent 空闲时，标准 TUI 会安装一次性的 `agent/pre-step` 包装层，只把快照添加到包含已领取直接提示词的 `enter` 决策。agent 运行时，它会紧接着调用 `inject()` 和 `steer()`，把两条消息放入 next-step inbox，等待后续同一次领取。目标日志因此会先记录一条带来源信息的上下文 `user/message`，再记录可读的直接 `user/message`。后续源变更、压缩或删除都无法改变目标回放。
+上下文源为 `{ kind: 'session-reference', version: 1, references }`；每条引用会记录其源 id 与 label、捕获 seq、是否存在 compact、已保留／已省略消息数、已省略 UTF-8 字节数与截断状态。服务外层的 `agent/pre-step` 监听器会对已被接受的直接 user 消息做后处理，保留其消息 id，并把每个快照紧跟在引用它的消息之后插入。队列编辑与队列转 steer 的重定位无需引用专属处理，因为解析发生在最终 inbox 领取之后。无效 mention、读取失败、取消与预算失败会在该轮消息进入模型可见历史之前结束这一轮。目标日志会先记录可读的直接 `user/message`，再记录其带来源信息的上下文 `user/message`；捕获之后的源变更无法改变目标回放。
 
 ## 配置
 
@@ -32,7 +32,7 @@
 
 #### 模型看到的内容
 
-模型会看到两条连续的 user 角色消息：先是 `## Referenced sessions` 不受信任快照，再是带可读 `@label` 的当前消息。警告禁止遵循快照中的指令、权限声明或工具请求，除非当前 user 重复这些内容。标签、cwd 值、id 与会话文本会作为 JSON 在 `<referenced-sessions>` 标签中序列化；数据中的每个 `<` 都会以无损 JSON 转义 `\u003c` 的形式发出，因此源文本无法拼出定界标签。
+模型会看到两条连续的 user 角色消息：先是带可读 `@label` 的当前消息，再是 `## Referenced sessions` 不受信任快照。警告禁止遵循快照中的指令、权限声明或工具请求，除非当前 user 明确重复这些内容。标签、cwd 值、id 与会话文本会作为 JSON 在 `<referenced-sessions>` 标签中序列化；数据中的每个 `<` 都会以无损 JSON 转义 `\u003c` 的形式发出，因此源文本无法拼出定界标签。
 
 #### Token 影响
 
@@ -40,7 +40,7 @@
 
 #### KV Cache 影响
 
-快照与请求是两条连续、仅追加的目标消息，并保留较早的可缓存历史。不同引用或源捕获内容只改变新后缀；后续目标压缩可能使从替换边界起的复用失效。
+请求与快照是两条连续、仅追加的目标消息，并保留较早的可缓存历史。不同引用或源捕获内容只改变新后缀；后续目标压缩可能使从替换边界起的复用失效。
 
 ## 已知限制与暂缓事项
 

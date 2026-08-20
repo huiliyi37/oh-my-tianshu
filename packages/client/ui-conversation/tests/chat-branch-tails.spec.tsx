@@ -47,10 +47,11 @@ const RETRY_ID = 'retry-fixture' as Extract<ConversationNode, { kind: 'model-ret
 interface MessageItemProps {
   readonly node: ConversationNode
   readonly t: ChatNodeViewProps['t']
+  readonly referenceLabels?: readonly string[]
 }
 
 /** Legacy-node fixture adapter for the independently registered renderers. */
-function MessageItem({ node, t: translate }: MessageItemProps) {
+function MessageItem({ node, t: translate, referenceLabels }: MessageItemProps) {
   const kind = node.kind === 'assistant' ? 'assistant-step' : node.kind
   const viewNode: ChatConversationViewNode = {
     key: `fixture:${node.kind}:${node.seq}`,
@@ -60,7 +61,11 @@ function MessageItem({ node, t: translate }: MessageItemProps) {
     anchorSeq: node.seq,
     location: { kind: 'session' },
     visibility: 'visible',
-    data: node.kind === 'model-retry' ? { attempts: [node], current: node } : node,
+    data: node.kind === 'model-retry'
+      ? { attempts: [node], current: node }
+      : (node.kind === 'user' || node.kind === 'steering') && referenceLabels !== undefined
+        ? { ...node, referenceLabels }
+        : node,
   }
   const props = { node: viewNode, t: translate } as ChatNodeViewProps
   switch (node.kind) {
@@ -81,6 +86,61 @@ function MessageItem({ node, t: translate }: MessageItemProps) {
 }
 
 describe('MessageItem arms', () => {
+  it('renders an adjacent session mention as a chip even without trailing whitespace', () => {
+    const view = render(
+      <MessageItem
+        t={t}
+        referenceLabels={['你好']}
+        node={{
+          kind: 'user',
+          seq: 1,
+          time: 1_000,
+          content: [{ type: 'text', text: '@你好这个在讲啥' }] as never,
+          source: null,
+        }}
+      />,
+    )
+    expect(view.container.querySelector('[data-ref-chip="session"]')?.textContent).toBe('你好')
+    expect(view.container.querySelector('[data-ref-chip="session"] svg')).not.toBeNull()
+    expect(view.getByText('这个在讲啥')).toBeTruthy()
+    expect(view.getByText('引用会话 · 你好')).toBeTruthy()
+  })
+
+  it('renders the complete metadata-confirmed multi-word session label', () => {
+    const view = render(
+      <MessageItem
+        t={t}
+        referenceLabels={['Research notes']}
+        node={{
+          kind: 'user',
+          seq: 1,
+          time: 1_000,
+          content: [{ type: 'text', text: '@Research notes what changed?' }] as never,
+          source: null,
+        }}
+      />,
+    )
+    expect(view.container.querySelector('[data-ref-chip="session"]')?.textContent).toBe('Research notes')
+    expect(view.getByText('what changed?')).toBeTruthy()
+    expect(view.getByText('引用会话 · Research notes')).toBeTruthy()
+  })
+
+  it('renders no-extension paths as files and leaves sentence punctuation outside the reference', () => {
+    const view = render(
+      <MessageItem t={t} node={{
+        kind: 'user',
+        seq: 1,
+        time: 1_000,
+        content: [{ type: 'text', text: 'Read @Dockerfile and @src/README.md, please.' }] as never,
+        source: null,
+      }} />,
+    )
+    const files = [...view.container.querySelectorAll('[data-ref-chip="file"]')]
+    expect(files.map(file => file.textContent)).toEqual(['Dockerfile', 'README.md'])
+    expect(files.every(file => file.querySelector('svg') !== null)).toBe(true)
+    expect(view.container.textContent).toContain('README.md, please.')
+  })
+
   it('user bubbles expose clock / copy and neither branch nor edit; copy writes the text', () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', {

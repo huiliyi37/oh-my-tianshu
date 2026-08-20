@@ -28,7 +28,7 @@ import type {
 
 /** Machine-backed wiring over a sink spy. */
 function fakeWiring() {
-  const sink = vi.fn()
+  const sink = vi.fn(() => Promise.resolve({ kind: 'success' as const }))
   const shell = new SessionInputShell({ actx: {} as ClientContext, defaultSink: sink })
   return { wiring: shell, sink, shell }
 }
@@ -301,7 +301,7 @@ describe('ConversationRoot resident composer', () => {
     fireEvent.change(box, { target: { value: 'ordinary revised' } })
     expect(b.chat.store.getSnapshot().draft).toBe('ordinary revised')
     fireEvent.keyDown(box, { key: 'Enter' })
-    expect(b.sink).toHaveBeenCalledWith('ordinary revised', 'queue')
+    expect(b.sink).toHaveBeenCalledWith('ordinary revised', 'queue', expect.any(AbortSignal))
     expect((b.view.getByRole('button', { name: 'Child' }) as HTMLButtonElement).disabled).toBe(true)
     expect(b.view.queryByText('Root')).toBeNull()
   })

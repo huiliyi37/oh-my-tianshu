@@ -9,7 +9,7 @@
  * real host entity, so the sink is one unconditional prompt path.
  */
 import type { ClientContext, ISessions, SessionBinding, SessionFace, SessionId } from '@huiliyi37/dsh-client-runtime/client'
-import type { SlashController } from '@huiliyi37/dsh-client-ui-slash/client'
+import type { SlashController, SubmitOutcome } from '@huiliyi37/dsh-client-ui-slash/client'
 import { queueReadFaceOf } from '../queue/store.ts'
 import type { ComposerKeyboard, InputService, SessionInput } from './contract.ts'
 import type { InputSubmitMode } from '../contract/composer-submission.ts'
@@ -57,7 +57,7 @@ export class InputHub implements InputService {
       slash: () => this.controller(actx),
       popup: () => this.popup(actx),
       queue: queueReadFaceOf(session),
-      defaultSink: (text, mode) => { this.sink(session, text, mode) },
+      defaultSink: (text, mode, signal) => this.sink(session, text, mode, signal),
     })
     this.shells.set(id, shell)
     // The one teardown axis: listeners, shell, and map entries all ride the
@@ -71,7 +71,7 @@ export class InputHub implements InputService {
         actx.on('slash/input-consume-token', req =>
           shell.consumeToken(req.guard) ? true : undefined),
         actx.on('slash/input-insert-text', req =>
-          shell.insertText(req.text, req.span) ? true : undefined),
+          shell.insertText(req.text, req.span, req.continue === true) ? true : undefined),
       ]
       return () => {
         for (const off of offs) off()
@@ -119,24 +119,16 @@ export class InputHub implements InputService {
   }
 
   /**
-   * Default sink: optimistic clear + prompt. The session is always a real
-   * host entity (materialized when its workspace was picked), so there is
-   * exactly one path; a failed first prompt is an ordinary prompt failure
-   * (error strip via promptError, draft restored only while untouched).
+   * Default sink: submit through the real host session and report acceptance
+   * to the input transaction. The draft and its reference occurrences remain
+   * resident until this promise succeeds.
    */
-  private sink(session: SessionFace, text: string, mode: InputSubmitMode): void {
-    if (text === '') return
-    const shell = this.shells.get(session.sessionId)
-    // Commit, not an editable clear: undo must not resurrect sent content.
-    shell?.commitSend()
-    void session.prompt([{ type: 'text', text }], mode).then(
-      (result) => {
-        if (!result.ok && shell?.snapshot.draft === '') shell.setDraft(text)
-      },
-      () => {
-        if (shell?.snapshot.draft === '') shell.setDraft(text)
-      },
-    )
+  private async sink(session: SessionFace, text: string, mode: InputSubmitMode, signal: AbortSignal): Promise<SubmitOutcome> {
+    if (text === '') return { kind: 'error', text: 'prompt is empty' }
+    const result = await session.prompt([{ type: 'text', text }], mode, signal)
+    return result.ok
+      ? { kind: 'success' }
+      : { kind: 'error', text: result.error.message }
   }
 
   private controller(actx: ClientContext): SlashController | undefined {

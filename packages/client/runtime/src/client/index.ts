@@ -77,7 +77,7 @@ export type {
 export { EMPTY_CHAT_SNAPSHOT, toAssistantBlock, toAssistantBlocks } from './sessions/conversation.ts'
 export { emptyAssistantBlock } from './sessions/partial.ts'
 export { isTokenDelta } from './sessions/assistant-timing.ts'
-export { contextForm, contextProvenance } from './sessions/context-provenance.ts'
+export { contextForm, contextProvenance, sessionRecallLabels } from './sessions/context-provenance.ts'
 export { displayFailureMessage } from './sessions/failure-display.ts'
 export type {
   ConversationContext, ConversationContextOriginKind,
