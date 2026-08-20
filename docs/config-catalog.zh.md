@@ -3286,6 +3286,8 @@ export interface WebServiceConfig {
 export interface Config {
   /** Whether this process mounted the client-plugin HMR receiver (`tianshu web --dev`). */
   mode: WebMode
+  /** Permit default-browser handoff after the Loader tree settles; an SSH launch suppresses it. */
+  openBrowser: boolean
   /** Print the URL line on activation; a headless layer over this bundle turns it off. */
   printUrl: boolean
   /**
@@ -3308,7 +3310,7 @@ export interface Config {
 export type WebMode = 'production' | 'development'
 ```
 
-来源：[`packages/bundle/web-app/src/index.ts:32`](../packages/bundle/web-app/src/index.ts)
+来源：[`packages/bundle/web-app/src/index.ts:36`](../packages/bundle/web-app/src/index.ts)
 
 ## `@huiliyi37/dsh-web-fetch-local`
 

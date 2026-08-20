@@ -43,15 +43,16 @@ Git 托管、随附源码的插件在安装期间通过其 `prepare` 脚本构�
 
 ## Web 别名
 
-`oh-my-tianshu web` 是 `--profile web` 的硬编码别名，并额外接受 Web flag 系列。`--host`、`--port`、`--workspace-root` 和可重复的 `--trusted-host` 值会成为作用在组合行之上的 patch；负责这些值的插件 schema 会在启动时验证它们。`--dev` 把 web-runtime 行切换到开发模式并插入客户端插件 HMR（热模块替换）接收器；若要无刷新更新客户端 bundle，还需单独运行 `pnpm run dev:web` watcher。
+`oh-my-tianshu web` 是 `--profile web` 的硬编码别名，并额外接受 Web flag 系列。`--host`、`--port`、`--workspace-root` 和可重复的 `--trusted-host` 值会成为作用在组合行之上的 patch；负责这些值的插件 schema 会在启动时验证它们。`--dev` 把 web-runtime 行切换到开发模式并插入客户端插件 HMR（热模块替换）接收器；若要无刷新更新客户端 bundle，还需单独运行 `pnpm run dev:web` watcher。`--no-open` 则只对本次调用关闭默认浏览器交接。
 
 ```sh
 oh-my-tianshu web
+oh-my-tianshu web --no-open
 oh-my-tianshu web --patch ./extra.cordis.yml
 oh-my-tianshu web --dump-config
 ```
 
-生产 Web 运行器需要已构建的包和前端产物（`pnpm run build`）。默认服务地址是 `http://127.0.0.1:3080`。绑定所有接口时，还会信任机器自动发现的 LAN IP 字面量；`--trusted-host` 可添加 `/api` 浏览器信任围栏接受的具名 authority。
+生产 Web 运行器需要已构建的包和前端产物（`pnpm run build`）。默认服务地址是 `http://127.0.0.1:3080`；本机启动时，只在完整 Loader 配置树结算后才用默认浏览器打开该规范宿主机 URL。继承的 `SSH_CONNECTION` 或 `SSH_TTY` 非空时会跳过浏览器交接，因为本地转发地址由 SSH 客户端或编辑器持有；宿主机 URL 仍会打印。本机交接前会打印提示 `tianshu web: opening the default browser; pass --no-open to disable`；若操作系统交接失败，stderr 诊断会说明原因、给出 URL 供手动访问，服务器仍继续运行。绑定所有接口时，还会信任机器自动发现的 LAN IP 字面量；`--trusted-host` 可添加 `/api` 浏览器信任围栏接受的具名 authority。
 
 进程关闭时会给插件树最多 5 秒完成 dispose。第一次 `SIGINT`/`SIGTERM` 启动该优雅排空；第二次信号强制立即退出。如果一次性运行正常结束时已经卡在 dispose 中，第一次 `Ctrl+C` 就会升格并立即退出，而不会被吞掉。
 

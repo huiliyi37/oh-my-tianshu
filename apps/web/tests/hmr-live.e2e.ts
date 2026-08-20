@@ -92,7 +92,7 @@ it('hot-reloads a real client-plugin source edit without refreshing the page', a
     watcher = subprocessCtx.subprocess.spawn(spawnSpec(['pnpm', 'run', 'dev:web'], REPO_ROOT))
     await waitForOutput(watcher, /dev-web: watching/, 'pnpm run dev:web')
     host = subprocessCtx.subprocess.spawn(spawnSpec(
-      [process.execPath, binPath, 'web', '--dev', '--port', '0'],
+      [process.execPath, binPath, 'web', '--dev', '--no-open', '--port', '0'],
       world,
       {
         DEEPSEEK_API_KEY: 'keyless-hmr-no-call',

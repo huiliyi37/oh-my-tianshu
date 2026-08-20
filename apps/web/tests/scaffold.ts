@@ -353,10 +353,11 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
       config: { host: '127.0.0.1', port: 0 },
     },
     // The bundle's web-runtime row resolves the same built dist under test
-    // (apps/web IS @huiliyi37/dsh-frontend); only the URL line is silenced.
+    // (apps/web IS @huiliyi37/dsh-frontend); native browser opening and the
+    // URL line are disabled because this scaffold owns its Playwright browser.
     // Preserve the composed surface-context choice because a patch replaces
     // the row's complete config.
-    { id: 'web-runtime', config: { mode: 'production', printUrl: false, surfaceContext } },
+    { id: 'web-runtime', config: { mode: 'production', openBrowser: false, printUrl: false, surfaceContext } },
     ...options.remoteAuthority === undefined
       ? []
       : [{ id: 'connection', config: { trustedHosts: [options.remoteAuthority] } }],

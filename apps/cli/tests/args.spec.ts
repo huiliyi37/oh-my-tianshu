@@ -31,12 +31,13 @@ describe('parseDshArgs', () => {
       .toEqual({ mode: 'run', profile: 'custom', patches: ['a.yml', 'b.yml'], task: 'run the tests' })
     expect(parse(['run', '--', '--profile', 'is', 'task', 'text']))
       .toEqual({ mode: 'run', profile: 'headless', patches: [], task: '--profile is task text' })
-    expect(parse(['web'])).toEqual({ mode: 'web', dev: false, patches: [] })
-    expect(parse(['web', '--patch', 'web.yml'])).toEqual({ mode: 'web', dev: false, patches: ['web.yml'] })
+    expect(parse(['web'])).toEqual({ mode: 'web', dev: false, patches: [], open: true })
+    expect(parse(['web', '--patch', 'web.yml'])).toEqual({ mode: 'web', dev: false, patches: ['web.yml'], open: true })
     expect(parse(['web', '--host', '0.0.0.0', '--port', '8080', '--dev', '--workspace-root', '/w']))
-      .toEqual({ mode: 'web', host: '0.0.0.0', port: 8080, dev: true, workspaceRoot: '/w', patches: [] })
+      .toEqual({ mode: 'web', host: '0.0.0.0', port: 8080, dev: true, workspaceRoot: '/w', patches: [], open: true })
+    expect(parse(['web', '--no-open'])).toEqual({ mode: 'web', dev: false, patches: [], open: false })
     expect(parse(['web', '--trusted-host', 'harness.internal:3080', 'lab.internal', '--trusted-host', '10.0.0.9']))
-      .toEqual({ mode: 'web', dev: false, patches: [], trustedHosts: ['harness.internal:3080', 'lab.internal', '10.0.0.9'] })
+      .toEqual({ mode: 'web', dev: false, patches: [], trustedHosts: ['harness.internal:3080', 'lab.internal', '10.0.0.9'], open: true })
   })
 
   it('routes the plugin pnpm forwarder', () => {
@@ -101,6 +102,7 @@ describe('parseDshArgs', () => {
     // would print a tree that differs from the same invocation's boot.
     expect(exitCode(['web', '--dump-config', '--port', '8080'])).toBe(1)
     expect(exitCode(['web', '--dump-config', '--dev'])).toBe(1)
+    expect(exitCode(['web', '--dump-config', '--no-open'])).toBe(1)
     // A non-numeric port fails at the flag, not deep in the webserver schema.
     expect(exitCode(['web', '--port', 'abc'])).toBe(1)
     expect(exitCode(['plugin', 'add', 'x'])).toBe(1) // --profile required

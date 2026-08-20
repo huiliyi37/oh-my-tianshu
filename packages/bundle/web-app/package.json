@@ -68,6 +68,7 @@
     "@huiliyi37/dsh-client-ui-workspace": "workspace:^",
     "@huiliyi37/dsh-code-runtime-worker": "workspace:^",
     "@huiliyi37/dsh-command-memory": "workspace:^",
+    "@huiliyi37/dsh-environment": "workspace:^",
     "@huiliyi37/dsh-frontend": "workspace:^",
     "@huiliyi37/dsh-frontend-static": "workspace:^",
     "@huiliyi37/dsh-host-apiproxy": "workspace:^",
@@ -80,8 +81,10 @@
     "@huiliyi37/dsh-storage": "workspace:^",
     "@huiliyi37/dsh-storage-domain": "workspace:^",
     "@huiliyi37/dsh-storage-json": "workspace:^",
+    "@huiliyi37/dsh-subprocess": "workspace:^",
     "@huiliyi37/dsh-workspace": "workspace:^",
-    "@huiliyi37/schemastery": "^3.18.0"
+    "@huiliyi37/schemastery": "^3.18.0",
+    "open": "^11.0.0"
   },
   "peerDependencies": {
     "@huiliyi37/dsh-bash-env": "^0.2.0",
@@ -90,6 +93,8 @@
     "@huiliyi37/cordis": "^4.0.0-rc.7"
   },
   "devDependencies": {
+    "@huiliyi37/cordis-plugin-include": "workspace:^",
+    "@huiliyi37/cordis-plugin-loader": "workspace:^",
     "@huiliyi37/dsh-bash-env": "workspace:^",
     "@huiliyi37/dsh-invariants": "workspace:^",
     "@huiliyi37/dsh-system-prompt": "workspace:^",

@@ -4,8 +4,8 @@
 #
 # A patch replaces the targeted row's whole `config`, so each row below
 # restates every key it owns. The `dsh web` launcher alias turns --host/--port/
-# --dev/--workspace-root/--trusted-host into further patches over these rows
-# (`--dev` inserts the dsh-client-hmr row).
+# --dev/--workspace-root/--trusted-host/--no-open into further patches over
+# these rows (`--dev` inserts the dsh-client-hmr row).
 
 # ── surface-specific values the base deliberately omits ─────────────────────
 
@@ -103,14 +103,17 @@
     # Web glue owned by this bundle: resolves the built frontend dist (an
     # assembly fact of dsh-web-app, never user config), mounts the
     # frontend-static fallback owner, registers the web-surface prompt
-    # section and bash runtime variables, and prints the URL line. `dsh web`
-    # patches mode/lanAddresses over these defaults; complete-prompt overlays
-    # set surfaceContext false to suppress every model- and shell-visible Web
-    # runtime contribution.
+    # section and bash runtime variables, prints the URL line, and opens the
+    # canonical local URL in the default browser after the full tree settles.
+    # `dsh web` patches mode/lanAddresses over these defaults and --no-open
+    # forces openBrowser off; complete-prompt overlays set surfaceContext
+    # false to suppress every model- and shell-visible Web runtime
+    # contribution.
     - id: web-runtime
       name: '@huiliyi37/dsh-web-app'
       config:
         mode: production
+        openBrowser: true
         printUrl: true
         surfaceContext: true
 

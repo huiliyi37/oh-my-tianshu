@@ -51,6 +51,8 @@ interface WebInvocation {
   workspaceRoot?: string
   /** Extra authorities for the /api browser-trust fence. */
   trustedHosts?: string[]
+  /** Whether this invocation opens the Web UI in the default browser after startup (`--no-open` turns it off). */
+  open: boolean
 }
 
 /** Manage a profile's plugins: forward `args` to pnpm inside the profile directory. */
@@ -96,6 +98,8 @@ interface WebOptions {
   dev?: boolean
   workspaceRoot?: string
   trustedHost?: string[]
+  /** Commander's lone-negation default is true; `--no-open` makes it false. */
+  open?: boolean
   dumpConfig?: boolean
   dumpDefaultConfig?: boolean
 }
@@ -202,6 +206,7 @@ Examples:
     .option('--dev', 'mount the client-plugin HMR receiver (run pnpm run dev:web separately to rebuild bundles)')
     .option('--workspace-root <path>', 'parent directory for workspaces created from the browser UI')
     .option('--trusted-host <authority...>', 'extra authority the /api browser-trust fence accepts (host or host:port; repeatable)')
+    .option('--no-open', 'do not open the Web UI in the default browser')
     .option('--dump-config', 'print the composed web-profile tree (with the user layer and any --patch) and exit')
     .option('--dump-default-config', 'print the web profile\'s bundle layers (no user layer) and exit')
     .action((options: WebOptions) => {
@@ -220,8 +225,8 @@ Examples:
         // dropping them would print a tree that differs from the same
         // invocation's boot.
         if (options.host !== undefined || options.port !== undefined || options.dev === true
-          || options.workspaceRoot !== undefined || options.trustedHost !== undefined) {
-          program.error('error: config dumps take no web flags (--host/--port/--dev/--workspace-root/--trusted-host)')
+          || options.workspaceRoot !== undefined || options.trustedHost !== undefined || options.open === false) {
+          program.error('error: config dumps take no web flags (--host/--port/--dev/--workspace-root/--trusted-host/--no-open)')
         }
         resolved = { mode: 'dump-config', profile: 'web', defaultOnly, patches }
         return
@@ -237,6 +242,7 @@ Examples:
         dev: options.dev === true,
         ...options.workspaceRoot !== undefined && { workspaceRoot: options.workspaceRoot },
         ...options.trustedHost !== undefined && { trustedHosts: options.trustedHost },
+        open: options.open !== false,
       }
     })
 

@@ -5,15 +5,19 @@
  * the built frontend dist (workspace knowledge of this bundle, never user
  * config), mounts the `frontend-static` fallback owner over it, registers the
  * web-surface prompt section and the bash-visible web runtime variables, and
- * prints the URL line when configured to. Flag-derived values (`mode`,
- * `lanAddresses`, `printUrl`) arrive as launcher patches over this row.
+ * publishes readiness through the URL line and the default-browser handoff.
+ * Flag-derived values (`mode`, `lanAddresses`, `printUrl`, `openBrowser`)
+ * arrive as launcher patches over this row.
  * @module @huiliyi37/dsh-web-app
  */
 
+import { spawn, type ChildProcess } from 'node:child_process'
 import { createRequire } from 'node:module'
 import type { Context } from '@huiliyi37/cordis'
 import z from '@huiliyi37/schemastery'
 import * as FrontendStatic from '@huiliyi37/dsh-frontend-static'
+import { environmentOf } from '@huiliyi37/dsh-environment'
+import { scrubbedParentEnv } from '@huiliyi37/dsh-subprocess'
 import type {} from '@huiliyi37/cordis-plugin-loader'
 import type {} from '@huiliyi37/dsh-host-webserver'
 import type {} from '@huiliyi37/dsh-system-prompt'
@@ -32,6 +36,8 @@ export type WebMode = 'production' | 'development'
 export interface Config {
   /** Whether this process mounted the client-plugin HMR receiver (`tianshu web --dev`). */
   mode: WebMode
+  /** Permit default-browser handoff after the Loader tree settles; an SSH launch suppresses it. */
+  openBrowser: boolean
   /** Print the URL line on activation; a headless layer over this bundle turns it off. */
   printUrl: boolean
   /**
@@ -52,6 +58,7 @@ export interface Config {
 
 export const Config: z<Config> = z.object({
   mode: z.union([z.const('production'), z.const('development')]).default('production'),
+  openBrowser: z.boolean().default(true),
   printUrl: z.boolean().default(true),
   surfaceContext: z.boolean().default(true),
   lanAddresses: z.array(String).default([]),
@@ -65,6 +72,46 @@ const DSH_WEB_MODE = 'DSH_WEB_MODE' as const
 // Display-only mirror of the webserver schema's loopback host: the address the
 // local URL always prints. Not a source of truth — the schema is.
 const LOOPBACK_HOST = '127.0.0.1'
+
+/** Whether this process was launched through SSH, including a forwarded-port session. */
+function launchedThroughSsh(ctx: Context): boolean {
+  const environment = environmentOf(ctx)
+  return ['SSH_CONNECTION', 'SSH_TTY'].some((name) => {
+    const value = environment.getFrom(name, ['process'])?.value
+    return value !== undefined && value !== ''
+  })
+}
+
+const BROWSER_OPENER_MODULE = import.meta.resolve('open')
+
+const BROWSER_OPENER_PROGRAM = `
+try {
+  const { default: open } = await import(${JSON.stringify(BROWSER_OPENER_MODULE)})
+  const launcher = await open(process.argv[1])
+  if (process.platform === 'win32') {
+    // open resolves at PowerShell spawn; keep it referenced until that launcher hands the URL to Windows.
+    const code = launcher.exitCode ?? await new Promise((resolve, reject) => {
+      function onError(error) {
+        launcher.off('close', onClose)
+        reject(error)
+      }
+      function onClose(code) {
+        launcher.off('error', onError)
+        resolve(code)
+      }
+      launcher.ref()
+      launcher.once('error', onError)
+      launcher.once('close', onClose)
+    })
+    if (code !== 0) throw new Error('browser operating-system launcher exited with code ' + String(code))
+  }
+  process.exitCode = 0
+} catch (error) {
+  // The parent turns this exit into the manual-URL warning.
+  console.error(error)
+  process.exitCode = 1
+}
+`
 
 /** Model-visible orientation and acceptance boundary for sessions created through `tianshu web`. */
 function webSurfacePrompt(webUrl: string, mode: WebMode): string {
@@ -101,16 +148,63 @@ function resolveDistIndex(): string {
   }
 }
 
-/** Test hook: hosts with no built frontend dist substitute the resolver; production never touches this. */
-export const internals: { resolveDistIndex: () => string } = { resolveDistIndex }
+/** Start the maintained platform opener without forwarding Harness credentials. */
+function spawnBrowserLauncher(url: string): ChildProcess {
+  return spawn(process.execPath, [
+    '--input-type=module',
+    '--eval', BROWSER_OPENER_PROGRAM,
+    '--', url,
+  ], {
+    env: scrubbedParentEnv(),
+    stdio: ['ignore', 'inherit', 'pipe'],
+  })
+}
+
+/** Hand one URL to the operating system's default browser. */
+async function openBrowser(url: string): Promise<void> {
+  const launcher = spawnBrowserLauncher(url)
+  let launcherStderr = ''
+  launcher.stderr?.setEncoding('utf8')
+  launcher.stderr?.on('data', (chunk: string) => { launcherStderr += chunk })
+  await new Promise<void>((resolve, reject) => {
+    function onError(error: Error): void {
+      launcher.off('close', onClose)
+      reject(error)
+    }
+    function onClose(code: number | null): void {
+      launcher.off('error', onError)
+      if (code !== 0) {
+        const firstLine = launcherStderr.trim().split(/\r?\n/u)[0]
+        const reason = firstLine === undefined || firstLine === ''
+          ? `browser launcher exited with code ${String(code)}`
+          : firstLine.replace(/^(?:[A-Za-z]*Error):\s*/u, '')
+        reject(new Error(reason))
+        return
+      }
+      if (launcherStderr !== '') process.stderr.write(launcherStderr)
+      resolve()
+    }
+    launcher.once('error', onError)
+    launcher.once('close', onClose)
+  })
+}
+
+/** Test hooks for the built dist and native browser handoff; production never mutates them. */
+export const internals: {
+  resolveDistIndex: () => string
+  openBrowser: (url: string) => Promise<void>
+} = { resolveDistIndex, openBrowser }
 
 /**
  * Mount the Web runtime: dist serving, surface prompt, bash runtime
- * variables, and the URL line.
+ * variables, the URL line, and the default-browser handoff.
  * @param ctx - plugin context carrying the httpServer service.
  * @param config - validated {@link Config}.
  */
 export function apply(ctx: Context, config: Config): void {
+  // The loopback URL belongs to this host. Under SSH, the operator reaches it
+  // through a local forwarding address that this process cannot derive.
+  const handoffBrowser = config.openBrowser && !launchedThroughSsh(ctx)
   ctx.plugin(FrontendStatic, { distIndex: internals.resolveDistIndex() })
   if (config.surfaceContext) {
     ctx.inject(['systemPrompt'], (promptCtx) => {
@@ -131,27 +225,43 @@ export function apply(ctx: Context, config: Config): void {
       })
     })
   }
-  if (config.printUrl) {
-    // The URL line is a readiness signal: supervisors (and the keyless CLI
-    // smoke) RPC as soon as they observe it, so it must not print while
-    // sibling rows (the /api route owner) are still mounting. Await Loader
-    // settlement first; a hand-built tree without a Loader prints at once.
-    const printUrl = (): void => {
+  if (config.printUrl || handoffBrowser) {
+    // The URL line and browser handoff are readiness signals: supervisors RPC
+    // as soon as they observe the line, while a browser requests the page as
+    // soon as it opens. Neither may run while sibling rows such as the /api
+    // route owner are still mounting. Await Loader settlement first; a
+    // hand-built tree without a Loader is already the complete tree.
+    const announceReady = (): void => {
+      const webUrl = localWebUrl(ctx)
       // The launcher's boot-time LAN snapshot, not a fresh sample: the printed
       // LAN URL must name an address the /api trust fence was configured with.
       const lanCandidate = config.lanAddresses[0]
       const port = ctx.httpServer.port
-      console.log(`tianshu web: ${localWebUrl(ctx)}${lanCandidate === undefined ? '' : ` (LAN: http://${lanCandidate}:${String(port)})`}`)
+      if (config.printUrl) {
+        console.log(`tianshu web: ${webUrl}${lanCandidate === undefined ? '' : ` (LAN: http://${lanCandidate}:${String(port)})`}`)
+      }
+      if (handoffBrowser) {
+        console.log('tianshu web: opening the default browser; pass --no-open to disable')
+        void internals.openBrowser(webUrl).catch((error: unknown) => {
+          const reason = error instanceof Error ? error.message : String(error)
+          console.error(`web-app: could not open the default browser because ${reason}; visit ${webUrl} manually`)
+        })
+      }
     }
+    // This row's own activation can precede a sibling failure. The app owns
+    // readiness by waiting for its Loader tree, or announces at once in a
+    // hand-built context without Loader.
     const loader = ctx.get('loader')
-    if (loader === undefined) printUrl()
+    if (loader === undefined) announceReady()
     else {
       void loader.await().then(() => {
         // The tree can be disposed while settlement was in flight (early
-        // SIGTERM); a URL line for a dead server would only mislead, and
-        // reading the torn-down port would turn a clean shutdown into a crash.
-        if (ctx.get('httpServer') !== undefined) printUrl()
-      })
+        // SIGTERM); a URL line or browser tab for a dead server would only
+        // mislead, and reading the torn-down port would turn a clean shutdown
+        // into a crash.
+        if (ctx.get('httpServer') !== undefined) announceReady()
+      // Loader reports a failed boot; this row only stays quiet.
+      }, () => {})
     }
   }
 }

@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-dsh 浏览器表层组合包。[`cordis.patch.yml`](cordis.patch.yml) 叠加在 [`dsh-base`](../base/README.md) 之上：设置 coding persona，插入 Web 宿主行（webserver、API 网关、workspace、投影缓存、存储、Markdown `memory` 服务，以及让斜杠菜单能 `/remember` 与 `/memory` 的 `dsh-command-memory`）与浏览器插件名录，并挂载本包的 `web-runtime` 粘合插件（配置为 `{mode, printUrl, surfaceContext, lanAddresses}`）。该插件通过 `@huiliyi37/dsh-frontend` 的 exports 解析已构建的前端 dist，挂载 [`frontend-static`](../../host/frontend-static/README.md) 回退席位所有者，在 `surfaceContext` 为 true 时注册 web 表层提示词段落和 bash 可见的 `DSH_WEB_URL`／`DSH_WEB_MODE` 运行时变量，并在 `printUrl` 为 true 时打印 `oh-my-tianshu web:` URL 行。`oh-my-tianshu web` 启动器别名把 `mode`／`lanAddresses` 与相应 flag 家族 patch 到这些行上。[`dsh-headless`](../headless/README.md) 是同一 base 之上的同级表层，不挂载本组合包。TUI 在自己的私有注册表里拥有 `/remember` 与 `/memory`，不挂载 `dsh-command-memory`。
+dsh 浏览器表层组合包。[`cordis.patch.yml`](cordis.patch.yml) 叠加在 [`dsh-base`](../base/README.md) 之上：设置 coding persona，插入 Web 宿主行（webserver、API 网关、workspace、投影缓存、存储、Markdown `memory` 服务，以及让斜杠菜单能 `/remember` 与 `/memory` 的 `dsh-command-memory`）与浏览器插件名录，并挂载本包的 `web-runtime` 粘合插件（配置为 `{mode, openBrowser, printUrl, surfaceContext, lanAddresses}`）。该插件通过 `@huiliyi37/dsh-frontend` 的 exports 解析已构建的前端 dist，挂载 [`frontend-static`](../../host/frontend-static/README.md) 回退席位所有者，并在 `surfaceContext` 为 true 时注册 web 表层提示词段落和 bash 可见的 `DSH_WEB_URL`／`DSH_WEB_MODE` 运行时变量。自身 Loader 配置树结算后，它在 `printUrl` 为 true 时打印 `tianshu web:` URL 行；`openBrowser` 为 true 且继承的 `SSH_CONNECTION` 与 `SSH_TTY` 均为空或不存在时，才会用默认浏览器打开规范宿主机 URL。SSH 启动仍保留 URL 行，但会跳过浏览器交接，因为本地转发地址由 SSH 客户端或编辑器持有。交接前，运行时会打印提示 `tianshu web: opening the default browser; pass --no-open to disable`。短生命周期 Node helper 使用规范的脱敏子进程环境运行受维护的平台 opener（`open`）。在 Windows 上，helper 会保持存活，直至短生命周期的 PowerShell launcher 退出，因为 `open` 会在 launcher 把 URL 交给 shell 之前、仅在 spawn 时返回；其他平台则在 opener 接受 spawn 后结束。helper 失败时会向 stderr 写入包含原因和手动访问 URL 的诊断，不会停止服务器，且任何路径都不会等待浏览器退出。`oh-my-tianshu web` 启动器别名把 `mode`／`lanAddresses` 与相应 flag 家族 patch 到这些行上；`--no-open` 只对本次调用强制关闭 `openBrowser`。[`dsh-headless`](../headless/README.md) 是同一 base 之上的同级表层，不挂载本组合包。TUI 在自己的私有注册表里拥有 `/remember` 与 `/memory`，不挂载 `dsh-command-memory`。
 
 ## 模型体验
 
@@ -24,3 +24,6 @@ dsh 浏览器表层组合包。[`cordis.patch.yml`](cordis.patch.yml) 叠加在 
 
 - **前端 dist 必须已构建**：对 dist 的 `require.resolve` 在激活时明确报错并给出构建提示；没有从源码直接服务的回退路径。
 - **`lanAddresses` 是启动期快照**：启动后的网卡变化不会重新公告；打印的 LAN URL 始终与配置的信任栅栏一致。
+- **只观测交接启动**：平台 opener 接受 spawn 后即结束观察，但 Windows 会等待其短生命周期 PowerShell launcher 退出；之后的浏览器退出不会上报，已打印 URL 仍是手动访问的回退路径。
+- **SSH 转发持有浏览器 URL**：打印出的规范 URL 指向远端宿主机 loopback 端点；自动交接会被跳过，SSH 客户端或编辑器必须暴露并打开其本地转发地址。
+- **浏览器命令覆盖只能来自启动环境**：被发现的 `.env` 不得设置 `BROWSER`；只有继承值可以抵达会读取该变量的 opener 路径，避免 checkout 为自动交接选择可执行文件。

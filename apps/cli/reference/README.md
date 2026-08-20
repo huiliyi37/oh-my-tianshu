@@ -43,15 +43,16 @@ Git-hosted plugins that ship sources build during install through their `prepare
 
 ## Web alias
 
-`oh-my-tianshu web` is a hardcoded alias for `--profile web` that additionally accepts the Web flag family. `--host`, `--port`, `--workspace-root`, and repeatable `--trusted-host` values become patches over the composed rows; their owning plugin schemas validate them at boot. `--dev` switches the web-runtime row to development mode and inserts the client-plugin HMR receiver; it expects a separate `pnpm run dev:web` watcher for no-refresh client bundle updates.
+`oh-my-tianshu web` is a hardcoded alias for `--profile web` that additionally accepts the Web flag family. `--host`, `--port`, `--workspace-root`, and repeatable `--trusted-host` values become patches over the composed rows; their owning plugin schemas validate them at boot. `--dev` switches the web-runtime row to development mode and inserts the client-plugin HMR receiver; it expects a separate `pnpm run dev:web` watcher for no-refresh client bundle updates. `--no-open` disables the default-browser handoff for this invocation.
 
 ```sh
 oh-my-tianshu web
+oh-my-tianshu web --no-open
 oh-my-tianshu web --patch ./extra.cordis.yml
 oh-my-tianshu web --dump-config
 ```
 
-The production Web runner needs built package and frontend artifacts (`pnpm run build`). It serves `http://127.0.0.1:3080` by default. Binding all interfaces also trusts the machine's discovered LAN IP literals; `--trusted-host` adds named authorities accepted by the `/api` browser-trust fence.
+The production Web runner needs built package and frontend artifacts (`pnpm run build`). It serves `http://127.0.0.1:3080` by default and, for a local launch, opens that canonical host URL in the default browser only after the complete Loader tree settles. A non-empty inherited `SSH_CONNECTION` or `SSH_TTY` suppresses the browser handoff because the SSH client or editor owns the local forwarded address; the host URL is still printed. Immediately before a local handoff it prints `tianshu web: opening the default browser; pass --no-open to disable`; if the operating-system handoff fails, a diagnostic on stderr states the reason, leaves the server running, and names the URL for manual use. Binding all interfaces also trusts the machine's discovered LAN IP literals; `--trusted-host` adds named authorities accepted by the `/api` browser-trust fence.
 
 Process shutdown gives the plugin tree up to five seconds to dispose. The first `SIGINT`/`SIGTERM` starts that graceful drain; a second signal forces immediate exit. If one-shot normal completion is already stuck in disposal, the first `Ctrl+C` is the escalation and exits immediately instead of being swallowed.
 

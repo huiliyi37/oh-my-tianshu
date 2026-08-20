@@ -21,10 +21,16 @@
       "path": "../../host/webserver"
     },
     {
+      "path": "../../util/environment"
+    },
+    {
       "path": "../../core/system-prompt"
     },
     {
       "path": "../../bash/bash-env"
+    },
+    {
+      "path": "../../subprocess/subprocess"
     },
     {
       "path": "../../support/invariants"
