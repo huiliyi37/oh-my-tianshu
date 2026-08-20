@@ -17,6 +17,7 @@ The agent routing layer — base metrics → algorithm → MoE routing → dsh-n
 
 ```ts
 declare const ctx: any
+declare const sessionId: string
 export {}
 // cordis.yml 或宿主装配（可选 evidence-gate 联动；无它时 prediction 独立工作）
 plugins: ['@huiliyi37/dsh-agent-router']

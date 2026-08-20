@@ -272,7 +272,7 @@ export interface AgentRouterConfig {
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:57`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:69`](../packages/guard/agent-router/src/index.ts)
 
 ## `@huiliyi37/dsh-agent-spine-demo`
 

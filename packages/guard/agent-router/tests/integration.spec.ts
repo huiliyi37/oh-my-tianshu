@@ -20,7 +20,11 @@ function makeContext(): {
   counters: { result: number; dispose: number; append: Array<{ type: string; data: unknown }> }
   emit: (name: string, ...args: unknown[]) => void
 } {
-  const counters = { result: 0, dispose: 0 }
+  const counters: { result: number; dispose: number; append: Array<{ type: string; data: unknown }> } = {
+    result: 0,
+    dispose: 0,
+    append: [],
+  }
   const seam = {
     start: vi.fn(async () => ({
       id: SessionId('session-child-1'),

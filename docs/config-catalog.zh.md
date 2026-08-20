@@ -276,7 +276,7 @@ export interface AgentRouterConfig {
 }
 ```
 
-来源：[`packages/guard/agent-router/src/index.ts:54`](../packages/guard/agent-router/src/index.ts)
+来源：[`packages/guard/agent-router/src/index.ts:69`](../packages/guard/agent-router/src/index.ts)
 
 ## `@huiliyi37/dsh-agent-spine-demo`
 
