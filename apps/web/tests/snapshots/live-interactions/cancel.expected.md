@@ -17,7 +17,7 @@
   - img
 - button "Branch into a new conversation":
   - img
-- text: {{clock}} Ran for {{duration}}
+- text: {{clock}} Ran for {{duration}} TTFT {{duration}}
 - textbox "Message the agent"
 - button "Commands":
   - img
@@ -26,4 +26,4 @@
   - text: DeepSeek-V4-Flash
   - img
 - button "Send message" [disabled]
-- text: 1 turns · 1 steps Input 0 tok · Output 0 tok
+- text: 1 turns · 1 steps LLM {{duration}} TTFT avg {{duration}} Input 0 tok · Output 0 tok

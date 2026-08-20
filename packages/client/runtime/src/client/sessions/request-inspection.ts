@@ -283,7 +283,10 @@ function deriveRequests(events: readonly SessionEvent[]): readonly RequestView[]
       const request = index === undefined ? undefined : requests[index]
       updateAssistant(index, {
         completedAt: sourceEvent.time,
-        status: 'complete',
+        // A cancellation-finalized prefix is not a completed request: leave it
+        // running so the following step/end classifies it as before the prefix
+        // event existed.
+        status: sourceEvent.data.interrupted === true ? 'running' : 'complete',
         resultSeq: sourceEvent.seq,
         provenance: {
           provider: sourceEvent.data.message.source.provider,

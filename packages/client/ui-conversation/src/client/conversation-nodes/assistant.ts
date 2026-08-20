@@ -162,6 +162,10 @@ function finalNode(
         firstTokenTime: state.firstTokenTime ?? null,
         completedTime: event.time,
       },
+      // A cancellation-finalized prefix keeps its truncation marker: the
+      // durable event carries the classification, so the settled node still
+      // renders as interrupted (Stopped chip) rather than a completed answer.
+      ...event.data.interrupted === true ? { interrupted: true } : {},
     }
   }
   const location = context.start?.location ?? context.matches.at(-1)?.location

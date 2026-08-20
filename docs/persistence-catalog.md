@@ -78,7 +78,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }[T]
 ```
 
-Sources: [`packages/core/session/src/types.ts:318`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:325`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:353`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:385`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:322`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:329`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:357`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:389`](../packages/core/session/src/types.ts)
 
 ## Events
 
@@ -200,14 +200,18 @@ Source: [`packages/core/session/src/types.ts:246`](../packages/core/session/src/
  * Assembled assistant message for one step (derived history uses this).
  * Carries the step's `usage` when the adapter reported token accounting, so
  * the model output and its accounting travel together (there is no separate
- * usage record). `usage` is absent when the adapter reported none.
+ * usage record). `usage` is absent when the adapter reported none. A turn
+ * cancelled mid-stream finalizes its delivered text/reasoning prefix as this
+ * event with `interrupted: true` (undispatched tool calls are absent), so
+ * consumers classify the truncation without re-deriving it from turn
+ * boundaries; an aborted turn with no such event streamed no visible content.
  */
-'assistant/message': { turn: number; step: number; message: AssistantMessage; usage?: TokenUsage }
+'assistant/message': { turn: number; step: number; message: AssistantMessage; usage?: TokenUsage; interrupted?: true }
 ```
 
 Types: [TokenUsage](subsystems/llm-streaming.md)
 
-Source: [`packages/core/session/src/types.ts:253`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:257`](../packages/core/session/src/types.ts)
 
 ### `command/*`
 
@@ -597,7 +601,7 @@ Source: [`packages/plan/plan-mode/src/index.ts:64`](../packages/plan/plan-mode/s
 'request/context': RequestContext
 ```
 
-Source: [`packages/core/session/src/types.ts:291`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:295`](../packages/core/session/src/types.ts)
 
 #### `request/header` — log-only
 
@@ -609,7 +613,7 @@ Source: [`packages/core/session/src/types.ts:291`](../packages/core/session/src/
 'request/header': { header: EpochHeader; reason: RequestHeaderReason }
 ```
 
-Source: [`packages/core/session/src/types.ts:286`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:290`](../packages/core/session/src/types.ts)
 
 ### `sandbox/*`
 
@@ -676,7 +680,7 @@ Source: [`packages/schedule/schedule/src/types.ts:219`](../packages/schedule/sch
 'session/end-seed': Record<string, never>
 ```
 
-Source: [`packages/core/session/src/types.ts:314`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:318`](../packages/core/session/src/types.ts)
 
 #### `session/title` — log-only
 
@@ -751,7 +755,7 @@ Source: [`packages/subagent/subagent/src/descriptor.ts:37`](../packages/subagent
 
 Types: [TodoItem](subsystems/session.md)
 
-Source: [`packages/core/session/src/types.ts:281`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:285`](../packages/core/session/src/types.ts)
 
 ### `tool/*`
 
@@ -770,7 +774,7 @@ Source: [`packages/core/session/src/types.ts:281`](../packages/core/session/src/
 
 Types: [CallId](subsystems/core.md)
 
-Source: [`packages/core/session/src/types.ts:261`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:265`](../packages/core/session/src/types.ts)
 
 #### `tool/code-dispatch` — log-only
 
@@ -839,7 +843,7 @@ Source: [`packages/core/tools/src/types.ts:40`](../packages/core/tools/src/types
 }
 ```
 
-Source: [`packages/core/session/src/types.ts:273`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:277`](../packages/core/session/src/types.ts)
 
 ### `turn/*`
 
@@ -918,4 +922,4 @@ Source: [`packages/web/web-search-deepseek/src/provider.ts:83`](../packages/web/
 'zen/phase': { phase: ZenPhase; reason: ZenTransitionReason }
 ```
 
-Source: [`packages/guard/zen/src/index.ts:57`](../packages/guard/zen/src/index.ts)
+Source: [`packages/guard/zen/src/index.ts:58`](../packages/guard/zen/src/index.ts)

@@ -146,6 +146,28 @@ describe('applyTranscriptEvent', () => {
     expect(view.messages[0]).toMatchObject({ kind: 'assistant', turn: 1, step: 0, text: 'Hello' })
   })
 
+  it('closes a dangling stream when its interrupted assistant message commits (cancel mid-stream)', () => {
+    // 打断落定的日志形态：chunk 残流 + 带 interrupted 标记的 assistant/message。
+    // 投影必须折成恰好一行（resume 后残文不重复出现），流式槽随之关闭。
+    let view = emptyTranscript(sid)
+    view = applyTranscriptEvent(view, chunk(1, 1, 0, 'par'))
+    view = applyTranscriptEvent(view, chunk(2, 1, 0, 'tial'))
+    view = applyTranscriptEvent(view, ev({
+      seq: 3,
+      time: 1003,
+      type: 'assistant/message',
+      data: {
+        turn: 1,
+        step: 0,
+        message: { content: [{ type: 'text', text: 'partial' }] },
+        interrupted: true,
+      },
+    } as SessionEvent))
+    expect(view.streaming).toBeUndefined()
+    expect(view.messages).toHaveLength(1)
+    expect(view.messages[0]).toMatchObject({ kind: 'assistant', turn: 1, step: 0, text: 'partial' })
+  })
+
   it('keeps an unrelated stream open when another step commits', () => {
     let view = emptyTranscript(sid)
     view = applyTranscriptEvent(view, chunk(1, 1, 0, 'Hello'))

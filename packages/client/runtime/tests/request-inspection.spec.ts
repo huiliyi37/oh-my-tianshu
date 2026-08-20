@@ -85,6 +85,31 @@ describe('inspectRequests', () => {
     expect(snapshot.callSchemas.get('call-1')?.name).toBe('read')
   })
 
+  it('leaves a cancellation-finalized prefix uncompleted so the step boundary classifies it', () => {
+    const events = [
+      at(0, 'step/start', { turn: 1, step: 1 }),
+      at(1, 'request/header', {
+        reason: 'initial',
+        header: { config: { provider: 'fake', model: 'model' }, system: 'system' },
+      }),
+      at(2, 'assistant/message', {
+        turn: 1,
+        step: 1,
+        message: createAssistantMessage({
+          content: [{ type: 'text', text: 'cut short' }],
+          source: { provider: 'fake', model: 'model' },
+        }),
+        interrupted: true,
+      }),
+      at(3, 'step/end', { turn: 1, step: 1 }),
+      at(4, 'turn/end', { turn: 1, reason: { kind: 'aborted', reason: { kind: 'user' } } }),
+    ]
+    const snapshot = inspectRequests(entriesOf(events))
+    expect(snapshot.requests).toMatchObject([
+      { purpose: 'assistant', resultSeq: 2, status: 'error' },
+    ])
+  })
+
   it('does not promote a truncated resume or change header to the initial prompt', () => {
     for (const reason of ['resume', 'change'] as const) {
       const snapshot = inspectRequests(entriesOf([

@@ -158,6 +158,22 @@ describe('built-in conversation node Definitions', () => {
     expect(interrupted?.data).toMatchObject({ status: 'interrupted' })
     expect((interrupted?.data as AssistantChatData).finalNode?.interrupted).toBe(true)
 
+    // A cancellation-finalized prefix event keeps its durable truncation
+    // marker through the settled projection.
+    const markedValue = assembler([
+      at(20, 'turn/start', { turn: 3 }),
+      at(21, 'step/start', { turn: 3, step: 1 }),
+      at(22, 'assistant/message', {
+        turn: 3,
+        step: 1,
+        message: assistantMessage('assistant-3', 'cut short'),
+        interrupted: true,
+      }, { surfaceOp: 'append' }),
+    ])
+    const marked = node(snapshot(markedValue), 'assistant-step')
+    expect(marked?.data).toMatchObject({ status: 'interrupted', blocks: [{ kind: 'text', text: 'cut short' }] })
+    expect((marked?.data as AssistantChatData).finalNode?.interrupted).toBe(true)
+
     const hiddenValue = assembler([
       at(20, 'turn/start', { turn: 3 }),
       at(21, 'step/start', { turn: 3, step: 1 }),

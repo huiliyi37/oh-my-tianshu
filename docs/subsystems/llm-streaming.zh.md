@@ -306,7 +306,8 @@ interface TokenUsage {
  * {@link ContentBlock}s and a final assistant {@link Message}.
  *
  * The agent loop feeds it while logging raw chunks for replay fidelity, then
- * reads `blocks()` / `message()` / `usage` / `finish` once the stream ends.
+ * reads `blocks()` / `message()` / `usage` / `finish` once the stream ends,
+ * or `interruptedBlocks()` when cancellation cut the stream short.
  *
  * Tolerant of delta-only protocols (no block-start/end); deltas arriving for
  * an index already closed by `block-end` are ignored (malformed stream) so a
@@ -325,6 +326,15 @@ declare class BlockAssembler {
    *   its accumulated deltas (an unknown block type never closed by `block-end` throws).
    */
   blocks(): ContentBlock[];
+  /**
+   * Assemble the prefix an interrupted stream can safely finalize: closed and
+   * open text/reasoning blocks with any streamed content, in stream order.
+   * Tool calls are dropped whole — interruption precedes dispatch, so a kept
+   * call would demand a fabricated result — as are empty text/reasoning blocks
+   * and open blocks of unknown type (there is nothing assembled to keep).
+   * @returns the kept blocks; empty when nothing streamed before the interruption.
+   */
+  interruptedBlocks(): ContentBlock[];
   /** Usage from the `usage` chunk; undefined until one arrives. */
   get usage(): TokenUsage | undefined;
   /** Finish reason from the `finish` chunk; `{kind: 'stop'}` when the stream ended without one. */

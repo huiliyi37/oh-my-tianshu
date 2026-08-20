@@ -80,7 +80,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }[T]
 ```
 
-Sources: [`packages/core/session/src/types.ts:318`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:325`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:353`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:385`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:322`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:329`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:357`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:389`](../packages/core/session/src/types.ts)
 
 ## Events
 
@@ -202,14 +202,18 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
  * Assembled assistant message for one step (derived history uses this).
  * Carries the step's `usage` when the adapter reported token accounting, so
  * the model output and its accounting travel together (there is no separate
- * usage record). `usage` is absent when the adapter reported none.
+ * usage record). `usage` is absent when the adapter reported none. A turn
+ * cancelled mid-stream finalizes its delivered text/reasoning prefix as this
+ * event with `interrupted: true` (undispatched tool calls are absent), so
+ * consumers classify the truncation without re-deriving it from turn
+ * boundaries; an aborted turn with no such event streamed no visible content.
  */
-'assistant/message': { turn: number; step: number; message: AssistantMessage; usage?: TokenUsage }
+'assistant/message': { turn: number; step: number; message: AssistantMessage; usage?: TokenUsage; interrupted?: true }
 ```
 
 类型：[TokenUsage](subsystems/llm-streaming.md)
 
-来源：[`packages/core/session/src/types.ts:245`](../packages/core/session/src/types.ts)
+来源：[`packages/core/session/src/types.ts:257`](../packages/core/session/src/types.ts)
 
 ### `command/*`
 

@@ -2847,6 +2847,43 @@ describe('TuiApp 流式提交', () => {
     expect(written).not.toContain('不应出现的残文')
     await app.dispose()
   })
+
+  it('aborted turn 的打断落定消息不把残文带回 scrollback', async () => {
+    // 打断后 agent-loop 会把已流出的前缀落定成 interrupted assistant/message；
+    // 该事件触发的 flushStream 在 discard 之后必须是 no-op——残文只靠 resume 重现。
+    const ctx = makeCtx()
+    const agent = makeAgent('stream-interrupted')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin(), theme: 'paper' })
+    await app.attach()
+    const id = app.sessionId
+    if (id === null) throw new Error('no active session')
+    const emit = sessionEventBus(ctx)
+    emit(id, { seq: 1, time: 1, type: 'turn/start', data: { turn: 1 } })
+    emit(id, { seq: 2, time: 2, type: 'assistant/chunk', data: { turn: 1, step: 0, chunk: { type: 'text-delta', text: '已流出的前缀残文' } } })
+    app.handleAbort()
+    emit(id, {
+      seq: 3,
+      time: 3,
+      type: 'assistant/message',
+      data: {
+        turn: 1,
+        step: 0,
+        message: { content: [{ type: 'text', text: '已流出的前缀残文' }] },
+        interrupted: true,
+      },
+    })
+    emit(id, { seq: 4, time: 4, type: 'turn/end', data: { turn: 1, reason: { kind: 'aborted', reason: { kind: 'user' } } } })
+    await new Promise(resolve => setImmediate(resolve))
+
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('已取消')
+    expect(written).not.toContain('已流出的前缀残文')
+    await app.dispose()
+  })
 })
 
 describe('TuiApp 命令面板（Ctrl+P overlay）', () => {
