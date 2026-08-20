@@ -60,6 +60,8 @@ export interface FormatToolCardInput {
   width?: number
   /** 完整展开（ctrl+o），不截断 */
   expanded?: boolean
+  /** 标题覆盖（如「未开始执行」孤儿结果卡）；缺省 toolCardTitle(toolName, …)。 */
+  title?: string
 }
 
 const DEFAULT_MAX_LINES = 4
@@ -183,6 +185,7 @@ export function formatToolCard(input: FormatToolCardInput, theme: RivetTheme): s
     streaming = false,
     toolInput,
     expanded = false,
+    title,
   } = input
 
   const family = getToolFamily(toolName)
@@ -194,7 +197,7 @@ export function formatToolCard(input: FormatToolCardInput, theme: RivetTheme): s
 
   const header = formatToolCardHeader({
     toolName,
-    title: toolCardTitle(toolName, toolInput, rawPath),
+    title: title ?? toolCardTitle(toolName, toolInput, rawPath),
     isError,
     streaming,
     ...(elapsedMs === undefined ? {} : { elapsedMs }),

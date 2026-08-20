@@ -61,6 +61,7 @@ function userMessage(text: string, seq = 1): TranscriptMessage {
     step: undefined,
     text,
     reasoning: '',
+    interrupted: false,
     event: {} as SessionEvent,
   }
 }
@@ -74,6 +75,7 @@ function assistantMessage(text: string, seq = 2, reasoning = ''): TranscriptMess
     step: 0,
     text,
     reasoning,
+    interrupted: false,
     event: {} as SessionEvent,
   }
 }
@@ -150,6 +152,14 @@ describe('renderMessageRows', () => {
     expect(text.join('\n')).not.toContain('第二步')
   })
 
+  it('3.1: interrupted assistant 消息 → 中断角标行先于正文', () => {
+    const message = { ...assistantMessage('partial'), interrupted: true }
+    const rows = renderMessageRows(message, fakeTheme(), 100)
+    const text = plain(rows)
+    expect(text[0]).toContain('输出被中断')
+    expect(text.join('')).toContain('partial')
+  })
+
   it('compact 模式：思考块仅头行，正文跳过', () => {
     const rows = renderMessageRows(assistantMessage('正文', 2, '内心戏'), fakeTheme(), 80, { compact: true })
     const text = plain(rows).join('\n')
@@ -174,6 +184,27 @@ describe('renderToolRows', () => {
     const rows = renderToolRows(tool('c2', 'bash', '{}', result), fakeTheme())
     expect(rows.length).toBeGreaterThan(0)
     expect(plain(rows).join('\n')).not.toContain('裸文本')
+  })
+
+  it('3.1: TOOL_NOT_STARTED 孤儿结果 → 「未开始执行」卡片（isError 态）', () => {
+    const result = toolResultEvent('orphan-1', [
+      { type: 'tool-result', content: [{ type: 'text', text: 'interrupted before start' }] },
+    ], { name: 'ToolNotStartedError', code: 'TOOL_NOT_STARTED' })
+    const orphan: TranscriptToolCall = {
+      callId: 'orphan-1' as CallId,
+      name: '',
+      arguments: '{}',
+      turn: 1,
+      step: 0,
+      seq: 9,
+      time: 1800,
+      result,
+      error: { name: 'ToolNotStartedError', code: 'TOOL_NOT_STARTED' },
+    }
+    const rows = renderToolRows(orphan, fakeTheme())
+    const text = plain(rows)
+    expect(text[0]).toContain('未开始执行')
+    expect(text.join('')).toContain('interrupted before start')
   })
 
   it('result 带 error → isError 错误态（非静默）', () => {

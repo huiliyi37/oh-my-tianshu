@@ -1,0 +1,34 @@
+# Agent Note：会话恢复可见性链路
+
+Status: implemented
+
+[English](2026-08-20-session-resume-visibility.md) | 中文
+
+## 问题
+
+会话恢复没有任何用户可见信号：冷启动静默新建、恢复回放静默、崩溃修复把合成闭合事件写进模型上下文却零提示、命令行无法按 id 指定会话。发现 → 选择 → 恢复 → 结果 的每一环都不可见。
+
+## 决策
+
+TUI 与 CLI 现在让全链路可见（路线图 docs/dsh-session-resume-roadmap.zh.md，Phase 1–3）：
+
+- 冷启动在欢迎卡渲染可恢复会话编号列表（标题 · 年龄 · cwd）；欢迎阶段内数字键 1–9 直达对应会话。阶段在列表渲染后开始，在首次输入字符、会话切换或提交时结束——之后数字键永不劫持打字。冷启动默认（新建 vs 自动恢复）保持新建：路线图的决策点后置，列表只补可见性。
+- 恢复挂载输出横幅（标题 · 最后活动 · cwd）与回放末尾的「上次进行到此处」分隔；新会话两者都不渲染。
+- 崩溃修复告知以持久化的 `turn/end { reason: { kind: 'interrupted' } }` 标记为权威信号：repair.ts 是唯一生产者、loop 永不发出，日志中存在即「曾被修复」的事实。不新增会话事件、不触碰持久化/loop 写路径。
+- `dsh tui --session <id>` 与 `dsh run --session <id> "task"` 恢复指定会话（tui 经 cmdlineArgs 转发、headless 走 resume 工厂）；未知 id fails loud 并给恢复指引，headless 绝不静默回退新建。
+- `/resume [id]` 与 Ctrl+S、欢迎页列表共享 listSessions 数据源；会话选择器行改用可恢复摘要（替代裸 UUID）；会话 tab 行单会话也渲染，当前会话 id 任意时刻可见。
+- 损坏的 JSONL 工件（空文件或头部不可解析）以 version -1 占位 header 保留在列表中，id 从目录名解码；列表/选择器/欢迎页标注「不可恢复」，loadHistory 上抛加载失败而非返回空日志。zstd 头帧损坏维持 fails loud（不变）。
+- 版本不符错误携带可操作指引（升级或隔离会话根目录）。
+- 随机贴士池仅在存在可恢复会话且首屏列表隐藏时加入恢复条目；列表可见时 Ctrl+S tip 行去掉年龄摘要。
+- 中断的 assistant 消息渲染「⚠ 输出被中断」角标；无 tool/call 配对的 TOOL_NOT_STARTED 孤儿结果渲染「未开始执行」卡片而非被丢弃。
+- 配置驱动恢复路径在固定 sessionId 无工件、降级新建时输出 info 日志，可区分「已新建」与「已恢复」（后者经 agent/session-start source=resume 呈现）。
+
+文案决策：路线图要求新增恢复文案走双语对；本仓 i18n 配对契约管辖的是文档，而 TUI 的既定约定是单一中文界面语言（仅 USAGE_TEXT 内联双语）。新增文案遵循 TUI 约定；本工作更新的每份文档都是已核验的双语对。
+
+## 验证
+
+- 纯投影：formatRestorablePickerList、损坏行格式、wasCrashRepaired、中断 transcript 行、孤儿工具行（restore-session / transcript / render specs）。
+- 应用层：欢迎列表 + 数字键 + 阶段退出、恢复横幅/分隔/崩溃告知、--session attach（已知/未知 id）、选择器摘要行、单会话 tab、tips 动态（app.spec）。
+- 后端：JSONL list 保留损坏工件为 version -1 并解码 id；coordinator 版本错误带指引（jsonl.spec / coordinator-contract）。
+- CLI：run/tui --session 解析与转发（args.spec）、headless resume 工厂 + 未知 id 指引（headless.spec）。
+- agent-loop：配置驱动降级输出信号日志（config-session-id.spec）。

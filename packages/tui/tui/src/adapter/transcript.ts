@@ -33,6 +33,8 @@ export interface TranscriptMessage {
   readonly text: string
   /** Reasoning folded from the message's `reasoning` blocks; `''` when none (and for user rows). */
   readonly reasoning: string
+  /** true = 源 assistant/message 带 interrupted 标记（取消或崩溃截断的输出前缀）。 */
+  readonly interrupted: boolean
   /** The exact source event — the durable fact this row projects. */
   readonly event: SessionEvent
 }
@@ -131,6 +133,7 @@ export function applyTranscriptEvent(view: TranscriptView, event: SessionEvent):
         step: undefined,
         text: foldText(event.data.content),
         reasoning: '',
+        interrupted: false,
         event,
       }
       return {
@@ -164,6 +167,7 @@ export function applyTranscriptEvent(view: TranscriptView, event: SessionEvent):
         step,
         text: foldText(message.content),
         reasoning: foldReasoning(message.content),
+        interrupted: event.data.interrupted === true,
         event,
       }
       // The matching chunk stream is closed by its assembled message.
@@ -191,6 +195,22 @@ export function applyTranscriptEvent(view: TranscriptView, event: SessionEvent):
     case 'tool/result': {
       // The paired block carries the call identity as `toolCallId`.
       const { toolCallId: callId } = event.data.message.content[0]
+      // 3.1：无 tool/call 配对的 TOOL_NOT_STARTED 结果（repair 合成）不丢弃——
+      // 折叠为 name 未知的孤儿条目，渲染层据此画「未开始执行」卡片。
+      if (!base.tools.some(tool => tool.callId === callId) && event.data.error?.code === 'TOOL_NOT_STARTED') {
+        const orphan: TranscriptToolCall = {
+          callId,
+          name: '',
+          arguments: '{}',
+          turn: event.data.turn,
+          step: event.data.step,
+          seq: event.seq,
+          time: event.time,
+          result: event,
+          error: { name: event.data.error.name, code: event.data.error.code },
+        }
+        return { ...base, tools: [...base.tools, orphan] }
+      }
       const tools = base.tools.map((tool) => {
         if (tool.callId !== callId) return tool
         return {

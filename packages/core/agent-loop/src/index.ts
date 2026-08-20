@@ -389,6 +389,11 @@ export class AgentLoop extends Service implements AgentFactory {
       const exists = (await persistence.list()).some(header => header.id === sessionId)
       if (exists) throw error
     }
+    // 3.3：降级新建的可观察信号——配置驱动路径必须能区分「已恢复」（上方
+    // resume 成功，agent/session-start source=resume）与「已新建」（本日志）。
+    this.ctx.logger.info(
+      `agent-loop: configured session "${sessionId}" has no persisted artifact; degrading to a fresh session instead of resuming`,
+    )
     this.create(sessionId, agentOptions, meta)
   }
 

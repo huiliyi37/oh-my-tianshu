@@ -20,6 +20,7 @@ import type { SessionEvent } from '@huiliyi37/dsh-session'
 import type { RivetTheme } from '../theme.js'
 import type { TranscriptMessage, TranscriptToolCall, TranscriptView } from '../adapter/transcript.js'
 import type { ResolvedToolViews } from '../adapter/tool-view.js'
+import { color } from '../engine/ansi.js'
 import { formatUserMessage } from '../format/user-message.js'
 import { formatMarkdown } from '../format/markdown.js'
 import { formatToolCard } from '../format/tool-card.js'
@@ -99,6 +100,10 @@ export function renderMessageRows(
       .map(ansi => ({ ansi, kind: 'user' as const }))
   }
   const rows: RenderedRow[] = []
+  // 3.1：中断角标——取消/崩溃截断的 assistant 消息在回放中可辨认。
+  if (message.interrupted) {
+    rows.push({ ansi: color('⚠ 输出被中断 · 未完成', theme.warning), kind: 'assistant' })
+  }
   if (message.reasoning !== '') {
     rows.push(...formatReasoningBlock({
       text: message.reasoning,
@@ -132,6 +137,20 @@ export function renderToolRows(
       content: '',
       ...(args === undefined ? {} : { toolInput: args }),
       streaming: true,
+      ...(options.expanded === undefined ? {} : { expanded: options.expanded }),
+      ...(options.width === undefined ? {} : { width: options.width }),
+    }, theme)
+    return rows.map(ansi => ({ ansi, kind: 'tool' as const }))
+  }
+  // 3.1：无 tool/call 配对的 TOOL_NOT_STARTED 结果 → 「未开始执行」卡片
+  // （调用发生在记录之前，工具名未知；正文折叠修复合成文本）。
+  if (tool.error?.code === 'TOOL_NOT_STARTED' && tool.name === '') {
+    const { content: repairText } = toolResultText(result)
+    const rows = formatToolCard({
+      toolName: '',
+      title: '未开始执行',
+      content: repairText,
+      isError: true,
       ...(options.expanded === undefined ? {} : { expanded: options.expanded }),
       ...(options.width === undefined ? {} : { width: options.width }),
     }, theme)

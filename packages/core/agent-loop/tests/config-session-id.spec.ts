@@ -439,6 +439,30 @@ describe('config-driven session id', () => {
     await ctx2.fiber.dispose()
   })
 
+  it('3.3: exact sessionId without an artifact degrades to a fresh session with an info signal', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-cfg-degrade-'))
+    dirs.push(root)
+    const ctx = await makeCoreContext()
+    // 持久化必须先于 AgentLoop 装配：restoreOrCreateConfigured 只在构造时
+    // 已可见 sessionPersistence 的配置下启用（与「restores a materialized
+    // exact id」测试同构）。
+    await ctx.plugin(SessionPersistenceJsonl, { root })
+    await ctx.plugin(AgentLoop, { agents: [{ id: SessionId('cfg'), sessionId: SessionId('exact-degrade'), provider: 'mock', model: 'mock' }] })
+    ctx.llm.registerAdapter(['mock'], new MockAdapter([textResponse('degraded')]))
+    // 降级新建的可观察信号：logger.info 明确「无持久化工件 → 新建」——
+    // 与成功恢复路径（agent/session-start source=resume，无此日志）可区分。
+    const info = vi.spyOn(ctx.logger, 'info').mockImplementation(() => undefined)
+    let created: Agent | undefined
+    for (let i = 0; i < 50 && !created; i++) {
+      await new Promise(r => setTimeout(r, 5))
+      created = ctx.agents.get(SessionId('exact-degrade'))
+    }
+    expect(created).toBeDefined()
+    expect(created!.session.id).toBe('exact-degrade')
+    expect(info).toHaveBeenCalledWith(expect.stringContaining('no persisted artifact'))
+    await ctx.fiber.dispose()
+  })
+
   it('config-driven resume of a missing session is contained: logs a warning, no agent, no crash', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-cfg-resume-miss-'))
     dirs.push(root)

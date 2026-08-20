@@ -337,3 +337,41 @@ describe('firstInTurnTime', () => {
     expect(view.firstInTurnTime).toBeUndefined()
   })
 })
+
+describe('session-resume 3.1 中断可见性', () => {
+  it('assistant/message 带 interrupted 标记 → 行标注 interrupted', () => {
+    let view = emptyTranscript(sid)
+    view = applyTranscriptEvent(view, ev({
+      seq: 5, time: 1005, type: 'assistant/message',
+      data: { turn: 0, step: 0, message: { content: [{ type: 'text', text: 'partial' }] }, interrupted: true },
+    } as SessionEvent))
+    expect(view.messages[0]?.interrupted).toBe(true)
+  })
+
+  it('普通 assistant/message → interrupted false', () => {
+    let view = emptyTranscript(sid)
+    view = applyTranscriptEvent(view, assistantMessage(5, 0, 0, 'full'))
+    expect(view.messages[0]?.interrupted).toBe(false)
+  })
+
+  it('TOOL_NOT_STARTED 孤儿结果（无 tool/call 配对）→ 折叠为孤儿工具条目', () => {
+    let view = emptyTranscript(sid)
+    view = applyTranscriptEvent(view, toolResult(5, 'orphan-call', 'text', { name: 'ToolNotStartedError', code: 'TOOL_NOT_STARTED' }))
+    expect(view.tools).toHaveLength(1)
+    expect(view.tools[0]).toMatchObject({
+      callId: 'orphan-call',
+      name: '',
+      error: { name: 'ToolNotStartedError', code: 'TOOL_NOT_STARTED' },
+    })
+    expect(view.tools[0]?.result).toBeDefined()
+  })
+
+  it('已配对的结果不产生孤儿条目；非 TOOL_NOT_STARTED 孤儿结果仍被忽略', () => {
+    let view = emptyTranscript(sid)
+    view = applyTranscriptEvent(view, toolCall(4, 'paired', 'read', '{}', 0, 0))
+    view = applyTranscriptEvent(view, toolResult(5, 'paired', 'ok'))
+    expect(view.tools).toHaveLength(1) // 只有配对条目
+    view = applyTranscriptEvent(view, toolResult(6, 'unknown-other', 'x', { name: 'OtherError', code: 'E_X' }))
+    expect(view.tools).toHaveLength(1) // 非 TOOL_NOT_STARTED 孤儿仍丢弃
+  })
+})
