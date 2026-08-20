@@ -6575,3 +6575,93 @@ describe('TuiApp cmdline 参数处理（A3）', () => {
     await app.dispose()
   })
 })
+
+describe('会话切换稳健性（switchSession 竞态 / restore 失败 / 委派树重绘）', () => {
+  it('快速连续切换：迟到的 resume 不得覆盖新会话的挂载', async () => {
+    const ctx = makeCtx()
+    ctx.sessions.list.mockReturnValue([])
+    const sA = SessionId('session-race-a')
+    const sB = SessionId('session-race-b')
+    // 完整 session 形状（requestHeader/events 等）——mountSession 会读
+    ctx.sessions.get.mockImplementation((id: SessionId) => makeAgent(String(id)).session)
+    ctx.agents.create.mockResolvedValue(makeHandle(makeAgent('race-boot')))
+    // A 的 resume 挂起（手动放行），B 的立即完成
+    let releaseA!: (handle: AgentHandle) => void
+    const resumeA = new Promise<AgentHandle>(resolve => { releaseA = resolve })
+    const disposeB = vi.fn()
+    const handleB = makeHandle(makeAgent('race-b'), disposeB)
+    ctx.agents.resume.mockImplementation((req: { resumeSessionId: SessionId }) =>
+      req.resumeSessionId === sA ? resumeA : Promise.resolve(handleB))
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    // 先切 A（resume 挂起中），B 随即跟上并先完成
+    const switchA = app.switchSession(sA)
+    await new Promise(resolve => setImmediate(resolve))
+    const switchB = app.switchSession(sB)
+    await switchB
+    expect(app.sessionId).toBe(sB)
+    // A 的 resume 这时才完成（迟到）：不得挂载 A / 覆盖 ownedHandle
+    releaseA(makeHandle(makeAgent('race-a')))
+    await switchA
+    await app.dispose()
+    // 退出时 dispose 的是当前挂载（B）的 handle——若迟到的 A 覆盖过
+    // ownedHandle，这里 dispose 的会是 A 的 handle 而 B 泄漏
+    expect(disposeB).toHaveBeenCalledTimes(1)
+  })
+
+  it('restoreRecentOtherSession：listSessions 拒绝 → 静默降级不产生 unhandled rejection', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('restore-fail')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.agents.get.mockReturnValue(agent)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    // attach 完成后再让 list 失败（attach 自身要读 live store 判空）
+    ctx.sessions.list.mockImplementation(() => { throw new Error('boom') })
+    const internal = app as unknown as { restoreRecentOtherSession(): Promise<void> }
+    await expect(internal.restoreRecentOtherSession()).resolves.toBeUndefined()
+    await app.dispose()
+  })
+
+  it('委派树刷新失败 → 置空并调度重绘（面板不滞留旧树）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('deleg-fail')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.sessions.list.mockReturnValue([])
+    const okEntries = [{
+      kind: 'child', id: 'child-1', parentId: 'root', depth: 1,
+      activity: 'running', hasChildren: false, mode: 'one-shot', label: '探查',
+    }]
+    let descendants: (id: SessionId) => Promise<typeof okEntries> = async () => okEntries
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'subagents') return { listDescendants: (id: SessionId) => descendants(id) }
+      return undefined
+    })
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    const internal = app as unknown as {
+      refreshDelegationTree(id: SessionId): void
+      subagentsPanelVisible: boolean
+    }
+    // 委派树面板门控打开（renderDelegationPanel 只在可见时渲染）
+    internal.subagentsPanelVisible = true
+    internal.refreshDelegationTree(SessionId('session-deleg'))
+    await new Promise(resolve => setTimeout(resolve, 60))
+    const writesAfterOk = stdout.write.mock.calls.length
+    expect(writesAfterOk).toBeGreaterThan(0)
+    // 刷新失败：面板须清空（重绘），而不是滞留旧树
+    descendants = () => Promise.reject(new Error('boom'))
+    internal.refreshDelegationTree(SessionId('session-deleg'))
+    await new Promise(resolve => setTimeout(resolve, 150))
+    expect(stdout.write.mock.calls.length).toBeGreaterThan(writesAfterOk)
+    await app.dispose()
+  })
+})
