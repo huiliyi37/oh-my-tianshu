@@ -42,6 +42,8 @@ interface ImageAttachmentLimits {
   maxImagesPerMessage: number
   maxMessageImageBytes: number
   maxImagePixels: number
+  /** Maximum intrinsic width and maximum intrinsic height in pixels for one image. */
+  maxImageDimension: number
   mediaTypes: readonly ImageMediaType[]
 }
 ```
