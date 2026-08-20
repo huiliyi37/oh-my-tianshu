@@ -20,6 +20,8 @@ export interface PredictionAccumulator {
   predictions: boolean[]
   /** 连续正确次数（错误时重置；≥3 触发 tipping point）。 */
   consecutiveCorrect: number
+  /** 连续失败次数（正确时重置；路由升级迟滞的数据源）。 */
+  consecutiveFailed: number
 }
 
 /** 错误率阈值 → 干预级别（与天枢一致）。 */
@@ -37,7 +39,7 @@ export const TIPPING_POINT_CONSECUTIVE = 3
  * @returns 空累计器。
  */
 export function createPredictionAccumulator(windowSize = 10): PredictionAccumulator {
-  return { windowSize, predictions: [], consecutiveCorrect: 0 }
+  return { windowSize, predictions: [], consecutiveCorrect: 0, consecutiveFailed: 0 }
 }
 
 /**
@@ -46,7 +48,7 @@ export function createPredictionAccumulator(windowSize = 10): PredictionAccumula
  * @returns 重置后的累计器。
  */
 export function resetAccumulator(acc: PredictionAccumulator): PredictionAccumulator {
-  return { ...acc, predictions: [], consecutiveCorrect: 0 }
+  return { ...acc, predictions: [], consecutiveCorrect: 0, consecutiveFailed: 0 }
 }
 
 /**
@@ -61,7 +63,22 @@ export function recordPrediction(
 ): PredictionAccumulator {
   const nextPredictions = [...acc.predictions, correct].slice(-acc.windowSize)
   const nextConsecutiveCorrect = correct ? acc.consecutiveCorrect + 1 : 0
-  return { ...acc, predictions: nextPredictions, consecutiveCorrect: nextConsecutiveCorrect }
+  const nextConsecutiveFailed = correct ? 0 : acc.consecutiveFailed + 1
+  return {
+    ...acc,
+    predictions: nextPredictions,
+    consecutiveCorrect: nextConsecutiveCorrect,
+    consecutiveFailed: nextConsecutiveFailed,
+  }
+}
+
+/**
+ * 连续失败次数（升级迟滞：达到阈值才允许 escalate）。
+ * @param acc - 累计器。
+ * @returns 连续失败计数。
+ */
+export function getConsecutiveFailures(acc: PredictionAccumulator): number {
+  return acc.consecutiveFailed
 }
 
 /**

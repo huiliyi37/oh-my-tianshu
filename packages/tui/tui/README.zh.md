@@ -12,7 +12,7 @@
   name: '@huiliyi37/dsh-tui'
 ```
 
-发货 bundle patch（cordis.patch.yml）在 `tui-runner` 之外还挂载：spark-anchors、视觉桥，以及天枢侧能力 roster——fs-snapshot（`/rewind` 文件回退）、memory 服务与记忆工具（含 `memory_deep_recall`）、跨会话查询工具、evidence-gate、zen（锚定初始 face 相位；布防期间顶边状态栏显示 `禅` 徽章；禅 `face` 不含 `memory_deep_recall`）与 agent-presets（`default: standard`；shipped 只读根由 `composeProfile` 注入）。
+发货 bundle patch（cordis.patch.yml）在 `tui-runner` 之外还挂载：spark-anchors、视觉桥，以及天枢侧能力 roster——fs-snapshot（`/rewind` 文件回退）、memory 服务与记忆工具（含 `memory_deep_recall`）、跨会话查询工具、evidence-gate、zen（锚定初始 face 相位；布防期间顶边状态栏显示 `禅` 徽章；禅 `face` 不含 `memory_deep_recall`）、agent-router（turn-end 影子决策——只记录不派发，标准起步）与 agent-presets（`default: standard`；shipped 只读根由 `composeProfile` 注入）。
 
 `TuiRunnerConfig`（全部可选）：
 

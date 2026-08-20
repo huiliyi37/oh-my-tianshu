@@ -57,6 +57,14 @@ apply(ctx, {
     codeScout: ['read', 'bash'],
     verifier: ['read', 'bash'],
   },
+  trigger: {               // 可选：turn-end 触发（缺省 off 不触发）
+    mode: 'shadow',        // shadow 只决策并记录；auto 决策并派发
+    onTurnEnd: true,
+  },
+  escalation: {            // 可选：升级迟滞（缺省 cap verifier、连续失败 ≥2）
+    cap: 'verifier',       // 'off' 关闭升级分支
+    minConsecutiveFailures: 2,
+  },
 })
 
 ```
@@ -86,6 +94,7 @@ None directly; the delegate session is an independent model request, and the par
 
 - **派发需要显式模型配置** — `dispatchEnabled: true` 时必须提供 `provider`/`model`；未配置时只决策不派发（决策结果仍可查询）。
 - **派发需要活的父会话** — `execute` 接收父 `sessionId`，该会话不是活 agent 时 fail loud；seam 从父会话派生 child 的 workspace、血统与委派深度。
+- **turn-end 触发以 shadow 发货** — 发货 TUI 挂 `trigger: { mode: 'shadow', onTurnEnd: true }`：delegate 决策落 log-only `router/decision` 但绝不派发。切 `auto` 是闭环验证后的产品决定；`auto` 需要 `provider`/`model`。
 - **预测窗口是内存态** — 滑动窗口与 tipping point 状态随进程消失。累计按会话隔离且排除 child 会话（`header.parentSession`），被路由的子代理绝不污染父会话窗口。
 - **路由表是固定策略** — 三级干预阈值（0.4/0.6/0.8）与动作映射为移植时的天枢常量；可配置化随实际调参需求再做。
 - **profile 工具集随部署而定** — 内置默认面向发货工具目录（`grep`/`read`/`glob`/`repo_graph`/`semantic_search`/`bash`）；精简装配经 `profileTools` 声明自己的子集，未知工具名会让派发响亮失败而不是放宽工具面。

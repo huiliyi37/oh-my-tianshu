@@ -94,6 +94,15 @@
         execModel: deepseek-v4-flash
 
 
+    # 失败预测路由：turn 结束影子决策（shadow 只记录不派发；auto 才经 seam
+    # 派发——标准起步先 shadow，闭环验证后由产品定夺切 auto）。
+    - id: agent-router
+      name: '@huiliyi37/dsh-agent-router'
+      config:
+        trigger:
+          mode: shadow
+          onTurnEnd: true
+
     # preset roster（/preset 的服务端）。shipped 只读根由 apps/cli 的
     # composeProfile 按「行 id 为 agent-presets」注入（与 profile 无关）；
     # 可写根是插件自身的 includeUserRoot 缺省。

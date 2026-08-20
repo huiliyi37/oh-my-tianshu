@@ -14,7 +14,7 @@ import { apply as applyAgentRouter, resolveProfileTools, type RouterService } fr
 
 const PARENT_ID = SessionId('session-1')
 
-function makeContext(): {
+function makeContext(config: Record<string, unknown> = {}): {
   ctx: Context
   seam: { start: ReturnType<typeof vi.fn> }
   counters: { result: number; dispose: number; append: Array<{ type: string; data: unknown }> }
@@ -43,7 +43,7 @@ function makeContext(): {
       },
     }),
   })
-  applyAgentRouter(ctx, { provider: 'mock', model: 'mock' })
+  applyAgentRouter(ctx, { provider: 'mock', model: 'mock', ...config })
   counters.append = appended
   const emit = (name: string, ...args: unknown[]): void => {
     // 测试替身按宽松签名派发事件（name 为运行时字符串）；类型化重载要求
@@ -192,6 +192,84 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     expect(router.metrics({ sessionId: A }).interventionLevel).toBe('none')
     expect(router.decide({ sessionId: A }).kind).toBe('self')
   }, 10000)
+
+  it('trigger shadow：turn/end 的 delegate 决策落 router/decision（不派发）', async () => {
+    const { ctx, seam, emit } = makeContext({ trigger: { mode: 'shadow', onTurnEnd: true } })
+    const router = ctx.get('router') as RouterService
+    const A = SessionId('session-a')
+    const appended: Array<{ type: string; data: unknown }> = []
+    const session = { id: A, header: {}, append: (type: string, data: unknown) => { appended.push({ type, data }) } }
+
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    expect(router.metrics({ sessionId: A }).interventionLevel).toBe('escalate')
+    emit('session/event', session, {
+      type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
+    })
+    await vi.waitFor(() => expect(appended).toHaveLength(1))
+    expect(appended[0]!.type).toBe('router/decision')
+    const decision = appended[0]!.data as { profile: string; mode: string; dispatched: boolean; subagentSessionId?: string }
+    expect(decision.profile).toBe('verifier')
+    expect(decision.mode).toBe('shadow')
+    expect(decision.dispatched).toBe(false)
+    expect(decision.subagentSessionId).toBeUndefined()
+    expect(seam.start).not.toHaveBeenCalled()
+  }, 10000)
+
+  it('trigger auto：turn/end 决策后经 seam 派发，决策记录 dispatched true', async () => {
+    const { seam, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true } })
+    const A = SessionId('session-a')
+    const appended: Array<{ type: string; data: unknown }> = []
+    const session = { id: A, header: {}, append: (type: string, data: unknown) => { appended.push({ type, data }) } }
+
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    emit('session/event', session, {
+      type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
+    })
+    await vi.waitFor(() => expect(appended).toHaveLength(1))
+    const decision = appended[0]!.data as { dispatched: boolean; subagentSessionId?: string }
+    expect(decision.dispatched).toBe(true)
+    expect(decision.subagentSessionId).toBe('session-child-1')
+    expect(seam.start).toHaveBeenCalledTimes(1)
+  }, 10000)
+
+  it('trigger off / child 会话 turn/end 不触发决策', async () => {
+    const offCtx = makeContext({ trigger: { mode: 'shadow', onTurnEnd: true } })
+    const router = offCtx.ctx.get('router') as RouterService
+    const A = SessionId('session-a')
+    const appended: Array<{ type: string; data: unknown }> = []
+    const session = { id: A, header: {}, append: (type: string, data: unknown) => { appended.push({ type, data }) } }
+    for (let i = 0; i < 8; i++) runTool(offCtx.emit, true, { id: A })
+    expect(router.metrics({ sessionId: A }).interventionLevel).toBe('escalate')
+    // child 会话（header.parentSession）turn/end → 排除
+    offCtx.emit('session/event', { id: 'session-child-1', header: { parentSession: A }, append: () => {} }, {
+      type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
+    })
+    // self 决策（连续 3 次成功重置）→ 不落记录
+    for (let i = 0; i < 3; i++) runTool(offCtx.emit, false, { id: A })
+    offCtx.emit('session/event', session, {
+      type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
+    })
+    await new Promise(resolve => setTimeout(resolve, 10))
+    expect(appended).toHaveLength(0)
+    // 缺省配置（无 trigger）不触发
+    const defaultCtx = makeContext()
+    const defaultRouter = defaultCtx.ctx.get('router') as RouterService
+    for (let i = 0; i < 8; i++) runTool(defaultCtx.emit, true, { id: 'session-a' })
+    expect(defaultRouter.metrics({ sessionId: SessionId('session-a') }).interventionLevel).toBe('escalate')
+    const defaultAppended: Array<{ type: string }> = []
+    defaultCtx.emit('session/event', { id: 'session-a', header: {}, append: (type: string) => { defaultAppended.push({ type }) } }, {
+      type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
+    })
+    await new Promise(resolve => setTimeout(resolve, 10))
+    expect(defaultAppended).toHaveLength(0)
+  }, 10000)
+
+  it('trigger 配置非法 fail loud', () => {
+    expect(() => applyAgentRouter(new Context(), { trigger: { mode: 'hyper' as never } })).toThrow(/trigger.mode/)
+    expect(() => applyAgentRouter(new Context(), { trigger: { onTurnEnd: 'yes' as never } })).toThrow(/onTurnEnd/)
+    expect(() => applyAgentRouter(new Context(), { escalation: { cap: 'strong' as never } })).toThrow(/escalation.cap/)
+    expect(() => applyAgentRouter(new Context(), { escalation: { minConsecutiveFailures: 0 } })).toThrow(/minConsecutiveFailures/)
+  })
 
   it('agent/disposed 时 evict 该会话的累计器', async () => {
     const { ctx, emit } = makeContext()

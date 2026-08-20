@@ -5,7 +5,7 @@
  * 连续 3 次正确触发重置判定、不可变更新。
  */
 import { describe, expect, it } from 'vitest'
-import {
+import { getConsecutiveFailures,
   createPredictionAccumulator,
   getErrorRate,
   getInterventionLevel,
@@ -43,6 +43,17 @@ describe('recordPrediction — 不可变更新 + 窗口滑动', () => {
     expect(acc.predictions).toEqual([]) // 原对象不变
     expect(next.predictions).toEqual([true])
     expect(next.consecutiveCorrect).toBe(1)
+  })
+
+  it('连续失败计数：失败累计、成功清零（升级迟滞数据源）', () => {
+    const acc = createPredictionAccumulator()
+    expect(getConsecutiveFailures(acc)).toBe(0)
+    const afterFail = recordPrediction(recordPrediction(acc, false), false)
+    expect(getConsecutiveFailures(afterFail)).toBe(2)
+    const afterSuccess = recordPrediction(afterFail, true)
+    expect(getConsecutiveFailures(afterSuccess)).toBe(0)
+    const reset = resetAccumulator(afterFail)
+    expect(getConsecutiveFailures(reset)).toBe(0)
   })
 
   it('错误重置连续正确计数', () => {

@@ -17,16 +17,17 @@
  */
 
 import type { Context } from '@huiliyi37/cordis'
-import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
+import type { Session, SessionEvent, SessionId } from '@huiliyi37/dsh-session'
 import type {} from '@huiliyi37/dsh-agent' // 'agent/disposed' 事件声明合并'
 import {
   createPredictionAccumulator,
+  getConsecutiveFailures,
   getInterventionLevel,
   recordPrediction,
   resetAccumulator,
   shouldTippingPointReset,
 } from './prediction.js'
-import { decideRouterAction, type RouterAction, type RouterMetrics } from './router.js'
+import { decideRouterAction, type EscalationPolicy, type RouterAction, type RouterMetrics } from './router.js'
 import { DEFAULT_PROFILE_TOOLS, dispatchSubagent, type DispatchOptions } from './dispatch.js'
 
 /** 插件名（cordis.yml 装配用）。 */
@@ -40,6 +41,22 @@ declare module '@huiliyi37/dsh-session/types' {
      * accepted delegate — a session may route many delegates.
      */
     'router/route': { profile: 'code_scout' | 'verifier'; task: string; targets: string[]; subagentSessionId: string }
+    /**
+     * Durable route-decision record on the session's own log: log-only (never
+     * reaches the model surface), whole-value append at turn end. One per
+     * trigger firing — shadow records the decision without dispatching;
+     * auto records the dispatch outcome (subagentSessionId only when
+     * dispatched).
+     */
+    'router/decision': {
+      profile: 'code_scout' | 'verifier'
+      task: string
+      targets: string[]
+      reason: 'turn-end'
+      mode: 'shadow' | 'auto'
+      dispatched: boolean
+      subagentSessionId?: string
+    }
   }
 }
 
@@ -86,6 +103,69 @@ export interface AgentRouterConfig {
   }
   /** 子代理 provider 名（ctx.subagents 注册名）；缺省 'spawn'（进程内子代理）。 */
   subagentProvider?: string
+  /**
+   * turn-end 触发（生产触发点）：turn 结束时自动 decide；shadow 只记录
+   * 决策不派发（标准起步），auto 经 seam 派发。缺省 mode 'off'（不触发）。
+   */
+  trigger?: {
+    /** 触发模式：'off' 关闭 / 'shadow' 只决策并记录 / 'auto' 决策并派发。 */
+    mode?: 'off' | 'shadow' | 'auto'
+    /** 是否在 turn/end 触发（缺省 false）。 */
+    onTurnEnd?: boolean
+  }
+  /**
+   * 升级迟滞（escalate 分支的钳制与最小连续失败数）。缺省 cap 'verifier'、
+   * minConsecutiveFailures 2——单次偶发失败不触发升级。
+   */
+  escalation?: {
+    /** 升级目标钳制（'off' 关闭升级分支）。 */
+    cap?: 'off' | 'verifier'
+    /** 允许 escalate 的最小连续失败次数（正整数）。 */
+    minConsecutiveFailures?: number
+  }
+}
+
+/** 触发策略（Config 经 resolveTriggerPolicy 解析后传入）。 */
+export interface TriggerPolicy {
+  mode: 'off' | 'shadow' | 'auto'
+  onTurnEnd: boolean
+}
+
+/**
+ * 校验并默认触发策略：mode ∈ {off, shadow, auto}、onTurnEnd 为布尔；
+ * 形状错误在装配时 fail loud。缺省 mode 'off'、onTurnEnd false——挂载
+ * 不自触发（装配显式声明 trigger 才生效）。
+ * @param config - 插件配置。
+ * @returns 解析后的策略。
+ */
+export function resolveTriggerPolicy(config: AgentRouterConfig): TriggerPolicy {
+  const mode = config.trigger?.mode ?? 'off'
+  if (mode !== 'off' && mode !== 'shadow' && mode !== 'auto') {
+    throw new Error(`agent-router: trigger.mode must be 'off' | 'shadow' | 'auto', got ${JSON.stringify(mode)}`)
+  }
+  const onTurnEnd = config.trigger?.onTurnEnd ?? false
+  if (typeof onTurnEnd !== 'boolean') {
+    throw new Error(`agent-router: trigger.onTurnEnd must be a boolean, got ${JSON.stringify(onTurnEnd)}`)
+  }
+  return { mode, onTurnEnd }
+}
+
+/**
+ * 校验并默认升级迟滞策略：cap ∈ {verifier, off}、minConsecutiveFailures 为
+ * 正整数；形状错误在装配时 fail loud。
+ * @param config - 插件配置。
+ * @returns 解析后的策略（缺省 cap 'verifier'、minConsecutiveFailures 2）。
+ */
+export function resolveEscalationPolicy(config: AgentRouterConfig): EscalationPolicy {
+  const cap = config.escalation?.cap ?? 'verifier'
+  if (cap !== 'verifier' && cap !== 'off') {
+    throw new Error(`agent-router: escalation.cap must be 'verifier' | 'off', got ${JSON.stringify(cap)}`)
+  }
+  const minConsecutiveFailures = config.escalation?.minConsecutiveFailures ?? 2
+  if (!Number.isInteger(minConsecutiveFailures) || minConsecutiveFailures < 1) {
+    throw new Error(`agent-router: escalation.minConsecutiveFailures must be a positive integer, got ${JSON.stringify(minConsecutiveFailures)}`)
+  }
+  return { cap, minConsecutiveFailures }
 }
 
 /**
@@ -147,6 +227,8 @@ export interface RouterService {
 /** 插件装配：指标采集 + 路由服务面 + 派发。 */
 export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
   const profileTools = resolveProfileTools(config)
+  const escalationPolicy = resolveEscalationPolicy(config)
+  const trigger = resolveTriggerPolicy(config)
   const subagentProvider = config.subagentProvider ?? 'spawn'
   if (typeof subagentProvider !== 'string' || subagentProvider.trim() === '') {
     throw new Error('agent-router: subagentProvider must be a non-empty provider name')
@@ -154,25 +236,107 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
   const predictions = new Map<SessionId, ReturnType<typeof createPredictionAccumulator>>()
   const dispatchEnabled = config.dispatchEnabled ?? true
 
+  // —— 指标组装（evidence 可选；prediction 按会话取）——
+  const collectMetrics = (sessionId: SessionId): RouterMetrics => {
+    const evidence = ctx.reflect.get('evidence', false) as unknown as EvidenceFacet | undefined
+    const high = evidence?.unresolvedHigh() ?? []
+    const cooled = evidence?.cooldownTable() ?? {}
+    const cooledTargets = Object.values(cooled).filter(v => v >= 2).length
+    const accumulator = predictions.get(sessionId) ?? createPredictionAccumulator()
+    return {
+      interventionLevel: getInterventionLevel(accumulator),
+      consecutiveFailures: getConsecutiveFailures(accumulator),
+      unresolvedHigh: high.length,
+      verifications: evidence?.verificationCount() ?? 0,
+      probeCooledTargets: cooledTargets,
+    }
+  }
+
+  // —— 派发执行（service.execute 与 turn-end 触发共用）——
+  const executeAction = async (
+    action: RouterAction,
+    sessionId: SessionId,
+    signal?: AbortSignal,
+  ): Promise<SessionId | null> => {
+    if (action.kind !== 'delegate' || !dispatchEnabled) return null
+    if (config.provider === undefined || config.model === undefined) return null
+    const opts: DispatchOptions = {
+      profile: action.profile,
+      task: action.task,
+      targets: action.targets,
+      provider: config.provider,
+      model: config.model,
+      tools: profileTools[action.profile],
+      subagentProvider,
+      parentSessionId: sessionId,
+      signal: signal ?? new AbortController().signal,
+    }
+    return dispatchSubagent(ctx, opts)
+  }
+
+  // —— turn-end 触发：自动 decide + 决策记录（shadow）/ seam 派发（auto）——
+  const runTrigger = async (owner: Session): Promise<void> => {
+    const action = decideRouterAction(collectMetrics(owner.id), obligationHint(), escalationPolicy)
+    if (action.kind !== 'delegate') return // self 决策不落记录（避免逐轮噪声）
+    if (trigger.mode === 'shadow') {
+      owner.append('router/decision', {
+        profile: action.profile,
+        task: action.task,
+        targets: action.targets,
+        reason: 'turn-end',
+        mode: 'shadow',
+        dispatched: false,
+      })
+      return
+    }
+    // auto：决策 + 派发；派发失败不打断 turn，但必须留痕（决策记录 + 错误日志）。
+    const decision: { dispatched: boolean; subagentSessionId?: string } = { dispatched: true }
+    try {
+      const outcome = await executeAction(action, owner.id)
+      if (outcome === null) {
+        // 缺 provider/model 等短路：决策记录 dispatched false（原因在装配态）。
+        decision.dispatched = false
+      } else {
+        decision.subagentSessionId = outcome
+      }
+    } catch (error) {
+      decision.dispatched = false
+      ctx.logger.error('agent-router: turn-end dispatch failed for %s: %o', owner.id, error)
+    }
+    owner.append('router/decision', {
+      profile: action.profile,
+      task: action.task,
+      targets: action.targets,
+      reason: 'turn-end',
+      mode: 'auto',
+      ...decision,
+    })
+  }
+
   // —— 指标采集：tool/result 成败喂 prediction（按 session 隔离）——
   ctx.on('session/event', (owner, event: SessionEvent) => {
-    if (event.type !== 'tool/result') return
     // child 会话排除：子代理反馈污染父会话窗口（镜像 zen 的 parentSession
-    // 跳过条件）——路由决定只归因于本会话自己的工具轨迹。
+    // 跳过条件）——路由决定只归因于本会话自己的工具轨迹；触发同理跳过。
     const header = (owner as { header?: { parentSession?: unknown } }).header
     if (header?.parentSession !== undefined) return
-    const block = event.data.message.content[0]
-    // 成败判定：isError 标记（工具异常）或输出含非零退出码（dsh bash 对
-    // 非零退出码不标 isError，退出码在文本 `[exit code: N]`——真实装配实证）。
-    const text = extractResultText(event.data.message)
-    const exitFail = /\[exit code: [1-9]\d*\]/.test(text)
-    const isError = block.isError === true || exitFail
-    const current = predictions.get(owner.id) ?? createPredictionAccumulator()
-    const next = recordPrediction(current, !isError)
-    predictions.set(owner.id, next)
-    // tipping point：连续 3 次正确 → 环境恢复，重置累计器（干预撤销）
-    if (shouldTippingPointReset(next)) {
-      predictions.set(owner.id, resetAccumulator(next))
+    if (event.type === 'tool/result') {
+      const block = event.data.message.content[0]
+      // 成败判定：isError 标记（工具异常）或输出含非零退出码（dsh bash 对
+      // 非零退出码不标 isError，退出码在文本 `[exit code: N]`——真实装配实证）。
+      const text = extractResultText(event.data.message)
+      const exitFail = /\[exit code: [1-9]\d*\]/.test(text)
+      const isError = block.isError === true || exitFail
+      const current = predictions.get(owner.id) ?? createPredictionAccumulator()
+      const next = recordPrediction(current, !isError)
+      predictions.set(owner.id, next)
+      // tipping point：连续 3 次正确 → 环境恢复，重置累计器（干预撤销）
+      if (shouldTippingPointReset(next)) {
+        predictions.set(owner.id, resetAccumulator(next))
+      }
+    }
+    // turn-end 触发（生产触发点）：shadow 只决策并记录；auto 决策并派发。
+    if (event.type === 'turn/end' && trigger.onTurnEnd && trigger.mode !== 'off') {
+      void runTrigger(owner)
     }
   })
 
@@ -180,20 +344,6 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
   ctx.on('agent/disposed', ({ agent }) => {
     predictions.delete(agent.session.id)
   })
-
-  // —— 指标组装（evidence 可选；prediction 按会话取）——
-  const collectMetrics = (sessionId: SessionId): RouterMetrics => {
-    const evidence = ctx.reflect.get('evidence', false) as unknown as EvidenceFacet | undefined
-    const high = evidence?.unresolvedHigh() ?? []
-    const cooled = evidence?.cooldownTable() ?? {}
-    const cooledTargets = Object.values(cooled).filter(v => v >= 2).length
-    return {
-      interventionLevel: getInterventionLevel(predictions.get(sessionId) ?? createPredictionAccumulator()),
-      unresolvedHigh: high.length,
-      verifications: evidence?.verificationCount() ?? 0,
-      probeCooledTargets: cooledTargets,
-    }
-  }
 
   // —— 义务提示（delegate 任务描述素材）——
   const obligationHint = (): { claim: string; targets: string[] } | undefined => {
@@ -206,23 +356,8 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
 
   const service: RouterService = {
     metrics: options => collectMetrics(options.sessionId),
-    decide: options => decideRouterAction(collectMetrics(options.sessionId), obligationHint()),
-    execute: async (action, options) => {
-      if (action.kind !== 'delegate' || !dispatchEnabled) return null
-      if (config.provider === undefined || config.model === undefined) return null
-      const opts: DispatchOptions = {
-        profile: action.profile,
-        task: action.task,
-        targets: action.targets,
-        provider: config.provider,
-        model: config.model,
-        tools: profileTools[action.profile],
-        subagentProvider,
-        parentSessionId: options.sessionId,
-        signal: options.signal ?? new AbortController().signal,
-      }
-      return dispatchSubagent(ctx, opts)
-    },
+    decide: options => decideRouterAction(collectMetrics(options.sessionId), obligationHint(), escalationPolicy),
+    execute: (action, options) => executeAction(action, options.sessionId, options.signal),
     resetPrediction: (sessionId) => {
       if (sessionId === undefined) {
         predictions.clear()
@@ -234,6 +369,6 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
   ctx.provide('router', service)
 }
 
-export { createPredictionAccumulator, getErrorRate, getInterventionLevel, recordPrediction, resetAccumulator, shouldTippingPointReset } from './prediction.js'
-export { decideRouterAction, type RouterAction, type RouterMetrics } from './router.js'
+export { createPredictionAccumulator, getConsecutiveFailures, getErrorRate, getInterventionLevel, recordPrediction, resetAccumulator, shouldTippingPointReset } from './prediction.js'
+export { decideRouterAction, type EscalationPolicy, type RouterAction, type RouterMetrics } from './router.js'
 export { dispatchSubagent, SUBAGENT_TASK_PREFIX, type DispatchOptions } from './dispatch.js'

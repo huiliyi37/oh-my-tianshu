@@ -26,12 +26,14 @@ describe('dsh-tui bundle', () => {
     expect(ids).toEqual(expect.arrayContaining([
       'tui-runner', 'spark-anchors', 'vision-bridge',
       'fs-snapshot', 'memory', 'tool-memory', 'tool-session-query', 'tool-memory-recall',
-      'evidence-gate', 'zen', 'task-card', 'intent-bridge', 'agent-presets',
+      'evidence-gate', 'zen', 'task-card', 'intent-bridge', 'agent-router', 'agent-presets',
     ]))
     expect(ids).not.toContain('command-memory')
-    // agent-router 挂载但惰性（无生产调用者接线 decide/execute）：从发货
-    // 装配移除，待接线时再挂回（决策见 agent-router Agent Note）。
-    expect(ids).not.toContain('agent-router')
+    // agent-router 以 turn-end 影子决策重挂：shadow 只记录不派发（标准起步），
+    // provider/model 缺省时 execute 本就短路——闭环验证后产品定夺切 auto。
+    expect(rows.find(row => row.id === 'agent-router')?.config).toEqual({
+      trigger: { mode: 'shadow', onTurnEnd: true },
+    })
     // The shared base bundle owns this row; the TUI layer must not duplicate it.
     expect(ids).not.toContain('next-workflow')
     // The shipped read-only preset root is injected by composeProfile keyed on

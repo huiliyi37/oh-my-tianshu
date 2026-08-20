@@ -57,6 +57,14 @@ apply(ctx, {
     codeScout: ['read', 'bash'],
     verifier: ['read', 'bash'],
   },
+  trigger: {               // 可选：turn-end 触发（缺省 off 不触发）
+    mode: 'shadow',        // shadow 只决策并记录；auto 决策并派发
+    onTurnEnd: true,
+  },
+  escalation: {            // 可选：升级迟滞（缺省 cap verifier、连续失败 ≥2）
+    cap: 'verifier',       // 'off' 关闭升级分支
+    minConsecutiveFailures: 2,
+  },
 })
 
 ```
@@ -86,6 +94,7 @@ None directly; the delegate session is an independent model request, and the par
 
 - **Dispatch requires explicit model configuration** — with `dispatchEnabled: true`, `provider`/`model` must be supplied; unconfigured, the router only decides without dispatching (decision results stay queryable).
 - **Dispatch requires a live parent session** — `execute` takes the parent `sessionId` and fails loud when that session is not a live agent; the seam derives the child's workspace, lineage, and delegation depth from it.
+- **Turn-end trigger ships in shadow** — the shipped TUI mounts `trigger: { mode: 'shadow', onTurnEnd: true }`: delegate decisions are recorded as log-only `router/decision` but never dispatched. Switching to `auto` is a product call after the closed loop is verified; `auto` requires `provider`/`model`.
 - **The prediction window is in-memory** — the sliding window and tipping-point state vanish with the process. Accumulation is keyed per session and child sessions (`header.parentSession`) are excluded, so routed children never pollute their parent's window.
 - **The routing table is a fixed policy** — the three intervention thresholds (0.4/0.6/0.8) and the action mapping are the Tianshu constants from the port; configurability waits for real tuning demand.
 - **Profile tool sets are deployment-scoped** — the built-in defaults name the shipped tool catalog (`grep`/`read`/`glob`/`repo_graph`/`semantic_search`/`bash`); a slim assembly declares its own subset via `profileTools`, and unknown names fail the dispatch loudly rather than widening the tool face.

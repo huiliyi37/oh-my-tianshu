@@ -29,46 +29,91 @@ export const inject = ['invariants']
 /** Known route profiles (mirrors {@link RouterAction} in router.ts). */
 const ROUTE_PROFILES: ReadonlySet<unknown> = new Set(['code_scout', 'verifier'])
 
+/** Known trigger reasons. */
+const DECISION_REASONS: ReadonlySet<unknown> = new Set(['turn-end'])
+/** Known trigger modes. */
+const DECISION_MODES: ReadonlySet<unknown> = new Set(['shadow', 'auto'])
+
 /**
- * Validate one event against the route-record invariants; unrelated events
- * pass through.
+ * Validate one event against the route/decision-record invariants; unrelated
+ * events pass through.
  *
  * @param event Any session event.
  * @param fail Package-bound failure reporter.
  */
 function validateEvent(event: SessionEvent, fail: InvariantFailure): void {
-  if (event.type !== 'router/route') return
-  const { profile, task, targets, subagentSessionId } = event.data as {
-    profile?: unknown
-    task?: unknown
-    targets?: unknown
-    subagentSessionId?: unknown
+  if (event.type === 'router/route') {
+    const { profile, task, targets, subagentSessionId } = event.data as {
+      profile?: unknown
+      task?: unknown
+      targets?: unknown
+      subagentSessionId?: unknown
+    }
+    if (!ROUTE_PROFILES.has(profile)) {
+      fail(`agent-router: a route record must carry a known profile (code_scout | verifier), got ${JSON.stringify(profile)}`)
+    }
+    if (typeof task !== 'string' || task === '') {
+      fail('agent-router: a route record must carry a non-empty task')
+    }
+    if (!Array.isArray(targets) || targets.some(target => typeof target !== 'string')) {
+      fail('agent-router: a route record must carry a string-array targets')
+    }
+    if (typeof subagentSessionId !== 'string' || subagentSessionId === '') {
+      fail('agent-router: a route record must carry a non-empty subagentSessionId')
+    }
+    return
   }
-  if (!ROUTE_PROFILES.has(profile)) {
-    fail(`agent-router: a route record must carry a known profile (code_scout | verifier), got ${JSON.stringify(profile)}`)
-  }
-  if (typeof task !== 'string' || task === '') {
-    fail('agent-router: a route record must carry a non-empty task')
-  }
-  if (!Array.isArray(targets) || targets.some(target => typeof target !== 'string')) {
-    fail('agent-router: a route record must carry a string-array targets')
-  }
-  if (typeof subagentSessionId !== 'string' || subagentSessionId === '') {
-    fail('agent-router: a route record must carry a non-empty subagentSessionId')
+  if (event.type === 'router/decision') {
+    const { profile, task, targets, reason, mode, dispatched, subagentSessionId } = event.data as {
+      profile?: unknown
+      task?: unknown
+      targets?: unknown
+      reason?: unknown
+      mode?: unknown
+      dispatched?: unknown
+      subagentSessionId?: unknown
+    }
+    if (!ROUTE_PROFILES.has(profile)) {
+      fail(`agent-router: a decision record must carry a known profile (code_scout | verifier), got ${JSON.stringify(profile)}`)
+    }
+    if (typeof task !== 'string' || task === '') {
+      fail('agent-router: a decision record must carry a non-empty task')
+    }
+    if (!Array.isArray(targets) || targets.some(target => typeof target !== 'string')) {
+      fail('agent-router: a decision record must carry a string-array targets')
+    }
+    if (!DECISION_REASONS.has(reason)) {
+      fail(`agent-router: a decision record must carry a known reason (turn-end), got ${JSON.stringify(reason)}`)
+    }
+    if (!DECISION_MODES.has(mode)) {
+      fail(`agent-router: a decision record must carry a known mode (shadow | auto), got ${JSON.stringify(mode)}`)
+    }
+    if (typeof dispatched !== 'boolean') {
+      fail('agent-router: a decision record must carry a boolean dispatched')
+    }
+    if (subagentSessionId !== undefined && (typeof subagentSessionId !== 'string' || subagentSessionId === '')) {
+      fail('agent-router: a decision record subagentSessionId must be a non-empty string when present')
+    }
+    if (dispatched === true && subagentSessionId === undefined) {
+      fail('agent-router: a dispatched decision record must carry its subagentSessionId')
+    }
+    if (dispatched === false && subagentSessionId !== undefined) {
+      fail('agent-router: a non-dispatched decision record must not carry a subagentSessionId')
+    }
   }
 }
 
 /** Install validation for live appends and loaded history at late registration. */
 const install: InvariantInstaller = Object.assign((ctx: Context, fail: InvariantFailure) => {
   const track = (session: Session, event: SessionEvent): void => {
-    if (event.type !== 'router/route') return
+    if (event.type !== 'router/route' && event.type !== 'router/decision') return
     validateEvent(event, fail)
     // 血统一致性（child 在场时）：记录所在会话必须是该 child 的 parent。
     const { subagentSessionId } = event.data as { subagentSessionId?: unknown }
     if (typeof subagentSessionId !== 'string' || subagentSessionId === '') return
     const child = ctx.sessions.get(brandSessionId(subagentSessionId))
     if (child !== undefined && child.header.parentSession !== session.id) {
-      fail(`agent-router: route record on ${session.id} names child ${subagentSessionId} whose parentSession is ${String(child.header.parentSession)}`)
+      fail(`agent-router: record on ${session.id} names child ${subagentSessionId} whose parentSession is ${String(child.header.parentSession)}`)
     }
   }
   const seed = (session: Session): void => {

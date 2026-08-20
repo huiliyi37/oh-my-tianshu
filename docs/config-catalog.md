@@ -269,10 +269,30 @@ export interface AgentRouterConfig {
   }
   /** 子代理 provider 名（ctx.subagents 注册名）；缺省 'spawn'（进程内子代理）。 */
   subagentProvider?: string
+  /**
+   * turn-end 触发（生产触发点）：turn 结束时自动 decide；shadow 只记录
+   * 决策不派发（标准起步），auto 经 seam 派发。缺省 mode 'off'（不触发）。
+   */
+  trigger?: {
+    /** 触发模式：'off' 关闭 / 'shadow' 只决策并记录 / 'auto' 决策并派发。 */
+    mode?: 'off' | 'shadow' | 'auto'
+    /** 是否在 turn/end 触发（缺省 false）。 */
+    onTurnEnd?: boolean
+  }
+  /**
+   * 升级迟滞（escalate 分支的钳制与最小连续失败数）。缺省 cap 'verifier'、
+   * minConsecutiveFailures 2——单次偶发失败不触发升级。
+   */
+  escalation?: {
+    /** 升级目标钳制（'off' 关闭升级分支）。 */
+    cap?: 'off' | 'verifier'
+    /** 允许 escalate 的最小连续失败次数（正整数）。 */
+    minConsecutiveFailures?: number
+  }
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:69`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:87`](../packages/guard/agent-router/src/index.ts)
 
 ## `@huiliyi37/dsh-agent-spine-demo`
 
@@ -407,7 +427,7 @@ Source: [`packages/attachment/attachment-local/src/index.ts:31`](../packages/att
 ```ts config-catalog
 /** Plugin config (all optional — the built-in facts resolve without defaults). */
 export interface Config {
-  /** Tianshu Harness home directory exposed as `DSH_HOME`; defaults to `$DSH_HOME` or `~/.dsh`. */
+  /** Tianshu Harness home directory exposed as `DSH_HOME`; defaults to `$DSH_HOME` or `~/.dsh-tianshu`. */
   dshHome?: string
 }
 ```

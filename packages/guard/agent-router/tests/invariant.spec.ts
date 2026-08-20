@@ -94,6 +94,56 @@ describe('agent-router route-record invariants', () => {
     }).not.toThrow()
   })
 
+  it('accepts a shadow decision record and rejects malformed ones', async () => {
+    const ctx = await setup()
+    const parent = Session.create(SessionId('parent-1'))
+    const decision = (over: Record<string, unknown> = {}): SessionEvent => ({
+      type: 'router/decision',
+      seq: 0,
+      time: 0,
+      data: {
+        profile: 'verifier',
+        task: '复核',
+        targets: [],
+        reason: 'turn-end',
+        mode: 'shadow',
+        dispatched: false,
+        ...over,
+      },
+    } as SessionEvent)
+    expect(() => { ctx.emit('session/event', parent, decision()) }).not.toThrow()
+    expect(() => { ctx.emit('session/event', parent, decision({ mode: 'auto', dispatched: true })) })
+      .toThrow(/subagentSessionId/)
+    expect(() => { ctx.emit('session/event', parent, decision({ mode: 'hyper' })) })
+      .toThrow(/known mode/)
+    expect(() => { ctx.emit('session/event', parent, decision({ dispatched: 'yes' })) })
+      .toThrow(/boolean dispatched/)
+    expect(() => { ctx.emit('session/event', parent, decision({ reason: 'boot' })) })
+      .toThrow(/known reason/)
+  })
+
+  it('rejects a dispatched decision whose live child names another parent', async () => {
+    const ctx = await setup()
+    const parent = Session.create(SessionId('parent-1'))
+    ctx.sessions.create(SessionId('child-1'), { meta: { parentSession: SessionId('parent-2') } })
+    const decision = {
+      type: 'router/decision',
+      seq: 0,
+      time: 0,
+      data: {
+        profile: 'verifier',
+        task: '复核',
+        targets: [],
+        reason: 'turn-end',
+        mode: 'auto',
+        dispatched: true,
+        subagentSessionId: 'child-1',
+      },
+    } as SessionEvent
+    expect(() => { ctx.emit('session/event', parent, decision) })
+      .toThrow(/parentSession/)
+  })
+
   it('rejects invalid existing state on late registration', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
