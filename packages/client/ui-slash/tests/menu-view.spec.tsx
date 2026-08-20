@@ -18,6 +18,7 @@ import { MenuView } from '../src/client/MenuView.tsx'
 
 const hit: TriggerHit = {
   trigger: '/',
+  quoted: false,
   query: 'g',
   position: 'leading',
   span: { start: 0, end: 2, draftRev: 1 },

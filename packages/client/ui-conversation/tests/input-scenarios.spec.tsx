@@ -139,6 +139,7 @@ async function scopedBench(register?: (slash: SlashService) => void) {
       const snapshot = shell.snapshot
       controller.toggleSource('command', {
         trigger: '/',
+        quoted: false,
         query: '',
         position: snapshot.draft.slice(0, selection.start).trim() === '' ? 'leading' : 'inline',
         span: { ...selection, draftRev: snapshot.draftRev },

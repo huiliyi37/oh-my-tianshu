@@ -7,6 +7,7 @@ import { exactMatch, MENU_CLOSED, menuReduce, seedGroups } from '../src/core/men
 
 const hit = (query = ''): TriggerHit => ({
   trigger: '/',
+  quoted: false,
   query,
   position: 'leading',
   span: { start: 0, end: 1 + query.length, draftRev: 1 },

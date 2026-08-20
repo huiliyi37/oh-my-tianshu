@@ -115,6 +115,8 @@ describe('formatRestorableSessions — 展示行', () => {
       parentSession: 'session-01234567-89ab-4cde-8f01-23456789012a' as SessionId,
       live: false,
       agentPreset: undefined,
+      title: undefined,
+      corrupt: false,
     }
     const lines = formatRestorableSessions([row], { now: NOW })
     expect(lines[0]).toContain('#3f2a1b9c')

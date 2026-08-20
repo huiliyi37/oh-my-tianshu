@@ -114,7 +114,7 @@ describe('projectDelegationTree label 与短哈希回退', () => {
       ...childInactiveOneShotNoLabel,
       id: 'session-77aa88bb-9c00-4d11-8e22-334455667788',
     }
-    const rows = projectDelegationTree([entry], new Map(), new Map(), { width: 80 })
+    const rows = projectDelegationTree([entry], { width: 80 })
     expect(rows.some(r => r.includes('77aa88bb'))).toBe(true)
     expect(rows.some(r => r.includes('session-'))).toBe(false)
   })

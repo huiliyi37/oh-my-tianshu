@@ -110,6 +110,9 @@ export type QueuedMessage = QueueRow
 /** Guard union of the scoped consume-token event, checked by the machine. */
 export type ConsumeTokenGuard = ConsumeTokenRequest['guard']
 
+/** Re-export for consumers of the input contract（tests 组装提交结果用）. */
+export type { SubmitOutcome } from '@huiliyi37/dsh-client-ui-slash/client'
+
 /** Half-open [start, end) range/selection in draft character coordinates. */
 export interface EditSelection {
   readonly start: number

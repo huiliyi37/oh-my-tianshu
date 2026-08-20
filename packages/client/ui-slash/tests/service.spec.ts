@@ -368,6 +368,7 @@ describe('programmatic source launcher', () => {
     const { controller } = controllerBench([command.source, skill.source])
     const hit = {
       trigger: '/' as const,
+      quoted: false as const,
       query: '',
       position: 'leading' as const,
       span: { start: 2, end: 5, draftRev: 7 },
@@ -394,6 +395,7 @@ describe('programmatic source launcher', () => {
     const { controller } = controllerBench([command.source, skill.source])
     const hit = {
       trigger: '/' as const,
+      quoted: false as const,
       query: '',
       position: 'leading' as const,
       span: { start: 0, end: 0, draftRev: 1 },
