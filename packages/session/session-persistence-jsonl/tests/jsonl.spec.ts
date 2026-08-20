@@ -1150,6 +1150,32 @@ describe('SessionPersistenceJsonl: edge cases', () => {
     expect(headers[3]?.version).toBe(0)
   })
 
+  it('corrupt placeholder never displaces a valid same-id artifact regardless of iteration order', async () => {
+    // 同 id 的有效工件与损坏工件分处两个 project 目录（不同 cwd）。无论目录
+    // 遍历次序如何，有效工件必须胜出：占位只让位、绝不挤占 ids——否则后到
+    // 的有效工件会误触 duplicate 抛错，整个 list 失败（冷启动随之挂掉）。
+    const m = meta('dup', '/valid-cwd')
+    await ctx.sessionPersistence.create(m)
+    await ctx.sessionPersistence.append(SessionId('dup'), oneTurnLog())
+    await mkdir(sessionDir(root, '/corrupt-cwd', SessionId('dup')), { recursive: true })
+    await writeFile(rawLogPath(root, '/corrupt-cwd', SessionId('dup')), 'not json at all\n')
+
+    const dup = (await ctx.sessionPersistence.list()).filter(h => h.id === SessionId('dup'))
+    expect(dup).toHaveLength(1)
+    expect(dup[0]?.version).toBe(0)
+  })
+
+  it('duplicate corrupt artifacts across project dirs collapse to one placeholder', async () => {
+    await mkdir(sessionDir(root, '/corrupt-a', SessionId('dup-corrupt')), { recursive: true })
+    await writeFile(rawLogPath(root, '/corrupt-a', SessionId('dup-corrupt')), '')
+    await mkdir(sessionDir(root, '/corrupt-b', SessionId('dup-corrupt')), { recursive: true })
+    await writeFile(rawLogPath(root, '/corrupt-b', SessionId('dup-corrupt')), '{bad\n')
+
+    const dup = (await ctx.sessionPersistence.list()).filter(h => h.id === SessionId('dup-corrupt'))
+    expect(dup).toHaveLength(1)
+    expect(dup[0]?.version).toBe(-1)
+  })
+
   it('list reads a header line longer than the 8KB read chunk', async () => {
     // A tolerated extra field makes this valid header exceed the 8192-byte read buffer, proving
     // `readFirstLine` accumulates chunks before `list()` parses it.

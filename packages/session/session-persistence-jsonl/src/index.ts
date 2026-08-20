@@ -448,6 +448,9 @@ export class SessionPersistenceJsonl extends SessionPersistence implements Persi
     signal?.throwIfAborted()
     const artifacts: Array<{ header: SessionHeader; path: string }> = []
     const ids = new Set<SessionId>()
+    // 占位条目独立收集、遍历结束后合入：同 id 的有效工件无论遍历次序都胜出，
+    // 占位绝不挤占 ids（否则后到的有效工件会误触 duplicate 抛错，整个 list 失败）。
+    const corruptPaths = new Map<SessionId, string>()
     for (const project of await this.listProjectDirs(signal)) {
       signal?.throwIfAborted()
       for (const dir of await this.listSessionDirs(project, signal)) {
@@ -465,19 +468,16 @@ export class SessionPersistenceJsonl extends SessionPersistence implements Persi
           ? await this.readFirstZstdLine(path, signal)
           : await this.readFirstLine(path, signal)
         signal?.throwIfAborted()
-        if (first === undefined || parseHeaderMeta(first) === undefined) {
+        const meta = first !== undefined ? parseHeaderMeta(first) : undefined
+        if (meta === undefined) {
           // 损坏/半写工件不静默消失：保留为 version -1 的不可恢复条目，id 从
-          // 目录名解码（头部不可读时无从验证身份）。id 已存在（有效工件）时
-          // 让位给有效条目；目录名不可解码时无法归属，跳过。
+          // 目录名解码（头部不可读时无从验证身份）。目录名不可解码时无法归属，跳过。
           const decoded = decodeSegment(basename(dir))
-          if (decoded === undefined || ids.has(SessionId(decoded))) continue
-          const corrupt: SessionHeader = { id: SessionId(decoded), version: -1, createdAt: 0 }
-          ids.add(corrupt.id)
-          artifacts.push({ header: corrupt, path })
+          if (decoded === undefined) continue
+          const id = SessionId(decoded)
+          if (!ids.has(id) && !corruptPaths.has(id)) corruptPaths.set(id, path)
           continue
         }
-        const meta = parseHeaderMeta(first)
-        if (meta === undefined) continue // 上一分支已判过，不可达
         await this.assertStoredIdentity(path, meta, undefined, signal)
         signal?.throwIfAborted()
         if (ids.has(meta.id)) {
@@ -488,6 +488,10 @@ export class SessionPersistenceJsonl extends SessionPersistence implements Persi
       }
     }
     signal?.throwIfAborted()
+    for (const [id, path] of corruptPaths) {
+      if (ids.has(id)) continue
+      artifacts.push({ header: { id, version: -1, createdAt: 0 }, path })
+    }
     return artifacts
   }
 
