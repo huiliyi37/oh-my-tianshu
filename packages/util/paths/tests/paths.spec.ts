@@ -1,9 +1,11 @@
-import { homedir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
+import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_DSH_HOME_DISPLAY,
   DSH_HOME_DIR_NAME,
+  canonicalizeWatchPath,
   defaultDshHome,
   dshHomeDisplay,
   dshHomePath,
@@ -52,5 +54,23 @@ describe('dsh path helpers', () => {
   it('labels a resolved home by whether it is the default root', () => {
     expect(dshHomeDisplay(resolve(defaultDshHome()))).toBe('~/.dsh-tianshu')
     expect(dshHomeDisplay('/some/other/root')).toBe('$DSH_HOME')
+  })
+
+  it('canonicalizes a watcher ancestor while preserving a missing suffix', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-watch-path-'))
+    const target = join(root, 'target')
+    const alias = join(root, 'alias')
+    try {
+      await mkdir(target)
+      await symlink(target, alias, process.platform === 'win32' ? 'junction' : 'dir')
+      await expect(canonicalizeWatchPath(join(alias, 'later', 'config.yml'))).resolves.toBe(
+        join(await realpath(target), 'later', 'config.yml'),
+      )
+      const file = join(root, 'file')
+      await writeFile(file, 'not a directory')
+      await expect(canonicalizeWatchPath(join(file, 'child'))).rejects.toMatchObject({ code: 'ENOTDIR' })
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
   })
 })

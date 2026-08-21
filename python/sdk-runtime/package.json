@@ -26,6 +26,7 @@
     "@huiliyi37/dsh-compact": "workspace:^",
     "@huiliyi37/dsh-compact-basic": "workspace:^",
     "@huiliyi37/dsh-compact-tool-result-prune": "workspace:^",
+    "@huiliyi37/dsh-authorization": "workspace:^",
     "@huiliyi37/dsh-credentials": "workspace:^",
     "@huiliyi37/dsh-environment": "workspace:^",
     "@huiliyi37/dsh-fs": "workspace:^",

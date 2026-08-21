@@ -28,14 +28,36 @@
 
 ## 文档本身
 
-一个从凭据引用到值的 YAML mapping，除此之外别无他物：
+一个带版本的 YAML 文档，每个键空间一个分节，除此之外别无他物：
 
 ```yaml
-DEEPSEEK_API_KEY: sk-…
-OPENAI_API_KEY: sk-…
+version: 1
+
+refs:
+  DEEPSEEK_API_KEY: sk-…
+  OPENAI_API_KEY: sk-…
+
+records:
+  llm-pi-ai/openai-codex:
+    kind: grant
+    payload:                    # written verbatim; this provider does not interpret it
+      type: oauth
+      access: eyJhbGciOi…
+      refresh: rft_9f8e7d…
+      expires: 1786000000000
+  llm-pi-ai/amazon-bedrock:
+    kind: api-key               # environment values, no key: this route uses an AWS profile
+    env:
+      AWS_PROFILE: prod
+  llm-pi-ai/amazon-bedrock-dev:
+    kind: api-key               # neither: the owner confirmed the ambient credential chain
 ```
 
-该文档只存放凭据，因此任何偏离都是拒绝，而不是跳过某个条目——被静默忽略的键读起来就是「我存进去的密钥没有生效」。非 mapping 的根、非 POSIX 标识符的键、非字符串值、空字符串、重复键以及格式错误的 YAML 全部失败：启动时明确报错，运行期热重载则告警并保留最后可用快照。没有 `version` 字段，也没有包装层；格式就是这个 mapping。
+该文档只存放凭据，因此任何偏离都是拒绝，而不是跳过某个条目——被静默忽略的键读起来就是「我存进去的凭据没有生效」。非 mapping 的根、未知的顶层键、在其空间中不可寻址的键、类型不符的值、空字符串、未知的记录标签或字段、重复键以及格式错误的 YAML 全部失败：启动时明确报错，运行期热重载则告警并保留最后可用快照。
+
+`grant` 的 payload 必须能经受 JSON 往返，读写两个方向都强制。YAML 能拼写出 JSON 没有的值——`.inf`、别名环——拥有者也可能递来 `Date` 或 `bigint`；无论哪种，存储都选择拒绝，而不是存下一个自己无法逐字读回的东西。
+
+发布前的旧布局是没有 `version` 的扁平 mapping。启动时若能精确识别它——可寻址名称对非空字符串标量、且没有文档指令——就在写锁下原地升级：原有各行逐字下沉到 `refs:` 之下，值、注释与拼写逐字节保留。其余任何扁平形态都会被指名拒绝，并给出条目数与唯一需要做的编辑（`version: 1`，条目下沉到 `refs:`）——绝不当作空存储读过去，否则它会以第一次请求认证失败的形式出现，而不是在加载时。热重载从不迁移：运行中被恢复出来的扁平文档只会保住上一份完好快照，直到下次启动。
 
 写入是对已解析文档打补丁而不是重建，因此注释与所有未触及条目的排版都会保留。直接位于某条目上方的注释属于该条目的注解，会随它一起删除。每次写入都先在 [`dsh-atomic-write`](../../util/atomic-write/README.md) 的跨进程写锁下重读文档、把此前未观察到的一切发布出去，再在仅属主可访问（`0700`）的目录下以 `0600` 权限原子提交——因此并发写入者、或落在 watcher 防抖窗口内的外部编辑会被并入，而不是被覆盖。磁盘上已经无法解析的文档会让写入失败，而不是覆盖提供方读不懂的内容。
 
@@ -47,7 +69,7 @@ OPENAI_API_KEY: sk-…
 
 ## 热重载
 
-外部编辑在快照**整体替换**后按变更引用逐个发布 `credentials/updated`——磁盘上删掉的条目绝不在内存滞留。提供方自己的写入按内容识别，只发布属于该次提交的一个事件。运行期文档不可读或无效时保留最后可用快照并告警；文件不存在即空存储；启动时不可读或无效则明确报错。
+外部编辑在快照**整体替换**后按变更引用逐个发布 `credentials/reference-updated`——磁盘上删掉的条目绝不在内存滞留。在 Chokidar 打开目标之前，提供方会对层级最深的现有祖先路径执行 realpath 解析，再拼回缺失的后缀；文件访问和诊断仍使用配置路径，从而避免 Windows 混用 8.3 别名与 libuv 的长格式事件路径。提供方自己的写入按内容识别，只发布属于该次提交的一个事件。运行期文档不可读或无效时保留最后可用快照并告警；文件不存在即空存储；启动时不可读或无效则明确报错。
 
 <a id="security-boundary"></a>
 

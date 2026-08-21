@@ -629,7 +629,7 @@ Source: [`packages/core/session/src/types.ts:290`](../packages/core/session/src/
 'router/adoption': { subagentSessionId: string; verdict: 'adopt' | 'reject'; reason: string }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:76`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:80`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/decision` — log-only
 
@@ -651,7 +651,7 @@ Source: [`packages/guard/agent-router/src/index.ts:76`](../packages/guard/agent-
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:83`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:87`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/outcome` — log-only
 
@@ -664,7 +664,7 @@ Source: [`packages/guard/agent-router/src/index.ts:83`](../packages/guard/agent-
 'router/outcome': { subagentSessionId: string; stopReason: string }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:69`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:73`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/route` — log-only
 
@@ -684,7 +684,7 @@ Source: [`packages/guard/agent-router/src/index.ts:69`](../packages/guard/agent-
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:49`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:53`](../packages/guard/agent-router/src/index.ts)
 
 ### `sandbox/*`
 

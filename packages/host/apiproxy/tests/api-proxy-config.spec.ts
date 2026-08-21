@@ -17,8 +17,16 @@ import LlmService, { LlmAdapter } from '@huiliyi37/dsh-llm'
 import type { GenerateOptions, LlmModelInfo, LlmProviderInfo, StreamChunk } from '@huiliyi37/dsh-llm'
 import { Settings, settingsNamespace } from '@huiliyi37/dsh-settings'
 import type { SettingsNamespace } from '@huiliyi37/dsh-settings'
-import { Credentials } from '@huiliyi37/dsh-credentials'
-import type { CredentialInfo, CredentialRef, ResolvedCredential } from '@huiliyi37/dsh-credentials'
+import { CredentialProvider } from '@huiliyi37/dsh-credentials'
+import type {
+  CredentialInfo,
+  CredentialKey,
+  CredentialRecord,
+  CredentialRecordEntry,
+  CredentialRecordInfo,
+  CredentialRef,
+  ResolvedCredential,
+} from '@huiliyi37/dsh-credentials'
 import type { HostFrame } from '../src/api/index.ts'
 import type { RpcRequest, RpcResponse } from '../src/api/rpc.ts'
 import { RpcId } from '../src/api/rpc.ts'
@@ -88,10 +96,10 @@ class MemorySettings extends Settings {
 }
 
 /** In-memory credential provider with an env-shadow double for the rejection path. */
-class MemoryCredentials extends Credentials {
+class MemoryCredentials extends CredentialProvider {
   private readonly values = new Map<string, string>()
 
-  constructor(ctx: ConstructorParameters<typeof Credentials>[0], options?: { shadowed?: string[] }) {
+  constructor(ctx: ConstructorParameters<typeof CredentialProvider>[0], options?: { shadowed?: string[] }) {
     super(ctx)
     this.shadowed = new Set(options?.shadowed ?? [])
   }
@@ -115,7 +123,7 @@ class MemoryCredentials extends Credentials {
       return Promise.reject(new Error(`credentials: ${ref} is shadowed by the read-only environment`))
     }
     this.values.set(ref, value)
-    this.ctx.emit('credentials/updated', ref)
+    this.ctx.emit('credentials/reference-updated', ref)
     return Promise.resolve()
   }
 
@@ -124,7 +132,32 @@ class MemoryCredentials extends Credentials {
       return Promise.reject(new Error(`credentials: ${ref} is shadowed by the read-only environment`))
     }
     this.values.delete(ref)
-    this.ctx.emit('credentials/updated', ref)
+    this.ctx.emit('credentials/reference-updated', ref)
+    return Promise.resolve()
+  }
+
+  // The record half has no wire face on this proxy, so the double answers the
+  // empty store rather than modelling storage the tests never exercise.
+  readRecord(): Promise<CredentialRecord | undefined> {
+    return Promise.resolve(undefined)
+  }
+
+  describeRecord(): Promise<CredentialRecordInfo> {
+    return Promise.resolve({ configured: false, writable: true })
+  }
+
+  listRecords(): Promise<readonly CredentialRecordEntry[]> {
+    return Promise.resolve([])
+  }
+
+  modifyRecord(
+    _key: CredentialKey,
+    mutate: (current: CredentialRecord | undefined) => Promise<CredentialRecord | undefined>,
+  ): Promise<CredentialRecord | undefined> {
+    return mutate(undefined)
+  }
+
+  deleteRecord(): Promise<void> {
     return Promise.resolve()
   }
 }

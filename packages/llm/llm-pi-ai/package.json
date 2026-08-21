@@ -32,6 +32,7 @@
   ],
   "license": "Apache-2.0",
   "peerDependencies": {
+    "@huiliyi37/dsh-authorization": "^0.2.0",
     "@huiliyi37/dsh-credentials": "^0.2.0",
     "@huiliyi37/dsh-environment": "^0.2.0",
     "@huiliyi37/dsh-invariants": "^0.2.0",
@@ -45,6 +46,7 @@
     "@huiliyi37/schemastery": "^3.18.0"
   },
   "devDependencies": {
+    "@huiliyi37/dsh-authorization": "workspace:^",
     "@huiliyi37/dsh-credentials": "workspace:^",
     "@huiliyi37/dsh-environment": "workspace:^",
     "@huiliyi37/dsh-invariants": "workspace:^",

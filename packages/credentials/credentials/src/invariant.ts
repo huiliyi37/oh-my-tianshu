@@ -14,7 +14,7 @@ export const name = 'credentials-invariant'
 export const inject = ['invariants']
 
 /**
- * Install the commit-event lifecycle contract: `credentials/updated` names a
+ * Install the commit-event lifecycle contract: `credentials/reference-updated` names a
  * committed provider-source change, so it can only fire while a credentials
  * service is live — an emission after disposal means a provider leaked work
  * past its teardown quiescence. The value relation itself (`describe`
@@ -22,8 +22,10 @@ export const inject = ['invariants']
  * each provider's own suite.
  */
 const install: InvariantInstaller = (ctx: Context, fail: InvariantFailure) => {
-  ctx.on('credentials/updated', (ref) => {
-    if (ctx.get('credentials') === undefined) fail(`credentials/updated for "${ref}" emitted without a live credentials service`)
+  ctx.on('credentials/reference-updated', (ref) => {
+    if (ctx.get('credentials') === undefined) {
+      fail(`credentials/reference-updated for "${ref}" emitted without a live credentials service`)
+    }
   })
 }
 

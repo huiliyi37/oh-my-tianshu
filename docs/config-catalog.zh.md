@@ -674,7 +674,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/credentials/credentials-local/src/index.ts:54`](../packages/credentials/credentials-local/src/index.ts)
+来源：[`packages/credentials/credentials-local/src/index.ts:63`](../packages/credentials/credentials-local/src/index.ts)
 
 ## `@huiliyi37/dsh-doom-loop-guard`
 
@@ -1015,7 +1015,7 @@ export interface Config {
   maxTokens?: number
   /** Positive context capacity used when the selected model has no exact value (default 1,000,000). */
   defaultContextWindow?: number
-  /** Advisory models shown by discovery consumers; defaults to V4 Flash and V4 Pro. */
+  /** Advisory models shown by discovery consumers; defaults to V4 Flash, V4 Pro, and V4 Flash Vision Exp. */
   models?: DeepSeekCatalogModel[]
   /** Maximum provider idle time while one stream read is outstanding (default five minutes). */
   streamIdleTimeoutMs?: number
@@ -1066,7 +1066,7 @@ export interface SparkTruncatePolicy {
 
 依赖：[`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
 
-来源：[`packages/llm/llm-deepseek/src/index.ts:75`](../packages/llm/llm-deepseek/src/index.ts)
+来源：[`packages/llm/llm-deepseek/src/index.ts:81`](../packages/llm/llm-deepseek/src/index.ts)
 
 ## `@huiliyi37/dsh-llm-pi-ai`
 
@@ -1182,6 +1182,13 @@ export interface PiAiModelProfile {
    * declares the offered levels and their wire spellings.
    */
   reasoningEfforts?: false | PiAiReasoningEfforts
+  /**
+   * Whether this model accepts image input. Absent inherits the installed
+   * catalog entry's input modalities (a hand-declared model has none and is
+   * text-only); `true` declares image input, `false` strips it from a catalog
+   * model whose gateway cannot serve images.
+   */
+  supportsVision?: boolean
   /** pi-ai wire-compatibility switches for this model, winning over the route's per field; one its protocol does not declare is refused. */
   compat?: PiAiCompatProfile
 }
@@ -3222,6 +3229,10 @@ export interface TuiRunnerConfig {
     /** 单次诊断拉取超时（毫秒）；缺省 2000。 */
     timeoutMs?: number
   }
+  /** 统一活动带：活跃 item 行数封顶（正整数；超限折叠 +N 尾行）；缺省 5。 */
+  activityBandMaxRows?: number
+  /** 统一活动带开关；false 回退旧散行渲染（逃生门）；缺省 true。 */
+  activityBand?: boolean
 }
 
 /** 可识别的按键语义名称；未映射的可打印字符与无法识别的序列为 'unknown'。 */
@@ -3345,7 +3356,7 @@ export interface Config {
   maxTokens?: number
   /**
    * Primary-model vision capability override. Omitted: resolved dynamically
-   * from the calling agent's model via inputModalities. true: always forward
+   * from the calling agent's model via supportsVision. true: always forward
    * the original image to the primary. false: always describe via the vision
    * adapter.
    */
@@ -3681,6 +3692,7 @@ export interface ZenConfig {
 - `@huiliyi37/dsh-agent`（[`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts)）
 - `@huiliyi37/dsh-api-gateway` — 需要 `typert`（[`packages/api/gateway/src/index.ts`](../packages/api/gateway/src/index.ts)）
 - `@huiliyi37/dsh-api-remotes`（[`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts)）
+- `@huiliyi37/dsh-authorization` — 需要 `credentials`（[`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts)）
 - `@huiliyi37/dsh-client-locale`（[`packages/client/locale/src/index.ts`](../packages/client/locale/src/index.ts)）
 - `@huiliyi37/dsh-client-modules` — 需要 `httpServer` · `loader`（[`packages/client/modules/src/index.ts`](../packages/client/modules/src/index.ts)）
 - `@huiliyi37/dsh-client-runtime`（[`packages/client/runtime/src/index.ts`](../packages/client/runtime/src/index.ts)）

@@ -137,7 +137,7 @@ export type HostFrame =
    */
   | { type: 'host/settings-changed'; ns: string }
   /**
-   * One credential reference's state changed (`credentials/updated`
+   * One credential reference's state changed (`credentials/reference-updated`
    * passthrough): a set/unset over this wire or an external `.env` edit.
    * The ref is an environment-variable NAME — never a value.
    */

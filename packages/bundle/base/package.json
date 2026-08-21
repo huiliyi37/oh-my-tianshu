@@ -46,6 +46,7 @@
     "@huiliyi37/dsh-agent-definitions": "workspace:^",
     "@huiliyi37/dsh-agent-loop": "workspace:^",
     "@huiliyi37/dsh-api-gateway": "workspace:^",
+    "@huiliyi37/dsh-authorization": "workspace:^",
     "@huiliyi37/dsh-bash-env": "workspace:^",
     "@huiliyi37/dsh-bash-sandbox": "workspace:^",
     "@huiliyi37/dsh-command-compact": "workspace:^",

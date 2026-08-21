@@ -631,7 +631,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 'router/adoption': { subagentSessionId: string; verdict: 'adopt' | 'reject'; reason: string }
 ```
 
-来源：[`packages/guard/agent-router/src/index.ts:76`](../packages/guard/agent-router/src/index.ts)
+来源：[`packages/guard/agent-router/src/index.ts:80`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/decision` — log-only
 
@@ -653,7 +653,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 }
 ```
 
-来源：[`packages/guard/agent-router/src/index.ts:83`](../packages/guard/agent-router/src/index.ts)
+来源：[`packages/guard/agent-router/src/index.ts:87`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/outcome` — log-only
 
@@ -666,7 +666,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 'router/outcome': { subagentSessionId: string; stopReason: string }
 ```
 
-来源：[`packages/guard/agent-router/src/index.ts:69`](../packages/guard/agent-router/src/index.ts)
+来源：[`packages/guard/agent-router/src/index.ts:73`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/route` — log-only
 
@@ -686,7 +686,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 }
 ```
 
-来源：[`packages/guard/agent-router/src/index.ts:49`](../packages/guard/agent-router/src/index.ts)
+来源：[`packages/guard/agent-router/src/index.ts:53`](../packages/guard/agent-router/src/index.ts)
 
 ### `sandbox/*`
 

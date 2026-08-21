@@ -2738,7 +2738,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
               queue.push(frame({ type: 'host/models-changed' }))
             }
           }),
-          ctx.on('credentials/updated', (ref) => {
+          ctx.on('credentials/reference-updated', (ref) => {
             queue.push(frame({ type: 'host/credentials-changed', ref: String(ref) }))
           }),
           ctx.on('llm/adapters-updated', () => {

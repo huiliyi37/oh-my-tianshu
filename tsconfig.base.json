@@ -40,6 +40,8 @@
       "@huiliyi37/node-addon-landlock-run": ["./native/landlock-run/packages/entry/src/index.ts"],
       "@huiliyi37/dsh-invariants": ["./packages/support/invariants/src/index.ts"],
       "@huiliyi37/dsh-paths": ["./packages/util/paths/src/index.ts"],
+      "@huiliyi37/dsh-credentials/types": ["./packages/credentials/credentials/src/types.ts"],
+      "@huiliyi37/dsh-authorization/types": ["./packages/credentials/authorization/src/types.ts"],
       "@huiliyi37/dsh-agent-presets/types": ["./packages/preset/agent-presets/src/types.ts"],
       "@huiliyi37/dsh-cordis-host-runner/types": ["./packages/self-modification/cordis-host-runner/src/types.ts"],
       "@huiliyi37/dsh-cordis-client-runner/client": ["./packages/self-modification/cordis-client-runner/src/client"],

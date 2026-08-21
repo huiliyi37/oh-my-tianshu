@@ -95,15 +95,41 @@
     - id: credentials
       name: '@huiliyi37/dsh-credentials-local'
 
+    # Authorization flows over those records: plugin-owned sign-in conversations
+    # (an OAuth grant, or a key typed into the provider's own login prompt),
+    # committed through `modifyRecord` and confirmed by the seam. Adapters
+    # register their flows here; a surface starts one with `authorization.begin`.
+    - id: authorization
+      name: '@huiliyi37/dsh-authorization'
+
     # The pi-ai multi-provider twin, mounted dormant: zero routes (and no extra
     # models in the picker) until a `llm-pi-ai:` settings section supplies provider
     # profiles — then those routes register live, keys resolving per request
     # through their apiKeyEnv references, and drop again when the section empties.
     # Supplying those profiles is exactly what the web Models page does. Which
     # adapters exist is composition; which providers run is the user's settings
-    # document.
+    # document — with one shipped exception: the OpenRouter route below, so the
+    # stealth/ox-alpha model is available out of the box (key still resolves per
+    # request; without OPENROUTER_API_KEY the route lists but fails loud only
+    # when used). A user `llm-pi-ai:` section merges over this base per provider;
+    # models arrays replace wholesale, so restating `models` drops the shipped
+    # entry, and the route itself cannot be removed from settings.
     - id: llm-pi-ai
       name: '@huiliyi37/dsh-llm-pi-ai'
+      config:
+        providers:
+          openrouter:
+            apiKeyEnv: OPENROUTER_API_KEY
+            models:
+              - id: stealth/ox-alpha
+                name: Ox Alpha
+                contextWindow: 1048576
+                maxTokens: 131072
+                supportsVision: true
+                reasoningEfforts:
+                  low: low
+                  high: high
+                  max: max
 
     - id: session-persistence-jsonl
       name: '@huiliyi37/dsh-session-persistence-jsonl'

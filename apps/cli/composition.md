@@ -44,6 +44,8 @@ flowchart LR
   cfg --> plugin_dsh_base_settings
   plugin_dsh_base_credentials["credentials<br/>@huiliyi37/dsh-credentials-local"]
   cfg --> plugin_dsh_base_credentials
+  plugin_dsh_base_authorization["authorization<br/>@huiliyi37/dsh-authorization"]
+  cfg --> plugin_dsh_base_authorization
   plugin_dsh_base_llm_pi_ai["llm-pi-ai<br/>@huiliyi37/dsh-llm-pi-ai"]
   cfg --> plugin_dsh_base_llm_pi_ai
   plugin_dsh_base_session_persistence_jsonl["session-persistence-jsonl<br/>@huiliyi37/dsh-session-persistence-jsonl"]
@@ -202,6 +204,7 @@ flowchart LR
 | `tool-json-repair` | `@huiliyi37/dsh-tool-json-repair` |
 | `settings` | `@huiliyi37/dsh-settings-local` |
 | `credentials` | `@huiliyi37/dsh-credentials-local` |
+| `authorization` | `@huiliyi37/dsh-authorization` |
 | `llm-pi-ai` | `@huiliyi37/dsh-llm-pi-ai` |
 | `session-persistence-jsonl` | `@huiliyi37/dsh-session-persistence-jsonl` |
 | `session-query-sqlite` | `@huiliyi37/dsh-session-query-sqlite` |
