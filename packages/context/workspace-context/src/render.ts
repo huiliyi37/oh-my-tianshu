@@ -5,6 +5,7 @@
  */
 
 import { basename, dirname } from 'node:path'
+import { DEFAULT_DSH_HOME_DISPLAY } from '@huiliyi37/dsh-paths'
 import type { InstructionFile, LoadedInstructionFile } from './files.ts'
 
 const SYSTEM_REMINDER_OPEN = '<system-reminder>'
@@ -84,11 +85,17 @@ export const USER_GLOBAL_FILE = 'AGENTS.md'
 
 /**
  * Derive the logical instruction scope from a model-facing path.
+ *
+ * The user-global forms track the paths `dshHomeDisplay` can actually emit:
+ * the default home's `~/.dsh-tianshu/<name>` and any configured home's
+ * `$DSH_HOME/<name>` — hardcoding the pre-isolation `~/.dsh` literal would
+ * strand the default home's user-global file outside the `user-global`
+ * scope, loading it while reconciliation keys on the literal scope.
  * @param displayPath - project-relative or user-global instruction path.
  * @returns `user-global`, `.`, or the containing project-relative directory.
  */
 export function scopeForDisplayPath(displayPath: string): string {
-  if (displayPath === '~/.dsh/AGENTS.md' || displayPath === '$DSH_HOME/AGENTS.md') return USER_GLOBAL_DIRECTORY
+  if (displayPath === `${DEFAULT_DSH_HOME_DISPLAY}/${USER_GLOBAL_FILE}` || displayPath === `$DSH_HOME/${USER_GLOBAL_FILE}`) return USER_GLOBAL_DIRECTORY
   return dirname(displayPath)
 }
 

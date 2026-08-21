@@ -40,7 +40,7 @@ import {
   type InstructionVersionCache,
 } from '../src/state.ts'
 import { resolveConfig } from '../src/config.ts'
-import { candidateScopeKey, renderInstructionChanges, USER_GLOBAL_DIRECTORY, USER_GLOBAL_FILE } from '../src/render.ts'
+import { candidateScopeKey, renderInstructionChanges, scopeForDisplayPath, USER_GLOBAL_DIRECTORY, USER_GLOBAL_FILE } from '../src/render.ts'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 
 /** Per-candidate reconciliation scope key: directory paired with the file name. */
@@ -2303,6 +2303,14 @@ describe('workspace context request injection', () => {
       await rm(root, { recursive: true, force: true })
       await rm(home, { recursive: true, force: true })
     }
+  })
+
+  it('classifies the default home’s user-global display path into the reconciliation scope', () => {
+    // 默认 home 的 displayPath 是 ~/.dsh-tianshu/AGENTS.md（dshHomeDisplay 唯一
+    // 会产出的默认形态）；它必须与 state.ts 播种的对账 scope key 字面量一致，
+    // 否则 user-global AGENTS.md 加载后永远对不上账（render.ts 的契约注释）。
+    const loadedKey = candidateScopeKey(scopeForDisplayPath('~/.dsh-tianshu/AGENTS.md'), USER_GLOBAL_FILE)
+    expect(loadedKey).toBe(candidateScopeKey(USER_GLOBAL_DIRECTORY, USER_GLOBAL_FILE))
   })
 
   it('does not repeat a candidate metadata probe during one discovery and read pass', async () => {
