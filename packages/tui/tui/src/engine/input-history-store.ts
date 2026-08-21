@@ -63,7 +63,10 @@ export class InputHistoryStore {
     return this
   }
 
-  /** 当前历史快照（最新在前；导航消费方直接持有）。 */
+  /**
+   * 当前历史快照（最新在前；导航消费方直接持有）。
+   * @returns 历史条目副本（修改不影响存储内部状态）
+   */
   snapshot(): string[] {
     return [...this.entries]
   }

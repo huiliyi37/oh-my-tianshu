@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { PassThrough } from 'node:stream'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Context } from '@huiliyi37/cordis'
 import type { WriteStream } from 'node:tty'
 import { ReasoningEffortId } from '@huiliyi37/dsh-llm'
@@ -14,6 +14,7 @@ import { TuiApp, parseSlashCommand } from '../src/ui/app.js'
 import { LiveEngine } from '../src/engine/live-engine.js'
 import { getActiveThemeName, setTheme } from '../src/theme.js'
 import { readImageFromClipboard, readTextFromClipboard } from '../src/engine/clipboard-image.js'
+import { setImageProtocol } from '../src/engine/ansi.js'
 import { decodeMessages, encodeMessage } from '../src/lsp/rpc.js'
 
 // 剪贴板读图/读文本走真实 shell（osascript / wl-paste 等），单元测试不可控——
@@ -7685,6 +7686,103 @@ describe('TuiApp 剪贴板图片与复制（opencode 接线移植）', () => {
     const line = (app as unknown as { inputLine: { images: string[]; value: string } }).inputLine
     expect(line.images).toHaveLength(1)
     expect(line.value).toBe('')
+  })
+})
+
+describe('TuiApp 图片预览（composer 半块缩略图 + 无协议回退）', () => {
+  /**
+   * 上红下蓝双色 PNG（8×2）：真实 sharp 解码路径。8 宽使 composer 网格
+   * （min(30, 宽) 下限 8）做恒等缩放，色界恰好落在字符行上下半之间——
+   * 缩略图行可精确断言「红前景 + 蓝背景」。
+   */
+  let twoToneUrl: string
+  beforeAll(async () => {
+    const { default: sharp } = await import('sharp')
+    const buf = Buffer.alloc(8 * 2 * 3)
+    for (let y = 0; y < 2; y++) {
+      for (let x = 0; x < 8; x++) {
+        const i = (y * 8 + x) * 3
+        buf[i] = y === 0 ? 255 : 0
+        buf[i + 1] = 0
+        buf[i + 2] = y === 0 ? 0 : 255
+      }
+    }
+    const b64 = await sharp(buf, { raw: { width: 8, height: 2, channels: 3 } })
+      .png()
+      .toBuffer()
+      .then(b => b.toString('base64'))
+    twoToneUrl = `data:image/png;base64,${b64}`
+  })
+
+  function boot() {
+    const ctx = makeCtx()
+    const agent = makeAgent('preview-test')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    return { ctx, agent, handle, stdin, stdout, app }
+  }
+
+  afterEach(() => {
+    vi.mocked(readImageFromClipboard).mockReset()
+    setImageProtocol(null)
+  })
+
+  it('附图后 composer 在 📎 行上方渲染最后一张的半块缩略图', async () => {
+    vi.mocked(readImageFromClipboard).mockResolvedValueOnce({ dataUrl: twoToneUrl, mime: 'image/png', name: 'clipboard.png', source: 'png' })
+    const { stdin, stdout, app } = boot()
+    await app.attach()
+    stdin.emit('data', '\x1b[200~\x1b[201~')
+    await vi.waitFor(() => {
+      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('📎 1 image')
+      // 上半红前景 + 下半蓝背景的单游程行（真实像素解码结果）。
+      expect(written).toContain('\x1B[38;2;255;0;0m\x1B[48;2;0;0;255m▀')
+    }, { timeout: 5_000, interval: 25 })
+    await app.dispose()
+  })
+
+  it('移除末张后缩略图随附件清空（不留过期图片）', async () => {
+    vi.mocked(readImageFromClipboard).mockResolvedValueOnce({ dataUrl: twoToneUrl, mime: 'image/png', name: 'clipboard.png', source: 'png' })
+    const { stdin, app } = boot()
+    await app.attach()
+    stdin.emit('data', '\x1b[200~\x1b[201~')
+    await vi.waitFor(() => {
+      const state = app as unknown as { attachmentPreview: { lines: string[] } | null }
+      expect(state.attachmentPreview).not.toBeNull()
+    }, { timeout: 5_000, interval: 25 })
+    stdin.emit('data', '\x1b\x7f') // Alt+Backspace 移除末张
+    await vi.waitFor(() => {
+      const state = app as unknown as { attachmentPreview: { lines: string[] } | null }
+      expect(state.attachmentPreview).toBeNull()
+    }, { timeout: 5_000, interval: 25 })
+    await app.dispose()
+  })
+
+  it('无图形协议终端：提交后气泡下方追加半块回退，而非 kitty/iTerm2 序列', async () => {
+    setImageProtocol('none')
+    vi.mocked(readImageFromClipboard).mockResolvedValueOnce({ dataUrl: twoToneUrl, mime: 'image/png', name: 'clipboard.png', source: 'png' })
+    const { stdin, stdout, app } = boot()
+    await app.attach()
+    stdin.emit('data', '\x1b[200~\x1b[201~')
+    await vi.waitFor(() => {
+      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('📎 1 image')
+    }, { timeout: 5_000, interval: 25 })
+    for (const ch of 'hi') stdin.emit('data', ch)
+    stdin.emit('data', '\r')
+    await vi.waitFor(() => {
+      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      // 半块回退写入 scrollback（与图形路径同编舞：清 live 区 → writeRaw）。
+      expect(written).toContain('\x1B[38;2;255;0;0m\x1B[48;2;0;0;255m▀')
+      // 协议序列未发出（none 路径不出 kitty APC / iTerm2 OSC 1337）。
+      expect(written).not.toContain('\x1B_G')
+      expect(written).not.toContain('1337;File')
+    }, { timeout: 5_000, interval: 25 })
+    await app.dispose()
   })
 })
 describe('LSP 诊断桥（黑盒：假 server 注入）', () => {

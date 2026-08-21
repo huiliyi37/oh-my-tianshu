@@ -8091,6 +8091,9 @@ importers:
       get-east-asian-width:
         specifier: ^1.6.0
         version: 1.6.0
+      sharp:
+        specifier: ^0.35.3
+        version: 0.35.3(@types/node@22.20.0)
       string-width:
         specifier: ^8.2.2
         version: 8.2.2

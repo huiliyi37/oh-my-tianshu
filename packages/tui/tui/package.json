@@ -88,6 +88,7 @@
     "chalk": "^6.0.0",
     "diff": "^9.0.0",
     "get-east-asian-width": "^1.6.0",
+    "sharp": "^0.35.3",
     "string-width": "^8.2.2"
   }
 }

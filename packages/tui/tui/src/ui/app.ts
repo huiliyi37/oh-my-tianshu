@@ -53,6 +53,14 @@ import {
   prepareTermImageForCommit,
   type PreparedTermImage,
 } from '../engine/term-image.js'
+import {
+  FALLBACK_MAX_ROWS,
+  hexToRgb,
+  NEUTRAL_PREVIEW_BACKGROUND,
+  PREVIEW_MAX_COLS,
+  PREVIEW_MAX_ROWS,
+  renderHalfBlockPreview,
+} from '../engine/image-preview.js'
 import { createTranscript, type Transcript, type TranscriptMessage, type TranscriptToolCall } from '../adapter/transcript.js'
 import { resolveToolViews, type ToolPresenterSource } from '../adapter/tool-view.js'
 import { trackAgent, type LiveAgent } from '../adapter/live.js'
@@ -814,6 +822,10 @@ export class TuiApp {
   /** 输入历史（持久化存储：$DSH_HOME/input-history.json，跨会话；异步加载）。 */
   private historyStore: InputHistoryStore
   private history: string[] = []
+  /** composer 半块缩略图：键为渲染时的最后一张附件；附件变化异步重算。 */
+  private attachmentPreview: { dataUrl: string; lines: string[] } | null = null
+  /** 缩略图渲染代际：附件快速增删时丢弃迟到结果。 */
+  private attachmentPreviewEpoch = 0
   private tick = 0
   private ticker: ReturnType<typeof setInterval> | null = null
   private disposed = false
@@ -909,6 +921,8 @@ export class TuiApp {
       // slash 菜单状态随输入变化刷新（键入/粘贴/外部 setValue 统一入口；
       // 渲染由各调用路径 flushLiveRender 承担，此处不触发重绘）。
       onChange: (value) => { this.inputController.refreshSlash(value) },
+      // 附件增删 → composer 半块缩略图（异步渲染，完成时自行触发重绘）。
+      onImagesChange: (images) => { void this.refreshAttachmentPreview(images) },
     })
     this.resize = new ResizeHandler({ stdout: options.stdout })
     // 渲染帧合并器（T9）：事件路径（流式块）走 schedule 16ms 合并，
@@ -3332,9 +3346,14 @@ export class TuiApp {
    */
   private commitUserPrompt(content: string, images?: string[]): void {
     const protocol = imageProtocol()
-    const withImages = images !== undefined && images.length > 0 && protocol !== 'none'
+    const withImages = images !== undefined && images.length > 0
     this.commitToScrollback({ text: this.writeUserBubbleLines(content, images), trailingNewline: true })
     if (!withImages) return
+    // 无图形协议终端：气泡图片走半块字符回退（任意终端可读的像素级预览）。
+    if (protocol === 'none') {
+      void this.commitHalfBlockImages(images)
+      return
+    }
     void (async () => {
       let prepared: PreparedTermImage[] = []
       try {
@@ -3379,6 +3398,61 @@ export class TuiApp {
       }
     }
     return formatUserMessage({ content: content.trim() + imageNote, width: this.stdout.columns }, this.theme).join('\n')
+  }
+
+  /**
+   * 无图形协议终端的气泡图片回退：半块字符预览写进 scrollback（与图形路径
+   * 同编舞——先清 live 区再 writeRaw，写完立即重绘）。解码失败返回 null 已在
+   * 渲染器内吞并，此处无需再兜——静默降级为纯文本气泡（📎 行已随正文写入）。
+   * @param images - 图片 data URL 列表（与气泡一致，封顶 MAX_IMAGES）
+   */
+  private async commitHalfBlockImages(images: string[]): Promise<void> {
+    const cols = Math.max(10, this.stdout.columns - 4)
+    const blocks: string[] = []
+    for (const dataUrl of images.slice(0, MAX_IMAGES)) {
+      const preview = await renderHalfBlockPreview(dataUrl, {
+        maxCols: cols,
+        maxRows: FALLBACK_MAX_ROWS,
+        background: this.previewBackground(),
+      })
+      if (preview) blocks.push(preview.lines.join('\r\n'))
+    }
+    if (blocks.length === 0) return
+    this.live.clearForCommit()
+    this.commit.writeRaw(blocks.join('\r\n') + '\r\n')
+    this.flushLiveRender()
+  }
+
+  /**
+   * composer 附件缩略图维护：附件列表变化时重算最后一张的半块预览。
+   * sharp 异步解码毫秒级，完成后触发一次重绘；代际号丢弃迟到结果
+   * （快速增删/提交清空后不再挂出过期图片）。渲染失败置 null——计数行
+   * 仍在，预览是装饰性增强。
+   * @param images - 变化后的附件 data URL 列表
+   */
+  private async refreshAttachmentPreview(images: string[]): Promise<void> {
+    const last = images[images.length - 1]
+    if (last === undefined) {
+      this.attachmentPreview = null
+      return
+    }
+    if (this.attachmentPreview?.dataUrl === last) return
+    const epoch = ++this.attachmentPreviewEpoch
+    const cols = Math.max(8, Math.min(PREVIEW_MAX_COLS, this.stdout.columns - 6))
+    const preview = await renderHalfBlockPreview(last, {
+      maxCols: cols,
+      maxRows: PREVIEW_MAX_ROWS,
+      background: this.previewBackground(),
+    })
+    if (epoch !== this.attachmentPreviewEpoch) return
+    this.attachmentPreview = preview === null ? null : { dataUrl: last, lines: preview.lines }
+    this.flushLiveRender()
+  }
+
+  /** 预览合成底色：主题气泡底色（truecolor 轨）优先，缺省中性暗色。 */
+  private previewBackground(): { r: number; g: number; b: number } {
+    const bg = this.theme.userMsgBg !== undefined ? hexToRgb(this.theme.userMsgBg) : null
+    return bg ?? NEUTRAL_PREVIEW_BACKGROUND
   }
 
   /**
@@ -4794,7 +4868,14 @@ export class TuiApp {
         : '-- NORMAL --'
       lines.push({ text: color(modeLabel, theme.secondary) })
     }
-    // 图片附件标记（📎 N images）显示在输入行上方；dim 色弱化不干扰输入。
+    // 图片附件：最后一张的半块缩略图 + 📎 N 计数行，显示在输入行上方。
+    // 缩略图是纯文本 ANSI 行，随 live 区重绘天然擦除（无图形协议残影问题）；
+    // 计数行 dim 色弱化不干扰输入。
+    const currentImages = this.inputLine.images
+    const lastAttached = currentImages[currentImages.length - 1]
+    if (this.attachmentPreview !== null && lastAttached === this.attachmentPreview.dataUrl) {
+      for (const line of this.attachmentPreview.lines) lines.push({ text: line })
+    }
     for (const summary of this.inputLine.imageSummary(cols)) {
       lines.push({ text: color(summary, theme.muted) })
     }
