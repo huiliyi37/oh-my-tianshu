@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-11-agent-router-port.md
-2026-08-11-agent-router-port.md: 5476475656e8789552819a62cc3550fe13ec52aa
-2026-08-11-agent-router-port.zh.md: 11d2c2678adf950248e079856746a722290b21dc
+2026-08-11-agent-router-port.md: 88ad0d002f27d65e2eb77ac9be97845aa9cc5952
+2026-08-11-agent-router-port.zh.md: 02e0e3b638efb615afaba91c9a61f2aaf4b50686
