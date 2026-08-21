@@ -2,16 +2,16 @@
 
 English | [中文](providers.zh.md)
 
-Harness ships with DeepSeek and mounts a generic multi-provider adapter alongside it, for the providers in pi-ai's installed catalog — Anthropic, OpenAI, and the rest — and for any OpenAI-compatible gateway or self-hosted server. The full entry points are the **Models** page in the web UI and `$DSH_HOME/settings.yaml`; both write the same document, and a change takes effect on the next request without a restart. The TUI covers the daily two: the DeepSeek key (`/key`) and per-role model pins (`/model <role>`).
+Harness ships with DeepSeek and mounts a generic multi-provider adapter alongside it, for the providers in pi-ai's installed catalog — Anthropic, OpenAI, and the rest — and for any OpenAI-compatible gateway or self-hosted server. One OpenRouter route comes configured out of the box with the `stealth/ox-alpha` model; it appears in the pickers immediately and needs only an `OPENROUTER_API_KEY`. The full entry points are the **Models** page in the web UI and `$DSH_HOME/settings.yaml`; both write the same document, and a change takes effect on the next request without a restart. The TUI covers the daily two: the DeepSeek key (`/key`) and per-role model pins (`/model <role>`).
 
 ## Where providers come from
 
 `cordis.yml` decides which **adapters** are installed; the settings document decides which **providers** run. The shipped composition carries two LLM adapters:
 
-- `llm-deepseek` serves the `deepseek-official` route, the one available out of the box.
-- `llm-pi-ai` mounts **dormant**: zero routes and no extra entries in the model picker until an `llm-pi-ai:` settings section supplies provider profiles, at which point those routes register live and drop again when the section empties.
+- `llm-deepseek` serves the `deepseek-official` route.
+- `llm-pi-ai` mounts **dormant** — zero routes and no extra entries in the model picker until an `llm-pi-ai:` settings section supplies provider profiles, at which point those routes register live and drop again when the section empties — with one shipped exception: its `openrouter` route, which carries `stealth/ox-alpha` and registers out of the box (the key still resolves per request, so the route lists before any key exists).
 
-Adding a provider therefore rarely means editing `cordis.yml` — writing settings is enough, and that is exactly what the Models page does.
+Adding a further provider therefore rarely means editing `cordis.yml` — writing settings is enough, and that is exactly what the Models page does. A user `llm-pi-ai:` section merges over the shipped `openrouter` profile per provider; restating its `models` list replaces the shipped one wholesale.
 
 ## Configure from the web UI
 

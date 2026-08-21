@@ -332,11 +332,15 @@ describe('provider profile lifecycle', () => {
     await ctx.plugin(LlmPiAi, { providers: { openai: {} } })
     const models = await ctx.llm.listModels('openai')
     expect(models.find(model => model.id === 'gpt-4.1')).toEqual({
-      provider: 'openai', id: 'gpt-4.1', name: 'GPT-4.1',
+      provider: 'openai', id: 'gpt-4.1', name: 'GPT-4.1', supportsVision: true,
     })
     expect(models.every(model => model.provider === 'openai')).toBe(true)
     const info = await ctx.llm.resolveModelInfo('openai', 'gpt-4.1')
     expect(typeof info.context?.contextWindow).toBe('number')
+    // pi-ai's `input` is authoritative, so the capability is a stated boolean —
+    // including false for the catalog's text-only models.
+    expect(info.supportsVision).toBe(true)
+    expect(models.find(model => model.id === 'gpt-4')?.supportsVision).toBe(false)
   })
 
   it('exposes pi-ai model thinking levels verbatim without inventing a provider default', async () => {
@@ -407,6 +411,67 @@ describe('provider profile lifecycle', () => {
     })
     await expect(disabled.llm.resolveModelInfo('deepseek', 'deepseek-v4-flash'))
       .resolves.toMatchObject({ reasoning: { defaultEffort: ReasoningEffortId('off') } })
+  })
+
+  it('refuses image input for a text-only model before credentials or network I/O', async () => {
+    // A named-but-blank reference would fail credential resolution; the gate
+    // firing first proves images are refused before any of that — pi-ai itself
+    // would only downgrade them to placeholders, which would look like the
+    // model having seen them.
+    vi.stubEnv('PI_BLANK_REF', '')
+    const server = await mockServer([])
+    const ctx = new Context()
+    await ctx.plugin(LlmService)
+    await ctx.plugin(LlmPiAi, {
+      providers: {
+        'acme-gateway': {
+          apiKeyEnv: 'PI_BLANK_REF',
+          api: 'openai-completions',
+          baseURL: `${server.url}/v1`,
+          models: [{ id: 'acme-text', contextWindow: 65_536, maxTokens: 4096 }],
+        },
+      },
+    })
+    const result = await assemble(ctx, {
+      provider: 'acme-gateway',
+      model: 'acme-text',
+      messages: [createUserMessage({
+        content: [{ type: 'text', text: 'look' }, { type: 'image', dataUrl: 'data:image/png;base64,aGk=' }],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    })
+    expect(result.finish).toMatchObject({ kind: 'error', failure: { code: 'UNSUPPORTED_CONTENT' } })
+    expect(server.requests).toEqual([])
+  })
+
+  it('sends image blocks to a model that declares image input', async () => {
+    const server = await mockServer([{ events: textEvents }])
+    const ctx = new Context()
+    await ctx.plugin(LlmService)
+    await ctx.plugin(LlmPiAi, {
+      providers: {
+        'acme-gateway': {
+          apiKeyEnv: 'PI_TEST_KEY',
+          api: 'openai-completions',
+          baseURL: `${server.url}/v1`,
+          models: [{ id: 'acme-eye', contextWindow: 65_536, maxTokens: 4096, supportsVision: true }],
+        },
+      },
+    })
+    await assemble(ctx, {
+      provider: 'acme-gateway',
+      model: 'acme-eye',
+      messages: [createUserMessage({
+        content: [{ type: 'text', text: 'what is this' }, { type: 'image', dataUrl: 'data:image/png;base64,aGVsbG8=' }],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    })
+    // The declared data URL round-trips through pi-ai's base64+mime split.
+    const request = server.requests[0] as { messages: { content: unknown }[] }
+    expect(request.messages[0]?.content).toEqual([
+      { type: 'text', text: 'what is this' },
+      { type: 'image_url', image_url: { url: 'data:image/png;base64,aGVsbG8=' } },
+    ])
   })
 
   it('serves declared reasoning efforts to selectors and honours the profile default', async () => {
@@ -755,7 +820,9 @@ describe('provider profile lifecycle', () => {
 describe('abort wiring', () => {
   it('preserves an unknown pre-dispatch adapter Error exactly', async () => {
     const original = new Error('SDK context conversion exploded')
-    const message = Object.defineProperty({}, 'role', {
+    // `content` is present because the image gate reads it before conversion;
+    // the throwing `role` getter is what the conversion path must trip on.
+    const message = Object.defineProperty({ content: [] }, 'role', {
       get() { throw original },
     })
     const adapter = adapterOf({ deepseek: {} })
@@ -773,7 +840,7 @@ describe('abort wiring', () => {
   it('lets a concurrent caller abort classify a pre-dispatch adapter failure', async () => {
     const controller = new AbortController()
     const original = new Error('conversion lost its caller')
-    const message = Object.defineProperty({}, 'role', {
+    const message = Object.defineProperty({ content: [] }, 'role', {
       get() {
         controller.abort('caller cancelled during conversion')
         throw original

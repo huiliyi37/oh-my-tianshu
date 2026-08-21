@@ -341,9 +341,9 @@ interface CredentialsDescribeFacet {
   describe(ref: string): Promise<{ configured: boolean; source?: string; writable?: boolean }>
 }
 
-/** llm.resolveModelInfo 最小面（识图能力取 inputModalities，不引入 dsh-llm peer）。 */
+/** llm.resolveModelInfo 最小面（识图能力取 supportsVision，不引入 dsh-llm peer）。 */
 interface LlmModelInfoFacet {
-  resolveModelInfo(provider: string, model: string): Promise<{ inputModalities?: readonly string[] }>
+  resolveModelInfo(provider: string, model: string): Promise<{ supportsVision?: boolean }>
 }
 
 /** TuiApp 构造选项。 */
@@ -1472,15 +1472,14 @@ export class TuiApp {
 
   /**
    * 按当前主控模型刷新识图标志。llm 服务缺失或查询失败时保持原值；
-   * inputModalities 含 image 才直发图片，否则走桥或「未发送」。
+   * supportsVision 为 true 才直发图片，否则走桥或「未发送」。
    */
   private refreshVisionForSelection(selection: { provider: string; model: string }): void {
     const llm = this.ctx.reflect.get('llm', false) as LlmModelInfoFacet | undefined
     if (llm === undefined) return
     void llm.resolveModelInfo(selection.provider, selection.model).then((info) => {
       if (this.disposed) return
-      const modalities = info.inputModalities
-      this.supportsVision = modalities !== undefined && modalities.includes('image')
+      this.supportsVision = info.supportsVision === true
     }).catch(() => {
       // 目录查询失败时保持启动时的识图标志
     })

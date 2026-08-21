@@ -6,7 +6,7 @@
  * re-sending it.
  *
  * Two modes, chosen per call from the primary model's actual capability:
- *  - Multimodal primary (inputModalities includes image, or forced by config)
+ *  - Multimodal primary (supportsVision, or forced by config)
  *    → the original image is forwarded back as an image content block so the
  *    primary sees the pixels itself.
  *  - Text-only primary → the configured vision adapter answers the specific

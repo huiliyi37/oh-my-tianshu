@@ -100,7 +100,7 @@ describe('hand-declared providers', () => {
     const ctx = await harness(gateway(`${server.url}/v1`))
 
     expect(await ctx.llm.listModels('acme-gateway')).toEqual([
-      { provider: 'acme-gateway', id: 'acme-large', name: 'Acme Large' },
+      { provider: 'acme-gateway', id: 'acme-large', name: 'Acme Large', supportsVision: false },
     ])
     const info = await ctx.llm.resolveModelInfo('acme-gateway', 'acme-large')
     expect(info).toMatchObject({
@@ -579,6 +579,49 @@ describe('per-model reasoning efforts', () => {
     expect(declare({ off: 'none' })).toThrow(/offers no level beyond "off"/)
     expect(declare({ high: null })).toThrow(/only "off" may leave it empty/)
     expect(declare({ high: '' })).toThrow(/must not be an empty string/)
+  })
+})
+
+describe('input modalities', () => {
+  /** A catalog model the installed catalog itself declares image-capable. */
+  const openaiModel = (id: string): Model<Api> => {
+    const model = getBuiltinModels('openai').find(candidate => candidate.id === id)
+    if (model === undefined) throw new Error(`${id} missing from pi-ai test catalog`)
+    return model
+  }
+
+  it('keeps a hand-declared model text-only until it declares image input', () => {
+    const resolved = resolveProfiles({
+      'acme-gateway': {
+        api: 'openai-completions',
+        baseURL: 'https://acme.test',
+        models: [{ id: 'acme-eye', supportsVision: true }, { id: 'acme-text' }],
+      },
+    })
+    const models = new Map(resolved.get('acme-gateway')?.piProvider.getModels()
+      .map(model => [model.id, model] as const))
+    expect(models.get('acme-text')?.input).toEqual(['text'])
+    expect(models.get('acme-eye')?.input).toEqual(['text', 'image'])
+  })
+
+  it('inherits a catalog model image input and lets an override force it either way', () => {
+    expect(openaiModel('gpt-4.1').input).toContain('image')
+    expect(openaiModel('gpt-4').input).not.toContain('image')
+
+    const inherited = resolveProfiles({ openai: {} })
+      .get('openai')?.piProvider.getModels()
+      .find(model => model.id === 'gpt-4.1')
+    expect(inherited?.input).toEqual(['text', 'image'])
+
+    const stripped = resolveProfiles({ openai: { modelOverrides: { 'gpt-4.1': { supportsVision: false } } } })
+      .get('openai')?.piProvider.getModels()
+      .find(model => model.id === 'gpt-4.1')
+    expect(stripped?.input).toEqual(['text'])
+
+    const forced = resolveProfiles({ openai: { modelOverrides: { 'gpt-4': { supportsVision: true } } } })
+      .get('openai')?.piProvider.getModels()
+      .find(model => model.id === 'gpt-4')
+    expect(forced?.input).toEqual(['text', 'image'])
   })
 })
 

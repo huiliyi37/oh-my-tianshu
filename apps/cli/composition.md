@@ -48,6 +48,8 @@ flowchart LR
   cfg --> plugin_dsh_base_authorization
   plugin_dsh_base_llm_pi_ai["llm-pi-ai<br/>@huiliyi37/dsh-llm-pi-ai"]
   cfg --> plugin_dsh_base_llm_pi_ai
+  plugin_dsh_base_stealth_ox_alpha["stealth/ox-alpha<br/>Ox Alpha"]
+  cfg --> plugin_dsh_base_stealth_ox_alpha
   plugin_dsh_base_session_persistence_jsonl["session-persistence-jsonl<br/>@huiliyi37/dsh-session-persistence-jsonl"]
   cfg --> plugin_dsh_base_session_persistence_jsonl
   plugin_dsh_base_session_query_sqlite["session-query-sqlite<br/>@huiliyi37/dsh-session-query-sqlite"]
@@ -206,6 +208,7 @@ flowchart LR
 | `credentials` | `@huiliyi37/dsh-credentials-local` |
 | `authorization` | `@huiliyi37/dsh-authorization` |
 | `llm-pi-ai` | `@huiliyi37/dsh-llm-pi-ai` |
+| `stealth/ox-alpha` | `Ox Alpha` |
 | `session-persistence-jsonl` | `@huiliyi37/dsh-session-persistence-jsonl` |
 | `session-query-sqlite` | `@huiliyi37/dsh-session-query-sqlite` |
 | `session-projection` | `@huiliyi37/dsh-session-projection` |

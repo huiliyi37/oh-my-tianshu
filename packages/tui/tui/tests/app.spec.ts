@@ -1407,8 +1407,8 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
               { id: 'deepseek-v4-flash', name: 'Flash' },
               { id: 'deepseek-v4-pro', name: 'Pro' },
             ],
-            // switchLiveModel → refreshVisionForSelection 会查模型模态
-            resolveModelInfo: async () => ({ inputModalities: undefined }),
+            // switchLiveModel → refreshVisionForSelection 会查模型识图能力
+            resolveModelInfo: async () => ({ supportsVision: undefined }),
           }
         }
         return undefined
@@ -4146,7 +4146,7 @@ describe('TuiApp 会话交互 UX 对齐（显示层 = 实际能力）', () => {
 
   it('切到无 image 模态的模型后，发图走「图片未发送」（不沿用启动时的识图标志）', async () => {
     const ctx = makeCtx()
-    const resolveModelInfo = vi.fn(async () => ({ inputModalities: ['text'] as const }))
+    const resolveModelInfo = vi.fn(async () => ({ supportsVision: false }))
     const fallback = ctx.reflect.get.getMockImplementation() as (name: string) => unknown
     ctx.reflect.get.mockImplementation((name: string) => {
       if (name === 'llm') return { resolveModelInfo }

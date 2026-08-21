@@ -2,16 +2,16 @@
 
 [English](providers.md) | 中文
 
-Harness 出厂自带 DeepSeek，同时预装了一个通用的多提供方适配器，用来接入 pi-ai 已安装目录中的 Anthropic、OpenAI 等提供方，或任何 OpenAI 兼容的网关与自建服务。完整入口有两个：Web 界面的**模型**页和 `$DSH_HOME/settings.yaml`——两者写的是同一份文档，改完下一次请求即生效，不用重启。TUI 覆盖日常两件套：DeepSeek 密钥（`/key`）与按角色 pin 模型（`/model <角色>`）。
+Harness 出厂自带 DeepSeek，同时预装了一个通用的多提供方适配器，用来接入 pi-ai 已安装目录中的 Anthropic、OpenAI 等提供方，或任何 OpenAI 兼容的网关与自建服务。其中一条 OpenRouter 路由开箱即已配置，携带 `stealth/ox-alpha` 模型；它会立刻出现在选择器里，只差一个 `OPENROUTER_API_KEY`。完整入口有两个：Web 界面的**模型**页和 `$DSH_HOME/settings.yaml`——两者写的是同一份文档，改完下一次请求即生效，不用重启。TUI 覆盖日常两件套：DeepSeek 密钥（`/key`）与按角色 pin 模型（`/model <角色>`）。
 
 ## 提供方从哪里来
 
 `cordis.yml` 决定装了哪些**适配器**，settings 文档决定跑哪些**提供方**。出厂组合里有两个 LLM 适配器：
 
-- `llm-deepseek` 提供 `deepseek-official` 路由，是默认可用的那个。
-- `llm-pi-ai` 以**休眠**状态挂载：零路由，模型选择器里也不会多出条目，直到 settings 里的 `llm-pi-ai:` 段落给出提供方 profile，路由才注册上来；段落清空则一并撤下。
+- `llm-deepseek` 提供 `deepseek-official` 路由。
+- `llm-pi-ai` 以**休眠**状态挂载：零路由，模型选择器里也不会多出条目，直到 settings 里的 `llm-pi-ai:` 段落给出提供方 profile，路由才注册上来；段落清空则一并撤下——唯一的出厂例外是它的 `openrouter` 路由：携带 `stealth/ox-alpha`，开箱即注册（密钥仍按请求解析，所以还没有密钥时该路由只出现在列表里）。
 
-因此新增一个提供方通常不需要改 `cordis.yml`，写 settings 就够了——而模型页做的正是这件事。
+因此再新增一个提供方通常不需要改 `cordis.yml`，写 settings 就够了——而模型页做的正是这件事。用户的 `llm-pi-ai:` 段落会按提供方与出厂的 `openrouter` profile 合并；重述它的 `models` 列表则会整体替换出厂那份。
 
 ## 在 Web 界面里配置
 

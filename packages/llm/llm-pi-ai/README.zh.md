@@ -62,6 +62,9 @@
             name: Acme Large
             contextWindow: 65536
             maxTokens: 4096
+            # accepts image input; absent keeps the installed entry's
+            # modalities, which for a hand-declared model is text-only.
+            supportsVision: true
           - id: acme-think
             name: Acme Think
             contextWindow: 262144
@@ -78,7 +81,7 @@
 
 ## Catalog 解析
 
-profile 的 `models` 列表是*替换*该路由已安装 catalog，而不是扩充它；省略它（或留空）则原样服务该 catalog。每个条目都会从同 `id` 的已安装模型继承自身未设置的字段，因此把 catalog 路由收窄到两个模型、更正某个容量，或加入一个比已安装 catalog 更新的模型，都是一行编辑——但一旦声明了 `models` 列表，该路由要继续服务的每个模型就都必须出现在其中，条目哪怕只写一个 `id` 也足够。可配置的条目字段是 `id`、`name`、`contextWindow`、`maxTokens`、`reasoningEfforts` 与 `compat`。定价与输入模态没有 harness 消费方，因此沿用已安装条目或直接缺席。
+profile 的 `models` 列表是*替换*该路由已安装 catalog，而不是扩充它；省略它（或留空）则原样服务该 catalog。每个条目都会从同 `id` 的已安装模型继承自身未设置的字段，因此把 catalog 路由收窄到两个模型、更正某个容量，或加入一个比已安装 catalog 更新的模型，都是一行编辑——但一旦声明了 `models` 列表，该路由要继续服务的每个模型就都必须出现在其中，条目哪怕只写一个 `id` 也足够。可配置的条目字段是 `id`、`name`、`contextWindow`、`maxTokens`、`reasoningEfforts`、`supportsVision` 与 `compat`。定价没有 harness 消费方，因此沿用已安装条目或直接缺席。
 
 `modelOverrides` 无需这份代价就能就地重塑单个已安装 catalog 模型：每个键是一个 catalog 模型 id，每个值可写 `models` 条目接受的同一批字段，只是 id 落在键上，而 catalog 的其余部分原样继续服务——「改一个模型、其余三十七个原样保留」只是一次三行编辑。一条覆盖会成为该 catalog 条目的配置，因此容量、档位与 compat 沿与 `models` 条目相同的路径解析，携带相同的诊断与相同的请求默认值语义。覆盖只在正服务自身 catalog 的 catalog 路由上才有意义：与 `models` 列表并存的一份（该列表本就替换了 catalog）、落在手工声明路由上的一份（其模型已在 `models` 中完整写出），或点名了 catalog 未描述模型的一份，都会被拒绝而非跳过，因为一个静默保持原样的模型，就是一个否则要有人费力追查的笔误。
 
@@ -87,6 +90,10 @@ profile 的 `models` 列表是*替换*该路由已安装 catalog，而不是扩�
 `reasoningEfforts` 声明模型可选的思考级别：每个键是选择器提供的一个档位，其值是分派在协议中发送的拼写，因此 `high: high` 原样透传规范名称，而 `max: ultra` 则为使用自有词汇的网关改名。键取自 pi-ai 的档位集合（`off`、`minimal`、`low`、`medium`、`high`、`xhigh`、`max`）；未声明的档位不会被提供。省略该字段会保留已安装 catalog 条目的能力（手工声明的模型没有这份能力，也不推理）；`false` 声明一个不具备推理能力的模型，profile 正是以此从其网关无法服务的 catalog 模型上剥除推理；空声明会被拒绝，而不是在这两种含义之间去猜。
 
 该声明会转换为 pi-ai 的 `Model.reasoning` + `thinkingLevelMap`，其中每个档位都被显式决定——未声明的档位一律固定为不支持，而不是留给 pi-ai 自己的默认规则：那套规则并不对称（键缺席对五个基础档位意味着「支持」，对 `xhigh`/`max` 却意味着「不支持」），也本不该要求 profile 作者了解。`off` 是唯一的三态键：不写它，选择器不提供 Off，显式请求 Off 会被拒绝——不点名任何档位的请求仍会在不带该参数的情况下发出，提供方随后做什么是它自己的默认行为；声明而不给值（`off:`），则会提供 Off，选中它时什么也不发送——对 `deepseek` 方言则是一个显式的 `thinking: {type: "disabled"}`——这同时覆盖完全不点名任何档位的请求；声明并给值（`off: none`），该值就会作为档位参数在协议中发送。没有任何写法能把 catalog 映射中的键恢复为「未设置」：这份声明就是对外提供的全部，因此把你要保留的 catalog 档位重述出来。
+
+### 图片输入
+
+`supportsVision` 声明模型是否接受图片输入。它解析为 pi-ai 的 `Model.input` 模态，并以 `supportsVision` 呈现在 `ctx.llm.listModels`/`resolveModelInfo` 上——composer 的直发门控、视觉桥的自动选型与 `ask_image` 查询的正是它。省略该字段沿用已安装条目的模态（手工声明的模型没有模态，即纯文本）；`true` 声明图片输入，可强加给 catalog 中以纯文本发布的模型；`false` 则从 catalog 中以多模态发布的模型上剥除，用于无法提供图片服务的网关。携带图片的请求打到纯文本模型，会在解析凭据或网络 I/O 之前以 `UNSUPPORTED_CONTENT` 失败：pi-ai 自身只会把图片降级为文字占位，看起来就像模型已经看过它们。
 
 ### 协议兼容开关
 
@@ -193,8 +200,10 @@ pi-ai 事件会变为 harness 推理、文本、工具调用、usage 与 finish 
 ## 已知限制与暂缓事项
 
 - **`maxRequestImageBytes` 只统计 base64 图片载荷**：文本、工具与 JSON 结构不计入上限，因此该值必须低于网关请求体上限并留出余量。offload 在请求转换时决定，是历史与配置的纯函数，不记录为会话事件；由按路由能力元数据（图片数量、单图大小、请求总大小）同时驱动准入与组装的完整设计属于暂缓工作。
+- **一次登录只存活于发起它的进程中**：授权尝试不可持久，登录途中刷新页面会丢弃它，人需要重来。登出即对已存储记录执行 `deleteRecord`，它只在本地遗忘而不通知签发方。
+- **提供方自带的凭据发现经由本插件的 ambient context 作答**：不指定凭据的路由交由 catalog 提供方自行解析，它会询问环境值（`AZURE_OPENAI_API_KEY`、`AWS_PROFILE` 以及各提供方自己的那一组）与本地凭据文件是否存在。两类问题都在这里作答：先查凭据 seam 再查进程环境，文件存在性则按宿主进程的文件系统判断并展开 `~`。它做不到的是*读取*凭据文件的内容——自行解析 `~/.aws/credentials` 的提供方是直接读盘的，不经过 seam。
 - **settings 能新增或覆盖路由，但不能移除组合路由**：用户层合并在组合 `base` 之上，因此删除 `cordis.yml` 提供的提供方属于组合变更；对该 namespace 执行 `replace` 只会重置用户层。
-- **分层合并对字典键没有删除语义**：settings seam 把组合 `base` 与用户层按键递归合并，因此 base 声明的某个 `reasoningEfforts` 档位、`modelOverrides` 条目或 `compat` 字段，用户层只能覆盖、无法移除——而 `reasoningEfforts` 里缺席本身*就是*语义（「不提供」），于是 base 声明过的档位会一直被提供。只有 `cordis.yml` entry config 为用户层正在编辑的同一模型声明了按模型推理字段才会触发；受支持的姿态是把这些字段留给 settings 文档（shipped 组合以休眠方式挂载该适配器），且 `models` 列表是数组、整体替换，这是体制内的出口。
+- **分层合并对字典键没有删除语义**：settings seam 把组合 `base` 与用户层按键递归合并，因此 base 声明的某个 `reasoningEfforts` 档位、`modelOverrides` 条目或 `compat` 字段，用户层只能覆盖、无法移除——而 `reasoningEfforts` 里缺席本身*就是*语义（「不提供」），于是 base 声明过的档位会一直被提供。当 `cordis.yml` entry config 为用户层正在编辑的同一模型声明了按模型推理字段时就会触发——shipped 组合唯一配置的路由（`openrouter`）恰恰声明了它们，因此编辑该模型更稳妥的做法是重述它的 `models` 列表：数组整体替换，正是体制内的出口。
 - **`headers` 可能承载一条脱敏器看不见的凭据**：profile 的 `headers` 是纯字符串字典，因此设在其中的 `Authorization` 或 `api-key` 会被脱敏后的 `describe()` 原样返回，并被任何配置 UI 渲染出来。请把凭据存为 `apiKeyEnv` 引用；把该字典整体改为只写与其余[协议边界工作](../llm/README.md#known-limitations-and-deferred-work)一并暂缓。
 - **路由的 catalog 不会自我刷新**：catalog 就是 `settings.yaml` 所写的内容，因此模型列表的新鲜度只到最近一次编辑为止。这里没有任何环节会去问提供方它服务哪些模型；路由要多一个模型，得有人写进去。
 - **每条路由只有一种协议格式**：`api` 作用于整条路由，因此混合协议的 catalog 路由（跨 Responses 与 Chat Completions 的 OpenAI 式 catalog）无法承载另一种协议的模型，向这类路由添加它未描述的模型必须点名 `api` 并把全部模型一起迁过去。把该提供方拆成两个路由键是变通办法。

@@ -49,7 +49,7 @@ export interface Config {
   maxTokens?: number
   /**
    * Primary-model vision capability override. Omitted: resolved dynamically
-   * from the calling agent's model via inputModalities. true: always forward
+   * from the calling agent's model via supportsVision. true: always forward
    * the original image to the primary. false: always describe via the vision
    * adapter.
    */

@@ -33,6 +33,7 @@ import type {
 } from '@earendil-works/pi-ai'
 import {
   attributionHeaders,
+  contentHasImage,
   LlmAdapter,
   LlmError,
   ReasoningEffortId,
@@ -244,6 +245,9 @@ export class PiAiAdapter extends LlmAdapter {
         provider,
         id: model.id,
         name: model.name,
+        // pi-ai's `input` is authoritative, so the boolean is stated rather
+        // than left absent-to-mean-text-only.
+        supportsVision: model.input.includes('image'),
       }))
     })
   }
@@ -266,6 +270,7 @@ export class PiAiAdapter extends LlmAdapter {
         id: model,
         name: resolvedModel.name,
         context: { contextWindow: resolvedModel.contextWindow },
+        supportsVision: resolvedModel.input.includes('image'),
         ...configuredMaxTokens === undefined ? {} : { defaultMaxTokens: configuredMaxTokens },
         ...reasoningInfo(resolvedModel, defaultLevel),
       }
@@ -284,6 +289,16 @@ export class PiAiAdapter extends LlmAdapter {
     const snapshot = this.current()
     const profile = this.profileOf(snapshot, options.provider)
     const model = this.modelOf(snapshot, options.provider, options.model)
+    // Refuse before credentials or network: pi-ai itself would only downgrade
+    // the images to text placeholders, which would look like the model having
+    // seen them. Mirrors the DeepSeek adapter's fail-loud gate.
+    if (options.messages.some(message => contentHasImage(message.content))
+      && !model.input.includes('image')) {
+      throw new LlmError(
+        `pi-ai provider "${options.provider}" model "${options.model}" does not accept image input.`,
+        'UNSUPPORTED_CONTENT',
+      )
+    }
     const reasoning = resolveReasoningLevel(
       model,
       options.reasoningEffort ?? profile.reasoning,

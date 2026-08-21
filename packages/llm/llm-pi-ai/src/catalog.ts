@@ -37,11 +37,15 @@ import type {
 const NO_COST: ModelCost = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
 
 /**
- * Input modalities for a model the installed catalog does not describe. The
- * request converter keeps only text blocks, so text is the adapter's actual
- * capability rather than a deployment choice.
+ * Input modalities for a model that neither the installed catalog nor its
+ * profile gives image capability. Images reaching a text-only model are
+ * refused before dispatch (fail-loud, mirroring the DeepSeek adapter) rather
+ * than downgraded to placeholders.
  */
 const TEXT_ONLY: Model<Api>['input'] = ['text']
+
+/** Input modalities for a model whose profile declares image capability. */
+const IMAGE_INPUT: Model<Api>['input'] = ['text', 'image']
 
 /**
  * Every pi-ai thinking level, in pi-ai's canonical escalation order. The
@@ -531,6 +535,13 @@ export interface PiAiModelProfile {
    * declares the offered levels and their wire spellings.
    */
   reasoningEfforts?: false | PiAiReasoningEfforts
+  /**
+   * Whether this model accepts image input. Absent inherits the installed
+   * catalog entry's input modalities (a hand-declared model has none and is
+   * text-only); `true` declares image input, `false` strips it from a catalog
+   * model whose gateway cannot serve images.
+   */
+  supportsVision?: boolean
   /** pi-ai wire-compatibility switches for this model, winning over the route's per field; one its protocol does not declare is refused. */
   compat?: PiAiCompatProfile
 }
@@ -666,6 +677,27 @@ function resolveModelReasoning(
 
 /** The compat block a materialized model carries, whichever protocol it speaks. */
 type ModelCompat = OpenAICompletionsCompat | OpenAIResponsesCompat | AnthropicMessagesCompat | BedrockCompat
+
+/**
+ * Resolve one model's input modalities from its declared vision capability.
+ *
+ * A declared capability overrides in both directions over the installed
+ * entry: `true` forces image input onto a model the catalog ships text-only,
+ * and `false` strips it from one the catalog ships multimodal — the same
+ * field-by-field override every other profile field takes. Absent keeps the
+ * installed entry's modalities, which for a hand-declared model is text-only.
+ * @param entry - the configured model entry.
+ * @param base - the installed catalog entry of the same id, when one exists.
+ * @returns the `input` field the materialized model carries.
+ */
+function resolveModelInput(
+  entry: PiAiModelProfile,
+  base: Model<Api> | undefined,
+): Model<Api>['input'] {
+  if (entry.supportsVision === true) return IMAGE_INPUT
+  if (entry.supportsVision === false) return TEXT_ONLY
+  return base?.input ?? TEXT_ONLY
+}
 
 /**
  * Resolve one model's compat block from the profile's switches.
@@ -837,7 +869,7 @@ export function resolveRouteModels(request: RouteCatalogRequest): RouteCatalog {
       api,
       provider,
       baseUrl,
-      input: base?.input ?? TEXT_ONLY,
+      input: resolveModelInput(entry, base),
       cost: base?.cost ?? NO_COST,
       contextWindow,
       maxTokens,

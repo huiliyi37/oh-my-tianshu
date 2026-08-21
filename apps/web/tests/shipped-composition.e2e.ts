@@ -1,12 +1,14 @@
 // Boots the shipped Web composition over the built dist this lane already uses
-// and asserts what that composition produces: the model-visible tool catalog
-// and the sandbox/approval knobs it ships with. No browser and no model call —
+// and asserts what that composition produces: the model-visible tool catalog,
+// the sandbox/approval knobs it ships with, and the one pi-ai provider route
+// the base bundle configures out of the box. No browser and no model call —
 // these are composition facts, and the browser scenarios in this lane cover the
 // surface itself.
 import { tmpdir } from 'node:os'
 import { afterEach, expect, it } from 'vitest'
 import { canonicalPath, writableRoots } from '@huiliyi37/dsh-sandbox'
 import { SessionId } from '@huiliyi37/dsh-session'
+import { ReasoningEffortId } from '@huiliyi37/dsh-llm'
 // Empty type imports carry the tools/sandboxPolicy/approval Context merges.
 import type {} from '@huiliyi37/dsh-tools'
 import type {} from '@huiliyi37/dsh-sandbox-policy'
@@ -88,6 +90,27 @@ it('assembles the shipped Web catalog with the confined access default', async (
   expect(scaffold.ctx.sandboxPolicy.defaultMode).toBe('workspace-write')
   expect(scaffold.ctx.approval.config.policy).toBe('ask')
   expect(scaffold.ctx.permission.defaultPreset).toBe('workspace-write')
+
+  // The one non-dormant pi-ai route the base bundle configures: the OpenRouter
+  // profile registers out of the box (key still resolving per request — the
+  // hermetic home has none, which only a stream would hit), and its shipped
+  // model carries the declared capacities, vision capability, and efforts.
+  expect(scaffold.ctx.llm.listProviders()).toContainEqual({ id: 'openrouter', name: 'openrouter' })
+  await expect(scaffold.ctx.llm.listModels('openrouter')).resolves.toEqual([
+    { provider: 'openrouter', id: 'stealth/ox-alpha', name: 'Ox Alpha', supportsVision: true },
+  ])
+  await expect(scaffold.ctx.llm.resolveModelInfo('openrouter', 'stealth/ox-alpha')).resolves.toMatchObject({
+    context: { contextWindow: 1_048_576 },
+    defaultMaxTokens: 131_072,
+    supportsVision: true,
+    reasoning: {
+      efforts: [
+        { id: ReasoningEffortId('low') },
+        { id: ReasoningEffortId('high') },
+        { id: ReasoningEffortId('max') },
+      ],
+    },
+  })
 
   const handle = await scaffold.ctx.agents.create({
     sessionId: SessionId('shipped-command-catalog'),
