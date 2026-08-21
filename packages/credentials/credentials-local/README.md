@@ -22,7 +22,7 @@ Under the product CLI, resolution reads the launcher's frozen [environment snaps
 | Field | Default | Meaning |
 |---|---|---|
 | `path` | `<harness home>/.credentials.yaml` | Credentials document location. |
-| `dshHome` | `$DSH_HOME` or `~/.dsh` | Harness home used when `path` is omitted. |
+| `dshHome` | `$DSH_HOME` or `~/.dsh-tianshu` | Harness home used when `path` is omitted. |
 | `watch` | `true` | Hot-publish external edits. |
 | `debounceMs` | `100` | Watcher write-settle window. |
 

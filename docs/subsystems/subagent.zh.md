@@ -124,7 +124,7 @@ interface ResolvedSubagentStartRequest extends SubagentStartRequest {
 
 ## Agent 角色定义（`ctx.agentDefinitions`）
 
-**角色**是一组启动请求输入的命名组合——persona 正文、工具 allow 名单、模型路由、沙箱收窄——由一次委派调用合并进它的请求；角色不是提供方，提供方选择仍由委派工具的部署配置决定。`AgentDefinitionService` 从扁平的 `<name>.md` 文件发现角色：YAML frontmatter 携带必填的 `name` 与 `description` 以及可选的 `tools` allow 名单和 `model`,markdown 正文成为 persona。发现机制镜像 [skill seam](skills.md) 的本地形态：分级目录——项目 `.dsh/agents`(100）与 `.agents/agents`(200)、custom 目录（300)、用户 `~/.dsh/agents`(400）与 `~/.agents/agents`(500)、配置的 bundled 目录（600)——同名 first-wins 去重，以及监听器驱动的失效。通过 `register()` 的运行时注册位于第 250 级；该接缝承载着内置只读 `explore` 角色（`grep`/`read`/`glob`/`semantic_search`/`bash` allow 名单加 `read-only` 沙箱收窄）。
+**角色**是一组启动请求输入的命名组合——persona 正文、工具 allow 名单、模型路由、沙箱收窄——由一次委派调用合并进它的请求；角色不是提供方，提供方选择仍由委派工具的部署配置决定。`AgentDefinitionService` 从扁平的 `<name>.md` 文件发现角色：YAML frontmatter 携带必填的 `name` 与 `description` 以及可选的 `tools` allow 名单和 `model`,markdown 正文成为 persona。发现机制镜像 [skill seam](skills.md) 的本地形态：分级目录——项目 `.dsh/agents`(100）与 `.agents/agents`(200)、custom 目录（300)、用户 `~/.dsh-tianshu/agents`(400）与 `~/.agents/agents`(500)、配置的 bundled 目录（600)——同名 first-wins 去重，以及监听器驱动的失效。通过 `register()` 的运行时注册位于第 250 级；该接缝承载着内置只读 `explore` 角色（`grep`/`read`/`glob`/`semantic_search`/`bash` allow 名单加 `read-only` 沙箱收窄）。
 
 ```ts type-equiv
 /** Invocation-neutral role metadata returned by `ctx.agentDefinitions.list()`. */

@@ -154,7 +154,7 @@ export interface Config {
 export interface Config {
   /** Whether project and user roots are included around custom roots. */
   includeDefaultRoots?: boolean
-  /** Tianshu Harness config root. Defaults to `$DSH_HOME` or `~/.dsh`. */
+  /** Tianshu Harness config root. Defaults to `$DSH_HOME` or `~/.dsh-tianshu`. */
   dshHome?: string
   /** Shared agent config root. Defaults to `$DSH_AGENTS_HOME` or `~/.agents`. */
   agentsHome?: string
@@ -433,7 +433,7 @@ export interface Config {
 ```ts config-catalog
 /** Local attachment backend configuration. */
 export interface Config {
-  /** Explicit harness home; omitted follows `DSH_HOME`, then `~/.dsh`. */
+  /** Explicit harness home; omitted follows `DSH_HOME`, then `~/.dsh-tianshu`. */
   dshHome?: string
   /** Maximum encoded bytes accepted for one image. */
   maxImageBytes?: number
@@ -660,7 +660,7 @@ export interface Config {
 export interface Config {
   /** Credentials document path; defaults to `.credentials.yaml` under the harness home. */
   path?: string
-  /** Harness home used when `path` is omitted; defaults to `$DSH_HOME` or `~/.dsh`. */
+  /** Harness home used when `path` is omitted; defaults to `$DSH_HOME` or `~/.dsh-tianshu`. */
   dshHome?: string
   /** Watch the document and hot-publish external edits; defaults to true. */
   watch?: boolean
@@ -2081,7 +2081,7 @@ export type Config = SessionTitleLlmConfig
 export interface Config {
   /** Settings document path; defaults to `settings.yaml` under the harness home. */
   path?: string
-  /** Harness home used when `path` is omitted; defaults to `$DSH_HOME` or `~/.dsh`. */
+  /** Harness home used when `path` is omitted; defaults to `$DSH_HOME` or `~/.dsh-tianshu`. */
   dshHome?: string
   /** Watch the document and hot-publish external edits; defaults to true. */
   watch?: boolean
@@ -2115,7 +2115,7 @@ export interface Config {
   providerName?: string
   /** Whether project and user roots are included around custom roots. */
   includeDefaultRoots?: boolean
-  /** Tianshu Harness config root. Defaults to `$DSH_HOME` or `~/.dsh`. */
+  /** Tianshu Harness config root. Defaults to `$DSH_HOME` or `~/.dsh-tianshu`. */
   dshHome?: string
   /** Shared agent config root. Defaults to `$DSH_AGENTS_HOME` or `~/.agents`. */
   agentsHome?: string
@@ -2557,6 +2557,20 @@ export interface Config {
   outputErrorThresholdLines?: number
   /** Total line budget for the failed-run error-aware selection (default 60). */
   outputErrorBudgetLines?: number
+  /**
+   * Per-command output filters (git log / git diff / test runs) applied before
+   * the generic shaping; see `command-filters.ts`. Defaults enable all three.
+   */
+  commandFilters?: {
+    /** Master switch (default true; false disables all three families). */
+    enabled?: boolean
+    /** git log: maximum commits kept (0 disables that family; default 15). */
+    gitLogMaxCommits?: number
+    /** git diff: maximum lines kept per hunk (0 disables; default 60). */
+    gitDiffHunkMaxLines?: number
+    /** test runs: maximum lines kept (0 disables; default 120). */
+    testRunMaxLines?: number
+  }
 }
 ```
 
@@ -2630,6 +2644,13 @@ export interface Config {
   readMaxBytes?: number
   /** Files at or above this size stream instead of loading whole into memory. */
   readStreamMinSize?: number
+  /**
+   * Unchanged re-reads of files at or above this size (same stat version and
+   * window) return a one-line `[read-ref]` reference instead of the content
+   * again (0 disables; default 2048) — the earlier read is already in the
+   * conversation.
+   */
+  readRefThresholdBytes?: number
 }
 ```
 
@@ -3547,7 +3568,7 @@ export interface Config {
 ```ts config-catalog
 /** User-facing workspace instruction loader configuration. */
 export interface Config {
-  /** Harness home containing the fixed user-global `AGENTS.md`; defaults to `$DSH_HOME` or `~/.dsh`. */
+  /** Harness home containing the fixed user-global `AGENTS.md`; defaults to `$DSH_HOME` or `~/.dsh-tianshu`. */
   dshHome?: string
   /** Directory entries that identify the project root while walking upward from the session cwd. */
   projectRootMarkers?: string[]

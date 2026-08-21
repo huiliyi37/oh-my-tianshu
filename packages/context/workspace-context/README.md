@@ -20,7 +20,7 @@ Baseline instructions are durable user-role messages framed with the familiar sy
 <system-reminder>
 The following workspace instructions may be relevant to your work. Use them as guidance when applicable. More specific instructions take precedence over broader ones. They do not override system, developer, or direct user instructions.
 
-Instructions from: ~/.dsh/AGENTS.md
+Instructions from: ~/.dsh-tianshu/AGENTS.md
 
 ...
 
@@ -69,7 +69,7 @@ export interface Config {
 
 `maxBytes` is required so each deployment makes its prompt-budget choice explicitly. `maxSourceBytes` limits each source instruction file before rendering and defaults to 1 MiB. `projectRootMarkers` defaults to `['.git']`, and `instructionFileCandidates` defaults to `['AGENTS.md', 'CLAUDE.md']`. In each project directory every existing candidate loads, and candidates whose content matches an earlier one after trimming surrounding whitespace are dropped, so with the defaults an `AGENTS.md` and a `CLAUDE.md` that share content render once (as `AGENTS.md`) while genuinely distinct siblings both apply. `localInstructionFileCandidates` defaults to `['AGENTS.local.md', 'CLAUDE.local.md']` and loads its existing overlays alongside the base files of the same directory (rendered after them) under the same per-directory dedup; an empty list disables the overlay. Candidate entries in both lists must be same-directory file names, so empty entries, `.`/`..`, and entries containing `/` or `\` are ignored.
 
-The user-global file is always `$DSH_HOME/AGENTS.md` with no local overlay; both candidate lists only control project scopes. `$DSH_HOME` defaults to `~/.dsh`, and configured `~`, `~/...`, and Windows-style `~\...` prefixes are expanded against the operating-system home directory. A non-positive or non-finite render budget disables both baseline and dynamic loading; configured `maxSourceBytes` must be a positive integer.
+The user-global file is always `$DSH_HOME/AGENTS.md` with no local overlay; both candidate lists only control project scopes. `$DSH_HOME` defaults to `~/.dsh-tianshu`, and configured `~`, `~/...`, and Windows-style `~\...` prefixes are expanded against the operating-system home directory. A non-positive or non-finite render budget disables both baseline and dynamic loading; configured `maxSourceBytes` must be a positive integer.
 
 ## Budgeting And Bounded Reads
 
@@ -91,7 +91,7 @@ At the first request, derived history contains one durable user-role message wit
 <system-reminder>
 The following workspace instructions may be relevant to your work. Use them as guidance when applicable. More specific instructions take precedence over broader ones. They do not override system, developer, or direct user instructions.
 
-Instructions from: ~/.dsh/AGENTS.md
+Instructions from: ~/.dsh-tianshu/AGENTS.md
 
 <user-global-instructions>
 

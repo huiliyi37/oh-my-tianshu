@@ -361,7 +361,8 @@ export function resolveBundleDir(
  * installation neither provides nor the profile declares as a dependency,
  * yet the profile directory still resolves it. The profile was then
  * initialized by a different dsh installation sharing this `$DSH_HOME` (the
- * official `@deepseek-ai/dsh` and this fork both default to `~/.dsh`): its
+ * official `@deepseek-ai/dsh` defaults to `~/.dsh` while this fork defaults to
+ * `~/.dsh-tianshu`; an explicit shared `$DSH_HOME` recreates the collision): its
  * leftover flat-fallback module links leak in, and the tree would load the
  * other installation's bundle under this installation's boot contract — the
  * raw `cannot get property "…" without inject` crash. A resolvable-but-

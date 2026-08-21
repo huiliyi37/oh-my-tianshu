@@ -9,7 +9,7 @@
 | 字段 | 含义 | 默认 |
 |---|---|---|
 | `path` | 设置文档路径；扩展名决定格式（`.yaml`/`.yml`/`.json`） | harness home 下的 `settings.yaml` |
-| `dshHome` | `path` 省略时使用的 harness home | `$DSH_HOME` 或 `~/.dsh` |
+| `dshHome` | `path` 省略时使用的 harness home | `$DSH_HOME` 或 `~/.dsh-tianshu` |
 | `watch` | 监听文档并热发布外部编辑 | `true` |
 | `debounceMs` | watcher 写入稳定窗口（毫秒） | `100` |
 

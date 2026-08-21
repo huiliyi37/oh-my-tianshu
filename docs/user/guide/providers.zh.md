@@ -54,7 +54,7 @@ model-roles:
 
 ## settings.yaml：进阶配置
 
-文档位于 `$DSH_HOME/settings.yaml`（`$DSH_HOME` 默认是 `~/.dsh`）。模型页写的就是这个文件，你也可以直接编辑它——两个来源没有主次之分。
+文档位于 `$DSH_HOME/settings.yaml`（`$DSH_HOME` 默认是 `~/.dsh-tianshu`）。模型页写的就是这个文件，你也可以直接编辑它——两个来源没有主次之分。
 
 ```yaml
 llm-deepseek:

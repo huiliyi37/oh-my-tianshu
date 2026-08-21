@@ -24,7 +24,7 @@ You are a code-review subagent. ...
 
 `name`（kebab-case）和 `description` 必填——description 驱动委派路由，必须说明何时选择该角色。`tools` 是作为子 agent 全局工具限制应用的 allow 名单（未知名称会通过 `tools.restrict()` 让委派响亮失败）；`model` 覆盖子 agent 的 `agentOptions.model`。无效文件会被跳过并记录警告，绝不会使发现失败。
 
-发现按分级目录扫描，同名时较低级别获胜：项目 `.dsh/agents`（100）与 `.agents/agents`（200）、`customAgentDirs`（300）、用户 `~/.dsh/agents`（400）与 `~/.agents/agents`（500），以及配置的 `bundledAgentDir`（600）。运行时注册位于第 250 级。挂载了 `ctx.fs` 服务时读取经该服务进行（bundled 根目录直接读宿主机），chokidar 监听加首方 `fs/observed` 变更通知使按 cwd 缓存的目录失效。
+发现按分级目录扫描，同名时较低级别获胜：项目 `.dsh/agents`（100）与 `.agents/agents`（200）、`customAgentDirs`（300）、用户 `~/.dsh-tianshu/agents`（400）与 `~/.agents/agents`（500），以及配置的 `bundledAgentDir`（600）。运行时注册位于第 250 级。挂载了 `ctx.fs` 服务时读取经该服务进行（bundled 根目录直接读宿主机），chokidar 监听加首方 `fs/observed` 变更通知使按 cwd 缓存的目录失效。
 
 ## 运行时注册与内置 explore 角色
 
@@ -35,7 +35,7 @@ You are a code-review subagent. ...
 | 键 | 含义 |
 |---|---|
 | `includeDefaultRoots` | 在 custom 目录两侧包含项目与用户目录，默认 `true`。 |
-| `dshHome` | Harness 配置根目录；默认为 `$DSH_HOME` 或 `~/.dsh`。 |
+| `dshHome` | Harness 配置根目录；默认为 `$DSH_HOME` 或 `~/.dsh-tianshu`。 |
 | `agentsHome` | 共享 agent 配置根目录；默认为 `$DSH_AGENTS_HOME` 或 `~/.agents`。 |
 | `customAgentDirs` | 在项目目录之后、用户目录之前扫描的额外目录。 |
 | `bundledAgentDir` | 最低优先级的安装器角色目录；按可信宿主机读取。 |

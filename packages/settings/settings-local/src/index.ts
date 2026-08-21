@@ -21,7 +21,7 @@ import { Settings, deepEqualJson, type SettingsNamespace } from '@huiliyi37/dsh-
 export interface Config {
   /** Settings document path; defaults to `settings.yaml` under the harness home. */
   path?: string
-  /** Harness home used when `path` is omitted; defaults to `$DSH_HOME` or `~/.dsh`. */
+  /** Harness home used when `path` is omitted; defaults to `$DSH_HOME` or `~/.dsh-tianshu`. */
   dshHome?: string
   /** Watch the document and hot-publish external edits; defaults to true. */
   watch?: boolean

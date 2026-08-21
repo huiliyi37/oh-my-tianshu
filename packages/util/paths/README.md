@@ -12,7 +12,7 @@ The default home is deliberately distinct from the official DeepSeek Harness hom
 
 `dshHomePath(...segments)` joins child segments onto that resolved home with Node's platform path rules. With no segments it returns the home itself.
 
-`dshHomeDisplay()` names an active root symbolically for user-facing paths: `~/.dsh` for the default home, `$DSH_HOME` for any configured home. It never leaks an absolute machine path.
+`dshHomeDisplay()` names an active root symbolically for user-facing paths: `~/.dsh-tianshu` for the default home, `$DSH_HOME` for any configured home. It never leaks an absolute machine path.
 
 `DSH_HOME_DIR_NAME` owns the default user-data directory name: `.dsh`.
 

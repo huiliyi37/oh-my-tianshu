@@ -46,7 +46,7 @@ npm i -g @huiliyi37/oh-my-tianshu
 
 ```sh
 export DEEPSEEK_API_KEY=sk-…
-echo 'DEEPSEEK_API_KEY=sk-…' >> ~/.dsh/.env
+echo 'DEEPSEEK_API_KEY=sk-…' >> ~/.dsh-tianshu/.env
 ```
 
 第一行管当前 shell;第二行持久化。
@@ -248,7 +248,7 @@ pnpm run demo:acp
 | 发行线 | 定位 | 数据 home |
 |---|---|---|
 | 官方 `dsh` + [`dsh-tianshu-tui`](https://github.com/huiliyi37/dsh-tianshu-tui)(插件) | 官方 DeepSeek Harness 的 TUI 插件,装进官方 profile | `~/.dsh`(官方固定) |
-| 本仓库(oh-my-tianshu,原 tianshu-public) | 独立集成发行,自带 CLI(`oh-my-tianshu`) | 独立 `$DSH_HOME`(默认值独立化计划中,将不再默认 `~/.dsh`) |
+| 本仓库(oh-my-tianshu,原 tianshu-public) | 独立集成发行,自带 CLI(`oh-my-tianshu`) | 独立 `$DSH_HOME`(默认 `~/.dsh-tianshu`,与官方 `~/.dsh` 隔离) |
 
 - 本仓库完全尊重 `$DSH_HOME`(优先级:显式配置 > `$DSH_HOME` > 默认 home): 与官方 dsh 共存时设 `export DSH_HOME=~/.dsh-tianshu`(默认值独立化落地后无需手动设置)。 会话 / profile / settings 各自独立,互不覆盖。
 - **命名备忘(防止混淆)**:`dsh-tianshu-tui` = 官方 dsh 的 TUI 插件; `oh-my-tianshu` / `@huiliyi37/oh-my-tianshu` = 独立集成发行;`Tianshu-Tui` = 上游渲染核心 来源(Apache-2.0,天枢)。

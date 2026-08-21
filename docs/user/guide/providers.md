@@ -54,7 +54,7 @@ model-roles:
 
 ## settings.yaml for advanced configuration
 
-The document lives at `$DSH_HOME/settings.yaml` (`$DSH_HOME` defaults to `~/.dsh`). The Models page writes this file, and you can edit it directly; neither source outranks the other.
+The document lives at `$DSH_HOME/settings.yaml` (`$DSH_HOME` defaults to `~/.dsh-tianshu`). The Models page writes this file, and you can edit it directly; neither source outranks the other.
 
 ```yaml
 llm-deepseek:

@@ -26,7 +26,7 @@ ACP（Agent Client Protocol）自动化服务器应用：默认 agent（智能�
 | `persona` | 无 | 供 `dsh-system-prompt` 使用的部署 persona 模板。 |
 | `toolOrder` | 字典序 | 供 `dsh-system-prompt` 使用的显式面向模型工具顺序。 |
 | `tools` | `{ mode: 'native' }` | Native、Code Mode 或组合式模型工具传输。 |
-| `dshHome` | `$DSH_HOME` 或 `~/.dsh` | bash 与本地 skill（技能）发现共享的 harness 主目录。 |
+| `dshHome` | `$DSH_HOME` 或 `~/.dsh-tianshu` | bash 与本地 skill（技能）发现共享的 harness 主目录。 |
 | `sessionTitle` | 主干示例限制 | 持久后备标题限制；标题仍不会进入 ACP wire。 |
 | `persistenceRoot` | `./.sessions` | JSONL 后端根目录，以及派生 `session-query.db` 索引的父目录。 |
 | `packChunks` | `true` | 在存储中打包连续的增量分片事件。 |

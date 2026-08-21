@@ -107,7 +107,7 @@ export interface AgentDefinitionCatalogSnapshot {
 export interface Config {
   /** Whether project and user roots are included around custom roots. */
   includeDefaultRoots?: boolean
-  /** Tianshu Harness config root. Defaults to `$DSH_HOME` or `~/.dsh`. */
+  /** Tianshu Harness config root. Defaults to `$DSH_HOME` or `~/.dsh-tianshu`. */
   dshHome?: string
   /** Shared agent config root. Defaults to `$DSH_AGENTS_HOME` or `~/.agents`. */
   agentsHome?: string

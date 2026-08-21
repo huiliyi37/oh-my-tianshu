@@ -46,7 +46,7 @@ npm i -g @huiliyi37/oh-my-tianshu
 
 ```sh
 export DEEPSEEK_API_KEY=sk-…
-echo 'DEEPSEEK_API_KEY=sk-…' >> ~/.dsh/.env
+echo 'DEEPSEEK_API_KEY=sk-…' >> ~/.dsh-tianshu/.env
 ```
 
 The first line covers the current shell; the second persists it.
@@ -248,7 +248,7 @@ This project forked from DeepSeek Harness (MIT) at the 2026-08 baseline and evol
 | Line | What it is | Data home |
 |---|---|---|
 | Official `dsh` + [`dsh-tianshu-tui`](https://github.com/huiliyi37/dsh-tianshu-tui) (plugin) | A TUI plugin for the official DeepSeek Harness, installed into an official profile | `~/.dsh` (fixed by the official CLI) |
-| This repo (oh-my-tianshu, formerly tianshu-public) | A standalone integrated distribution with its own CLI (`oh-my-tianshu`) | A dedicated `$DSH_HOME` (default-home isolation planned; will no longer default to `~/.dsh`) |
+| This repo (oh-my-tianshu, formerly tianshu-public) | A standalone integrated distribution with its own CLI (`oh-my-tianshu`) | A dedicated `$DSH_HOME` (defaults to `~/.dsh-tianshu`, isolated from the official `~/.dsh`) |
 
 - This repo fully honors `$DSH_HOME` (precedence: explicit config > `$DSH_HOME` > default home). When coexisting with the official dsh, set `export DSH_HOME=~/.dsh-tianshu` (no manual setup needed once the default-home isolation lands). Sessions / profiles / settings stay separate.
 - **Naming memo (avoid confusion)**: `dsh-tianshu-tui` = the TUI plugin for official dsh; `oh-my-tianshu` / `@huiliyi37/oh-my-tianshu` = the standalone integrated distribution; `Tianshu-Tui` = the upstream render-core source (Apache-2.0).

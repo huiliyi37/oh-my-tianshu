@@ -12,7 +12,7 @@ Tianshu Harness 用户数据的共享文件系统路径辅助工具。
 
 `dshHomePath(...segments)` 使用 Node 的平台路径规则，将子路径段拼接到解析后的主目录下。不传入任何路径段时，返回主目录本身。
 
-`dshHomeDisplay()` 以符号方式表示当前根目录，用于面向用户的路径：默认主目录表示为 `~/.dsh`，任何已配置的主目录表示为 `$DSH_HOME`。它绝不会泄露机器的绝对路径。
+`dshHomeDisplay()` 以符号方式表示当前根目录，用于面向用户的路径：默认主目录表示为 `~/.dsh-tianshu`，任何已配置的主目录表示为 `$DSH_HOME`。它绝不会泄露机器的绝对路径。
 
 `DSH_HOME_DIR_NAME` 定义默认用户数据目录名：`.dsh-tianshu`。
 

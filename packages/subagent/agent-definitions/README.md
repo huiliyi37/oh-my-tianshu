@@ -24,7 +24,7 @@ You are a code-review subagent. ...
 
 `name` (kebab-case) and `description` are required — the description drives delegation routing, so it must say when to choose the role. `tools` is an allow list applied as the child's global-tool restriction (unknown names fail the delegation loud through `tools.restrict()`); `model` overrides the child's `agentOptions.model`. Invalid files are skipped with a warning and never fail discovery.
 
-Discovery scans ranked roots, and a lower rank wins a duplicate name: project `.dsh/agents` (100) and `.agents/agents` (200), `customAgentDirs` (300), user `~/.dsh/agents` (400) and `~/.agents/agents` (500), and the configured `bundledAgentDir` (600). Runtime registrations sit at rank 250. Reads go through the `ctx.fs` service when one is mounted (the bundled root reads the host directly), and chokidar-backed watching plus first-party `fs/observed` mutation notices invalidate the per-cwd catalog cache.
+Discovery scans ranked roots, and a lower rank wins a duplicate name: project `.dsh/agents` (100) and `.agents/agents` (200), `customAgentDirs` (300), user `~/.dsh-tianshu/agents` (400) and `~/.agents/agents` (500), and the configured `bundledAgentDir` (600). Runtime registrations sit at rank 250. Reads go through the `ctx.fs` service when one is mounted (the bundled root reads the host directly), and chokidar-backed watching plus first-party `fs/observed` mutation notices invalidate the per-cwd catalog cache.
 
 ## Runtime registration and the built-in explore role
 
@@ -35,7 +35,7 @@ Discovery scans ranked roots, and a lower rank wins a duplicate name: project `.
 | Key | Meaning |
 |---|---|
 | `includeDefaultRoots` | Include project and user roots around custom roots, default `true`. |
-| `dshHome` | Harness config root; defaults to `$DSH_HOME` or `~/.dsh`. |
+| `dshHome` | Harness config root; defaults to `$DSH_HOME` or `~/.dsh-tianshu`. |
 | `agentsHome` | Shared agent config root; defaults to `$DSH_AGENTS_HOME` or `~/.agents`. |
 | `customAgentDirs` | Extra roots scanned after project roots and before user roots. |
 | `bundledAgentDir` | Installer-supplied role root at the lowest precedence; trusted-host reads. |

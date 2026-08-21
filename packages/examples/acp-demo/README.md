@@ -26,7 +26,7 @@ The app does not install commands, user interaction, session navigation, configu
 | `persona` | — | Deployment persona template for `dsh-system-prompt`. |
 | `toolOrder` | lexicographic | Explicit model-facing tool order for `dsh-system-prompt`. |
 | `tools` | `{ mode: 'native' }` | Native, Code Mode, or combined model tool transport. |
-| `dshHome` | `$DSH_HOME` or `~/.dsh` | Harness home shared by bash and local skill discovery. |
+| `dshHome` | `$DSH_HOME` or `~/.dsh-tianshu` | Harness home shared by bash and local skill discovery. |
 | `sessionTitle` | spine example limits | Durable fallback-title limits; titles remain off the ACP wire. |
 | `persistenceRoot` | `./.sessions` | JSONL backend root and parent directory of the derived `session-query.db` index. |
 | `packChunks` | `true` | Pack consecutive delta-chunk events in storage. |

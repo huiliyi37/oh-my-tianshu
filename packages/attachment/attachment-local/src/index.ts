@@ -29,7 +29,7 @@ export const DEFAULT_MAX_IMAGE_DIMENSION = 2000
 
 /** Local attachment backend configuration. */
 export interface Config {
-  /** Explicit harness home; omitted follows `DSH_HOME`, then `~/.dsh`. */
+  /** Explicit harness home; omitted follows `DSH_HOME`, then `~/.dsh-tianshu`. */
   dshHome?: string
   /** Maximum encoded bytes accepted for one image. */
   maxImageBytes?: number
