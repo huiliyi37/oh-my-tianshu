@@ -45,6 +45,7 @@ import { BlockStreamWriter } from '../block-stream-writer.js'
 import { StreamRenderer } from '../engine/stream-renderer.js'
 import { TuiPerfMonitor, isTuiPerfEnabled } from '../engine/perf-monitor.js'
 import { loadClipboardImageAttachment, loadImageAttachment, looksLikeImagePath, MAX_IMAGES } from '../engine/image-attach.js'
+import { InputHistoryStore } from '../engine/input-history-store.js'
 import { readImageFromClipboard, readTextFromClipboard, FOCUS_DEBOUNCE_MS } from '../engine/clipboard-image.js'
 import {
   encodeTermImage,
@@ -375,6 +376,8 @@ export interface TuiAppOptions {
   editorKey?: KeyName
   /** 外部编辑器命令；缺省 $VISUAL/$EDITOR/平台缺省（测试注入点）。 */
   editorCommand?: string
+  /** 输入历史文件路径；缺省 $DSH_HOME/input-history.json（测试注入点）。 */
+  historyPath?: string
   /** 是否启用 Vim 键位（Phase 6.5）；缺省 false。 */
   vimEnabled?: boolean
   /**
@@ -808,6 +811,8 @@ export class TuiApp {
   private activeSessionId: SessionId | null = null
   /** switchSession 代际号：连续切换时旧代作废，迟到的 resume 不再挂载。 */
   private switchEpoch = 0
+  /** 输入历史（持久化存储：$DSH_HOME/input-history.json，跨会话；异步加载）。 */
+  private historyStore: InputHistoryStore
   private history: string[] = []
   private tick = 0
   private ticker: ReturnType<typeof setInterval> | null = null
@@ -845,6 +850,7 @@ export class TuiApp {
     this.ctx = options.ctx
     this.stdout = options.stdout
     this.stdin = options.stdin
+    this.historyStore = new InputHistoryStore(options.historyPath)
     this.initialSessionId = options.initialSessionId
     this.themeName = options.theme ?? 'auto'
     this.onExit = options.onExit
@@ -870,6 +876,18 @@ export class TuiApp {
       maxRows: liveMaxRowsFor(options.stdout.rows),
     })
     this.input = new InputHandler({ stdin: options.stdin, mode: 'input' })
+    // 历史异步加载：加载完成即同步进输入行（↑/↓ 导航热接上，无需重启）。
+    void this.historyStore.load().then((store) => {
+      /* v8 ignore next 1 -- 构造与 load 之间 dispose 的竞态无法在同步测试中构造 */
+      if (this.disposed) return
+      const loaded = store.snapshot()
+      // 空档（首启/坏档降级）没有新事实：不重置导航历史、不触发重绘——
+      // 测试装配大量构造 TuiApp，无谓的重绘会扰动计时敏感用例。
+      if (loaded.length === 0) return
+      this.history = loaded
+      this.inputLine.setHistory(loaded)
+      this.flushLiveRender()
+    })
     this.inputLine = new InputLine({
       history: this.history,
       vimEnabled: this.vimEnabled,
@@ -3285,7 +3303,8 @@ export class TuiApp {
     // Phase 9a：@mention 用户侧摘要展开（cwd 边界/截断/降级见 mention-expand）。
     // 展开后的文本进用户消息与 followup——agent 看到的是摘要而非裸路径。
     const expanded = expandMentions(trimmed, this.sessionCwd())
-    this.history = [trimmed, ...this.history.filter(h => h !== trimmed)].slice(0, 100)
+    this.historyStore.record(trimmed)
+    this.history = this.historyStore.snapshot()
     this.inputLine.setHistory(this.history)
     // 用户气泡：正文 + 📎 附件行 + 识图能力提示；有图且终端支持图形协议时
     // 异步 prepare 后在同一写窗口追加终端图片（见 commitUserPrompt 时序说明）。
@@ -3455,7 +3474,8 @@ export class TuiApp {
   private handleSteer(text: string): void {
     const trimmed = text.trim()
     if (!trimmed) return
-    this.history = [trimmed, ...this.history.filter(h => h !== trimmed)].slice(0, 100)
+    this.historyStore.record(trimmed)
+    this.history = this.historyStore.snapshot()
     this.inputLine.setHistory(this.history)
     this.commitToScrollback({ text: formatSteerMessage({ content: trimmed, width: this.stdout.columns }, this.theme).join('\n'), trailingNewline: true })
     // 与 handleSubmit 同一防御：擦除 live 区后、进入可能阻塞的驱动调用前先画一帧。

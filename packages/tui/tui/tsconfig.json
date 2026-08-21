@@ -12,6 +12,12 @@
       "path": "../../../vendor/cordis"
     },
     {
+      "path": "../../util/paths"
+    },
+    {
+      "path": "../../util/atomic-write"
+    },
+    {
       "path": "../../../vendor/cosmokit"
     },
     {

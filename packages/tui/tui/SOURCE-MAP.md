@@ -45,6 +45,7 @@
 | src/engine/image-tool.ts | engine/image-tool.ts | modified（新增 resizeJpegCandidates——长边缩放 + JPEG 质量候选链，win32 脚本含 EncoderParameter 质量参数；语义对齐上游 desktop 子树 image-compress.ts；resize 链 sips 显式 -s format png） |
 | src/engine/input-controller.ts | engine/input-controller.ts | modified（类型内联；`tabComplete` Tab 补全状态机驱动） |
 | src/engine/input-handler.ts | engine/input-handler.ts | modified |
+| src/engine/input-history-store.ts | — | new（输入历史持久化：$DSH_HOME/input-history.json、0600 原子写、串行排队、坏档降级为空） |
 | src/engine/input-line.ts | engine/input-line.ts | modified（多行 ↑↓ 导航 grapheme 列保持——CJK/emoji 跨行不拆簇，上游 dfe8b6f41 同步） |
 | src/engine/live-engine.ts | engine/live-engine.ts | modified |
 | src/engine/metrics-glance-controller.ts | engine/metrics-glance-controller.ts | modified |
