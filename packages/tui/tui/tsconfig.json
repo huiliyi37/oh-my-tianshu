@@ -27,6 +27,9 @@
       "path": "../../core/agent-default-model"
     },
     {
+      "path": "../../core/model-roles"
+    },
+    {
       "path": "../../core/scope"
     },
     {

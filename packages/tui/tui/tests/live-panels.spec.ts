@@ -121,6 +121,7 @@ describe('renderConfigPanel', () => {
       configPanelVisible: true,
       configProjection: {
         settings: [{ ns: 'provider', value: 'deepseek' }],
+        modelRoles: null,
         permission: null,
         credentials: [],
       },

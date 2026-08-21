@@ -1,22 +1,27 @@
 /**
  * /config 设置面板（纯函数层，T3.2）。
  *
- * projectConfigPanel 把 settings 描述符、权限预设选择、凭据信息三段投影渲染
- * 为面板行：
+ * projectConfigPanel 把 settings 描述符、模型角色 pin、权限预设选择、凭据信息
+ * 四段投影渲染为面板行：
  * - 设置段：每个命名空间一行（ns + 值 + secrets 脱敏标记）——值以 unknown
  *   流动（SettingsValue 类型不存在），null/undefined 渲染 —，object 紧凑
  *   JSON；schema 声明的 secret 槽用 🔒 标记（有值的显示已脱敏计数，空槽
  *   显示槽位）。
+ * - 模型角色段：主模型 + 视觉/副模型/子代理四行，如实显示 pin 状态（已 pin
+ *   显示 provider/model，未 pin 显示「跟随默认」）——不复制各消费者的完整
+ *   回退链（跨插件不可得），段首小字说明回退语义。projection 为 null 时
+ *   整段不渲染。
  * - 权限预设选择器：选项名从投影动态取（不硬编码预设表），当前值打勾 ✓、
  *   其余 ○；仅 'custom' 一个保留字——currentValue 为 custom 而选项缺失时
  *   补一行。
  * - 凭据徽章：每行一个凭据（ref + 已配置/未配置徽章 + source + 可写/只读），
- *   writable 为 false 时整行 DIM 置灰。
+ *   writable 为 false 时整行 DIM 置灰；段尾恒带「运行 /key 设置 API Key」入口提示。
  * 数据面形状结构兼容 dsh-settings 的 SettingsDescriptor（ns/value/secrets）、
- * dsh-permission 的 PermissionSelect（options/currentValue）与 dsh-credentials
- * 的 CredentialInfo（configured/source/writable）——纯函数层不跨包依赖、无
- * I/O 无服务访问。permission 为 null（未组合权限服务）时选择器段不渲染。
- * TuiApp 消费三个投影快照，/config 命令切换显隐，行渲染进 live 区（接线由
+ * dsh-model-roles 的 ModelRoleSelection（provider/model）、dsh-permission 的
+ * PermissionSelect（options/currentValue）与 dsh-credentials 的 CredentialInfo
+ * （configured/source/writable）——纯函数层不跨包依赖、无 I/O 无服务访问。
+ * permission 为 null（未组合权限服务）时选择器段不渲染。
+ * TuiApp 消费四个投影快照，/config 命令切换显隐，行渲染进 live 区（接线由
  * 其他维度独占）。
  *
  * @module @huiliyi37/dsh-tui/config-panel
@@ -28,6 +33,12 @@ import { displayWidth } from './width.js'
 const TITLE = '⚙ 配置'
 /** 设置段标题。 */
 const SETTINGS_TITLE = '◆ 设置'
+/** 模型角色段标题。 */
+const MODEL_ROLES_TITLE = '◆ 模型角色'
+/** 模型角色段首小字：回退语义说明（面板只读 pin 状态，不复制消费者回退链）。 */
+const MODEL_ROLES_HINT = '  未 pin 的角色按各消费者默认回退（详见 /model <role>）'
+/** 角色未 pin 的显示文本。 */
+const FOLLOW_DEFAULT_TEXT = '跟随默认'
 /** 权限预设段标题。 */
 const PERMISSION_TITLE = '◆ 权限预设'
 /** 凭据段标题。 */
@@ -36,6 +47,8 @@ const CREDENTIALS_TITLE = '◆ 凭据'
 const EMPTY_SETTINGS = '  （无设置项）'
 /** 凭据空态占位。 */
 const EMPTY_CREDENTIALS = '  （无凭据）'
+/** 凭据段尾提示行：指向 /key 设置入口（只读面板不加快捷键，文案引导）。 */
+const CREDENTIALS_HINT = '  运行 /key 设置 API Key'
 /** 置灰（细体/暗色）转义序列：只读凭据行整行包裹。 */
 const DIM = '\x1B[2m'
 /** SGR 重置转义序列。 */
@@ -95,10 +108,32 @@ export interface ConfigCredentialInput {
   writable: boolean
 }
 
-/** /config 面板投影：设置段 + 权限预设选择器 + 凭据徽章。 */
+/** 一条角色 pin（结构兼容 dsh-model-roles 的 ModelRoleSelection）。 */
+export interface ConfigModelRolePin {
+  /** 已注册 provider 路由。 */
+  provider: string
+  /** provider 拥有的模型 id。 */
+  model: string
+}
+
+/** 模型角色段投影：主模型当前选择 + 三角色的 pin 状态（undefined = 跟随默认）。 */
+export interface ConfigModelRolesInput {
+  /** 主模型当前选择；agent-default-model 服务缺失时为 null（显示 —）。 */
+  main: ConfigModelRolePin | null
+  /** 视觉角色 pin（图片描述；未 pin = undefined）。 */
+  vision: ConfigModelRolePin | undefined
+  /** 副模型角色 pin（会话标题/compact 等后台工作；未 pin = undefined）。 */
+  secondary: ConfigModelRolePin | undefined
+  /** 子代理角色 pin（委派会话默认路由；未 pin = undefined）。 */
+  subagent: ConfigModelRolePin | undefined
+}
+
+/** /config 面板投影：设置段 + 模型角色段 + 权限预设选择器 + 凭据徽章。 */
 export interface ConfigPanelProjection {
   /** 命名空间描述符列表；空数组 → 设置段渲染占位。 */
   settings: ConfigSettingsDescriptorInput[]
+  /** 模型角色投影；null（服务缺席）→ 模型角色段不渲染。 */
+  modelRoles: ConfigModelRolesInput | null
   /** 权限选择投影；null（未组合权限服务）→ 选择器段不渲染。 */
   permission: ConfigPermissionInput | null
   /** 凭据信息列表；空数组 → 凭据段渲染占位。 */
@@ -112,14 +147,17 @@ export interface ConfigPanelOptions {
 }
 
 /**
- * 投影 settings/permission/credentials 三块为 /config 面板行。
- * @param projection - 面板投影（设置描述符 + 权限选择 + 凭据信息）。
+ * 投影 settings/modelRoles/permission/credentials 四块为 /config 面板行。
+ * @param projection - 面板投影（设置描述符 + 模型角色 + 权限选择 + 凭据信息）。
  * @param opts - 渲染选项（含行截断宽度预算）。
- * @returns 面板行数组（标题 + 设置段 + 权限预设段（permission 非 null 时）+ 凭据段）。
+ * @returns 面板行数组（标题 + 设置段 + 模型角色段（modelRoles 非 null 时）+ 权限预设段（permission 非 null 时）+ 凭据段）。
  */
 export function projectConfigPanel(projection: ConfigPanelProjection, opts: ConfigPanelOptions): string[] {
   const rows = [truncateByWidth(TITLE, opts.width)]
   rows.push(...projectSettingsSection(projection.settings, opts.width))
+  if (projection.modelRoles !== null) {
+    rows.push(...projectModelRolesSection(projection.modelRoles, opts.width))
+  }
   if (projection.permission !== null) {
     rows.push(...projectPermissionSection(projection.permission, opts.width))
   }
@@ -178,6 +216,22 @@ function secretMark(secrets: ConfigSettingsDescriptorInput['secrets']): string {
   return set > 0 ? ` 🔒 ${set} 密钥已脱敏` : ' 🔒 密钥槽'
 }
 
+/** 模型角色段：段标题 + 回退语义小字 + 主模型/视觉/副模型/子代理四行（pin 或「跟随默认」）。 */
+function projectModelRolesSection(modelRoles: ConfigModelRolesInput, width: number): string[] {
+  const rows = [truncateByWidth(MODEL_ROLES_TITLE, width), truncateByWidth(MODEL_ROLES_HINT, width)]
+  const main = modelRoles.main === null ? '—' : formatRolePin(modelRoles.main)
+  rows.push(truncateByWidth(`  主模型 · ${main}`, width))
+  rows.push(truncateByWidth(`  视觉模型 · ${formatRolePin(modelRoles.vision)}`, width))
+  rows.push(truncateByWidth(`  副模型 · ${formatRolePin(modelRoles.secondary)}`, width))
+  rows.push(truncateByWidth(`  子代理模型 · ${formatRolePin(modelRoles.subagent)}`, width))
+  return rows
+}
+
+/** 角色 pin → 显示文本（已 pin = provider/model；未 pin = 跟随默认）。 */
+function formatRolePin(pin: ConfigModelRolePin | undefined): string {
+  return pin === undefined ? FOLLOW_DEFAULT_TEXT : `${pin.provider}/${pin.model}`
+}
+
 /** 权限预设段：段标题 + 每个选项一行（当前 ✓ / 其余 ○）；custom 保留字缺失时补行。 */
 function projectPermissionSection(permission: ConfigPermissionInput, width: number): string[] {
   const rows = [truncateByWidth(PERMISSION_TITLE, width)]
@@ -192,16 +246,17 @@ function projectPermissionSection(permission: ConfigPermissionInput, width: numb
   return rows
 }
 
-/** 凭据段：段标题 + 每个凭据一行徽章；空数组渲染占位。 */
+/** 凭据段：段标题 + 每个凭据一行徽章 + 段尾 /key 入口提示；空数组渲染占位。 */
 function projectCredentialsSection(credentials: ConfigCredentialInput[], width: number): string[] {
   const rows = [truncateByWidth(CREDENTIALS_TITLE, width)]
   if (credentials.length === 0) {
     rows.push(truncateByWidth(EMPTY_CREDENTIALS, width))
-    return rows
+  } else {
+    for (const cred of credentials) {
+      rows.push(projectCredentialRow(cred, width))
+    }
   }
-  for (const cred of credentials) {
-    rows.push(projectCredentialRow(cred, width))
-  }
+  rows.push(truncateByWidth(CREDENTIALS_HINT, width))
   return rows
 }
 

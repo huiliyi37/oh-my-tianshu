@@ -61,6 +61,7 @@ import { supportsOsc52 } from '../term-caps.js'
 import { getTheme, getActiveThemeName, setTheme, THEME_NAMES, type RivetTheme, type ThemeName } from '../theme.js'
 import { displayWidth, ambiguousWideEnabled } from '../width.js'
 import { PickerController, type PickerItem } from '../picker.js'
+import { KeyDialogController, type KeyDialogCredentials } from './key-dialog.js'
 import { detectTerminalBackground, autoThemeFor } from '../theme-detect.js'
 import { formatUserMessage } from '../format/user-message.js'
 import { formatSteerMessage } from '../format/steer-message.js'
@@ -98,7 +99,7 @@ import type { WorkflowRunView, WorkflowResultInfoInput } from '../workflow-panel
 import {
   projectQuestionPanel,
 } from '../question-panel.js'
-import type { ConfigPanelProjection } from '../config-panel.js'
+import type { ConfigModelRolesInput, ConfigPanelProjection } from '../config-panel.js'
 import type { SkillSummaryInput } from '../skill-panel.js'
 /** Wave 2：renderLive 7 面板纯函数 + 单帧快照类型（app.ts → render/ 单向依赖）。 */
 import {
@@ -242,6 +243,18 @@ import type {} from '@huiliyi37/dsh-workflow'
 // hook/result 事件的属主声明(hook-protocol)——module augmentation 同源,
 // 让 switch 的 'hook/result' case 与 data.systemMessage 获得类型。
 import type {} from '@huiliyi37/dsh-hook-protocol'
+// Type-only：让 ctx.get('modelRoles') 解析到角色 pin 服务（可选缝，从不硬依赖）。
+import type { ModelRole } from '@huiliyi37/dsh-model-roles'
+import {
+  FOLLOW_DEFAULT_VALUE,
+  MODEL_ROLES_UNAVAILABLE,
+  MODEL_ROLE_LABELS,
+  buildRoleModelPickerItems,
+  rolePinEcho,
+  roleUnpinEcho,
+  roleVisionWarning,
+  type RoleCatalogProvider,
+} from '../model-roles.js'
 
 /** Phase 8：审批 answerer 的请求/结果类型由 ApprovalController 持有（单向依赖）。 */
 import {
@@ -580,6 +593,10 @@ export class TuiApp {
   private rewindOverlay: RewindOverlay | null = null
   /** #31：交互式选择器 overlay（/model /theme /session 无参打开；上下键选择）。 */
   private picker: PickerController | null = null
+  /** /key：API Key 设置对话框 overlay（掩码输入 + 探测 + credentials.set 落盘）。 */
+  private keyDialog: KeyDialogController | null = null
+  /** 首启引导守护：本 run 已自动弹过一次 key 对话框（restore 等后续流程不再重复弹）。 */
+  private keyPromptShown = false
   /** 双击 Esc 触发 rewind：第一次 Esc 的时间戳（0 = 无待定；窗口内第二次 Esc
    *  打开 rewind overlay，对齐 Claude Code 的 Esc+Esc 时间回溯）。 */
   private escRewindPendingSince = 0
@@ -900,8 +917,11 @@ export class TuiApp {
       sessionCostReport: () => formatSessionCostReport([...this.sessionCosts.values()]),
       // #31：交互式选择器（/model /theme /session 无参打开）。
       openModelPicker: () => { void this.openModelPicker() },
+      openRoleModelPicker: (role) => { void this.openRoleModelPicker(role) },
       openThemePicker: () => { this.openThemePicker() },
       openSessionPicker: () => { void this.openSessionPicker() },
+      // /key /login：API Key 设置对话框（保存成功经 onSaved 回调刷新 apiKeyReady）。
+      openKeyDialog: () => { void this.openKeyDialog() },
       // /help：注册表所有者即 TuiApp（this.slash），经 deps 注入——不暴露为 ctx
       // 服务（Cordis 注入代理对未声明属性抛 without inject，见 #36）。
       listCommands: () => this.slash.list(),
@@ -1190,6 +1210,16 @@ export class TuiApp {
     // P2：memory 浏览器 overlay（/memory）——条目快照 + 数据源在激活时注入。
     this.memoryOverlay = new MemoryBrowserOverlay()
     this.overlay.register('memory', this.memoryOverlay)
+    // /key：API Key 设置对话框 overlay——异步状态翻转（探测/落盘完成）经 onChange
+    // 重绘；保存成功经 onSaved 刷新 apiKeyReady（footer 在 overlay 关闭时统一重绘）。
+    this.keyDialog = new KeyDialogController({
+      getTheme: () => this.theme,
+      onChange: () => {
+        if (this.overlay?.activeId() === 'key-dialog') this.overlay.rerender()
+      },
+      onSaved: () => { void this.refreshApiKeyReady() },
+    })
+    this.overlay.register('key-dialog', this.keyDialog)
     this.input.setMode('input')
     this.ticker = setInterval(() => { this.tick++ ; this.renderLive() }, 120)
     this.ticker.unref()
@@ -1207,6 +1237,10 @@ export class TuiApp {
     // A3：纯位置参数作为初始 prompt（`oh-my-tianshu tui "修复这个 bug"`）。
     if (initialPrompt !== '') {
       this.handleSubmit(initialPrompt)
+    } else {
+      // 首启引导：欢迎渲染与会话就绪之后，缺 key 自动打开一次设置对话框；
+      // 携带初始 prompt 的启动不打扰（用户已在提交任务）。
+      this.maybeAutoOpenKeyDialog()
     }
   }
 
@@ -1222,6 +1256,13 @@ export class TuiApp {
    * @param text - 终端传来的粘贴文本
    */
   private async handlePaste(text: string): Promise<void> {
+    // /key 对话框激活：bracketed paste 整段进 Key 字段（对话框剥空白），
+    // 不碰剪贴板读图/图片路径识别。
+    if (this.overlay?.activeId() === 'key-dialog' && this.keyDialog !== null) {
+      this.keyDialog.pasteText(text)
+      this.overlay.rerender()
+      return
+    }
     // 剪贴板当前是图片 → 附图并吞掉（与 Ctrl+V 互斥：右键粘贴产生 paste
     // 事件、Ctrl+V 产生 ctrl_v 按键，不会同时触发）。
     if (this.inputLine.images.length < MAX_IMAGES) {
@@ -1298,6 +1339,14 @@ export class TuiApp {
       // 失败两种情形，不误指为工具链缺失；括号保留读图工具链的诊断信息。
       this.echoWarn('⚠ 剪贴板无内容可粘贴（读图需 osascript / wl-paste / xclip / PowerShell）')
     }
+  }
+
+  /** key 对话框的 Ctrl+V：只读剪贴板文本（Key 字段不接受图片）；空读不动作。 */
+  private async pasteClipboardIntoKeyDialog(dialog: KeyDialogController): Promise<void> {
+    const text = await readTextFromClipboard()
+    if (!text) return
+    dialog.pasteText(text)
+    if (this.overlay?.activeId() === 'key-dialog') this.overlay.rerender()
   }
 
   /**
@@ -1838,6 +1887,93 @@ export class TuiApp {
       this.commitToScrollback({ text: `模型已切换: ${selection.provider}/${selection.model}`, trailingNewline: true })
     }, selectedIndex)
     overlay.activate('picker')
+  }
+
+  /**
+   * /model vision|secondary|subagent：打开角色模型选择器。条目构建与回显文案在
+   * model-roles.ts 纯函数层；此处只做服务现取与接线。首行「跟随默认（清除 pin）」
+   * 选中即 unpin（目录为空时仍可达，故不做主模型选择器的空目录拒绝）；确认后
+   * pin/unpin 经 modelRoles 服务写 settings 用户层（热生效，无需重启）。
+   * @param role - 目标角色（命令层已解析为保留字）。
+   */
+  private async openRoleModelPicker(role: ModelRole): Promise<void> {
+    const overlay = this.overlay
+    const picker = this.picker
+    if (overlay === null || picker === null) return
+    const roles = this.ctx.get('modelRoles')
+    if (roles === undefined) {
+      this.echoWarn(MODEL_ROLES_UNAVAILABLE)
+      return
+    }
+    const llm = this.ctx.reflect.get('llm', false) as
+      | { listProviders(): Array<{ id: string }>; listModels(provider: string): Promise<Array<{ id: string; supportsVision?: boolean }>> }
+      | undefined
+    if (llm === undefined) {
+      this.echoWarn('⚠ llm 服务不可用（未装配 llm 插件），模型选择器不可用')
+      return
+    }
+    // 目录现取（与主模型选择器同源）：listModels 为 adapter 通告（advisory），
+    // 失败/空目录的 provider 不出现在条目里；supportsVision 供 vision 角色警告。
+    const providers: RoleCatalogProvider[] = []
+    for (const provider of llm.listProviders()) {
+      const models = await llm.listModels(provider.id).catch(() => [])
+      providers.push({ id: provider.id, models })
+    }
+    const { items, selectedIndex } = buildRoleModelPickerItems(providers, roles.resolve(role))
+    picker.open(`选择${MODEL_ROLE_LABELS[role]}`, items, (item) => {
+      if (item.value === FOLLOW_DEFAULT_VALUE) {
+        void roles.unpin(role)
+        this.commitToScrollback({ text: roleUnpinEcho(role), trailingNewline: true })
+        return
+      }
+      const [provider, model] = item.value.split('/')
+      /* v8 ignore next -- 目录行 value 恒为 provider/model（含 /）；noUncheckedIndexedAccess 防御 */
+      if (provider === undefined || model === undefined) return
+      const selection = { provider, model }
+      if (role === 'vision') {
+        const supportsVision = providers
+          .find(p => p.id === provider)?.models
+          .find(m => m.id === model)?.supportsVision
+        if (supportsVision === false) {
+          this.commitToScrollback({ text: roleVisionWarning(selection), trailingNewline: true })
+        }
+      }
+      void roles.pin(role, selection)
+      this.commitToScrollback({ text: rolePinEcho(role, selection), trailingNewline: true })
+    }, selectedIndex)
+    overlay.activate('picker')
+  }
+
+  /**
+   * /key：打开 API Key 设置对话框。凭据服务经 reflect.get 现取（缺席时对话框
+   * 给降级指引：改用环境变量）；describe 预检与探测/落盘的状态翻转由对话框
+   * 状态机承担，保存成功经 onSaved 回调刷新 apiKeyReady（无需重启即生效）。
+   */
+  private async openKeyDialog(): Promise<void> {
+    const overlay = this.overlay
+    const dialog = this.keyDialog
+    if (overlay === null || dialog === null) return
+    // 已在打开/已打开时不重进：同 id activate 会先调本对话框 onDeactivate，
+    // 把 open() 刚置真的开旗标打回 false（对话框 visually 打开但键控失效）。
+    if (overlay.activeId() === 'key-dialog') return
+    const credentials = this.ctx.reflect.get('credentials', false) as KeyDialogCredentials | undefined
+    await dialog.open(credentials)
+    /* v8 ignore next 1 -- open 的 describe 窗口内 dispose 的竞态无法在同步测试中构造 */
+    if (this.disposed) return
+    overlay.activate('key-dialog')
+  }
+
+  /**
+   * 首启引导：交互终端（TTY）缺 API key 时自动打开一次设置对话框（Esc 可跳过）。
+   * 挂载点在欢迎渲染/会话就绪之后（attach 尾；apiKeyReady 已由
+   * renderRestorableSessions 刷新）；keyPromptShown 做 run 级守护，
+   * restore/重进等后续流程不再重复弹；非 TTY（测试/管道）不弹交互对话框。
+   */
+  private maybeAutoOpenKeyDialog(): void {
+    if (this.keyPromptShown || this.apiKeyReady) return
+    if (!this.stdin.isTTY) return
+    this.keyPromptShown = true
+    void this.openKeyDialog()
   }
 
   /** #31/#33：打开主题选择器（THEME_NAMES + 当前主题 ● 高亮）。
@@ -2413,7 +2549,7 @@ export class TuiApp {
     }
   }
 
-  /** T3.2：刷新 /config 面板投影（settings describe + permission + credentials；服务缺失降级）。 */
+  /** T3.2：刷新 /config 面板投影（settings describe + 模型角色 pin + permission + credentials；服务缺失降级）。 */
   private async refreshConfigProjection(): Promise<void> {
     const settings = this.ctx.reflect.get('settings', false) as
       | { describe(options?: { redactSecrets?: boolean }): unknown[] } | undefined
@@ -2431,10 +2567,29 @@ export class TuiApp {
     }
     this.configProjection = {
       settings: settingsDescriptors as ConfigPanelProjection['settings'],
+      modelRoles: this.projectModelRoles(),
       permission: permissionView,
       credentials: [],
     }
     if (credentials !== undefined) await this.fillCredentials(credentials)
+  }
+
+  /**
+   * /config 模型角色段投影：主模型当前选择（agent-default-model 面）+ 三角色
+   * pin 状态（modelRoles 可选服务经 ctx.get 现取）。面板只如实显示 pin——各
+   * 消费者的完整回退链跨插件不可得，不在这里复制。
+   * @returns 模型角色段输入（未 pin 的角色为 undefined，主模型服务缺失为 null）。
+   */
+  private projectModelRoles(): ConfigModelRolesInput {
+    const current = (this.ctx as unknown as { agentDefaultModel?: ModelFacet }).agentDefaultModel
+      ?.currentSelection()
+    const roles = this.ctx.get('modelRoles')
+    return {
+      main: current === undefined ? null : { provider: current.provider, model: current.model },
+      vision: roles?.resolve('vision'),
+      secondary: roles?.resolve('secondary'),
+      subagent: roles?.resolve('subagent'),
+    }
   }
 
   /** 把 DEEPSEEK_API_KEY 的 describe 结果填进 /config 凭据段（与欢迎页同源）。 */
@@ -3058,6 +3213,19 @@ export class TuiApp {
         this.searchOverlay.type(key.char)
         this.overlay.rerender()
       }
+      return
+    }
+    // /key：API Key 对话框打开——Ctrl+V 只读剪贴板文本进 Key 字段；其余键交给
+    // 对话框状态机（输入态收字符/退格/Enter/Esc），wantsClose 后 deactivate。
+    if (this.overlay?.activeId() === 'key-dialog' && this.keyDialog !== null) {
+      const dialog = this.keyDialog
+      if (key.name === 'ctrl_v') {
+        void this.pasteClipboardIntoKeyDialog(dialog)
+        return
+      }
+      dialog.handleKey(key.name, key.char)
+      if (dialog.wantsClose()) this.overlay.deactivate()
+      else this.overlay.rerender()
       return
     }
     // #31：选择器 overlay 打开：↑/↓（j/k）移动、PageUp/PageDown 翻页、

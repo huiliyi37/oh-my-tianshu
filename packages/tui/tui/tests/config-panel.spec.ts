@@ -1,13 +1,14 @@
 /**
  * config-panel.spec.ts — /config 设置面板纯函数（T3.2）。
  *
- * 覆盖：标题与三段（设置/权限预设/凭据）顺序、设置行（ns + 值 + secrets
+ * 覆盖：标题与四段（设置/模型角色/权限预设/凭据）顺序、设置行（ns + 值 + secrets
  * 脱敏标记）、值渲染（string/number/boolean/object/空值）、secrets 脱敏
- * 标记三态（无槽 / 空槽 / 已脱敏计数）、权限预设选择器（names 动态取、
- * 仅 custom 保留字补行）、凭据徽章（configured/source/writable，writable
- * 整行 DIM 置灰）、空输入占位、窄宽截断与极端窄宽不抛错。数据面形状以
- * packages/settings/settings、packages/interaction/permission、
- * packages/credentials/credentials 实测为准。
+ * 标记三态（无槽 / 空槽 / 已脱敏计数）、模型角色段（主模型 + 三角色 pin/跟随默认
+ * 两态、服务缺席整段不渲染）、权限预设选择器（names 动态取、仅 custom 保留字
+ * 补行）、凭据徽章（configured/source/writable，writable 整行 DIM 置灰）、空输入
+ * 占位、窄宽截断与极端窄宽不抛错。数据面形状以
+ * packages/settings/settings、packages/core/model-roles、
+ * packages/interaction/permission、packages/credentials/credentials 实测为准。
  */
 import { describe, expect, it } from 'vitest'
 import { projectConfigPanel, type ConfigPanelProjection } from '../src/config-panel.js'
@@ -17,9 +18,10 @@ import { displayWidth } from '../src/width.js'
 const DIM = '\x1B[2m'
 const RESET = '\x1B[0m'
 
-/** 全空投影：无设置、无权限服务（permission null）、无凭据。 */
+/** 全空投影：无设置、无模型角色段（null）、无权限服务（permission null）、无凭据。 */
 const emptyProjection: ConfigPanelProjection = {
   settings: [],
+  modelRoles: null,
   permission: null,
   credentials: [],
 }
@@ -50,6 +52,7 @@ const fullProjection: ConfigPanelProjection = {
       ],
     },
   ],
+  modelRoles: null,
   permission: {
     options: [
       { value: 'preset-a', name: '预设 A' },
@@ -123,6 +126,7 @@ describe('设置段 值渲染', () => {
     const rows = projectConfigPanel(
       {
         settings: [{ ns: 'legacy', value: null }, { ns: 'unset', value: undefined }],
+        modelRoles: null,
         permission: null,
         credentials: [],
       },
@@ -134,7 +138,7 @@ describe('设置段 值渲染', () => {
 
   it('非 JSON 值（函数）不抛错且回退 String 渲染', () => {
     const rows = projectConfigPanel(
-      { settings: [{ ns: 'fn', value: () => undefined }], permission: null, credentials: [] },
+      { settings: [{ ns: 'fn', value: () => undefined }], modelRoles: null, permission: null, credentials: [] },
       { width: 80 },
     )
     expect(rows.some(r => r.startsWith('  fn · '))).toBe(true)
@@ -142,7 +146,7 @@ describe('设置段 值渲染', () => {
 
   it('symbol 顶层值回退类型名', () => {
     const rows = projectConfigPanel(
-      { settings: [{ ns: 'sym', value: Symbol('x') }], permission: null, credentials: [] },
+      { settings: [{ ns: 'sym', value: Symbol('x') }], modelRoles: null, permission: null, credentials: [] },
       { width: 80 },
     )
     expect(rows).toContain('  sym · symbol')
@@ -150,7 +154,7 @@ describe('设置段 值渲染', () => {
 
   it('bigint 顶层值回退类型名', () => {
     const rows = projectConfigPanel(
-      { settings: [{ ns: 'big', value: 9007199254740993n }], permission: null, credentials: [] },
+      { settings: [{ ns: 'big', value: 9007199254740993n }], modelRoles: null, permission: null, credentials: [] },
       { width: 80 },
     )
     expect(rows).toContain('  big · bigint')
@@ -166,7 +170,7 @@ describe('设置段 secrets 脱敏标记', () => {
 
   it('secrets 空数组不渲染标记', () => {
     const rows = projectConfigPanel(
-      { settings: [{ ns: 'plain', value: 'x', secrets: [] }], permission: null, credentials: [] },
+      { settings: [{ ns: 'plain', value: 'x', secrets: [] }], modelRoles: null, permission: null, credentials: [] },
       { width: 80 },
     )
     expect(rows).toContain('  plain · x')
@@ -196,6 +200,7 @@ describe('权限预设选择器（names 动态）', () => {
     const rows = projectConfigPanel(
       {
         settings: [],
+        modelRoles: null,
         permission: {
           options: [
             { value: 'preset-a', name: 'A' },
@@ -215,6 +220,7 @@ describe('权限预设选择器（names 动态）', () => {
     const rows = projectConfigPanel(
       {
         settings: [],
+        modelRoles: null,
         permission: { options: [{ value: 'preset-a', name: 'A' }], currentValue: 'custom' },
         credentials: [],
       },
@@ -228,6 +234,7 @@ describe('权限预设选择器（names 动态）', () => {
     const rows = projectConfigPanel(
       {
         settings: [],
+        modelRoles: null,
         permission: {
           options: [
             { value: 'preset-a', name: 'A' },
@@ -268,13 +275,20 @@ describe('凭据徽章（configured/source/writable）', () => {
     const line = rows.find(r => r.includes('KEY2'))
     expect(line).not.toContain(DIM)
   })
+
+  it('段尾恒带 /key 入口提示（含空凭据段）', () => {
+    const full = projectConfigPanel(fullProjection, { width: 80 })
+    expect(full[full.length - 1]).toBe('  运行 /key 设置 API Key')
+    const empty = projectConfigPanel(emptyProjection, { width: 80 })
+    expect(empty[empty.length - 1]).toBe('  运行 /key 设置 API Key')
+  })
 })
 
 describe('窄宽截断', () => {
   it('长值在窄宽下截断补 …，且所有行不超 width', () => {
     const longValue = '这是一个非常非常长的模型标识符用于验证窄宽截断降级逻辑是否正常工作且不应溢出'
     const rows = projectConfigPanel(
-      { settings: [{ ns: 'model', value: longValue }], permission: null, credentials: [] },
+      { settings: [{ ns: 'model', value: longValue }], modelRoles: null, permission: null, credentials: [] },
       { width: 20 },
     )
     for (const row of rows) {
@@ -287,6 +301,7 @@ describe('窄宽截断', () => {
     const rows = projectConfigPanel(
       {
         settings: [],
+        modelRoles: null,
         permission: null,
         credentials: [
           { ref: 'VERY_LONG_CREDENTIAL_REFERENCE_NAME', configured: false, writable: false },
@@ -307,5 +322,66 @@ describe('窄宽截断', () => {
     const rows = projectConfigPanel(fullProjection, { width: 80 })
     expect(rows).toContain('  model · gpt-4o')
     expect(rows).toContain('  ✓ 预设 A')
+  })
+})
+
+describe('模型角色段（pin 状态只读）', () => {
+  /** 三角色全 pin 的投影。 */
+  const pinned: ConfigPanelProjection = {
+    settings: [],
+    modelRoles: {
+      main: { provider: 'deepseek-official', model: 'deepseek-v4-pro' },
+      vision: { provider: 'openai', model: 'gpt-5-vision' },
+      secondary: { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
+      subagent: { provider: 'anthropic', model: 'claude-sonnet' },
+    },
+    permission: null,
+    credentials: [],
+  }
+
+  it('pin/未 pin 两态：已 pin 显示 provider/model，未 pin 显示「跟随默认」', () => {
+    const rows = projectConfigPanel(pinned, { width: 80 })
+    expect(rows).toContain('◆ 模型角色')
+    expect(rows).toContain('  主模型 · deepseek-official/deepseek-v4-pro')
+    expect(rows).toContain('  视觉模型 · openai/gpt-5-vision')
+    expect(rows).toContain('  副模型 · deepseek-official/deepseek-v4-flash')
+    expect(rows).toContain('  子代理模型 · anthropic/claude-sonnet')
+    const unpinned = projectConfigPanel(
+      { ...pinned, modelRoles: { main: { provider: 'deepseek-official', model: 'deepseek-v4-pro' }, vision: undefined, secondary: undefined, subagent: undefined } },
+      { width: 80 },
+    )
+    expect(unpinned).toContain('  视觉模型 · 跟随默认')
+    expect(unpinned).toContain('  副模型 · 跟随默认')
+    expect(unpinned).toContain('  子代理模型 · 跟随默认')
+  })
+
+  it('段首小字说明回退语义（不复制消费者回退链）', () => {
+    const rows = projectConfigPanel(pinned, { width: 80 })
+    const titleIdx = rows.indexOf('◆ 模型角色')
+    expect(rows[titleIdx + 1]).toBe('  未 pin 的角色按各消费者默认回退（详见 /model <role>）')
+  })
+
+  it('主模型服务缺失（main null）显示 —', () => {
+    const rows = projectConfigPanel(
+      { ...pinned, modelRoles: { main: null, vision: undefined, secondary: undefined, subagent: undefined } },
+      { width: 80 },
+    )
+    expect(rows).toContain('  主模型 · —')
+  })
+
+  it('modelRoles 为 null 时整段不渲染', () => {
+    const rows = projectConfigPanel(emptyProjection, { width: 80 })
+    expect(rows.some(r => r.includes('模型角色'))).toBe(false)
+  })
+
+  it('段顺序：设置 → 模型角色 → 权限预设 → 凭据', () => {
+    const rows = projectConfigPanel({ ...fullProjection, modelRoles: pinned.modelRoles }, { width: 80 })
+    const settingsIdx = rows.indexOf('◆ 设置')
+    const rolesIdx = rows.indexOf('◆ 模型角色')
+    const permissionIdx = rows.indexOf('◆ 权限预设')
+    const credentialsIdx = rows.indexOf('◆ 凭据')
+    expect(rolesIdx).toBeGreaterThan(settingsIdx)
+    expect(permissionIdx).toBeGreaterThan(rolesIdx)
+    expect(credentialsIdx).toBeGreaterThan(permissionIdx)
   })
 })

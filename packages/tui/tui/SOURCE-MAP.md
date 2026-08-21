@@ -113,6 +113,7 @@
 | src/lsp/server-registry.ts | lsp/server-registry.ts | ported（语言 → server 映射：typescript 经 npx / pyright / gopls / rust-analyzer / clangd / jdtls + which 探测） |
 | src/mention-expand.ts | — | new |
 | src/mention-parser.ts | mention-parser.ts | modified |
+| src/model-roles.ts | — | new（/model 角色子命令纯函数层：角色保留字解析、角色 picker 条目构建、pin/unpin/识图警告文案；registry 与 app 共用） |
 | src/pi/latex-block.ts | pi/latex-block.ts | modified |
 | src/pi/latex-to-unicode.ts | pi/latex-to-unicode.ts | modified |
 | src/port.ts | — | new |
@@ -140,6 +141,7 @@
 | src/turn-summary.ts | turn-summary.ts | modified（上游单文件拆为模型+渲染，此为模型半；渲染半见 src/format/turn-summary.ts） |
 | src/ui-glyphs.ts | ui-glyphs.ts | ported |
 | src/ui/app.ts | — | new（角色对应上游 engine/app.ts，为面向 dsh cordis 服务的独立装配实现，非逐行移植） |
+| src/ui/key-dialog.ts | — | new（API Key 掩码输入对话框：/key·/login 入口与首启引导，探测三分类后落盘） |
 | src/ui/render.ts | — | new |
 | src/width.ts | width.ts | modified |
 | src/workflow-panel.ts | — | new |

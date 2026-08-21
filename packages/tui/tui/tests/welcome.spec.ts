@@ -152,9 +152,9 @@ describe('formatEnvCheckLine（环境检查紧凑行）', () => {
     expect(line!.startsWith('graphite')).toBe(true)
   })
 
-  it('缺 API key：✗ + 可行动提示，该段 warning 色', () => {
+  it('缺 API key：✗ + 可行动提示（/key 入口），该段 warning 色', () => {
     const [line] = formatEnvCheckLine(env({ hasApiKey: false }), fakeTheme())
-    expect(plain([line!])[0]).toContain('API Key ✗（设 DEEPSEEK_API_KEY）')
+    expect(plain([line!])[0]).toContain('API Key ✗（/key 设置）')
     expect(line).toContain('\x1B[38;2;68;68;68m')
   })
 

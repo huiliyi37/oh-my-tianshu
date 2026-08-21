@@ -3012,9 +3012,15 @@ importers:
       '@huiliyi37/dsh-llm-retry':
         specifier: workspace:^
         version: link:../../llm/llm-retry
+      '@huiliyi37/dsh-model-roles':
+        specifier: workspace:^
+        version: link:../../core/model-roles
       '@huiliyi37/dsh-session':
         specifier: workspace:^
         version: link:../../core/session
+      '@huiliyi37/dsh-settings':
+        specifier: workspace:^
+        version: link:../../settings/settings
       '@huiliyi37/dsh-token-meter':
         specifier: workspace:^
         version: link:../../llm/token-meter
@@ -3204,9 +3210,15 @@ importers:
       '@huiliyi37/dsh-llm':
         specifier: workspace:^
         version: link:../../llm/llm
+      '@huiliyi37/dsh-model-roles':
+        specifier: workspace:^
+        version: link:../../core/model-roles
       '@huiliyi37/dsh-session':
         specifier: workspace:^
         version: link:../../core/session
+      '@huiliyi37/dsh-settings':
+        specifier: workspace:^
+        version: link:../../settings/settings
 
   packages/context/workspace-context:
     dependencies:
@@ -6759,6 +6771,9 @@ importers:
       '@huiliyi37/dsh-llm-deepseek':
         specifier: workspace:^
         version: link:../../llm/llm-deepseek
+      '@huiliyi37/dsh-model-roles':
+        specifier: workspace:^
+        version: link:../../core/model-roles
       '@huiliyi37/dsh-session':
         specifier: workspace:^
         version: link:../../core/session
@@ -6768,6 +6783,9 @@ importers:
       '@huiliyi37/dsh-session-title-llm':
         specifier: workspace:^
         version: link:../session-title-llm
+      '@huiliyi37/dsh-settings':
+        specifier: workspace:^
+        version: link:../../settings/settings
 
   packages/session/session-title-llm:
     dependencies:
@@ -6784,12 +6802,18 @@ importers:
       '@huiliyi37/dsh-llm':
         specifier: workspace:^
         version: link:../../llm/llm
+      '@huiliyi37/dsh-model-roles':
+        specifier: workspace:^
+        version: link:../../core/model-roles
       '@huiliyi37/dsh-session':
         specifier: workspace:^
         version: link:../../core/session
       '@huiliyi37/dsh-session-title':
         specifier: workspace:^
         version: link:../session-title
+      '@huiliyi37/dsh-settings':
+        specifier: workspace:^
+        version: link:../../settings/settings
       '@huiliyi37/dsh-timeout':
         specifier: workspace:^
         version: link:../../util/timeout
@@ -7113,6 +7137,9 @@ importers:
       '@huiliyi37/dsh-llm':
         specifier: workspace:^
         version: link:../../llm/llm
+      '@huiliyi37/dsh-model-roles':
+        specifier: workspace:^
+        version: link:../../core/model-roles
       '@huiliyi37/dsh-sandbox-policy':
         specifier: workspace:^
         version: link:../../sandbox/sandbox-policy
@@ -7131,6 +7158,9 @@ importers:
       '@huiliyi37/dsh-session-projection-cache':
         specifier: workspace:^
         version: link:../../session/session-projection-cache
+      '@huiliyi37/dsh-settings':
+        specifier: workspace:^
+        version: link:../../settings/settings
       '@huiliyi37/dsh-storage':
         specifier: workspace:^
         version: link:../../storage/storage
@@ -7379,12 +7409,18 @@ importers:
       '@huiliyi37/dsh-llm':
         specifier: workspace:^
         version: link:../../llm/llm
+      '@huiliyi37/dsh-model-roles':
+        specifier: workspace:^
+        version: link:../../core/model-roles
       '@huiliyi37/dsh-sandbox-policy':
         specifier: workspace:^
         version: link:../../sandbox/sandbox-policy
       '@huiliyi37/dsh-session':
         specifier: workspace:^
         version: link:../../core/session
+      '@huiliyi37/dsh-settings':
+        specifier: workspace:^
+        version: link:../../settings/settings
       '@huiliyi37/dsh-subagent':
         specifier: workspace:^
         version: link:../subagent
@@ -7477,6 +7513,9 @@ importers:
       '@huiliyi37/dsh-llm':
         specifier: workspace:^
         version: link:../../llm/llm
+      '@huiliyi37/dsh-model-roles':
+        specifier: workspace:^
+        version: link:../../core/model-roles
       '@huiliyi37/dsh-session':
         specifier: workspace:^
         version: link:../../core/session
@@ -7486,6 +7525,9 @@ importers:
       '@huiliyi37/dsh-session-persistence-jsonl':
         specifier: workspace:^
         version: link:../../session/session-persistence-jsonl
+      '@huiliyi37/dsh-settings':
+        specifier: workspace:^
+        version: link:../../settings/settings
       '@huiliyi37/dsh-skill':
         specifier: workspace:^
         version: link:../../skill/skill
@@ -7999,6 +8041,9 @@ importers:
       '@huiliyi37/dsh-llm':
         specifier: workspace:^
         version: link:../../llm/llm
+      '@huiliyi37/dsh-model-roles':
+        specifier: workspace:^
+        version: link:../../core/model-roles
       '@huiliyi37/dsh-session':
         specifier: workspace:^
         version: link:../../core/session

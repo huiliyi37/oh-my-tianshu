@@ -30,6 +30,16 @@ import { collectDoctorReport, getDoctorFixGuidance } from '../format/doctor-repo
 // /preset 的运行时服务面仍走 ctx.reflect.get('agentPresets') 最小接口,
 // 不引入 dsh-agent-presets 运行时依赖。
 import type {} from '@huiliyi37/dsh-agent-presets'
+// Type-only：让 ctx.get('modelRoles') 解析到角色 pin 服务（可选缝，从不硬依赖）；
+// 角色子命令的共享纯函数层在 ../model-roles.js。
+import type { ModelRole } from '@huiliyi37/dsh-model-roles'
+import {
+  MODEL_ROLES_UNAVAILABLE,
+  MODEL_ROLE_LABELS,
+  parseModelRole,
+  rolePinEcho,
+  roleVisionWarning,
+} from '../model-roles.js'
 
 /**
  * Slash 命令执行上下文——TuiApp 在分发时注入。
@@ -80,10 +90,24 @@ export interface ModelFacet {
   saveSelection(next: { provider: string; model: string; reasoningEffort?: string }): Promise<void>
 }
 
+/** /model 目录条目（supportsVision 供 vision 角色 pin 的识图能力警告；advisory）。 */
+interface LlmCatalogModel {
+  id: string
+  supportsVision?: boolean
+}
+
 /** /model 校验所需的 llm 目录最小服务面（不引入 dsh-llm 依赖；reflect.get 动态获取）。 */
 interface LlmCatalogFacet {
   listProviders(): Array<{ id: string }>
-  listModels(provider: string): Promise<Array<{ id: string }>>
+  listModels(provider: string): Promise<LlmCatalogModel[]>
+}
+
+/** 目录校验结果（checkCatalogRoute 返回值）。 */
+interface CatalogRouteCheck {
+  /** 校验失败的中文原因（不含命令特定后缀）；通过为 null。 */
+  error: string | null
+  /** 命中的目录条目（目录为空/校验失败时 undefined——advisory 无法证伪时放行）。 */
+  entry?: LlmCatalogModel
 }
 
 /**
@@ -99,6 +123,37 @@ function suggestModels(input: string, catalogIds: readonly string[]): string[] {
   const prefix = catalogIds.filter(id => id.toLowerCase().startsWith(needle))
   const substring = catalogIds.filter(id => id.toLowerCase().includes(needle))
   return [...new Set([...exact, ...prefix, ...substring])].slice(0, 3)
+}
+
+/**
+ * /model 直参的目录校验（对标 Claude Code：拼写错误不切换/pin）。分级策略遵守
+ * llm 的 advisory 契约——目录缺失不得变成请求拒绝：provider 未注册是权威事实
+ * （请求注定派发失败）硬拒绝；目录非空而模型在目录外硬拒绝并给就近建议；目录
+ * 为空（adapter 未通告/通告失败）无法证伪，放行。主模型与角色 pin 两路径共用。
+ * @param llm - llm 目录服务面（reflect.get 现取）。
+ * @param next - 目标 provider/model 路由。
+ * @param pickerHint - 无就近建议时的选择器用法文案（主模型与角色各自的 /model 形态）。
+ * @returns 校验结果（error 为失败原因；entry 为命中的目录条目，供 vision 能力警告）。
+ */
+async function checkCatalogRoute(
+  llm: LlmCatalogFacet,
+  next: { provider: string; model: string },
+  pickerHint: string,
+): Promise<CatalogRouteCheck> {
+  const providers = llm.listProviders().map(provider => provider.id)
+  if (!providers.includes(next.provider)) {
+    return { error: `未知 provider: ${next.provider}（已注册: ${providers.join(' / ') || '无'}）` }
+  }
+  const catalog = await llm.listModels(next.provider).catch(() => [])
+  const entry = catalog.find(model => model.id === next.model)
+  if (catalog.length > 0 && entry === undefined) {
+    const suggestions = suggestModels(next.model, catalog.map(model => model.id))
+    const hint = suggestions.length > 0
+      ? `（你是否想用 ${suggestions.map(id => `${next.provider}/${id}`).join(' / ')}？）`
+      : `（可用 ${catalog.length} 个，${pickerHint}）`
+    return { error: `${next.provider} 没有模型 ${next.model}${hint}` }
+  }
+  return { error: null, ...(entry === undefined ? {} : { entry }) }
 }
 
 /** /preset 所需的最小 agent-presets 服务面（不引入 dsh-agent-presets 依赖）。 */
@@ -175,7 +230,7 @@ interface MemoryFacet {
  * /subagents、/workflow、/tasks 的命令定义在 createBuiltinCommands（deps 注入
  * TuiApp 的显隐切换）；/status 保持 TuiApp 内注册。
  */
-export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'resume', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'preset', 'tasks', 'density', 'goal', 'status', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'export', 'exit', 'yolo', 'cost', 'help', 'restart'] as const
+export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'resume', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'key', 'login', 'preset', 'tasks', 'density', 'goal', 'status', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'export', 'exit', 'yolo', 'cost', 'help', 'restart'] as const
 
 /**
  * /model 一键切换别名（TUI 便捷层）：展开为 deepseek-spark route 的
@@ -331,10 +386,14 @@ export interface BuiltinCommandDeps {
   sessionCostReport(): string[]
   /** #31：打开模型选择器（上下键选择替代命令参数输入）。 */
   openModelPicker(): void
+  /** /model vision|secondary|subagent：打开角色模型选择器（首行「跟随默认」清除 pin）。 */
+  openRoleModelPicker(role: ModelRole): void
   /** #31：打开主题选择器。 */
   openThemePicker(): void
   /** #31：打开会话选择器。 */
   openSessionPicker(): void
+  /** /key、/login：打开 API Key 设置对话框（掩码输入 + 联网验证 + 落盘）。 */
+  openKeyDialog(): void
   /** /help：当前注册表的全部命令（TuiApp 是注册表所有者，经 deps 注入而非 ctx 服务）。 */
   listCommands(): SlashCommand[]
 }
@@ -475,9 +534,53 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
     },
     {
       name: 'model',
-      description: '查看或切换模型（默认 + 当前会话热切；目录校验拼写；spark-flash / spark-pro 别名一键切 spark）',
-      argsHint: '[provider/model | spark-flash | spark-pro]',
+      description: '查看或切换模型（默认 + 当前会话热切；vision/secondary/subagent 角色 pin；spark-flash / spark-pro 别名一键切 spark）',
+      argsHint: '[provider/model [effort] | spark-flash | spark-pro | vision|secondary|subagent [provider/model]]',
       run: async ({ text, echo, ctx }) => {
+        const raw = text.trim()
+        /* v8 ignore next -- split(/\s+/) 恒返回非空数组，[0] 必有值；noUncheckedIndexedAccess 收窄防御 */
+        const role = raw === '' ? undefined : parseModelRole(raw.split(/\s+/)[0] ?? '')
+        if (role !== undefined) {
+          // 角色子命令：pin 写 settings 用户层（model-roles 服务），与主模型选择
+          // 互不相关——不依赖 agent-default-model 服务面。可选服务经 ctx.get 读取
+          // （packages/AGENTS.md：可选服务不用属性代理）。
+          const roles = ctx.get('modelRoles')
+          if (roles === undefined) {
+            echo(MODEL_ROLES_UNAVAILABLE)
+            return
+          }
+          const rest = raw.slice(role.length).trim()
+          if (rest === '') {
+            // 无第三参：打开该角色的 picker（首行「跟随默认」即 unpin）。
+            deps.openRoleModelPicker(role)
+            return
+          }
+          const parts = rest.split('/')
+          if (rest.split(/\s+/).length !== 1 || parts.length !== 2 || parts.some(part => part === '')) {
+            echo(`⚠ 用法: /model ${role} provider/model（或 /model ${role} 无参打开选择器）——未 pin`)
+            return
+          }
+          /* v8 ignore next -- length===2 校验后索引必有值；noUncheckedIndexedAccess 收窄防御 */
+          const next = { provider: parts[0] ?? '', model: parts[1] ?? '' }
+          // 与主模型同一份目录校验（拼写错误不 pin）；llm 缺席时跳过（既有降级）。
+          const llm = ctx.reflect.get('llm', false) as LlmCatalogFacet | undefined
+          let visionEntry: LlmCatalogModel | undefined
+          if (llm !== undefined) {
+            const check = await checkCatalogRoute(llm, next, `/model ${role} 无参打开选择器`)
+            if (check.error !== null) {
+              echo(`⚠ ${check.error}——未 pin，${MODEL_ROLE_LABELS[role]}仍跟随默认`)
+              return
+            }
+            visionEntry = check.entry
+          }
+          await roles.pin(role, next)
+          // 目录 supportsVision 是 advisory：仅显式 false 给警告，不阻止 pin。
+          if (role === 'vision' && visionEntry?.supportsVision === false) {
+            echo(roleVisionWarning(next))
+          }
+          echo(rolePinEcho(role, next))
+          return
+        }
         // as unknown as：Context 声明合并的 agentDefaultModel 是完整服务面，
         // 这里只消费最小读/写两方法（本地 ModelFacet）。
         const facet = (ctx as unknown as { agentDefaultModel?: ModelFacet }).agentDefaultModel
@@ -486,7 +589,6 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
           return
         }
         const current = facet.currentSelection()
-        const raw = text.trim()
         if (raw === '') {
           // #31：无参打开模型选择器（上下键选择替代命令输入；当前值 ● 高亮）。
           deps.openModelPicker()
@@ -512,27 +614,13 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
         const next = parts.length === 2
           ? { provider: parts[0] ?? '', model: parts[1] ?? '' }
           : { provider: current.provider, model: parts[0] ?? '' }
-        // 目录校验（对标 Claude Code：拼写错误不切换）。分级策略遵守 llm 的
-        // advisory 契约——目录缺失不得变成请求拒绝：provider 未注册是权威事实
-        // （请求注定派发失败）硬拒绝；目录非空而模型在目录外硬拒绝并给就近
-        // 建议；目录为空（adapter 未通告/通告失败）无法证伪，放行。
+        // 目录校验（对标 Claude Code：拼写错误不切换；分级策略见 checkCatalogRoute）。
         // reflect.get 读取可选服务（Cordis 4 注入代理：属性访问未 inject 抛错）。
         const llm = ctx.reflect.get('llm', false) as LlmCatalogFacet | undefined
         if (llm !== undefined) {
-          const providers = llm.listProviders().map(provider => provider.id)
-          if (!providers.includes(next.provider)) {
-            echo(`⚠ 未知 provider: ${next.provider}（已注册: ${providers.join(' / ') || '无'}）`
-              + `——未切换，当前仍是 ${current.provider}/${current.model}`)
-            return
-          }
-          const catalog = await llm.listModels(next.provider).catch(() => [])
-          if (catalog.length > 0 && !catalog.some(model => model.id === next.model)) {
-            const suggestions = suggestModels(next.model, catalog.map(model => model.id))
-            const hint = suggestions.length > 0
-              ? `（你是否想用 ${suggestions.map(id => `${next.provider}/${id}`).join(' / ')}？）`
-              : `（可用 ${catalog.length} 个，/model 无参打开选择器）`
-            echo(`⚠ ${next.provider} 没有模型 ${next.model}${hint}`
-              + `——未切换，当前仍是 ${current.provider}/${current.model}`)
+          const check = await checkCatalogRoute(llm, next, '/model 无参打开选择器')
+          if (check.error !== null) {
+            echo(`⚠ ${check.error}——未切换，当前仍是 ${current.provider}/${current.model}`)
             return
           }
         }
@@ -594,6 +682,16 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
           ? `推理等级已设为 ${input}（固定；当前会话与默认均生效；/effort auto 回默认）`
           : `推理等级已设为 ${input}（固定；默认生效；当前会话不可热切；/effort auto 回默认）`)
       },
+    },
+    {
+      name: 'key',
+      description: '设置 DeepSeek API Key（掩码输入 + 联网验证；保存即生效，无需重启）',
+      run: () => { deps.openKeyDialog() },
+    },
+    {
+      name: 'login',
+      description: '设置 DeepSeek API Key（/key 别名）',
+      run: () => { deps.openKeyDialog() },
     },
     {
       name: 'preset',

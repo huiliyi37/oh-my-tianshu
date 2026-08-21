@@ -22,7 +22,7 @@ import {
 import { getActiveThemeName, setTheme } from '../src/theme.js'
 
 /** 最小 ctx 替身：/session list 需要的 sessions.list + get('sessionPersistence')。 */
-function makeCtx(overrides: Partial<Record<'sessions' | 'agents' | 'compact' | 'agentDefaultModel' | 'goals' | 'tasks' | 'agentPresets' | 'subagents' | 'llm', unknown>> = {}): Context {
+function makeCtx(overrides: Partial<Record<'sessions' | 'agents' | 'compact' | 'agentDefaultModel' | 'goals' | 'tasks' | 'agentPresets' | 'subagents' | 'llm' | 'modelRoles', unknown>> = {}): Context {
   const ctx = {
     sessions: {
       list: vi.fn(() => []),
@@ -35,7 +35,8 @@ function makeCtx(overrides: Partial<Record<'sessions' | 'agents' | 'compact' | '
     reflect: {
       get: vi.fn((name: string) => (overrides as Record<string, unknown>)[name]),
     },
-    get: vi.fn(() => undefined),
+    // 可选服务的严格读取面（ctx.get('modelRoles') 等）：同样从 overrides 取
+    get: vi.fn((name: string) => (overrides as Record<string, unknown>)[name]),
     ...overrides,
   } as unknown as Context
   return ctx
@@ -77,8 +78,10 @@ function commandByName(name: string) {
     setYoloMode: vi.fn(),
     sessionCostReport: vi.fn(() => []),
     openModelPicker: vi.fn(),
+    openRoleModelPicker: vi.fn(),
     openThemePicker: vi.fn(),
     openSessionPicker: vi.fn(),
+    openKeyDialog: vi.fn(),
     listCommands: vi.fn<() => SlashCommand[]>(() => []),
   }
   const commands = createBuiltinCommands(deps)
@@ -558,6 +561,27 @@ describe('内置命令 — /compact', () => {
   })
 })
 
+describe('内置命令 — /key 与 /login（API Key 设置入口）', () => {
+  it('/key 打开 API Key 设置对话框（deps.openKeyDialog）', async () => {
+    const { cmd, deps } = commandByName('key')
+    const { args } = makeArgs()
+    await cmd.run(args)
+    expect(deps.openKeyDialog).toHaveBeenCalledTimes(1)
+  })
+
+  it('/login 是 /key 别名（同一入口）', async () => {
+    const { cmd, deps } = commandByName('login')
+    const { args } = makeArgs()
+    await cmd.run(args)
+    expect(deps.openKeyDialog).toHaveBeenCalledTimes(1)
+  })
+
+  it('BUILTIN_COMMAND_NAMES 含 key/login，解析唯一', () => {
+    expect(resolveSlashCommand('/key', BUILTIN_COMMAND_NAMES)?.command.name).toBe('key')
+    expect(resolveSlashCommand('/login', BUILTIN_COMMAND_NAMES)?.command.name).toBe('login')
+  })
+})
+
 describe('内置命令 — /model', () => {
   it('无参数打开模型选择器且不写选择（#31）', async () => {
     const { cmd, deps } = commandByName('model')
@@ -833,6 +857,141 @@ describe('内置命令 — /model', () => {
 
   it('内置命令集含 /model', () => {
     expect(BUILTIN_COMMAND_NAMES).toContain('model')
+  })
+})
+
+describe('内置命令 — /model 角色子命令（vision/secondary/subagent pin）', () => {
+  /** 最小 modelRoles 服务桩（resolve/pin/unpin 可断言）。 */
+  const rolesStub = (pins: Record<string, { provider: string; model: string } | undefined> = {}) => ({
+    resolve: vi.fn((role: string) => pins[role]),
+    pin: vi.fn(async () => {}),
+    unpin: vi.fn(async () => {}),
+  })
+  /** 带目录的 llm 面（supportsVision 可注入）。 */
+  const llmCatalog = (providers: string[], models: Record<string, Array<{ id: string; supportsVision?: boolean }>>) => ({
+    listProviders: vi.fn(() => providers.map(id => ({ id }))),
+    listModels: vi.fn(async (provider: string) => models[provider] ?? []),
+  })
+
+  it('/model vision 无第三参 → 打开角色 picker（不写 pin）', async () => {
+    const { cmd, deps } = commandByName('model')
+    const roles = rolesStub()
+    const ctx = makeCtx({ modelRoles: roles })
+    const { args } = makeArgs({ text: 'vision', ctx })
+    await cmd.run(args)
+    expect(deps.openRoleModelPicker).toHaveBeenCalledWith('vision')
+    expect(roles.pin).not.toHaveBeenCalled()
+    expect(roles.unpin).not.toHaveBeenCalled()
+  })
+
+  it('角色路径不依赖 agent-default-model 服务（facet 缺席仍打开 picker）', async () => {
+    const { cmd, deps } = commandByName('model')
+    const ctx = makeCtx({ modelRoles: rolesStub() })
+    const { args, echo } = makeArgs({ text: 'subagent', ctx })
+    await cmd.run(args)
+    expect(deps.openRoleModelPicker).toHaveBeenCalledWith('subagent')
+    expect(echo).not.toHaveBeenCalledWith(expect.stringContaining('agent-default-model 服务不可用'))
+  })
+
+  it('modelRoles 服务缺席 → 降级错误且不打开 picker', async () => {
+    const { cmd, deps } = commandByName('model')
+    const { args, echo } = makeArgs({ text: 'vision' })
+    await cmd.run(args)
+    expect(deps.openRoleModelPicker).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('未装配 model-roles 服务'))
+  })
+
+  it('直参 pin 成功：目录校验通过 → roles.pin + 热生效回显', async () => {
+    const { cmd } = commandByName('model')
+    const roles = rolesStub()
+    const ctx = makeCtx({
+      modelRoles: roles,
+      llm: llmCatalog(['deepseek-official'], { 'deepseek-official': [{ id: 'deepseek-v4-flash', supportsVision: true }] }),
+    })
+    const { args, echo } = makeArgs({ text: 'vision deepseek-official/deepseek-v4-flash', ctx })
+    await cmd.run(args)
+    expect(roles.pin).toHaveBeenCalledWith('vision', { provider: 'deepseek-official', model: 'deepseek-v4-flash' })
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('视觉模型已 pin: deepseek-official/deepseek-v4-flash'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('热生效，无需重启'))
+  })
+
+  it('直参未知 provider 硬拒绝（不 pin，列出已注册路由）', async () => {
+    const { cmd } = commandByName('model')
+    const roles = rolesStub()
+    const ctx = makeCtx({
+      modelRoles: roles,
+      llm: llmCatalog(['deepseek-official'], { 'deepseek-official': [{ id: 'deepseek-v4-flash' }] }),
+    })
+    const { args, echo } = makeArgs({ text: 'secondary opanai/gpt-5', ctx })
+    await cmd.run(args)
+    expect(roles.pin).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('未知 provider: opanai'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('未 pin'))
+  })
+
+  it('直参目录外模型硬拒绝并就近建议（不 pin）', async () => {
+    const { cmd } = commandByName('model')
+    const roles = rolesStub()
+    const ctx = makeCtx({
+      modelRoles: roles,
+      llm: llmCatalog(['deepseek-official'], { 'deepseek-official': [{ id: 'deepseek-v4-flash' }, { id: 'deepseek-v4-pro' }] }),
+    })
+    const { args, echo } = makeArgs({ text: 'subagent deepseek-official/deepseek-v4-pr', ctx })
+    await cmd.run(args)
+    expect(roles.pin).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('没有模型 deepseek-v4-pr'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('deepseek-official/deepseek-v4-pro'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('仍跟随默认'))
+  })
+
+  it('目录为空的 provider 放行（advisory 无法证伪）', async () => {
+    const { cmd } = commandByName('model')
+    const roles = rolesStub()
+    const ctx = makeCtx({
+      modelRoles: roles,
+      llm: llmCatalog(['openai-compatible'], { 'openai-compatible': [] }),
+    })
+    const { args } = makeArgs({ text: 'secondary openai-compatible/gpt-5', ctx })
+    await cmd.run(args)
+    expect(roles.pin).toHaveBeenCalledWith('secondary', { provider: 'openai-compatible', model: 'gpt-5' })
+  })
+
+  it('vision pin 到 supportsVision=false 的模型：警告但允许 pin', async () => {
+    const { cmd } = commandByName('model')
+    const roles = rolesStub()
+    const ctx = makeCtx({
+      modelRoles: roles,
+      llm: llmCatalog(['deepseek-official'], { 'deepseek-official': [{ id: 'deepseek-v4-flash', supportsVision: false }] }),
+    })
+    const { args, echo } = makeArgs({ text: 'vision deepseek-official/deepseek-v4-flash', ctx })
+    await cmd.run(args)
+    expect(roles.pin).toHaveBeenCalledWith('vision', { provider: 'deepseek-official', model: 'deepseek-v4-flash' })
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('未声明识图能力'))
+  })
+
+  it('secondary pin 到 supportsVision=false 的模型不警告（警告只属 vision 角色）', async () => {
+    const { cmd } = commandByName('model')
+    const roles = rolesStub()
+    const ctx = makeCtx({
+      modelRoles: roles,
+      llm: llmCatalog(['deepseek-official'], { 'deepseek-official': [{ id: 'deepseek-v4-flash', supportsVision: false }] }),
+    })
+    const { args, echo } = makeArgs({ text: 'secondary deepseek-official/deepseek-v4-flash', ctx })
+    await cmd.run(args)
+    expect(roles.pin).toHaveBeenCalled()
+    expect(echo).not.toHaveBeenCalledWith(expect.stringContaining('未声明识图能力'))
+  })
+
+  it('用法错误（无斜杠/多段/多余 token）→ 用法提示且不 pin', async () => {
+    const { cmd } = commandByName('model')
+    const roles = rolesStub()
+    const ctx = makeCtx({ modelRoles: roles })
+    for (const text of ['vision abc', 'vision a/b/c', 'vision deepseek/v4 high']) {
+      const { args, echo } = makeArgs({ text, ctx })
+      await cmd.run(args)
+      expect(echo).toHaveBeenCalledWith(expect.stringContaining('用法: /model vision provider/model'))
+    }
+    expect(roles.pin).not.toHaveBeenCalled()
   })
 })
 
@@ -1814,6 +1973,7 @@ describe('内置命令 — /effort', () => {
       requestRestart: vi.fn(),
       sessionCostReport: vi.fn(() => []),
       openModelPicker: vi.fn(),
+      openRoleModelPicker: vi.fn(),
       openThemePicker: vi.fn(),
       openSessionPicker: vi.fn(),
       listCommands: vi.fn<() => SlashCommand[]>(() => []),

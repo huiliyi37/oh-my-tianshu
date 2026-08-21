@@ -108,6 +108,8 @@ async function boot(opts?: { withGoalSubagent?: boolean }): Promise<Booted> {
   root = await mkdtemp(join(tmpdir(), 'dsh-tui-loader-'))
   vi.stubEnv('DSH_HOME', join(root, '.dsh'))
   vi.stubEnv('DSH_AGENTS_HOME', join(root, '.agents'))
+  // 本组关注装配/重挂载，不缺 key 首启引导：env 层供 key 抑制自动弹窗。
+  vi.stubEnv('DEEPSEEK_API_KEY', 'test-key')
   const stdout = makeStdout()
   const stdin = makeStdin()
   let tuiCtx: Context | undefined

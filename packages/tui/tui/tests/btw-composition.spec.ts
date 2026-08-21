@@ -99,6 +99,8 @@ async function boot(): Promise<Booted> {
   root = await mkdtemp(join(tmpdir(), 'dsh-tui-btw-'))
   vi.stubEnv('DSH_HOME', join(root, '.dsh'))
   vi.stubEnv('DSH_AGENTS_HOME', join(root, '.agents'))
+  // 本组关注 btw 会话装配，不缺 key 首启引导：env 层供 key 抑制自动弹窗。
+  vi.stubEnv('DEEPSEEK_API_KEY', 'test-key')
   const stdout = makeStdout()
   const stdin = makeStdin()
 

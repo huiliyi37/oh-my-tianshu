@@ -1397,6 +1397,93 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
       await app.dispose()
     })
 
+    /** 角色 picker 测试的 modelRoles 服务桩（resolve/pin/unpin 可断言）。 */
+    function rolesStub(pins: Record<string, { provider: string; model: string } | undefined> = {}) {
+      return {
+        resolve: vi.fn((role: string) => pins[role]),
+        pin: vi.fn(async () => {}),
+        unpin: vi.fn(async () => {}),
+      }
+    }
+
+    /** 角色 picker 测试的 llm 目录装配（flash 不识图、pro 识图）。 */
+    function wireRolePicker(ctx: ReturnType<typeof makeCtx>, roles: ReturnType<typeof rolesStub>) {
+      ctx.get.mockImplementation((name: string) => name === 'modelRoles' ? roles : undefined)
+      ctx.reflect.get.mockImplementation((name: string) => {
+        if (name === 'llm') {
+          return {
+            listProviders: () => [{ id: 'deepseek-official', name: 'DeepSeek' }],
+            listModels: async () => [
+              { id: 'deepseek-v4-flash', name: 'Flash', supportsVision: false },
+              { id: 'deepseek-v4-pro', name: 'Pro', supportsVision: true },
+            ],
+          }
+        }
+        return undefined
+      })
+    }
+
+    it('/model vision 无参 → 角色选择器（首行「跟随默认」+ 当前 pin ● 高亮）', async () => {
+      const { ctx, app, written, type } = await bootPicker()
+      wireRolePicker(ctx, rolesStub({ vision: { provider: 'deepseek-official', model: 'deepseek-v4-pro' } }))
+      await type('/model vision')
+      expect(written()).toContain('选择视觉模型')
+      expect(written()).toContain('跟随默认（清除 pin）')
+      expect(written()).toContain('deepseek-official/deepseek-v4-pro（当前）')
+      await app.dispose()
+    })
+
+    it('角色选择器首行「跟随默认」Enter → unpin + 回显（未 pin 时首行即当前）', async () => {
+      const { ctx, stdin, app, written, type } = await bootPicker()
+      const roles = rolesStub()
+      wireRolePicker(ctx, roles)
+      await type('/model secondary')
+      expect(written()).toContain('选择副模型')
+      expect(written()).toContain('跟随默认（清除 pin）（当前）')
+      stdin.emit('data', '\r')
+      await new Promise(resolve => setTimeout(resolve, 30))
+      expect(roles.unpin).toHaveBeenCalledWith('secondary')
+      expect(roles.pin).not.toHaveBeenCalled()
+      expect(written()).toContain('副模型已恢复跟随默认（热生效，无需重启）')
+      await app.dispose()
+    })
+
+    it('角色选择器 ↓ 选目录行 + Enter → pin + 热生效回显', async () => {
+      const { ctx, stdin, app, written, type } = await bootPicker()
+      const roles = rolesStub()
+      wireRolePicker(ctx, roles)
+      await type('/model subagent')
+      expect(written()).toContain('选择子代理模型')
+      stdin.emit('data', '\x1b[B') // ↓ 到第一行目录行
+      stdin.emit('data', '\r')
+      await new Promise(resolve => setTimeout(resolve, 30))
+      expect(roles.pin).toHaveBeenCalledWith('subagent', { provider: 'deepseek-official', model: 'deepseek-v4-flash' })
+      expect(written()).toContain('子代理模型已 pin: deepseek-official/deepseek-v4-flash')
+      expect(written()).toContain('热生效，无需重启')
+      await app.dispose()
+    })
+
+    it('vision 角色选 supportsVision=false 的目录行：警告但允许 pin', async () => {
+      const { ctx, stdin, app, written, type } = await bootPicker()
+      const roles = rolesStub()
+      wireRolePicker(ctx, roles)
+      await type('/model vision')
+      stdin.emit('data', '\x1b[B') // ↓ 选中 flash（supportsVision: false）
+      stdin.emit('data', '\r')
+      await new Promise(resolve => setTimeout(resolve, 30))
+      expect(roles.pin).toHaveBeenCalledWith('vision', { provider: 'deepseek-official', model: 'deepseek-v4-flash' })
+      expect(written()).toContain('未声明识图能力')
+      await app.dispose()
+    })
+
+    it('modelRoles 服务缺席 → 角色子命令回显降级错误（不开 picker）', async () => {
+      const { app, written, type } = await bootPicker()
+      await type('/model vision')
+      expect(written()).toContain('未装配 model-roles 服务')
+      expect(written()).not.toContain('选择视觉模型')
+      await app.dispose()
+    })
+
     it('/session 无参 → 会话选择器（2.2 摘要行：标题 · 年龄 · cwd · 当前标记）', async () => {
       const { ctx, app, written, type } = await bootPicker()
       const headerOf = (id: string, createdAt: number) => ({
@@ -3839,7 +3926,7 @@ describe('TuiApp API key 就绪（credentials 分层，非仅 env）', () => {
     const { app, stdout } = boot({ credentials: { configured: false } })
     await app.attach()
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('API Key ✗（设 DEEPSEEK_API_KEY）')
+    expect(written).toContain('API Key ✗（/key 设置）')
     await app.dispose()
   })
 
@@ -3860,6 +3947,123 @@ describe('TuiApp API key 就绪（credentials 分层，非仅 env）', () => {
     expect(written).toContain('API Key ✓')
     expect(written).not.toContain('API Key ✗')
     expect(describe).toHaveBeenCalledWith('DEEPSEEK_API_KEY')
+    await app.dispose()
+  })
+})
+
+describe('TuiApp /key 设置对话框与首启引导', () => {
+  const previousKey = process.env.DEEPSEEK_API_KEY
+  const ALT_ON = '\x1B[?1049h'
+  const ALT_OFF = '\x1B[?1049l'
+
+  afterEach(() => {
+    if (previousKey === undefined) delete process.env.DEEPSEEK_API_KEY
+    else process.env.DEEPSEEK_API_KEY = previousKey
+    vi.unstubAllGlobals()
+  })
+
+  function bootKeyApp(opts: {
+    configured: boolean
+    writable?: boolean
+    tty?: boolean
+    set?: ReturnType<typeof vi.fn>
+  }) {
+    delete process.env.DEEPSEEK_API_KEY
+    const ctx = makeCtx()
+    const agent = makeAgent('key-dialog-1')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    let configured = opts.configured
+    const describe = vi.fn(async () => ({ configured, writable: opts.writable ?? true }))
+    const set = opts.set ?? vi.fn(async () => { configured = true })
+    const fallback = ctx.reflect.get.getMockImplementation() as (name: string) => unknown
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'credentials') return { describe, set }
+      return fallback(name)
+    })
+    const stdin = makeStdin()
+    stdin.isTTY = opts.tty ?? false
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    const written = () => stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    const altOnCount = () => stdout.write.mock.calls.filter(c => `${c[0]}`.includes(ALT_ON)).length
+    return { app, stdin, stdout, written, altOnCount, describe, set }
+  }
+
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+  it('缺 key 且交互 TTY → 首启自动打开一次设置对话框（Esc 可跳过）', async () => {
+    const { app, stdin, written } = bootKeyApp({ configured: false, tty: true })
+    await app.attach()
+    await sleep(30) // openKeyDialog 的 describe 预检落定后才 activate
+    expect(written()).toContain('设置 DeepSeek API Key')
+    expect(written()).toContain(ALT_ON)
+    stdin.emit('data', '\x1b') // Esc 跳过（孤立 ESC 经 escapeTimeoutMs 派发）
+    await sleep(120)
+    expect(written()).toContain(ALT_OFF)
+    await app.dispose()
+  })
+
+  it('同 run 不重复弹（keyPromptShown 守护：restore/重进流程再次触发判定也不弹）', async () => {
+    const { app, stdin, altOnCount } = bootKeyApp({ configured: false, tty: true })
+    await app.attach()
+    await sleep(30)
+    expect(altOnCount()).toBe(1)
+    stdin.emit('data', '\x1b')
+    await sleep(120)
+    const before = altOnCount()
+    // 直接再触发首启判定（后续 restore 等流程的同款入口）——守护拒绝重弹
+    ;(app as unknown as { maybeAutoOpenKeyDialog(): void }).maybeAutoOpenKeyDialog()
+    await sleep(30)
+    expect(altOnCount()).toBe(before)
+    await app.dispose()
+  })
+
+  it('已配置 key（credentials 报 configured）→ 首启不自动弹', async () => {
+    const { app, written } = bootKeyApp({ configured: true, tty: true })
+    await app.attach()
+    await sleep(30)
+    expect(written()).not.toContain('设置 DeepSeek API Key')
+    expect(written()).not.toContain(ALT_ON)
+    await app.dispose()
+  })
+
+  it('非 TTY（管道/测试）缺 key 也不自动弹', async () => {
+    const { app, written } = bootKeyApp({ configured: false, tty: false })
+    await app.attach()
+    await sleep(30)
+    expect(written()).not.toContain(ALT_ON)
+    expect(written()).toContain('API Key ✗（/key 设置）')
+    await app.dispose()
+  })
+
+  it('/key 打开对话框：探测 ok 保存后 onSaved 刷新（footer 翻 ✓），明文 key 不进渲染帧', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })))
+    const { app, stdin, written, set } = bootKeyApp({ configured: false })
+    await app.attach()
+    for (const ch of '/key') stdin.emit('data', ch)
+    stdin.emit('data', '\r')
+    await sleep(40)
+    expect(written()).toContain('设置 DeepSeek API Key')
+    for (const ch of 'sk-testkey12345') stdin.emit('data', ch)
+    stdin.emit('data', '\r') // Enter 提交 → 探测 ok → set 落盘 → 成功态
+    await sleep(40)
+    expect(set).toHaveBeenCalledWith('DEEPSEEK_API_KEY', 'sk-testkey12345')
+    expect(written()).toContain('已保存并生效')
+    expect(written()).not.toContain('sk-testkey12345')
+    stdin.emit('data', '\r') // 成功态 Enter 关闭 → overlay 退出时 footer 重绘
+    await sleep(40)
+    expect(written()).toMatch(/API ✓/)
+    await app.dispose()
+  })
+
+  it('/login 别名同入口打开对话框', async () => {
+    const { app, stdin, written } = bootKeyApp({ configured: false })
+    await app.attach()
+    for (const ch of '/login') stdin.emit('data', ch)
+    stdin.emit('data', '\r')
+    await sleep(40)
+    expect(written()).toContain('设置 DeepSeek API Key')
     await app.dispose()
   })
 })
@@ -4381,6 +4585,33 @@ describe('TuiApp /config /skills /density 面板命令', () => {
     await new Promise(resolve => setImmediate(resolve))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('model')
+    await app.dispose()
+  })
+
+  it('/config 模型角色段：主模型 + pin/跟随默认两态渲染（modelRoles 经 ctx.get 现取）', async () => {
+    const ctx = makeCtx()
+    ctx.get.mockImplementation((name: string) => name === 'modelRoles'
+      ? { resolve: vi.fn((role: string) => role === 'vision' ? { provider: 'openai', model: 'gpt-5-vision' } : undefined) }
+      : undefined)
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'settings') return { describe: vi.fn(() => [{ ns: 'model', value: 'deepseek' }]) }
+      return undefined
+    })
+    const agent = makeAgent('cfg-roles')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.attach()
+
+    app.handleSubmit('/config')
+    await new Promise(resolve => setImmediate(resolve))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('◆ 模型角色')
+    expect(written).toContain('主模型 · mock/mock')
+    expect(written).toContain('视觉模型 · openai/gpt-5-vision')
+    expect(written).toContain('副模型 · 跟随默认')
+    expect(written).toContain('子代理模型 · 跟随默认')
     await app.dispose()
   })
 
@@ -7170,6 +7401,8 @@ describe('会话切换稳健性（switchSession 竞态 / restore 失败 / 委派
     const resumeA = new Promise<AgentHandle>((resolve) => { releaseA = resolve })
     const disposeB = vi.fn()
     const handleB = makeHandle(makeAgent('race-b'), disposeB)
+    // 与 L7031 同款误报：mock 工厂返回 Promise，vitest 推断把期望当 void。
+    // oxlint-disable-next-line no-misused-promises
     ctx.agents.resume.mockImplementation((req: { resumeSessionId: SessionId }) =>
       req.resumeSessionId === sA ? resumeA : Promise.resolve(handleB))
     const stdin = makeStdin()

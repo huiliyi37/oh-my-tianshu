@@ -90,7 +90,7 @@ export interface WelcomeEnvCheck {
 
 /**
  * 环境检查紧凑行（欢迎页常驻）：`graphite · API Key ✓ · Git ✓`。
- * 缺 API key 时该段换 warning 色并携带可行动提示（设 DEEPSEEK_API_KEY）；
+ * 缺 API key 时该段换 warning 色并携带可行动提示（/key 设置入口）；
  * git ✗ 仅信息性展示。用「API Key」措辞（非 footer 的「API ✗」）。
  * @param env - 环境检查结果（主题名/API key/git/对齐）。
  * @param theme - 当前主题（muted；缺 key 段 warning）。
@@ -101,7 +101,7 @@ export function formatEnvCheckLine(env: WelcomeEnvCheck, theme: RivetTheme): str
   const sep = color(' · ', theme.muted)
   const api = env.hasApiKey
     ? color('API Key ✓', theme.muted)
-    : color('API Key ✗（设 DEEPSEEK_API_KEY）', theme.warning)
+    : color('API Key ✗（/key 设置）', theme.warning)
   const git = color(`Git ${env.isGitRepo ? '✓' : '✗'}`, theme.muted)
   const line = `${color(env.themeName, theme.muted)}${sep}${api}${sep}${git}`
   const aligned = env.align === 'left' ? line : center(line, env.cols)
