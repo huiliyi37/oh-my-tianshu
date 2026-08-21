@@ -39,6 +39,11 @@ function titleEvent(seq: number, title: string, source: { kind: 'fallback' } | {
   } as unknown as SessionEvent
 }
 
+/** 构造 session/end-seed 边界事件（fork/恢复的种子终点标记，见 dsh-session 构造函数）。 */
+function endSeedEvent(seq: number): SessionEvent {
+  return { seq, time: seq * 1000, type: 'session/end-seed', data: {} } as unknown as SessionEvent
+}
+
 describe('sessionTitleFor', () => {
   it('fold 官方标题事件（fallback 源）', () => {
     const events = [
@@ -111,6 +116,45 @@ describe('sessionTitleFor', () => {
       titleEvent(2, '评估某模型的准确率', { kind: 'provider', provider: 'session-title-llm' }),
     ]
     expect(sessionTitleFor(events)).toBe('评估某模型的准确率')
+  })
+
+  it('fork：seed 边界后有自己的标题事件 → 用自己的（同父 fork 不撞父标题）', () => {
+    const events = [
+      userEvent(1, '父会话首条消息'),
+      titleEvent(2, '父会话标题', { kind: 'fallback' }),
+      endSeedEvent(3),
+      userEvent(4, 'fork 之后自己的任务'),
+      titleEvent(5, 'fork 自己的标题', { kind: 'fallback' }),
+    ]
+    expect(sessionTitleFor(events)).toBe('fork 自己的标题')
+  })
+
+  it('fork：seed 边界后只有真人消息 → fallback 用自己的首条消息', () => {
+    const events = [
+      userEvent(1, '父会话首条消息'),
+      titleEvent(2, '父会话标题', { kind: 'fallback' }),
+      endSeedEvent(3),
+      userEvent(4, 'fork 之后自己的任务'),
+    ]
+    expect(sessionTitleFor(events)).toBe('fork 之后自己的任务')
+  })
+
+  it('fork：seed 边界后无自有内容 → 回退继承标题（靠 fork 尾注区分）', () => {
+    const events = [
+      userEvent(1, '父会话首条消息'),
+      titleEvent(2, '父会话标题', { kind: 'fallback' }),
+      endSeedEvent(3),
+    ]
+    expect(sessionTitleFor(events)).toBe('父会话标题')
+  })
+
+  it('恢复形状（边界在日志末尾、其后无事件）→ 全量折叠行为不变', () => {
+    const events = [
+      userEvent(1, '写个脚本计算两个数组的交集'),
+      titleEvent(2, '数组交集计算脚本', { kind: 'fallback' }),
+      endSeedEvent(3),
+    ]
+    expect(sessionTitleFor(events)).toBe('数组交集计算脚本')
   })
 
   it('常量与 dsh-base 装配配置对齐', () => {

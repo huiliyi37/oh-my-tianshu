@@ -64,6 +64,7 @@ class StubProvider implements SubagentProvider {
 /** G3：结果可控的外部 provider（localAgent undefined，result 由测试结算）。 */
 class DeferredExternalProvider implements SubagentProvider {
   readonly inheritsParentContext = false
+  readonly capabilities = NO_CAPS
   resolve!: (result: SubagentResult) => void
   readonly result = new Promise<SubagentResult>((resolve) => { this.resolve = resolve })
   constructor(readonly name: string) {}
@@ -86,7 +87,7 @@ describe('SubagentService.activeExternalRuns（G3 等价状态面）', () => {
     const active = subagents.activeExternalRuns()
     expect(active).toHaveLength(1)
     expect(active[0]).toMatchObject({ id: run.id, provider: 'remote', label: '外部检索' })
-    provider.resolve({ stopReason: 'completed' })
+    provider.resolve({ output: [], stopReason: 'completed' })
     await run.result
     expect(subagents.activeExternalRuns()).toEqual([])
   })

@@ -376,6 +376,32 @@ describe('TuiApp agent-ensure 三分支', () => {
     await app.dispose()
   })
 
+  it('newSession 对齐会话（带种子事件）→ 不误报「已恢复会话」横幅与回放分隔', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('align-seeded')
+    const handle = makeHandle(agent)
+    const createAlignedSession = vi.fn(async () => ({ sessionId: 'align-session', handle }))
+    ctx.reflect.get.mockImplementation((name: string) => (
+      name === 'intentBridge' ? { createAlignedSession } : undefined
+    ))
+    // 对齐会话的真实种子形状（intent-bridge createAlignedSession）：zen/phase ×2
+    // + end-seed + session/title——事件数非零，按事件数猜测会把新建误报成恢复。
+    ;(agent.session as unknown as { events: SessionEvent[] }).events = [
+      { type: 'zen/phase', seq: 0, time: 1, data: { phase: 'zen', reason: 'arm' } },
+      { type: 'zen/phase', seq: 1, time: 2, data: { phase: 'full', reason: 'timeout' } },
+      { type: 'session/end-seed', seq: 2, time: 3, data: {} },
+      { type: 'session/title', seq: 3, time: 4, data: { title: '意图对齐', messageSeqs: [], source: { kind: 'fallback' } } },
+    ] as unknown as SessionEvent[]
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.newSession()
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).not.toContain('已恢复会话')
+    expect(written).not.toContain('上次进行到此处')
+    await app.dispose()
+  })
+
   it('newSession 在 intentBridge 装配时把当前 reasoningEffort 传给主会话 exec', async () => {
     const ctx = makeCtx()
     ctx.agentDefaultModel.currentSelection.mockReturnValue({
@@ -6792,7 +6818,7 @@ describe('活动带 child 投影缓存与 workflow/task 折叠接线', () => {
     ctx.reflect.get.mockImplementation((name: string) => {
       if (name === 'sessionProjections') return {
         snapshot: vi.fn(() => ({ values: {} })),
-        onChanged: vi.fn((listener) => {
+        onChanged: vi.fn((listener: (s: { id: string }, key: string, value: unknown, seq: number) => void) => {
           projectionListener = listener
           return () => { }
         }),
@@ -6938,7 +6964,6 @@ describe('委派面板外部 run 段接线（G3）', () => {
     ctx.sessions.get.mockReturnValue(agent.session)
     ctx.reflect.get.mockImplementation((name: string) => {
       if (name === 'subagents') return {
-        activeExternalRuns: () => [],
         listDescendants: vi.fn(async () => []),
         activeExternalRuns: vi.fn(() => ([
           { id: 'ext-1', provider: 'acp', label: '外部检索', startedAt: 1000 },

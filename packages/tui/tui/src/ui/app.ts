@@ -1782,7 +1782,7 @@ export class TuiApp {
       this.ownedHandle = align.handle
       this.controls = controlsFromHandle(align.handle)
       this.activeSessionId = SessionId(align.sessionId)
-      this.mountSession(this.activeSessionId)
+      this.mountSession(this.activeSessionId, { restored: false })
       return this.activeSessionId
     }
     const handle = await this.ctx.agents.create({
@@ -1796,7 +1796,7 @@ export class TuiApp {
     this.ownedHandle = handle
     this.controls = controlsFromHandle(handle)
     this.activeSessionId = id
-    this.mountSession(id)
+    this.mountSession(id, { restored: false })
     return id
   }
 
@@ -2252,7 +2252,7 @@ export class TuiApp {
       this.ownedHandle = handle
       this.controls = controlsFromHandle(handle)
     }
-    this.mountSession(id)
+    this.mountSession(id, { restored: true })
   }
 
   /**
@@ -2298,8 +2298,12 @@ export class TuiApp {
    * 挂载当前会话的投影与控制面：transcript/live/controls 就位后，
    * 将已提交的历史渲染进 scrollback。
    * @param id - 目标会话 id（activeSessionId 已在调用方设置）。
+   * @param opts.restored - 调用方语义：true = 恢复/切换到既有会话（有历史时
+   *   渲染横幅 + 崩溃修复告知 +「上次进行到此处」分隔）；false = 本进程新建。
+   *   新建必须显式声明——带种子的新会话（intent-bridge 对齐会话）事件数非零，
+   *   按事件数猜测会把「新会话」误报成「已恢复会话」。
    */
-  private mountSession(id: SessionId): void {
+  private mountSession(id: SessionId, opts: { restored: boolean }): void {
     const session = getSession(this.ctx, id)
     if (session === undefined) throw new Error(`unknown session: ${id}`)
     // 投影层 fold 接线：turn 统计复位（live 事件驱动）；会话汇总从事件日志
@@ -2415,10 +2419,11 @@ export class TuiApp {
         }),
       }),
     })
-    // 1.2/1.3：恢复挂载的可见信号。仅既有历史（resume/switch 到有内容的会话）
-    // 时渲染：回放前横幅（标题 · 最后活动 · cwd）+ 崩溃修复告知，回放末尾
-    // 「上次进行到此处」分隔；新会话（无历史）三者都不渲染。
-    const restored = session.events.length > 0
+    // 1.2/1.3：恢复挂载的可见信号。restored 是调用方语义（切换/恢复 true、
+    // 新建 false——带种子的新会话事件数非零，不能按事件数猜测），且仅既有
+    // 历史时渲染：回放前横幅（标题 · 最后活动 · cwd）+ 崩溃修复告知，回放
+    // 末尾「上次进行到此处」分隔；新会话（无历史）三者都不渲染。
+    const restored = opts.restored && session.events.length > 0
     if (restored) {
       const banner = [`已恢复会话 ${sessionTitleFor(session.events)}`]
       const lastAt = lastActivityTime(session.events)
