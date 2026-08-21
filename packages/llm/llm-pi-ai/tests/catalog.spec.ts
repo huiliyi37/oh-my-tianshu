@@ -15,6 +15,7 @@ import type { Api, Model, OpenAICompletionsCompat, Provider } from '@earendil-wo
 import { resolveProfiles } from '../src/config.ts'
 import { buildProvider, supportedProtocols } from '../src/provider.ts'
 import { assemble } from './assemble.ts'
+import { memoryAuth } from './auth-double.ts'
 import { closeMockServers, mockServer, textEvents } from './mock-server.ts'
 
 const homes: string[] = []
@@ -1006,6 +1007,7 @@ describe('resolution snapshots', () => {
       // Credential resolution is the real await inside a stream call, and the
       // window a configuration change has to land in.
       resolveApiKey: async () => { await held; return 'k' },
+      auth: memoryAuth(),
     })
 
     const chunks: StreamChunk[] = []
@@ -1034,7 +1036,7 @@ describe('resolution snapshots', () => {
     const first = await mockServer([{ events: textEvents }])
     const second = await mockServer([{ events: textEvents }])
     let current = resolveProfiles({ deepseek: { baseURL: `${first.url}/v1` } })
-    const adapter = new PiAiAdapter({ profiles: () => current, resolveApiKey: () => Promise.resolve('k') })
+    const adapter = new PiAiAdapter({ profiles: () => current, resolveApiKey: () => Promise.resolve('k'), auth: memoryAuth() })
     const drain = async (): Promise<void> => {
       for await (const _chunk of adapter.stream({
         provider: 'deepseek', model: 'deepseek-v4-flash', messages: [],

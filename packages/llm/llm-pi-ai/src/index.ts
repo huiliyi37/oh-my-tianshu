@@ -61,10 +61,12 @@ import { assertUsableApiKey, LlmError } from '@huiliyi37/dsh-llm'
 import type { AdapterRegistrationHandle, DirectoryRegistrationHandle, LlmConfigurableProvider } from '@huiliyi37/dsh-llm'
 import { deepEqualJson, installSettingsSection, settingsNamespace } from '@huiliyi37/dsh-settings'
 import { PiAiAdapter } from './adapter.ts'
+import { authContextFrom, credentialStoreFrom } from './auth.ts'
 import { catalogProviderIds } from './catalog.ts'
 import { assertServiceable, Config, resolveProfiles } from './config.ts'
 import type { ResolvedPiAiProviderProfile } from './config.ts'
 import { discoverModels } from './discovery.ts'
+import { registerPiAiFlows } from './login.ts'
 
 export { PiAiAdapter } from './adapter.ts'
 export type { PiAiAdapterOptions } from './adapter.ts'
@@ -78,6 +80,7 @@ export type {
   PiAiThinkingFormat,
   ResolvedPiAiProviderProfile,
 } from './config.ts'
+export { recordKeyFor } from './auth.ts'
 export { supportedProtocols } from './provider.ts'
 
 export const name = 'llm-pi-ai'
@@ -184,9 +187,14 @@ export function apply(ctx: Context, config: Config): void {
     )
   }
 
+  // One store and one ambient context for the whole plugin instance: both read
+  // through `ctx` per call, so they stay correct across the collection rebuilds
+  // a configuration change causes, and a sign-in survives one.
+  const auth = { credentials: credentialStoreFrom(ctx), authContext: authContextFrom(ctx) }
   const adapter = new PiAiAdapter({
     profiles,
     resolveApiKey,
+    auth,
     onReplayDegrade: ({ provider, model, reason }) => {
       ctx.logger.warn(
         `llm-pi-ai: unusable replay state on assistant history for route "${provider}/${model}";`
@@ -194,6 +202,12 @@ export function apply(ctx: Context, config: Config): void {
       )
     },
   })
+  // Independent of the route set: signing in is what makes a route worth
+  // adding, so the flows are offered before any profile names their provider.
+  // Scoped to the authorization seam rather than injected outright, because a
+  // composition without it (headless, ACP) simply has no surface to sign in
+  // from, while everything else this plugin does still works.
+  ctx.inject(['authorization'], (authorized) => { registerPiAiFlows(authorized, auth) })
   // The full installed catalog is configurable from the moment the plugin
   // mounts — dormant or not — so configuration surfaces can offer every
   // pi-ai provider before any route exists. Hand-declared routes join it as
