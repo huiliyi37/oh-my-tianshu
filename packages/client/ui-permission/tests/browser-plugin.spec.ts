@@ -122,7 +122,7 @@ describe('ui-permission browser plugin', () => {
     const again = await c.ui.options(proj, new AbortController().signal)
     expect(again.find(option => option.id === 'workspace-write')?.active).toBe(true)
     expect(again.find(option => option.id === 'read-only')?.detail).toBe('Reads only.')
-    // Kebab-case names title-case; non-kebab host-configured names pass through.
+    // Built-ins use product labels; other kebab-case names title-case.
     expect(again.map(option => option.label)).toEqual(['Read Only', 'Workspace Write', 'Full access'])
     expect(again.find(option => option.id === 'danger-full-access')?.confirmation).toEqual({
       title: 'Enable Full access?',
@@ -131,9 +131,13 @@ describe('ui-permission browser plugin', () => {
       cancelLabel: 'Cancel',
       confirmLabel: 'Enable Full access',
     })
-    b.values.set(sid('s1'), { ...SELECT, options: [{ value: 'plain', name: 'Ask Every Time' }] })
+    b.values.set(sid('s1'), { ...SELECT, options: [
+      { value: 'custom-mode', name: 'custom-mode' },
+      { value: '__proto__', name: '__proto__' },
+      { value: 'plain', name: 'Ask Every Time' },
+    ] })
     const passthrough = await c.ui.options(proj, new AbortController().signal)
-    expect(passthrough[0]?.label).toBe('Ask Every Time')
+    expect(passthrough.map(option => option.label)).toEqual(['Custom Mode', '__proto__', 'Ask Every Time'])
     // A projection that vanished between availability and open throws.
     expect(() => c.ui.options({ sessionId: sid('ghost') }, new AbortController().signal))
       .toThrow(/not available on this host/)

@@ -560,6 +560,81 @@ describe('WorkspaceBrowser', () => {
     expect(insertSessionBefore).toHaveBeenCalledTimes(1)
   })
 
+  it('pins the current New Session row first and skips drags the pin masks', async () => {
+    const insertSessionBefore = vi.fn(async () => {})
+    mount({
+      useSessions: hook(sessionState(
+        [summary('one', 3), summary('blank', 2, { blank: true }), summary('three', 1)],
+        { current: sid('blank') },
+      )),
+      useWorkspaces: hook(workspaceState([workspace('alpha', ['one', 'blank', 'three'])])),
+      insertSessionBefore,
+    })
+    // The current session's group auto-expands; the reused blank leaves its
+    // creation-time account slot and renders first (render-only pin).
+    await waitFor(() => {
+      expect(screen.getAllByRole('treeitem').map(row => row.textContent)).toEqual([
+        expect.stringContaining('alpha'),
+        expect.stringContaining('新会话'),
+        expect.stringContaining('one'),
+        expect.stringContaining('three'),
+      ])
+    })
+    const blankRow = screen.getByText('新会话').closest('[role="treeitem"]') as HTMLElement
+    const one = screen.getByText('one').closest('[role="treeitem"]') as HTMLElement
+    const three = screen.getByText('three').closest('[role="treeitem"]') as HTMLElement
+    const dataTransfer = { effectAllowed: '', dropEffect: '' }
+    three.getBoundingClientRect = () => ({
+      top: 150, bottom: 184, left: 0, right: 200, width: 200, height: 34, x: 0, y: 150, toJSON: () => ({}),
+    })
+    // Dragging the pinned New Session row to the end would render unchanged
+    // (the pin returns it to the front): the Host write is skipped.
+    fireEvent.dragStart(blankRow, { dataTransfer })
+    fireDrag(three, 'drop', 180)
+    expect(insertSessionBefore).not.toHaveBeenCalled()
+    // Parking another row into the pinned slot above it is masked the same way.
+    blankRow.getBoundingClientRect = () => ({
+      top: 100, bottom: 134, left: 0, right: 200, width: 200, height: 34, x: 0, y: 100, toJSON: () => ({}),
+    })
+    fireEvent.dragStart(one, { dataTransfer })
+    fireDrag(blankRow, 'drop', 105)
+    expect(insertSessionBefore).not.toHaveBeenCalled()
+  })
+
+  it('releases the New Session pin when the blank turns real', async () => {
+    const b = mount({
+      useSessions: hook(sessionState(
+        [summary('one', 3), summary('blank', 2, { blank: true }), summary('three', 1)],
+        { current: sid('blank') },
+      )),
+      useWorkspaces: hook(workspaceState([workspace('alpha', ['one', 'blank', 'three'])])),
+    })
+    await waitFor(() => {
+      expect(screen.getAllByRole('treeitem').map(row => row.textContent)).toEqual([
+        expect.stringContaining('alpha'),
+        expect.stringContaining('新会话'),
+        expect.stringContaining('one'),
+        expect.stringContaining('three'),
+      ])
+    })
+    // The first prompt turns the blank into a real session; the pin releases
+    // and the row returns to its account slot.
+    rerender(b, {
+      useSessions: hook(sessionState(
+        [summary('one', 3), summary('blank', 2), summary('three', 1)],
+        { current: sid('blank') },
+      )),
+    })
+    await waitFor(() => {
+      expect(screen.getAllByRole('treeitem').map(row => row.textContent)).toEqual([
+        expect.stringContaining('alpha'),
+        expect.stringContaining('one'),
+        expect.stringContaining('blank'),
+        expect.stringContaining('three'),
+      ])
+    })
+  })
+
   it('still sends the reorder when the dragged row left the group mid-drag', () => {
     const insertSessionBefore = vi.fn(async () => {})
     const sessions = sessionState([summary('one', 2), summary('two', 1)])

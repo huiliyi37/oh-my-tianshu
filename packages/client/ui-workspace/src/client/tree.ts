@@ -105,6 +105,29 @@ function byRecency(a: SessionSummary, b: SessionSummary): number {
 }
 
 /**
+ * Render-time pin: the blank Session the user is currently in (the New
+ * Session being created) renders first in its group or the flat list.
+ * Opening or reusing a blank never advances its `updatedAt`, so without the
+ * pin a reused blank would keep its old creation-time position. The pin
+ * applies only to this derived render order — the Host account order and the
+ * recency truth are never touched, so the stored position returns as soon as
+ * the Session stops being the current blank.
+ * @param rows - visible rows in derived order.
+ * @param current - the selected Session id, if any.
+ * @returns `rows` with the current blank moved to the front, otherwise `rows` unchanged.
+ */
+export function pinCurrentBlank<T extends { id: SessionId; blank: boolean }>(
+  rows: readonly T[],
+  current: SessionId | undefined,
+): T[] {
+  if (current === undefined) return [...rows]
+  const index = rows.findIndex(row => row.id === current && row.blank)
+  if (index === -1) return [...rows]
+  const pinned = rows[index] as T
+  return [pinned, ...rows.slice(0, index), ...rows.slice(index + 1)]
+}
+
+/**
  * Ordinary sessions are visible; among blank sessions, only the current one
  * is visible. Subagent children use their parent header catalog; archived
  * sessions are visible nowhere, while their accounting slots remain so
@@ -134,12 +157,13 @@ function buildGroup(
   label: string,
   members: readonly SessionSummary[],
   order: 'account' | 'recency',
+  current: SessionId | undefined,
 ): Group {
   const sessions = [...members]
   // Workspace order is workspace.sessionIds; only Ungrouped lacks an account
   // order and therefore falls back to recency.
   if (order === 'recency') sessions.sort(byRecency)
-  return { key, workspaceId, cwd, createdAt, label, sessions }
+  return { key, workspaceId, cwd, createdAt, label, sessions: pinCurrentBlank(sessions, current) }
 }
 
 /**
@@ -165,7 +189,7 @@ function groupByWorkspace(
     }
     groups.push(buildGroup(
       workspace.workspaceId, workspace.workspaceId, workspace.path,
-      Date.parse(workspace.createdAt), workspace.title, members, 'account',
+      Date.parse(workspace.createdAt), workspace.title, members, 'account', list.current,
     ))
   }
   const stray = list.ids
@@ -173,7 +197,7 @@ function groupByWorkspace(
     .filter((s): s is SessionSummary =>
       s !== undefined && !accounted.has(s.id) && sessionVisible(s, list.current, archived))
   if (stray.length > 0) {
-    groups.push(buildGroup(UNGROUPED_KEY, undefined, undefined, undefined, UNGROUPED_LABEL, stray, 'recency'))
+    groups.push(buildGroup(UNGROUPED_KEY, undefined, undefined, undefined, UNGROUPED_LABEL, stray, 'recency', list.current))
   }
   return groups
 }
@@ -199,7 +223,8 @@ function sessionNode(
  *
  * Every group shows; sessions populate under expanded groups, preserving
  * Host account order. Blank sessions are excluded except for the selected
- * provisional New Session row; archived sessions are excluded everywhere.
+ * provisional New Session row, which pins first in its group (render-only —
+ * see {@link pinCurrentBlank}); archived sessions are excluded everywhere.
  * Content search lives outside this derivation
  * (see {@link deriveSearchResults}).
  * @param list - sessions list snapshot (`current` feeds containsCurrent).
@@ -241,7 +266,8 @@ export function deriveGroups(
 
 /**
  * Derive the flat session list ("In one list" mode): every session — fork
- * children included — as a top-level row, strictly newest-first. No grouping,
+ * children included — as a top-level row, newest-first with the current
+ * blank pinned first (render-only — see {@link pinCurrentBlank}). No grouping,
  * no parent/child adjacency. Content search lives outside this derivation
  * (see {@link deriveSearchResults}).
  * @param list - sessions list snapshot.
@@ -258,7 +284,7 @@ export function deriveFlat(list: SessionListState, archivedSessionIds: readonly 
     rows.push(s)
   }
   rows.sort(byRecency)
-  return rows.map(session => sessionNode(session, descendants))
+  return pinCurrentBlank(rows, list.current).map(session => sessionNode(session, descendants))
 }
 
 /** Relative-time bucket of a session row's trailing label. */

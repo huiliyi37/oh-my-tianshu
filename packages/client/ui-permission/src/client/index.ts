@@ -53,7 +53,7 @@ function optionsOf(value: PermissionSelect, t: (key: string) => string): SelectO
     .filter(option => option.value !== 'custom')
     .map(option => ({
       id: option.value,
-      label: displayPermissionPreset(option.value, option.name),
+      label: displayPermissionPreset(option.value, option.name, t),
       ...(option.description === undefined ? {} : { detail: option.description }),
       ...(option.value === value.currentValue ? { active: true } : {}),
       ...(option.value === FULL_ACCESS_PRESET
@@ -84,6 +84,9 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => {
     const disposers = [
       ctx.locale.register(ACCESS_NS, 'zh', {
+        'preset.readOnly': accessZh['preset.readOnly'],
+        'preset.workspaceWrite': accessZh['preset.workspaceWrite'],
+        'preset.fullAccess': accessZh['preset.fullAccess'],
         'confirm.title': accessZh['confirm.title'],
         'confirm.description': accessZh['confirm.description'],
         'confirm.acknowledge': accessZh['confirm.acknowledge'],
@@ -91,6 +94,9 @@ export function apply(ctx: ClientContext): void {
         'confirm.enable': accessZh['confirm.enable'],
       }),
       ctx.locale.register(ACCESS_NS, 'en', {
+        'preset.readOnly': accessEn['preset.readOnly'],
+        'preset.workspaceWrite': accessEn['preset.workspaceWrite'],
+        'preset.fullAccess': accessEn['preset.fullAccess'],
         'confirm.title': accessEn['confirm.title'],
         'confirm.description': accessEn['confirm.description'],
         'confirm.acknowledge': accessEn['confirm.acknowledge'],

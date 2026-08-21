@@ -31,12 +31,12 @@ function ok<T>(value: T) {
 }
 
 describe('permission settings store', () => {
-  it('derives dynamic options and host labels from the descriptor schema', () => {
+  it('derives dynamic options and built-in labels from the descriptor schema', () => {
     expect(permissionDefaultOf(view('read-only'))).toEqual({
       currentValue: 'read-only',
       options: [
         { id: 'read-only', label: 'Read Only' },
-        { id: 'workspace-write', label: 'Workspace' },
+        { id: 'workspace-write', label: 'Workspace Write' },
       ],
     })
     const single = {

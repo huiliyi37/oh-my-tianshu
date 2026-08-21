@@ -20,7 +20,7 @@ import type {
 } from '@huiliyi37/dsh-client-runtime/client'
 import type { WorkspaceBrowserProps } from './contract/slots.ts'
 import type { SessionNode } from './tree.ts'
-import { deriveFlat, deriveGroups, deriveSearchResults, UNGROUPED_KEY } from './tree.ts'
+import { deriveFlat, deriveGroups, deriveSearchResults, pinCurrentBlank, UNGROUPED_KEY } from './tree.ts'
 import { ProjectRowItem, SearchResultItem, SessionNodeItem } from './rows/Rows.tsx'
 import { WorkspacePickFlow } from './WorkspacePicker.tsx'
 import css from './WorkspaceBrowser.module.css'
@@ -49,6 +49,11 @@ function sanitizeSearchQuery(value: string): string {
 /** Immutable membership toggle for the local expansion arrays. */
 function toggled(list: readonly string[], key: string): string[] {
   return list.includes(key) ? list.filter(k => k !== key) : [...list, key]
+}
+
+/** True when two row orders hold the same ids at the same indexes. */
+function sameOrder(a: readonly SessionNode[], b: readonly SessionNode[]): boolean {
+  return a.length === b.length && a.every((row, index) => row.id === b[index]?.id)
 }
 
 /** Group-by strategy menu; own open state so it resets with the wide chrome. */
@@ -205,6 +210,20 @@ function SessionTree({
                   const sourceIndex = sessions.findIndex(r => r.id === drag.sessionId)
                   const anchorIndex = anchor === undefined ? sessions.length : sessions.findIndex(r => r.id === anchor)
                   if (sourceIndex !== -1 && (anchorIndex === sourceIndex || anchorIndex === sourceIndex + 1)) return
+                  const dragged = sourceIndex === -1 ? undefined : sessions[sourceIndex]
+                  if (dragged !== undefined) {
+                    // The render-time pin cancels drags whose committed order
+                    // would render unchanged (dragging the pinned New Session
+                    // row, or parking another row into the pinned slot): skip
+                    // the Host write so a move the user never saw never
+                    // reorders the account.
+                    const nextVisible = sessions.filter(r => r.id !== drag.sessionId)
+                    const insertAt = anchor === undefined
+                      ? nextVisible.length
+                      : nextVisible.findIndex(r => r.id === anchor)
+                    nextVisible.splice(insertAt === -1 ? nextVisible.length : insertAt, 0, dragged)
+                    if (sameOrder(sessions, pinCurrentBlank(nextVisible, current))) return
+                  }
                   insertSessionBefore(drag.workspaceId, drag.sessionId, anchor).catch((reason: unknown) => {
                     console.warn('session reorder rejected:', reason)
                   })

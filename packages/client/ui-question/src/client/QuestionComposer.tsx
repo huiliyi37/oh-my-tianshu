@@ -38,10 +38,62 @@ export function parseRecommendedLabel(label: string): { label: string; recommend
 }
 
 /** Return whether a text-field key event belongs to an active IME composition. */
-function isComposing(event: KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>): boolean {
+function isComposing(event: KeyboardEvent<HTMLTextAreaElement>): boolean {
   // keyCode 229 is the legacy IME-composition signal engines emit without isComposing.
   // oxlint-disable-next-line typescript/no-deprecated
   return event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229
+}
+
+/** The free-text answer field shared by both question shapes. */
+interface AnswerFieldProps {
+  /** Which shape the field takes: the custom row's inline column, or the optionless question's own framed block. */
+  variant: 'inline' | 'block'
+  /** Current draft text. */
+  value: string
+  /** Empty-field prompt. */
+  placeholder: string
+  /** Whether a submission in flight has frozen the field. */
+  disabled: boolean
+  /** Whether this field takes focus on mount. */
+  autoFocus?: boolean
+  /** Called with each edit of the draft. */
+  onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void
+  /** Called with each key press, before the browser's own handling. */
+  onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void
+}
+
+/**
+ * Auto-growing free-text answer: a textarea, so a long answer soft-wraps and
+ * Shift+Enter breaks a line, over a hidden mirror that owns the height.
+ *
+ * The mirror renders the draft plus a trailing newline in normal flow and so
+ * sizes the grid row (counting rows by '\n' cannot see soft wraps); the
+ * textarea shares that one cell and stretches to it, and `rows={1}` keeps the
+ * control's own intrinsic height out of the row sizing so the mirror alone
+ * decides. Past the mirror's cap the textarea scrolls itself — it is the only
+ * scrollport in the stack, there being no second glyph layer to keep aligned.
+ * Mirror and textarea MUST share font, line-height, padding and wrapping rules
+ * or the two heights diverge.
+ *
+ * @param props - field shape, draft text, and the field's event handlers.
+ * @returns The mirrored auto-growing field.
+ */
+function AnswerField(props: AnswerFieldProps) {
+  return (
+    <div className={clsx(css.field, props.variant === 'inline' ? css.customInline : css.customBlock)}>
+      <div aria-hidden className={css.fieldMirror}>{`${props.value}\n`}</div>
+      <textarea
+        autoFocus={props.autoFocus}
+        className={css.fieldInput}
+        value={props.value}
+        disabled={props.disabled}
+        rows={1}
+        placeholder={props.placeholder}
+        onChange={props.onChange}
+        onKeyDown={props.onKeyDown}
+      />
+    </div>
+  )
 }
 
 /**
@@ -156,11 +208,10 @@ function QuestionFlow({ pending, t }: { pending: PendingQuestion } & Pick<Questi
     submitDrafts(drafts)
   }
 
-  // Shared by the inline custom input and the optionless textarea: a
-  // multi-select draft retains checked labels, while a single-select custom
-  // answer replaces its selection. Enter continues the flow (Shift+Enter
-  // stays a newline in the textarea; on the single-line input it is inert).
-  const draftCustom = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+  // Shared by the inline custom field and the optionless one: a multi-select
+  // draft retains checked labels, while a single-select custom answer replaces
+  // its selection. Enter continues the flow, Shift+Enter breaks a line.
+  const draftCustom = (event: ChangeEvent<HTMLTextAreaElement>): void => {
     const value = event.target.value
     updateDraft(current => ({
       ...current,
@@ -170,7 +221,7 @@ function QuestionFlow({ pending, t }: { pending: PendingQuestion } & Pick<Questi
     }))
   }
 
-  const continueFromCustom = (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+  const continueFromCustom = (event: KeyboardEvent<HTMLTextAreaElement>): void => {
     if (event.key !== 'Enter' || event.shiftKey || isComposing(event)) { return }
     event.preventDefault()
     continueFlow()
@@ -270,9 +321,8 @@ function QuestionFlow({ pending, t }: { pending: PendingQuestion } & Pick<Questi
                         <IconEditOutline16 size={12} />
                       </span>
                     )}
-                  <input
-                    type="text"
-                    className={css.customInput}
+                  <AnswerField
+                    variant="inline"
                     value={draft.custom}
                     disabled={busy !== null}
                     placeholder={t('custom.placeholder')}
@@ -282,12 +332,11 @@ function QuestionFlow({ pending, t }: { pending: PendingQuestion } & Pick<Questi
                 </div>
               )
               : (
-                <textarea
+                <AnswerField
                   autoFocus
-                  className={css.customTextarea}
+                  variant="block"
                   value={draft.custom}
                   disabled={busy !== null}
-                  rows={2}
                   placeholder={t('custom.placeholder')}
                   onChange={draftCustom}
                   onKeyDown={continueFromCustom}

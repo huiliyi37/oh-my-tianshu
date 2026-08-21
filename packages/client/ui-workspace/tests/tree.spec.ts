@@ -64,7 +64,8 @@ describe('deriveGroups', () => {
     const groups = deriveGroups(
       sessions, [workspace('first', ['shown', 'current-blank', 'stale-blank'])], noArchive, view(['first']),
     )
-    expect(groups[0]!.sessions.map(session => session.id)).toEqual([real.id, currentBlank.id])
+    // The selected blank renders pinned first (render-only); the stale one hides.
+    expect(groups[0]!.sessions.map(session => session.id)).toEqual([currentBlank.id, real.id])
     const blankNode = groups[0]!.sessions.find(session => session.id === currentBlank.id)!
     // The stored placeholder title stays canonical; the renderer swaps in
     // the localized New Session label via the blank flag.
@@ -75,6 +76,30 @@ describe('deriveGroups', () => {
     // A non-current blank stray never surfaces an Ungrouped bucket either.
     const strayGroups = deriveGroups(list({ ...summary('stray', 2), blank: true }), [workspace('first', [])], noArchive, view())
     expect(strayGroups.map(group => group.key)).toEqual(['first'])
+  })
+
+  it('pins the current blank first in its group and releases it when it turns real', () => {
+    const blank = { ...summary('blank', 2), blank: true }
+    const sessions = { ...list(summary('one', 3), blank, summary('three', 1)), current: blank.id }
+    const workspaces = [workspace('alpha', ['one', 'blank', 'three'])]
+    // The account order [one, blank, three] is the truth; the pin is
+    // render-only and lifts the reused blank out of its creation-time slot.
+    const pinned = deriveGroups(sessions, workspaces, noArchive, view(['alpha']))
+    expect(pinned[0]!.sessions.map(session => session.id)).toEqual([sid('blank'), sid('one'), sid('three')])
+    // The first prompt turns the blank real: the pin releases and the row
+    // returns to its stored slot.
+    const real = { ...sessions, byId: { ...sessions.byId, blank: { ...blank, blank: false } } }
+    const released = deriveGroups(real, workspaces, noArchive, view(['alpha']))
+    expect(released[0]!.sessions.map(session => session.id)).toEqual([sid('one'), sid('blank'), sid('three')])
+  })
+
+  it('pins the current blank first in the recency-ordered Ungrouped bucket', () => {
+    const blank = { ...summary('blank', 1), blank: true }
+    const sessions = { ...list(summary('one', 3), blank, summary('three', 2)), current: blank.id }
+    const groups = deriveGroups(sessions, [workspace('alpha', [])], noArchive, view([UNGROUPED_KEY]))
+    // Recency alone would order one > three > blank; the pin lifts the blank.
+    const ungrouped = groups.find(group => group.key === UNGROUPED_KEY)!
+    expect(ungrouped.sessions.map(session => session.id)).toEqual([sid('blank'), sid('one'), sid('three')])
   })
 
   it('projects the completion reminder into session and search rows (absent = false)', () => {
@@ -227,6 +252,15 @@ describe('deriveFlat', () => {
     expect(rows.map(row => row.id)).toEqual([currentBlank.id, sid('real')])
     expect(rows.map(row => row.title)).toEqual(['New Session', 'real'])
     expect(rows.map(row => row.blank)).toEqual([true, false])
+  })
+
+  it('pins the current blank first despite recency and releases it when it turns real', () => {
+    const blank = { ...summary('blank', 1), blank: true }
+    const sessions = { ...list(summary('one', 3), blank, summary('three', 2)), current: blank.id }
+    // Recency alone would order one > three > blank; the pin lifts the blank.
+    expect(deriveFlat(sessions, noArchive).map(row => row.id)).toEqual([sid('blank'), sid('one'), sid('three')])
+    const real = { ...sessions, byId: { ...sessions.byId, blank: { ...blank, blank: false } } }
+    expect(deriveFlat(real, noArchive).map(row => row.id)).toEqual([sid('one'), sid('three'), sid('blank')])
   })
 
   it('hides archived sessions in flat mode', () => {

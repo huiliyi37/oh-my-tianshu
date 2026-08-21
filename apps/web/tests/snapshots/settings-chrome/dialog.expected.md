@@ -12,8 +12,8 @@
     - img
     - text: 关闭
   - text: 权限 选择新会话的默认权限模式
-  - button "Workspace Write":
-    - text: Workspace Write
+  - button "可写入工作区":
+    - text: 可写入工作区
     - img
   - text: 语言
   - button "中文":

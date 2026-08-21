@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { bindSnapshotSelector } from '@huiliyi37/dsh-client-web-react'
 import type { SettingsNamespaceView } from '@huiliyi37/dsh-client-connection/client'
 import { PermissionRow, type PermissionRowProps } from '../src/client/PermissionRow.tsx'
-import { en } from '../src/client/locales.ts'
+import { zh } from '../src/client/locales.ts'
 import { PermissionSettingsController } from '../src/client/settings-store.ts'
 
 afterEach(cleanup)
@@ -36,7 +36,7 @@ function ok<T>(value: T) {
   return { rpcId: 'test', result: { ok: true as const, value } }
 }
 
-const dictionary: Record<string, string> = en
+const dictionary: Record<string, string> = zh
 const t: PermissionRowProps['t'] = key => dictionary[key] ?? key
 const runtime = {
   useSessions: (() => { throw new Error('unused') }) as never,
@@ -65,7 +65,7 @@ describe('PermissionRow', () => {
       } as never,
     })
     mount(controller)
-    const button = await screen.findByRole('button', { name: 'Read Only' })
+    const button = await screen.findByRole('button', { name: '仅可查看' })
     expect(button.getAttribute('aria-expanded')).toBe('false')
     fireEvent.click(button)
     expect(button.getAttribute('aria-expanded')).toBe('true')
@@ -75,15 +75,15 @@ describe('PermissionRow', () => {
     fireEvent.click(button)
     expect(button.getAttribute('aria-expanded')).toBe('false')
     fireEvent.click(button)
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Read Only' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '仅可查看' }))
     expect(mutate).not.toHaveBeenCalled()
     fireEvent.click(button)
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Workspace Write' }))
-    await screen.findByRole('button', { name: 'Workspace Write' })
+    fireEvent.click(screen.getByRole('menuitem', { name: '可写入工作区' }))
+    await screen.findByRole('button', { name: '可写入工作区' })
     expect(mutate).toHaveBeenCalledOnce()
   })
 
-  it('requires explicit acknowledgement before saving Full access', async () => {
+  it('requires explicit acknowledgement before saving full access', async () => {
     const mutate = vi.fn(() => Promise.resolve(ok(view('danger-full-access', 1))))
     const controller = new PermissionSettingsController({
       settings: {
@@ -92,15 +92,15 @@ describe('PermissionRow', () => {
       } as never,
     })
     mount(controller)
-    fireEvent.click(await screen.findByRole('button', { name: 'Read Only' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Full access' }))
+    fireEvent.click(await screen.findByRole('button', { name: '仅可查看' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '完全权限' }))
     expect(mutate).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.queryByRole('dialog', { name: 'Enable Full access?' })).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Read Only' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Full access' }))
-    const dialog = screen.getByRole('dialog', { name: 'Enable Full access?' })
-    const enable = screen.getByRole('button', { name: 'Enable Full access' })
+    fireEvent.click(screen.getByRole('button', { name: '取消' }))
+    expect(screen.queryByRole('dialog', { name: '确认启用完全权限？' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '仅可查看' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '完全权限' }))
+    const dialog = screen.getByRole('dialog', { name: '确认启用完全权限？' })
+    const enable = screen.getByRole('button', { name: '启用完全权限' })
     expect((enable as HTMLButtonElement).disabled).toBe(true)
     fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.click(enable)
@@ -126,7 +126,7 @@ describe('PermissionRow', () => {
       } as never,
     })
     mount(readonly)
-    expect((await screen.findByRole('button', { name: 'Read Only' })).hasAttribute('disabled')).toBe(true)
+    expect((await screen.findByRole('button', { name: '仅可查看' })).hasAttribute('disabled')).toBe(true)
   })
 
   it('shows loading and a contained write error', async () => {
@@ -147,11 +147,11 @@ describe('PermissionRow', () => {
       } as never,
     })
     mount(controller)
-    expect((await screen.findByRole('button', { name: 'Loading' })).hasAttribute('disabled')).toBe(true)
+    expect((await screen.findByRole('button', { name: '加载中' })).hasAttribute('disabled')).toBe(true)
     describe.resolve(ok({ writable: true, hasDocument: false, namespaces: [view('read-only')] }))
-    const button = await screen.findByRole('button', { name: 'Read Only' })
+    const button = await screen.findByRole('button', { name: '仅可查看' })
     fireEvent.click(button)
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Workspace Write' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '可写入工作区' }))
     expect((await screen.findByRole('alert')).textContent).toBe('changed elsewhere')
   })
 })
