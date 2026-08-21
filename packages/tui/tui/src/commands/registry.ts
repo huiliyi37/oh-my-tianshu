@@ -37,6 +37,7 @@ import {
   MODEL_ROLES_UNAVAILABLE,
   MODEL_ROLE_LABELS,
   parseModelRole,
+  parseRouteKey,
   rolePinEcho,
   roleVisionWarning,
 } from '../model-roles.js'
@@ -555,13 +556,11 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
             deps.openRoleModelPicker(role)
             return
           }
-          const parts = rest.split('/')
-          if (rest.split(/\s+/).length !== 1 || parts.length !== 2 || parts.some(part => part === '')) {
+          const next = parseRouteKey(rest)
+          if (rest.split(/\s+/).length !== 1 || next === undefined) {
             echo(`⚠ 用法: /model ${role} provider/model（或 /model ${role} 无参打开选择器）——未 pin`)
             return
           }
-          /* v8 ignore next -- length===2 校验后索引必有值；noUncheckedIndexedAccess 收窄防御 */
-          const next = { provider: parts[0] ?? '', model: parts[1] ?? '' }
           // 与主模型同一份目录校验（拼写错误不 pin）；llm 缺席时跳过（既有降级）。
           const llm = ctx.reflect.get('llm', false) as LlmCatalogFacet | undefined
           let visionEntry: LlmCatalogModel | undefined
@@ -605,15 +604,13 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
         // provider/model，无需手输完整路由。非别名输入原样解析。
         const aliased = SPARK_ALIASES[target]
         const input = aliased === undefined ? target : `${aliased.provider}/${aliased.model}`
-        const parts = input.split('/')
-        if (parts.length > 2 || parts.some(part => part === '')) {
-          echo('⚠ 用法: /model provider/model（或 /model 无参打开选择器）——未切换')
-          return
-        }
-        /* v8 ignore next 2 -- split 恒返回非空数组且元素恒为 string；noUncheckedIndexedAccess 收窄防御 */
-        const next = parts.length === 2
-          ? { provider: parts[0] ?? '', model: parts[1] ?? '' }
-          : { provider: current.provider, model: parts[0] ?? '' }
+        // 首个斜杠分割：模型 id 可自身含 '/'（openrouter/stealth/ox-alpha 一类）；
+        // 无斜杠的裸输入保持既有语义——沿当前 provider 只换模型。空输入在上方
+        // raw === '' 分支已开选择器，此处 input 恒非空。
+        const routed = parseRouteKey(input)
+        const next = routed === undefined
+          ? { provider: current.provider, model: input }
+          : routed
         // 目录校验（对标 Claude Code：拼写错误不切换；分级策略见 checkCatalogRoute）。
         // reflect.get 读取可选服务（Cordis 4 注入代理：属性访问未 inject 抛错）。
         const llm = ctx.reflect.get('llm', false) as LlmCatalogFacet | undefined

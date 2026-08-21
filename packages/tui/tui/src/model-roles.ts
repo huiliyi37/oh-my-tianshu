@@ -42,6 +42,19 @@ export function parseModelRole(token: string): ModelRole | undefined {
 /** 「跟随默认（清除 pin）」行的提交值（目录行恒为 provider/model 含 /，不碰撞）。 */
 export const FOLLOW_DEFAULT_VALUE = 'follow-default'
 
+/**
+ * 解析 `provider/model` 路由键（picker 行 value 与 `/model` 实参的同一文法）。
+ * 只按**首个**斜杠分割：模型 id 自身可含 `/`（OpenRouter 风格 id 如
+ * `stealth/ox-alpha`），而 provider 路由键不含。
+ * @param value - 组合键字符串。
+ * @returns 解析结果；任一侧为空（无斜杠、斜杠在首尾）时为 undefined。
+ */
+export function parseRouteKey(value: string): { provider: string; model: string } | undefined {
+  const slash = value.indexOf('/')
+  if (slash <= 0 || slash >= value.length - 1) return undefined
+  return { provider: value.slice(0, slash), model: value.slice(slash + 1) }
+}
+
 /** modelRoles 服务缺席的降级错误（角色子命令与角色 picker 共用同一文案）。 */
 export const MODEL_ROLES_UNAVAILABLE = '⚠ 当前部署未装配 model-roles 服务，/model 角色子命令不可用'
 

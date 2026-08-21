@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-21-route-key-first-slash-split.md
+2026-08-21-route-key-first-slash-split.md: 3d8323684e30cf593a1fc9e3b4280f32c0571787
+2026-08-21-route-key-first-slash-split.zh.md: f6035d7cd4cffe239fcf535b8128d0a811adbc89

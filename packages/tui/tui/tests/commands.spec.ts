@@ -609,6 +609,21 @@ describe('内置命令 — /model', () => {
     expect(echo).toHaveBeenCalledWith(expect.stringContaining('openai/gpt-5'))
   })
 
+  it('模型 id 自身含斜杠（openrouter 风格）按首个斜杠分割，不再截断或拒用', async () => {
+    const { cmd } = commandByName('model')
+    const saveSelection = vi.fn(async () => {})
+    const ctx = makeCtx({
+      agentDefaultModel: {
+        currentSelection: vi.fn(() => ({ provider: 'deepseek', model: 'v4-flash' })),
+        saveSelection,
+      },
+    })
+    const { args, echo } = makeArgs({ text: 'openrouter/stealth/ox-alpha', ctx })
+    await cmd.run(args)
+    expect(saveSelection).toHaveBeenCalledWith({ provider: 'openrouter', model: 'stealth/ox-alpha' })
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('openrouter/stealth/ox-alpha'))
+  })
+
   it('裸模型名沿用当前 provider', async () => {
     const { cmd } = commandByName('model')
     const saveSelection = vi.fn(async () => {})
@@ -832,14 +847,17 @@ describe('内置命令 — /model', () => {
     expect(echo).toHaveBeenCalledWith(expect.stringContaining('没有模型 deepseek-v4-mx'))
   })
 
-  it('畸形路由 a/b/c 给用法提示且不切换', async () => {
+  it('空段路由（a/ 一类）不落盘：parseRouteKey 拒收后目录校验拦下', async () => {
     const { cmd } = commandByName('model')
     const saveSelection = vi.fn(async () => {})
-    const ctx = makeCtx({ agentDefaultModel: modelFacet(saveSelection) })
-    const { args, echo } = makeArgs({ text: 'a/b/c', ctx })
+    const ctx = makeCtx({
+      agentDefaultModel: modelFacet(saveSelection),
+      llm: llmCatalog(['deepseek-official'], { 'deepseek-official': OFFICIAL_MODELS }),
+    })
+    const { args, echo } = makeArgs({ text: 'a/', ctx })
     await cmd.run(args)
     expect(saveSelection).not.toHaveBeenCalled()
-    expect(echo).toHaveBeenCalledWith(expect.stringContaining('用法: /model provider/model'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('没有模型 a/'))
   })
 
   it('spark 别名目标 provider 未注册时硬拒绝（loud，不再静默保存死路由）', async () => {
@@ -982,16 +1000,26 @@ describe('内置命令 — /model 角色子命令（vision/secondary/subagent pi
     expect(echo).not.toHaveBeenCalledWith(expect.stringContaining('未声明识图能力'))
   })
 
-  it('用法错误（无斜杠/多段/多余 token）→ 用法提示且不 pin', async () => {
+  it('用法错误（无斜杠/多余 token）→ 用法提示且不 pin', async () => {
     const { cmd } = commandByName('model')
     const roles = rolesStub()
     const ctx = makeCtx({ modelRoles: roles })
-    for (const text of ['vision abc', 'vision a/b/c', 'vision deepseek/v4 high']) {
+    for (const text of ['vision abc', 'vision deepseek/v4 high']) {
       const { args, echo } = makeArgs({ text, ctx })
       await cmd.run(args)
       expect(echo).toHaveBeenCalledWith(expect.stringContaining('用法: /model vision provider/model'))
     }
     expect(roles.pin).not.toHaveBeenCalled()
+  })
+
+  it('角色 pin 接受含斜杠的模型 id（openrouter 风格）', async () => {
+    const { cmd } = commandByName('model')
+    const roles = rolesStub()
+    const ctx = makeCtx({ modelRoles: roles })
+    const { args, echo } = makeArgs({ text: 'vision openrouter/stealth/ox-alpha', ctx })
+    await cmd.run(args)
+    expect(roles.pin).toHaveBeenCalledWith('vision', { provider: 'openrouter', model: 'stealth/ox-alpha' })
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('openrouter/stealth/ox-alpha'))
   })
 })
 

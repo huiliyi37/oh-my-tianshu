@@ -276,6 +276,7 @@ import {
   MODEL_ROLES_UNAVAILABLE,
   MODEL_ROLE_LABELS,
   buildRoleModelPickerItems,
+  parseRouteKey,
   rolePinEcho,
   roleUnpinEcho,
   roleVisionWarning,
@@ -1918,10 +1919,8 @@ export class TuiApp {
       return
     }
     picker.open('选择模型', items, (item) => {
-      const [provider, model] = item.value.split('/')
-      /* v8 ignore next -- split('/') 恒非空，[0] 必有值；noUncheckedIndexedAccess 防御 */
-      if (provider === undefined || model === undefined) return
-      const selection = { provider, model }
+      const selection = parseRouteKey(item.value)
+      if (selection === undefined) return
       this.switchLiveModel(selection)
       void this.ctx.agentDefaultModel.saveSelection(selection)
       this.commitToScrollback({ text: `模型已切换: ${selection.provider}/${selection.model}`, trailingNewline: true })
@@ -1966,14 +1965,12 @@ export class TuiApp {
         this.commitToScrollback({ text: roleUnpinEcho(role), trailingNewline: true })
         return
       }
-      const [provider, model] = item.value.split('/')
-      /* v8 ignore next -- 目录行 value 恒为 provider/model（含 /）；noUncheckedIndexedAccess 防御 */
-      if (provider === undefined || model === undefined) return
-      const selection = { provider, model }
+      const selection = parseRouteKey(item.value)
+      if (selection === undefined) return
       if (role === 'vision') {
         const supportsVision = providers
-          .find(p => p.id === provider)?.models
-          .find(m => m.id === model)?.supportsVision
+          .find(p => p.id === selection.provider)?.models
+          .find(m => m.id === selection.model)?.supportsVision
         if (supportsVision === false) {
           this.commitToScrollback({ text: roleVisionWarning(selection), trailingNewline: true })
         }

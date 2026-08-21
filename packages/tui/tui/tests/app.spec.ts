@@ -1423,6 +1423,32 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
       await app.dispose()
     })
 
+    it('选择器确认含斜杠的模型 id（openrouter 风格）不截断', async () => {
+      const { ctx, stdin, app, written, type } = await bootPicker()
+      const saveSelection = vi.fn(async () => {})
+      ctx.agentDefaultModel = {
+        currentSelection: vi.fn(() => ({ provider: 'openrouter', model: 'stealth/ox-alpha' })),
+        saveSelection,
+      } as never
+      ctx.reflect.get.mockImplementation((name: string) => {
+        if (name === 'llm') {
+          return {
+            listProviders: () => [{ id: 'openrouter', name: 'openrouter' }],
+            listModels: async () => [{ id: 'stealth/ox-alpha', name: 'Ox Alpha' }],
+            resolveModelInfo: async () => ({ supportsVision: true }),
+          }
+        }
+        return undefined
+      })
+      await type('/model')
+      expect(written()).toContain('openrouter/stealth/ox-alpha（当前）')
+      // 当前项已选中；Enter 确认 → 整个 id 原样落盘，不再只剩首段
+      stdin.emit('data', '\r')
+      await new Promise(resolve => setTimeout(resolve, 30))
+      expect(saveSelection).toHaveBeenCalledWith({ provider: 'openrouter', model: 'stealth/ox-alpha' })
+      await app.dispose()
+    })
+
     /** 角色 picker 测试的 modelRoles 服务桩（resolve/pin/unpin 可断言）。 */
     function rolesStub(pins: Record<string, { provider: string; model: string } | undefined> = {}) {
       return {
