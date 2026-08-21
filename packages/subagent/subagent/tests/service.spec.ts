@@ -61,6 +61,37 @@ class StubProvider implements SubagentProvider {
   }
 }
 
+/** G3：结果可控的外部 provider（localAgent undefined，result 由测试结算）。 */
+class DeferredExternalProvider implements SubagentProvider {
+  readonly inheritsParentContext = false
+  resolve!: (result: SubagentResult) => void
+  readonly result = new Promise<SubagentResult>((resolve) => { this.resolve = resolve })
+  constructor(readonly name: string) {}
+  async start(request: ResolvedSubagentStartRequest): Promise<SubagentRun> {
+    return {
+      id: SessionId(`child:${this.name}:${request.parent.id}`),
+      localAgent: undefined,
+      result: this.result,
+      async dispose() {},
+    }
+  }
+}
+
+describe('SubagentService.activeExternalRuns（G3 等价状态面）', () => {
+  it('无本地 Session 的 run 发布即登记、结算即移除', async () => {
+    const { subagents } = await service()
+    const provider = new DeferredExternalProvider('remote')
+    subagents.registerProvider(provider)
+    const run = await subagents.start('remote', baseRequest({ label: '外部检索' }))
+    const active = subagents.activeExternalRuns()
+    expect(active).toHaveLength(1)
+    expect(active[0]).toMatchObject({ id: run.id, provider: 'remote', label: '外部检索' })
+    provider.resolve({ stopReason: 'completed' })
+    await run.result
+    expect(subagents.activeExternalRuns()).toEqual([])
+  })
+})
+
 async function service(): Promise<{ ctx: Context; subagents: SubagentService }> {
   const ctx = new Context()
   await ctx.plugin(SubagentService)

@@ -119,7 +119,7 @@ function descriptorPayload(label: string, version = SUBAGENT_DESCRIPTOR_VERSION)
 
 /** Runtime facts a completed-turn childEvents() log folds into (1 turn, 3ms settled). */
 const COMPLETED_TURN_RUNTIME = {
-  progress: { turns: 1, toolCalls: 0, tokensUsed: 0, toolInFlight: false, lastTurnEnd: 'completed' },
+  progress: { turns: 1, toolCalls: 0, tokensUsed: 0, toolInFlight: false, lastTurnEnd: 'completed', running: false },
   timing: { settledMs: 3 },
 }
 

@@ -247,6 +247,24 @@ export interface SubagentResult {
  * continuation manager holds their `AgentHandle` directly and orders every
  * turn through the child's own inbox.
  */
+/**
+ * One currently-active run without a local session: an out-of-process
+ * provider (ACP/Claude Code/Codex/DSH-SDK) child. No Session exists for such
+ * a run, so session-corpus enumeration ({@link SubagentService.listChildren})
+ * cannot see it — this registry surface is the equivalent state view. The
+ * entry exists from publication until the run settles.
+ */
+export interface SubagentActiveExternalRun {
+  /** Parent-scoped run id (also the `subagent/start|end` identity). */
+  readonly id: SessionId
+  /** The provider name the run was published on. */
+  readonly provider: string
+  /** Optional creation label from the start request. */
+  readonly label?: string
+  /** Publication wall clock (epoch milliseconds). */
+  readonly startedAt: number
+}
+
 export interface SubagentRun {
   /**
    * Parent-scoped run id. For a local run, this MUST equal the published child

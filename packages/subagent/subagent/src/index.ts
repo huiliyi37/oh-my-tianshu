@@ -64,6 +64,7 @@ import type {
 import SubagentActivationSetupRegistry from './activation-setup-registry.ts'
 import type { ContinuableSetupContribution } from './activation-setup-registry.ts'
 import { listChildren as listSubagentChildren, listDescendants as listSubagentDescendants } from './list-children.ts'
+import type { SubagentActiveExternalRun } from './types.ts'
 import type { SubagentDescendantListEntry, SubagentListEntry } from './list-children.ts'
 import { snapshotSubagentDescriptor } from './descriptor.ts'
 import {
@@ -123,7 +124,7 @@ export type {
 } from './continuation.ts'
 export type { ContinuableSetupContribution } from './activation-setup-registry.ts'
 export type { SubagentDescendantListEntry, SubagentListEntry } from './list-children.ts'
-export type { SubagentRunEndInfo, SubagentRunInfo } from './types.ts'
+export type { SubagentActiveExternalRun, SubagentRunEndInfo, SubagentRunInfo } from './types.ts'
 export type { SubagentIdentityProjection, SubagentTimingProjection } from './projection-types.ts'
 
 declare module '@huiliyi37/cordis' {
@@ -170,6 +171,8 @@ declare module '@huiliyi37/cordis' {
 /** Named provider registry with one-shot runs, durable discovery, and continuable-child operations. */
 export class SubagentService extends Service {
   private providers = new Map<string, SubagentProvider>()
+  /** 无本地 Session 的活跃外部 run（发布登记、结算移除；等价状态面，见 types.ts）。 */
+  private externalRuns = new Map<string, SubagentActiveExternalRun>()
   private continuations: SubagentContinuationManager | undefined
   /** Deployment contributions composed into unpublished continuable children. */
   private readonly setupRegistry = new SubagentActivationSetupRegistry()
@@ -426,7 +429,33 @@ export class SubagentService extends Service {
       ...request.label !== undefined ? { label: request.label } : {},
     })
     const resolved: ResolvedSubagentStartRequest = { ...request, descriptor }
-    return observeRun(this.emitLifecycle, name, request.parent, await provider.start(resolved))
+    const run = await observeRun(this.emitLifecycle, name, request.parent, await provider.start(resolved))
+    // G3：无本地 Session 的外部 run 登记进等价状态面（session 枚举看不到它们）；
+    // result 结算即移除（result 契约不 reject，但仍双分支兜底防泄漏）。
+    if (run.localAgent === undefined) {
+      this.externalRuns.set(String(run.id), {
+        id: run.id,
+        provider: name,
+        ...request.label !== undefined ? { label: request.label } : {},
+        startedAt: Date.now(),
+      })
+      void run.result.then(
+        () => { this.externalRuns.delete(String(run.id)) },
+        () => { this.externalRuns.delete(String(run.id)) },
+      )
+    }
+    return run
+  }
+
+  /**
+   * G3：当前活跃的外部（无本地 Session）run 的等价状态面——供 UI 枚举
+   * out-of-process 子代理（acp/claude-code/codex/dsh-sdk）。session 语料
+   * 枚举（listChildren/listDescendants）按 Session 头过滤，看不到这类 run；
+   * 该面补上「活跃窗口」可见性，历史/详情仍走 `subagent/start|end` 事件。
+   * @returns 活跃外部 run（发布 → 结算之间），按 startedAt 升序（先发在前）。
+   */
+  activeExternalRuns(): SubagentActiveExternalRun[] {
+    return [...this.externalRuns.values()].sort((a, b) => a.startedAt - b.startedAt)
   }
 
   /**

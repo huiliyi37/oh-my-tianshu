@@ -21,8 +21,8 @@ function fold(events: SessionEvent[]) {
   return subagentProgressProjectionDefinition.view(state)
 }
 
-/** Empty-log view: every counter zero and nothing in flight. */
-const ZERO = { turns: 0, toolCalls: 0, tokensUsed: 0, toolInFlight: false }
+/** Empty-log view: every counter zero, no open turn, nothing in flight. */
+const ZERO = { turns: 0, toolCalls: 0, tokensUsed: 0, toolInFlight: false, running: false }
 
 describe('subagent progress projection', () => {
   it('registers with the optional session projection registry', async () => {
@@ -54,6 +54,7 @@ describe('subagent progress projection', () => {
       lastTool: 'bash',
       toolInFlight: false,
       lastTurnEnd: 'completed',
+      running: false,
     })
   })
 
@@ -87,6 +88,7 @@ describe('subagent progress projection', () => {
       tokensUsed: 0,
       lastTool: 'bash',
       toolInFlight: true,
+      running: true,
     })
   })
 
@@ -164,6 +166,23 @@ describe('subagent progress projection', () => {
       event('turn/start', 0, 100, { turn: 1, trigger: { kind: 'message', source: { kind: 'user' } } }),
       event('turn/end', 1, 200, { turn: 1, reason: { kind: 'completed' } }),
       event('subagent/descriptor', 2, 300, { version: 1, mode: 'continuable', provider: 'spawn', label: 'child' }),
+    ])).toEqual(ZERO)
+  })
+
+  it('running bit: turn/start opens, turn/end closes, descriptor resets', () => {
+    expect(fold([
+      event('subagent/descriptor', 0, 0, { version: 1, mode: 'continuable', provider: 'spawn', label: 'child' }),
+      event('turn/start', 1, 1, { turn: 1, trigger: { kind: 'message', source: { kind: 'user' } } }),
+    ])).toEqual({ ...ZERO, running: true })
+    expect(fold([
+      event('subagent/descriptor', 0, 0, { version: 1, mode: 'continuable', provider: 'spawn', label: 'child' }),
+      event('turn/start', 1, 1, { turn: 1, trigger: { kind: 'message', source: { kind: 'user' } } }),
+      event('turn/end', 2, 2, { turn: 1, reason: { kind: 'completed' } }),
+    ])).toEqual({ ...ZERO, turns: 1, lastTurnEnd: 'completed', running: false })
+    // Seed 里的 pre-descriptor turn 不翻 running 位
+    expect(fold([
+      event('turn/start', 0, 100, { turn: 1, trigger: { kind: 'message', source: { kind: 'user' } } }),
+      event('subagent/descriptor', 1, 200, { version: 1, mode: 'continuable', provider: 'spawn', label: 'child' }),
     ])).toEqual(ZERO)
   })
 

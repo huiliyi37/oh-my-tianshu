@@ -1282,6 +1282,10 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         signature: 'async start(name: string, request: SubagentStartRequest): Promise<SubagentRun>',
         jsDoc: '/**\n * Establish a published child on the named provider. Capability and semantic\n * checks run before delegation. Provider ownership lasts until its promise\n * fulfills; a rejection therefore has no run for the caller to dispose and\n * emits no run lifecycle events. Post-publication turn and infrastructure\n * failures settle through the returned run.\n * @param name - the provider to use.\n * @param request - child label, prompt, parent, signal, and optional capabilities.\n * @returns the published holder-owned run.\n */',
       },
+      {
+        signature: 'activeExternalRuns(): SubagentActiveExternalRun[]',
+        jsDoc: '/**\n * G3：当前活跃的外部（无本地 Session）run 的等价状态面——供 UI 枚举\n * out-of-process 子代理（acp/claude-code/codex/dsh-sdk）。session 语料\n * 枚举（listChildren/listDescendants）按 Session 头过滤，看不到这类 run；\n * 该面补上「活跃窗口」可见性，历史/详情仍走 `subagent/start|end` 事件。\n * @returns 活跃外部 run（发布 → 结算之间），按 startedAt 升序（先发在前）。\n */',
+      },
     ],
   },
   {
@@ -3568,6 +3572,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type StreamChunk = {\n    type: \'block-start\';\n    index: number;\n    blockType: ContentBlockType;\n} | {\n    type: \'text-delta\';\n    index: number;\n    text: string;\n} | {\n    type: \'reasoning-delta\';\n    index: number;\n    text: string;\n} | {\n    type: \'tool-call-delta\';\n    index: number;\n    id: CallId;\n    name?: string;\n    argumentsDelta: string;\n} | {\n    type: \'block-end\';\n    index: number;\n    block: ContentBlock;\n} | {\n    type: \'usage\';\n    usage: TokenUsage;\n} | {\n    type: \'finish\';\n    reason: FinishReason;\n    replayState?: ReplayEnvelope;\n};',
   },
   {
+    name: 'SubagentActiveExternalRun',
+    declaration: 'export interface SubagentActiveExternalRun {\n    readonly id: SessionId;\n    readonly provider: string;\n    readonly label?: string;\n    readonly startedAt: number;\n}',
+  },
+  {
     name: 'SubagentCapabilities',
     declaration: 'export interface SubagentCapabilities {\n    readonly outputSchema: boolean;\n    readonly depthLimit: boolean;\n    readonly toolFilter: boolean;\n    readonly persona: boolean;\n    readonly sandboxMode: boolean;\n}',
   },
@@ -3593,7 +3601,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SubagentProgressProjection',
-    declaration: 'export interface SubagentProgressProjection {\n    turns: number;\n    toolCalls: number;\n    tokensUsed: number;\n    reasoningTokens?: number;\n    lastTool?: string;\n    toolInFlight: boolean;\n    lastTurnEnd?: \'completed\' | \'aborted\' | \'blocked\' | \'error\' | \'max-tokens\' | \'interrupted\';\n}',
+    declaration: 'export interface SubagentProgressProjection {\n    turns: number;\n    toolCalls: number;\n    tokensUsed: number;\n    reasoningTokens?: number;\n    lastTool?: string;\n    toolInFlight: boolean;\n    lastTurnEnd?: \'completed\' | \'aborted\' | \'blocked\' | \'error\' | \'max-tokens\' | \'interrupted\';\n    running: boolean;\n}',
   },
   {
     name: 'SubagentProvider',

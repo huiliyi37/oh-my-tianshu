@@ -162,6 +162,8 @@ ProjectionDefinition<'subagent', IdentityState> = {
 interface ProgressState {
   /** Whether the fold has crossed a descriptor in this logical log. */
   descriptorSeen: boolean
+  /** Whether a turn is currently open after the descriptor (execution-state bit). */
+  inTurn: boolean
   /** `turn/end` count after the child's own descriptor. */
   turns: number
   /** `tool/call` count after the child's own descriptor. */
@@ -190,32 +192,35 @@ const progressSchema = z.object({
   lastTurnEnd: z.enum([
     'completed', 'aborted', 'blocked', 'error', 'max-tokens', 'interrupted',
   ]).optional(),
+  running: z.boolean(),
 }).strict() as unknown as z.ZodType<SubagentProgressProjection>
 
 /**
  * Fold running activity facts from the child's own log: turn/tool counts,
- * latest token accounting, and the current tool activity. Every fact traces
- * to an existing session event — `turn/end`, `tool/call`, `tool/result`,
- * `assistant/message` usage — so no new event vocabulary is introduced
- * (Model-visible ⟺ logged). The descriptor resets accumulation (a fork seed
- * may replay an ancestor's work), and a malformed payload never throws: it
- * folds to no value, mirroring the identity unit's damage discipline.
+ * latest token accounting, the current tool activity, and the `running`
+ * execution-state bit (open turn after the descriptor). Every fact traces
+ * to an existing session event — `turn/start`, `turn/end`, `tool/call`,
+ * `tool/result`, `assistant/message` usage — so no new event vocabulary is
+ * introduced (Model-visible ⟺ logged). The descriptor resets accumulation
+ * (a fork seed may replay an ancestor's work), and a malformed payload never
+ * throws: it folds to no value, mirroring the identity unit's damage
+ * discipline.
  */
 export const subagentProgressProjectionDefinition:
 ProjectionDefinition<'subagentProgress', ProgressState> = {
   key: 'subagentProgress',
   schema: progressSchema,
-  init: () => ({ descriptorSeen: false, turns: 0, toolCalls: 0, tokensUsed: 0, pending: {} }),
+  init: () => ({ descriptorSeen: false, inTurn: false, turns: 0, toolCalls: 0, tokensUsed: 0, pending: {} }),
   apply: (state, event) => {
     if (event.type === 'subagent/descriptor') {
-      return { descriptorSeen: true, turns: 0, toolCalls: 0, tokensUsed: 0, pending: {} }
+      return { descriptorSeen: true, inTurn: false, turns: 0, toolCalls: 0, tokensUsed: 0, pending: {} }
     }
     if (!state.descriptorSeen) return state
     switch (event.type) {
       case 'turn/start': {
-        if (state.lastTurnEnd === undefined) return state
+        if (state.lastTurnEnd === undefined) return { ...state, inTurn: true }
         const { lastTurnEnd: _closed, ...rest } = state
-        return rest
+        return { ...rest, inTurn: true }
       }
       case 'tool/call': {
         const { name, callId } = event.data
@@ -251,11 +256,11 @@ ProjectionDefinition<'subagentProgress', ProgressState> = {
         const kind = event.data.reason.kind
         if (kind === 'completed' || kind === 'aborted' || kind === 'blocked'
           || kind === 'error' || kind === 'max-tokens' || kind === 'interrupted') {
-          return { ...state, turns: state.turns + 1, lastTurnEnd: kind }
+          return { ...state, inTurn: false, turns: state.turns + 1, lastTurnEnd: kind }
         }
         // An unknown merged reason kind is not our vocabulary: count the turn
         // but ignore the kind rather than guess (no record ≠ zero value).
-        return { ...state, turns: state.turns + 1 }
+        return { ...state, inTurn: false, turns: state.turns + 1 }
       }
       default:
         return state
@@ -274,7 +279,10 @@ ProjectionDefinition<'subagentProgress', ProgressState> = {
       ...state.lastTurnEnd !== undefined
         ? { lastTurnEnd: state.lastTurnEnd as NonNullable<SubagentProgressProjection['lastTurnEnd']> }
         : {},
+      running: state.inTurn,
     }
   },
-  stateVersion: 1,
+  // Bumped for the `running` execution-state bit: older checkpoint rows replay
+  // into a value the schema rejects, so they must refold instead.
+  stateVersion: 2,
 }
