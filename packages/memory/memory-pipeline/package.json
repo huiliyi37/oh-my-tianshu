@@ -1,0 +1,47 @@
+{
+  "name": "@huiliyi37/dsh-memory-pipeline",
+  "version": "0.3.0",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "Apache-2.0",
+  "peerDependencies": {
+    "@huiliyi37/cordis": "^4.0.0-rc.7",
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/dsh-llm": "^0.2.0",
+    "@huiliyi37/dsh-memory": "^0.2.0",
+    "@huiliyi37/dsh-memory-consolidate": "^0.3.0",
+    "@huiliyi37/dsh-session": "^0.2.0",
+    "@huiliyi37/dsh-session-persistence": "^0.2.0",
+    "@huiliyi37/dsh-tasks": "^0.2.0",
+    "@huiliyi37/dsh-timeout": "^0.2.0"
+  },
+  "devDependencies": {
+    "@huiliyi37/cordis": "^4.0.0-rc.7",
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/dsh-llm": "workspace:^",
+    "@huiliyi37/dsh-memory": "workspace:^",
+    "@huiliyi37/dsh-memory-consolidate": "workspace:^",
+    "@huiliyi37/dsh-session": "workspace:^",
+    "@huiliyi37/dsh-session-persistence": "workspace:^",
+    "@huiliyi37/dsh-tasks": "workspace:^",
+    "@huiliyi37/dsh-timeout": "workspace:^",
+    "@huiliyi37/schemastery": "^3.0.0-rc.3"
+  }
+}

@@ -5540,6 +5540,39 @@ importers:
         specifier: ^3.0.0-rc.3
         version: link:../../../vendor/schemastery
 
+  packages/memory/memory-pipeline:
+    devDependencies:
+      '@huiliyi37/cordis':
+        specifier: ^4.0.0-rc.7
+        version: link:../../../vendor/cordis
+      '@huiliyi37/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../support/invariants
+      '@huiliyi37/dsh-llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
+      '@huiliyi37/dsh-memory':
+        specifier: workspace:^
+        version: link:../memory
+      '@huiliyi37/dsh-memory-consolidate':
+        specifier: workspace:^
+        version: link:../memory-consolidate
+      '@huiliyi37/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@huiliyi37/dsh-session-persistence':
+        specifier: workspace:^
+        version: link:../../session/session-persistence
+      '@huiliyi37/dsh-tasks':
+        specifier: workspace:^
+        version: link:../../tasks/tasks
+      '@huiliyi37/dsh-timeout':
+        specifier: workspace:^
+        version: link:../../util/timeout
+      '@huiliyi37/schemastery':
+        specifier: ^3.0.0-rc.3
+        version: link:../../../vendor/schemastery
+
   packages/memory/memory-sqlite:
     devDependencies:
       '@huiliyi37/cordis':

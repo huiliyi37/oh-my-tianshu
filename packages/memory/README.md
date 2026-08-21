@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Cross-session project memory behind the `memory` service. The shipped TUI bundle mounts the Markdown provider plus `dsh-tool-memory` and `dsh-tool-memory-recall`. The shipped Web bundle mounts the Markdown provider plus `dsh-command-memory` (`/remember`, `/memory`); the TUI keeps those names in its private registry and does not mount the command plugin. `dsh-memory-sqlite` is an alternate provider of the same `memory` key and is not mounted in any shipped composition — a host mounts one provider, never both. `dsh-adaptive-memory` and `dsh-memory-consolidate` are opt-in consumers of that key; they are on the tree and also stay off shipped compositions.
+Cross-session project memory behind the `memory` service. The shipped TUI bundle mounts the Markdown provider plus `dsh-tool-memory` and `dsh-tool-memory-recall`. The shipped Web bundle mounts the Markdown provider plus `dsh-command-memory` (`/remember`, `/memory`); the TUI keeps those names in its private registry and does not mount the command plugin. `dsh-memory-sqlite` is an alternate provider of the same `memory` key and is not mounted in any shipped composition — a host mounts one provider, never both. `dsh-adaptive-memory`, `dsh-memory-consolidate`, and `dsh-memory-pipeline` are opt-in consumers of that key; they are on the tree and also stay off shipped compositions.
 
 | Package | Role | ctx key |
 |---|---|---|
@@ -13,3 +13,4 @@ Cross-session project memory behind the `memory` service. The shipped TUI bundle
 | [`command-memory/`](command-memory/README.md) | Host `/remember` and `/memory` (Web slash menu) | registers on `ctx.commands` |
 | [`adaptive-memory/`](adaptive-memory/README.md) | Intent-gated STM snapshot (append-on-change) | injects `systemPrompt` |
 | [`memory-consolidate/`](memory-consolidate/README.md) | Session-end extraction behind a success gate | listens on `session/disposed` |
+| [`memory-pipeline/`](memory-pipeline/README.md) | Startup backfill sweep + global consolidation over past sessions | registers on `ctx.tasks` |

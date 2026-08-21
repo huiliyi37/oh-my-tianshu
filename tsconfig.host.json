@@ -294,6 +294,7 @@
     { "path": "./packages/memory/memory-sqlite" },
     { "path": "./packages/memory/adaptive-memory" },
     { "path": "./packages/memory/memory-consolidate" },
+    { "path": "./packages/memory/memory-pipeline" },
     { "path": "./packages/memory/tool-memory" },
     { "path": "./packages/memory/tool-memory-recall" },
     { "path": "./packages/memory/command-memory" },

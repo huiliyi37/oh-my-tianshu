@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-跨会话的项目记忆，挂在 `memory` 服务后面。发货 TUI bundle 挂 Markdown provider 加上 `dsh-tool-memory` 与 `dsh-tool-memory-recall`。发货 Web bundle 挂 Markdown provider 加上 `dsh-command-memory`（`/remember`、`/memory`）；TUI 把这两个名字留在自己的私有注册表里，不挂该命令插件。`dsh-memory-sqlite` 是同一 `memory` 键的另一 provider，不进入任何发货组合——主机二选一挂载，不能同时挂。`dsh-adaptive-memory` 与 `dsh-memory-consolidate` 是该键的按需消费方，已上树，同样不进发货组合。
+跨会话的项目记忆，挂在 `memory` 服务后面。发货 TUI bundle 挂 Markdown provider 加上 `dsh-tool-memory` 与 `dsh-tool-memory-recall`。发货 Web bundle 挂 Markdown provider 加上 `dsh-command-memory`（`/remember`、`/memory`）；TUI 把这两个名字留在自己的私有注册表里，不挂该命令插件。`dsh-memory-sqlite` 是同一 `memory` 键的另一 provider，不进入任何发货组合——主机二选一挂载，不能同时挂。`dsh-adaptive-memory`、`dsh-memory-consolidate` 与 `dsh-memory-pipeline` 是该键的按需消费方，已上树，同样不进发货组合。
 
 | 包 | 职责 | ctx 键 |
 |---|---|---|
@@ -13,3 +13,4 @@
 | [`command-memory/`](command-memory/README.md) | 宿主 `/remember` 与 `/memory`（Web 斜杠菜单） | 注册到 `ctx.commands` |
 | [`adaptive-memory/`](adaptive-memory/README.md) | intent 门控的 STM 快照（append-on-change） | 注入 `systemPrompt` |
 | [`memory-consolidate/`](memory-consolidate/README.md) | 成功门控之后的会话结束提取 | 监听 `session/disposed` |
+| [`memory-pipeline/`](memory-pipeline/README.md) | 历史会话的启动回填扫描 + 全局整合 | 注册到 `ctx.tasks` |

@@ -1,0 +1,40 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../memory/memory"
+    },
+    {
+      "path": "../../memory/memory-consolidate"
+    },
+    {
+      "path": "../../session/session-persistence"
+    },
+    {
+      "path": "../../tasks/tasks"
+    },
+    {
+      "path": "../../util/timeout"
+    },
+    {
+      "path": "../../support/invariants"
+    }
+  ]
+}
