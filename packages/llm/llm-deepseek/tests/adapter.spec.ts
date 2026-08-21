@@ -85,10 +85,7 @@ describe('DeepSeekAdapter against a mock server', () => {
 
   it('sends user images as data-URL image_url parts for a vision-declared model', async () => {
     const server = await mockServer([{ kind: 'sse', events: textEvents }])
-    const adapter = adapterOf({
-      baseURL: server.url,
-      models: [{ id: 'deepseek-v4-flash-vision-exp', supportsVision: true }],
-    })
+    const adapter = adapterOf({ baseURL: server.url })
 
     await drain(adapter.stream({
       provider: 'deepseek-official',
@@ -142,7 +139,6 @@ describe('DeepSeekAdapter against a mock server', () => {
     const adapter = adapterOf({
       baseURL: server.url,
       maxRequestImageBytes: 4,
-      models: [{ id: 'deepseek-v4-flash-vision-exp', supportsVision: true }],
     })
 
     await drain(adapter.stream({
@@ -738,6 +734,7 @@ describe('plugin registration and config', () => {
     await expect(ctx.llm.listModels('deepseek-official')).resolves.toEqual([
       { provider: 'deepseek-official', id: 'deepseek-v4-flash', name: 'DeepSeek-V4-Flash' },
       { provider: 'deepseek-official', id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro' },
+      { provider: 'deepseek-official', id: 'deepseek-v4-flash-vision-exp', name: 'DeepSeek-V4-Flash-Vision-Exp', supportsVision: true },
     ])
     await expect(ctx.llm.resolveModelInfo('deepseek-official', 'deepseek-v4-flash'))
       .resolves.toMatchObject({
@@ -754,6 +751,15 @@ describe('plugin registration and config', () => {
           ],
           defaultEffort: ReasoningEffortId('high'),
         },
+      })
+    await expect(ctx.llm.resolveModelInfo('deepseek-official', 'deepseek-v4-flash-vision-exp'))
+      .resolves.toMatchObject({
+        provider: 'deepseek-official',
+        id: 'deepseek-v4-flash-vision-exp',
+        name: 'DeepSeek-V4-Flash-Vision-Exp',
+        supportsVision: true,
+        context: { contextWindow: 1_000_000 },
+        defaultMaxTokens: 256_000,
       })
   })
 
@@ -833,6 +839,7 @@ describe('plugin registration and config', () => {
     await expect(ctx.llm.listModels('deepseek-official')).resolves.toEqual([
       { provider: 'deepseek-official', id: 'deepseek-v4-flash', name: 'DeepSeek-V4-Flash' },
       { provider: 'deepseek-official', id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro' },
+      { provider: 'deepseek-official', id: 'deepseek-v4-flash-vision-exp', name: 'DeepSeek-V4-Flash-Vision-Exp', supportsVision: true },
     ])
   })
 
@@ -1020,7 +1027,7 @@ describe('plugin registration and config', () => {
       { id: 'deepseek-official', name: 'DeepSeek' },
       { id: 'deepseek-spark', name: 'DeepSeek Spark' },
     ])
-    await expect(ctx.llm.listModels('deepseek-official')).resolves.toHaveLength(2)
+    await expect(ctx.llm.listModels('deepseek-official')).resolves.toHaveLength(3)
     const first = await assemble(ctx, { model: 'deepseek-v4-flash', messages: [] })
     expect(first.finish).toMatchObject({ kind: 'error', failure: { code: 'MISSING_CREDENTIAL' } })
     // The guidance leads with the managed credential store.
@@ -1111,7 +1118,7 @@ describe('plugin registration and config', () => {
     expect(adapter).toBeInstanceOf(DeepSeekAdapter)
     // Direct embedding shares the plugin's one resolve step, so it advertises
     // the same default catalog instead of a divergent empty one.
-    await expect(adapter.listModels('deepseek-official')).resolves.toHaveLength(2)
+    await expect(adapter.listModels('deepseek-official')).resolves.toHaveLength(3)
   })
 
   it('resolves connection facts and the credential exactly once per stream call', async () => {

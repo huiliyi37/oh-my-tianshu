@@ -33,18 +33,18 @@ harness LLM（大语言模型）seam 的 DeepSeek chat-completions 适配器：�
       truncateN:
         flash: 300           # tail tokens kept for flash-tier models (default 300)
         pro: 0               # 0 = pro-tier requires an explicit positive N
-    models:                  # optional; defaults to V4 Flash and V4 Pro
+    models:                  # optional; defaults to V4 Flash, V4 Pro, and V4 Flash Vision Exp
       - id: deepseek-v4-flash
         name: DeepSeek-V4-Flash
-      - id: private-vision
-        name: Private Vision
+      - id: deepseek-v4-flash-vision-exp
+        name: DeepSeek-V4-Flash-Vision-Exp
         supportsVision: true
       - id: private-reasoner
         description: Company-hosted reasoning model
         contextWindow: 512000
 ```
 
-该插件注册提供方路由 `deepseek-official` 及解析后的 `retryPolicy`，外加共享同一适配器实例的内部 `deepseek-spark` 路由。请求使用 `provider: deepseek-official` 或 `provider: deepseek-spark` 选择路由；其 `model` 会作为协议 `model` 字符串原样传递，因此更改 DeepSeek 模型不需要生命周期时注册。省略 `models` 会公布 `deepseek-v4-flash`（名称为 `DeepSeek-V4-Flash`）和 `deepseek-v4-pro`（名称为 `DeepSeek-V4-Pro`），两者的上下文窗口均为 1,000,000 token；显式列表会替换这些默认值，`models: []` 则不公布任何模型。 shipped 配置项均不声明图片输入；部署方可以用 `supportsVision: true` 让某个确切模型自行开启。Catalog 配置项通过 `ctx.llm.listModels('deepseek-official')` 公开给 ACP（Agent Client Protocol）编辑器和 Web 选择器等客户端，但仍只提供建议：未列出模型 id 仍原样传递。省略配置项 name 默认为其 id，省略 `supportsVision` 表示仅支持文本。
+该插件注册提供方路由 `deepseek-official` 及解析后的 `retryPolicy`，外加共享同一适配器实例的内部 `deepseek-spark` 路由。请求使用 `provider: deepseek-official` 或 `provider: deepseek-spark` 选择路由；其 `model` 会作为协议 `model` 字符串原样传递，因此更改 DeepSeek 模型不需要生命周期时注册。省略 `models` 会公布 `deepseek-v4-flash`（名称为 `DeepSeek-V4-Flash`）、`deepseek-v4-pro`（名称为 `DeepSeek-V4-Pro`）与支持图片输入的 `deepseek-v4-flash-vision-exp`（名称为 `DeepSeek-V4-Flash-Vision-Exp`），三者的上下文窗口均为 1,000,000 token；显式列表会替换这些默认值，`models: []` 则不公布任何模型。Catalog 配置项通过 `ctx.llm.listModels('deepseek-official')` 公开给 ACP（Agent Client Protocol）编辑器和 Web 选择器等客户端，但仍只提供建议：未列出模型 id 仍原样传递。省略配置项 name 默认为其 id，省略 `supportsVision` 表示仅支持文本。
 
 支持图片的 catalog 配置项声明 `supportsVision: true`。适配器随后把 user 与工具结果中 `ImageBlock` 的 data URL 作为瞬态 `image_url` 部分发送，不改变持久会话消息。纯文本模型与未列出模型会在凭据或网络 I/O 前以 `UNSUPPORTED_CONTENT` 拒绝图片输入。system 与 assistant 历史仍不能包含图片；工具结果图片跟在仅含字符串的 `tool` 消息之后，汇总进一条由 `Attached image(s) from tool result:` 引出的单独 `user` 消息。
 

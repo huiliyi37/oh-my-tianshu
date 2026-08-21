@@ -33,18 +33,18 @@ The package root exposes the Cordis plugin contract and `DeepSeekAdapter`; wire 
       truncateN:
         flash: 300           # tail tokens kept for flash-tier models (default 300)
         pro: 0               # 0 = pro-tier requires an explicit positive N
-    models:                  # optional; defaults to V4 Flash and V4 Pro
+    models:                  # optional; defaults to V4 Flash, V4 Pro, and V4 Flash Vision Exp
       - id: deepseek-v4-flash
         name: DeepSeek-V4-Flash
-      - id: private-vision
-        name: Private Vision
+      - id: deepseek-v4-flash-vision-exp
+        name: DeepSeek-V4-Flash-Vision-Exp
         supportsVision: true
       - id: private-reasoner
         description: Company-hosted reasoning model
         contextWindow: 512000
 ```
 
-The plugin registers the provider route `deepseek-official` together with its resolved `retryPolicy`, plus the internal `deepseek-spark` route sharing the same adapter instance. A request selects a route with `provider: deepseek-official` or `provider: deepseek-spark`; its `model` is passed through as the wire `model` string, so changing DeepSeek models does not require lifecycle-time registration. Omitting `models` advertises `deepseek-v4-flash` as `DeepSeek-V4-Flash` and `deepseek-v4-pro` as `DeepSeek-V4-Pro`, each with a 1,000,000-token context window; an explicit list replaces those defaults, while `models: []` advertises none. No shipped entry declares image input; a deployment opts an exact model in with `supportsVision: true`. Catalog entries are exposed through `ctx.llm.listModels('deepseek-official')` for clients such as ACP editors and the Web selector, but remain advisory: unlisted model ids still pass through unchanged. An omitted entry name defaults to its id, and omitted `supportsVision` means text-only.
+The plugin registers the provider route `deepseek-official` together with its resolved `retryPolicy`, plus the internal `deepseek-spark` route sharing the same adapter instance. A request selects a route with `provider: deepseek-official` or `provider: deepseek-spark`; its `model` is passed through as the wire `model` string, so changing DeepSeek models does not require lifecycle-time registration. Omitting `models` advertises `deepseek-v4-flash` as `DeepSeek-V4-Flash`, `deepseek-v4-pro` as `DeepSeek-V4-Pro`, and the image-capable `deepseek-v4-flash-vision-exp` as `DeepSeek-V4-Flash-Vision-Exp`, each with a 1,000,000-token context window; an explicit list replaces those defaults, while `models: []` advertises none. Catalog entries are exposed through `ctx.llm.listModels('deepseek-official')` for clients such as ACP editors and the Web selector, but remain advisory: unlisted model ids still pass through unchanged. An omitted entry name defaults to its id, and omitted `supportsVision` means text-only.
 
 An image-capable catalog entry declares `supportsVision: true`. The adapter then forwards user and tool-result `ImageBlock` data URLs as transient `image_url` parts without changing the durable session message. Text-only and unlisted models reject image input with `UNSUPPORTED_CONTENT` before credential or network I/O. System and assistant history remain image-free; tool-result images follow their string-only `tool` messages grouped into a separate `user` message introduced by `Attached image(s) from tool result:`.
 
