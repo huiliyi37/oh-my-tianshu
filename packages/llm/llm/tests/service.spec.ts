@@ -13,6 +13,8 @@ import LlmService, {
   resolveRetryPolicy,
   StreamChunk,
   createMessage,
+  createUserMessage,
+  TEXT_ONLY_IMAGE_TEXT,
 } from '@huiliyi37/dsh-llm'
 import type {
   LlmModelContext,
@@ -920,6 +922,130 @@ describe('LlmService', () => {
     expect(noDefault.config).toEqual({ provider: 'route', model: 'no-default' })
     expect(noDefault.context).toEqual({ contextWindow: 64_000 })
     expect(resolutions).toBe(2)
+  })
+
+  it('binds adapter-owned capabilities and dispatch to one prepared generation', async () => {
+    const ctx = new Context()
+    await ctx.plugin(LlmService)
+    let generation = 'first'
+    let dispatched: string | undefined
+    const adapter = new class extends ScriptedAdapter {
+      override prepareCall(provider: string, model: string) {
+        const captured = generation
+        return Promise.resolve({
+          model: { provider, id: model, name: model },
+          stream: (options: GenerateOptions) => {
+            dispatched = captured
+            return super.stream(options)
+          },
+        })
+      }
+    }(SCRIPT)
+    ctx.llm.registerAdapter(['route'], adapter)
+
+    const prepared = await ctx.llm.prepareCall({ provider: 'route', model: 'model' })
+    generation = 'second'
+    expect(prepared.inputModalities).toEqual(['text'])
+    expect(Object.isFrozen(prepared.inputModalities)).toBe(true)
+    await collect(prepared.stream({ ...prepared.config, messages: [] }))
+    expect(dispatched).toBe('first')
+  })
+
+  it('derives internal modalities from the catalog supportsVision capability', async () => {
+    const ctx = new Context()
+    await ctx.plugin(LlmService)
+    const adapter = new class extends ScriptedAdapter {
+      override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
+        return Promise.resolve({
+          provider,
+          id: model,
+          name: model,
+          ...model === 'vision' ? { supportsVision: true } : {},
+        })
+      }
+    }(SCRIPT)
+    ctx.llm.registerAdapter(['route'], adapter)
+
+    const vision = await ctx.llm.prepareCall({ provider: 'route', model: 'vision' })
+    expect(vision.inputModalities).toEqual(['text', 'image'])
+    const text = await ctx.llm.prepareCall({ provider: 'route', model: 'plain' })
+    expect(text.inputModalities).toEqual(['text'])
+  })
+
+  it('projects historical images to stable text only after the loop-visible waterfall', async () => {
+    const ctx = new Context()
+    await ctx.plugin(LlmService)
+    const seen: GenerateOptions[] = []
+    const adapter = new class extends ScriptedAdapter {
+      override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
+        return Promise.resolve({ provider, id: model, name: model })
+      }
+
+      override async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+        seen.push(options)
+        yield * super.stream(options)
+      }
+    }(SCRIPT)
+    ctx.llm.registerAdapter(['route'], adapter)
+    const imageBlock = { type: 'image' as const, dataUrl: 'data:image/png;base64,AAAA' }
+    const waterfall: GenerateOptions[] = []
+    ctx.on('llm/stream', async function* (options, next) {
+      waterfall.push(options)
+      yield * next()
+    })
+
+    await collect(ctx.llm.stream({
+      provider: 'route',
+      model: 'text-only',
+      messages: [createUserMessage({
+        content: [imageBlock],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    }))
+
+    expect(waterfall[0]?.messages[0]?.content).toEqual([imageBlock])
+    expect(seen[0]?.messages[0]?.content).toEqual([{ type: 'text', text: TEXT_ONLY_IMAGE_TEXT }])
+
+    const frozen = Object.freeze({
+      provider: 'route',
+      model: 'text-only',
+      messages: [createUserMessage({
+        content: [imageBlock],
+        source: { kind: 'plugin' as const, plugin: 'test' },
+      })],
+    })
+    await collect(ctx.llm.stream(frozen))
+    expect(Object.isFrozen(seen[1])).toBe(true)
+    expect(Object.isFrozen(seen[1]?.messages)).toBe(true)
+  })
+
+  it('keeps durable image blocks on the wire for image-capable routes', async () => {
+    const ctx = new Context()
+    await ctx.plugin(LlmService)
+    const seen: GenerateOptions[] = []
+    const adapter = new class extends ScriptedAdapter {
+      override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
+        return Promise.resolve({ provider, id: model, name: model, supportsVision: true })
+      }
+
+      override async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+        seen.push(options)
+        yield * super.stream(options)
+      }
+    }(SCRIPT)
+    ctx.llm.registerAdapter(['route'], adapter)
+    const imageBlock = { type: 'image' as const, dataUrl: 'data:image/png;base64,AAAA' }
+
+    await collect(ctx.llm.stream({
+      provider: 'route',
+      model: 'vision',
+      messages: [createUserMessage({
+        content: [imageBlock],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    }))
+
+    expect(seen[0]?.messages[0]?.content).toEqual([imageBlock])
   })
 
   it('passes cancellation through exact-model resolution', async () => {

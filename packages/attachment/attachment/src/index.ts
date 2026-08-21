@@ -5,11 +5,13 @@ import { AttachmentError } from './error.ts'
 import type {
   ImageAttachmentLimits,
   ImageAttachmentRef,
+  ImageRequestPolicy,
+  RequestImageAttachment,
   SaveImageAttachment,
   StoredImageAttachment,
 } from './types.ts'
 
-export { AttachmentId } from './brand.ts'
+export { AttachmentId, ImageVariantId } from './brand.ts'
 export { AttachmentError, isImageAdmissionError } from './error.ts'
 export type { AttachmentErrorCode, ImageAdmissionErrorCode } from './error.ts'
 export type {
@@ -17,6 +19,8 @@ export type {
   ImageAttachmentLimits,
   ImageAttachmentRef,
   ImageMediaType,
+  ImageRequestPolicy,
+  RequestImageAttachment,
   SaveImageAttachment,
   StoredImageAttachment,
 } from './types.ts'
@@ -99,6 +103,28 @@ export abstract class AttachmentStore extends Service {
    * @throws the signal reason when aborted, or a storage error when verification fails.
    */
   abstract readImage(ref: ImageAttachmentRef, signal?: AbortSignal): Promise<StoredImageAttachment>
+
+  /**
+   * Generate or read one deterministic model-request version from the stored normalized image.
+   * @param ref - durable provider-independent normalized attachment reference.
+   * @param policy - exact route pixel and encoded-byte budget.
+   * @param signal - optional cancellation.
+   * @returns request bytes and the cache/upload identity covering every transform input.
+   */
+  readImageRequest(
+    ref: ImageAttachmentRef,
+    policy: ImageRequestPolicy,
+    signal?: AbortSignal,
+  ): Promise<RequestImageAttachment> {
+    signal?.throwIfAborted()
+    void ref
+    void policy
+    return Promise.reject(new AttachmentError(
+      'The mounted attachment provider cannot derive model-request images.',
+      'ATTACHMENT_PROJECTION_UNSUPPORTED',
+    ))
+  }
+
 }
 
 export default AttachmentStore

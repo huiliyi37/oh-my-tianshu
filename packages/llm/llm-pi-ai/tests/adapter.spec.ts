@@ -415,11 +415,12 @@ describe('provider profile lifecycle', () => {
       .resolves.toMatchObject({ reasoning: { defaultEffort: ReasoningEffortId('off') } })
   })
 
-  it('refuses image input for a text-only model before credentials or network I/O', async () => {
-    // A named-but-blank reference would fail credential resolution; the gate
-    // firing first proves images are refused before any of that — pi-ai itself
-    // would only downgrade them to placeholders, which would look like the
-    // model having seen them.
+  it('projects image input to text for a text-only model before credentials or network I/O', async () => {
+    // The runtime projects image blocks into stable text placeholders for a
+    // text-only route before the adapter runs, so the adapter's own image
+    // rejection (direct `adapter.stream` use) never fires here. The named-but-blank
+    // reference then fails credential resolution first — still before any network
+    // I/O — proving the projection did not smuggle the image onto the wire.
     vi.stubEnv('PI_BLANK_REF', '')
     const server = await mockServer([])
     const ctx = new Context()
@@ -442,7 +443,7 @@ describe('provider profile lifecycle', () => {
         source: { kind: 'plugin', plugin: 'test' },
       })],
     })
-    expect(result.finish).toMatchObject({ kind: 'error', failure: { code: 'UNSUPPORTED_CONTENT' } })
+    expect(result.finish).toMatchObject({ kind: 'error', failure: { code: 'MISSING_CREDENTIAL' } })
     expect(server.requests).toEqual([])
   })
 

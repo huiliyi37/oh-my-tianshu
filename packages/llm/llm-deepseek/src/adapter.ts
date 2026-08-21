@@ -13,6 +13,7 @@ import type {
   GenerateOptions,
   LlmModelInfo,
   LlmProviderInfo,
+  PreparedAdapterCall,
   LlmResolvedModelInfo,
   ResolvedRetryPolicy,
   StreamChunk,
@@ -184,11 +185,29 @@ export class DeepSeekAdapter extends LlmAdapter {
     model: string,
     _signal?: AbortSignal,
   ): Promise<LlmResolvedModelInfo> {
+    return Promise.resolve(this.modelInfoFor(this.config.options(), provider, model))
+  }
+
+  override prepareCall(provider: string, model: string, _signal?: AbortSignal): Promise<PreparedAdapterCall> {
     const connection = this.config.options()
+    return Promise.resolve({
+      model: this.modelInfoFor(connection, provider, model),
+      stream: options => this.streamWithConnection(options, connection),
+    })
+  }
+
+  private modelInfoFor(
+    connection: DeepSeekConnectionOptions,
+    provider: string,
+    model: string,
+  ): LlmResolvedModelInfo {
     const configured = connection.models.find(entry => entry.id === model)
     const contextWindow = configured?.contextWindow
       ?? connection.defaultContextWindow
-    return Promise.resolve({
+    return {
+      // An uncatalogued endpoint is safely treated as text-only. Declaring an
+      // unverified image capability would let the host persist input that the
+      // endpoint may reject on every later turn.
       ...configured === undefined
         ? { provider, id: model, name: model }
         : modelInfo(provider, configured),
@@ -211,16 +230,22 @@ export class DeepSeekAdapter extends LlmAdapter {
                 : HIGH_REASONING_EFFORT,
           },
         },
-    })
+    }
   }
 
-  async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+  stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+    return this.streamWithConnection(options, this.config.options())
+  }
+
+  private async * streamWithConnection(
+    options: GenerateOptions,
+    connection: DeepSeekConnectionOptions,
+  ): AsyncIterable<StreamChunk> {
     // One resolution per stream call: connection facts and the credential
     // freeze here and hold for this whole request, so an in-flight stream
     // never observes a configuration change and the next call re-resolves.
     // The key resolves *from this snapshot*, so an endpoint and the secret
     // sent to it can never come from different configuration generations.
-    const connection = this.config.options()
     // Capability gate before credential or network I/O: an uncatalogued or
     // text-only route rejects image input instead of failing at the provider
     // on every later turn of the session.

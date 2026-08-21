@@ -201,6 +201,15 @@ export interface LlmDiscoveredModel {
   maxTokens?: number
 }
 
+/** Merge-extensible provider model modality vocabulary. */
+export interface ModelModalityMap {
+  text: 'text'
+  image: 'image'
+}
+
+/** Any declared provider model modality. */
+export type ModelModality = ModelModalityMap[keyof ModelModalityMap]
+
 /** One adapter-discovered model; catalog membership is advisory, not request validation. */
 export interface LlmModelInfo {
   /** Provider route that owns this model entry. */

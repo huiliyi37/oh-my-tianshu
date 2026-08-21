@@ -54,6 +54,7 @@
     "@huiliyi37/schemastery": "^3.18.0"
   },
   "devDependencies": {
+    "@huiliyi37/dsh-attachment": "workspace:^",
     "@huiliyi37/dsh-brand": "workspace:^",
     "@huiliyi37/dsh-invariants": "workspace:^",
     "@huiliyi37/dsh-timeout": "workspace:^",

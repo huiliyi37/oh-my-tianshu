@@ -19,11 +19,11 @@ import LocalAttachmentStore, {
 describe('local attachment service', () => {
   it('resolves every omitted admission limit explicitly', () => {
     const service = new LocalAttachmentStore(new Context(), {})
-    expect(DEFAULT_MAX_IMAGE_BYTES).toBe(3.5 * 1024 * 1024)
+    expect(DEFAULT_MAX_IMAGE_BYTES).toBe(20 * 1024 * 1024)
     expect(DEFAULT_MAX_IMAGES_PER_MESSAGE).toBe(20)
-    expect(DEFAULT_MAX_MESSAGE_IMAGE_BYTES).toBe(100 * 1024 * 1024)
-    expect(DEFAULT_MAX_IMAGE_PIXELS).toBe(40_000_000)
-    expect(DEFAULT_MAX_IMAGE_DIMENSION).toBe(2000)
+    expect(DEFAULT_MAX_MESSAGE_IMAGE_BYTES).toBe(200 * 1024 * 1024)
+    expect(DEFAULT_MAX_IMAGE_PIXELS).toBe(64_000_000)
+    expect(DEFAULT_MAX_IMAGE_DIMENSION).toBe(8192)
     expect(service.imageLimits).toEqual({
       maxImageBytes: DEFAULT_MAX_IMAGE_BYTES,
       maxImagesPerMessage: DEFAULT_MAX_IMAGES_PER_MESSAGE,
