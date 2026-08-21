@@ -10,6 +10,7 @@
 import { describe, expect, it, vi, type Mock } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
 import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
+import type {} from '@huiliyi37/dsh-zen' // 'zen/phase' 事件声明合并（类型面）
 import { apply as applyAgentRouter, resolveProfileTools, type RouterService } from '../src/index.js'
 
 const PARENT_ID = SessionId('session-1')
@@ -215,7 +216,13 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     const router = ctx.get('router') as RouterService
     const A = SessionId('session-a')
     const appended: Array<{ type: string; data: unknown }> = []
-    const session = { id: A, header: {}, append: (type: string, data: unknown) => { appended.push({ type, data }) } }
+    const session = {
+      id: A,
+      header: {},
+      // foldZenPhase 读取 events（禅阶段跳过触发）；无 zen/phase 事件折为 full。
+      events: [] as SessionEvent[],
+      append: (type: string, data: unknown) => { appended.push({ type, data }) },
+    }
 
     for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
     expect(router.metrics({ sessionId: A }).interventionLevel).toBe('escalate')
@@ -236,7 +243,13 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     const { seam, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true } })
     const A = SessionId('session-a')
     const appended: Array<{ type: string; data: unknown }> = []
-    const session = { id: A, header: {}, append: (type: string, data: unknown) => { appended.push({ type, data }) } }
+    const session = {
+      id: A,
+      header: {},
+      // foldZenPhase 读取 events（禅阶段跳过触发）；无 zen/phase 事件折为 full。
+      events: [] as SessionEvent[],
+      append: (type: string, data: unknown) => { appended.push({ type, data }) },
+    }
 
     for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
     emit('session/event', session, {
@@ -253,7 +266,13 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     const { ctx, seam, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true } })
     const A = SessionId('session-a')
     const appended: Array<{ type: string; data: unknown }> = []
-    const session = { id: A, header: {}, append: (type: string, data: unknown) => { appended.push({ type, data }) } }
+    const session = {
+      id: A,
+      header: {},
+      // foldZenPhase 读取 events（禅阶段跳过触发）；无 zen/phase 事件折为 full。
+      events: [] as SessionEvent[],
+      append: (type: string, data: unknown) => { appended.push({ type, data }) },
+    }
     const loggerError = vi.spyOn(ctx.logger, 'error').mockImplementation(() => undefined)
     seam.start.mockImplementationOnce(async () => { throw new Error('seam down') })
 
@@ -277,7 +296,13 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     const { ctx, seam, counters, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true } })
     const A = SessionId('session-a')
     const appended: Array<{ type: string; data: unknown }> = []
-    const session = { id: A, header: {}, append: (type: string, data: unknown) => { appended.push({ type, data }) } }
+    const session = {
+      id: A,
+      header: {},
+      // foldZenPhase 读取 events（禅阶段跳过触发）；无 zen/phase 事件折为 full。
+      events: [] as SessionEvent[],
+      append: (type: string, data: unknown) => { appended.push({ type, data }) },
+    }
     const loggerError = vi.spyOn(ctx.logger, 'error').mockImplementation(() => undefined)
     seam.start.mockImplementationOnce(async () => ({
       id: SessionId('session-child-1'),
@@ -305,7 +330,13 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     const { seam, emit } = makeContext({ provider: undefined, model: undefined, trigger: { mode: 'auto', onTurnEnd: true } })
     const A = SessionId('session-a')
     const appended: Array<{ type: string; data: unknown }> = []
-    const session = { id: A, header: {}, append: (type: string, data: unknown) => { appended.push({ type, data }) } }
+    const session = {
+      id: A,
+      header: {},
+      // foldZenPhase 读取 events（禅阶段跳过触发）；无 zen/phase 事件折为 full。
+      events: [] as SessionEvent[],
+      append: (type: string, data: unknown) => { appended.push({ type, data }) },
+    }
 
     for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
     emit('session/event', session, {
@@ -323,7 +354,13 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     const router = offCtx.ctx.get('router') as RouterService
     const A = SessionId('session-a')
     const appended: Array<{ type: string; data: unknown }> = []
-    const session = { id: A, header: {}, append: (type: string, data: unknown) => { appended.push({ type, data }) } }
+    const session = {
+      id: A,
+      header: {},
+      // foldZenPhase 读取 events（禅阶段跳过触发）；无 zen/phase 事件折为 full。
+      events: [] as SessionEvent[],
+      append: (type: string, data: unknown) => { appended.push({ type, data }) },
+    }
     for (let i = 0; i < 8; i++) runTool(offCtx.emit, true, { id: A })
     expect(router.metrics({ sessionId: A }).interventionLevel).toBe('escalate')
     // child 会话（header.parentSession）turn/end → 排除
@@ -348,6 +385,77 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     })
     await new Promise(resolve => setTimeout(resolve, 10))
     expect(defaultAppended).toHaveLength(0)
+  }, 10000)
+
+  it('禅阶段（zen/phase 折叠为 zen）turn/end 不触发：不决策、不记录、不派发', async () => {
+    const { seam, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true } })
+    const A = SessionId('session-a')
+    const appended: Array<{ type: string; data: unknown }> = []
+    const events: SessionEvent[] = [
+      { type: 'zen/phase', seq: 0, time: 1, data: { phase: 'zen', reason: 'arm' } },
+    ]
+    const session = {
+      id: A,
+      header: {},
+      events,
+      append: (type: string, data: unknown) => { appended.push({ type, data }) },
+    }
+
+    // 8 连败（escalate）也无效：禅阶段是对齐/锚定轮，指标决策不出可信路由。
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    emit('session/event', session, {
+      type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
+    })
+    await new Promise(resolve => setTimeout(resolve, 10))
+    expect(appended).toHaveLength(0)
+    expect(seam.start).not.toHaveBeenCalled()
+  }, 10000)
+
+  it('禅阶段晋升 full 后的 turn/end 恢复触发', async () => {
+    const { ctx, emit } = makeContext({ trigger: { mode: 'shadow', onTurnEnd: true } })
+    const router = ctx.get('router') as RouterService
+    const A = SessionId('session-a')
+    const appended: Array<{ type: string; data: unknown }> = []
+    const events: SessionEvent[] = [
+      { type: 'zen/phase', seq: 0, time: 1, data: { phase: 'zen', reason: 'arm' } },
+      { type: 'zen/phase', seq: 1, time: 2, data: { phase: 'full', reason: 'anchor' } },
+    ]
+    const session = {
+      id: A,
+      header: {},
+      events,
+      append: (type: string, data: unknown) => { appended.push({ type, data }) },
+    }
+
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    expect(router.metrics({ sessionId: A }).interventionLevel).toBe('escalate')
+    emit('session/event', session, {
+      type: 'turn/end', seq: 2, time: 3, data: { turn: 1, reason: { kind: 'completed' } },
+    })
+    await vi.waitFor(() => { expect(appended).toHaveLength(1) })
+    expect(appended[0]!.type).toBe('router/decision')
+  }, 10000)
+
+  it('触发出窗：turn/end 发布窗口内不落记录（Session.append 重入回归）', async () => {
+    const { emit } = makeContext({ trigger: { mode: 'shadow', onTurnEnd: true } })
+    const A = SessionId('session-a')
+    const appended: Array<{ type: string; data: unknown }> = []
+    const session = {
+      id: A,
+      header: {},
+      events: [] as SessionEvent[],
+      append: (type: string, data: unknown) => { appended.push({ type, data }) },
+    }
+
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    emit('session/event', session, {
+      type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
+    })
+    // emit 同步返回时记录必须仍未落：runTrigger 若在观察者内同步执行，真实
+    // Session.append 会在 turn/end 的发布窗口内重入并 fatal；替身装配下则
+    // 直接同步落记录。两种装配都由「先零后有」钉住微任务出窗语义。
+    expect(appended).toHaveLength(0)
+    await vi.waitFor(() => { expect(appended).toHaveLength(1) })
   }, 10000)
 
   it('trigger 配置非法 fail loud', () => {

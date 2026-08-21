@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-21-agent-router-trigger-zen-skip-and-window.md
+2026-08-21-agent-router-trigger-zen-skip-and-window.md: 3128a9d28cef96d0a3f3267be705e4695df73d43
+2026-08-21-agent-router-trigger-zen-skip-and-window.zh.md: 6260c6e215c391df7ac5593cc55b19c6c9952b8f

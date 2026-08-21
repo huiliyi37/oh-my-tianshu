@@ -25,6 +25,7 @@ import type { Session, SessionEvent, SessionId } from '@huiliyi37/dsh-session'
 import type {} from '@huiliyi37/dsh-agent' // 'agent/disposed' 事件声明合并
 import type {} from '@huiliyi37/dsh-tools' // ctx.tools 声明合并
 import type {} from '@huiliyi37/dsh-system-prompt' // ctx.systemPrompt 声明合并'
+import { foldZenPhase } from '@huiliyi37/dsh-zen'
 import {
   createPredictionAccumulator,
   getConsecutiveFailures,
@@ -463,8 +464,15 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
       }
     }
     // turn-end 触发（生产触发点）：shadow 只决策并记录；auto 决策并派发。
+    // 禅阶段（对齐/锚定轮）整体跳过：会话尚在进入状态，受限工具面上的指标
+    // 决策不出可信路由——不决策、不记录、不派发，晋升 full 后的下一轮起
+    // 才参与。微任务出窗：runTrigger 的同步前缀（shadow 的记录 append）会
+    // 重入 turn/end 尚在发布中的 Session.append，撞上重入守卫即 fatal。
     if (event.type === 'turn/end' && trigger.onTurnEnd && trigger.mode !== 'off') {
-      void runTrigger(owner)
+      void queueMicrotask(() => {
+        if (foldZenPhase(owner.events) === 'zen') return
+        void runTrigger(owner)
+      })
     }
   })
 

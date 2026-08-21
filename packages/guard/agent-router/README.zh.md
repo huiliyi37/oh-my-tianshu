@@ -106,7 +106,7 @@ None directly; the delegate session is an independent model request, and the par
 
 - **派发需要显式模型配置** — `dispatchEnabled: true` 时必须提供 `provider`/`model`；未配置时只决策不派发（决策结果仍可查询），且综合面贡献（`router:synthesis` 节、`router_adopt` 工具）不注册——不可派发即无 outcome 可综合，模型面不背死重。
 - **派发需要活的父会话** — `execute` 接收父 `sessionId`，该会话不是活 agent 时 fail loud；seam 从父会话派生 child 的 workspace、血统与委派深度。
-- **turn-end 触发以 shadow 发货** — 发货 TUI 挂 `trigger: { mode: 'shadow', onTurnEnd: true }`：delegate 决策落 log-only `router/decision` 但绝不派发。切 `auto` 是闭环验证后的产品决定；`auto` 需要 `provider`/`model`。
+- **turn-end 触发以 shadow 发货** — 发货 TUI 挂 `trigger: { mode: 'shadow', onTurnEnd: true }`：delegate 决策落 log-only `router/decision` 但绝不派发。切 `auto` 是闭环验证后的产品决定；`auto` 需要 `provider`/`model`。触发会跳过 `zen/phase` 折叠仍为 `zen` 的会话——对齐/锚定轮跑在受限工具面上，其成败不构成可路由信号，晋升 `full` 前不决策、不记录、不派发；且触发在 `turn/end` 发布窗口之外执行，否则 shadow 的 `router/decision` append 会在发布中重入 `Session.append` 并撞上重入守卫。
 - **综合是主代理的行为** — 存在未综合 child 结论时渲染 `router:synthesis` 提示节，`router_adopt` 工具把采用/拒绝声明落成 log-only `router/adoption`（每条 outcome 至多一条，工具边界与 invariant companion 配对状态双重强制）。router 从不合并或投票，只搬运结论与声明。
 - **自适应门槛发货但不接线** — `promotion.ts` 导出四模式语义（`effectivePromotionMode`）与四级 veto 阶梯（`resolvePromotionGate`）纯函数；shadow tally 接线与 auto 模式是登记候选（见 algorithm-candidates proposed note），不发货。
 - **预算只计算与记录，不强制** — `budget` 配置喂天枢同构定价（按文件数加回合、双绝对帽）；route 记录携带 `{ maxTurns, deadlineMs }`。run-level 预算强制是未来的 subagent-seam 能力（候选优化，不发货）。

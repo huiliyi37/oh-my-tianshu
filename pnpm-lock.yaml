@@ -4317,6 +4317,9 @@ importers:
       '@huiliyi37/dsh-tools':
         specifier: workspace:^
         version: link:../../core/tools
+      '@huiliyi37/dsh-zen':
+        specifier: workspace:^
+        version: link:../zen
 
   packages/guard/doom-loop-guard:
     dependencies:
