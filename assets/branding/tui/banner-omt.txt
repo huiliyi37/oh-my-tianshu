@@ -1,0 +1,21 @@
+Oh My Tianshu · OMT 等宽 banner（--version / headless / 纯文本场景）
+
+ANSI Shadow 字体（每行 ≤ 34 列，任意终端安全）：
+
+ ██████╗  ███╗   ███╗  ████████╗
+██╔═══██╗  ████╗ ████║  ╚══██╔══╝
+██║   ██║  ██╔████╔██║     ██║
+██║   ██║  ██║╚██╔╝██║     ██║
+╚██████╔╝  ██║ ╚═╝ ██║     ██║
+ ╚═════╝   ╚═╝     ╚═╝     ╚═╝
+
+   ✦  oh my tianshu — 天枢 · 星之枢纽  ✦
+
+星形 glyph 双轨（跟随 TUI useAsciiGlyphs 约定）：
+  unicode 轨：✦
+  ascii 轨  ：*
+  品牌行示例（unicode 轨）：  ✦  oh my tianshu
+  品牌行示例（ascii 轨）  ：  *  oh my tianshu
+
+欢迎卡顶边建议（format/welcome.ts 的 formatWelcomeCard）：
+  ╭─ ✦ Oh My Tianshu ───╮

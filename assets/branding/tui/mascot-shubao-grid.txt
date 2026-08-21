@@ -1,0 +1,35 @@
+# Oh My Tianshu · 枢宝像素画（TUI 欢迎页 hero）
+#
+# 格式与 packages/tui/tui/src/format/whale.ts 的 GRID 完全一致：
+# 16 行 x 24 列，半块字符渲染（每 2 个像素行 = 1 文本行）。
+# 图例：
+#   . 透明 / B 天枢蓝身体 / W 奶白口鼻 / E 深藏青眼 / P 腮红 / S 星辉琥珀（新增）
+# 集成时 whale.ts 的 pixelColor 增加 `case 'S': return pal.spark`，palette 增
+# `spark: '#ffc94d'`（16 色轨映射 'yellow'）。
+# 宽度守恒：恒 24 列；出画门禁沿用 whale 的 WHALE_MIN_COLS=40 / WHALE_MIN_ROWS=22。
+
+GRID = [
+".....BBB.......BBB...S..",
+"....BBBBB.....BBBBB.SSS.",
+"...BBBBBBB...BBBBBBB.S..",
+"..BBBBBBBBBBBBBBBBBBBB..",
+".BBBBBBBBBBBBBBBBBBBBBB.",
+"BBBBBBBBBBBBBBBBBBBBBBBB",
+"BBBBBBBEEBBBBBBEEBBBBBBB",
+"BBBBBBBEEBBBBBBEEBBBBBBB",
+"BBBBBBBBBBBBBBBBBBBBBBBB",
+"BBBBBPPBBBBBBBBBBPPBBBBB",
+"BBBBBPPBBBBBBBBBBPPBBBBB",
+".BBBBBBBBBWWWWBBBBBBBBB.",
+".BBBBBBBBWWEEWWBBBBBBBB.",
+"..BBBBBBBBWWWWBBBBBBBB..",
+".BBBBBBBBBBBBBBBBBBBBBB.",
+"BBBBBBBBBBBBBBBBBBBBBBBB",
+]
+
+# 调色板（品牌固定色）
+#   B 身体  #4d6bfe   （16 色轨 blueBright）
+#   W 口鼻  #f2f5fa   （16 色轨 whiteBright）
+#   E 眼/鼻 #14204a   （16 色轨 blue）
+#   P 腮红  #f5a8b8   （16 色轨 blueBright 近似，同 whale）
+#   S 星辉  #ffc94d   （16 色轨 yellow，新增）

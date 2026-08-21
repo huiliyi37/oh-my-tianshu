@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Oh My Tianshu · 星枢徽章（主标识，透明底）
+       手绘五角星 = 天枢（大熊座 α，北斗第一星）；一笔未闭合的笔触星环 = 插件轨道 /
+       "oh" 的 o；星上下突破星环 = 枢纽定位。星辉琥珀为唯一点缀色。 -->
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <!-- 星环：未闭合笔触（左端起收笔，留口），描两遍模拟手绘 -->
+    <path d="M 16 126 C 42 86 90 76 128 79 C 166 76 214 86 240 120" fill="none" stroke="#232734" stroke-width="6"/>
+    <path d="M 240 124 C 214 162 166 172 128 169 C 90 172 42 162 16 118" fill="none" stroke="#232734" stroke-width="6"/>
+    <path d="M 16 123.5 C 42 83.5 90 73.5 128 76.5 C 166 73.5 214 83.5 240 117.5" fill="none" stroke="#232734" stroke-width="3.5" opacity="0.14"/>
+    <path d="M 240 126.5 C 214 164.5 166 174.5 128 171.5 C 90 174.5 42 164.5 16 115.5" fill="none" stroke="#232734" stroke-width="3.5" opacity="0.14"/>
+    <!-- 主星：手绘五角星（微抖坐标），天枢蓝 + 墨线 -->
+    <path d="M 127 59 L 145 99 L 188 104 L 154 131 L 165 173 L 127 148 L 90 171 L 103 131 L 68 101 L 111 99 Z"
+          fill="#4d6bfe" stroke="#232734" stroke-width="6"/>
+    <path d="M 130 62 L 148 102 L 191 107 L 157 134 L 168 176 L 130 151 L 93 174 L 106 134 L 71 104 L 114 102 Z"
+          fill="none" stroke="#232734" stroke-width="3.5" opacity="0.14"/>
+    <!-- 星辉：琥珀四角星（唯一点缀） -->
+    <path d="M 222 38 L 226 46 L 234 50 L 226 54 L 222 62 L 218 54 L 210 50 L 218 46 Z"
+          fill="#ffc94d" stroke="#232734" stroke-width="3.5"/>
+  </g>
+</svg>

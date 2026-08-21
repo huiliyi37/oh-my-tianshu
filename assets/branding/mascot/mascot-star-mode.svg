@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- 枢宝 · 星枢终端形态（透明底，极小尺寸 / icon 用）
+       五角星本体长出脸与手绘四肢：tui 星形 mascot。 -->
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <!-- 星本体 -->
+    <path d="M 127 59 L 145 99 L 188 104 L 154 131 L 165 173 L 127 148 L 90 171 L 103 131 L 68 101 L 111 99 Z"
+          fill="#4d6bfe" stroke="#232734" stroke-width="6"/>
+    <path d="M 130 62 L 148 102 L 191 107 L 157 134 L 168 176 L 130 151 L 93 174 L 106 134 L 71 104 L 114 102 Z"
+          fill="none" stroke="#232734" stroke-width="3.5" opacity="0.14"/>
+    <!-- 脸 -->
+    <circle cx="118" cy="112" r="7" fill="#232734"/>
+    <circle cx="146" cy="112" r="7" fill="#232734"/>
+    <circle cx="120.5" cy="109.5" r="2.4" fill="#ffffff"/>
+    <circle cx="148.5" cy="109.5" r="2.4" fill="#ffffff"/>
+    <path d="M 117 136 Q 128 148 139 136" fill="none" stroke="#232734" stroke-width="5"/>
+    <ellipse cx="110" cy="134" rx="6.5" ry="5" fill="#f5a8b8" opacity="0.55"/>
+    <ellipse cx="146" cy="134" rx="6.5" ry="5" fill="#f5a8b8" opacity="0.55"/>
+    <!-- 手绘四肢 -->
+    <path d="M 90 171 C 68 162 54 176 44 194" fill="none" stroke="#232734" stroke-width="6"/>
+    <circle cx="44" cy="194" r="4.5" fill="#232734"/>
+    <path d="M 165 173 C 187 164 201 178 211 196" fill="none" stroke="#232734" stroke-width="6"/>
+    <circle cx="211" cy="196" r="4.5" fill="#232734"/>
+    <path d="M 119 152 L 111 184" fill="none" stroke="#232734" stroke-width="6"/>
+    <circle cx="111" cy="184" r="4.5" fill="#232734"/>
+    <path d="M 136 152 L 144 184" fill="none" stroke="#232734" stroke-width="6"/>
+    <circle cx="144" cy="184" r="4.5" fill="#232734"/>
+    <!-- 星辉 -->
+    <path d="M 216 34 L 220 40 L 226 44 L 220 48 L 216 54 L 212 48 L 206 44 L 212 40 Z"
+          fill="#ffc94d" stroke="#232734" stroke-width="3.5"/>
+  </g>
+</svg>

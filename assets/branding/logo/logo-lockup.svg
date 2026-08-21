@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 260" width="560" height="260">
+  <!-- Oh My Tianshu · 横版 lockup（云纸卡片呈现版） -->
+  <rect x="4" y="4" width="552" height="252" rx="24" fill="#f7f4ec" stroke="#232734" stroke-width="3.5"/>
+  <g transform="translate(24,28) scale(0.75)" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M 16 126 C 42 86 90 76 128 79 C 166 76 214 86 240 120" fill="none" stroke="#232734" stroke-width="6"/>
+    <path d="M 240 124 C 214 162 166 172 128 169 C 90 172 42 162 16 118" fill="none" stroke="#232734" stroke-width="6"/>
+    <path d="M 16 123.5 C 42 83.5 90 73.5 128 76.5 C 166 73.5 214 83.5 240 117.5" fill="none" stroke="#232734" stroke-width="3.5" opacity="0.14"/>
+    <path d="M 240 126.5 C 214 164.5 166 174.5 128 171.5 C 90 174.5 42 164.5 16 115.5" fill="none" stroke="#232734" stroke-width="3.5" opacity="0.14"/>
+    <path d="M 127 59 L 145 99 L 188 104 L 154 131 L 165 173 L 127 148 L 90 171 L 103 131 L 68 101 L 111 99 Z"
+          fill="#4d6bfe" stroke="#232734" stroke-width="6"/>
+    <path d="M 130 62 L 148 102 L 191 107 L 157 134 L 168 176 L 130 151 L 93 174 L 106 134 L 71 104 L 114 102 Z"
+          fill="none" stroke="#232734" stroke-width="3.5" opacity="0.14"/>
+    <path d="M 222 38 L 226 46 L 234 50 L 226 54 L 222 62 L 218 54 L 210 50 L 218 46 Z"
+          fill="#ffc94d" stroke="#232734" stroke-width="3.5"/>
+  </g>
+  <!-- 手绘分隔短线 -->
+  <line x1="244" y1="92" x2="244" y2="188" stroke="#232734" stroke-width="3" opacity="0.3" stroke-linecap="round"/>
+  <!-- 字标：手写体（Caveat / 霞鹜文楷），tianshu 下一条蓝色轨道弧 -->
+  <text x="262" y="128" font-family="Caveat, 'Patrick Hand', 'Comic Sans MS', 'Segoe Script', cursive" font-size="44" fill="#232734">oh my tianshu</text>
+  <path d="M 262 146 Q 330 154 380 148 Q 430 143 470 150" fill="none" stroke="#4d6bfe" stroke-width="3.5" stroke-linecap="round" opacity="0.85"/>
+  <text x="262" y="182" font-family="'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', serif" font-size="23" fill="#4d6bfe">天枢 · 星之枢纽</text>
+  <text x="262" y="212" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="13" letter-spacing="1.5" fill="#6b7280">THE PIVOT OF YOUR TERMINAL</text>
+</svg>
