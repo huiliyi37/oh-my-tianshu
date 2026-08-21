@@ -7,7 +7,10 @@
  * 与既有件的分工：
  * - dsh-memory-consolidate 拥有「活会话 disposal 即时抽取」与退役节奏
  *   （retireStale）；本包只做「错过 disposal 的历史会话补抽」与「跨会话
- *   去重整合」，两者经共享台账互不重复（幂等键 = sessionId）。
+ *   去重整合」。互不重复由两层实现：本台账（本管线自身幂等）+ 记忆库侧
+ *   溯源（sweep 对 global auto 条目的 sourceRefs 查已抽会话——consolidate
+ *   不写本台账，活抽取过的会话靠这层跳过；Markdown provider 不携带
+ *   sourceRefs，该层退化为仅台账幂等）。
  * - 抽取器复用 consolidate 导出的实现（ExperienceExtractor 接口 + apply
  *   第三参注入点）；LLM 预算字段命名与 consolidate 对齐。
  *
@@ -60,6 +63,12 @@ const DAY_MS = 86_400_000
 /** 提取器选择：'llm'（缺省——回填的价值在模型质量）或 heuristic（零模型调用）。 */
 export type ExtractorKind = 'heuristic' | 'llm'
 
+/** 可选推理档位词表（与 dsh-llm 的 ReasoningEffortId 级集对齐；加载即拒拼写错误）。 */
+export type EffortLevel = 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+
+/** {@link EffortLevel} 词表（运行时校验用——schemastery 只覆盖 settings 层，直调 apply 也会到这里）。 */
+const EFFORT_LEVELS: readonly EffortLevel[] = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']
+
 /** 插件配置：全部阈值经 schemastery 校验，缺省值在 schema 上。 */
 export interface Config {
   /** 总开关（缺省 false——opt-in，阈值校准前不作为产品默认）。 */
@@ -88,8 +97,8 @@ export interface Config {
   llmMaxInputChars?: number
   /** LLM 输出 token 上限（缺省 2000）。 */
   llmMaxOutputTokens?: number
-  /** reasoning effort（缺省 'off'）。 */
-  llmEffort?: string
+  /** reasoning effort（缺省 'off'；词表见 {@link EffortLevel}）。 */
+  llmEffort?: EffortLevel
   /** LLM 端到端超时毫秒数（缺省 30000）。 */
   llmTimeoutMs?: number
   /** 单条候选文本字符上限（缺省 280）。 */
@@ -106,7 +115,7 @@ export interface Config {
   maxCandidatesPerSession?: number
   /** phase2 全局整合开关（缺省 false）。 */
   phase2Enabled?: boolean
-  /** 累计新增候选达到该阈值后触发全局整合（缺省 8）。 */
+  /** 累计新增候选（跨多次扫描累计于台账 pendingCount）达到该阈值后触发全局整合（缺省 8）。 */
   phase2MinNewEntries?: number
   /** 全局整合输入条目数上限（缺省 40）。 */
   phase2MaxInputEntries?: number
@@ -137,7 +146,7 @@ export const Config: z<Config> = z.object({
   llmModel: z.string(),
   llmMaxInputChars: z.number().default(20_000),
   llmMaxOutputTokens: z.number().default(2000),
-  llmEffort: z.string().default('off'),
+  llmEffort: z.union(['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const).default('off'),
   llmTimeoutMs: z.number().default(30_000),
   maxTextChars: z.number().default(280),
   maxSummaryChars: z.number().default(600),
@@ -170,7 +179,7 @@ interface ResolvedConfig {
   llmModel?: string
   llmMaxInputChars: number
   llmMaxOutputTokens: number
-  llmEffort: string
+  llmEffort: EffortLevel
   llmTimeoutMs: number
   maxTextChars: number
   maxSummaryChars: number
@@ -253,6 +262,14 @@ function resolveConfig(config: Config): ResolvedConfig {
   if (resolved.enabled && resolved.extractor === 'llm' && !hasProvider) {
     throw new Error('memory-pipeline: extractor "llm" 需要成对配置 llmProvider/llmModel（回填无会话路由可借）')
   }
+  // phase2 的合并计划是 LLM 调用，与回填提取器无关——heuristic 回填 +
+  // phase2 开启但缺路由对同样是自包含误配置，加载即拒（而非首个作业运行时）。
+  if (resolved.enabled && resolved.phase2Enabled && !hasProvider) {
+    throw new Error('memory-pipeline: phase2Enabled 需要成对配置 llmProvider/llmModel（全局整合是 LLM 调用）')
+  }
+  if (!EFFORT_LEVELS.includes(resolved.llmEffort)) {
+    throw new Error(`memory-pipeline: llmEffort "${resolved.llmEffort}" 不在词表内（${EFFORT_LEVELS.join('/')}）`)
+  }
   return resolved
 }
 
@@ -311,7 +328,11 @@ export function apply(ctx: Context, config: Config, hooks?: { invoke?: LlmInvoke
     const tasks = ctx.reflect.get('tasks', false) as TaskService | undefined
     if (tasks === undefined) {
       ctx.logger.warn(`memory-pipeline: tasks 服务未装配，${label} 内联执行（不可取消）`)
-      void done.then((outcome) => { ctx.logger.info(`memory-pipeline: ${label} — ${outcome.detail}`) })
+      void done.then((outcome) => {
+        // 失败与任务面同级可见（tasks 在场时失败经任务状态呈现）。
+        if (outcome.status === 'failed') ctx.logger.warn(`memory-pipeline: ${label} 失败 — ${outcome.detail}`)
+        else ctx.logger.info(`memory-pipeline: ${label} — ${outcome.detail}`)
+      })
       return
     }
     tasks.start({
@@ -362,8 +383,18 @@ export function apply(ctx: Context, config: Config, hooks?: { invoke?: LlmInvoke
       log: ctx.logger,
       signal,
     }, workerId)
+    // 累计语义：本次新增计入台账 pendingCount，先落盘再判阈值——phase2 作业
+    // 重新 loadLedger 时读到的是含本次增量的持久值（慢滴灌场景跨多次扫描
+    // 累计触发）。整合失败 pendingCount 保留（phase2 只在成功路径清零），
+    // 下次有新增的扫描即重试。
+    // sweepOnce 开头已赋值（loadLedger 之后的流程内不再置空）。
+    loadedLedger.phase2.pendingCount += report.savedCandidates
+    const ledger = loadedLedger
     await persistLedger()
-    if (resolved.phase2Enabled && report.savedCandidates >= resolved.phase2MinNewEntries && !signal.aborted) {
+    if (resolved.phase2Enabled
+      && report.savedCandidates > 0
+      && ledger.phase2.pendingCount >= resolved.phase2MinNewEntries
+      && !signal.aborted) {
       runJob('memory-pipeline: global consolidation', phase2Signal => consolidateOnce(phase2Signal))
     }
     return `listed=${String(report.listed)} extracted=${String(report.extractedSessions)} saved=${String(report.savedCandidates)} idle=${String(report.skippedIdle)} expired=${String(report.skippedExpired)} failed=${String(report.failed)}`

@@ -323,22 +323,7 @@ async function consolidateSession(
       ? failureCandidates(events, bounds)
       : []
   const capped = candidates.slice(0, config.maxCandidatesPerSession)
-  // 同一次巩固内同 (subject, predicate) 的候选值表：不同 value = 无明确
-  // supersede 顺序的冲突 → 写入后标记 uncertain（不替模型二选一）。
-  const statedPairs = new Map<string, string>()
-  let uncertain = 0
-  for (const candidate of capped) {
-    const conflict = candidate.fact !== undefined
-      && statedPairs.get(`${candidate.fact.subject}\n${candidate.fact.predicate}`) !== undefined
-      && statedPairs.get(`${candidate.fact.subject}\n${candidate.fact.predicate}`) !== candidate.fact.value
-    if (candidate.fact !== undefined) {
-      statedPairs.set(`${candidate.fact.subject}\n${candidate.fact.predicate}`, candidate.fact.value)
-    }
-    await saveCandidate(memory, session, candidate)
-    if (conflict && candidate.fact !== undefined && typeof memory.markUncertain === 'function') {
-      if (await memory.markUncertain('global', candidate.fact.subject, candidate.fact.predicate)) uncertain += 1
-    }
-  }
+  const uncertain = await saveCandidatesWithConflictMarking(memory, session.id, capped)
   if (config.retirementEnabled && typeof memory.retireStale === 'function') {
     const report = await memory.retireStale({
       now: Date.now(),
@@ -359,20 +344,47 @@ async function consolidateSession(
   }
 }
 
-/** 写入一条候选（global scope、source 'auto'、provenance 折算 sourceRefs）。 */
-async function saveCandidate(memory: MemoryService, session: Session, candidate: ExtractionCandidate): Promise<void> {
-  await memory.save({
-    text: candidate.text,
-    scope: 'global',
-    tags: candidate.keywords,
-    source: 'auto',
-    kind: candidate.kind,
-    topic: candidate.topic,
-    entities: candidate.entities,
-    confidence: candidate.confidence,
-    ...(candidate.fact === undefined ? {} : { fact: candidate.fact }),
-    sourceRefs: [{ sessionId: session.id, eventSeqs: candidate.sourceSeqs }],
-  })
+/**
+ * 写入一批候选（memory-consolidate 与 memory-pipeline 回填共用的写入循环）：
+ * 逐条 save（global scope、source 'auto'、provenance 折算 sourceRefs），
+ * 同一批内同 (subject, predicate) 不同 value 的候选无明确 supersede 顺序 →
+ * 写入后标记 uncertain（不替模型二选一；探测可选能力）。
+ * @param memory - 记忆服务（写入面）。
+ * @param sessionId - 候选来源会话（sourceRefs 溯源键）。
+ * @param candidates - 已截顶的候选列表。
+ * @returns 实际标记 uncertain 的条数。
+ */
+export async function saveCandidatesWithConflictMarking(
+  memory: MemoryService,
+  sessionId: string,
+  candidates: readonly ExtractionCandidate[],
+): Promise<number> {
+  const statedPairs = new Map<string, string>()
+  let uncertain = 0
+  for (const candidate of candidates) {
+    const conflict = candidate.fact !== undefined
+      && statedPairs.get(`${candidate.fact.subject}\n${candidate.fact.predicate}`) !== undefined
+      && statedPairs.get(`${candidate.fact.subject}\n${candidate.fact.predicate}`) !== candidate.fact.value
+    if (candidate.fact !== undefined) {
+      statedPairs.set(`${candidate.fact.subject}\n${candidate.fact.predicate}`, candidate.fact.value)
+    }
+    await memory.save({
+      text: candidate.text,
+      scope: 'global',
+      tags: candidate.keywords,
+      source: 'auto',
+      kind: candidate.kind,
+      topic: candidate.topic,
+      entities: candidate.entities,
+      confidence: candidate.confidence,
+      ...(candidate.fact === undefined ? {} : { fact: candidate.fact }),
+      sourceRefs: [{ sessionId, eventSeqs: candidate.sourceSeqs }],
+    })
+    if (conflict && candidate.fact !== undefined && typeof memory.markUncertain === 'function') {
+      if (await memory.markUncertain('global', candidate.fact.subject, candidate.fact.predicate)) uncertain += 1
+    }
+  }
+  return uncertain
 }
 
 /**

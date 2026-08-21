@@ -9,9 +9,9 @@
  * @module @huiliyi37/dsh-memory-pipeline/ledger
  */
 
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { readFile } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
+import { writeFileAtomic } from '@huiliyi37/dsh-atomic-write'
 
 /** 台账格式版本（不兼容变更时递增并拒绝旧文件——与 SESSION_FORMAT_VERSION 同策略）。 */
 export const LEDGER_VERSION = 1
@@ -70,7 +70,10 @@ export interface LedgerFile {
   phase2: Phase2State
 }
 
-/** 全新空台账。 */
+/**
+ * 全新空台账。
+ * @returns 无会话记录、无租约、phase2 计数归零的台账。
+ */
 export function emptyLedger(): LedgerFile {
   return { version: LEDGER_VERSION, leases: {}, sessions: {}, phase2: { pendingCount: 0 } }
 }
@@ -106,15 +109,13 @@ export async function loadLedger(path: string): Promise<LedgerFile> {
 }
 
 /**
- * 原子写回台账（tmp + rename；同进程串行调用方负责——租约持有者独写）。
+ * 原子写回台账（writeFileAtomic：同目录 tmp + rename；同进程串行调用方
+ * 负责——租约持有者独写）。
  * @param path - 台账文件绝对路径。
  * @param ledger - 要写回的台账。
  */
 export async function saveLedger(path: string, ledger: LedgerFile): Promise<void> {
-  await mkdir(dirname(path), { recursive: true })
-  const tmp = join(dirname(path), `.ledger-${randomUUID()}.tmp`)
-  await writeFile(tmp, `${JSON.stringify(ledger, null, 2)}\n`, 'utf8')
-  await rename(tmp, path)
+  await writeFileAtomic(path, `${JSON.stringify(ledger, null, 2)}\n`, { mode: 0o600 })
 }
 
 /**
@@ -133,12 +134,6 @@ export function acquireLease(ledger: LedgerFile, kind: PipelineJobKind, workerId
   return true
 }
 
-/**
- * 释放租约（仅持有者本人生效；过期后他人接管过则 no-op）。
- * @param ledger - 当前台账（原地修改）。
- * @param kind - 作业种类。
- * @param workerId - 本 worker 标识。
- */
 /**
  * 释放租约（仅持有者本人生效；过期后他人接管过则 no-op）。以重建对象替代
  * 动态 delete（no-dynamic-delete 门禁；键集恒小，开销可忽略）。

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-21-memory-auto-pipeline.md
-2026-08-21-memory-auto-pipeline.md: 5ef06f33f8a746b754e37ab96846c4131dab74bc
-2026-08-21-memory-auto-pipeline.zh.md: b5676954e4ccbe787ac56ff35c1d51ffe542a732
+2026-08-21-memory-auto-pipeline.md: f7ef19f144c2353f33eb038cd96a9174508ee76e
+2026-08-21-memory-auto-pipeline.zh.md: c186a83e01c66451d34ad161acfeb0f5099bd457

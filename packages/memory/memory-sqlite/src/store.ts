@@ -100,6 +100,9 @@ const FACT_SELECT = [
   'f.keywords', 'f.entities', 'f.topic', 'f.source', 'f.valid_from', 'f.valid_to',
   'f.confidence', 'f.status', 'f.supersedes', 'f.source_event_id', 'f.created_at',
   'f.used_at_consolidation',
+  // 溯源读面：sourceRefs 只存在 append-only 的 events 行上（facts 行不复制），
+  // 经 source_event_id 关联回源事件取出（读取面透传给 MemoryEntry.sourceRefs）。
+  '(SELECT e.source_refs FROM events e WHERE e.id = f.source_event_id) AS source_refs',
 ].join(', ')
 
 /** search 内部的打分中行（relevance 供 BM25 名次与无 embedder 的缺省 score 路径使用）。 */
@@ -130,6 +133,7 @@ interface DbFactRow {
   source_event_id: string
   created_at: number
   used_at_consolidation: number
+  source_refs: string
 }
 
 /** SqliteMemoryStore 的构造参数（插件 apply 负责从 Config 解析出显式值）。 */
@@ -202,6 +206,7 @@ function rowToFact(row: DbFactRow): MemoryFactRow {
     sourceEventId: row.source_event_id,
     createdAt: row.created_at,
     usedAtConsolidation: row.used_at_consolidation,
+    sourceRefs: JSON.parse(row.source_refs) as MemorySourceRef[],
   }
 }
 
@@ -215,6 +220,7 @@ function toEntry(fact: MemoryFactRow): MemoryEntry {
     createdAt: fact.createdAt,
     ...(fact.supersedes === null ? {} : { updatedAt: fact.validFrom }),
     source: fact.source,
+    ...(fact.sourceRefs.length === 0 ? {} : { sourceRefs: fact.sourceRefs }),
   }
 }
 
@@ -367,7 +373,7 @@ export class SqliteMemoryStore implements MemoryService {
       const logicalId = entry.id ?? existing?.id ?? id
       const fact = this.insertFactVersion({
         id: logicalId, scope: entry.scope, subject, predicate, value, text: entry.text,
-        keywords, entities, topic, source: entry.source, confidence,
+        keywords, entities, topic, source: entry.source, confidence, sourceRefs,
       }, existing, now, eventId)
       if (vector !== undefined) this.upsertEmbedding(fact.versionId, vector)
       this.bumpTopic(topic)
@@ -739,6 +745,7 @@ export class SqliteMemoryStore implements MemoryService {
       topic: string
       source: MemorySource
       confidence: number
+      sourceRefs: MemorySourceRef[]
     },
     head: MemoryFactRow | null,
     validFrom: number,
@@ -770,6 +777,7 @@ export class SqliteMemoryStore implements MemoryService {
       value: input.value, text: input.text, keywords: [...input.keywords], entities: [...input.entities],
       topic: input.topic, source: input.source, validFrom, validTo: null, confidence: input.confidence,
       status: 'active', supersedes, sourceEventId: eventId, createdAt, usedAtConsolidation,
+      sourceRefs: [...input.sourceRefs],
     }
   }
 
@@ -918,6 +926,7 @@ export class SqliteMemoryStore implements MemoryService {
     this.insertFactVersion({
       id: entry.id, scope: entry.scope, subject: entry.id, predicate: 'note', value: entry.text,
       text: entry.text, keywords: entry.tags, entities: [], topic, source: entry.source, confidence: 1,
+      sourceRefs: [],
     }, head, stamp, eventId)
     this.bumpTopic(topic)
     if (head !== null && head.topic !== topic) this.bumpTopic(head.topic)

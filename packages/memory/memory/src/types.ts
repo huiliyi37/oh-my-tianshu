@@ -97,6 +97,11 @@ export interface MemoryEntry {
   updatedAt?: number
   /** 来源分类。 */
   source: MemorySource
+  /**
+   * 来源引用（读取面透传：结构化 provider 从持久行提供；Markdown 纯文本
+   * 存储按契约不携带）。消费方做溯源去重/审计回溯；缺席不参与判定。
+   */
+  sourceRefs?: MemorySourceRef[]
 }
 
 /** 一次巩固期退役的输入（retireStale 可选能力；时间由调用方注入以保证确定性）。 */

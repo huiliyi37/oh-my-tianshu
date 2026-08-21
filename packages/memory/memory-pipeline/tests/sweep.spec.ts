@@ -5,6 +5,8 @@
  * @module @huiliyi37/dsh-memory-pipeline/tests/sweep
  */
 
+import { realpathSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { describe, expect, it } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
 import { createUserMessage, createAssistantMessage } from '@huiliyi37/dsh-llm'
@@ -293,5 +295,77 @@ describe('runBackfillSweep', () => {
     }, 'w1')
     controller.abort()
     expect(extractor.calls.length).toBeLessThanOrEqual(2)
+  })
+})
+
+describe('runBackfillSweep — 溯源去重与 cwd 规范化', () => {
+  it('记忆库已有该会话的 auto 溯源（consolidate 活抽取）→ 记终态 ok，不再抽取', async () => {
+    const ctx = new Context()
+    const lastTime = NOW - 2 * 3600_000
+    const logs = new Map([[ 's1', passingEvents(lastTime) ]])
+    const persistence = new FakePersistence(ctx, [header('s1')], logs)
+    const memory = fakeMemory()
+    // global 已有 consolidate 写入的 auto 条目，溯源指向 s1。
+    ;(memory.service.list as (opts?: { scope?: string }) => Promise<MemoryEntry[]>) = async () => [{
+      id: 'm0', text: 'already extracted', scope: 'global', tags: [], createdAt: NOW, source: 'auto',
+      sourceRefs: [{ sessionId: 's1', eventSeqs: [2] }],
+    }]
+    const extractor = fakeExtractor([])
+    const ledger: LedgerFile = emptyLedger()
+    const report = await runBackfillSweep({
+      persistence, memory: memory.service, extractor, ledger,
+      options: sweepOptions(), now: () => NOW, log: noLog(), signal: new AbortController().signal,
+    }, 'w1')
+    expect(report.dedupSkipped).toBe(1)
+    expect(report.extractedSessions).toBe(0)
+    expect(memory.saves).toHaveLength(0)
+    expect(extractor.calls).toEqual([])
+    expect(ledger.sessions['s1']?.outcome).toBe('ok')
+    expect(ledger.sessions['s1']?.extractor).toBe('provenance-dedup')
+  })
+
+  it('非 auto 条目的溯源不去重（用户手写条目不算已抽取）', async () => {
+    const ctx = new Context()
+    const lastTime = NOW - 2 * 3600_000
+    const logs = new Map([[ 's1', passingEvents(lastTime) ]])
+    const persistence = new FakePersistence(ctx, [header('s1')], logs)
+    const memory = fakeMemory()
+    ;(memory.service.list as (opts?: { scope?: string }) => Promise<MemoryEntry[]>) = async () => [{
+      id: 'm0', text: 'user note', scope: 'global', tags: [], createdAt: NOW, source: 'user',
+      sourceRefs: [{ sessionId: 's1', eventSeqs: [2] }],
+    }]
+    const extractor = fakeExtractor([{
+      kind: 'observation', topic: 'explicit', text: 'deploy uses pnpm',
+      keywords: ['deploy'], entities: [], confidence: 0.9, sourceSeqs: [2],
+    }])
+    const ledger: LedgerFile = emptyLedger()
+    const report = await runBackfillSweep({
+      persistence, memory: memory.service, extractor, ledger,
+      options: sweepOptions(), now: () => NOW, log: noLog(), signal: new AbortController().signal,
+    }, 'w1')
+    expect(report.dedupSkipped).toBe(0)
+    expect(report.extractedSessions).toBe(1)
+  })
+
+  it('cwd 符号链接形式不同但指向同一目录 → 仍属本工作区（realpath 回落）', async () => {
+    const ctx = new Context()
+    const lastTime = NOW - 2 * 3600_000
+    const logs = new Map([[ 's1', passingEvents(lastTime) ]])
+    // 真实 tmpdir 在 macOS 上即 /var ↔ /private/var 符号链接对；字面不等、
+    // realpath 相等——正好构造该场景。
+    const real = realpathSync(tmpdir())
+    const literal = tmpdir()
+    const persistence = new FakePersistence(ctx, [header('s1', { cwd: literal })], logs)
+    const extractor = fakeExtractor([{
+      kind: 'observation', topic: 'explicit', text: 'x',
+      keywords: [], entities: [], confidence: 0.9, sourceSeqs: [2],
+    }])
+    const ledger: LedgerFile = emptyLedger()
+    const report = await runBackfillSweep({
+      persistence, memory: fakeMemory().service, extractor, ledger,
+      options: sweepOptions({ workspaceCwd: real }), now: () => NOW, log: noLog(), signal: new AbortController().signal,
+    }, 'w1')
+    expect(report.extractedSessions + report.dedupSkipped + report.skippedIdle).toBe(1)
+    expect(report.extractedSessions).toBe(1)
   })
 })

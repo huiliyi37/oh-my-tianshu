@@ -78,4 +78,6 @@ export interface MemoryFactRow {
   createdAt: number
   /** 最近一次被检索命中（或创建）时的巩固期计数（未使用退役的依据）。 */
   usedAtConsolidation: number
+  /** 来源引用（经 source_event_id 关联回源事件行读出；读取面透传）。 */
+  sourceRefs: MemorySourceRef[]
 }

@@ -10,11 +10,11 @@
  */
 
 import type { MemoryService } from '@huiliyi37/dsh-memory'
-import type { MemoryFactShape } from '@huiliyi37/dsh-memory'
 import type { SessionPersistence } from '@huiliyi37/dsh-session-persistence'
 import type { SessionHeader } from '@huiliyi37/dsh-session-persistence'
-import { evaluateSuccessGate, failureCandidates } from '@huiliyi37/dsh-memory-consolidate'
-import type { ExperienceExtractor, ExtractionCandidate } from '@huiliyi37/dsh-memory-consolidate'
+import { evaluateSuccessGate, failureCandidates, saveCandidatesWithConflictMarking } from '@huiliyi37/dsh-memory-consolidate'
+import type { ExperienceExtractor } from '@huiliyi37/dsh-memory-consolidate'
+import { realpathSync } from 'node:fs'
 import type { SessionEvent } from '@huiliyi37/dsh-session'
 import { acquireLease, releaseLease } from './ledger.ts'
 import type { LedgerFile, SessionRecord } from './ledger.ts'
@@ -81,6 +81,42 @@ export interface SweepReport {
   skippedExpired: number
   /** 本次失败的会话数。 */
   failed: number
+  /** 因记忆库已有该会话的 auto 溯源而跳过（去重）的会话数。 */
+  dedupSkipped: number
+}
+
+/**
+ * 工作区比较：字面相等优先；否则两侧 realpath（消除符号链接与尾斜杠差异——
+ * 会话头的 cwd 是创建时 process.cwd() 的原样字符串，宿主经符号链接路径启动
+ * 时字面不等但指向同一目录）。realpath 失败（目录已不存在）按不相等处理。
+ * @param a - 会话头 cwd。
+ * @param b - 配置的工作区 cwd。
+ * @returns 指向同一目录返回 true。
+ */
+function sameWorkspace(a: string | undefined, b: string): boolean {
+  if (a === undefined) return false
+  if (a === b) return true
+  try {
+    return realpathSync(a) === realpathSync(b)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 收集已被抽取过的会话 id 集：global scope 的 auto 条目经 sourceRefs 溯源。
+ * 覆盖 memory-consolidate 的活会话抽取与本管线的历次运行——consolidate
+ * 不写本台账，「共享台账互不重复」的实际实现是这条记忆库侧溯源检查。
+ * @param memory - 记忆服务。
+ * @returns 已有 auto 条目溯源的会话 id 集。
+ */
+async function extractedSessionIds(memory: MemoryService): Promise<Set<string>> {
+  const ids = new Set<string>()
+  for (const entry of await memory.list({ scope: 'global' })) {
+    if (entry.source !== 'auto') continue
+    for (const ref of entry.sourceRefs ?? []) ids.add(ref.sessionId)
+  }
+  return ids
 }
 
 /**
@@ -94,23 +130,6 @@ export function isDerivedSession(header: SessionHeader): boolean {
   return header.parentSession !== undefined
     || header.origin === 'subagent'
     || (header.delegationDepth !== undefined && header.delegationDepth > 0)
-}
-
-/** 写入一条候选（global scope、source 'auto'、provenance 折算 sourceRefs；与 consolidate 同形状）。 */
-async function saveCandidate(memory: MemoryService, sessionId: string, candidate: ExtractionCandidate): Promise<void> {
-  const fact: MemoryFactShape | undefined = candidate.fact
-  await memory.save({
-    text: candidate.text,
-    scope: 'global',
-    tags: candidate.keywords,
-    source: 'auto',
-    kind: candidate.kind,
-    topic: candidate.topic,
-    entities: candidate.entities,
-    confidence: candidate.confidence,
-    ...(fact === undefined ? {} : { fact }),
-    sourceRefs: [{ sessionId, eventSeqs: candidate.sourceSeqs }],
-  })
 }
 
 /**
@@ -144,21 +163,8 @@ async function processSession(deps: SweepDeps, header: SessionHeader, record: Se
     ? await deps.extractor.extract({ sessionId: header.id, events, bounds })
     : options.recordFailures ? failureCandidates(events, bounds) : []
   const capped = candidates.slice(0, options.maxCandidatesPerSession)
-  // 同一次扫描内同 (subject, predicate) 不同 value 的候选无明确 supersede
-  // 顺序 → 写入后标记 uncertain（store 的可选能力，探测调用）。
-  const statedPairs = new Map<string, string>()
-  for (const candidate of capped) {
-    const conflict = candidate.fact !== undefined
-      && statedPairs.get(`${candidate.fact.subject}\n${candidate.fact.predicate}`) !== undefined
-      && statedPairs.get(`${candidate.fact.subject}\n${candidate.fact.predicate}`) !== candidate.fact.value
-    if (candidate.fact !== undefined) {
-      statedPairs.set(`${candidate.fact.subject}\n${candidate.fact.predicate}`, candidate.fact.value)
-    }
-    await saveCandidate(deps.memory, header.id, candidate)
-    if (conflict && candidate.fact !== undefined && typeof deps.memory.markUncertain === 'function') {
-      await deps.memory.markUncertain('global', candidate.fact.subject, candidate.fact.predicate)
-    }
-  }
+  // 写入循环与 consolidate 共享（同批冲突 uncertain 标记含在内）。
+  await saveCandidatesWithConflictMarking(deps.memory, header.id, capped)
   record.outcome = 'ok'
   record.extractedAtMs = deps.now()
   record.extractor = verdict.passed ? 'extractor' : 'failure-patterns'
@@ -176,7 +182,7 @@ export async function runBackfillSweep(deps: SweepDeps, workerId: string): Promi
   const { options, ledger } = deps
   const report: SweepReport = {
     listed: 0, inspected: 0, extractedSessions: 0,
-    savedCandidates: 0, skippedIdle: 0, skippedExpired: 0, failed: 0,
+    savedCandidates: 0, skippedIdle: 0, skippedExpired: 0, failed: 0, dedupSkipped: 0,
   }
   if (!acquireLease(ledger, 'sweep', workerId, options.leaseMs, deps.now())) {
     deps.log.info('memory-pipeline: 回填扫描租约被他人持有，跳过本次')
@@ -185,9 +191,10 @@ export async function runBackfillSweep(deps: SweepDeps, workerId: string): Promi
   try {
     const headers = await deps.persistence.list(deps.signal)
     report.listed = headers.length
+    const extracted = await extractedSessionIds(deps.memory)
     const eligible = headers
       .filter(header => !isDerivedSession(header))
-      .filter(header => header.cwd === options.workspaceCwd)
+      .filter(header => sameWorkspace(header.cwd, options.workspaceCwd))
       .filter((header) => {
         const record = ledger.sessions[header.id]
         if (record === undefined) return true
@@ -207,6 +214,14 @@ export async function runBackfillSweep(deps: SweepDeps, workerId: string): Promi
         retries: 0,
       }
       ledger.sessions[header.id] = record
+      // 溯源去重：记忆库已有该会话的 auto 条目（consolidate 活抽取或本管线
+      // 旧运行——台账丢失后重建的场景）→ 记终态 ok，不再抽取。
+      if (extracted.has(header.id)) {
+        record.outcome = 'ok'
+        record.extractor = 'provenance-dedup'
+        report.dedupSkipped += 1
+        continue
+      }
       report.inspected += 1
       try {
         const saved = await processSession(deps, header, record)
@@ -232,7 +247,8 @@ export async function runBackfillSweep(deps: SweepDeps, workerId: string): Promi
   deps.log.info(
     `memory-pipeline: 回填扫描完成——列举 ${String(report.listed)}，复查 ${String(report.inspected)}，`
     + `抽取 ${String(report.extractedSessions)} 会话 / ${String(report.savedCandidates)} 候选，`
-    + `闲置跳过 ${String(report.skippedIdle)}，过期 ${String(report.skippedExpired)}，失败 ${String(report.failed)}`,
+    + `闲置跳过 ${String(report.skippedIdle)}，过期 ${String(report.skippedExpired)}，`
+    + `去重跳过 ${String(report.dedupSkipped)}，失败 ${String(report.failed)}`,
   )
   return report
 }

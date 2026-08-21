@@ -64,7 +64,7 @@ export interface InvokeOptions {
   /** 输出 token 上限。 */
   maxOutputTokens: number
   /** reasoning effort（缺省 off：机械摘要不烧思考 token）。 */
-  effort: string
+  effort: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
   /** 端到端超时毫秒数。 */
   timeoutMs: number
 }
@@ -76,7 +76,7 @@ export interface InvokeOptions {
  * @param options - 预算选项。
  * @returns 调用执行体（system/user → 模型文本输出）。
  */
-export function createLlmInvoke(ctx: Context, options: InvokeOptions) {
+export function createLlmInvoke(ctx: Context, options: InvokeOptions): (system: string, user: string) => Promise<string> {
   return async (system: string, user: string): Promise<string> => {
     const llm = ctx.reflect.get('llm', false) as LlmService | undefined
     if (llm === undefined) {
