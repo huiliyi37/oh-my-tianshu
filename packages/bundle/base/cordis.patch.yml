@@ -66,6 +66,11 @@
         provider: deepseek-official
         model: deepseek-v4-flash
 
+    # Per-role model pins (vision/secondary/subagent) read live from settings.
+    # No composition entry: every pin lives in the settings user layer.
+    - id: model-roles
+      name: '@huiliyi37/dsh-model-roles'
+
     - id: tasks
       name: '@huiliyi37/dsh-tasks-local'
 

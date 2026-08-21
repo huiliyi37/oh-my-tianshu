@@ -66,6 +66,7 @@
     "@huiliyi37/dsh-llm-pi-ai": "workspace:^",
     "@huiliyi37/dsh-llm-retry": "workspace:^",
     "@huiliyi37/dsh-meridian": "workspace:^",
+    "@huiliyi37/dsh-model-roles": "workspace:^",
     "@huiliyi37/dsh-next-workflow": "workspace:^",
     "@huiliyi37/dsh-permission": "workspace:^",
     "@huiliyi37/dsh-pheromone": "workspace:^",

@@ -12,6 +12,7 @@ The session log, system-prompt assembly, tool registry, agent vocabulary, deploy
 | [`tools/`](tools/README.md) | Scoped tool registry and execution pipeline | `ctx.tools` |
 | [`agent/`](agent/README.md) | Agent interface, registry, and event vocabulary | `ctx.agents` |
 | [`agent-default-model/`](agent-default-model/README.md) | Default model selection shared by Agent front doors | `ctx.agentDefaultModel` |
+| [`model-roles/`](model-roles/README.md) | Settings-backed model pins for the vision, secondary, and subagent roles | `ctx.modelRoles` |
 | [`agent-loop/`](agent-loop/README.md) | Default concrete agent driver | `ctx.agentLoop` |
 | [`agent-tool-presentation/`](agent-tool-presentation/README.md) | Per-agent tool presentation row (Code Mode / native / both) | plugin — no ctx key |
 

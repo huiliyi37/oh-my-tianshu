@@ -1,0 +1,47 @@
+{
+  "name": "@huiliyi37/dsh-model-roles",
+  "description": "Settings-backed model pins for the vision, secondary, and subagent roles",
+  "version": "0.3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/oh-my-tianshu.git",
+    "directory": "packages/core/model-roles"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@huiliyi37/schemastery": "^3.18.0"
+  },
+  "peerDependencies": {
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/dsh-settings": "^0.2.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
+  },
+  "devDependencies": {
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/dsh-settings": "workspace:^",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
+  }
+}

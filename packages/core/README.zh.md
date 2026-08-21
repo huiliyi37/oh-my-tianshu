@@ -12,6 +12,7 @@
 | [`tools/`](tools/README.md) | 作用域工具注册表和执行流水线 | `ctx.tools` |
 | [`agent/`](agent/README.md) | Agent 接口、注册表和事件词汇 | `ctx.agents` |
 | [`agent-default-model/`](agent-default-model/README.md) | 各 Agent 入口共享的默认模型选择 | `ctx.agentDefaultModel` |
+| [`model-roles/`](model-roles/README.md) | 由设置支撑的 视觉/副模型/子代理 角色模型 pin | `ctx.modelRoles` |
 | [`agent-loop/`](agent-loop/README.md) | 默认具体 agent 驱动器 | `ctx.agentLoop` |
 | [`agent-tool-presentation/`](agent-tool-presentation/README.md) | 按 agent 的工具呈现行（Code Mode / native / both） | 插件——无 ctx key |
 

@@ -345,6 +345,13 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Layers the default ModelSelection through settings so direct and Host-backed Agent front doors share one state owner.',
   },
   {
+    key: 'modelRoles',
+    pkg: 'model-roles',
+    title: 'Per-role model pins',
+    mode: 'core',
+    note: 'Stores settings-backed provider/model pins for the vision, secondary, and subagent roles; consumers resolve their role at the point of use and own the unpinned fallback chain.',
+  },
+  {
     key: 'agentLoop',
     pkg: 'agent-loop',
     title: 'Concrete loop driver',
