@@ -10,7 +10,9 @@ import * as SessionInvariant from '@huiliyi37/dsh-session/invariant'
 import * as AgentInvariant from '@huiliyi37/dsh-agent/invariant'
 import * as AgentLoopInvariant from '@huiliyi37/dsh-agent-loop/invariant'
 import SubagentService, { snapshotSubagentDescriptor } from '@huiliyi37/dsh-subagent'
+import ModelRolesService from '@huiliyi37/dsh-model-roles'
 import { maxTokensResponse, MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
+import { MemorySettings } from '../../../settings/settings/tests/memory.ts'
 import { startInProcessRun } from '../src/index.ts'
 
 type Script = ConstructorParameters<typeof MockAdapter>[0]
@@ -77,6 +79,36 @@ describe('startInProcessRun', () => {
     const child = ctx.agents.get(run.id)!
     expect(child.options).toMatchObject({ provider: 'mock', model: 'mock' })
     expect(child.session.header.cwd).toBe('/workspace')
+    await expect(run.result).resolves.toMatchObject({ stopReason: 'completed' })
+    await run.dispose()
+  })
+
+  it('routes the child through the subagent-role pin above the inherited parent route', async () => {
+    const { ctx, parent } = await setup([textResponse('pinned answer')])
+    await ctx.plugin(MemorySettings)
+    await ctx.plugin(ModelRolesService)
+    await ctx.modelRoles.pin('subagent', { provider: 'mock', model: 'pin-model' })
+
+    const run = await startInProcessRun(request(parent), {})
+    const child = ctx.agents.get(run.id)!
+    expect(child.options).toMatchObject({ provider: 'mock', model: 'pin-model' })
+    await expect(run.result).resolves.toMatchObject({ stopReason: 'completed' })
+    await run.dispose()
+  })
+
+  it('keeps request agentOptions above the subagent-role pin', async () => {
+    const { ctx, parent } = await setup([textResponse('requested answer')])
+    await ctx.plugin(MemorySettings)
+    await ctx.plugin(ModelRolesService)
+    await ctx.modelRoles.pin('subagent', { provider: 'mock', model: 'pin-model' })
+
+    const run = await startInProcessRun({
+      ...request(parent),
+      agentOptions: { model: 'requested-model' },
+    }, {})
+    const child = ctx.agents.get(run.id)!
+    // The request's model wins; the pin's provider still fills the layer below it.
+    expect(child.options).toMatchObject({ provider: 'mock', model: 'requested-model' })
     await expect(run.result).resolves.toMatchObject({ stopReason: 'completed' })
     await run.dispose()
   })

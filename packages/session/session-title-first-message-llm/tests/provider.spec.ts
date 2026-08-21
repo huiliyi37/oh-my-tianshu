@@ -2,9 +2,11 @@ import { Context } from '@huiliyi37/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import LlmService, { createUserMessage, LlmAdapter  } from '@huiliyi37/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@huiliyi37/dsh-llm'
+import ModelRolesService from '@huiliyi37/dsh-model-roles'
 import SessionStore, { Session, SessionId } from '@huiliyi37/dsh-session'
 import SessionTitleService, { type SessionTitleProvider } from '@huiliyi37/dsh-session-title'
 import * as providerPlugin from '@huiliyi37/dsh-session-title-first-message-llm'
+import { MemorySettings } from '../../../settings/settings/tests/memory.ts'
 
 class RecordingAdapter extends LlmAdapter {
   readonly requests: GenerateOptions[] = []
@@ -82,5 +84,40 @@ describe('first-message LLM title provider', () => {
       expect(content?.type === 'text' && content.text).not.toContain('second input must be ignored')
     }
     expect(ctx.sessionTitle.get(session)).toMatchObject({ messageSeqs: [first.seq] })
+  })
+
+  it('routes title generation through a secondary-role pin above the configured pair', async () => {
+    const ctx = new Context()
+    await ctx.plugin(LlmService)
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(MemorySettings)
+    await ctx.plugin(ModelRolesService)
+    await ctx.plugin(SessionTitleService, TITLE_CONFIG)
+    await ctx.modelRoles.pin('secondary', { provider: 'pin-route', model: 'pin-model' })
+    const pinAdapter = new RecordingAdapter()
+    const configAdapter = new RecordingAdapter()
+    ctx.llm.registerAdapter(['pin-route'], pinAdapter)
+    ctx.llm.registerAdapter(['title-route'], configAdapter)
+    await ctx.plugin(providerPlugin, LLM_CONFIG)
+    const session = ctx.sessions.create(SessionId('pinned-first-plugin'))
+    session.append('turn/start', { turn: 1 })
+    session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'first input' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    await settle()
+    session.append('request/header', {
+      header: { config: { provider: 'main', model: 'main-model' } }, reason: 'initial',
+    })
+    await settle()
+
+    await ctx.sessionTitle.refresh(session)
+
+    // Every dispatch — automatic and explicit refresh — follows the pin; the
+    // configured pair and the logged main route stay untouched below it.
+    expect(pinAdapter.requests.length).toBeGreaterThan(0)
+    for (const options of pinAdapter.requests) {
+      expect(options).toMatchObject({ provider: 'pin-route', model: 'pin-model' })
+    }
+    expect(configAdapter.requests).toHaveLength(0)
   })
 })

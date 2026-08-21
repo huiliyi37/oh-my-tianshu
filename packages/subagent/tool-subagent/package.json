@@ -36,6 +36,7 @@
     "@huiliyi37/dsh-agent-definitions": "^0.2.0",
     "@huiliyi37/dsh-invariants": "^0.2.0",
     "@huiliyi37/dsh-llm": "^0.2.0",
+    "@huiliyi37/dsh-model-roles": "^0.3.0",
     "@huiliyi37/dsh-skill": "^0.2.0",
     "@huiliyi37/dsh-subagent": "^0.2.0",
     "@huiliyi37/dsh-tasks": "^0.2.0",
@@ -44,6 +45,9 @@
   },
   "peerDependenciesMeta": {
     "@huiliyi37/dsh-agent-definitions": {
+      "optional": true
+    },
+    "@huiliyi37/dsh-model-roles": {
       "optional": true
     }
   },
@@ -56,9 +60,11 @@
     "@huiliyi37/dsh-agent-definitions": "workspace:^",
     "@huiliyi37/dsh-invariants": "workspace:^",
     "@huiliyi37/dsh-llm": "workspace:^",
+    "@huiliyi37/dsh-model-roles": "workspace:^",
     "@huiliyi37/dsh-session": "workspace:^",
     "@huiliyi37/dsh-session-persistence": "workspace:^",
     "@huiliyi37/dsh-session-persistence-jsonl": "workspace:^",
+    "@huiliyi37/dsh-settings": "workspace:^",
     "@huiliyi37/dsh-skill": "workspace:^",
     "@huiliyi37/dsh-subagent": "workspace:^",
     "@huiliyi37/dsh-subagent-spawn": "workspace:^",

@@ -11,6 +11,7 @@
     { "path": "../../../vendor/schemastery" },
     { "path": "../../support/invariants" },
     { "path": "../../llm/llm" },
+    { "path": "../../core/model-roles" },
     { "path": "../../util/timeout" },
     { "path": "../session-title" }
   ]

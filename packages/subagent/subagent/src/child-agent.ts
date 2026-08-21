@@ -16,6 +16,9 @@ import type { ToolRestriction } from '@huiliyi37/dsh-tools'
 // package; the composition append consumes it opportunistically, never as a
 // hard dependency.
 import type {} from '@huiliyi37/dsh-sandbox-policy'
+// Type-only: the subagent-role pin type lives in the pins package; callers
+// resolve it through the optional `ctx.get('modelRoles')` service.
+import type { ModelRoleSelection } from '@huiliyi37/dsh-model-roles'
 import { delegationDepthOf } from './depth.ts'
 
 /** Thrown when starting a child would exceed the requested depth cap. */
@@ -48,18 +51,28 @@ export function resolveChildDepth(parent: Agent, maxDepth: number | undefined): 
 }
 
 /**
- * Resolve the child's `AgentOptions`: the parent's provider/model/maxTokens
- * route unless the request overrides it, stamped with the child's own
- * delegation depth.
+ * Resolve the child's `AgentOptions` in ascending precedence: the parent's
+ * provider/model/maxTokens route, then the subagent-role pin, then the
+ * request's own overrides — stamped with the child's own delegation depth.
+ *
+ * The pin is the live user-level override from the optional `modelRoles`
+ * service; context-holding callers resolve it at creation
+ * (`ctx.get('modelRoles')?.resolve('subagent')`) so a committed settings
+ * change applies to the next child with no restart. (The delegating tool
+ * additionally merges the pin into `requested` below the instance's
+ * configured `agentOptions` and above an agent definition's `model:`, which
+ * this function only sees as already-merged request values.)
  * @param parent - the delegating parent whose route the child inherits.
  * @param requested - per-child overrides, if any.
  * @param childDepth - the resolved delegation depth to stamp.
+ * @param rolePin - the subagent-role pin, when the optional service carries one.
  * @returns the resolved options for `ctx.agents.create()`.
  */
 export function resolveChildAgentOptions(
   parent: Agent,
   requested: AgentOptions | undefined,
   childDepth: number,
+  rolePin?: ModelRoleSelection,
 ): AgentOptions {
   const parentProvider = parent.options.provider
   const parentModel = parent.options.model
@@ -68,6 +81,7 @@ export function resolveChildAgentOptions(
     ...parentProvider !== undefined ? { provider: parentProvider } : {},
     ...parentModel !== undefined ? { model: parentModel } : {},
     ...parentMaxTokens !== undefined ? { maxTokens: parentMaxTokens } : {},
+    ...rolePin,
     ...requested,
     subagentDepth: childDepth,
   }

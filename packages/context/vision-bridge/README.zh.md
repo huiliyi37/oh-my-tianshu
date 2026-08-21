@@ -24,7 +24,7 @@ TUI 输入框允许用户粘贴图片（data URL 以 `image` ContentBlock 进入
     visionAutoBridge: false        # optional; auto-pick the first supportsVision model when no explicit route
 ```
 
-`provider`/`model` 在**开启 `visionAutoBridge` 时可省略**——未开自动桥且缺路由时装配即 fail loud。`visionAutoBridge: true` 时在调用期遍历已注册 provider 的 advisory catalog，取第一个 `supportsVision: true` 的模型（由所属 adapter 经 `LlmModelInfo.supportsVision` 声明）。`fallback` 可选；给出时其 `provider`/`model` 均必填，主视觉模型 error/aborted（5xx/超时）时经其兜底重试一次。
+视觉路由解析顺序：**`vision` 角色 pin**（可选 `ctx.modelRoles` 服务中 settings 承载的用户级覆盖，每次调用即时读取，settings.yaml 热重载天然生效）> 显式 `provider`/`model` > `visionAutoBridge` 自动选择。装配期 fail-loud 要求三者至少有路由依据：显式对、装配时已存在的 vision pin、或开启自动桥；`visionAutoBridge: true` 时在调用期遍历已注册 provider 的 advisory catalog，取第一个 `supportsVision: true` 的模型（由所属 adapter 经 `LlmModelInfo.supportsVision` 声明）。运行时后到的 pin 不豁免装配期检查——组合必须声明路由意图，pin 是覆盖而非装配依据。`fallback` 可选；给出时其 `provider`/`model` 均必填，主视觉模型 error/aborted（5xx/超时）时经其兜底重试一次。
 
 ## 关键性质
 

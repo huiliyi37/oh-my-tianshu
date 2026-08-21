@@ -747,7 +747,42 @@ Source: [`packages/core/agent/src/index.ts:254`](../../packages/core/agent/src/i
 async createAlignedSession(options: CreateAlignedSessionOptions = {}): Promise<{ sessionId: string; handle: AgentHandle }>
 ```
 
-Source: [`packages/guard/intent-bridge/src/index.ts:218`](../../packages/guard/intent-bridge/src/index.ts)
+Source: [`packages/guard/intent-bridge/src/index.ts:227`](../../packages/guard/intent-bridge/src/index.ts)
+
+<a id="ctxmodelroles--modelrolesservice"></a>
+
+### `ctx.modelRoles` — `ModelRolesService`
+
+Owns the per-role model pins independently of any consumer. The composition entry is empty and stays usable without a settings provider — every role resolves to undefined and writes are no-ops; when a provider is mounted, its user layer is read live at each ModelRolesService.resolve call, so a committed settings change is visible at the next read with no restart. The service deliberately emits no change event of its own: consumers resolve at their point of use, and observers use the existing `settings/updated` event.
+
+```ts cordis-catalog
+/**
+ * Read one role's current pin.
+ * @param role - the role to resolve.
+ * @returns the pinned selection, or undefined when the role follows the consumer's default route.
+ */
+resolve(role: ModelRole): ModelRoleSelection | undefined
+
+/**
+ * Pin one role to a provider/model route, persisting through the settings
+ * user layer. A deployment without a settings provider cannot retain pins:
+ * the write is a no-op and the role keeps following the default route.
+ * @param role - the role to pin.
+ * @param selection - the provider/model route the role resolves to.
+ * @returns fulfillment after the optional settings write settles.
+ */
+async pin(role: ModelRole, selection: ModelRoleSelection): Promise<void>
+
+/**
+ * Remove one role's pin so it follows the consumer's default route again.
+ * A no-op without a settings provider, exactly like {@link pin}.
+ * @param role - the role to unpin.
+ * @returns fulfillment after the optional settings write settles.
+ */
+async unpin(role: ModelRole): Promise<void>
+```
+
+Source: [`packages/core/model-roles/src/index.ts:83`](../../packages/core/model-roles/src/index.ts)
 
 <a id="ctxtaskcard--taskcardservice"></a>
 

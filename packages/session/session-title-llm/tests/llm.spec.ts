@@ -5,7 +5,9 @@ import type { FinishReason, GenerateOptions, StreamChunk } from '@huiliyi37/dsh-
 import SessionStore, { SessionId } from '@huiliyi37/dsh-session'
 import { SessionTitleProviderId } from '@huiliyi37/dsh-session-title'
 import type { SessionTitleProviderRequest } from '@huiliyi37/dsh-session-title'
+import ModelRolesService from '@huiliyi37/dsh-model-roles'
 import { MAX_TIMER_DELAY_MS } from '@huiliyi37/dsh-timeout'
+import { MemorySettings } from '../../../settings/settings/tests/memory.ts'
 import {
   generateSessionTitleWithLlm,
   resolveSessionTitleLlmConfig,
@@ -171,6 +173,56 @@ describe('generateSessionTitleWithLlm', () => {
         messages: options.messages,
         maxTokens: 32,
       })
+  })
+
+  it('resolves the secondary-role pin above the explicit pair and the logged route', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(LlmService)
+    await ctx.plugin(MemorySettings)
+    await ctx.plugin(ModelRolesService)
+    await ctx.modelRoles.pin('secondary', { provider: 'pin-route', model: 'pin-model' })
+    const pinAdapter = new RecordingAdapter(SCRIPT)
+    const explicitAdapter = new RecordingAdapter(SCRIPT)
+    ctx.llm.registerAdapter(['pin-route'], pinAdapter)
+    ctx.llm.registerAdapter(['explicit-route'], explicitAdapter)
+    // Explicit pair configured and a logged route present: the pin still wins.
+    const config = resolveSessionTitleLlmConfig({ ...CONFIG, provider: 'explicit-route', model: 'explicit-model' })
+    const providerRequest = request(ctx)
+
+    const result = await generateSessionTitleWithLlm(ctx, config, providerRequest, providerRequest.messages, TITLE_PROVIDER)
+
+    expect(result.model).toEqual({ provider: 'pin-route', model: 'pin-model' })
+    expect(pinAdapter.requests).toHaveLength(1)
+    expect(explicitAdapter.requests).toEqual([])
+    expect(providerRequest.session.events.findLast(event => event.type === 'session/title-llm-request')?.data)
+      .toMatchObject({ route: { provider: 'pin-route', model: 'pin-model' } })
+  })
+
+  it('follows a live secondary-role pin change without an explicit pair', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(LlmService)
+    await ctx.plugin(MemorySettings)
+    await ctx.plugin(ModelRolesService)
+    const pinAdapter = new RecordingAdapter(SCRIPT)
+    const loggedAdapter = new RecordingAdapter(SCRIPT)
+    ctx.llm.registerAdapter(['pin-route'], pinAdapter)
+    ctx.llm.registerAdapter(['current-route'], loggedAdapter)
+    const config = resolveSessionTitleLlmConfig(CONFIG)
+
+    await ctx.modelRoles.pin('secondary', { provider: 'pin-route', model: 'pin-model' })
+    const pinned = request(ctx)
+    await generateSessionTitleWithLlm(ctx, config, pinned, pinned.messages, TITLE_PROVIDER)
+    expect(pinAdapter.requests).toHaveLength(1)
+    expect(loggedAdapter.requests).toEqual([])
+
+    // Unpinning reverts to the logged request route on the very next call.
+    await ctx.modelRoles.unpin('secondary')
+    const unpinned = request(ctx)
+    await generateSessionTitleWithLlm(ctx, config, unpinned, unpinned.messages, TITLE_PROVIDER)
+    expect(loggedAdapter.requests).toHaveLength(1)
+    expect(loggedAdapter.requests[0]).toMatchObject({ provider: 'current-route', model: 'current-model' })
   })
 
   it('uses paired explicit overrides and bounds the final framed input before model dispatch', async () => {

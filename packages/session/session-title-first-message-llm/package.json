@@ -47,9 +47,11 @@
     "@huiliyi37/dsh-invariants": "workspace:^",
     "@huiliyi37/dsh-llm": "workspace:^",
     "@huiliyi37/dsh-llm-deepseek": "workspace:^",
+    "@huiliyi37/dsh-model-roles": "workspace:^",
     "@huiliyi37/dsh-session": "workspace:^",
     "@huiliyi37/dsh-session-title": "workspace:^",
     "@huiliyi37/dsh-session-title-llm": "workspace:^",
+    "@huiliyi37/dsh-settings": "workspace:^",
     "@huiliyi37/cordis": "^4.0.0-rc.7"
   }
 }

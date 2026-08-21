@@ -25,6 +25,9 @@ import z from '@huiliyi37/schemastery'
 import type { PreStepDecision } from '@huiliyi37/dsh-agent'
 import { BlockAssembler, createUserMessage, LlmError } from '@huiliyi37/dsh-llm'
 import type { ContentBlock, GenerateOptions, UserMessage } from '@huiliyi37/dsh-llm'
+// Type-only：让 `ctx.get('modelRoles')` 在组合装配时解析到角色 pin 服务——
+// 本插件机会式消费（`ctx.get` 可选服务模式），从不硬依赖。
+import type {} from '@huiliyi37/dsh-model-roles'
 
 /** Cordis plugin name（session 事件的 source.plugin 标记）。 */
 export const name = 'vision-bridge'
@@ -45,13 +48,13 @@ declare module '@huiliyi37/cordis' {
   }
 }
 
-/** 视觉桥配置：描述模型路由（显式或自动）+ 主控能力声明。 */
+/** 视觉桥配置：描述模型路由（role pin / 显式 / 自动）+ 主控能力声明。 */
 export interface Config {
   /** 总开关；false 时不注册监听（缺省 true）。 */
   enabled?: boolean
-  /** 显式视觉模型的 provider route；缺省时配合 visionAutoBridge 自动选择。 */
+  /** 显式视觉模型的 provider route；低于 vision 角色 pin，高于 visionAutoBridge 自动选择。 */
   provider?: string
-  /** 显式视觉模型名；缺省时配合 visionAutoBridge 自动选择。 */
+  /** 显式视觉模型名；低于 vision 角色 pin，高于 visionAutoBridge 自动选择。 */
   model?: string
   /** 自定义描述 prompt；缺省按随图文本自动选通用/精确转写模式。 */
   prompt?: string
@@ -72,8 +75,8 @@ export interface Config {
 
 /**
  * Schemastery validation for {@link Config}. provider/model 在 schema 层可选——
- * 「显式缺省且未开 visionAutoBridge 即 fail loud」由 {@link apply} 在装配时判定
- * （跨字段条件约束 schemastery 表达不了）。
+ * 「显式缺省、装配时无 vision 角色 pin 且未开 visionAutoBridge 即 fail loud」
+ * 由 {@link apply} 在装配时判定（跨字段条件约束 schemastery 表达不了）。
  */
 export const Config: z<Config> = z.object({
   enabled: z.boolean().default(true),
@@ -129,19 +132,23 @@ export function selectVisionPrompt(configuredPrompt?: string, accompanyingText?:
   return GENERAL_VISION_PROMPT
 }
 
-// ── 视觉路由解析（显式 / 自动桥）──────────────────────────
+// ── 视觉路由解析（role pin / 显式 / 自动桥）──────────────────────────
 
 /**
- * 解析视觉模型路由：显式 provider/model 优先；否则 visionAutoBridge 时遍历
- * 已注册 provider 的 advisory catalog，取第一个 `supportsVision === true` 的模型。
- * @param ctx - Cordis context（llm 服务查询注册模型能力）。
+ * 解析视觉模型路由，回退顺序：**vision 角色 pin（`ctx.get('modelRoles')`，
+ * settings.yaml 热重载即时生效的覆盖）> 显式 provider/model >
+ * visionAutoBridge 自动选择**（遍历已注册 provider 的 advisory catalog，
+ * 取第一个 `supportsVision === true` 的模型）。
+ * @param ctx - Cordis context（llm 服务查询注册模型能力；可选 modelRoles 读取 pin）。
  * @param config - 显式 provider/model 与 visionAutoBridge 开关。
- * @returns 视觉路由；无显式路由且（未开自动桥或找不到识图模型）时 null。
+ * @returns 视觉路由；无 pin、无显式路由且（未开自动桥或找不到识图模型）时 null。
  */
 async function resolveVisionRoute(
   ctx: Context,
   config: Pick<Config, 'provider' | 'model' | 'visionAutoBridge'>,
 ): Promise<{ provider: string; model: string } | null> {
+  const pin = ctx.get('modelRoles')?.resolve('vision')
+  if (pin !== undefined) return { provider: pin.provider, model: pin.model }
   if (config.provider !== undefined && config.model !== undefined) {
     return { provider: config.provider, model: config.model }
   }
@@ -197,7 +204,8 @@ export async function describeImages(
     { type: 'text', text: prompt },
     ...images.map(dataUrl => ({ type: 'image' as const, dataUrl })),
   ]
-  // 视觉路由：显式 provider/model 或自动桥；两者皆无时抛错，由 bridgeOne 降级为提示。
+  // 视觉路由：vision 角色 pin、显式 provider/model 或自动桥；三者皆无时抛错，
+  // 由 bridgeOne 降级为提示。
   const route = await resolveVisionRoute(ctx, config)
   if (route === null) {
     throw new LlmError(
@@ -313,14 +321,21 @@ async function bridgeImages(
  * 注册 pre-step 视觉桥监听（prepend：先于其他注入器注册；本监听先 next() 拿到
  * 其余注入器的 decision 后再改写，故描述替换对最终 decision 最后生效）。
  * 主控支持识图（primarySupportsVision）时不干预；无图消息零开销透传。
+ *
+ * 装配期 fail-loud：显式 provider/model、vision 角色 pin（装配时经
+ * `ctx.get('modelRoles')` 判定）、visionAutoBridge 三者必有其一，缺全部即抛。
+ * 注意 pin 只在**装配时已存在**才算满足——运行时后到的 pin 不豁免本检查：
+ * 组合必须声明路由意图（显式配置或自动桥），pin 是用户级覆盖而非装配依据。
  * @param ctx - plugin context; the listener is disposed with it.
- * @param config - 视觉桥配置；未配置视觉模型且未开 visionAutoBridge 时装配即失败（fail loud）。
+ * @param config - 视觉桥配置；未配置视觉模型、无 pin 且未开 visionAutoBridge 时装配即失败（fail loud）。
  */
 export function apply(ctx: Context, config: Config): void {
   if (config.enabled === false) return
-  // 跨字段 fail-loud（schema 层表达不了）：显式 provider/model 或自动桥二者必有其一。
+  // 跨字段 fail-loud（schema 层表达不了）：显式 provider/model、装配期已存在的
+  // vision 角色 pin、自动桥三者必有其一。
   const explicit = config.provider !== undefined && config.model !== undefined
-  if (!explicit && config.visionAutoBridge !== true) {
+  const pinned = ctx.get('modelRoles')?.resolve('vision') !== undefined
+  if (!explicit && !pinned && config.visionAutoBridge !== true) {
     throw new Error('vision-bridge: 未配置视觉模型——请提供 provider/model，或开启 visionAutoBridge')
   }
 

@@ -4,7 +4,7 @@
 
 可选的 `ctx.sessionTitle` 提供方，通过 `ctx.llm` 总结第一条符合条件的用户消息。它注册 `first-message` 节奏，只在全新非 fork 会话首次创建回退时自动运行，并将结果归因于该消息的确切 seq。自动失败会保留回退，之后只能通过 `ctx.sessionTitle.refresh()` 重试。
 
-该插件使用完整且必填的[共享大语言模型（LLM）配置](../session-title-llm/README.md#configuration)。同时省略 `provider` 与 `model` 时，会继承当前已记录主请求的确切路由；也可以同时设置二者，使标题生成使用独立路由。
+该插件使用完整且必填的[共享大语言模型（LLM）配置](../session-title-llm/README.md#configuration)。路由解析遵循共享辅助模块的顺序：可选 `ctx.modelRoles` 服务中的 `secondary` 角色 pin 优先，其次是配置的 `provider`/`model` 对，最后才继承当前已记录主请求的确切路由。
 
 ## 模型体验
 

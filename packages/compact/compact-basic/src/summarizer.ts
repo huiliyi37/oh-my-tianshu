@@ -10,6 +10,9 @@ import type {
   ContentBlock, FinishReason, GenerateOptions, Message, TokenUsage, ToolSchema,
 } from '@huiliyi37/dsh-llm'
 import type { Agent } from '@huiliyi37/dsh-agent'
+// Type-only: make `ctx.get('modelRoles')` resolve to the optional role-pin
+// service when composed — consumed opportunistically, never as a hard dep.
+import type {} from '@huiliyi37/dsh-model-roles'
 
 interface SummaryConfig {
   readonly summarizationProvider: string
@@ -111,7 +114,13 @@ export type SummaryResult = {
  * Run the default cache-reusing `ctx.llm.stream()` summarization call: replay
  * the conversation prefix, then append the compaction instruction as the final
  * user message so the provider's warm prefix cache is reused.
- * @param ctx - context providing the LLM service.
+ *
+ * Summarization route order: the secondary-role pin (read live from the
+ * optional `modelRoles` service) wins over the configured
+ * `summarizationProvider`/`summarizationModel` pair, which wins over the
+ * session-following targets (latest logged request route, then the
+ * `AgentOptions` pair).
+ * @param ctx - context providing the LLM service and the optional modelRoles service.
  * @param config - resolved backend configuration.
  * @param input - replayed conversation prefix (system, tools, and leading messages) to condense.
  * @param agent - supplies routed-model history, fallback model, and session id.
@@ -126,6 +135,7 @@ export async function summarizeWithLlm(
   signal?: AbortSignal,
 ): Promise<SummaryResult> {
   const latest = agent.session.requestHeader()?.config
+  const pin = ctx.get('modelRoles')?.resolve('secondary')
   const configured = config.summarizationProvider.length === 0
     ? undefined
     : { provider: config.summarizationProvider, model: config.summarizationModel }
@@ -135,10 +145,10 @@ export async function summarizeWithLlm(
     && agent.options.model.length > 0
     ? { provider: agent.options.provider, model: agent.options.model }
     : undefined
-  const target = configured ?? latest ?? agentTarget
+  const target = pin ?? configured ?? latest ?? agentTarget
   if (target === undefined) {
     throw new Error(
-      'no provider/model available for summarization: set both BasicCompactConfig summarization fields, route one request, or set both AgentOptions fields',
+      'no provider/model available for summarization: pin the secondary role, set both BasicCompactConfig summarization fields, route one request, or set both AgentOptions fields',
     )
   }
 

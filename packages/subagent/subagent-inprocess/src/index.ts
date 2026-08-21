@@ -35,6 +35,9 @@ import type {
 // opportunistically (the documented `ctx.get` pattern), never as a hard dep.
 import type {} from '@huiliyi37/dsh-sandbox-policy'
 import type {} from '@huiliyi37/dsh-user-approval'
+// Type-only: same optional-service pattern for the subagent-role pin
+// (`ctx.get('modelRoles')`), resolved live at child creation.
+import type {} from '@huiliyi37/dsh-model-roles'
 import {
   attachStructuredRuntime,
   type StructuredAttachment,
@@ -140,7 +143,12 @@ export async function startInProcessRun(
     sessionId: childId,
     meta: childSessionMeta(parent, childDepth, activationBoundary),
     ...seed !== undefined ? { seed } : {},
-    agentOptions: resolveChildAgentOptions(parent, request.agentOptions, childDepth),
+    agentOptions: resolveChildAgentOptions(
+      parent,
+      request.agentOptions,
+      childDepth,
+      parent.ctx.get('modelRoles')?.resolve('subagent'),
+    ),
     signal: request.signal,
     setup,
   })

@@ -14,9 +14,9 @@ export interface CompactPolicyConfig {
   retainRatio?: number
   /** Absolute recent-context budget; mutually exclusive with `retainRatio`. */
   retainTokens?: number
-  /** Summary provider; set together with `summarizationModel`, or inherit the conversation target. */
+  /** Summary provider; set together with `summarizationModel`, or inherit the conversation target. Below the secondary-role pin. */
   summarizationProvider?: string
-  /** Summary model; set together with `summarizationProvider`, or inherit the conversation target. */
+  /** Summary model; set together with `summarizationProvider`, or inherit the conversation target. Below the secondary-role pin. */
   summarizationModel?: string
   /** Provider generation cap for summarization. Defaults to `8192`. */
   maxTokens?: number

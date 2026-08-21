@@ -9,6 +9,8 @@ import { Context } from '@huiliyi37/cordis'
 import LlmService from '@huiliyi37/dsh-llm'
 import { LlmAdapter } from '@huiliyi37/dsh-llm'
 import type { GenerateOptions, StreamChunk, LlmModelInfo } from '@huiliyi37/dsh-llm'
+import ModelRolesService from '@huiliyi37/dsh-model-roles'
+import { MemorySettings } from '../../../settings/settings/tests/memory.ts'
 import { describeImages, selectVisionPrompt, apply, Config } from '../src/index.ts'
 
 const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
@@ -219,5 +221,61 @@ describe('describeImages（桥接描述生成）', () => {
     await expect(describeImages(ctx, { visionAutoBridge: true, maxTokens: 256 }, [IMG], 'hi'))
       .rejects.toMatchObject({ code: 'NO_ADAPTER' })
     expect(adapter.requests).toHaveLength(0)
+  })
+})
+
+/** 挂真实 ModelRolesService + 内存 settings 的桥测试床。 */
+async function mountWithRoles(pin?: { provider: string; model: string }) {
+  const ctx = new Context()
+  await ctx.plugin(LlmService)
+  await ctx.plugin(MemorySettings)
+  await ctx.plugin(ModelRolesService)
+  if (pin !== undefined) await ctx.modelRoles.pin('vision', pin)
+  return ctx
+}
+
+describe('vision 角色 pin（modelRoles）', () => {
+  const PIN = { provider: 'pin-vision', model: 'pin-vl' }
+
+  it('pin 胜出：压过显式 provider/model 与 visionAutoBridge', async () => {
+    const ctx = await mountWithRoles(PIN)
+    const pinAdapter = new FakeVisionAdapter('ok')
+    const configAdapter = new class extends FakeVisionAdapter {
+      override listModels(provider: string): Promise<readonly LlmModelInfo[]> {
+        return Promise.resolve([{ provider, id: 'auto-vl', name: 'Auto VL', supportsVision: true }])
+      }
+    }('ok')
+    ctx.llm.registerAdapter(['pin-vision'], pinAdapter)
+    ctx.llm.registerAdapter(['fake-vision'], configAdapter)
+    // 显式配置 + 自动桥同时存在，pin 仍接管路由。
+    const description = await describeImages(
+      ctx,
+      { ...CONFIG, visionAutoBridge: true },
+      [IMG],
+      'hi',
+    )
+    expect(description).toBe('截图显示：Error: foo')
+    expect(pinAdapter.requests[0]).toMatchObject({ provider: 'pin-vision', model: 'pin-vl' })
+    expect(configAdapter.requests).toHaveLength(0)
+    await ctx.fiber.dispose()
+  })
+
+  it('pin 缺席：回退显式 provider/model 现状', async () => {
+    const ctx = await mountWithRoles()
+    const adapter = new FakeVisionAdapter('ok')
+    ctx.llm.registerAdapter(['fake-vision'], adapter)
+    await describeImages(ctx, CONFIG, [IMG], 'hi')
+    expect(adapter.requests[0]).toMatchObject({ provider: 'fake-vision', model: 'vision-m' })
+    await ctx.fiber.dispose()
+  })
+
+  it('装配期 fail-loud：装配时已存在的 pin 豁免显式/自动桥要求', async () => {
+    const ctx = await mountWithRoles(PIN)
+    expect(() => { apply(ctx, { enabled: true }) }).not.toThrow()
+    await ctx.fiber.dispose()
+    // 无 pin 的组合仍按原样拒绝（不豁免）。
+    const bare = await mountWithRoles()
+    expect(() => { apply(bare, { enabled: true }) }).toThrow(/未配置视觉模型/)
+    await bare.fiber.dispose()
   })
 })

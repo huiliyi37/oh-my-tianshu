@@ -597,9 +597,9 @@ export interface CompactPolicyConfig {
   retainRatio?: number
   /** Absolute recent-context budget; mutually exclusive with `retainRatio`. */
   retainTokens?: number
-  /** Summary provider; set together with `summarizationModel`, or inherit the conversation target. */
+  /** Summary provider; set together with `summarizationModel`, or inherit the conversation target. Below the secondary-role pin. */
   summarizationProvider?: string
-  /** Summary model; set together with `summarizationProvider`, or inherit the conversation target. */
+  /** Summary model; set together with `summarizationProvider`, or inherit the conversation target. Below the secondary-role pin. */
   summarizationModel?: string
   /** Provider generation cap for summarization. Defaults to `8192`. */
   maxTokens?: number
@@ -3028,7 +3028,7 @@ export interface Config {
 
 依赖：[`AgentOptions`](subsystems/core.md)
 
-来源：[`packages/subagent/tool-subagent/src/index.ts:41`](../packages/subagent/tool-subagent/src/index.ts)
+来源：[`packages/subagent/tool-subagent/src/index.ts:44`](../packages/subagent/tool-subagent/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-subagent-report`
 
@@ -3338,13 +3338,13 @@ export interface Config {
 需要：`llm`
 
 ```ts config-catalog
-/** 视觉桥配置：描述模型路由（显式或自动）+ 主控能力声明。 */
+/** 视觉桥配置：描述模型路由（role pin / 显式 / 自动）+ 主控能力声明。 */
 export interface Config {
   /** 总开关；false 时不注册监听（缺省 true）。 */
   enabled?: boolean
-  /** 显式视觉模型的 provider route；缺省时配合 visionAutoBridge 自动选择。 */
+  /** 显式视觉模型的 provider route；低于 vision 角色 pin，高于 visionAutoBridge 自动选择。 */
   provider?: string
-  /** 显式视觉模型名；缺省时配合 visionAutoBridge 自动选择。 */
+  /** 显式视觉模型名；低于 vision 角色 pin，高于 visionAutoBridge 自动选择。 */
   model?: string
   /** 自定义描述 prompt；缺省按随图文本自动选通用/精确转写模式。 */
   prompt?: string
@@ -3364,7 +3364,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/context/vision-bridge/src/index.ts:49`](../packages/context/vision-bridge/src/index.ts)
+来源：[`packages/context/vision-bridge/src/index.ts:52`](../packages/context/vision-bridge/src/index.ts)
 
 ## `@huiliyi37/dsh-web`
 

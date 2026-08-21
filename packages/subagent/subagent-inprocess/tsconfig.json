@@ -21,6 +21,9 @@
       "path": "../../llm/llm"
     },
     {
+      "path": "../../core/model-roles"
+    },
+    {
       "path": "../../core/session"
     },
     {

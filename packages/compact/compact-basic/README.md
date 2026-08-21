@@ -32,8 +32,8 @@ Every setting is optional. Top-level policy fields are defaults for every routed
 | `thresholdRatio` | no (default `0.8`) | Compact at `floor(routedContextWindow × ratio)`. |
 | `retainRatio` | no (default `0.16`) | Recent surface budget kept verbatim as a fraction of the routed context window; mutually exclusive with `retainTokens`. |
 | `retainTokens` | no | Absolute recent surface budget kept verbatim; mutually exclusive with `retainRatio` and must be below the resolved threshold. |
-| `summarizationProvider` | no (default `''`) | Set together with `summarizationModel`; an empty pair resolves the latest logged request target, then the `AgentOptions` pair. |
-| `summarizationModel` | no (default `''`) | Set together with `summarizationProvider`; an empty pair resolves the latest logged request target, then the `AgentOptions` pair. |
+| `summarizationProvider` | no (default `''`) | Set together with `summarizationModel`; a `secondary` role pin from the optional `ctx.modelRoles` service wins over a non-empty pair, and an empty pair resolves the latest logged request target, then the `AgentOptions` pair. |
+| `summarizationModel` | no (default `''`) | Set together with `summarizationProvider`; a `secondary` role pin from the optional `ctx.modelRoles` service wins over a non-empty pair, and an empty pair resolves the latest logged request target, then the `AgentOptions` pair. |
 | `maxTokens` | no (default `8192`) | Provider generation cap for the summarization call; may include reasoning tokens. |
 | `compactionRetries` | no (default `1`) | Extra attempts after the first when pressure remains above threshold. |
 | `maxOverflowRetries` | no (default `1`) | Maximum retries after canonical context-window overflow; `0` disables recovery only. |

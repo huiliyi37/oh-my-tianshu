@@ -28,6 +28,9 @@
       "path": "../../core/agent"
     },
     {
+      "path": "../../core/model-roles"
+    },
+    {
       "path": "../../interaction/commands"
     },
     {

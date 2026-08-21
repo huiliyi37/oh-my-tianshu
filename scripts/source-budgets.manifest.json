@@ -7,7 +7,7 @@
   "packages/session-query/session-query-sqlite/src/index.ts": 1070,
   "packages/session/session-persistence/src/coordinator.ts": 1303,
   "packages/skill/skill-local/src/index.ts": 1034,
-  "packages/subagent/subagent/src/continuation.ts": 1288,
+  "packages/subagent/subagent/src/continuation.ts": 1297,
   "packages/support/acp-snapshot/src/suite.ts": 1541,
   "packages/tui/tui/src/engine/input-line.ts": 1558,
   "packages/tui/tui/src/ui/app.ts": 4061,

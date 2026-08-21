@@ -32,6 +32,8 @@ flowchart LR
   cfg --> plugin_dsh_base_agent
   plugin_dsh_base_agent_default_model["agent-default-model<br/>@huiliyi37/dsh-agent-default-model"]
   cfg --> plugin_dsh_base_agent_default_model
+  plugin_dsh_base_model_roles["model-roles<br/>@huiliyi37/dsh-model-roles"]
+  cfg --> plugin_dsh_base_model_roles
   plugin_dsh_base_tasks["tasks<br/>@huiliyi37/dsh-tasks-local"]
   cfg --> plugin_dsh_base_tasks
   plugin_dsh_base_llm_retry["llm-retry<br/>@huiliyi37/dsh-llm-retry"]
@@ -194,6 +196,7 @@ flowchart LR
 | `user-interaction` | `@huiliyi37/dsh-user-interaction` |
 | `agent` | `@huiliyi37/dsh-agent` |
 | `agent-default-model` | `@huiliyi37/dsh-agent-default-model` |
+| `model-roles` | `@huiliyi37/dsh-model-roles` |
 | `tasks` | `@huiliyi37/dsh-tasks-local` |
 | `llm-retry` | `@huiliyi37/dsh-llm-retry` |
 | `tool-json-repair` | `@huiliyi37/dsh-tool-json-repair` |

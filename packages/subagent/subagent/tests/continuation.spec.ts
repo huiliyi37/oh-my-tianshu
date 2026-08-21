@@ -15,7 +15,9 @@ import type { GenerateOptions, MessageId, StreamChunk } from '@huiliyi37/dsh-llm
 import { createUserMessage, LlmAdapter } from '@huiliyi37/dsh-llm'
 import { defineTool } from '@huiliyi37/dsh-tools'
 import InvariantService from '@huiliyi37/dsh-invariants'
+import ModelRolesService from '@huiliyi37/dsh-model-roles'
 import { MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
+import { MemorySettings } from '../../../settings/settings/tests/memory.ts'
 import SubagentService, {
   SubagentError,
   SUBAGENT_DESCRIPTOR_VERSION,
@@ -1769,6 +1771,50 @@ describe('continuable errors', () => {
       expect(ctx.agents.get(started.childId)?.options.model).toBe('child-model')
     })
     await waitNoActivation(ctx, started.childId)
+  })
+
+  it('applies the subagent-role pin at creation and records it for cold resume', async () => {
+    const { ctx, parent } = await setup([textResponse('first'), textResponse('resumed')])
+    await ctx.plugin(MemorySettings)
+    await ctx.plugin(ModelRolesService)
+    await ctx.modelRoles.pin('subagent', { provider: 'mock', model: 'pin-model' })
+
+    const started = await ctx.subagents.startContinuable(startSpec(parent))
+    await waitNoActivation(ctx, started.childId)
+    const created = await ctx.sessionPersistence.load(started.childId)
+    // The pin sits above the inherited parent route ('mock/mock') and is the
+    // route the durable descriptor records at creation.
+    expect(created.events.find(event => event.type === 'subagent/descriptor')?.data)
+      .toMatchObject({ agentProvider: 'mock', agentModel: 'pin-model' })
+
+    // Cold resume replays the creation-time route; a later unpin does not
+    // rewrite a persisted child's recorded route.
+    await ctx.modelRoles.unpin('subagent')
+    await followup(ctx, parent, started.childId, message('again'))
+    await vi.waitFor(() => {
+      expect(ctx.agents.get(started.childId)?.options.model).toBe('pin-model')
+    })
+    await waitNoActivation(ctx, started.childId)
+  })
+
+  it('keeps the request route above the subagent-role pin', async () => {
+    const { ctx, parent } = await setup([textResponse('first')])
+    await ctx.plugin(MemorySettings)
+    await ctx.plugin(ModelRolesService)
+    await ctx.modelRoles.pin('subagent', { provider: 'mock', model: 'pin-model' })
+
+    const started = await ctx.subagents.startContinuable({
+      ...startSpec(parent),
+      request: {
+        prompt: message('routed work'),
+        parent,
+        agentOptions: { provider: 'mock', model: 'requested-model' },
+      },
+    })
+    await waitNoActivation(ctx, started.childId)
+    const loaded = await ctx.sessionPersistence.load(started.childId)
+    expect(loaded.events.find(event => event.type === 'subagent/descriptor')?.data)
+      .toMatchObject({ agentProvider: 'mock', agentModel: 'requested-model' })
   })
 
   it('unloading the manager drains its live activations', async () => {

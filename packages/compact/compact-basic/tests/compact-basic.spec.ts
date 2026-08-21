@@ -23,8 +23,10 @@ import type {
 } from '@huiliyi37/dsh-llm'
 import SessionStore, { Session, SessionId } from '@huiliyi37/dsh-session'
 import TokenMeterService from '@huiliyi37/dsh-token-meter'
+import ModelRolesService from '@huiliyi37/dsh-model-roles'
 import { agentEvents, type Agent, type RequestErrorAction } from '@huiliyi37/dsh-agent'
 import ToolResultPruneService from '@huiliyi37/dsh-compact-tool-result-prune'
+import { MemorySettings } from '../../../settings/settings/tests/memory.ts'
 
 const SIGNAL = new AbortController().signal
 const MODEL = 'test-model'
@@ -1297,6 +1299,45 @@ describe('default one-shot summarizer', () => {
     expect(output.model).toBe('routed')
     expect(adapter.lastOptions?.provider).toBe('routed')
     expect(adapter.lastOptions?.model).toBe('routed')
+  })
+
+  it('resolves the secondary-role pin above the configured pair, live at each call', async () => {
+    const { ctx, adapter, compact } = await summarizerHarness(
+      [{ type: 'text', text: 'configured summary' }],
+      undefined,
+      MODEL,
+      { auto: false, summarizationProvider: MODEL, summarizationModel: MODEL },
+    )
+    await ctx.plugin(MemorySettings)
+    await ctx.plugin(ModelRolesService)
+    const pinAdapter = new ScriptedAdapter([{ type: 'text', text: 'pin summary' }])
+    ctx.llm.registerAdapter(['pin-provider'], pinAdapter)
+
+    await ctx.modelRoles.pin('secondary', { provider: 'pin-provider', model: 'pin-model' })
+    const pinned = await compact.runSummarize(promptInput('history'), agent(conversation(1), 'fallback'))
+    expect(pinned).toMatchObject({ provider: 'pin-provider', model: 'pin-model' })
+    expect(pinAdapter.lastOptions).toMatchObject({ provider: 'pin-provider', model: 'pin-model' })
+    // The configured pair never dispatches while the pin stands.
+    expect(adapter.lastOptions).toBeUndefined()
+
+    // Unpinning reverts to the configured pair on the very next call.
+    await ctx.modelRoles.unpin('secondary')
+    const unpinned = await compact.runSummarize(promptInput('history'), agent(conversation(1), 'fallback'))
+    expect(unpinned).toMatchObject({ provider: MODEL, model: MODEL })
+  })
+
+  it('follows the session target when the secondary role carries no pin', async () => {
+    const { ctx, adapter, compact } = await summarizerHarness([{ type: 'text', text: 'summary' }], undefined, 'routed')
+    await ctx.plugin(MemorySettings)
+    await ctx.plugin(ModelRolesService)
+    const session = conversation(1)
+    session.append('request/header', {
+      header: { config: { provider: 'routed', model: 'routed' } },
+      reason: 'initial',
+    })
+    const output = await compact.runSummarize(promptInput('history'), agent(session, 'fallback'))
+    expect(output).toMatchObject({ provider: 'routed', model: 'routed' })
+    expect(adapter.lastOptions).toMatchObject({ provider: 'routed', model: 'routed' })
   })
 
   it('records the model actually dispatched after one-shot stream routing', async () => {

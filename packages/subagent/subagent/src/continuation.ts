@@ -28,6 +28,9 @@ import type { ContentBlock, MessageId, MessageSource } from '@huiliyi37/dsh-llm'
 import { SessionId } from '@huiliyi37/dsh-session'
 import type { SessionEvent } from '@huiliyi37/dsh-session'
 import type { SessionPersistence } from '@huiliyi37/dsh-session-persistence'
+// Type-only: make `ctx.get('modelRoles')` resolve to the optional role-pin
+// service when composed — the subagent pin is consumed opportunistically.
+import type {} from '@huiliyi37/dsh-model-roles'
 import { foldSubagentDescriptor, snapshotSubagentDescriptor } from './descriptor.ts'
 import type { SubagentDescriptorData } from './descriptor.ts'
 import {
@@ -328,10 +331,16 @@ export class SubagentContinuationManager {
     assertSubagentMaxDepth(request.maxDepth)
     const childId = SessionId(randomUUID())
     const childDepth = resolveChildDepth(parent, request.maxDepth)
+    // The subagent-role pin sits between the request's own agentOptions and the
+    // inherited parent route, resolved live at creation so a committed settings
+    // change applies to the next child. The descriptor records the pinned route
+    // it created with, so cold resume replays the creation-time route rather
+    // than re-resolving a later pin.
+    const rolePin = this.ctx.get('modelRoles')?.resolve('subagent')
     // Snapshot before any await: invalid descriptor JSON rejects the call
     // before a child exists, and the detached value is what reaches the log.
-    const agentProvider = request.agentOptions?.provider ?? parent.options.provider
-    const agentModel = request.agentOptions?.model ?? parent.options.model
+    const agentProvider = request.agentOptions?.provider ?? rolePin?.provider ?? parent.options.provider
+    const agentModel = request.agentOptions?.model ?? rolePin?.model ?? parent.options.model
     const descriptor = snapshotSubagentDescriptor({
       mode: 'continuable',
       provider: spec.provider,
@@ -358,7 +367,7 @@ export class SubagentContinuationManager {
         provider: spec.provider,
         parent,
         create: { seed, meta: childSessionMeta(parent, childDepth, lineageSeedLength) },
-        agentOptions: resolveChildAgentOptions(parent, request.agentOptions, childDepth),
+        agentOptions: resolveChildAgentOptions(parent, request.agentOptions, childDepth, rolePin),
         // Fresh creation carries the requested sandbox narrowing; a cold
         // resume replays the appended `sandbox/mode` event from the child log,
         // so the descriptor stays at v2 without a field for it.

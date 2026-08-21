@@ -32,6 +32,9 @@ import type { TaskOutcome } from '@huiliyi37/dsh-tasks'
 // Type-only: resolve the optional `ctx.agentDefinitions` service when the
 // deployment loads role definitions; the tool works unchanged without it.
 import type { AgentDefinition, AgentDefinitionSummary } from '@huiliyi37/dsh-agent-definitions'
+// Type-only: resolve the optional `ctx.modelRoles` role-pin service when
+// composed; the subagent pin is consumed opportunistically, never a hard dep.
+import type { ModelRoleSelection } from '@huiliyi37/dsh-model-roles'
 import { scopeOf } from '@huiliyi37/dsh-scope'
 
 export const name = 'tool-subagent'
@@ -397,7 +400,11 @@ export function apply(ctx: Context, config: Config): void {
 
         const role = await resolveAgentRole(ctx, args.agent, parent, exec.signal)
         const maxDepth = typeof config.maxDepth === 'number' ? config.maxDepth : undefined
-        const agentOptions = resolveRoleAgentOptions(config.agentOptions, role)
+        const agentOptions = resolveRoleAgentOptions(
+          config.agentOptions,
+          role,
+          ctx.get('modelRoles')?.resolve('subagent'),
+        )
         const toolFilter = resolveRoleToolFilter(config.toolFilter, role)
         const persona = role?.content ?? config.persona
         const request = {
@@ -569,13 +576,28 @@ async function resolveAgentRole(
   return role
 }
 
-/** Merge a role's model route over the instance's configured child options. */
+/**
+ * Merge one delegation's child route in ascending precedence: the role's
+ * frontmatter `model:`, then the subagent-role pin, then the instance's
+ * configured `agentOptions` on top. The pin is the live user-level override
+ * from the optional `modelRoles` service, read per call so a committed
+ * settings change applies to the next delegation with no restart.
+ * @param configAgentOptions - the instance's configured child options (top layer).
+ * @param role - the resolved role definition, whose `model:` sits at the bottom.
+ * @param rolePin - the subagent-role pin, when the optional service carries one.
+ * @returns the merged request options, or undefined when no layer contributes.
+ */
 function resolveRoleAgentOptions(
   configAgentOptions: AgentOptions | undefined,
   role: AgentDefinition | undefined,
+  rolePin: ModelRoleSelection | undefined,
 ): AgentOptions | undefined {
-  if (role?.model === undefined) return configAgentOptions
-  return { ...configAgentOptions, model: role.model }
+  if (role?.model === undefined && rolePin === undefined) return configAgentOptions
+  return {
+    ...role?.model !== undefined ? { model: role.model } : {},
+    ...rolePin,
+    ...configAgentOptions,
+  }
 }
 
 /**

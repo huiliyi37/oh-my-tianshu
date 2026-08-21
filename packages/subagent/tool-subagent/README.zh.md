@@ -16,7 +16,7 @@
 
 ## Agent 角色
 
-可选的 `agent` 参数以命名角色委派，角色经可选的 `ctx.agentDefinitions` 服务解析（服务缺失时任何 `agent` 值都会使调用失败）。角色提供子 agent 的 persona 正文、工具 allow 名单、模型路由和沙箱收窄，按调用合并：persona 与 model 替换实例配置值；角色的 allow 名单与实例的 `toolFilter` 求交（部署仍是模型所选角色无法逾越的上限，一个工具被掏空的角色会响亮失败）；`sandboxMode: 'read-only'` 要求提供方具备 `sandboxMode` 能力。未知名称是指向目录的出错调用，绝不会静默退化为通用委派。见 [agent 角色定义 Agent Note](../../../.agents/notes/implemented/feature/2026-08-16-agent-role-definitions.md)。
+可选的 `agent` 参数以命名角色委派，角色经可选的 `ctx.agentDefinitions` 服务解析（服务缺失时任何 `agent` 值都会使调用失败）。角色提供子 agent 的 persona 正文、工具 allow 名单、模型路由和沙箱收窄，按调用合并：persona 替换实例配置值；子 agent 路由按层级叠加——角色 frontmatter 的 `model:` 在最底，之上是可选 `ctx.modelRoles` 中的 `subagent` 角色 pin（逐调用即时读取），最上是实例配置的 `agentOptions`；角色的 allow 名单与实例的 `toolFilter` 求交（部署仍是模型所选角色无法逾越的上限，一个工具被掏空的角色会响亮失败）；`sandboxMode: 'read-only'` 要求提供方具备 `sandboxMode` 能力。未知名称是指向目录的出错调用，绝不会静默退化为通用委派。见 [agent 角色定义 Agent Note](../../../.agents/notes/implemented/feature/2026-08-16-agent-role-definitions.md)。
 
 设置 `agentCatalog: true`（每个装配至多一个实例开启）后，该实例会向会话发布一条 durable `<available_agents>` 目录消息：名称加转义描述的条目、由条目 sha256 digest 决定的首发/替换/摘除，以及绑定这个确切工具注册的可见性——工具被 restrict 摘除时目录同步消失。目录只跟随 `ctx.agentDefinitions` 的目录；没有该服务则不发布目录。
 
@@ -30,7 +30,7 @@
 | `toolName` | 面向模型的名称，默认 `subagent`；每个已加载实例必须不同。 |
 | `enableRunInBackground` | 公开后台模式，默认 `true`；禁用时也会拒绝强制后台调用。 |
 | `backgroundMode` | 后台生命周期策略，默认 `one-shot`。`continuable` 要求提供方具备 `prepareContinuable` 能力并返回持久化子 agent ID；它不要求加载后续消息工具。 |
-| `agentOptions` | 传给具体提供方的子 agent `provider`、`model` 和正整数 `maxTokens`；进程内提供方会用显式值覆盖继承的父级选项。 |
+| `agentOptions` | 传给具体提供方的子 agent `provider`、`model` 和正整数 `maxTokens`；进程内提供方会用显式值覆盖 `subagent` 角色 pin 与继承的父级选项。 |
 | `persona` | 每个子 agent 独立的 persona；要求提供方具备 `persona` 能力。 |
 | `toolFilter` | 每个子 agent 独立的全局工具限制；要求提供方具备 `toolFilter` 能力。 |
 | `maxDepth` | 绝对委派深度上限，默认 `3`（`0` 禁止委派）；数值上限要求 `depthLimit` 能力，缺失时挂载失败。对于预算由子 harness 拥有的进程外提供方，`'provider-managed'` 不发送上限。工具在达到上限时仍然可见；每次尝试启动都会检查调用 agent 的当前深度，被拒绝时返回出错的工具结果。 |

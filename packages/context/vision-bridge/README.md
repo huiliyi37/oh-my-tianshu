@@ -24,7 +24,7 @@ The TUI input box lets users paste images (data URLs enter the session as `image
     visionAutoBridge: false        # optional; auto-pick the first supportsVision model when no explicit route
 ```
 
-`provider`/`model` are required **unless `visionAutoBridge` is enabled** — a missing route without auto-bridge fails loud at mount. `visionAutoBridge: true` resolves the route at call time by scanning registered providers' advisory catalogs for the first model with `supportsVision: true` (declared by the owning adapter via `LlmModelInfo.supportsVision`). `fallback` is optional; when present its `provider`/`model` are both required, and the bridge retries once through it when the primary vision model errors or aborts (5xx/timeout).
+Vision route resolution order: **`vision` role pin** (the user-level override stored in settings through the optional `ctx.modelRoles` service, read live at each call so a settings.yaml change applies with no restart) > explicit `provider`/`model` > `visionAutoBridge` auto-pick. Mount fails loud unless at least one routing intent exists: the explicit pair, a vision pin already present at assembly, or the auto-bridge; `visionAutoBridge: true` resolves the route at call time by scanning registered providers' advisory catalogs for the first model with `supportsVision: true` (declared by the owning adapter via `LlmModelInfo.supportsVision`). A pin arriving only later does not waive the mount-time check — the composition must declare routing intent; the pin is an override, not an assembly basis. `fallback` is optional; when present its `provider`/`model` are both required, and the bridge retries once through it when the primary vision model errors or aborts (5xx/timeout).
 
 ## Key properties
 

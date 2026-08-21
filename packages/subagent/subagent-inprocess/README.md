@@ -16,7 +16,7 @@ The driver follows this sequence:
 4. Publish the child, retain the returned `AgentHandle`, and drive one task with `child.followup(prompt)` followed by `child.whenIdle()`.
 5. Read the child's own last assistant message and final durable turn reason from the complete owned child run, excluding any fork seed.
 
-The child gets the parent's working-directory/session lineage and inherits the parent provider, model, and output-token cap unless `request.agentOptions` overrides them. It gets a fresh flat registration scope: parent ownership does not import parent tool restrictions or establish an authority subset.
+The child gets the parent's working-directory/session lineage and resolves its route in ascending precedence: the inherited parent provider, model, and output-token cap, then the optional `subagent` role pin from `ctx.modelRoles` (read live at creation), then `request.agentOptions`. It gets a fresh flat registration scope: parent ownership does not import parent tool restrictions or establish an authority subset.
 
 This result boundary is valid because the provider owns an isolated child lifecycle from publication through quiescence. Steering submitted during that lifecycle belongs to the child run; the provider does not pretend the initial follow-up alone owns its output.
 

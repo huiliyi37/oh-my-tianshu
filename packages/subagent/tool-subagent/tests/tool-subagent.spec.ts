@@ -13,6 +13,7 @@ import AgentLoop from '@huiliyi37/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@huiliyi37/dsh-agent-loop-testkit'
 import JsonlSessionPersistence from '@huiliyi37/dsh-session-persistence-jsonl'
 import AgentDefinitionService from '@huiliyi37/dsh-agent-definitions'
+import ModelRolesService from '@huiliyi37/dsh-model-roles'
 import { createScope, type Scope } from '@huiliyi37/dsh-scope'
 import SubagentService from '@huiliyi37/dsh-subagent'
 import type { SubagentStartRequest } from '@huiliyi37/dsh-subagent'
@@ -20,6 +21,7 @@ import LocalTaskService from '@huiliyi37/dsh-tasks-local'
 import * as SubagentSpawn from '@huiliyi37/dsh-subagent-spawn'
 import * as ToolTasks from '@huiliyi37/dsh-tool-tasks'
 import { MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
+import { MemorySettings } from '../../../settings/settings/tests/memory.ts'
 import * as mock from './scripted-provider.ts'
 import * as tool from '../src/index.ts'
 import { Session, SessionId } from '@huiliyi37/dsh-session'
@@ -1239,6 +1241,45 @@ describe('agent roles and the available-agents catalog', () => {
     expect(requests[0]?.toolFilter).toEqual({ allow: ['grep', 'read'] })
     expect(requests[0]?.agentOptions).toEqual({ model: 'role-model' })
     expect(requests[0]?.sandboxMode).toBe('read-only')
+  })
+
+  it('layers the subagent-role pin above the role model and below instance agentOptions', async () => {
+    const { ctx, requests } = await roleSetup({ agentOptions: { maxTokens: 512 } })
+    await ctx.plugin(MemorySettings)
+    await ctx.plugin(ModelRolesService)
+    await ctx.modelRoles.pin('subagent', { provider: 'pin-p', model: 'pin-m' })
+    ctx.agentDefinitions.register({
+      name: 'reviewer',
+      description: 'review role',
+      content: 'Review persona.',
+      model: 'role-model',
+    })
+    const result = await callSubagent(ctx, { description: 'd', prompt: 'p', agent: 'reviewer' }, { agent: parentWithCwd('/ws') })
+    expect(result.isError).toBe(false)
+    // The pin shadows the role's frontmatter model; the instance's configured
+    // maxTokens rides on top.
+    expect(requests[0]?.agentOptions).toEqual({ provider: 'pin-p', model: 'pin-m', maxTokens: 512 })
+  })
+
+  it('keeps the instance agentOptions route above the subagent-role pin', async () => {
+    const { ctx, requests } = await roleSetup({ agentOptions: { model: 'configured-model' } })
+    await ctx.plugin(MemorySettings)
+    await ctx.plugin(ModelRolesService)
+    await ctx.modelRoles.pin('subagent', { provider: 'pin-p', model: 'pin-m' })
+    const result = await callSubagent(ctx, { description: 'd', prompt: 'p' }, { agent: parentWithCwd('/ws') })
+    expect(result.isError).toBe(false)
+    // The configured model wins; the pin's provider fills the layer below it.
+    expect(requests[0]?.agentOptions).toEqual({ provider: 'pin-p', model: 'configured-model' })
+  })
+
+  it('applies the subagent-role pin when neither the instance nor a role supplies a route', async () => {
+    const { ctx, requests } = await roleSetup()
+    await ctx.plugin(MemorySettings)
+    await ctx.plugin(ModelRolesService)
+    await ctx.modelRoles.pin('subagent', { provider: 'pin-p', model: 'pin-m' })
+    const result = await callSubagent(ctx, { description: 'd', prompt: 'p' }, { agent: parentWithCwd('/ws') })
+    expect(result.isError).toBe(false)
+    expect(requests[0]?.agentOptions).toEqual({ provider: 'pin-p', model: 'pin-m' })
   })
 
   it('keeps the instance toolFilter a ceiling the role cannot exceed', async () => {

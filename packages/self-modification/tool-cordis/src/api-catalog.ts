@@ -771,6 +771,24 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'modelRoles',
+    summary: 'Owns the per-role model pins independently of any consumer.',
+    methods: [
+      {
+        signature: 'resolve(role: ModelRole): ModelRoleSelection | undefined',
+        jsDoc: '/**\n * Read one role\'s current pin.\n * @param role - the role to resolve.\n * @returns the pinned selection, or undefined when the role follows the consumer\'s default route.\n */',
+      },
+      {
+        signature: 'async pin(role: ModelRole, selection: ModelRoleSelection): Promise<void>',
+        jsDoc: '/**\n * Pin one role to a provider/model route, persisting through the settings\n * user layer. A deployment without a settings provider cannot retain pins:\n * the write is a no-op and the role keeps following the default route.\n * @param role - the role to pin.\n * @param selection - the provider/model route the role resolves to.\n * @returns fulfillment after the optional settings write settles.\n */',
+      },
+      {
+        signature: 'async unpin(role: ModelRole): Promise<void>',
+        jsDoc: '/**\n * Remove one role\'s pin so it follows the consumer\'s default route again.\n * A no-op without a settings provider, exactly like {@link pin}.\n * @param role - the role to unpin.\n * @returns fulfillment after the optional settings write settles.\n */',
+      },
+    ],
+  },
+  {
     key: 'permission',
     summary: 'Owns the deployment\'s permission presets and their write path.',
     methods: [
@@ -2940,6 +2958,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ModelMessageSource',
     declaration: 'export interface ModelMessageSource extends AssistantProvenance {\n    kind: \'model\';\n}',
+  },
+  {
+    name: 'ModelRole',
+    declaration: 'export type ModelRole = \'vision\' | \'secondary\' | \'subagent\';',
+  },
+  {
+    name: 'ModelRoleSelection',
+    declaration: 'export interface ModelRoleSelection {\n    provider: string;\n    model: string;\n}',
   },
   {
     name: 'ModelSelection',

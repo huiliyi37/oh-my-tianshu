@@ -8,6 +8,9 @@ import type { Context } from '@huiliyi37/cordis'
 import z from '@huiliyi37/schemastery'
 import { createUserMessage, BlockAssembler, deepFreeze } from '@huiliyi37/dsh-llm'
 import type { FinishReason, GenerateOptions, Message } from '@huiliyi37/dsh-llm'
+// Type-only: make `ctx.get('modelRoles')` resolve to the optional role-pin
+// service when composed — consumed opportunistically, never as a hard dep.
+import type {} from '@huiliyi37/dsh-model-roles'
 import { deadline, MAX_TIMER_DELAY_MS } from '@huiliyi37/dsh-timeout'
 import {
   normalizeSessionTitle,
@@ -59,9 +62,9 @@ export interface SessionTitleLlmConfig {
   readonly maxOutputTokens: number
   /** End-to-end auxiliary request deadline in milliseconds. */
   readonly timeoutMs: number
-  /** Optional explicit provider route; must be paired with `model`. */
+  /** Optional explicit provider route; must be paired with `model`; below the secondary-role pin. */
   readonly provider?: string
-  /** Optional explicit model id; must be paired with `provider`. */
+  /** Optional explicit model id; must be paired with `provider`; below the secondary-role pin. */
   readonly model?: string
 }
 
@@ -168,11 +171,23 @@ export function registerSessionTitleLlmProvider(
   })
 }
 
-/** Resolve the explicit pair or the exact route captured from `request/header`. */
+/**
+ * Resolve the secondary-role pin, the explicit pair, or the exact route
+ * captured from `request/header`, in that order. The pin is read live from
+ * the optional `modelRoles` service, so a committed settings change applies
+ * to the next title request with no restart.
+ * @param ctx - context carrying the optional modelRoles service.
+ * @param config - validated policy whose paired overrides sit below the pin.
+ * @param request - service-owned request carrying the logged route fallback.
+ * @returns the exact auxiliary route recorded with the request.
+ */
 function resolveRoute(
+  ctx: Context,
   config: ResolvedSessionTitleLlmConfig,
   request: SessionTitleProviderRequest,
 ): SessionTitleModelProvenance {
+  const pin = ctx.get('modelRoles')?.resolve('secondary')
+  if (pin !== undefined) return { provider: pin.provider, model: pin.model }
   if (config.provider !== undefined && config.model !== undefined) {
     return { provider: config.provider, model: config.model }
   }
@@ -242,7 +257,7 @@ export async function generateSessionTitleWithLlm(
   if (inputBytes > config.maxInputBytes) {
     throw new Error(`session-title-llm: input is ${inputBytes} bytes, exceeding maxInputBytes ${config.maxInputBytes}`)
   }
-  const route = resolveRoute(config, request)
+  const route = resolveRoute(ctx, config, request)
   const messages: Message[] = [createUserMessage({
     content: [{ type: 'text', text: framedInput }],
     source: { kind: 'plugin', plugin: 'dsh-session-title-llm' },

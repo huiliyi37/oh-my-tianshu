@@ -4,7 +4,7 @@ English | [中文](README.zh.md)
 
 Optional `ctx.sessionTitle` provider that summarizes the first eligible human message through `ctx.llm`. It registers the `first-message` cadence, runs automatically only when a fresh non-fork session first creates its fallback, and attributes the result to that message's exact seq. An automatic failure retains the fallback and is retried only through `ctx.sessionTitle.refresh()`.
 
-The plugin uses the complete required [shared LLM configuration](../session-title-llm/README.md#configuration). Omit both `provider` and `model` to inherit the exact route from the current logged main request, or set both to route title generation independently.
+The plugin uses the complete required [shared LLM configuration](../session-title-llm/README.md#configuration). Route resolution follows the shared helper's order: the `secondary` role pin from the optional `ctx.modelRoles` service, then the configured `provider`/`model` pair, then the exact route inherited from the current logged main request.
 
 ## Model Experience
 
