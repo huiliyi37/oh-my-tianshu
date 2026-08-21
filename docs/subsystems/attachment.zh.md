@@ -18,7 +18,7 @@ type ImageMediaType = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'
 ```
 
 ```ts type-equiv
-/** Durable, serializable metadata for one immutable image object. */
+/** Durable, serializable reference to one immutable normalized image. */
 interface ImageAttachmentRef {
   /** Opaque storage identifier; never a filesystem path or bearer URL. */
   attachmentId: AttachmentId
@@ -32,6 +32,14 @@ interface ImageAttachmentRef {
   height: number
   /** Optional display name stripped of local path information. */
   name?: string
+  /**
+   * Input dimensions after applying EXIF orientation and before normalization
+   * scaling. Present only when normalization reduced the image.
+   */
+  originalDimensions?: {
+    width: number
+    height: number
+  }
 }
 ```
 
@@ -47,6 +55,8 @@ interface ImageAttachmentLimits {
   mediaTypes: readonly ImageMediaType[]
 }
 ```
+
+本地后端每条消息最多准入 20 张图片、100 MiB 源图编码字节。单张源图不得超过 3.5 MiB、40,000,000 像素，单边不得超过 2000 像素。这些源图限制先于独立的规范化阶段执行；规范化默认把长边限制到 2048 像素、编码字节限制到 4 MiB。
 
 引用记录固有尺寸和编码长度，使客户端无需先解码即可排布历史记录；每次权威读取仍会根据对象重新校验摘要、媒体签名、尺寸和元数据。
 
@@ -71,7 +81,7 @@ interface StoredImageAttachment {
 }
 ```
 
-`saveImage()` 校验字节并以原子方式提交一个对象，之后才返回其引用。`validateImage()` 执行相同的准入检查，但不持久化任何内容；批量调用方会在保存任何成员前通过它校验所有成员，因此校验拒绝不会留下部分对象。`readImage()` 接受来自已授权会话路径的引用，只在完整性校验通过后返回字节。该服务刻意不规定保留策略：恢复和 fork 后的会话可能共享对象，因此基于引用的垃圾回收会延期实现，而不是与任何一个会话的删除绑定。
+`saveImage()` 先准备并以原子方式提交一份提供方无关的规范化附件，之后才返回其 `ImageAttachmentRef`。`validateImage()` 执行包括规范化在内的完整准入检查，但不持久化任何内容。`saveImages()` 负责数量与总字节限制，在发布整个批次前为每张通过校验的附件各准备一次，因此校验拒绝不会留下部分对象，发布也不会重复解码或质量选择。`readImage()` 接受来自已授权会话路径的引用，只在完整性校验通过后返回字节。该服务刻意不规定保留策略：恢复和 fork 后的会话可能共享对象，因此基于引用的垃圾回收会延期实现，而不是与任何一个会话的删除绑定。
 
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
@@ -97,9 +107,22 @@ Immutable binary attachment service. Implementations validate bytes before publi
 abstract validateImage(input: SaveImageAttachment): Promise<void>
 
 /**
+ * Validate and durably commit one ordered image batch.
+ * Validation failures start no writes; storage failures return no partial
+ * references, although already published content-addressed objects may stay
+ * unreachable until a future retention policy collects them.
+ * @param inputs - encoded images in owning-message order.
+ * @returns durable normalized attachment references in the same order after every member succeeds.
+ */
+async saveImages(inputs: readonly SaveImageAttachment[]): Promise<readonly ImageAttachmentRef[]>
+
+/**
  * Validate and durably commit one image before its owning session event is appended.
+ * The returned reference describes the persisted normalized image. When
+ * normalization reduces the raster, its `originalDimensions` records the
+ * orientation-applied input dimensions.
  * @param input - encoded bytes, declared media type, and optional display name.
- * @returns a durable content-addressed reference.
+ * @returns the durable content-addressed normalized image reference.
  */
 abstract saveImage(input: SaveImageAttachment): Promise<ImageAttachmentRef>
 
@@ -107,11 +130,11 @@ abstract saveImage(input: SaveImageAttachment): Promise<ImageAttachmentRef>
  * Read one image and verify that bytes still match the recorded reference.
  * @param ref - durable reference from the session log.
  * @param signal - optional cancellation for backend read and verification work.
- * @returns the verified bytes and canonical reference.
+ * @returns the verified bytes and normalized attachment reference.
  * @throws the signal reason when aborted, or a storage error when verification fails.
  */
 abstract readImage(ref: ImageAttachmentRef, signal?: AbortSignal): Promise<StoredImageAttachment>
 ```
 
-Source: [`packages/attachment/attachment/src/index.ts:29`](../../packages/attachment/attachment/src/index.ts)
+Source: [`packages/attachment/attachment/src/index.ts:31`](../../packages/attachment/attachment/src/index.ts)
 <!-- END GENERATED cordis-surface -->

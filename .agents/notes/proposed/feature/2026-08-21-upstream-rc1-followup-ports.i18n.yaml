@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-21-upstream-rc1-followup-ports.md
+2026-08-21-upstream-rc1-followup-ports.md: d9f802941ba0c8c076aa1070e6a4f64cebbfd551
+2026-08-21-upstream-rc1-followup-ports.zh.md: ec52f54e9078cb7d06e511915c1a836e6f4725b8

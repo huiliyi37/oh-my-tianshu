@@ -6,9 +6,14 @@ import z from '@huiliyi37/schemastery'
 import { AttachmentStore } from '@huiliyi37/dsh-attachment'
 import type { ImageAttachmentLimits, ImageAttachmentRef, SaveImageAttachment, StoredImageAttachment } from '@huiliyi37/dsh-attachment'
 import { resolveDshHome } from '@huiliyi37/dsh-paths'
-import { readImageFile, saveImageFile, validateImageFile } from './store.ts'
+import type { NormalizationPolicy } from './normalization.ts'
+import { CompressionLimiter } from './compression-limiter.ts'
+import { commitPreparedImageFile, prepareImageFile, readImageFile, validateImageFile } from './store.ts'
 
-export { readImageFile, saveImageFile, validateImageFile } from './store.ts'
+export { canPassThroughNormalization, normalizeImage } from './normalization.ts'
+export type { NormalizedImage, NormalizationPolicy } from './normalization.ts'
+export { commitPreparedImageFile, prepareImageFile, readImageFile, saveImageFile, validateImageFile } from './store.ts'
+export type { PreparedImageFile } from './store.ts'
 
 /** Default maximum encoded bytes for one image. */
 export const DEFAULT_MAX_IMAGE_BYTES = 3.5 * 1024 * 1024
@@ -26,6 +31,18 @@ export const DEFAULT_MAX_IMAGE_PIXELS = 40_000_000
  * to keep the durable history streamable.
  */
 export const DEFAULT_MAX_IMAGE_DIMENSION = 2000
+/**
+ * Default long-edge target of the stored normalized image. A larger source
+ * is admitted and downscaled to this edge, so normalization bounds what rides
+ * every later model request without refusing ordinary large sources.
+ */
+export const DEFAULT_NORMALIZED_IMAGE_MAX_DIMENSION = 2048
+/** Default independent safety cap for one stored normalized image. */
+export const DEFAULT_NORMALIZED_IMAGE_MAX_BYTES = 4 * 1024 * 1024
+/** Conservative default number of simultaneous native image transformations per store. */
+export const DEFAULT_IMAGE_COMPRESSION_CONCURRENCY = 2
+/** Maximum configurable native image transformations per store. */
+export const MAX_IMAGE_COMPRESSION_CONCURRENCY = 8
 
 /** Local attachment backend configuration. */
 export interface Config {
@@ -41,6 +58,12 @@ export interface Config {
   maxImagePixels?: number
   /** Maximum intrinsic width and maximum intrinsic height accepted for one image. */
   maxImageDimension?: number
+  /** Long-edge pixel cap of the stored provider-independent normalized image. Default: 2048px. */
+  normalizedImageMaxDimension?: number
+  /** Encoded-byte safety cap of the stored provider-independent normalized image. Default: 4 MiB. */
+  normalizedImageMaxBytes?: number
+  /** Maximum simultaneous normalization transformations in this service instance. Default: 2. */
+  imageCompressionConcurrency?: number
 }
 
 /** Persistent content-addressed local attachment store. */
@@ -52,11 +75,20 @@ export class LocalAttachmentStore extends AttachmentStore {
     maxMessageImageBytes: z.number().step(1).min(1).default(DEFAULT_MAX_MESSAGE_IMAGE_BYTES),
     maxImagePixels: z.number().step(1).min(1).default(DEFAULT_MAX_IMAGE_PIXELS),
     maxImageDimension: z.number().step(1).min(1).default(DEFAULT_MAX_IMAGE_DIMENSION),
+    normalizedImageMaxDimension: z.number().step(1).min(1).default(DEFAULT_NORMALIZED_IMAGE_MAX_DIMENSION),
+    normalizedImageMaxBytes: z.number().step(1).min(1).default(DEFAULT_NORMALIZED_IMAGE_MAX_BYTES),
+    imageCompressionConcurrency: z.number().step(1).min(1).max(MAX_IMAGE_COMPRESSION_CONCURRENCY)
+      .default(DEFAULT_IMAGE_COMPRESSION_CONCURRENCY),
   })
 
   /** Absolute versioned storage root. */
   readonly root: string
   readonly imageLimits: ImageAttachmentLimits
+  /** Resolved provider-independent normalization policy. */
+  readonly normalizationPolicy: Readonly<NormalizationPolicy>
+  /** Resolved instance-level compression limit. */
+  readonly imageCompressionConcurrency: number
+  private readonly compression: CompressionLimiter
 
   constructor(ctx: Context, config: Config) {
     super(ctx)
@@ -69,14 +101,41 @@ export class LocalAttachmentStore extends AttachmentStore {
       maxImageDimension: config.maxImageDimension ?? DEFAULT_MAX_IMAGE_DIMENSION,
       mediaTypes: Object.freeze(['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const),
     })
+    this.normalizationPolicy = Object.freeze({
+      maxDimension: config.normalizedImageMaxDimension ?? DEFAULT_NORMALIZED_IMAGE_MAX_DIMENSION,
+      maxBytes: config.normalizedImageMaxBytes ?? DEFAULT_NORMALIZED_IMAGE_MAX_BYTES,
+    })
+    const compressionConcurrency = config.imageCompressionConcurrency ?? DEFAULT_IMAGE_COMPRESSION_CONCURRENCY
+    if (!Number.isSafeInteger(compressionConcurrency)
+      || compressionConcurrency < 1
+      || compressionConcurrency > MAX_IMAGE_COMPRESSION_CONCURRENCY) {
+      throw new Error(
+        `attachment-local: imageCompressionConcurrency must be an integer from 1 through ${MAX_IMAGE_COMPRESSION_CONCURRENCY}`,
+      )
+    }
+    this.imageCompressionConcurrency = compressionConcurrency
+    this.compression = new CompressionLimiter(compressionConcurrency)
   }
 
   async validateImage(input: SaveImageAttachment): Promise<void> {
-    await validateImageFile(input, this.imageLimits)
+    await this.compression.run(() => validateImageFile(input, this.imageLimits, this.normalizationPolicy))
+  }
+
+  override async saveImages(inputs: readonly SaveImageAttachment[]): Promise<readonly ImageAttachmentRef[]> {
+    this.validateImageBatch(inputs)
+    const prepared = await Promise.all(inputs.map(input => this.compression.run(
+      () => prepareImageFile(input, this.imageLimits, this.normalizationPolicy),
+    )))
+    const refs: ImageAttachmentRef[] = []
+    for (const image of prepared) refs.push(await commitPreparedImageFile(this.root, image))
+    return refs
   }
 
   async saveImage(input: SaveImageAttachment): Promise<ImageAttachmentRef> {
-    return saveImageFile(this.root, input, this.imageLimits)
+    const prepared = await this.compression.run(
+      () => prepareImageFile(input, this.imageLimits, this.normalizationPolicy),
+    )
+    return commitPreparedImageFile(this.root, prepared)
   }
 
   async readImage(ref: ImageAttachmentRef, signal?: AbortSignal): Promise<StoredImageAttachment> {

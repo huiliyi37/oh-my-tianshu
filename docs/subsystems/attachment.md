@@ -18,7 +18,7 @@ type ImageMediaType = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'
 ```
 
 ```ts type-equiv
-/** Durable, serializable metadata for one immutable image object. */
+/** Durable, serializable reference to one immutable normalized image. */
 interface ImageAttachmentRef {
   /** Opaque storage identifier; never a filesystem path or bearer URL. */
   attachmentId: AttachmentId
@@ -32,6 +32,14 @@ interface ImageAttachmentRef {
   height: number
   /** Optional display name stripped of local path information. */
   name?: string
+  /**
+   * Input dimensions after applying EXIF orientation and before normalization
+   * scaling. Present only when normalization reduced the image.
+   */
+  originalDimensions?: {
+    width: number
+    height: number
+  }
 }
 ```
 
@@ -47,6 +55,8 @@ interface ImageAttachmentLimits {
   mediaTypes: readonly ImageMediaType[]
 }
 ```
+
+The local backend admits at most 20 images and 100 MiB of encoded source data per message. One source may use up to 3.5 MiB, 40,000,000 pixels, and 2000 pixels on either side. These source limits precede the independent normalization stage, which limits the long edge to 2048 pixels and encoded data to 4 MiB by default.
 
 The reference records intrinsic dimensions and encoded length so clients can lay out history without decoding first, while every authoritative read still re-checks digest, media signature, dimensions, and metadata against the object.
 
@@ -71,7 +81,7 @@ interface StoredImageAttachment {
 }
 ```
 
-`saveImage()` validates bytes and atomically commits one object before returning its reference. `validateImage()` runs the same admission checks without persisting anything; batch callers validate every member through it before saving any member, so validation rejection leaves no partial objects behind. `readImage()` accepts a reference from an authorized session path and returns bytes only after integrity verification. The service is deliberately retention-neutral: resumed and forked sessions may share objects, so reference-aware garbage collection is deferred rather than tied to any one session's deletion.
+`saveImage()` prepares and atomically commits a provider-independent normalized attachment before returning its `ImageAttachmentRef`. `validateImage()` runs the complete admission checks, including normalization, without persisting anything. `saveImages()` owns the count and aggregate-byte limits and prepares every validated attachment once before publishing the batch, so validation rejection leaves no partial objects behind and publication does not repeat decoding or quality selection. `readImage()` accepts a reference from an authorized session path and returns bytes only after integrity verification. The service is deliberately retention-neutral: resumed and forked sessions may share objects, so reference-aware garbage collection is deferred rather than tied to any one session's deletion.
 
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
@@ -97,9 +107,22 @@ Immutable binary attachment service. Implementations validate bytes before publi
 abstract validateImage(input: SaveImageAttachment): Promise<void>
 
 /**
+ * Validate and durably commit one ordered image batch.
+ * Validation failures start no writes; storage failures return no partial
+ * references, although already published content-addressed objects may stay
+ * unreachable until a future retention policy collects them.
+ * @param inputs - encoded images in owning-message order.
+ * @returns durable normalized attachment references in the same order after every member succeeds.
+ */
+async saveImages(inputs: readonly SaveImageAttachment[]): Promise<readonly ImageAttachmentRef[]>
+
+/**
  * Validate and durably commit one image before its owning session event is appended.
+ * The returned reference describes the persisted normalized image. When
+ * normalization reduces the raster, its `originalDimensions` records the
+ * orientation-applied input dimensions.
  * @param input - encoded bytes, declared media type, and optional display name.
- * @returns a durable content-addressed reference.
+ * @returns the durable content-addressed normalized image reference.
  */
 abstract saveImage(input: SaveImageAttachment): Promise<ImageAttachmentRef>
 
@@ -107,11 +130,11 @@ abstract saveImage(input: SaveImageAttachment): Promise<ImageAttachmentRef>
  * Read one image and verify that bytes still match the recorded reference.
  * @param ref - durable reference from the session log.
  * @param signal - optional cancellation for backend read and verification work.
- * @returns the verified bytes and canonical reference.
+ * @returns the verified bytes and normalized attachment reference.
  * @throws the signal reason when aborted, or a storage error when verification fails.
  */
 abstract readImage(ref: ImageAttachmentRef, signal?: AbortSignal): Promise<StoredImageAttachment>
 ```
 
-Source: [`packages/attachment/attachment/src/index.ts:29`](../../packages/attachment/attachment/src/index.ts)
+Source: [`packages/attachment/attachment/src/index.ts:31`](../../packages/attachment/attachment/src/index.ts)
 <!-- END GENERATED cordis-surface -->
