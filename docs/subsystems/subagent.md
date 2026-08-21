@@ -356,6 +356,13 @@ interface SubagentProgressProjection {
   toolInFlight: boolean
   /** Kind of the latest `turn/end` reason; `turn/start` clears it so an open turn is not terminal. */
   lastTurnEnd?: 'completed' | 'aborted' | 'blocked' | 'error' | 'max-tokens' | 'interrupted'
+  /**
+   * Live execution-state bit: whether the child currently has an open turn
+   * after its own descriptor (`turn/start` sets it, `turn/end` clears it).
+   * `true` ⟺ executing; `false` with `lastTurnEnd` set ⟺ the last turn ended
+   * (settled work or an idle continuable child waiting for delivery).
+   */
+  running: boolean
 }
 ```
 

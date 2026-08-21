@@ -265,6 +265,15 @@ export interface SubagentActiveExternalRun {
   readonly startedAt: number
 }
 
+/**
+ * ONE-SHOT child handle returned after publication. Prompt submission, turn
+ * work, and infrastructure faults after that boundary belong to {@link result}.
+ * Consumers await that result and must always {@link dispose} to cancel
+ * remaining work and reach quiescence. A run is one disposable foreground
+ * delegation with one result; continuable conversations have no run — the
+ * continuation manager holds their `AgentHandle` directly and orders every
+ * turn through the child's own inbox.
+ */
 export interface SubagentRun {
   /**
    * Parent-scoped run id. For a local run, this MUST equal the published child
