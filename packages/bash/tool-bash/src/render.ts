@@ -8,7 +8,7 @@ import type { BashProcessRead, BashRunResult, BashSandboxInfo } from '@huiliyi37
 import type { SandboxMode } from '@huiliyi37/dsh-sandbox'
 import { escalationHintMarker, sandboxDenialMarker } from '@huiliyi37/dsh-sandbox'
 import { filterCommandOutput, type CommandFilterConfig } from './command-filters.ts'
-import { composeResultBody, shapeModelOutput, type OutputShaping } from './model-output.ts'
+import { composeResultBody, environmentDiagnosis, shapeModelOutput, type OutputShaping } from './model-output.ts'
 
 /** Whether the run's own facts mark it failed for shaping purposes (non-zero exit, signal, or timeout). */
 function runFailed(result: Pick<BashRunResult, 'exitCode' | 'signal' | 'timedOut'>): boolean {
@@ -66,6 +66,10 @@ export function renderResult(
   }
   // A command may trap SIGTERM and exit 0 after timeout; still report interruption.
   if (result.timedOut) markers.push(`[timed out after ${result.timeoutMs}ms]`)
+  // 纯环境失败（exit 127/126/… 且正文只有壳层一两行）→ 标准化一行诊断，
+  // 插在锚定的 signal/exit 标记之前（parseExitStatus 要求 exit 标记收尾）。
+  const diagnosis = environmentDiagnosis(result.exitCode, body.split('\n').filter(line => line !== '').length)
+  if (diagnosis !== undefined) markers.push(diagnosis)
   if (result.signal !== null) {
     markers.push(`[killed by signal: ${result.signal}]`)
   } else if (result.exitCode !== 0) {

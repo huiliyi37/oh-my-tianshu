@@ -8,7 +8,7 @@
 import type { Context } from '@huiliyi37/cordis'
 import z from '@huiliyi37/schemastery'
 import type {} from '@huiliyi37/dsh-user-approval'
-import { applyReadTool, READ_LIMIT, STREAM_MIN_SIZE } from './read.ts'
+import { applyReadTool, READ_LIMIT, READ_REF_THRESHOLD_BYTES, STREAM_MIN_SIZE } from './read.ts'
 import { applyWriteTool } from './write.ts'
 import { applyEditTool } from './edit.ts'
 import { READ_MAX_BYTES, READ_MAX_LINE_LENGTH } from './read-render.ts'
@@ -30,6 +30,13 @@ export interface Config {
   readMaxBytes?: number
   /** Files at or above this size stream instead of loading whole into memory. */
   readStreamMinSize?: number
+  /**
+   * Unchanged re-reads of files at or above this size (same stat version and
+   * window) return a one-line `[read-ref]` reference instead of the content
+   * again (0 disables; default 2048) — the earlier read is already in the
+   * conversation.
+   */
+  readRefThresholdBytes?: number
 }
 
 export const Config: z<Config> = z.object({
@@ -37,6 +44,7 @@ export const Config: z<Config> = z.object({
   readMaxLineLength: z.number().default(READ_MAX_LINE_LENGTH),
   readMaxBytes: z.number().default(READ_MAX_BYTES),
   readStreamMinSize: z.number().default(STREAM_MIN_SIZE),
+  readRefThresholdBytes: z.number().default(READ_REF_THRESHOLD_BYTES),
 })
 
 /** The shape after schemastery applied the defaults. */
@@ -55,11 +63,16 @@ export function apply(ctx: Context, config: Config): void {
   assertPositiveInteger('readMaxLineLength', resolved.readMaxLineLength)
   assertPositiveInteger('readMaxBytes', resolved.readMaxBytes)
   assertPositiveInteger('readStreamMinSize', resolved.readStreamMinSize)
+  // read-ref 阈值允许 0（关闭该机制），但仍须是非负整数。
+  if (!Number.isInteger(resolved.readRefThresholdBytes) || resolved.readRefThresholdBytes < 0) {
+    throw new Error(`tool-fs: readRefThresholdBytes must be a non-negative integer (got ${resolved.readRefThresholdBytes})`)
+  }
   applyReadTool(ctx, {
     limit: resolved.readLimit,
     maxLineLength: resolved.readMaxLineLength,
     maxBytes: resolved.readMaxBytes,
     streamMinSize: resolved.readStreamMinSize,
+    refThresholdBytes: resolved.readRefThresholdBytes,
   })
   // One escalation surface shared by both mutating tools: advertisement gating,
   // per-call policy resolution, and denial-marker mapping, all keyed off whether

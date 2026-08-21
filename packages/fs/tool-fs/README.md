@@ -23,6 +23,7 @@ All keys are optional; the defaults are the shipped read caps.
 | `readMaxLineLength` | `2000` | Characters kept per line before truncation (the suffix names the cap). |
 | `readMaxBytes` | `51200` | Byte cap on one `read` call's selected lines; overflow ends the window with a "capped" footer. |
 | `readStreamMinSize` | `10485760` | Files at or above this size (or with unknown size) stream instead of loading whole into memory. |
+| `readRefThresholdBytes` | `2048` | Unchanged re-reads (same stat version and window) of files at or above this size return a one-line `[read-ref]` reference instead of the content again — the earlier read is already in the conversation, so re-sending it only grows the uncached suffix. `0` disables. A re-read that insists after a reference serves the real content once (anti-loop); any file change (new stat version) or a different window invalidates the reference. |
 
 ## Tools (schemas per [the filesystem tool schemas Agent Note](../../../.agents/notes/implemented/feature/2026-06-17-filesystem-tool-schemas.md))
 

@@ -44,6 +44,8 @@
 
 成形省略任何内容之前，完整正文先落盘 `ctx.spillStore`（best-effort：无后端、无会话主或落盘失败都降级为不带路径的省略计数，绝不使调用失败），省略通知携带 spill 定位符——重跑命令永远不是恢复手段（命令可能有副作用）。前台值以 `outputSpillPath` 暴露该路径。
 
+纯环境失败（exit 126/127/130/137/143 且正文只有壳层一两行）额外附一行标准化诊断——`[environment: exit 127 — command not found …]`——插在锚定的 exit 标记之前，模型直接读到语义与「勿盲目重试」指引而无需解析各壳层方言；有真实输出的正文不诊断（那由 error-aware 精选负责）。
+
 ### 每命令过滤器（git log / git diff / 测试运行）
 
 高噪音命令族在通用成形**之前**先做语义压缩（上游从 rtk 每命令过滤器内生化的同一分层）：超过 30 行的 `git log` 至多保留 `commandFilters.gitLogMaxCommits`（缺省 15）个最新 commit——剥 Author/Merge/trailer 行、每个消息 ≤3 行、行宽 120 封顶，自定义 `--format`/`--pretty` 原样尊重；超过 40 行的 `git diff` 每 hunk 封顶 `commandFilters.gitDiffHunkMaxLines`（缺省 60）、总量封顶 300 行，每个文件尾附 `# +A -R` 计数；可识别的测试运行超过 15 行保留失败块（命中 ±5 上下文、头尾锚）于 `commandFilters.testRunMaxLines`（缺省 120）内。`commandFilters.enabled: false` 全关；0 关单个族。被过滤器策展过的正文跳过通用成形（过滤器已做完相关性决策），未过滤原文与成形一样先落盘。

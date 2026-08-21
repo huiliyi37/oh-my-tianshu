@@ -23,7 +23,7 @@ import SandboxPolicyService from '@huiliyi37/dsh-sandbox-policy'
 import * as ToolBash from '@huiliyi37/dsh-tool-bash'
 import * as BashEnvPlugin from '@huiliyi37/dsh-bash-env'
 import { processOutcome } from '../src/background.ts'
-import { renderProcessRead, renderResult } from '../src/render.ts'
+import { parseExitStatus, renderProcessRead, renderResult } from '../src/render.ts'
 import SpillStore, { SpillLocator } from '@huiliyi37/dsh-spill'
 import type { SaveTextSpill, SpillRef } from '@huiliyi37/dsh-spill'
 
@@ -1415,5 +1415,18 @@ describe('bash tool 每命令输出过滤（真 git 仓库 e2e）', () => {
     expect(out).toMatch(/# \+\d+ -\d+$/m)
     const lineCount = out.split('\n').length
     expect(lineCount).toBeLessThan(220)
+  })
+})
+
+describe('bash tool 环境失败标准化（exit 诊断）', () => {
+  it('command not found → 一行诊断 + exit 标记仍收尾', async () => {
+    const { ctx } = await setupShaped()
+    const result = await call(ctx, 'bash', { command: 'definitely_not_a_command_xyz', description: 'env failure' })
+    const out = text(result)
+    expect(out).toContain('[environment: exit 127 — command not found')
+    expect(out.endsWith('[exit code: 127]')).toBe(true)
+    // parseExitStatus 契约不破：pill 解析仍取到 127。
+    const parsed = parseExitStatus(out)
+    expect(parsed.exitCode).toBe(127)
   })
 })

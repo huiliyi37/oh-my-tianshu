@@ -23,6 +23,9 @@ export const READ_LIMIT = 2000
  */
 export const STREAM_MIN_SIZE = 10 * 1024 * 1024
 
+/** Default read-ref threshold (the `readRefThresholdBytes` config): unchanged re-reads of files this large return a reference. */
+export const READ_REF_THRESHOLD_BYTES = 2048
+
 /** Resolved read-tool caps — plugin config after defaulting (see `Config` in index.ts). */
 export interface ReadToolCaps {
   /** Default and maximum number of lines returned by one call. */
@@ -33,7 +36,32 @@ export interface ReadToolCaps {
   maxBytes: number
   /** Files at or above this size stream; smaller files read whole into memory. */
   streamMinSize: number
+  /**
+   * Unchanged re-reads of files at or above this size return a one-line
+   * `[read-ref]` reference instead of the content again (0 disables) — the
+   * earlier read is already in the conversation, so re-sending it only grows
+   * the uncached suffix (upstream measured most cacheCreate coming exactly
+   * from in-turn tool-result growth).
+   */
+  refThresholdBytes: number
 }
+
+/** One session's memory of a file's last full default-window read. */
+interface ReadRefState {
+  /** The stat freshness token observed at that read; a different token means the file changed. */
+  version: unknown
+  /** The window parameters of that read — a reference is only valid for the same window. */
+  offset: number
+  limit: number
+  /** Whether the reference for this state has already been served (an insisted re-read then serves content). */
+  refServed: boolean
+}
+
+/**
+ * Per-session read-ref memory, keyed by the live session object so entries
+ * die with it. The map key is the resolved target's opaque `targetKey`.
+ */
+const readRefs = new WeakMap<object, Map<string, ReadRefState>>()
 
 /** Validated `read` arguments after defaulting. */
 interface ReadInput {
@@ -117,10 +145,22 @@ export function applyReadTool(ctx: Context, caps: ReadToolCaps): void {
             type: 'array',
             items: { type: 'string' },
           },
+          readRef: {
+            type: 'boolean',
+            description: 'Present when this result is an unchanged-re-read reference: the content is in the earlier read already in the conversation.',
+          },
         },
       },
       render: (args, value) => {
         const input = parseReadArgs(args, caps.limit)
+        if (value.readRef === true) {
+          return [{
+            type: 'text',
+            text: `[read-ref] ${value.path} is unchanged since its last read in this conversation (same file version, same window). `
+              + 'Reuse the content from the earlier read above instead of requesting it again; '
+              + 'use a different offset/limit or a focus query if you need another part.',
+          }]
+        }
         if (input.focus !== undefined) {
           const endLine = value.lines.at(-1)?.number ?? 0
           const omitted = Math.max(0, value.totalLines - value.lines.length)
@@ -178,6 +218,24 @@ export function applyReadTool(ctx: Context, caps: ReadToolCaps): void {
       }
       if (info.type !== 'file') throw new FsError(`cannot read "${target.displayPath}": not a regular file`, 'FS_NOT_REGULAR_FILE')
 
+      // read-ref（token 效率）：同文件、同版本（stat 身份未变）、同窗口的重读，
+      // 且文件 ≥ 阈值 → 返回一行引用而非再次灌入全文——早前读取已在会话里，
+      // 重发只会扩大未缓存后缀。引用已服务过仍重读 = 模型坚持要内容：本次
+      // 降级返回真内容（防循环），状态由随后的全量读重置。编辑自然失效
+      // （版本令牌随 stat 身份变化）。观察事件照发——ref 也是一次读取观察。
+      const session = exec.agent?.session
+      if (caps.refThresholdBytes > 0 && session !== undefined && input.focus === undefined
+        && (info.size ?? 0) >= caps.refThresholdBytes) {
+        const state = readRefs.get(session)?.get(String(target.targetKey))
+        if (state !== undefined && state.version === info.version
+          && state.offset === input.offset && state.limit === input.limit
+          && !state.refServed) {
+          state.refServed = true
+          ctx.emit('fs/observed', target, { kind: 'present', version: info.version }, exec)
+          return { path: target.displayPath, offset: input.offset, lines: [], totalLines: 0, readRef: true }
+        }
+      }
+
       // Stream when the file is large OR size is unknown, so a size-less backend
       // never buffers an arbitrarily large file.
       const chunks = info.size === undefined || info.size >= caps.streamMinSize
@@ -212,6 +270,17 @@ export function applyReadTool(ctx: Context, caps: ReadToolCaps): void {
         offset: input.offset,
         lines: window.lines,
         totalLines: window.totalLines,
+      }
+      // 记录本次全量读的身份与窗口，供后续未变更重读的引用判定。
+      if (caps.refThresholdBytes > 0 && session !== undefined) {
+        const perSession = readRefs.get(session) ?? new Map<string, ReadRefState>()
+        perSession.set(String(target.targetKey), {
+          version: info.version,
+          offset: input.offset,
+          limit: input.limit,
+          refServed: false,
+        })
+        readRefs.set(session, perSession)
       }
       // Record the present observation (a no-op when no policy plugin listens). The
       // read already succeeded; an fs/observed listener is contractually a

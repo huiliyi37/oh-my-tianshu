@@ -23,6 +23,7 @@ await ctx.plugin(ToolFs)                                  // this package — re
 | `readMaxLineLength` | `2000` | 每行截断前保留的字符数（后缀会说明上限）。 |
 | `readMaxBytes` | `51200` | 一次 `read` 调用所选行的字节上限；溢出时以「已达上限」footer 结束窗口。 |
 | `readStreamMinSize` | `10485760` | 大于等于该大小或大小未知的文件采用流式读取，而不是整体加载到内存。 |
+| `readRefThresholdBytes` | `2048` | 同文件、同 stat 版本、同窗口的重读，文件达到该大小时返回一行 `[read-ref]` 引用而非再次灌入全文——早前读取已在会话里，重发只会扩大未缓存后缀。`0` 关闭。引用之后仍坚持重读则本次降级返回真内容（防循环）；文件任何变更（stat 版本变化）或换窗口即使引用失效。 |
 
 ## 工具（schema 见[文件系统工具 schema Agent Note](../../../.agents/notes/implemented/feature/2026-06-17-filesystem-tool-schemas.md)）
 

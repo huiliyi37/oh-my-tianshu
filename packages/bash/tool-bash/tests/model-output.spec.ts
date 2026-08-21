@@ -1,6 +1,6 @@
 /** Model-output shaping: body composition, drop predicate, success fold, error-aware selection. */
 import { describe, expect, it } from 'vitest'
-import { composeResultBody, outputShapingDropsLines, shapeModelOutput } from '../src/model-output.ts'
+import { composeResultBody, environmentDiagnosis, outputShapingDropsLines, shapeModelOutput } from '../src/model-output.ts'
 import type { BashRunResult } from '@huiliyi37/dsh-bash'
 
 const DEFAULTS = { successTailLines: 20, errorThresholdLines: 40, errorBudgetLines: 60 }
@@ -126,3 +126,18 @@ describe('shapeModelOutput — error-aware selection', () => {
 function sharedTail(shaped: string): string {
   return shaped.slice(shaped.indexOf('\n') + 1)
 }
+
+describe('environmentDiagnosis — 环境失败标准化', () => {
+  it('exit 127 + 短正文 → command-not-found 诊断', () => {
+    expect(environmentDiagnosis(127, 1)).toBe('[environment: exit 127 — command not found — verify the command name and PATH before retrying]')
+  })
+
+  it('有真实输出的长正文 → 不诊断(交给 error-aware 精选)', () => {
+    expect(environmentDiagnosis(127, 10)).toBeUndefined()
+  })
+
+  it('未知退出码与空指针不诊断', () => {
+    expect(environmentDiagnosis(1, 0)).toBeUndefined()
+    expect(environmentDiagnosis(null, 1)).toBeUndefined()
+  })
+})

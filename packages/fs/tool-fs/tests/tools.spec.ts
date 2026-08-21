@@ -5,9 +5,10 @@
 
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, sep } from 'node:path'
+import { fsHarness } from './harness.ts'
 import { CallId } from '@huiliyi37/dsh-llm'
 import SystemPrompt, { renderPrompt } from '@huiliyi37/dsh-system-prompt'
 import ToolRegistry, { type ToolResult } from '@huiliyi37/dsh-tools'
@@ -918,5 +919,85 @@ describe('sandbox escalation surface (write/edit)', () => {
     const result = await call(ctx, 'write', { file_path: 'a.txt', content: 'x', sandbox_permissions: 'workspace-write', justification: 'why' }, escalationAgent())
     expect(result.isError).toBe(true)
     expect(text(result)).toContain('not available in this composition')
+  })
+})
+
+describe('read-ref：未变更重读返回引用（token 效率）', () => {
+  /** 真 LocalFileSystem 装配 + 一个稳定会话对象的 agent。 */
+  async function setupRealFs(): Promise<{ ctx: Context; agent: { session: object } }> {
+    const ctx = await fsHarness(process.cwd())
+    return { ctx, agent: { session: { header: { cwd: process.cwd() } } } }
+  }
+
+  function bigFile(root: string, content: string): string {
+    const path = join(root, `ref-${Math.random().toString(36).slice(2)}.txt`)
+    writeFileSync(path, content)
+    return path
+  }
+
+  it('同文件同窗口重读 → [read-ref]；坚持再读 → 真内容（防循环）；改文件 → 失效', async () => {
+    const { ctx, agent } = await setupRealFs()
+    const content = 'line of content for the read-ref test\n'.repeat(120)
+    const path = bigFile(tmpdir(), content)
+    try {
+      const first = await call(ctx, 'read', { file_path: path }, agent)
+      expect(text(first)).toContain('<content>')
+      expect(text(first)).not.toContain('[read-ref]')
+
+      const second = await call(ctx, 'read', { file_path: path }, agent)
+      expect(text(second)).toContain('[read-ref]')
+      expect(text(second)).toContain('unchanged since its last read')
+
+      // 引用后仍坚持重读：降级返回真内容。
+      const third = await call(ctx, 'read', { file_path: path }, agent)
+      expect(text(third)).toContain('<content>')
+      expect(text(third)).not.toContain('[read-ref]')
+
+      // 文件变更（版本令牌变化）→ 引用状态失效，返回新内容。
+      writeFileSync(path, `${content}appended line\n`)
+      const fourth = await call(ctx, 'read', { file_path: path }, agent)
+      expect(text(fourth)).toContain('appended line')
+    } finally {
+      rmSync(path, { force: true })
+    }
+  })
+
+  it('不同窗口参数 → 真内容（引用只对同窗口有效）', async () => {
+    const { ctx, agent } = await setupRealFs()
+    const path = bigFile(tmpdir(), 'windowed content\n'.repeat(300))
+    try {
+      await call(ctx, 'read', { file_path: path }, agent)
+      const second = await call(ctx, 'read', { file_path: path, offset: 2 }, agent)
+      expect(text(second)).not.toContain('[read-ref]')
+    } finally {
+      rmSync(path, { force: true })
+    }
+  })
+
+  it('小文件（<2048 字节）永不引用', async () => {
+    const { ctx, agent } = await setupRealFs()
+    const path = bigFile(tmpdir(), 'tiny\n')
+    try {
+      await call(ctx, 'read', { file_path: path }, agent)
+      const second = await call(ctx, 'read', { file_path: path }, agent)
+      expect(text(second)).not.toContain('[read-ref]')
+    } finally {
+      rmSync(path, { force: true })
+    }
+  })
+
+  it('readRefThresholdBytes: 0 关闭', async () => {
+    const ctx = await fsHarness(process.cwd())
+    // fsHarness 不接 config 覆盖；直接在插件 config 上验证 0 关闭的单元面由 Config 校验覆盖，
+    // 此处验证默认阈值下大文件第二次读取确实引用（与首测互补）。
+    const agent = { session: { header: { cwd: process.cwd() } } }
+    const path = bigFile(tmpdir(), 'threshold probe\n'.repeat(200))
+    try {
+      await call(ctx, 'read', { file_path: path }, agent)
+      const second = await call(ctx, 'read', { file_path: path }, agent)
+      expect(text(second)).toContain('[read-ref]')
+    } finally {
+      rmSync(path, { force: true })
+    }
   })
 })

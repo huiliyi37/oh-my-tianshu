@@ -188,3 +188,28 @@ export function shapeModelOutput(body: string, shaping: OutputShaping): string {
   const header = `[${omitted} line${omitted === 1 ? '' : 's'} omitted — error-relevant lines kept${spillSuffix(shaping.spillPath)}]`
   return `${header}\n${out.join('\n')}${tail}`
 }
+
+/** Standardized diagnoses for environmental exit codes (protocol facts, not tunables). */
+const EXIT_DIAGNOSIS: Readonly<Record<number, string>> = {
+  126: 'not executable (permission or not a command) — check the file mode and path before retrying',
+  127: 'command not found — verify the command name and PATH before retrying',
+  130: 'interrupted (SIGINT)',
+  137: 'killed (SIGKILL; often the OOM killer or a manual kill -9) — reduce memory use or ask the user',
+  143: 'terminated (SIGTERM)',
+}
+
+/**
+ * A one-line standardized diagnosis for a purely environmental failure: a
+ * known exit code whose body carries no real program output (at most a couple
+ * of shell lines). Bodies with real output skip this — their relevance is the
+ * error-aware selection's job — and the exit marker stays last so the
+ * terminal pill parse keeps anchoring.
+ * @param exitCode - the run's exit code (signal kills have their own marker).
+ * @param bodyLineCount - the composed body's line count.
+ * @returns the `[environment: …]` marker line, or undefined when not applicable.
+ */
+export function environmentDiagnosis(exitCode: number | null, bodyLineCount: number): string | undefined {
+  if (exitCode === null || bodyLineCount > 3) return undefined
+  const diagnosis = EXIT_DIAGNOSIS[exitCode]
+  return diagnosis === undefined ? undefined : `[environment: exit ${exitCode} — ${diagnosis}]`
+}
