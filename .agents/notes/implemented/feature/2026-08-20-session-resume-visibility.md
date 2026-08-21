@@ -25,6 +25,18 @@ The TUI and CLI now surface the whole chain (roadmap docs/dsh-session-resume-roa
 
 Copy decisions: the roadmap asked new recovery copy to be bilingual; the repo's i18n pairing contract governs documentation, while the TUI's established convention is a single Chinese UI language (only USAGE_TEXT is inline bilingual). New copy follows the TUI convention; every doc updated by this work is a verified bilingual pair.
 
+## Alternatives considered
+
+- **A new session event for the crash-repair signal** versus the shipped durable `turn/end { kind: 'interrupted' }` marker. A new event adds vocabulary, emission machinery in the persistence load path, and an architecture-doc sync surface for a fact the log already carries; repair.ts is the marker's only producer and the type doc pins that, so the trailing marker is the same signal with zero write-path change.
+- **A public session-id or title segment in the top bar** versus the shipped chrome session-tab row (later removed). The tab row listed every persisted session as short ids — noise the top-bar segment would only shrink, not fix; switching surfaces with titles (/resume, Ctrl+S, welcome list) answer the same question, so the row was removed outright (product review) rather than relocated.
+- **Making the cold-start default resume-the-newest** versus the shipped keep-new default. The roadmap deferred that product decision; the numbered list adds visibility without changing default behavior, keeping the change reversible when the decision lands.
+
+## Consequences
+
+Bought: every step of the discovery → select → resume → result chain has a visible signal (numbered cold-start list, resume banner, history-end separator, crash notice, corrupt-row annotations, version-error guidance); failures never leave a half-switched app; the trailing-marker semantics keep later resumes free of stale crash notices.
+
+Cost: TUI copy stays single-language Chinese by the repo's TUI convention (only USAGE_TEXT is inline bilingual), so the new surfaces are not localized with the doc corpus; corrupt artifacts stay listed as unrecoverable rows rather than being cleaned (visibility over hygiene, by design); the cold-start default remains new-session — users with history must act to resume.
+
 ## Verification
 
 - Pure projections: formatRestorablePickerList, corrupt-row formatting, wasCrashRepaired (trailing-marker semantics), interrupted transcript rows, orphan tool rows (restore-session / transcript / render specs).

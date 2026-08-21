@@ -3764,6 +3764,7 @@ describe('TuiApp T2.1/T2.2 多 agent 面板接线（委派树 + workflow 运行�
         onChanged: () => () => { },
       }
       if (name === 'subagents') return {
+        activeExternalRuns: () => [],
         listDescendants: vi.fn(async () => ([
           { kind: 'child', id: 'child-1', parentId: 'root', depth: 1, activity: 'running', hasChildren: false, mode: 'continuable', label: '子代理A' },
         ])),
@@ -5388,7 +5389,7 @@ describe('TuiApp subagent / workflow / tasks 服务接线', () => {
       return () => { }
     })
     ctx.reflect.get.mockImplementation((name: string) => {
-      if (name === 'subagents') return { listDescendants }
+      if (name === 'subagents') return { listDescendants, activeExternalRuns: () => [] }
       return undefined
     })
     const agent = makeAgent('sub-1')
@@ -5411,7 +5412,7 @@ describe('TuiApp subagent / workflow / tasks 服务接线', () => {
       return () => { }
     })
     ctx.reflect.get.mockImplementation((name: string) => {
-      if (name === 'subagents') return { listDescendants: vi.fn(async () => []) }
+      if (name === 'subagents') return { listDescendants: vi.fn(async () => []), activeExternalRuns: () => [] }
       return undefined
     })
     const agent = makeAgent('sub-2')
@@ -5429,7 +5430,7 @@ describe('TuiApp subagent / workflow / tasks 服务接线', () => {
   it('委派树 listDescendants reject → 置 null 降级', async () => {
     const ctx = makeCtx()
     ctx.reflect.get.mockImplementation((name: string) => {
-      if (name === 'subagents') return { listDescendants: vi.fn(async () => { throw new Error('boom') }) }
+      if (name === 'subagents') return { listDescendants: vi.fn(async () => { throw new Error('boom') }), activeExternalRuns: () => [] }
       return undefined
     })
     const agent = makeAgent('deleg-err')
@@ -5446,6 +5447,7 @@ describe('TuiApp subagent / workflow / tasks 服务接线', () => {
     const ctx = makeCtx()
     ctx.reflect.get.mockImplementation((name: string) => {
       if (name === 'subagents') return {
+        activeExternalRuns: () => [],
         listDescendants: () => new Promise<unknown[]>((r) => { resolveEntries = r }),
       }
       return undefined
@@ -6658,6 +6660,7 @@ describe('subagent 活动带接线（CC 对标统一固定带）', () => {
     ctx.sessions.get.mockReturnValue(agent.session)
     ctx.reflect.get.mockImplementation((name: string) => {
       if (name === 'subagents') return {
+        activeExternalRuns: () => [],
         listDescendants: vi.fn(async () => ([
           { kind: 'child', id: 'child-1', parentId: 'root', depth: 1, activity: 'running', hasChildren: false, mode: 'one-shot', label: '探索鉴权' },
         ])),
@@ -6701,6 +6704,7 @@ describe('subagent 活动带接线（CC 对标统一固定带）', () => {
     ctx.sessions.get.mockReturnValue(agent.session)
     ctx.reflect.get.mockImplementation((name: string) => {
       if (name === 'subagents') return {
+        activeExternalRuns: () => [],
         listDescendants: vi.fn(async () => ([
           { kind: 'child', id: 'child-1', parentId: 'root', depth: 1, activity: 'running', hasChildren: false, mode: 'one-shot', label: '探索鉴权' },
         ])),
@@ -6794,6 +6798,7 @@ describe('活动带 child 投影缓存与 workflow/task 折叠接线', () => {
         }),
       }
       if (name === 'subagents') return {
+        activeExternalRuns: () => [],
         listDescendants: vi.fn(async () => ([
           { kind: 'child', id: 'child-1', parentId: 'root', depth: 1, activity: 'running', hasChildren: false, mode: 'one-shot', label: '探索鉴权' },
         ])),
@@ -6933,6 +6938,7 @@ describe('委派面板外部 run 段接线（G3）', () => {
     ctx.sessions.get.mockReturnValue(agent.session)
     ctx.reflect.get.mockImplementation((name: string) => {
       if (name === 'subagents') return {
+        activeExternalRuns: () => [],
         listDescendants: vi.fn(async () => []),
         activeExternalRuns: vi.fn(() => ([
           { id: 'ext-1', provider: 'acp', label: '外部检索', startedAt: 1000 },
@@ -6961,7 +6967,7 @@ describe('委派面板外部 run 段接线（G3）', () => {
     ctx.agents.create.mockResolvedValue(makeHandle(agent))
     ctx.sessions.get.mockReturnValue(agent.session)
     ctx.reflect.get.mockImplementation((name: string) => {
-      if (name === 'subagents') return { listDescendants: vi.fn(async () => []) }
+      if (name === 'subagents') return { listDescendants: vi.fn(async () => []), activeExternalRuns: () => [] }
       return undefined
     })
     const stdin = makeStdin()
@@ -7685,7 +7691,7 @@ describe('会话切换稳健性（switchSession 竞态 / restore 失败 / 委派
     }]
     let descendants: (id: SessionId) => Promise<typeof okEntries> = async () => okEntries
     ctx.reflect.get.mockImplementation((name: string) => {
-      if (name === 'subagents') return { listDescendants: (id: SessionId) => descendants(id) }
+      if (name === 'subagents') return { listDescendants: (id: SessionId) => descendants(id), activeExternalRuns: () => [] }
       return undefined
     })
     const stdin = makeStdin()

@@ -1427,6 +1427,6 @@ describe('bash tool 环境失败标准化（exit 诊断）', () => {
     expect(out.endsWith('[exit code: 127]')).toBe(true)
     // parseExitStatus 契约不破：pill 解析仍取到 127。
     const parsed = parseExitStatus(out)
-    expect(parsed.exitCode).toBe(127)
+    expect(parsed).toMatchObject({ exitCode: 127 })
   })
 })

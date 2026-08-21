@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-20-session-resume-visibility.md
-2026-08-20-session-resume-visibility.md: 5f19e73d8ef37ef9b34e7bc07bb8131515801741
-2026-08-20-session-resume-visibility.zh.md: 28594fe0d7d273b5a1a082345bbe73c73d7db65a
+2026-08-20-session-resume-visibility.md: 61b1b9ca83920854625c4214aaf4e2097aae9e69
+2026-08-20-session-resume-visibility.zh.md: 582d2c2052a1195dfd7155be6bda8e44109c30c8

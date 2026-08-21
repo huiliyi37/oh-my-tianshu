@@ -145,11 +145,19 @@ interface SubagentsFacet {
   listDescendants(rootSessionId: SessionId, signal?: AbortSignal): Promise<DelegationEntry[]>
   /** 终止一个 live continuable 子代理的当前 turn（one-shot 目标是服务层 no-op）。 */
   interrupt(targetSessionId: SessionId, authority: { kind: 'user'; parentSessionId: SessionId }): void
-  /** G3：活跃外部（无本地 Session）run 的等价状态面；旧形状服务可缺省。 */
-  activeExternalRuns?(): ExternalRunEntry[]
+  /**
+   * G3：活跃外部（无本地 Session）run 的等价状态面。服务一经装配即有此面
+   * （同一构建内 SubagentService 定义唯一、版本随 workspace 锁定），类型化
+   * 同进程边界不做投机缺省。
+   */
+  activeExternalRuns(): ExternalRunEntry[]
 }
 
-/** 投影总线的 subagentProgress 值结构校验（活动带缓存边界；防非对象值污染）。 */
+/**
+ * 投影总线的 subagentProgress 值结构校验：sessionProjections 经
+ * `ctx.reflect.get` 取得，`onChanged` 以 `unknown` 交付投影值（通用总线
+ * 边界，非类型化同进程通道），入缓存前按结构收窄。
+ */
 function isSubagentProgressValue(value: unknown): value is DelegationProgressProjection {
   if (typeof value !== 'object' || value === null) return false
   const v = value as Record<string, unknown>
@@ -2639,10 +2647,8 @@ export class TuiApp {
       this.externalRuns = []
       return
     }
-    // G3：活跃外部 run 快照（同步内存面；旧形状服务缺省该面时清空不渲染）。
-    this.externalRuns = typeof subagents.activeExternalRuns === 'function'
-      ? subagents.activeExternalRuns()
-      : []
+    // G3：活跃外部 run 快照（同步内存面；服务在场即有此面，直接读取）。
+    this.externalRuns = subagents.activeExternalRuns()
     void subagents.listDescendants(sessionId).then((entries) => {
       if (this.disposed) return
       this.delegationEntries = entries
