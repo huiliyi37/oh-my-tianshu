@@ -2,7 +2,7 @@
 
 English | [中文](providers.zh.md)
 
-Harness ships with DeepSeek and mounts a generic multi-provider adapter alongside it, for the providers in pi-ai's installed catalog — Anthropic, OpenAI, and the rest — and for any OpenAI-compatible gateway or self-hosted server. You have two entry points: the **Models** page in the web UI, and `$DSH_HOME/settings.yaml`. Both write the same document, and a change takes effect on the next request without a restart.
+Harness ships with DeepSeek and mounts a generic multi-provider adapter alongside it, for the providers in pi-ai's installed catalog — Anthropic, OpenAI, and the rest — and for any OpenAI-compatible gateway or self-hosted server. The full entry points are the **Models** page in the web UI and `$DSH_HOME/settings.yaml`; both write the same document, and a change takes effect on the next request without a restart. The TUI covers the daily two: the DeepSeek key (`/key`) and per-role model pins (`/model <role>`).
 
 ## Where providers come from
 
@@ -32,6 +32,25 @@ That holds for providers that authenticate with an API key. The catalog also car
 **Let the endpoint report its models.** Expand **Model catalog** and choose **Fetch available models**: the interrogation asks the endpoint **the form currently shows** — including a base URL edited but not yet saved and a key typed but not yet stored — and offers what it reports as candidates to pick from. A route the installed catalog describes is answered from that catalog with no network call. Adopting a candidate only writes rows into the draft; nothing is stored until you save.
 
 Keys are write-only: the page only ever holds a redacted descriptor, never the literal secret. A key you enter is stored in `$DSH_HOME/.credentials.yaml`, and the profile records only the variable name that references it.
+
+## Configure from the TUI
+
+**Set the DeepSeek key.** Run `/key` (alias `/login`) to open the key dialog: paste the key — masked past eight characters, with only the last four left visible — and it is probed against `GET {baseURL}/models` before saving. A 401/403 refuses the write as an invalid key; a network error or timeout cannot disprove the key, so the dialog warns and lets you save anyway. A saved key lands in `$DSH_HOME/.credentials.yaml` (mode 0600) and takes effect on the next request, no restart. If the launching environment already exports `DEEPSEEK_API_KEY`, the dialog explains that instead of writing, because that read-only layer always wins. When no key is configured, the dialog also opens once per launch after the welcome screen; `Esc` skips it.
+
+**Pin a model per role.** `/model` on its own still picks the main model. `/model vision`, `/model secondary`, and `/model subagent` open the picker for that role's pin — or take a `provider/model` argument directly — and store it in the `model-roles` settings section:
+
+- *vision* — the model that describes pasted images when the main model cannot see them (the vision bridge).
+- *secondary* — cheap background work: session titles and compaction summaries.
+- *subagent* — the default route for delegated subagent sessions; a per-request override or an agent definition's `model:` still wins.
+
+The first picker row, "follow the default", clears the pin. An unpinned role falls back to each consumer's own default (for secondary, the session's own model). Pinning a vision model the catalog does not mark `supportsVision` warns but is allowed — the catalog entry is advisory.
+
+```yaml
+model-roles:
+  vision: { provider: deepseek-official, model: deepseek-v4-pro }
+  secondary: { provider: deepseek-official, model: deepseek-v4-flash }
+  subagent: { provider: deepseek-official, model: deepseek-v4-flash }
+```
 
 ## settings.yaml for advanced configuration
 
@@ -118,7 +137,7 @@ Model ids are not lifecycle configuration. Requesting a model the route does not
 
 Use `apiKeyEnv`: it is a *reference* resolved per request, so no secret enters the configuration file. Omitting it leaves a route unauthenticated, which for a catalog route means pi-ai's own environment discovery. A reference that resolves to nothing fails the request with `MISSING_CREDENTIAL` rather than falling through to whatever unrelated key the environment happens to hold.
 
-Under `dsh`, references resolve from the inherited environment, the Models page's `$DSH_HOME/.credentials.yaml` store, the invoking directory's `.env`, then `$DSH_HOME/.env`. Without a credential service, a reference reads only the matching environment variable. One credential serves every model on its route.
+Under `dsh`, references resolve from the inherited environment, the `$DSH_HOME/.credentials.yaml` store (written by the Models page or the TUI `/key` command), the invoking directory's `.env`, then `$DSH_HOME/.env`. Without a credential service, a reference reads only the matching environment variable. One credential serves every model on its route.
 
 ## Point an agent at the new provider
 
@@ -139,7 +158,7 @@ If the provider a saved default names is later removed, the composer says **Sele
 
 ## Troubleshooting
 
-- **`MISSING_CREDENTIAL`** — the variable the profile's `apiKeyEnv` names holds no value. Store the key once through the Models page, or export the variable.
+- **`MISSING_CREDENTIAL`** — the variable the profile's `apiKeyEnv` names holds no value. Store the key once through the Models page or `/key` in the TUI, or export the variable.
 - **`UNKNOWN_MODEL`** — the requested model is not in the route's configured catalog. Add it to `models`, or use an id the catalog already carries.
 - **`UNSUPPORTED_REASONING_EFFORT`** — the request asked the model for a level it does not offer. Pick a level the composer lists for that model, or declare the missing one in the model's `reasoningEfforts`.
 - **`settings-rejected`** — the written profile cannot be served, and the message names the route and model. For a hand-declared route, check that `api`, `baseURL`, and `models` are all present.

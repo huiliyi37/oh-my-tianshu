@@ -2,7 +2,7 @@
 
 [English](providers.md) | 中文
 
-Harness 出厂自带 DeepSeek，同时预装了一个通用的多提供方适配器，用来接入 pi-ai 已安装目录中的 Anthropic、OpenAI 等提供方，或任何 OpenAI 兼容的网关与自建服务。你有两个入口：Web 界面的**模型**页，以及 `$DSH_HOME/settings.yaml`。两者写的是同一份文档，改完下一次请求即生效，不用重启。
+Harness 出厂自带 DeepSeek，同时预装了一个通用的多提供方适配器，用来接入 pi-ai 已安装目录中的 Anthropic、OpenAI 等提供方，或任何 OpenAI 兼容的网关与自建服务。完整入口有两个：Web 界面的**模型**页和 `$DSH_HOME/settings.yaml`——两者写的是同一份文档，改完下一次请求即生效，不用重启。TUI 覆盖日常两件套：DeepSeek 密钥（`/key`）与按角色 pin 模型（`/model <角色>`）。
 
 ## 提供方从哪里来
 
@@ -32,6 +32,25 @@ Harness 出厂自带 DeepSeek，同时预装了一个通用的多提供方适配
 **让端点自己报模型。** 展开**模型目录**后点**获取可用模型**，会按你**当前表单里**的地址与密钥去问端点（地址改了但没保存、密钥刚输入还没存下，都算数），把它报告的模型列成候选让你勾选。内置目录里的路由直接由目录作答，不联网。采纳只是把行写进草稿，最终还是你点保存才落盘。
 
 密钥是只写的：页面拿到的永远是脱敏描述符，不是明文。写入的密钥存进 `$DSH_HOME/.credentials.yaml`，profile 里只记录引用它的变量名。
+
+## 在 TUI 里配置
+
+**设置 DeepSeek 密钥。** 运行 `/key`（别名 `/login`）打开密钥对话框：粘贴密钥——超过 8 个字符即掩码显示，只露末 4 位——保存前会向 `GET {baseURL}/models` 探测一次。401/403 判定密钥无效、拒绝写入；网络错误或超时无法证伪密钥，对话框只告警并允许你强行保存。保存成功的密钥写入 `$DSH_HOME/.credentials.yaml`（权限 0600），下一次请求即生效，无需重启。若启动环境里已导出 `DEEPSEEK_API_KEY`，对话框会改为说明这一层是只读的、永远优先，而不是写入。未配置密钥时，对话框还会在每次启动的欢迎屏之后自动打开一次，`Esc` 可跳过。
+
+**按角色 pin 模型。** 单独的 `/model` 仍然切换主模型；`/model vision`、`/model secondary`、`/model subagent` 打开该角色 pin 的选择器——或直接跟 `provider/model` 参数——并存进 settings 的 `model-roles` 段：
+
+- *vision*——主模型不识图时，为粘贴的图片生成文字描述的模型（视觉桥）。
+- *secondary*——廉价后台活：会话标题与压缩摘要。
+- *subagent*——派生子代理会话的默认路由；请求级覆盖或 agent 定义里的 `model:` 仍然优先。
+
+选择器首行「跟随默认（清除 pin）」用来撤掉 pin。未 pin 的角色按各消费方自己的默认回退（secondary 即跟随会话自身模型）。给 vision pin 一个目录未标记 `supportsVision` 的模型会告警但允许——目录条目只是建议性的。
+
+```yaml
+model-roles:
+  vision: { provider: deepseek-official, model: deepseek-v4-pro }
+  secondary: { provider: deepseek-official, model: deepseek-v4-flash }
+  subagent: { provider: deepseek-official, model: deepseek-v4-flash }
+```
 
 ## settings.yaml：进阶配置
 
@@ -118,7 +137,7 @@ settings 段落**逐个提供方**地盖在 `cordis.yml` 的同名配置之上�
 
 使用 `apiKeyEnv`——它是一个**引用**，每次请求时解析，密钥本身不进配置文件。省略它会让路由不带认证，对内置目录路由意味着交给 pi-ai 自己的环境发现。给了引用却解析不到，请求会以 `MISSING_CREDENTIAL` 失败，而不是退回去用环境里碰巧存在的某个不相干的 key 计费。
 
-在 `dsh` 下，引用依次从继承环境、模型页的 `$DSH_HOME/.credentials.yaml` 存储、调用目录的 `.env` 和 `$DSH_HOME/.env` 解析。未挂载凭据服务时，引用只读取同名环境变量。一份凭据供该路由上的所有模型使用。
+在 `dsh` 下，引用依次从继承环境、`$DSH_HOME/.credentials.yaml` 存储（由模型页或 TUI 的 `/key` 命令写入）、调用目录的 `.env` 和 `$DSH_HOME/.env` 解析。未挂载凭据服务时，引用只读取同名环境变量。一份凭据供该路由上的所有模型使用。
 
 ## 让 agent（智能体）用上新提供方
 
@@ -139,7 +158,7 @@ agent-default-model:
 
 ## 排错
 
-- **`MISSING_CREDENTIAL`** — profile 里的 `apiKeyEnv` 指向的变量没有值。用模型页存一次密钥，或导出该环境变量。
+- **`MISSING_CREDENTIAL`** — profile 里的 `apiKeyEnv` 指向的变量没有值。用模型页或 TUI 的 `/key` 存一次密钥，或导出该环境变量。
 - **`UNKNOWN_MODEL`** — 请求的模型不在该路由配置的目录里。把它加进 `models`，或改用目录里已有的 id。
 - **`UNSUPPORTED_REASONING_EFFORT`** — 请求向模型要了一个它不提供的档位。从输入框为该模型列出的档位里挑一个，或把缺的那个声明进该模型的 `reasoningEfforts`。
 - **`settings-rejected`** — 写入的 profile 服务不了，错误信息会点名具体的路由和模型。手工声明的路由检查 `api`、`baseURL`、`models` 是否齐全。
