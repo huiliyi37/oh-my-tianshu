@@ -17,7 +17,7 @@
  * 压缩成功后可零工具解析出实际宽高（PNG IHDR / JPEG SOF），供气泡展示。
  */
 
-import { readFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import {
   makeImageTempDir,
@@ -310,6 +310,52 @@ export async function loadImageAttachment(
       )
     }
     return toAttachment(result.buf, result.mime, basename(absolutePath))
+  } finally {
+    await removeImageTempDir(dir)
+  }
+}
+
+/**
+ * 剪贴板位图的附件化入口：与文件路径走同一条预算管线。
+ *
+ * 修复的缺口：剪贴板路径原先直接拼 dataUrl，不做过限压缩——超限大图能挂上
+ * （📎 有显示）却在提交时被 normalizeSubmitImages 静默丢弃。此处把位图落临时
+ * 文件后复用 {@link loadImageAttachment} 的全部语义（magic 校验、原样直发、
+ * 三级自适应压缩），两条入口不再分叉。
+ * @param buf - 剪贴板位图字节。
+ * @param name - 附件名（显示与诊断用，如 `clipboard.png`）。
+ * @param options - maxBytes/maxEdge 上限覆盖。
+ * @returns 图片附件（超限时为压缩后的 data URL）。
+ * @throws 格式不支持、无可用图像工具，或压缩后仍超限（错误信息区分原因）。
+ */
+export async function loadClipboardImageAttachment(
+  buf: Buffer,
+  name: string,
+  options: LoadImageOptions = {},
+): Promise<ImageAttachment> {
+  // 未超限的快路径无需落盘：直接按 magic 组装（与文件路径的快路径同构）。
+  const mime = detectImageMime(buf, name)
+  if (mime === null) {
+    throw new Error(`Unsupported image format: ${name}`)
+  }
+  const maxBytes = options.maxBytes ?? MAX_IMAGE_BYTES
+  if (buf.length <= maxBytes) {
+    return toAttachment(buf, mime, name)
+  }
+  // 超限：落临时文件复用压缩管线（compressToBudget 以文件为输入）。
+  const dir = await makeImageTempDir()
+  try {
+    const ext = Object.entries(IMAGE_MIMES).find(([, value]) => value === mime)?.[0] ?? '.png'
+    const source = join(dir, `clipboard-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`)
+    await writeFile(source, buf)
+    const result = await compressToBudget(source, dir, options.maxEdge ?? MAX_EDGE, maxBytes, mime)
+    if (result === null) {
+      throw new Error(
+        'Image too large and no image tool produced output. '
+        + 'Install an image tool (sips on macOS, ImageMagick on Linux/Windows) to compress.',
+      )
+    }
+    return toAttachment(result.buf, result.mime, name)
   } finally {
     await removeImageTempDir(dir)
   }

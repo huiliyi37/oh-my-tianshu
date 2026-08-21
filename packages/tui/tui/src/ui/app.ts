@@ -44,7 +44,7 @@ import { ResizeHandler } from '../engine/resize-handler.js'
 import { BlockStreamWriter } from '../block-stream-writer.js'
 import { StreamRenderer } from '../engine/stream-renderer.js'
 import { TuiPerfMonitor, isTuiPerfEnabled } from '../engine/perf-monitor.js'
-import { loadImageAttachment, looksLikeImagePath, MAX_IMAGES } from '../engine/image-attach.js'
+import { loadClipboardImageAttachment, loadImageAttachment, looksLikeImagePath, MAX_IMAGES } from '../engine/image-attach.js'
 import { readImageFromClipboard, readTextFromClipboard, FOCUS_DEBOUNCE_MS } from '../engine/clipboard-image.js'
 import {
   encodeTermImage,
@@ -1259,6 +1259,10 @@ export class TuiApp {
         // 再同步重绘 live 区（不能只等 120ms ticker——主屏刚恢复时 live 区是旧帧）。
         this.flushDeferredScrollback()
         this.flushLiveRender()
+        // 焦点去抖接线（终端 raw mode 无窗口焦点事件，overlay 关闭为最近似）：
+        // 此后 FOCUS_DEBOUNCE_MS 内的 Ctrl+V 只走文本——刚关掉的对话框里那次
+        // 粘贴不应再把剪贴板图读一次。
+        this.lastInputFocusAt = Date.now()
       },
     })
     this.overlay.register('command-palette', this.palette)
@@ -1340,17 +1344,21 @@ export class TuiApp {
       return
     }
     // 剪贴板当前是图片 → 附图并吞掉（与 Ctrl+V 互斥：右键粘贴产生 paste
-    // 事件、Ctrl+V 产生 ctrl_v 按键，不会同时触发）。
+    // 事件、Ctrl+V 产生 ctrl_v 按键，不会同时触发）。readImageFromClipboard
+    // 无图/失败时返回 null（自然落入文本粘贴）；此处 catch 只接管线处理
+    // 失败（超限压缩失败等）——回显原因，不把位图乱码插进输入行。
     if (this.inputLine.images.length < MAX_IMAGES) {
-      try {
-        const imgResult = await readImageFromClipboard()
-        if (imgResult) {
-          this.inputLine.addImage(imgResult.dataUrl)
+      const imgResult = await readImageFromClipboard()
+      if (imgResult) {
+        try {
+          await this.attachClipboardImage(imgResult.dataUrl, imgResult.name)
+          return
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err)
+          this.commitToScrollback({ text: color(`⚠ 剪贴板图片处理失败: ${message}`, this.theme.warning), trailingNewline: true })
           this.flushLiveRender()
           return
         }
-      } catch {
-        // 剪贴板读图失败（无图/不支持）→ 落入正常文本粘贴
       }
     }
     const trimmed = text.trim()
@@ -1379,8 +1387,9 @@ export class TuiApp {
 
   /**
    * Ctrl+V 处理：优先读剪贴板图片 → 失败则 fallback 到文本粘贴。
-   * 焦点防抖：输入框在最近 FOCUS_DEBOUNCE_MS 内刚获得焦点时跳过读图
-   * （编辑器/overlay 切回后 1s 内的 Ctrl+V 大概率是文本操作）。
+   * 焦点防抖：输入框在最近 FOCUS_DEBOUNCE_MS 内刚「重获焦点」（overlay
+   * 关闭近似——终端 raw mode 下无窗口焦点事件）时跳过读图，避免把粘贴进
+   * 对话框/选择器的那次 Ctrl+V 再当一次读图。
    */
   private async handleCtrlV(): Promise<void> {
     if (Date.now() - this.lastInputFocusAt < FOCUS_DEBOUNCE_MS) {
@@ -1399,12 +1408,16 @@ export class TuiApp {
           this.flushLiveRender()
           return
         }
-        this.inputLine.addImage(result.dataUrl)
-        this.flushLiveRender()
+        await this.attachClipboardImage(result.dataUrl, result.name)
         return
       }
-    } catch {
-      // 剪贴板读图失败，静默 fallback 到文本
+    } catch (err) {
+      // 管线处理失败（超限压缩失败等）——回显原因；剪贴板读图本身失败
+      // （readImageFromClipboard 内部吞掉返回 null）走下方文本 fallback。
+      const message = err instanceof Error ? err.message : String(err)
+      this.commitToScrollback({ text: color(`⚠ 剪贴板图片处理失败: ${message}`, this.theme.warning), trailingNewline: true })
+      this.flushLiveRender()
+      return
     }
     const text = await readTextFromClipboard()
     if (text) {
@@ -1423,6 +1436,21 @@ export class TuiApp {
     if (!text) return
     dialog.pasteText(text)
     if (this.overlay?.activeId() === 'key-dialog') this.overlay.rerender()
+  }
+
+  /**
+   * 剪贴板位图附件化：dataUrl 解回字节后走与文件路径同一条预算管线
+   * （magic 校验 + 原样直发 + 三级自适应压缩）——超限大图在此被压缩或
+   * 响亮失败，而不是挂上后在提交时被静默丢弃。
+   * @param dataUrl - 剪贴板读图结果（data:image/...;base64,...）。
+   * @param name - 附件显示名。
+   */
+  private async attachClipboardImage(dataUrl: string, name: string): Promise<void> {
+    const comma = dataUrl.indexOf(',')
+    const buf = Buffer.from(comma === -1 ? dataUrl : dataUrl.slice(comma + 1), 'base64')
+    const attachment = await loadClipboardImageAttachment(buf, name.length > 0 ? name : 'clipboard.png')
+    this.inputLine.addImage(attachment.dataUrl)
+    this.flushLiveRender()
   }
 
   /**

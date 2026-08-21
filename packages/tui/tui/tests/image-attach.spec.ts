@@ -17,6 +17,7 @@ import {
   FALLBACK_EDGE,
   FALLBACK_QUALITY,
   JPEG_QUALITY,
+  loadClipboardImageAttachment,
   loadImageAttachment,
   probeImageSize,
   setImageToolRunner,
@@ -228,5 +229,31 @@ describe('loadImageAttachment（三级自适应压缩）', () => {
     setImageToolRunner((async () => null) satisfies ImageToolRunner)
     const p = await withFile(paddedPng(200), 'big.png')
     await expect(loadImageAttachment(p, { maxBytes: 100 })).rejects.toThrow('Install an image tool')
+  })
+})
+
+describe('loadClipboardImageAttachment（剪贴板位图走同一条预算管线）', () => {
+  it('未超限：原样直发（不落盘不压缩），magic 识别 MIME', async () => {
+    const attachment = await loadClipboardImageAttachment(PNG_1X1, 'clipboard.png')
+    expect(attachment.mime).toBe('image/png')
+    expect(attachment.dataUrl).toBe(`data:image/png;base64,${PNG_1X1.toString('base64')}`)
+  })
+
+  it('超限：走三级压缩（与文件路径同款），不再挂上后提交时静默丢弃', async () => {
+    setImageToolRunner((async () => PNG_1X1) satisfies ImageToolRunner)
+    const attachment = await loadClipboardImageAttachment(paddedPng(200), 'clipboard.png', { maxBytes: 100 })
+    expect(attachment.mime).toBe('image/png')
+    expect(attachment.dataUrl.length).toBeLessThan(200)
+  })
+
+  it('无可用图像工具 → 抛「Install an image tool」（响亮失败而非静默丢图）', async () => {
+    setImageToolRunner((async () => null) satisfies ImageToolRunner)
+    await expect(loadClipboardImageAttachment(paddedPng(200), 'clipboard.png', { maxBytes: 100 }))
+      .rejects.toThrow('Install an image tool')
+  })
+
+  it('不认识的位图内容 → 抛 Unsupported image format（假图不进管线）', async () => {
+    await expect(loadClipboardImageAttachment(Buffer.from('not an image at all'), 'clipboard.png'))
+      .rejects.toThrow('Unsupported image format')
   })
 })
