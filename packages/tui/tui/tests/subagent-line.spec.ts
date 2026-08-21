@@ -4,8 +4,9 @@
  *
  * - 运行中：`⠋ 子代理 <label>`（braille spinner 帧随 tick），ascii 降级 `*`
  * - 终态：completed ✓（success 色）/ aborted ◌（muted）/ 其余 ✗（error 色）
- *   + 耗时；error/max-tokens/refusal/未知带 reason 后缀
- * - 宽度守恒：任意宽度下每行 ≤ width（label 截断优先于 reason）
+ *   + 耗时 + 可选统计段（N 工具 · X tok，零值/缺失省略）；error/max-tokens/
+ *   refusal/未知带 reason 后缀
+ * - 宽度守恒：任意宽度下每行 ≤ width（尾部先截，label 最后截）
  */
 
 import { describe, expect, it } from 'vitest'
@@ -58,20 +59,33 @@ describe('formatSubagentRunning', () => {
 describe('formatSubagentDone', () => {
   it('completed：✓ + success 色 + 耗时（无 reason 后缀）', () => {
     const line = formatSubagentDone({ width: 80, label: 'abc12345', elapsedMs: 43_000, stopReason: 'completed' }, fakeTheme())
-    expect(plain(line)).toBe('✓ 子代理 abc12345 · 43.0s')
+    expect(plain(line)).toBe('✓ abc12345 · 43s')
     expect(line).toContain('\x1B[38;2;51;51;51m') // #333333 success
+  })
+
+  it('统计段：N 工具 · X tok 插在耗时前；零值/缺失省略', () => {
+    const withStats = formatSubagentDone({
+      width: 80, label: 'abc12345', elapsedMs: 43_000, stopReason: 'completed',
+      stats: { toolCalls: 3, tokensUsed: 12_300 },
+    }, fakeTheme())
+    expect(plain(withStats)).toBe('✓ abc12345 · 3 工具 · 12.3k tok · 43s')
+    const zeroStats = formatSubagentDone({
+      width: 80, label: 'abc', elapsedMs: 1000, stopReason: 'completed',
+      stats: { toolCalls: 0, tokensUsed: 0 },
+    }, fakeTheme())
+    expect(plain(zeroStats)).toBe('✓ abc · 1s')
   })
 
   it('aborted：◌ + muted 色', () => {
     const line = formatSubagentDone({ width: 80, label: 'abc', elapsedMs: 8_000, stopReason: 'aborted' }, fakeTheme())
-    expect(plain(line)).toBe('◌ 子代理 abc · 8.0s')
+    expect(plain(line)).toBe('◌ abc · 8s')
     expect(line).not.toContain('(aborted)')
     expect(line).toContain('\x1B[38;2;119;119;119m') // #777777 muted
   })
 
   it('error：✗ + error 色 + (error) 后缀', () => {
     const line = formatSubagentDone({ width: 80, label: 'abc', elapsedMs: 12_000, stopReason: 'error' }, fakeTheme())
-    expect(plain(line)).toBe('✗ 子代理 abc · 12.0s (error)')
+    expect(plain(line)).toBe('✗ abc · 12s (error)')
     expect(line).toContain('\x1B[38;2;85;85;85m') // #555555 error
   })
 
@@ -86,8 +100,11 @@ describe('formatSubagentDone', () => {
     expect(line).toContain('(future-reason)')
   })
 
-  it('宽度守恒：label 截断优先于 reason 后缀', () => {
-    const line = plain(formatSubagentDone({ width: 20, label: 'very-long-subagent-label', elapsedMs: 12_000, stopReason: 'error' }, fakeTheme()))
+  it('宽度守恒：尾部（reason → 耗时 → 统计段）先截，label 最后截', () => {
+    const line = plain(formatSubagentDone({
+      width: 20, label: 'very-long-subagent-label', elapsedMs: 12_000, stopReason: 'error',
+      stats: { toolCalls: 3, tokensUsed: 12_300 },
+    }, fakeTheme()))
     expect(displayWidth(line)).toBeLessThanOrEqual(20)
     // 窄到 reason 放不下时 suffix 被截断
     const narrow = plain(formatSubagentDone({ width: 12, label: 'abc', elapsedMs: 12_000, stopReason: 'error' }, fakeTheme()))

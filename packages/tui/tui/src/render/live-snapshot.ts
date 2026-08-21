@@ -18,6 +18,7 @@ import type { RivetTheme } from '../theme.js'
 import type { GoalProjectionInput, PlanProjectionInput, SessionTotalsInput } from '../status-panel.js'
 import type {
   DelegationTreeEntry,
+  ExternalRunEntry,
 } from '../delegation-panel.js'
 import type { WorkflowRunView } from '../workflow-panel.js'
 import type { ConfigPanelProjection } from '../config-panel.js'
@@ -43,6 +44,8 @@ export interface LiveSnapshot {
   cols: number
   /** 当前主题（面板行着色；纯面板只读不 set）。 */
   theme: RivetTheme
+  /** 当前墙钟（epoch 毫秒；renderLive 每帧组装，面板纯函数经此注入时间）。 */
+  now: number
 
   // glance 面板（状态行 / 错误行；metrics 行自 C4 概念稿 C 起由 renderLive
   // 在输入行下方常驻渲染，不经快照）
@@ -78,6 +81,8 @@ export interface LiveSnapshot {
   subagentsPanelVisible: boolean
   /** 委派树条目（listDescendants 预取；null = 服务缺失/未预取 → 降级不渲染）。 */
   delegationEntries: DelegationTreeEntry[] | null
+  /** G3：活跃外部 run（无本地 Session 的等价状态面；空数组 = 无活跃/服务缺失）。 */
+  externalRuns: ExternalRunEntry[]
 
   // workflow 面板（运行中 + 已结算 run）
   /** /workflow 面板显隐。 */

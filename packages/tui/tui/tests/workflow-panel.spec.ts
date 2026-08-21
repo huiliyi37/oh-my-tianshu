@@ -142,6 +142,41 @@ describe('展开行（roster）', () => {
   })
 })
 
+describe('roster 行 childId 关联（childState）', () => {
+  it('childState 命中 → 追加 ⤷ 子会话段（运行中 ⏳ 前缀）', () => {
+    const rows = projectWorkflow([doneRun], {
+      width: 80,
+      expanded: ['run-done'],
+      childState: new Map([
+        ['c1', { label: '探索鉴权', running: true }],
+        ['c2', { label: '执行器', running: false }],
+      ]),
+    })
+    expect(rows).toContain('  ├ 1. 起草发布说明 · 准备 · 已完成 · ⤷ ⏳ 探索鉴权')
+    expect(rows).toContain('  ├ 2. 执行发布 · 发布 · 失败 · ⤷ 执行器')
+  })
+
+  it('childState 未命中 / 缺省 → 无 ⤷ 段（现行为不变）', () => {
+    const rows = projectWorkflow([doneRun], { width: 80, expanded: ['run-done'] })
+    expect(rows).toContain('  ├ 1. 起草发布说明 · 准备 · 已完成')
+    const partial = projectWorkflow([doneRun], {
+      width: 80,
+      expanded: ['run-done'],
+      childState: new Map([['other', { label: '无关', running: false }]]),
+    })
+    expect(partial).toContain('  ├ 1. 起草发布说明 · 准备 · 已完成')
+  })
+
+  it('⤷ 段参与窄宽截断（行宽守恒）', () => {
+    const rows = projectWorkflow([doneRun], {
+      width: 40,
+      expanded: ['run-done'],
+      childState: new Map([['c1', { label: '探索鉴权', running: true }]]),
+    })
+    for (const row of rows) expect(displayWidth(row)).toBeLessThanOrEqual(40)
+  })
+})
+
 describe('叙述行（logs）', () => {
   const loggedRun: WorkflowRunView = {
     ...runningRun,

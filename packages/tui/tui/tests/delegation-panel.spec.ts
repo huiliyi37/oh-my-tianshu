@@ -9,8 +9,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   projectDelegationTree,
+  projectExternalRunSection,
   type DelegationProgressProjection,
   type DelegationTreeEntry,
+  type ExternalRunEntry,
 } from '../src/delegation-panel.js'
 import { displayWidth } from '../src/width.js'
 
@@ -282,5 +284,53 @@ describe('projectDelegationTree 窄宽截断', () => {
   it('宽幅下不截断', () => {
     const rows = projectDelegationTree([childRunningContinuable], { width: 80 })
     expect(rows).toContain('  › ↻ 主探索')
+  })
+})
+
+describe('projectExternalRunSection（G3 外部 run 等价状态面）', () => {
+  const external: ExternalRunEntry = {
+    id: 'ext-1',
+    provider: 'acp',
+    label: '外部检索',
+    startedAt: 1000,
+  }
+
+  it('空数组 → 空行数组（无活跃外部 run 不渲染段）', () => {
+    expect(projectExternalRunSection([], { width: 80 })).toEqual([])
+  })
+
+  it('非空 → 标题行 + 每 run 一张运行中卡（provider 徽标 + 实时耗时）', () => {
+    const rows = projectExternalRunSection([external], { width: 80, now: 5000 })
+    expect(rows[0]).toBe('⤷ 外部子代理')
+    expect(rows.some(r => r.includes('外部检索 · acp'))).toBe(true)
+    expect(rows.some(r => r.includes('4.0s'))).toBe(true)
+  })
+
+  it('label 缺失回退 id 短哈希；now 缺失不渲染耗时', () => {
+    const rows = projectExternalRunSection([{ id: 'ext-2', provider: 'codex' }], { width: 80 })
+    expect(rows.some(r => r.includes('ext-2') && r.includes('codex'))).toBe(true)
+    expect(rows.some(r => r.includes('⠋'))).toBe(true) // 运行中卡仍渲染，仅无耗时段
+  })
+})
+
+describe('委派树 running 执行位（G1）', () => {
+  it('running=true → 运行态字形（无 lastTurnEnd 的活跃子代理）', () => {
+    const entry: DelegationTreeEntry = {
+      ...childRunningContinuable,
+      activity: 'running',
+      progress: { turns: 1, toolCalls: 0, tokensUsed: 0, toolInFlight: false, running: true },
+    }
+    const rows = projectDelegationTree([entry], { width: 80 })
+    expect(rows.some(r => r.includes('⠋'))).toBe(true)
+  })
+
+  it('running=false（旧投影值缺省）→ 回落 toolInFlight 语义（现行为不变）', () => {
+    const entry: DelegationTreeEntry = {
+      ...childRunningContinuable,
+      activity: 'running',
+      progress: progressRunningTool, // toolInFlight: true、无 running 位
+    }
+    const rows = projectDelegationTree([entry], { width: 80 })
+    expect(rows.some(r => r.includes('⠋'))).toBe(true)
   })
 })

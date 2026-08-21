@@ -53,6 +53,10 @@ export interface TuiRunnerConfig {
     /** 单次诊断拉取超时（毫秒）；缺省 2000。 */
     timeoutMs?: number
   }
+  /** 统一活动带：活跃 item 行数封顶（正整数；超限折叠 +N 尾行）；缺省 5。 */
+  activityBandMaxRows?: number
+  /** 统一活动带开关；false 回退旧散行渲染（逃生门）；缺省 true。 */
+  activityBand?: boolean
 }
 
 /**
@@ -65,6 +69,10 @@ export function apply(ctx: Context, config: TuiRunnerConfig = {}): void {
   if (config.workflowHistoryLimit !== undefined
     && (!Number.isInteger(config.workflowHistoryLimit) || config.workflowHistoryLimit <= 0)) {
     throw new Error(`[tui-runner] workflowHistoryLimit must be a positive integer, got ${config.workflowHistoryLimit}`)
+  }
+  if (config.activityBandMaxRows !== undefined
+    && (!Number.isInteger(config.activityBandMaxRows) || config.activityBandMaxRows <= 0)) {
+    throw new Error(`[tui-runner] activityBandMaxRows must be a positive integer, got ${config.activityBandMaxRows}`)
   }
   const stdin = config.stdin ?? process.stdin
   const stdout = config.stdout ?? process.stdout
@@ -129,6 +137,8 @@ export function apply(ctx: Context, config: TuiRunnerConfig = {}): void {
       ...(config.vision === undefined ? {} : { vision: config.vision }),
       ...(config.workflowHistoryLimit === undefined ? {} : { workflowHistoryLimit: config.workflowHistoryLimit }),
       ...(config.lsp === undefined ? {} : { lsp: config.lsp }),
+      ...(config.activityBandMaxRows === undefined ? {} : { activityBandMaxRows: config.activityBandMaxRows }),
+      ...(config.activityBand === undefined ? {} : { activityBand: config.activityBand }),
     })
     stdin.on('SIGINT', onSigint)
     // 兜底：任何异常退出路径都恢复终端（raw mode off）——本体（opencode-tui）

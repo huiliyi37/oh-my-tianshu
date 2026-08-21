@@ -6649,7 +6649,7 @@ describe('slash 菜单阶段 2 接线（ghost 预览 / 参数模式 / MRU）', (
   })
 })
 
-describe('subagent 对话流状态行接线（grok SubagentBlock 移植）', () => {
+describe('subagent 活动带接线（CC 对标统一固定带）', () => {
   function boot() {
     const ctx = makeCtx()
     const agent = makeAgent('sub-line')
@@ -6678,7 +6678,7 @@ describe('subagent 对话流状态行接线（grok SubagentBlock 移植）', () 
 
   const settle = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 40))
 
-  it('subagent/start → live 区运行行（label 取委派树缓存）', async () => {
+  it('subagent/start → 活动带行（label 取委派树缓存 + 常驻入口尾行）', async () => {
     const { ctx, stdout, app } = boot()
     await app.attach()
     await settle() // 等 listDescendants 预取 + renderBatcher
@@ -6688,7 +6688,38 @@ describe('subagent 对话流状态行接线（grok SubagentBlock 移植）', () 
     onStart({ runId: 'run-1', id: 'child-1' })
     await settle()
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('探索鉴权')
+    expect(written).toContain('/workflow 管理') // 活动带常驻入口尾行
+    await app.dispose()
+  })
+
+  it('activityBand:false 逃生门 → 回退旧散行（⠋ 子代理 label）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('sub-legacy')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'subagents') return {
+        listDescendants: vi.fn(async () => ([
+          { kind: 'child', id: 'child-1', parentId: 'root', depth: 1, activity: 'running', hasChildren: false, mode: 'one-shot', label: '探索鉴权' },
+        ])),
+      }
+      return undefined
+    })
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin, activityBand: false })
+    await app.attach()
+    await settle()
+    const onStart = handlerOf(ctx, 'subagent/start')
+    if (onStart === undefined) throw new Error('subagent/start handler not registered')
+    stdout.write.mockClear()
+    onStart({ runId: 'run-1', id: 'child-1' })
+    await settle()
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('子代理 探索鉴权')
+    expect(written).not.toContain('/workflow 管理')
     await app.dispose()
   })
 
@@ -6707,8 +6738,8 @@ describe('subagent 对话流状态行接线（grok SubagentBlock 移植）', () 
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     // ✓ 与文本间有 ANSI 色码，分段断言
     expect(written).toContain('✓')
-    expect(written).toContain('子代理 探索鉴权') // 终态提交
-    expect(written).not.toContain('⠋ 子代理') // 运行行移除
+    expect(written).toContain('探索鉴权') // 终态提交（CC 单行格式，无「子代理」前缀）
+    expect(written).not.toContain('⠋ 探索鉴权') // 带行移除
     await app.dispose()
   })
 
@@ -6726,7 +6757,7 @@ describe('subagent 对话流状态行接线（grok SubagentBlock 移植）', () 
     await settle()
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('✗')
-    expect(written).toContain('子代理 探索鉴权')
+    expect(written).toContain('探索鉴权')
     expect(written).toContain('(error)')
     await app.dispose()
   })
@@ -6742,6 +6773,207 @@ describe('subagent 对话流状态行接线（grok SubagentBlock 移植）', () 
     await settle()
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).not.toContain('子代理')
+    await app.dispose()
+  })
+})
+
+describe('活动带 child 投影缓存与 workflow/task 折叠接线', () => {
+  function boot() {
+    const ctx = makeCtx()
+    const agent = makeAgent('band-child')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    let projectionListener: ((s: { id: string }, key: string, value: unknown, seq: number) => void) | null = null
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'sessionProjections') return {
+        snapshot: vi.fn(() => ({ values: {} })),
+        onChanged: vi.fn((listener) => {
+          projectionListener = listener
+          return () => { }
+        }),
+      }
+      if (name === 'subagents') return {
+        listDescendants: vi.fn(async () => ([
+          { kind: 'child', id: 'child-1', parentId: 'root', depth: 1, activity: 'running', hasChildren: false, mode: 'one-shot', label: '探索鉴权' },
+        ])),
+      }
+      if (name === 'tasks') return {
+        list: vi.fn(() => [
+          { id: 't1', kind: 'bash', label: 'pnpm test', status: 'running', startedAt: Date.now() },
+        ]),
+        kill: vi.fn(() => 'requested'),
+        onTaskDone: vi.fn(() => () => { }),
+        attachSurface: vi.fn(() => () => { }),
+      }
+      return undefined
+    })
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    return { ctx, agent, handle, stdin, stdout, app, projection: () => projectionListener }
+  }
+
+  function handlerOf(ctx: ReturnType<typeof makeCtx>, name: string): ((info: unknown) => void) | undefined {
+    const calls = ctx.on.mock.calls.filter(call => call[0] === name)
+    return calls[calls.length - 1]?.[1] as ((info: unknown) => void) | undefined
+  }
+
+  const settle = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 40))
+  const writtenOf = (stdout: ReturnType<typeof makeStdout>): string =>
+    stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+
+  it('child subagentProgress 投影 → 带行统计段 + ⎿ 子行；end 完成行带统计', async () => {
+    const { ctx, stdout, app, projection } = boot()
+    await app.attach()
+    await settle()
+    const onStart = handlerOf(ctx, 'subagent/start')
+    const onEnd = handlerOf(ctx, 'subagent/end')
+    if (onStart === undefined || onEnd === undefined) throw new Error('subagent handlers not registered')
+    onStart({ runId: 'run-1', id: 'child-1' })
+    await settle()
+    stdout.write.mockClear()
+    // 运行中：child 投影回调喂 progress → 带行显示统计与最近工具子行
+    projection()?.({ id: 'child-1' }, 'subagentProgress', {
+      turns: 1, toolCalls: 3, tokensUsed: 12_300, lastTool: 'bash', toolInFlight: true,
+    }, 1)
+    await settle()
+    const running = writtenOf(stdout)
+    expect(running).toContain('3 工具')
+    expect(running).toContain('12.3k tok')
+    expect(running).toContain('⎿ bash')
+    // 结束：完成行携带统计段（end 时刻取缓存快照）
+    stdout.write.mockClear()
+    onEnd({ runId: 'run-1', stopReason: 'completed' })
+    await settle()
+    const done = writtenOf(stdout)
+    // ✓ 与文本间有 ANSI 色码，分段断言（与 subagent 完成行测试同款）
+    expect(done).toContain('✓')
+    expect(done).toContain('探索鉴权')
+    expect(done).toContain('3 工具')
+    expect(done).toContain('12.3k tok')
+    expect(done).not.toContain('⎿ bash') // 带行随 end 移除
+    await app.dispose()
+  })
+
+  it('非运行中子会话的投影 → 不进缓存（带行无统计段）', async () => {
+    const { ctx, stdout, app, projection } = boot()
+    await app.attach()
+    await settle()
+    const onStart = handlerOf(ctx, 'subagent/start')
+    if (onStart === undefined) throw new Error('subagent/start handler not registered')
+    onStart({ runId: 'run-2', id: 'child-1' })
+    await settle()
+    stdout.write.mockClear()
+    // 无关子会话的 progress（非运行中子代）→ 缓存守卫拒绝
+    projection()?.({ id: 'unrelated-child' }, 'subagentProgress', {
+      turns: 1, toolCalls: 9, tokensUsed: 99_000, lastTool: 'read', toolInFlight: true,
+    }, 1)
+    await settle()
+    const written = writtenOf(stdout)
+    expect(written).not.toContain('9 工具')
+    await app.dispose()
+  })
+
+  it('workflow/start → 带行 ⏳；workflow/end → scrollback 摘要一行；活跃任务 → › 行', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('band-wf')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const listeners = new Map<string, Array<(...args: unknown[]) => void>>()
+    ctx.on.mockImplementation((name: string, h: (...args: unknown[]) => void) => {
+      const list = listeners.get(name) ?? []
+      list.push(h)
+      listeners.set(name, list)
+      return () => { }
+    })
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'tasks') return {
+        list: vi.fn(() => [
+          { id: 't1', kind: 'bash', label: 'pnpm test', status: 'running', startedAt: Date.now() },
+        ]),
+        kill: vi.fn(() => 'requested'),
+        onTaskDone: vi.fn(() => () => { }),
+        attachSurface: vi.fn(() => () => { }),
+      }
+      return undefined
+    })
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.attach()
+    const fire = (name: string, ...args: unknown[]) => {
+      for (const h of listeners.get(name) ?? []) h(...args)
+    }
+    fire('workflow/start', { id: 'wf-1', meta: { name: 'workflow', description: '客观目标' } })
+    fire('workflow/agent-start', { id: 'wf-1' }, { seq: 1, label: '执行员', childId: 'child-9' })
+    await settle()
+    const running = writtenOf(stdout)
+    // 字形与文本间有 ANSI 色码，分段断言
+    expect(running).toContain('⏳')
+    expect(running).toContain('[workflow] 客观目标')
+    expect(running).toContain('1 个 agent')
+    expect(running).toContain('bash: pnpm test') // 活跃后台任务并入带
+    // 结束：摘要一行 commit 进 scrollback
+    stdout.write.mockClear()
+    fire('workflow/end', { id: 'wf-1' }, { stopReason: 'completed' })
+    await settle()
+    const done = writtenOf(stdout)
+    expect(done).toContain('✓')
+    expect(done).toContain('[workflow] 客观目标 · 1 个 agent') // 摘要 commit
+    expect(done).not.toContain('⏳') // 带行移除
+    await app.dispose()
+  })
+})
+
+describe('委派面板外部 run 段接线（G3）', () => {
+  it('activeExternalRuns 命中 → /subagents 面板渲染 ⤷ 外部段', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('ext-run')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'subagents') return {
+        listDescendants: vi.fn(async () => []),
+        activeExternalRuns: vi.fn(() => ([
+          { id: 'ext-1', provider: 'acp', label: '外部检索', startedAt: 1000 },
+        ])),
+      }
+      return undefined
+    })
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    await new Promise(resolve => setTimeout(resolve, 40))
+    stdout.write.mockClear()
+    app.handleSubmit('/subagents')
+    await new Promise(resolve => setTimeout(resolve, 40))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('⤷ 外部子代理')
+    expect(written).toContain('外部检索')
+    expect(written).toContain('acp')
+    await app.dispose()
+  })
+
+  it('旧形状 subagents 服务（无 activeExternalRuns）→ 不渲染外部段不抛错', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('ext-legacy')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'subagents') return { listDescendants: vi.fn(async () => []) }
+      return undefined
+    })
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    await new Promise(resolve => setTimeout(resolve, 40))
+    stdout.write.mockClear()
+    app.handleSubmit('/subagents')
+    await new Promise(resolve => setTimeout(resolve, 40))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).not.toContain('⤷ 外部子代理')
     await app.dispose()
   })
 })

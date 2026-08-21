@@ -40,10 +40,16 @@ export interface WorkflowAgentEndInfoInput {
   label: string
   /** 所属阶段（phase 选项或当前 phase() 标题）。 */
   phase?: string
-  /** 子代理 id（roster 定位用，面板不渲染）。 */
+  /** 子代理会话 id（roster 关联用；childState 命中时追加 ⤷ 子会话段）。 */
   childId: string
   /** 结算方式。 */
   outcome: WorkflowAgentOutcomeInput
+}
+
+/** roster 行的子会话显示状态（childId → label/运行态；委派树命中时提供）。 */
+export interface WorkflowChildState {
+  label: string
+  running: boolean
 }
 
 /** run 终态汇总（结构兼容 workflow 包 WorkflowResultInfo：无 result value）。 */
@@ -74,6 +80,8 @@ export interface WorkflowPanelOptions {
   width: number
   /** 展开显示 roster + 终态汇总的 run id 集合；缺省全部折叠。 */
   expanded?: string[]
+  /** childId → 子会话显示状态（委派树派生；缺省 roster 行不带 ⤷ 段）。 */
+  childState?: ReadonlyMap<string, WorkflowChildState>
 }
 
 /** 面板标题行。 */
@@ -155,15 +163,24 @@ function projectListRow(view: WorkflowRunView, width: number): string {
 
 /**
  * 展开行：roster 每行「序号. label · phase · 状态」（phase 缺省跳过）。
+ * childState 命中 childId 时追加「⤷ 子会话 label」（运行中 ⏳ 前缀）——
+ * workflow agent() 调用与委派树的关联段。
  * @param view - run 运行态视图。
- * @param width - 行截断预算。
+ * @param opts - 面板选项（行宽 + childState）。
  * @returns roster 行数组（无 agent 时为空数组）。
  */
-function projectRosterRows(view: WorkflowRunView, width: number): string[] {
+function projectRosterRows(view: WorkflowRunView, opts: WorkflowPanelOptions): string[] {
   const rows: string[] = []
   for (const agent of view.agents) {
     const phase = agent.phase === undefined ? '' : ` · ${agent.phase}`
-    rows.push(truncateByWidth(`  ├ ${agent.seq}. ${agent.label}${phase} · ${OUTCOME_TEXTS[agent.outcome]}`, width))
+    const child = opts.childState?.get(agent.childId)
+    const childPart = child === undefined
+      ? ''
+      : ` · ⤷ ${child.running ? '⏳ ' : ''}${child.label}`
+    rows.push(truncateByWidth(
+      `  ├ ${agent.seq}. ${agent.label}${phase} · ${OUTCOME_TEXTS[agent.outcome]}${childPart}`,
+      opts.width,
+    ))
   }
   return rows
 }
@@ -210,7 +227,7 @@ export function projectWorkflow(runs: WorkflowRunView[], opts: WorkflowPanelOpti
     rows.push(projectListRow(view, opts.width))
     if (expanded !== undefined && expanded.includes(view.info.id)) {
       rows.push(...projectLogRows(view, opts.width))
-      rows.push(...projectRosterRows(view, opts.width))
+      rows.push(...projectRosterRows(view, opts))
       rows.push(...projectResultRow(view, opts.width))
     }
   }

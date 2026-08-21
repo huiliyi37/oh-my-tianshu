@@ -76,6 +76,16 @@ export interface DelegationProgressProjection {
   readonly toolInFlight: boolean
   /** 最新 turn/end 的 reason kind（turn 未结束则缺省）。 */
   readonly lastTurnEnd?: 'completed' | 'aborted' | 'blocked' | 'error' | 'max-tokens' | 'interrupted'
+  /** 实时执行位：当前是否有打开的 turn（G1；旧投影值缺省时回落 toolInFlight）。 */
+  readonly running?: boolean
+}
+
+/** 活跃外部 run（无本地 Session；G3 等价状态面——acp/claude-code/codex/dsh-sdk）。 */
+export interface ExternalRunEntry {
+  readonly id: string
+  readonly provider: string
+  readonly label?: string
+  readonly startedAt?: number
 }
 
 /** 耗时投影（结构兼容 dsh-subagent 的 SubagentTimingProjection）。 */
@@ -178,6 +188,35 @@ export function projectDelegationTree(
   return rows
 }
 
+/**
+ * 投影活跃外部 run 为面板行（G3：无本地 Session 的子代理——session 枚举看不到，
+ * 走服务等价状态面）。标题行 + 每 run 一张运行中卡（provider 徽标 + 实时耗时）。
+ * @param entries - 活跃外部 run（服务缺失/无活跃时为空数组 → 空行数组）。
+ * @param opts - 渲染选项（宽度、可选墙钟、可选主题）。
+ * @returns 面板行数组（空输入返回空数组）。
+ */
+export function projectExternalRunSection(
+  entries: ExternalRunEntry[],
+  opts: DelegationPanelOptions,
+): string[] {
+  if (entries.length === 0) return []
+  const rows = [truncateToLiveWidth('⤷ 外部子代理', opts.width)]
+  for (const entry of entries) {
+    const suffixes: string[] = []
+    if (entry.startedAt !== undefined && opts.now !== undefined) {
+      suffixes.push(formatSettled(Math.max(0, opts.now - entry.startedAt)))
+    }
+    rows.push(...formatLiveCard({
+      glyph: liveCardGlyph('running'),
+      title: `${entry.label ?? shortHash(entry.id)} · ${entry.provider}`,
+      suffixes,
+      width: opts.width,
+      ...(opts.theme === undefined ? {} : { theme: opts.theme }),
+    }))
+  }
+  return rows
+}
+
 /** lastTurnEnd 中与失败状态形对齐的 kind。 */
 function isErrorTurn(kind: DelegationProgressProjection['lastTurnEnd'] | undefined): boolean {
   return kind === 'error' || kind === 'aborted' || kind === 'interrupted'
@@ -192,7 +231,10 @@ function renderEntry(entry: DelegationTreeEntry, opts: DelegationPanelOptions): 
   const { progress, timing } = entry
   const title = `${modeMark(entry.mode)} ${entry.label ?? shortHash(entry.id)}`
   const finished = entry.activity === 'inactive' || progress?.lastTurnEnd !== undefined
-  const inFlight = progress?.toolInFlight === true
+  // G1：实时执行位（打开的 turn）驱动运行态字形；旧投影值缺省时回落 toolInFlight。
+  const inFlight = progress?.running === undefined
+    ? progress?.toolInFlight === true
+    : progress.running
   const activity = progress === undefined ? '' : activityText(progress)
   const terminal = progress === undefined ? '' : terminalText(progress)
 

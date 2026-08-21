@@ -70,6 +70,7 @@
 | src/format/lsp-diagnostics.ts | — | new（诊断展示纯函数：工具卡徽标 + /lsp 面板段，severity 语义色） |
 | src/format/export.ts | — | new（/export 会话导出：事件日志 → Markdown 转录，纯渲染） |
 | src/format/fluency-policy.ts | fluency-policy.ts | modified（目录重排：上游根 → src/format/） |
+| src/format/activity-band.ts | — | new（CC 对标统一活动带：subagent/workflow/后台任务活跃项折叠 + 高度封顶固定带渲染，纯函数层） |
 | src/format/glance-bar.ts | format/glance-bar.ts | modified |
 | src/format/hidden-lines.ts | format/hidden-lines.ts | ported |
 | src/format/history-search-overlay.ts | — | new |

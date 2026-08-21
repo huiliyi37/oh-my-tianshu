@@ -19,12 +19,13 @@
 import type { LiveSnapshot, TaskSnapshotView } from './live-snapshot.js'
 import { projectTaskPanel } from '../format/task-panel.js'
 import { projectStatusPanel } from '../status-panel.js'
-import { projectDelegationTree } from '../delegation-panel.js'
-import { projectWorkflow, type WorkflowRunView } from '../workflow-panel.js'
+import { projectDelegationTree, projectExternalRunSection, type DelegationTreeEntry } from '../delegation-panel.js'
+import { projectWorkflow, type WorkflowChildState, type WorkflowRunView } from '../workflow-panel.js'
 import { projectConfigPanel } from '../config-panel.js'
 import { projectSkillPanel } from '../skill-panel.js'
 import { projectLspPanel, groupLspDiagnostics } from '../format/lsp-diagnostics.js'
 import { formatLiveCard, liveCardGlyph, type LiveCardStatus } from '../format/live-card.js'
+import { shortSessionLabel } from '../session-label.js'
 
 /** 后台任务快照 → 活区卡状态形（running ⠋ / completed › / 其余 ✗）。 */
 function taskSnapshotStatus(status: TaskSnapshotView['status']): LiveCardStatus {
@@ -148,10 +149,17 @@ export function renderLspPanel(snapshot: LiveSnapshot): string[] {
 export function renderDelegationPanel(snapshot: LiveSnapshot): string[] {
   if (!snapshot.subagentsPanelVisible) return []
   if (snapshot.delegationEntries === null) return []
-  return projectDelegationTree(snapshot.delegationEntries, {
+  const rows = projectDelegationTree(snapshot.delegationEntries, {
     width: snapshot.cols,
     theme: snapshot.theme,
   })
+  // G3：活跃外部 run 段（无本地 Session；session 枚举看不到，走等价状态面）。
+  rows.push(...projectExternalRunSection(snapshot.externalRuns, {
+    width: snapshot.cols,
+    now: snapshot.now,
+    ...(snapshot.theme === undefined ? {} : { theme: snapshot.theme }),
+  }))
+  return rows
 }
 
 /**
@@ -167,10 +175,28 @@ export function renderDelegationPanel(snapshot: LiveSnapshot): string[] {
 export function renderWorkflowPanel(snapshot: LiveSnapshot): string[] {
   if (!snapshot.workflowPanelVisible) return []
   const runs = snapshot.workflowRuns.map(withVisibleRunId)
+  const childState = snapshot.delegationEntries === null
+    ? undefined
+    : deriveWorkflowChildState(snapshot.delegationEntries)
   return projectWorkflow(runs, {
     width: snapshot.cols,
     expanded: runs.filter(run => run.result === undefined).map(run => run.info.id),
+    ...(childState === undefined ? {} : { childState }),
   })
+}
+
+/** 委派树条目 → roster 行 childState 映射（childId → label/运行态；diagnostic 跳过）。 */
+function deriveWorkflowChildState(entries: DelegationTreeEntry[]): ReadonlyMap<string, WorkflowChildState> {
+  const map = new Map<string, WorkflowChildState>()
+  for (const entry of entries) {
+    if (entry.kind === 'child') {
+      map.set(entry.id, {
+        label: entry.label ?? shortSessionLabel(entry.id),
+        running: entry.activity === 'running',
+      })
+    }
+  }
+  return map
 }
 
 /** 使 run id 在列表行可见：meta.description 追加 "(id)" 后缀（name 已是 id 时不重复）。 */

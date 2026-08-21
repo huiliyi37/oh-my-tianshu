@@ -49,6 +49,7 @@ function baseSnapshot(): LiveSnapshot {
   return {
     cols: 100,
     theme: THEME,
+    now: 0,
     taskPanelVisible: false,
     taskItems: null,
     taskSnapshots: [],
@@ -63,6 +64,7 @@ function baseSnapshot(): LiveSnapshot {
     sessionTotals: { turns: 0, toolCalls: 0, elapsedMs: 0 },
     subagentsPanelVisible: false,
     delegationEntries: null,
+    externalRuns: [],
     workflowPanelVisible: false,
     workflowRuns: [],
     configPanelVisible: false,
