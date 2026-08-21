@@ -255,9 +255,14 @@ Requires: `tools` · `systemPrompt`
 export interface AgentRouterConfig {
   /** 是否启用子代理派发（默认 true；false 时路由仍决策但只回显动作）。 */
   dispatchEnabled?: boolean
-  /** 派发子代理所用 provider；缺省随子代理服务的默认路由。 */
+  /**
+   * 派发子代理所用 provider。与 `model` 一起构成派发的显式前提：任一缺省时
+   * execute 短路返回 null（auto 触发落 `dispatched:false`），且 `router_adopt`
+   * 工具与 `router:synthesis` 节不注册——不可派发即无 outcome 可综合，常驻
+   * 模型面只是白占请求 token。
+   */
   provider?: string
-  /** 派发子代理所用模型名；缺省随子代理服务的默认路由。 */
+  /** 派发子代理所用模型名（与 `provider` 同为派发的显式前提；缺省不派发）。 */
   model?: string
   /**
    * profile 工具集覆盖（部署差异——如只装少量工具的精简装配——声明自己的
@@ -316,7 +321,7 @@ export interface AgentRouterConfig {
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:119`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:123`](../packages/guard/agent-router/src/index.ts)
 
 ## `@huiliyi37/dsh-agent-spine-demo`
 

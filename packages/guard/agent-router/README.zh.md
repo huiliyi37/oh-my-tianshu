@@ -39,7 +39,7 @@ if (action.kind === 'delegate') {
 |---|---|
 | `metrics({ sessionId })` | 当前指标快照（interventionLevel/unresolvedHigh/verifications/probeCooledTargets），取自该会话的累计器 |
 | `decide({ sessionId })` | 路由决策（纯函数，可重复调用），取自该会话的累计器 |
-| `execute(action, { sessionId, signal? })` | 执行动作（delegate → 经 seam 派发子代理，返回 `{ sessionId, stopReason, output }`；self → null）；`sessionId` 为父会话（活 agent），child 血统自此派生 |
+| `execute(action, { sessionId, signal? })` | 执行动作（delegate → 经 seam 派发子代理，返回 `{ sessionId, stopReason, output, budget }`；self → null）；`sessionId` 为父会话（活 agent），child 血统自此派生 |
 | `resetPrediction(sessionId?)` | 重置预测累计器（单个会话；缺省清空全部会话） |
 
 ## 配置
@@ -80,10 +80,13 @@ apply(ctx, {
 ## 模块
 
 - `prediction.ts` — 工具成败预测累计器（天枢纯函数核心，零依赖）
-- `router.ts` — 确定性路由表（指标 → 动作）
+- `router.ts` — 确定性路由表（指标 → 动作），含升级迟滞策略
 - `dispatch.ts` — dsh 子代理 seam 派发（start/result/dispose），profile 工具限制 fail loud
-- `index.ts` — Cordis 插件接线（事件采集 + 服务面）
-- `invariant.ts` — 运行时不变量 companion：校验 `router/route` 记录（payload 形状 + live child 血统；已加载历史在晚注册时重放校验）
+- `synthesis.ts` — 主代理综合节 + 采用声明（`router:synthesis` 渲染、`router_adopt` 参数校验、outcome 减 adoption 的未综合推导）
+- `budget.ts` — 派发预算定价（天枢同构按文件数加回合 + 双绝对帽；只计算与记录）
+- `promotion.ts` — 自适应门槛纯函数（四模式语义 + 样本/假绿/范围/边际 veto 阶梯；未接线进决策）
+- `index.ts` — Cordis 插件接线（事件采集 + 服务面 + 按可派发性门控的综合面贡献）
+- `invariant.ts` — 运行时不变量 companion：校验 `router/route`/`router/outcome`/`router/adoption`/`router/decision` 记录（payload 形状、按会话 adoption↔outcome 配对状态、live child 血统；已加载历史在晚注册时重放校验）
 
 ## 验证
 
@@ -101,10 +104,11 @@ None directly; the delegate session is an independent model request, and the par
 
 ## Known Limitations and Deferred Work
 
-- **派发需要显式模型配置** — `dispatchEnabled: true` 时必须提供 `provider`/`model`；未配置时只决策不派发（决策结果仍可查询）。
+- **派发需要显式模型配置** — `dispatchEnabled: true` 时必须提供 `provider`/`model`；未配置时只决策不派发（决策结果仍可查询），且综合面贡献（`router:synthesis` 节、`router_adopt` 工具）不注册——不可派发即无 outcome 可综合，模型面不背死重。
 - **派发需要活的父会话** — `execute` 接收父 `sessionId`，该会话不是活 agent 时 fail loud；seam 从父会话派生 child 的 workspace、血统与委派深度。
 - **turn-end 触发以 shadow 发货** — 发货 TUI 挂 `trigger: { mode: 'shadow', onTurnEnd: true }`：delegate 决策落 log-only `router/decision` 但绝不派发。切 `auto` 是闭环验证后的产品决定；`auto` 需要 `provider`/`model`。
-- **综合是主代理的行为** — 存在未综合 child 结论时渲染 `router:synthesis` 提示节，`router_adopt` 工具把采用/拒绝声明落成 log-only `router/adoption`（每条 outcome 恰好一条，invariant companion 校验）。router 从不合并或投票，只搬运结论与声明。
+- **综合是主代理的行为** — 存在未综合 child 结论时渲染 `router:synthesis` 提示节，`router_adopt` 工具把采用/拒绝声明落成 log-only `router/adoption`（每条 outcome 至多一条，工具边界与 invariant companion 配对状态双重强制）。router 从不合并或投票，只搬运结论与声明。
+- **自适应门槛发货但不接线** — `promotion.ts` 导出四模式语义（`effectivePromotionMode`）与四级 veto 阶梯（`resolvePromotionGate`）纯函数；shadow tally 接线与 auto 模式是登记候选（见 algorithm-candidates proposed note），不发货。
 - **预算只计算与记录，不强制** — `budget` 配置喂天枢同构定价（按文件数加回合、双绝对帽）；route 记录携带 `{ maxTurns, deadlineMs }`。run-level 预算强制是未来的 subagent-seam 能力（候选优化，不发货）。
 - **预测窗口是内存态** — 滑动窗口与 tipping point 状态随进程消失。累计按会话隔离且排除 child 会话（`header.parentSession`），被路由的子代理绝不污染父会话窗口。
 - **路由表是固定策略** — 三级干预阈值（0.4/0.6/0.8）与动作映射为移植时的天枢常量；可配置化随实际调参需求再做。

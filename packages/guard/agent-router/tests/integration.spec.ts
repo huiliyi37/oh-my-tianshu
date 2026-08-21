@@ -7,7 +7,7 @@
  * execute() 经 subagent seam 派发子代理（start/result/dispose 调用序）→
  * 连续 3 次成功 → tipping point 重置 → decide() 回 self。
  */
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, type Mock } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
 import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
 import { apply as applyAgentRouter, resolveProfileTools, type RouterService } from '../src/index.js'
@@ -16,7 +16,7 @@ const PARENT_ID = SessionId('session-1')
 
 function makeContext(config: Record<string, unknown> = {}): {
   ctx: Context
-  seam: { start: ReturnType<typeof vi.fn> }
+  seam: { start: Mock<() => Promise<{ id: SessionId; result: Promise<unknown>; dispose(): Promise<void> }>> }
   counters: { result: number; dispose: number; append: Array<{ type: string; data: unknown }> }
   registeredTools: Array<Record<string, unknown>>
   registeredSections: Array<{ name: string; text: (context: { agent?: { session: { events: SessionEvent[] } } }) => string }>
@@ -146,9 +146,9 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
   }, 10000)
 
   it('profileTools 配置非法时装配 fail loud', () => {
-    expect(() => applyAgentRouter(new Context(), { profileTools: { codeScout: [] } })).toThrow(/non-empty/)
-    expect(() => applyAgentRouter(new Context(), { profileTools: { verifier: ['read', ''] } })).toThrow(/non-empty/)
-    expect(() => applyAgentRouter(new Context(), { profileTools: { codeScout: ['read', 'read'] } })).toThrow(/duplicates/)
+    expect(() => { applyAgentRouter(new Context(), { profileTools: { codeScout: [] } }) }).toThrow(/non-empty/)
+    expect(() => { applyAgentRouter(new Context(), { profileTools: { verifier: ['read', ''] } }) }).toThrow(/non-empty/)
+    expect(() => { applyAgentRouter(new Context(), { profileTools: { codeScout: ['read', 'read'] } }) }).toThrow(/duplicates/)
   })
 
   it('resolveProfileTools 缺省用内置真实工具名，覆盖生效', () => {
@@ -183,7 +183,7 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
   }, 10000)
 
   it('subagentProvider 非法（空串）时装配 fail loud', () => {
-    expect(() => applyAgentRouter(new Context(), { subagentProvider: '' })).toThrow(/non-empty provider name/)
+    expect(() => { applyAgentRouter(new Context(), { subagentProvider: '' }) }).toThrow(/non-empty provider name/)
   })
 
   it('指标按会话隔离：A 连败不影响 B 的决策', async () => {
@@ -222,7 +222,7 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     emit('session/event', session, {
       type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
     })
-    await vi.waitFor(() => expect(appended).toHaveLength(1))
+    await vi.waitFor(() => { expect(appended).toHaveLength(1) })
     expect(appended[0]!.type).toBe('router/decision')
     const decision = appended[0]!.data as { profile: string; mode: string; dispatched: boolean; subagentSessionId?: string }
     expect(decision.profile).toBe('verifier')
@@ -242,11 +242,80 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     emit('session/event', session, {
       type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
     })
-    await vi.waitFor(() => expect(appended).toHaveLength(1))
+    await vi.waitFor(() => { expect(appended).toHaveLength(1) })
     const decision = appended[0]!.data as { dispatched: boolean; subagentSessionId?: string }
     expect(decision.dispatched).toBe(true)
     expect(decision.subagentSessionId).toBe('session-child-1')
     expect(seam.start).toHaveBeenCalledTimes(1)
+  }, 10000)
+
+  it('trigger auto：seam.start 拒绝时失败收敛（decision 落 dispatched false + 错误日志，turn 不被打断）', async () => {
+    const { ctx, seam, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true } })
+    const A = SessionId('session-a')
+    const appended: Array<{ type: string; data: unknown }> = []
+    const session = { id: A, header: {}, append: (type: string, data: unknown) => { appended.push({ type, data }) } }
+    const loggerError = vi.spyOn(ctx.logger, 'error').mockImplementation(() => undefined)
+    seam.start.mockImplementationOnce(async () => { throw new Error('seam down') })
+
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    // emit 同步返回即证明后台触发不打断 turn；catch 被删则 promise 无人接管，
+    // vitest 的 unhandled rejection 会让套件变红——回归保护成立。
+    emit('session/event', session, {
+      type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
+    })
+    await vi.waitFor(() => { expect(appended).toHaveLength(1) })
+    const decision = appended[0]!.data as { mode: string; dispatched: boolean; subagentSessionId?: string }
+    expect(decision.mode).toBe('auto')
+    expect(decision.dispatched).toBe(false)
+    expect(decision.subagentSessionId).toBeUndefined()
+    expect(seam.start).toHaveBeenCalledTimes(1)
+    expect(loggerError).toHaveBeenCalledOnce()
+    loggerError.mockRestore()
+  }, 10000)
+
+  it('trigger auto：子代理 result reject（基础设施故障）时失败收敛——route 已落、outcome 不落', async () => {
+    const { ctx, seam, counters, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true } })
+    const A = SessionId('session-a')
+    const appended: Array<{ type: string; data: unknown }> = []
+    const session = { id: A, header: {}, append: (type: string, data: unknown) => { appended.push({ type, data }) } }
+    const loggerError = vi.spyOn(ctx.logger, 'error').mockImplementation(() => undefined)
+    seam.start.mockImplementationOnce(async () => ({
+      id: SessionId('session-child-1'),
+      result: Promise.reject(new Error('infra boom')),
+      dispose: vi.fn(async () => { counters.dispose++ }),
+    }))
+
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    emit('session/event', session, {
+      type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
+    })
+    await vi.waitFor(() => { expect(appended).toHaveLength(1) })
+    const decision = appended[0]!.data as { dispatched: boolean; subagentSessionId?: string }
+    expect(decision.dispatched).toBe(false)
+    expect(decision.subagentSessionId).toBeUndefined()
+    expect(loggerError).toHaveBeenCalledOnce()
+    // acceptance 的 router/route 在 result 结算前已落父会话；无 settle 则无 outcome，
+    // 孤儿 route 不进 synthesis 的 pending（pendingOutcomes 只认 outcome）。
+    expect(counters.append.map(entry => entry.type)).toEqual(['router/route'])
+    expect(counters.dispose).toBe(1)
+    loggerError.mockRestore()
+  }, 10000)
+
+  it('trigger auto：缺 provider/model 时短路——decision 落 dispatched false 且 seam 未调用', async () => {
+    const { seam, emit } = makeContext({ provider: undefined, model: undefined, trigger: { mode: 'auto', onTurnEnd: true } })
+    const A = SessionId('session-a')
+    const appended: Array<{ type: string; data: unknown }> = []
+    const session = { id: A, header: {}, append: (type: string, data: unknown) => { appended.push({ type, data }) } }
+
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    emit('session/event', session, {
+      type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
+    })
+    await vi.waitFor(() => { expect(appended).toHaveLength(1) })
+    const decision = appended[0]!.data as { dispatched: boolean; subagentSessionId?: string }
+    expect(decision.dispatched).toBe(false)
+    expect(decision.subagentSessionId).toBeUndefined()
+    expect(seam.start).not.toHaveBeenCalled()
   }, 10000)
 
   it('trigger off / child 会话 turn/end 不触发决策', async () => {
@@ -282,11 +351,11 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
   }, 10000)
 
   it('trigger 配置非法 fail loud', () => {
-    expect(() => applyAgentRouter(new Context(), { trigger: { mode: 'hyper' as never } })).toThrow(/trigger.mode/)
-    expect(() => applyAgentRouter(new Context(), { trigger: { onTurnEnd: 'yes' as never } })).toThrow(/onTurnEnd/)
-    expect(() => applyAgentRouter(new Context(), { escalation: { cap: 'strong' as never } })).toThrow(/escalation.cap/)
-    expect(() => applyAgentRouter(new Context(), { escalation: { minConsecutiveFailures: 0 } })).toThrow(/minConsecutiveFailures/)
-    expect(() => applyAgentRouter(new Context(), { budget: { defaultMaxTurns: -1 } })).toThrow(/budget.defaultMaxTurns/)
+    expect(() => { applyAgentRouter(new Context(), { trigger: { mode: 'hyper' as never } }) }).toThrow(/trigger.mode/)
+    expect(() => { applyAgentRouter(new Context(), { trigger: { onTurnEnd: 'yes' as never } }) }).toThrow(/onTurnEnd/)
+    expect(() => { applyAgentRouter(new Context(), { escalation: { cap: 'strong' as never } }) }).toThrow(/escalation.cap/)
+    expect(() => { applyAgentRouter(new Context(), { escalation: { minConsecutiveFailures: 0 } }) }).toThrow(/minConsecutiveFailures/)
+    expect(() => { applyAgentRouter(new Context(), { budget: { defaultMaxTurns: -1 } }) }).toThrow(/budget.defaultMaxTurns/)
   })
 
   it('综合提示：存在未综合 child 结论时渲染，adoption 后清除', async () => {
@@ -323,6 +392,21 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     )).rejects.toThrow(/no pending finding/)
     expect(section.text({ agent: { session: parentSession } })).toBe('')
   }, 10000)
+
+  it('综合面按可派发性门控：缺 provider/model（shadow 重挂形状）或 dispatchEnabled:false 时不注册，可派发时装配齐', () => {
+    // 发货 TUI 形状：shadow 重挂、无 provider/model——综合节恒空、adopt 每调必抛，
+    // 常驻模型面只是白占请求 token，故两者都不注册。
+    const gated = makeContext({ provider: undefined, model: undefined, trigger: { mode: 'shadow', onTurnEnd: true } })
+    expect(gated.registeredTools.some(tool => tool.name === 'router_adopt')).toBe(false)
+    expect(gated.registeredSections.some(section => section.name === 'router:synthesis')).toBe(false)
+    const disabled = makeContext({ dispatchEnabled: false })
+    expect(disabled.registeredTools.some(tool => tool.name === 'router_adopt')).toBe(false)
+    expect(disabled.registeredSections.some(section => section.name === 'router:synthesis')).toBe(false)
+    // 可派发装配注册两者（行为面由「综合提示」用例钉住，这里钉注册面）。
+    const open = makeContext()
+    expect(open.registeredTools.some(tool => tool.name === 'router_adopt')).toBe(true)
+    expect(open.registeredSections.some(section => section.name === 'router:synthesis')).toBe(true)
+  })
 
   it('agent/disposed 时 evict 该会话的累计器', async () => {
     const { ctx, emit } = makeContext()

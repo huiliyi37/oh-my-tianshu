@@ -39,7 +39,7 @@ if (action.kind === 'delegate') {
 |---|---|
 | `metrics({ sessionId })` | Current metrics snapshot (interventionLevel/unresolvedHigh/verifications/probeCooledTargets) for that session's accumulator |
 | `decide({ sessionId })` | Routing decision (pure function, safe to call repeatedly) from that session's accumulator |
-| `execute(action, { sessionId, signal? })` | Executes an action (delegate → dispatches a subagent through the seam and returns `{ sessionId, stopReason, output }`; self → null); `sessionId` names the live parent session the child lineage derives from |
+| `execute(action, { sessionId, signal? })` | Executes an action (delegate → dispatches a subagent through the seam and returns `{ sessionId, stopReason, output, budget }`; self → null); `sessionId` names the live parent session the child lineage derives from |
 | `resetPrediction(sessionId?)` | Resets the prediction accumulator (one session; all sessions when omitted) |
 
 ## Configuration
@@ -80,10 +80,13 @@ apply(ctx, {
 ## Modules
 
 - `prediction.ts` — tool success/failure prediction accumulator (Tianshu pure-function core, zero dependencies)
-- `router.ts` — deterministic routing table (metrics → action)
+- `router.ts` — deterministic routing table (metrics → action) with the escalation-hysteresis policy
 - `dispatch.ts` — dsh subagent-seam dispatch (start/result/dispose) with fail-loud profile tool restriction
-- `index.ts` — Cordis plugin wiring (event collection + service surface)
-- `invariant.ts` — runtime-invariant companion: validates `router/route` records (payload shape + live-child lineage; loaded history re-validates at late registration)
+- `synthesis.ts` — main-agent synthesis section + adoption declaration (`router:synthesis` rendering, `router_adopt` arg validation, outcome-minus-adoption pending derivation)
+- `budget.ts` — dispatch budget pricing (Tianshu-shaped turns-by-file pricing with double ceilings; compute-and-record)
+- `promotion.ts` — adaptivity gate pure functions (four-mode semantics + samples/false-green/scope/margin veto ladder; not wired into decisions)
+- `index.ts` — Cordis plugin wiring (event collection + service surface + dispatchability-gated synthesis contributions)
+- `invariant.ts` — runtime-invariant companion: validates the `router/route`/`router/outcome`/`router/adoption`/`router/decision` records (payload shape, per-session adoption↔outcome pairing state, live-child lineage; loaded history re-validates at late registration)
 
 ## Verification
 
@@ -101,10 +104,11 @@ None directly; the delegate session is an independent model request, and the par
 
 ## Known Limitations and Deferred Work
 
-- **Dispatch requires explicit model configuration** — with `dispatchEnabled: true`, `provider`/`model` must be supplied; unconfigured, the router only decides without dispatching (decision results stay queryable).
+- **Dispatch requires explicit model configuration** — with `dispatchEnabled: true`, `provider`/`model` must be supplied; unconfigured, the router only decides without dispatching (decision results stay queryable), and the synthesis contributions (`router:synthesis` section, `router_adopt` tool) are not registered — without dispatch there is no outcome to synthesize, so the model face stays free of dead weight.
 - **Dispatch requires a live parent session** — `execute` takes the parent `sessionId` and fails loud when that session is not a live agent; the seam derives the child's workspace, lineage, and delegation depth from it.
 - **Turn-end trigger ships in shadow** — the shipped TUI mounts `trigger: { mode: 'shadow', onTurnEnd: true }`: delegate decisions are recorded as log-only `router/decision` but never dispatched. Switching to `auto` is a product call after the closed loop is verified; `auto` requires `provider`/`model`.
-- **Synthesis is the main agent's act** — when unresolved child findings exist, a `router:synthesis` prompt section lists them and the `router_adopt` tool records adopt/reject declarations as log-only `router/adoption` (one per outcome, validated by the invariant companion). The router never merges or votes; it only carries findings and declarations.
+- **Synthesis is the main agent's act** — when unresolved child findings exist, a `router:synthesis` prompt section lists them and the `router_adopt` tool records adopt/reject declarations as log-only `router/adoption` (at most one per outcome, enforced at the tool boundary and by the invariant companion's pairing state). The router never merges or votes; it only carries findings and declarations.
+- **The adaptivity gate ships unwired** — `promotion.ts` exports the four-mode semantics (`effectivePromotionMode`) and the four-rung veto ladder (`resolvePromotionGate`) as pure functions; shadow tally wiring and auto mode are registered candidates (see the algorithm-candidates proposed note), not shipped.
 - **Budgets are computed and recorded, not enforced** — `budget` config feeds the Tianshu-shaped pricing (turns by file count, double ceilings); the route record carries `{ maxTurns, deadlineMs }`. Run-level budget enforcement is a future subagent-seam capability (candidate optimization, not shipped).
 - **The prediction window is in-memory** — the sliding window and tipping-point state vanish with the process. Accumulation is keyed per session and child sessions (`header.parentSession`) are excluded, so routed children never pollute their parent's window.
 - **The routing table is a fixed policy** — the three intervention thresholds (0.4/0.6/0.8) and the action mapping are the Tianshu constants from the port; configurability waits for real tuning demand.

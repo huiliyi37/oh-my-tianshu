@@ -10,6 +10,10 @@
  * 3. 子代理派发：delegate 动作 → dispatchSubagent（dsh 子代理 seam：
  *    ctx.subagents.start；血统/深度/投影由 seam 自动写）。
  *
+ * 综合面（router_adopt 工具 + router:synthesis 节）按可派发性门控：仅当派发
+ * 被显式打开（provider+model 齐备且 dispatchEnabled）才注册——shadow 重挂等
+ * 不可派发装配上未综合结论恒空、adopt 每调必抛，常驻模型面只是白占请求 token。
+ *
  * 未装配时零行为（可选插件）；子代理结果经 session/event 自动归账回
  * evidence-gate（零新通道）。
  *
@@ -119,9 +123,14 @@ function extractResultText(message: { content: unknown[] }): string {
 export interface AgentRouterConfig {
   /** 是否启用子代理派发（默认 true；false 时路由仍决策但只回显动作）。 */
   dispatchEnabled?: boolean
-  /** 派发子代理所用 provider；缺省随子代理服务的默认路由。 */
+  /**
+   * 派发子代理所用 provider。与 `model` 一起构成派发的显式前提：任一缺省时
+   * execute 短路返回 null（auto 触发落 `dispatched:false`），且 `router_adopt`
+   * 工具与 `router:synthesis` 节不注册——不可派发即无 outcome 可综合，常驻
+   * 模型面只是白占请求 token。
+   */
   provider?: string
-  /** 派发子代理所用模型名；缺省随子代理服务的默认路由。 */
+  /** 派发子代理所用模型名（与 `provider` 同为派发的显式前提；缺省不派发）。 */
   model?: string
   /**
    * profile 工具集覆盖（部署差异——如只装少量工具的精简装配——声明自己的
@@ -293,58 +302,65 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
   if (typeof synthesisSection !== 'string' || synthesisSection.trim() === '') {
     throw new Error('agent-router: synthesis.section must be a non-empty string')
   }
+  const dispatchEnabled = config.dispatchEnabled ?? true
+  // 可派发性门控：outcome 只在显式派发装配上存在。shadow 重挂（无 provider/model）
+  // 等装配上综合节恒空、router_adopt 每调必抛"no pending finding"，常驻模型面
+  // 只是白占每轮请求 token——两者都不注册。executeAction 内的短路是同一条件的
+  // 展开（保留 undefined 收窄，TS 友好）。
+  const canDispatch = dispatchEnabled && config.provider !== undefined && config.model !== undefined
 
   // —— 采用声明工具：主代理对每条 child 结论逐条声明 adopt/reject ——
-  ctx.tools.register({
-    name: ADOPT_TOOL_NAME,
-    description: 'Declare your adoption decision for one dispatched subagent finding: '
-      + 'adopt (integrate it) or reject (state why). Call exactly once per finding listed in your synthesis prompt.',
-    parameters: {
-      subagentSessionId: { type: 'string', required: true, description: 'The subagent session id from the synthesis prompt.' },
-      verdict: { type: 'string', required: true, enum: ['adopt', 'reject'], description: 'adopt or reject the finding.' },
-      reason: { type: 'string', required: true, description: 'Why you adopt or reject it.' },
-    },
-    output: {
-      schema: {
-        type: 'object',
-        additionalProperties: false,
-        properties: { adopted: { type: 'boolean', const: true } },
+  if (canDispatch) {
+    ctx.tools.register({
+      name: ADOPT_TOOL_NAME,
+      description: 'Declare your adoption decision for one dispatched subagent finding: '
+        + 'adopt (integrate it) or reject (state why). Call exactly once per finding listed in your synthesis prompt.',
+      parameters: {
+        subagentSessionId: { type: 'string', required: true, description: 'The subagent session id from the synthesis prompt.' },
+        verdict: { type: 'string', required: true, enum: ['adopt', 'reject'], description: 'adopt or reject the finding.' },
+        reason: { type: 'string', required: true, description: 'Why you adopt or reject it.' },
       },
-      render: () => [{ type: 'text', text: 'Finding adoption recorded.' }],
-    },
-    execute: async (args, exec) => {
-      const agent = exec.agent
-      if (agent === undefined) throw new Error(`${ADOPT_TOOL_NAME} requires a calling agent`)
-      const parsed = parseAdoptArgs(args)
-      // 声明必须引用本会话一条未综合的 child 结论（契约：逐条、恰好一次）。
-      const session = agent.session
-      const pending = pendingOutcomes(session.events)
-      if (!pending.some(entry => entry.subagentSessionId === parsed.subagentSessionId)) {
-        throw new Error(`${ADOPT_TOOL_NAME}: no pending finding for subagent ${parsed.subagentSessionId} — declare each finding exactly once`)
-      }
-      session.append('router/adoption', {
-        subagentSessionId: parsed.subagentSessionId,
-        verdict: parsed.verdict,
-        reason: parsed.reason,
-      })
-      return { adopted: true as const }
-    },
-  })
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: { adopted: { type: 'boolean', const: true } },
+        },
+        render: () => [{ type: 'text', text: 'Finding adoption recorded.' }],
+      },
+      execute: async (args, exec) => {
+        const agent = exec.agent
+        if (agent === undefined) throw new Error(`${ADOPT_TOOL_NAME} requires a calling agent`)
+        const parsed = parseAdoptArgs(args)
+        // 声明必须引用本会话一条未综合的 child 结论（契约：逐条、恰好一次）。
+        const session = agent.session
+        const pending = pendingOutcomes(session.events)
+        if (!pending.some(entry => entry.subagentSessionId === parsed.subagentSessionId)) {
+          throw new Error(`${ADOPT_TOOL_NAME}: no pending finding for subagent ${parsed.subagentSessionId} — declare each finding exactly once`)
+        }
+        session.append('router/adoption', {
+          subagentSessionId: parsed.subagentSessionId,
+          verdict: parsed.verdict,
+          reason: parsed.reason,
+        })
+        return { adopted: true as const }
+      },
+    })
 
-  // —— 主代理综合提示：存在未综合 child 结论时渲染（model-visible 内容
-  //    全部派生自已落盘的 router/outcome 与 router/adoption 记录）——
-  ctx.systemPrompt.section({
-    name: 'router:synthesis',
-    order: 51,
-    text: (context) => {
-      const agent = context.agent
-      if (agent === undefined) return ''
-      const events = agent.session.events
-      return renderSynthesisSection(pendingOutcomes(events), verificationGap(events), synthesisSection)
-    },
-  })
+    // —— 主代理综合提示：存在未综合 child 结论时渲染（model-visible 内容
+    //    全部派生自已落盘的 router/outcome 与 router/adoption 记录）——
+    ctx.systemPrompt.section({
+      name: 'router:synthesis',
+      order: 51,
+      text: (context) => {
+        const agent = context.agent
+        if (agent === undefined) return ''
+        const events = agent.session.events
+        return renderSynthesisSection(pendingOutcomes(events), verificationGap(events), synthesisSection)
+      },
+    })
+  }
   const predictions = new Map<SessionId, ReturnType<typeof createPredictionAccumulator>>()
-  const dispatchEnabled = config.dispatchEnabled ?? true
 
   // —— 指标组装（evidence 可选；prediction 按会话取）——
   const collectMetrics = (sessionId: SessionId): RouterMetrics => {
@@ -368,6 +384,7 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
     sessionId: SessionId,
     signal?: AbortSignal,
   ): Promise<DispatchOutcome | null> => {
+    // 短路条件即 canDispatch 的展开（保留 undefined 收窄，TS 友好）。
     if (action.kind !== 'delegate' || !dispatchEnabled) return null
     if (config.provider === undefined || config.model === undefined) return null
     const opts: DispatchOptions = {
