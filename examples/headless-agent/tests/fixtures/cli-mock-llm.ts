@@ -1,5 +1,5 @@
 import type { Context } from '@huiliyi37/cordis'
-import { SUBAGENT_TASK_PREFIX } from '@huiliyi37/dsh-agent-router'
+import { ADOPT_TOOL_NAME, SUBAGENT_TASK_PREFIX } from '@huiliyi37/dsh-agent-router'
 import {
   CallId,
   LlmAdapter,
@@ -11,6 +11,14 @@ import {
 
 const HIGH = ReasoningEffortId('high')
 const OFF = ReasoningEffortId('off')
+
+/**
+ * synthesis 节锚点：行格式钉在 packages/guard/agent-router/src/synthesis.ts
+ * （renderSynthesisSection），此处工具名经导出常量联动；行文本漂移时 adopt
+ * 分支解析失败并以抛错 fail loud，而不是静默落到默认分支。
+ */
+const ADOPT_SECTION_MARKER = `declare adopt or reject with ${ADOPT_TOOL_NAME}`
+const ADOPT_SECTION_ROW_RE = new RegExp(`- subagent (\\S+) \\([^)]*\\) — ${ADOPT_SECTION_MARKER}`)
 
 /** Keyless headless-agent adapter: one real bash call followed by a final answer. */
 class CliMockAdapter extends LlmAdapter {
@@ -47,6 +55,40 @@ class CliMockAdapter extends LlmAdapter {
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
       yield { type: 'tool-call-delta', index: 0, id: CallId(`cli-fail-${this.failCount}`), name: 'bash', argumentsDelta: args }
       yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: CallId(`cli-fail-${this.failCount}`), name: 'bash', arguments: args } }
+      yield { type: 'usage', usage: { inputTokens: 11, outputTokens: 3, cacheReadTokens: 2 } }
+      yield { type: 'finish', reason: { kind: 'tool-calls' } }
+      return
+    }
+    // 采用声明模式（agent-router synthesis 快照）：主代理 followup 请求的
+    // options.system 携带 synthesis 节（存在未综合 router/outcome 时渲染）时，
+    // 对节内列出的子代理声明一次 adopt。须在通用 toolResult 分支之前——否则
+    // followup 首轮（无 tool-result）会落进默认 bash 分支。与下方子代理分支
+    // 互斥：synthesis 节只出现在主会话请求（child 会话日志没有 router/outcome），
+    // 子代理任务文本也只进 child 会话。声明落账后该节消失，后续轮次自然落到
+    // 底部通用回复分支收尾——toolResult 已存在时回复文本是防重兜底（重复声明
+    // 同一会话只会撞 "no pending finding"）。
+    if (process.env.DSH_CLI_MOCK_ADOPT === '1' && options.system?.includes(ADOPT_SECTION_MARKER) === true) {
+      if (toolResult !== undefined) {
+        const reply = 'ADOPTION FOLLOWUP DONE'
+        yield { type: 'block-start', index: 0, blockType: 'text' }
+        yield { type: 'text-delta', index: 0, text: reply }
+        yield { type: 'block-end', index: 0, block: { type: 'text', text: reply } }
+        yield { type: 'usage', usage: { inputTokens: 7, outputTokens: 5, reasoningTokens: 1 } }
+        yield { type: 'finish', reason: { kind: 'stop' } }
+        return
+      }
+      const subagentId = ADOPT_SECTION_ROW_RE.exec(options.system)?.[1]
+      if (subagentId === undefined) {
+        throw new Error(`cli-mock-llm: synthesis section marker without a subagent row: ${options.system}`)
+      }
+      const args = JSON.stringify({
+        subagentSessionId: subagentId,
+        verdict: 'adopt',
+        reason: 'Verifier finding matches the mainline evidence.',
+      })
+      yield { type: 'block-start', index: 0, blockType: 'tool-call' }
+      yield { type: 'tool-call-delta', index: 0, id: CallId('cli-adopt-call'), name: ADOPT_TOOL_NAME, argumentsDelta: args }
+      yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: CallId('cli-adopt-call'), name: ADOPT_TOOL_NAME, arguments: args } }
       yield { type: 'usage', usage: { inputTokens: 11, outputTokens: 3, cacheReadTokens: 2 } }
       yield { type: 'finish', reason: { kind: 'tool-calls' } }
       return

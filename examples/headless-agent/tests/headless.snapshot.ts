@@ -8,6 +8,7 @@ import {
   normalizeStdout,
   refreshFixtureReplacements,
   scrubRequestHeaders,
+  scrubToolSchemas,
   stabilizeRefreshLog,
   tokenizeSessionFixtureCwd,
   type HarvestedLog,
@@ -50,6 +51,8 @@ const credentialsConfigPath = fileURLToPath(new URL('../credentials.cordis.snaps
 const invalidCredentialScenarioDir = join(snapshotsDir, 'invalid-credential')
 const ralphScenarioDir = join(snapshotsDir, 'ralph-loop')
 const ralphConfigPath = fileURLToPath(new URL('../ralph.cordis.snapshot.yml', import.meta.url))
+const routerSynthesisScenarioDir = join(snapshotsDir, 'agent-router-synthesis')
+const routerSynthesisConfigPath = fileURLToPath(new URL('./fixtures/cli.cordis.yml', import.meta.url))
 const startupFailureConfigPath = fileURLToPath(new URL('./fixtures/startup-activation-error/cordis.yml', import.meta.url))
 const startupFailureExpected = join(snapshotsDir, 'startup-activation-error', 'stderr.expected.txt')
 const binScript = fileURLToPath(new URL('./fixtures/headless-driver.ts', import.meta.url))
@@ -179,6 +182,48 @@ function normalizeGoalStream(rawStdout: string, cwd: string): string {
   return parseJsonl(normalizeHeadlessStream(rawStdout, cwd))
     .map(record => JSON.stringify(normalizeGoalTimestamps(record)))
     .join('\n') + '\n'
+}
+
+/**
+ * agent-router synthesis 场景：driver 在 session_event 之外额外输出
+ * router_state / router_dispatched 记录（派发演示面），终态只有一个 result
+ * （followup 轮的）。synthesis 节是本场景钉住的 model-visible 面——
+ * request/header 的 system 保持逐字（仅 tools 大件 token 化，不能走
+ * scrubRequestHeaders，否则被测文本会被 {{system}} 抹掉）。router/route 的
+ * budget.deadlineMs 是派发接受时点墙钟（Date.now()+timeoutMs），归零。
+ */
+function normalizeRouterSynthesisStream(rawStdout: string, cwd: string): string {
+  const records = parseJsonl(rawStdout)
+  if (records.length === 0) throw new Error('router synthesis snapshot emitted no stream-json records')
+  if (records.at(-1)?.type !== 'result') throw new Error('router synthesis snapshot did not end with a result record')
+  const driverTypes = new Set(['session_event', 'router_state', 'router_dispatched'])
+  if (records.slice(0, -1).some(record => !driverTypes.has(record.type as string))) {
+    throw new Error('router synthesis snapshot emitted an unexpected record before its result')
+  }
+
+  const sessionIds = [...new Set(records.flatMap(record => typeof record.sessionId === 'string' ? [record.sessionId] : []))]
+  const context: NormalizeContext = { sessionIds, cwd }
+  const events = records
+    .filter(record => record.type === 'session_event')
+    .map((record) => {
+      if (record.event === null || typeof record.event !== 'object' || Array.isArray(record.event)) {
+        throw new Error('router synthesis snapshot emitted an invalid session event')
+      }
+      const event = record.event as JsonObject
+      if (event.type === 'router/route') {
+        const budget = (event.data as JsonObject | undefined)?.budget as JsonObject | undefined
+        if (budget !== undefined && 'deadlineMs' in budget) budget.deadlineMs = 0
+      }
+      return event
+    })
+  const normalizedEvents = parseJsonl(scrubToolSchemas(normalizeSessionLog(
+    `${events.map(event => JSON.stringify(event)).join('\n')}\n`,
+    context,
+  )))
+  let eventIndex = 0
+  const normalizedRecords = records.map(record =>
+    record.type === 'session_event' ? { ...record, event: normalizedEvents[eventIndex++] } : record)
+  return normalizeStdout(`${normalizedRecords.map(record => JSON.stringify(record)).join('\n')}\n`, context)
 }
 
 async function scenarioPrompt(dir: string, label: string): Promise<string> {
@@ -826,6 +871,85 @@ describe('headless stream-json snapshots', () => {
     const normalized = normalizeHeadlessStream(result.stdout, runCwd)
     if (refreshing) await writeFile(streamExpected, normalized)
     expect(normalized).toBe(await readFile(streamExpected, 'utf8'))
+  }, LOADER_SMOKE_TEST_TIMEOUT_MS)
+
+  it('closes the agent-router dispatch loop through the synthesis surface', async () => {
+    const prompt = await scenarioPrompt(routerSynthesisScenarioDir, 'agent-router-synthesis')
+    const streamExpected = join(routerSynthesisScenarioDir, 'stream-json.expected.jsonl')
+    let runCwd = ''
+    const result = await runLoaderSmoke({
+      label: 'agent-router synthesis headless stream-json snapshot',
+      tempDirPrefix: 'headless-snapshot-router-synthesis-',
+      binScript,
+      libBinScript: binScript,
+      configPath: routerSynthesisConfigPath,
+      binArgs: [routerSynthesisConfigPath, prompt],
+      tsconfigPath,
+      env: {
+        // 连败触发 escalate → delegate 决策并真实派发；派发后主会话存在未综合
+        // outcome，followup 轮请求即渲染 synthesis 节，mock 据此调 router_adopt。
+        DSH_CLI_MOCK_FAIL_LOOP: '1',
+        DSH_ROUTER_DEMO: '1',
+        DSH_ROUTER_EXECUTE: '1',
+        DSH_CLI_MOCK_ADOPT: '1',
+        DSH_ROUTER_ADOPT_FOLLOWUP: '1',
+        NODE_OPTIONS: [process.env.NODE_OPTIONS, '--disable-warning=ExperimentalWarning'].filter(Boolean).join(' '),
+      },
+      prepare: (cwd) => { runCwd = cwd },
+      inspect: async (cwd) => {
+        const logs = await persistedLogs(cwd)
+        expect(logs).toHaveLength(2)
+        const parent = logs.find(log => typeof log.header.parentSession !== 'string')
+        if (parent === undefined) throw new Error('router synthesis snapshot did not persist its main session')
+        const child = logs.find(log => typeof log.header.parentSession === 'string')
+        if (child === undefined) throw new Error('router synthesis snapshot did not persist the subagent session')
+        expect(child.header.parentSession).toBe(parent.header.id)
+
+        const records = parseJsonl(parent.content)
+        // 闭环恰好一轮：一条 route、一条 outcome、一次 adopt 调用、一条 adoption。
+        const routes = records.filter(record => record.type === 'router/route')
+        const outcomes = records.filter(record => record.type === 'router/outcome')
+        const adoptions = records.filter(record => record.type === 'router/adoption')
+        const adoptCalls = records.filter(record => record.type === 'tool/call'
+          && (record.data as JsonObject | undefined)?.name === 'router_adopt')
+        expect(routes).toHaveLength(1)
+        expect(outcomes).toHaveLength(1)
+        expect(adoptions).toHaveLength(1)
+        expect(adoptCalls).toHaveLength(1)
+        const route = routes[0]
+        const outcome = outcomes[0]
+        const adoption = adoptions[0]
+        const adoptCall = adoptCalls[0]
+        if (route === undefined || outcome === undefined || adoption === undefined || adoptCall === undefined) {
+          throw new Error('router synthesis snapshot lost a loop record')
+        }
+        expect((route.data as JsonObject | undefined)?.subagentSessionId).toBe(child.header.id)
+        expect(outcome.data).toMatchObject({ subagentSessionId: child.header.id, stopReason: 'completed' })
+        expect(adoption.data).toMatchObject({ subagentSessionId: child.header.id, verdict: 'adopt' })
+        const adoptArgs = JSON.parse(String((adoptCall.data as JsonObject | undefined)?.arguments)) as JsonObject
+        expect(adoptArgs).toMatchObject({ subagentSessionId: child.header.id, verdict: 'adopt' })
+        // 综合闭环的日志序：route → outcome → adopt 调用 → adoption。
+        const order = [records.indexOf(route), records.indexOf(outcome), records.indexOf(adoptCall), records.indexOf(adoption)]
+        expect(order).toEqual([...order].sort((left, right) => left - right))
+        // synthesis 节（含 rubric）在持久日志的 followup 请求头里逐字可见。
+        const synthesisHeader = records.find(record => record.type === 'request/header'
+          && JSON.stringify((record.data as JsonObject | undefined)?.header)
+            .includes('declare adopt or reject with router_adopt'))
+        expect(synthesisHeader).toBeDefined()
+      },
+    })
+
+    expect(result.stderr).toBe('')
+    const normalized = normalizeRouterSynthesisStream(result.stdout, runCwd)
+    if (refreshing) await writeFile(streamExpected, normalized)
+    expect(normalized).toBe(await readFile(streamExpected, 'utf8'))
+    // model-visible 钉点：synthesis 节文本与 rubric 进过请求，链路事件进了 transcript。
+    expect(normalized).toContain('declare adopt or reject with router_adopt')
+    expect(normalized).toContain('you own the final synthesis and all writes')
+    expect(normalized).toContain('router/route')
+    expect(normalized).toContain('router/outcome')
+    expect(normalized).toContain('router/adoption')
+    expect(normalized).toContain('router_adopt')
   }, LOADER_SMOKE_TEST_TIMEOUT_MS)
 
   it('replays persistent PTY tools through the one-shot app', async () => {
