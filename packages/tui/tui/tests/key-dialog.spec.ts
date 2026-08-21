@@ -13,6 +13,7 @@ import {
   maskKeyInput,
   probeDeepSeekKey,
   type KeyDialogCredentials,
+  type KeyDialogTarget,
   type KeyProbeResult,
 } from '../src/ui/key-dialog.js'
 import type { RivetTheme } from '../src/theme.js'
@@ -301,5 +302,61 @@ describe('probeDeepSeekKey — 真实探测（fetch 外部边界打桩）', () =
     const call = fetchMock.mock.calls[0]
     if (call === undefined) throw new Error('expected fetch to be called')
     expect(call[0]).toBe('https://proxy.example.com/models')
+  })
+})
+
+describe('KeyDialogController — 供应商参数化目标', () => {
+  /** OpenRouter 风格目标：注入 ref/探测/激活步，对话框不认识具体供应商。 */
+  function openRouterTarget(overrides: {
+    probe?: (key: string) => Promise<KeyProbeResult>
+    afterSave?: () => Promise<void>
+  } = {}): KeyDialogTarget {
+    return {
+      provider: 'openrouter',
+      displayName: 'OpenRouter',
+      ref: 'OPENROUTER_API_KEY',
+      probe: overrides.probe ?? (async () => 'ok'),
+      ...overrides.afterSave === undefined ? {} : { afterSave: overrides.afterSave },
+    }
+  }
+
+  it('标题与落盘引用随目标走：set 写目标 ref，渲染显示供应商名', async () => {
+    const credentials = makeCredentials()
+    const { dialog } = makeDialog()
+    await dialog.open(credentials, openRouterTarget())
+    dialog.handleKey('unknown', 'k')
+    dialog.handleKey('unknown', '1')
+    dialog.handleKey('return', '')
+    await settle()
+    expect(credentials.set).toHaveBeenCalledWith('OPENROUTER_API_KEY', 'k1')
+    const text = plain(dialog.render(80, 24)).join('\n')
+    expect(text).toContain('设置 OpenRouter API Key')
+    expect(text).toContain('✓ 已保存并生效')
+  })
+
+  it('afterSave 激活步在落盘成功后执行；失败回输入态带错误（key 已存，激活可重试补齐）', async () => {
+    const credentials = makeCredentials()
+    const afterSave = vi.fn(async () => { throw new Error('settings 拒绝写入') })
+    const { dialog } = makeDialog()
+    await dialog.open(credentials, openRouterTarget({ afterSave }))
+    dialog.handleKey('unknown', 'k')
+    dialog.handleKey('return', '')
+    await settle()
+    expect(credentials.set).toHaveBeenCalledOnce()
+    expect(afterSave).toHaveBeenCalledOnce()
+    const text = plain(dialog.render(80, 24)).join('\n')
+    expect(text).toContain('settings 拒绝写入')
+  })
+
+  it('构造期 probe 覆盖仍生效于目标探测之上（测试注入位）', async () => {
+    const credentials = makeCredentials()
+    const { dialog } = makeDialog({ probe: async () => 'invalid' })
+    await dialog.open(credentials, openRouterTarget())
+    dialog.handleKey('unknown', 'k')
+    dialog.handleKey('return', '')
+    await settle()
+    expect(credentials.set).not.toHaveBeenCalled()
+    const text = plain(dialog.render(80, 24)).join('\n')
+    expect(text).toContain('Key 无效')
   })
 })

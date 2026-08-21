@@ -682,12 +682,12 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
     },
     {
       name: 'key',
-      description: '设置 DeepSeek API Key（掩码输入 + 联网验证；保存即生效，无需重启）',
+      description: '配置模型供应商 API 密钥（选择供应商 → 掩码输入 + 联网验证；保存即生效）',
       run: () => { deps.openKeyDialog() },
     },
     {
       name: 'login',
-      description: '设置 DeepSeek API Key（/key 别名）',
+      description: '配置模型供应商 API 密钥（/key 别名）',
       run: () => { deps.openKeyDialog() },
     },
     {

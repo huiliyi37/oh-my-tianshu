@@ -103,6 +103,38 @@ describe('catalog-route model discovery', () => {
     // that shape is only reachable by calling it directly.
     await expect(discoverModels({})).rejects.toThrow(/set a baseURL/)
   })
+
+  it('reaches the endpoint for a typed key instead of answering from the catalog', async () => {
+    // A key the surface holds is the one under test: the catalog answer would
+    // "succeed" without the endpoint ever authenticating it. The draft names an
+    // explicit endpoint here; the catalog's own is exercised below.
+    const server = await listingServer({ body: JSON.stringify({ data: [{ id: 'from-the-endpoint' }] }) })
+    const ctx = await harness()
+
+    const models = await ctx.llm.discoverModels('llm-pi-ai', {
+      provider: 'deepseek', baseURL: server.url, apiKey: 'typed-key',
+    })
+
+    expect(models).toEqual([{ id: 'from-the-endpoint' }])
+    expect(server.paths).toEqual(['/models'])
+    expect(server.headers[0]?.authorization).toBe('Bearer typed-key')
+  })
+
+  it('falls back to the catalog endpoint when a typed key names no baseURL', async () => {
+    const asked: string[] = []
+    vi.stubGlobal('fetch', async (input: string | URL) => {
+      asked.push(String(input))
+      return new Response(JSON.stringify({ data: [{ id: 'via-catalog-endpoint' }] }), {
+        status: 200, headers: { 'content-type': 'application/json' },
+      })
+    })
+
+    await expect(discoverModels({ provider: 'deepseek', apiKey: 'typed-key' }))
+      .resolves.toEqual([{ id: 'via-catalog-endpoint' }])
+
+    // The catalog's own endpoint is the wire target — no baseURL was supplied.
+    expect(asked).toEqual(['https://api.deepseek.com/models'])
+  })
 })
 
 describe('draft-provider model discovery', () => {
@@ -214,6 +246,10 @@ describe('draft-provider model discovery', () => {
 
     for (const status of [401, 403]) {
       const refused = await listingServer({ status, body: '{"error":"nope"}' })
+      // AUTH, not DISCOVERY_FAILED: the endpoint rejected the credential
+      // itself, which is a verdict a key-testing surface branches on.
+      await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: refused.url, apiKey: 'wrong' }))
+        .rejects.toMatchObject({ code: 'AUTH' })
       await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: refused.url, apiKey: 'wrong' }))
         .rejects.toThrow(new RegExp(`answered ${status}; check the API key`))
     }
@@ -221,6 +257,8 @@ describe('draft-provider model discovery', () => {
     // A server fault is not a credential problem, so it must not send the user
     // off to re-check a key that is fine.
     const broken = await listingServer({ status: 500, body: '{"error":"boom"}' })
+    await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: broken.url, apiKey: 'fine' }))
+      .rejects.toMatchObject({ code: 'DISCOVERY_FAILED' })
     await expect(ctx.llm.discoverModels('llm-pi-ai', { baseURL: broken.url, apiKey: 'fine' }))
       .rejects.toThrow(/answered 500$/)
   })

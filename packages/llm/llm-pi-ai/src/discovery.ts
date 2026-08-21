@@ -25,7 +25,7 @@
 import { INVALID_CREDENTIAL_CODE, LlmError, normalizeApiKey } from '@huiliyi37/dsh-llm'
 import type { LlmDiscoveredModel, LlmModelDiscoveryRequest } from '@huiliyi37/dsh-llm'
 import { attributionHeaders } from '@huiliyi37/dsh-llm'
-import { catalogModels } from './catalog.ts'
+import { catalogModels, catalogProvider } from './catalog.ts'
 
 /**
  * Protocols whose model listing this module can read: the two that speak
@@ -198,7 +198,10 @@ export async function discoverModels(
 ): Promise<readonly LlmDiscoveredModel[]> {
   // A catalog route already has its answer, and a better one: the installed
   // entries carry context windows and output caps no listing endpoint reports.
-  if (request.provider !== undefined) {
+  // A draft apiKey opts OUT of that answer: a key the surface is holding is the
+  // one under test, so the request must reach the endpoint and be authenticated
+  // — the catalog short-circuit would "succeed" without ever seeing the key.
+  if (request.provider !== undefined && request.apiKey === undefined) {
     const installed = catalogModels(request.provider)
     if (installed.size > 0) {
       return [...installed.values()].map(model => ({
@@ -209,7 +212,11 @@ export async function discoverModels(
       }))
     }
   }
-  if (request.baseURL === undefined || request.baseURL.length === 0) {
+  // A catalog route that skipped the short-circuit still knows its endpoint;
+  // only a route the catalog does not describe must be told one.
+  const baseURL = request.baseURL
+    ?? (request.provider === undefined ? undefined : catalogProvider(request.provider)?.baseUrl)
+  if (baseURL === undefined || baseURL.length === 0) {
     throw new LlmError(
       `pi-ai ships no catalog for provider "${request.provider ?? ''}", so its models can only come from its`
       + " endpoint; set a baseURL, or enter this provider's models by hand",
@@ -229,7 +236,7 @@ export async function discoverModels(
       'DISCOVERY_UNSUPPORTED',
     )
   }
-  const url = listingUrl(request.baseURL)
+  const url = listingUrl(baseURL)
   // A key typed into the form wins: it is the one the user is testing, and it
   // may be the replacement for exactly the stored key that is failing. The
   // stored one is only asked for here, past the catalog short-circuit and the
@@ -257,10 +264,13 @@ export async function discoverModels(
     throw new LlmError(`could not reach ${url}`, 'DISCOVERY_FAILED', { cause: error })
   }
   if (!response.ok) {
-    throw new LlmError(
-      `${url} answered ${response.status}${response.status === 401 || response.status === 403 ? '; check the API key' : ''}`,
-      'DISCOVERY_FAILED',
-    )
+    // 401/403 is the endpoint rejecting the credential itself — a distinct
+    // verdict from an unreachable or broken endpoint, and the one a surface
+    // testing a typed key needs to branch on without parsing the message.
+    if (response.status === 401 || response.status === 403) {
+      throw new LlmError(`${url} answered ${response.status}; check the API key`, 'AUTH')
+    }
+    throw new LlmError(`${url} answered ${response.status}`, 'DISCOVERY_FAILED')
   }
   let text: string
   try {

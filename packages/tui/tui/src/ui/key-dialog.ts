@@ -1,13 +1,15 @@
 /**
- * key-dialog — DeepSeek API Key 设置对话框（/key、/login；首启缺 key 自动引导）。
+ * key-dialog — 供应商 API Key 设置对话框（/key、/login；首启缺 key 自动引导）。
  *
  * 掩码输入 overlay，与 picker 同构（OverlayRenderer 契约 + 装配方键路由）：
+ * - 配置目标由装配方注入（KeyDialogTarget：供应商路由、显示名、落盘引用、
+ *   探测实现）；缺省目标仍是 DeepSeek 官方路由（首启引导与既有调用面）。
  * - 输入态：可打印字符/粘贴进 Key 字段，渲染掩码（≤8 字符全显 •；>8 只露
  *   末 4 位明文，grok 同款）；Enter 提交，Esc/Ctrl+C 取消。
  * - 提交三态流：预检（describe 报 writable=false＝进程环境遮蔽 → 说明态，
- *   文件写入不会生效）→ 探测（GET {baseURL}/models，2xx ok / 401·403 invalid /
- *   其余与网络错误 unknown）→ 落盘（credentials.set）。invalid 回输入态；
- *   unknown 进警告确认态（Enter 仍要保存，Esc 取消）；ok 直接落盘进成功态。
+ *   文件写入不会生效）→ 探测（目标自带实现，三分类）→ 落盘（credentials.set）。
+ *   invalid 回输入态；unknown 进警告确认态（Enter 仍要保存，Esc 取消）；
+ *   ok 直接落盘进成功态。
  * - 凭据安全：key 只进 Authorization 头，不进 URL/日志/错误文案；探测错误
  *   一律折叠为 unknown，不外泄 fetch 细节。
  *
@@ -32,6 +34,32 @@ export type KeyProbeResult = 'ok' | 'invalid' | 'unknown'
 export interface KeyDialogCredentials {
   describe(ref: string): Promise<{ configured: boolean; source?: string; writable?: boolean }>
   set(ref: string, value: string): Promise<void>
+}
+
+/**
+ * 一次配置会话的目标供应商：标题、落盘引用与探测实现由装配方注入——
+ * 对话框本身不知道任何具体供应商。
+ * @param provider - 供应商路由 id（诊断与向导回链用）。
+ * @param displayName - 标题与状态文案里的显示名。
+ * @param ref - 落盘的凭据引用（POSIX 变量名）。
+ * @param probe - 该供应商的探测实现（三分类）。
+ * @param afterSave - 落盘成功后的激活步（如补写 settings profile 让路由注册）；
+ *   失败回输入态带错误（key 已存，激活可随重试补齐）。
+ */
+export interface KeyDialogTarget {
+  provider: string
+  displayName: string
+  ref: string
+  probe: (key: string) => Promise<KeyProbeResult>
+  afterSave?: () => Promise<void>
+}
+
+/** 缺省目标：DeepSeek 官方路由（向后兼容无参 open 与首启自动引导）。 */
+export const DEEPSEEK_KEY_TARGET: KeyDialogTarget = {
+  provider: 'deepseek-official',
+  displayName: 'DeepSeek',
+  ref: KEY_REF,
+  probe: probeDeepSeekKey,
 }
 
 /**
@@ -90,18 +118,20 @@ export class KeyDialogController implements OverlayRenderer {
   private value = ''
   private error: string | null = null
   private credentials: KeyDialogCredentials | undefined
+  private target: KeyDialogTarget = DEEPSEEK_KEY_TARGET
   private openFlag = false
   private closeRequested = false
   private readonly getTheme: () => RivetTheme
   private readonly onChange: (() => void) | undefined
   private readonly onSaved: (() => void) | undefined
-  private readonly probeFn: (key: string) => Promise<KeyProbeResult>
+  /** 构造期探测覆盖（测试注入）；目标自带探测之上优先。 */
+  private readonly probeOverride: ((key: string) => Promise<KeyProbeResult>) | undefined
 
   constructor(opts: KeyDialogOptions) {
     this.getTheme = opts.getTheme
     if (opts.onChange !== undefined) this.onChange = opts.onChange
     if (opts.onSaved !== undefined) this.onSaved = opts.onSaved
-    this.probeFn = opts.probe ?? probeDeepSeekKey
+    this.probeOverride = opts.probe
   }
 
   /**
@@ -117,9 +147,11 @@ export class KeyDialogController implements OverlayRenderer {
    * （writable=false＝进程环境遮蔽 → 说明态）。describe 抛错（面不匹配）时
    * 进入输入态——写不通会在 set 时暴露真实错误（最早可判定处 fails loud）。
    * @param credentials - 凭据服务最小面；undefined = 服务缺席。
+   * @param target - 本次配置的供应商目标；缺省 DeepSeek（首启引导与既有调用）。
    */
-  async open(credentials: KeyDialogCredentials | undefined): Promise<void> {
+  async open(credentials: KeyDialogCredentials | undefined, target?: KeyDialogTarget): Promise<void> {
     this.credentials = credentials
+    this.target = target ?? DEEPSEEK_KEY_TARGET
     this.value = ''
     this.error = null
     this.openFlag = true
@@ -129,7 +161,7 @@ export class KeyDialogController implements OverlayRenderer {
       return
     }
     try {
-      const info = await credentials.describe(KEY_REF)
+      const info = await credentials.describe(this.target.ref)
       // isOpen() 走方法边界：await 期间 onDeactivate 可能已关窗（窄化不跨方法）。
       if (!this.isOpen()) return
       this.phase = info.writable === false ? 'blocked' : 'input'
@@ -210,7 +242,7 @@ export class KeyDialogController implements OverlayRenderer {
     this.phase = 'probing'
     this.error = null
     void Promise.resolve()
-      .then(() => this.probeFn(key))
+      .then(() => (this.probeOverride ?? this.target.probe)(key))
       .then((result) => {
         if (!this.openFlag || this.phase !== 'probing') return
         if (result === 'invalid') {
@@ -240,7 +272,8 @@ export class KeyDialogController implements OverlayRenderer {
     this.phase = 'saving'
     this.onChange?.()
     try {
-      await credentials.set(KEY_REF, key)
+      await credentials.set(this.target.ref, key)
+      await this.target.afterSave?.()
     } catch (err) {
       if (!this.openFlag) return
       this.phase = 'input'
@@ -263,18 +296,18 @@ export class KeyDialogController implements OverlayRenderer {
    */
   render(width: number, _height: number): string[] {
     const theme = this.getTheme()
-    const lines: string[] = [color('设置 DeepSeek API Key', theme.brandColor, { bold: true })]
+    const lines: string[] = [color(`设置 ${this.target.displayName} API Key`, theme.brandColor, { bold: true })]
     switch (this.phase) {
       case 'blocked':
         lines.push('')
-        lines.push(color('进程环境已提供 DEEPSEEK_API_KEY，文件写入不会生效（环境变量优先）。', theme.warning))
+        lines.push(color(`进程环境已提供 ${this.target.ref}，文件写入不会生效（环境变量优先）。`, theme.warning))
         lines.push(color('请 unset 后重试，或改用环境变量管理。', theme.muted))
         lines.push('')
         lines.push(color('Enter / Esc 关闭', theme.muted))
         break
       case 'unavailable':
         lines.push('')
-        lines.push(color('当前部署无凭据存储，请设置环境变量 DEEPSEEK_API_KEY。', theme.warning))
+        lines.push(color(`当前部署无凭据存储，请设置环境变量 ${this.target.ref}。`, theme.warning))
         lines.push('')
         lines.push(color('Enter / Esc 关闭', theme.muted))
         break
@@ -286,7 +319,7 @@ export class KeyDialogController implements OverlayRenderer {
         break
         // input / probing / saving / confirm-unknown：说明 + 掩码输入行 + 状态/错误行 + 键位提示
       default: {
-        lines.push(color('用于 DeepSeek API 请求认证。', theme.muted))
+        lines.push(color(`用于 ${this.target.displayName} API 请求认证。`, theme.muted))
         lines.push(color('保存到 $DSH_HOME/.credentials.yaml（0600）；进程环境同名变量优先。', theme.muted))
         lines.push('')
         lines.push(color(`Key: ${maskKeyInput(this.value)}`, theme.primary))

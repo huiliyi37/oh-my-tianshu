@@ -142,7 +142,8 @@
 | src/turn-summary.ts | turn-summary.ts | modified（上游单文件拆为模型+渲染，此为模型半；渲染半见 src/format/turn-summary.ts） |
 | src/ui-glyphs.ts | ui-glyphs.ts | ported |
 | src/ui/app.ts | — | new（角色对应上游 engine/app.ts，为面向 dsh cordis 服务的独立装配实现，非逐行移植） |
-| src/ui/key-dialog.ts | — | new（API Key 掩码输入对话框：/key·/login 入口与首启引导，探测三分类后落盘） |
+| src/ui/key-dialog.ts | — | new（API Key 掩码输入对话框：/key·/login 入口与首启引导，探测三分类后落盘；目标供应商参数化） |
+| src/ui/key-wizard.ts | — | new（/key 供应商选择步骤纯函数层：引用派生（web deriveKeyRef 同规则镜像）、profile apiKeyEnv 优先解析、picker 条目构建） |
 | src/ui/render.ts | — | new |
 | src/width.ts | width.ts | modified |
 | src/workflow-panel.ts | — | new |

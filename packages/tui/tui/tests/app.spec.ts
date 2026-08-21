@@ -4121,6 +4121,127 @@ describe('TuiApp /key 设置对话框与首启引导', () => {
   })
 })
 
+describe('TuiApp /key 供应商向导（多供应商密钥配置）', () => {
+  afterEach(() => { vi.unstubAllGlobals() })
+
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+  /** 装配带 llm 目录/settings/credentials 三面替身的向导应用。 */
+  function bootWizardApp() {
+    const ctx = makeCtx()
+    const agent = makeAgent('key-wizard-1')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const describe = vi.fn(async (ref: string) => ({ configured: ref === 'ANTHROPIC_API_KEY', writable: true }))
+    const set = vi.fn(async () => {})
+    const mutate = vi.fn(async () => {})
+    const discover = vi.fn(async () => [{ id: 'claude-x' }])
+    const fallback = ctx.reflect.get.getMockImplementation() as (name: string) => unknown
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'credentials') return { describe, set }
+      if (name === 'settings') {
+        return { describe: () => [{ ns: 'llm-pi-ai', value: { providers: {} } }], mutate }
+      }
+      if (name === 'llm') {
+        return {
+          listConfigurableProviders: () => [
+            { provider: 'deepseek-official', displayName: 'DeepSeek', settingsNs: 'llm-deepseek', settingsPath: [] },
+            { provider: 'openrouter', displayName: 'openrouter', settingsNs: 'llm-pi-ai', settingsPath: ['providers', 'openrouter'] },
+            { provider: 'anthropic', displayName: 'anthropic', settingsNs: 'llm-pi-ai', settingsPath: ['providers', 'anthropic'] },
+          ],
+          discoverModels: discover,
+          // 会话挂载的视觉刷新会读该面（与向导无关，桩齐避免炸桩）。
+          resolveModelInfo: async () => ({ supportsVision: false }),
+        }
+      }
+      return fallback(name)
+    })
+    // 默认模型在 openrouter → 供应商列表置首（● 当前）。
+    ctx.agentDefaultModel = {
+      currentSelection: () => ({ provider: 'openrouter', model: 'stealth/ox-alpha' }),
+      saveSelection: vi.fn(async () => {}),
+    } as never
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    const written = () => stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    return { app, stdin, written, set, mutate, discover }
+  }
+
+  it('/key → 供应商列表（默认置首 + 已配置 ✓）→ 选中 → 参数化对话框 → 探测 ok 落盘并激活路由', async () => {
+    const { app, stdin, written, set, mutate, discover } = bootWizardApp()
+    await app.attach()
+    for (const ch of '/key') stdin.emit('data', ch)
+    stdin.emit('data', '\r')
+    await sleep(60) // 各供应商 describe 状态 join 落定后才 activate picker
+    const text = written()
+    expect(text).toContain('选择供应商')
+    // 已配置的 anthropic 带 ✓；默认 openrouter 排在 DeepSeek 之前（置首）。
+    expect(text).toContain('anthropic ✓')
+    expect(text.indexOf('openrouter')).toBeLessThan(text.indexOf('DeepSeek'))
+
+    stdin.emit('data', '\r') // Enter 选中默认项 openrouter → 微任务链到 key 对话框
+    await sleep(60)
+    expect(written()).toContain('设置 openrouter API Key')
+
+    for (const ch of 'sk-or-v1-wizard') stdin.emit('data', ch)
+    stdin.emit('data', '\r')
+    await sleep(80)
+    // 探测走发现探针（带草稿 key 的真鉴权）；落盘用派生引用；激活补写最小 profile。
+    expect(discover).toHaveBeenCalledWith('llm-pi-ai', { provider: 'openrouter', apiKey: 'sk-or-v1-wizard' })
+    expect(set).toHaveBeenCalledWith('OPENROUTER_API_KEY', 'sk-or-v1-wizard')
+    expect(mutate).toHaveBeenCalledWith('llm-pi-ai', [{
+      op: 'set',
+      path: ['providers', 'openrouter', 'apiKeyEnv'],
+      value: 'OPENROUTER_API_KEY',
+    }])
+    expect(written()).toContain('✓ 已保存并生效')
+    expect(written()).not.toContain('sk-or-v1-wizard')
+    await app.dispose()
+  })
+
+  it('探测 AUTH 拒绝回输入态（key 不落盘、profile 不激活）', async () => {
+    const { app, stdin, written, set, mutate, discover } = bootWizardApp()
+    discover.mockImplementation(async () => { throw Object.assign(new Error('401'), { code: 'AUTH' }) })
+    await app.attach()
+    for (const ch of '/key') stdin.emit('data', ch)
+    stdin.emit('data', '\r')
+    await sleep(60)
+    stdin.emit('data', '\r')
+    await sleep(60)
+    for (const ch of 'sk-or-v1-bad') stdin.emit('data', ch)
+    stdin.emit('data', '\r')
+    await sleep(60)
+    expect(written()).toContain('Key 无效')
+    expect(set).not.toHaveBeenCalled()
+    expect(mutate).not.toHaveBeenCalled()
+    await app.dispose()
+  })
+
+  it('llm 目录缺席 → 降级 DeepSeek 直开（既有行为不变）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('key-wizard-2')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const describe = vi.fn(async () => ({ configured: false, writable: true }))
+    const set = vi.fn(async () => {})
+    const fallback = ctx.reflect.get.getMockImplementation() as (name: string) => unknown
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'credentials') return { describe, set }
+      return fallback(name)
+    })
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    for (const ch of '/key') stdin.emit('data', ch)
+    stdin.emit('data', '\r')
+    await sleep(40)
+    expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('设置 DeepSeek API Key')
+    await app.dispose()
+  })
+})
+
 describe('TuiApp 会话交互 UX 对齐（显示层 = 实际能力）', () => {
   const PNG_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
 

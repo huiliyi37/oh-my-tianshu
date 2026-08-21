@@ -61,7 +61,8 @@ import { supportsOsc52 } from '../term-caps.js'
 import { getTheme, getActiveThemeName, setTheme, THEME_NAMES, type RivetTheme, type ThemeName } from '../theme.js'
 import { displayWidth, ambiguousWideEnabled } from '../width.js'
 import { PickerController, type PickerItem } from '../picker.js'
-import { KeyDialogController, type KeyDialogCredentials } from './key-dialog.js'
+import { DEEPSEEK_KEY_TARGET, KeyDialogController, probeDeepSeekKey, type KeyDialogCredentials, type KeyDialogTarget } from './key-dialog.js'
+import { buildProviderItems, resolveKeyRef, type WizardProviderEntry } from './key-wizard.js'
 import { detectTerminalBackground, autoThemeFor } from '../theme-detect.js'
 import { formatUserMessage } from '../format/user-message.js'
 import { formatSteerMessage } from '../format/steer-message.js'
@@ -340,6 +341,17 @@ interface MemoryServiceFacet {
 /** credentials.describe 最小面（不引入 dsh-credentials peer；ref 为 POSIX 标识符）。 */
 interface CredentialsDescribeFacet {
   describe(ref: string): Promise<{ configured: boolean; source?: string; writable?: boolean }>
+}
+
+/**
+ * /key 向导消费的 settings 最小面（不引入 dsh-settings peer；describe 的 ns
+ * 对象原样保留供 mutate 回传，绕开 branded namespace 的构造）。
+ */
+interface KeyWizardSettingsFacet {
+  /** 各命名空间的已解析段（ns 对象 + value）。 */
+  describe(options?: { redactSecrets?: boolean }): Array<{ ns: unknown; value: unknown }>
+  /** 路径操作写入（用户层合并，热生效）。 */
+  mutate(ns: unknown, ops: readonly { op: 'set'; path: readonly string[]; value: unknown }[]): Promise<void>
 }
 
 /** llm.resolveModelInfo 最小面（识图能力取 supportsVision，不引入 dsh-llm peer）。 */
@@ -1440,16 +1452,31 @@ export class TuiApp {
    */
   private async refreshApiKeyReady(): Promise<void> {
     const credentials = this.ctx.reflect.get('credentials', false) as CredentialsDescribeFacet | undefined
+    const ref = this.defaultProviderKeyRef()
     if (credentials !== undefined) {
       try {
-        const info = await credentials.describe('DEEPSEEK_API_KEY')
+        const info = await credentials.describe(ref)
         this.apiKeyReady = info.configured
         return
       } catch {
         // 服务面不匹配时回退 env
       }
     }
-    this.apiKeyReady = Boolean(process.env.DEEPSEEK_API_KEY)
+    this.apiKeyReady = Boolean(process.env[ref])
+  }
+
+  /**
+   * 默认模型供应商的凭据引用：目录 + settings 解析（组合层 profile 的
+   * apiKeyEnv 优先，再派生）；llm/settings 缺席或无默认时退 DeepSeek 缺省
+   * （首启引导与既有装配的行为不变——默认供应商就是 DeepSeek 路由）。
+   */
+  private defaultProviderKeyRef(): string {
+    const provider = this.defaultModelProvider()
+    const entry = provider === undefined
+      ? undefined
+      : this.keyWizardDirectory().find(candidate => candidate.provider === provider)
+    if (entry === undefined) return 'DEEPSEEK_API_KEY'
+    return resolveKeyRef(entry.provider, this.profileApiKeyEnv(this.readResolvedSettingsSections(), entry))
   }
 
   /**
@@ -1982,22 +2009,185 @@ export class TuiApp {
   }
 
   /**
-   * /key：打开 API Key 设置对话框。凭据服务经 reflect.get 现取（缺席时对话框
-   * 给降级指引：改用环境变量）；describe 预检与探测/落盘的状态翻转由对话框
-   * 状态机承担，保存成功经 onSaved 回调刷新 apiKeyReady（无需重启即生效）。
+   * /key：供应商密钥配置向导。llm 配置目录可用时先开供应商 picker（默认
+   * 供应商 ● 置首、已配置 ✓ 后缀），选中后链到参数化的 key 对话框（掩码
+   * 输入 + 探测 + 落盘）；目录缺席（无 llm seam/测试装配）降级为 DeepSeek
+   * 直开。凭据服务经 reflect.get 现取（缺席时对话框给降级指引）。
    */
   private async openKeyDialog(): Promise<void> {
     const overlay = this.overlay
     const dialog = this.keyDialog
+    const picker = this.picker
     if (overlay === null || dialog === null) return
     // 已在打开/已打开时不重进：同 id activate 会先调本对话框 onDeactivate，
     // 把 open() 刚置真的开旗标打回 false（对话框 visually 打开但键控失效）。
     if (overlay.activeId() === 'key-dialog') return
     const credentials = this.ctx.reflect.get('credentials', false) as KeyDialogCredentials | undefined
-    await dialog.open(credentials)
+    const directory = this.keyWizardDirectory()
+    if (picker === null || directory.length === 0) {
+      await this.openKeyDialogForEntry(undefined, credentials)
+      return
+    }
+    // 状态 join：各条目的落盘引用 + credentials.describe（configured）。
+    const sections = this.readResolvedSettingsSections()
+    const configured = new Map<string, boolean>()
+    for (const entry of directory) {
+      const ref = resolveKeyRef(entry.provider, this.profileApiKeyEnv(sections, entry))
+      if (credentials === undefined) break
+      configured.set(entry.provider, await credentials.describe(ref)
+        .then(info => info.configured, () => false))
+    }
+    const defaultProvider = this.defaultModelProvider()
+    picker.open('选择供应商（配置 API 密钥）', buildProviderItems(directory, configured, defaultProvider), (item) => {
+      const entry = directory.find(candidate => candidate.provider === item.value)
+      if (entry === undefined) return
+      // picker 的 commit 回调先于随后的 overlay.deactivate：链式开窗必须排到
+      // picker 失活之后（微任务），否则 activate 会被紧跟的 deactivate 打掉。
+      queueMicrotask(() => { void this.openKeyDialogForEntry(entry, credentials) })
+    }, 0)
+    overlay.activate('picker')
+  }
+
+  /**
+   * 打开参数化 key 对话框；entry 缺省即 DeepSeek 缺省目标（首启引导与降级）。
+   * pi-ai 路由的 profile 未声明 apiKeyEnv 时挂 afterSave：保存后补写
+   * `{providers: {<route>: {apiKeyEnv}}}`——路由即刻注册，/model 立即可选
+   * （与 web 模型页的写入形状一致）；settings 缺席则只存 key 不激活。
+   * @param entry - 目录条目；undefined = DeepSeek 缺省目标。
+   * @param credentials - 凭据服务最小面；undefined = 服务缺席（对话框降级指引）。
+   */
+  private async openKeyDialogForEntry(
+    entry: WizardProviderEntry | undefined,
+    credentials: KeyDialogCredentials | undefined,
+  ): Promise<void> {
+    const overlay = this.overlay
+    const dialog = this.keyDialog
+    if (overlay === null || dialog === null) return
+    if (overlay.activeId() === 'key-dialog') return
+    const sections = this.readResolvedSettingsSections()
+    const namedEnv = entry === undefined ? undefined : this.profileApiKeyEnv(sections, entry)
+    const target: KeyDialogTarget = entry === undefined
+      ? DEEPSEEK_KEY_TARGET
+      : {
+        provider: entry.provider,
+        displayName: entry.displayName,
+        ref: resolveKeyRef(entry.provider, namedEnv),
+        probe: this.keyProbeFor(entry),
+        ...namedEnv === undefined
+          && entry.settingsPath.length > 0
+          && this.settingsMutationFacet() !== undefined
+          ? { afterSave: () => this.activateRouteProfile(entry) }
+          : {},
+      }
+    await dialog.open(credentials, target)
     /* v8 ignore next 1 -- open 的 describe 窗口内 dispose 的竞态无法在同步测试中构造 */
     if (this.disposed) return
     overlay.activate('key-dialog')
+  }
+
+  /** llm 配置目录（llm seam 缺席或面不含该法时为空数组——降级 DeepSeek 直开）。 */
+  private keyWizardDirectory(): WizardProviderEntry[] {
+    const llm = this.ctx.reflect.get('llm', false) as
+      | {
+        listConfigurableProviders?: () => Array<{
+          provider: string
+          displayName: string
+          settingsNs: string
+          settingsPath: readonly string[]
+        }>
+      }
+      | undefined
+    if (llm === undefined || typeof llm.listConfigurableProviders !== 'function') return []
+    return llm.listConfigurableProviders()
+      .filter(entry => entry.provider.length > 0)
+      .map(entry => ({
+        provider: entry.provider,
+        displayName: entry.displayName,
+        settingsNs: entry.settingsNs,
+        settingsPath: entry.settingsPath,
+      }))
+  }
+
+  /** settings 服务最小面（describe/mutate；缺席时向导只存 key 不做 profile 激活）。 */
+  private settingsMutationFacet(): KeyWizardSettingsFacet | undefined {
+    return this.ctx.reflect.get('settings', false) as KeyWizardSettingsFacet | undefined
+  }
+
+  /** 读取 settings 各命名空间的已解析值（ns 对象原样保留供 mutate 回传）。 */
+  private readResolvedSettingsSections(): Map<string, unknown> {
+    const sections = new Map<string, unknown>()
+    const settings = this.settingsMutationFacet()
+    if (settings === undefined) return sections
+    try {
+      for (const descriptor of settings.describe()) {
+        sections.set(String(descriptor.ns), descriptor.value)
+      }
+    } catch {
+      // 面不匹配/读取失败：引用解析退回派生规则（最早的可用事实）。
+    }
+    return sections
+  }
+
+  /**
+   * 目录条目在已解析 settings 段里的 `apiKeyEnv`（组合层下发的 openrouter
+   * profile 就带着 OPENROUTER_API_KEY）；llm-deepseek 段经 schema 缺省解析
+   * 为 DEEPSEEK_API_KEY。无 profile/未声明返回 undefined（落派生规则）。
+   */
+  private profileApiKeyEnv(sections: ReadonlyMap<string, unknown>, entry: WizardProviderEntry): string | undefined {
+    const section = sections.get(entry.settingsNs)
+    if (section === null || typeof section !== 'object') return undefined
+    let profile: unknown = section
+    for (const key of entry.settingsPath) {
+      if (profile === null || typeof profile !== 'object') return undefined
+      profile = (profile as Record<string, unknown>)[key]
+    }
+    const named = profile === null || typeof profile !== 'object'
+      ? undefined
+      : (profile as Record<string, unknown>).apiKeyEnv
+    return typeof named === 'string' && named.length > 0 ? named : undefined
+  }
+
+  /**
+   * 供应商探测实现：llm-deepseek 段用既有官方端点探测；其余走 llm 发现探针
+   * （带草稿 key 即真鉴权：2xx → ok，AUTH/INVALID_CREDENTIAL → invalid，
+   * 其余含网络错 → unknown）。llm seam 缺席按 unknown（无法证伪，可强存）。
+   */
+  private keyProbeFor(entry: WizardProviderEntry): (key: string) => Promise<'ok' | 'invalid' | 'unknown'> {
+    if (entry.settingsNs === 'llm-deepseek') return probeDeepSeekKey
+    return async (key) => {
+      const llm = this.ctx.reflect.get('llm', false) as
+        | { discoverModels?: (ns: string, request: { provider?: string; apiKey?: string }) => Promise<unknown> }
+        | undefined
+      if (llm === undefined || typeof llm.discoverModels !== 'function') return 'unknown'
+      try {
+        await llm.discoverModels(entry.settingsNs, { provider: entry.provider, apiKey: key })
+        return 'ok'
+      } catch (error) {
+        const code = (error as { code?: unknown }).code
+        return code === 'AUTH' || code === 'INVALID_CREDENTIAL' ? 'invalid' : 'unknown'
+      }
+    }
+  }
+
+  /** 保存 key 后激活路由：写入最小 profile（settingsPath 非空 = pi-ai 路由）。 */
+  private async activateRouteProfile(entry: WizardProviderEntry): Promise<void> {
+    const settings = this.settingsMutationFacet()
+    if (settings === undefined) return
+    await settings.mutate(entry.settingsNs, [{
+      op: 'set',
+      path: [...entry.settingsPath, 'apiKeyEnv'],
+      value: resolveKeyRef(entry.provider, undefined),
+    }])
+  }
+
+  /** 当前默认模型所在的供应商路由（agent-default-model 缺席时无默认）。 */
+  private defaultModelProvider(): string | undefined {
+    const facet = (this.ctx as unknown as { agentDefaultModel?: { currentSelection?: () => { provider: string } } }).agentDefaultModel
+    try {
+      return facet?.currentSelection?.().provider
+    } catch {
+      return undefined
+    }
   }
 
   /**

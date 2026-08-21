@@ -36,7 +36,7 @@
 
 **会话恢复可见性**（session-resume）：冷启动在欢迎卡渲染可恢复会话编号列表（标题 · 年龄 · cwd）——欢迎阶段（任意输入字符即结束）内按数字键 1–9 直达对应会话，`ctrl+s` 恢复最近的其他可恢复会话，`/resume [id]` 无参恢复最近可恢复、带参切换指定会话。恢复挂载时输出横幅（标题 · 最后活动 · cwd）与回放末尾的「上次进行到此处」分隔；日志最后一个 turn/end 仍是崩溃修复闭合标记时追加「上次运行被中断」提示（其后又有正常完成的回合即不再提示）。`dsh tui --session <id>` 与 `dsh run --session <id> "task"` 从命令行恢复指定会话；未知或损坏 id fails loud 并给出指引。损坏的持久化工件保留在列表中并标注「不可恢复」而非消失——选中损坏行在任何切换状态提交之前失败。会话切换统一走 `/resume`、`ctrl+s` 与欢迎页列表（均带标题）；原 chrome 段会话 tab 栏已移除——它把全部持久化会话列成短 id 挤占界面。已挂载的 side conversation 仍在 live 区会话行显示。
 
-**API Key 设置**（`/key`，别名 `/login`）：掩码输入对话框对 DeepSeek API 探测 key（`401/403` 拒存，网络错误允许强存），经 `credentials` 服务落盘（`$DSH_HOME/.credentials.yaml`，0600）——解析按请求进行，保存即生效、无需重启。交互启动时缺 key 会自动打开一次（Esc 跳过）；进程环境已设 `DEEPSEEK_API_KEY` 时环境变量优先，对话框给出说明而不写入。
+**API Key 设置**（`/key`，别名 `/login`）：先开供应商选择（可配置供应商目录，默认供应商 ● 置首、密钥已解析的条目带 ` ✓`），再进掩码输入对话框——对所选供应商的端点探测 key（`401/403` 拒存，网络错误允许强存），经 `credentials` 服务落盘（`$DSH_HOME/.credentials.yaml`，0600）——解析按请求进行，保存即生效、无需重启。落盘引用取 profile 的 `apiKeyEnv`（出厂 `openrouter` 路由带 `OPENROUTER_API_KEY`），未声明则按路由派生（`anthropic → ANTHROPIC_API_KEY`）；pi-ai 路由尚无 profile 时保存后补写最小 profile，路由即时注册、`/model` 立即可选。llm 目录缺席时降级为 DeepSeek 直开。交互启动时默认供应商缺 key 会自动打开一次（Esc 跳过）；进程环境同名变量优先于文件层，对话框给出说明而不写入。
 
 **模型角色 pin**（`/model vision|secondary|subagent`）：三个消费模型的角色——视觉（图片描述）、副模型（会话标题、compact 摘要）、子代理（委派会话）——可各自 pin 到独立的 `provider/model` 路由。无第三参时打开选择器，首行「跟随默认（清除 pin）」即 unpin；直参 `provider/model` 走与主模型 `/model` 相同的目录校验（未知 provider 与目录外拼写硬拒绝并给就近建议；vision 角色 pin 到 `supportsVision: false` 的目录条目时警告但放行——目录只是 advisory）。pin 经 `model-roles` 设置段（用户层）持久化，热生效、无需重启；未 pin 的角色按各消费者自己的回退链走。`/config` 面板渲染只读的「模型角色」段（主模型 + 各角色 pin 或「跟随默认」）；未装配 `modelRoles` 服务时角色子命令 fails loud 报不可用。
 
