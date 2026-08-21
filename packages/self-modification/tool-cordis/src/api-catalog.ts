@@ -265,6 +265,32 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'authorization',
+    summary: '`ctx.authorization`: a registry of credential-obtaining flows, one attempt at a time per key.',
+    methods: [
+      {
+        signature: 'registerFlow(flow: AuthorizationFlow): () => void',
+        jsDoc: '/**\n * Offer a way to obtain one credential. One flow per key: two plugins\n * claiming the same key would each write a record in their own format, and\n * whichever ran last would leave the other reading a payload it cannot parse.\n *\n * @param flow - the key it writes, its label, its methods, and its runner.\n * @returns Disposer that withdraws this flow.\n * @throws {AuthorizationError} code `DUPLICATE_FLOW` when the key is already claimed.\n */',
+      },
+      {
+        signature: 'list(): readonly AuthorizationEntry[]',
+        jsDoc: '/**\n * Every registered flow, for a surface listing what can be authorized.\n * @returns one entry per flow, in registration order.\n */',
+      },
+      {
+        signature: 'describe(key: CredentialKey): AuthorizationEntry | undefined',
+        jsDoc: '/**\n * One registered flow.\n * @param key - the credential record to ask about.\n * @returns the entry, or undefined when no flow claims that key.\n */',
+      },
+      {
+        signature: 'cancel(key: CredentialKey): void',
+        jsDoc: '/**\n * Withdraw the attempt running for a key, if any. Separate from the\n * request\'s own signal because a request/response transport answers a Cancel\n * button on a second call, with no handle on the first one\'s signal.\n * @param key - the credential record whose attempt should stop.\n */',
+      },
+      {
+        signature: 'async begin(request: AuthorizationRequest): Promise<AuthorizationOutcome>',
+        jsDoc: '/**\n * Run one attempt to authorize a key, and report how it ended.\n *\n * One attempt per key at a time. A second caller is refused rather than\n * joined: the two would be prompting different humans through the same flow,\n * and the second would answer questions the first was asked.\n *\n * @param request - the key, the method, the surface, and the cancel signal.\n * @returns `authorized` once the flow\'s record is committed during this\n *   attempt and observed, or `cancelled` when the human declined or the\n *   caller withdrew.\n * @throws {AuthorizationError} code `NO_FLOW` when nothing claims the key,\n *   `UNKNOWN_METHOD` when the named method is not one the flow offers,\n *   `ALREADY_IN_FLIGHT` when an attempt is already running for the key, or\n *   `NOT_COMMITTED` when the flow resolved without committing a record\n *   during the attempt.\n */',
+      },
+    ],
+  },
+  {
     key: 'bash',
     summary: 'Abstract bash execution service.',
     methods: [
@@ -404,7 +430,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   },
   {
     key: 'credentials',
-    summary: 'Abstract credential service.',
+    summary: 'Abstract credential service over two key spaces that answer two questions.',
     methods: [
       {
         signature: 'abstract resolve(ref: CredentialRef): Promise<ResolvedCredential | undefined>',
@@ -421,6 +447,26 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: 'abstract unset(ref: CredentialRef): Promise<void>',
         jsDoc: '/**\n * Remove one reference from the provider-managed writable source; removing\n * an absent reference is a no-op. Rejects while a read-only source shadows\n * the reference, like {@link set}.\n * @param ref - the reference to remove.\n */',
+      },
+      {
+        signature: 'abstract readRecord(key: CredentialKey): Promise<CredentialRecord | undefined>',
+        jsDoc: '/**\n * Read one stored record. The value is returned as its owner wrote it; a\n * {@link GrantRecord} payload is not interpreted on the way out.\n * @param key - the record to read.\n * @returns the record, or `undefined` while none is stored.\n */',
+      },
+      {
+        signature: 'abstract describeRecord(key: CredentialKey): Promise<CredentialRecordInfo>',
+        jsDoc: '/**\n * Describe one record for configuration surfaces without exposing its value.\n * @param key - the record to describe.\n * @returns presence, discriminant, and writability.\n */',
+      },
+      {
+        signature: 'abstract listRecords(): Promise<readonly CredentialRecordEntry[]>',
+        jsDoc: '/**\n * Enumerate every stored record\'s address and tag. Unlike the reference\n * half, which has no enumeration because configuration surfaces learn which\n * references exist from settings schemas, records have no such discovery\n * path: a surface that cannot list them cannot show what a user is\n * authorized for, nor find an orphan left by an uninstalled plugin.\n * @returns every stored record, values excluded.\n */',
+      },
+      {
+        signature: 'abstract modifyRecord( key: CredentialKey, mutate: (current: CredentialRecord | undefined) => Promise<CredentialRecord | undefined>, ): Promise<CredentialRecord | undefined>',
+        jsDoc: '/**\n * Serialized read-modify-write over one record — the only write path.\n * `mutate` sees the record as it stands at the moment the write is\n * exclusive, and returning `undefined` leaves the entry untouched. Exclusion\n * holds across processes where the backing store supports it, which is what\n * makes a token refresh safe: two processes rotating one refresh token\n * concurrently would otherwise lose whichever wrote first.\n * @param key - the record to modify.\n * @param mutate - receives the current record and returns its replacement, or `undefined` to leave it.\n * @returns the record after the write, or the current one when `mutate` declined.\n */',
+      },
+      {
+        signature: 'abstract deleteRecord(key: CredentialKey): Promise<void>',
+        jsDoc: '/**\n * Remove one record; removing an absent record is a no-op.\n * @param key - the record to remove.\n */',
       },
     ],
   },
@@ -1774,6 +1820,13 @@ export const EVENT_API: readonly EventApiEntry[] = [
     summary: 'Ask composed answerers for one decision.',
   },
   {
+    name: 'authorization/settled',
+    mode: 'emit',
+    signature: '\'authorization/settled\'(key: CredentialKey, settlement: AuthorizationSettlement): void',
+    jsDoc: '/**\n * One authorization attempt has finished and released its key. Fires for\n * every terminal outcome, failures included, so a surface watching a key it\n * did not start (a second browser tab) learns the attempt is over.\n * @mode emit\n * @param key - the credential record the finished attempt was authorizing.\n * @param settlement - how it ended, including the `failed` case its caller sees as a thrown error.\n */',
+    summary: 'One authorization attempt has finished and released its key.',
+  },
+  {
     name: 'commands/change',
     mode: 'emit',
     signature: '\'commands/change\'(): void',
@@ -1823,9 +1876,16 @@ export const EVENT_API: readonly EventApiEntry[] = [
     summary: 'A pending Client activation request left the answerable state.',
   },
   {
-    name: 'credentials/updated',
+    name: 'credentials/record-updated',
     mode: 'emit',
-    signature: '\'credentials/updated\'(ref: CredentialRef): void',
+    signature: '\'credentials/record-updated\'(key: CredentialKey): void',
+    jsDoc: '/**\n * Committed change to a stored credential record: a `modifyRecord` that\n * wrote, a `deleteRecord` that removed, or an external edit observed in\n * storage. Separate from `credentials/reference-updated` because the two key\n * grammars are disjoint — a listener that received both on one event could\n * not tell which space a subject belongs to. Listener failures are\n * contained on the same terms as `credentials/reference-updated`.\n * @param key - the record whose stored value changed.\n * @mode emit\n */',
+    summary: 'Committed change to a stored credential record: a `modifyRecord` that wrote, a `deleteRecord` that removed, or an external edit observed in storage.',
+  },
+  {
+    name: 'credentials/reference-updated',
+    mode: 'emit',
+    signature: '\'credentials/reference-updated\'(ref: CredentialRef): void',
     jsDoc: '/**\n * Committed change to a provider-managed credential source: a `set`, an\n * `unset`, or an external edit observed in storage. Ambient\n * process-environment changes are not observable and never emit. Listener\n * failures are contained and logged — a sync throw and an async rejection\n * alike — without changing the committed operation\'s outcome, except\n * `INVARIANT`-coded failures, which rethrow after every listener ran;\n * that rethrow reaches the emitter only from synchronous listeners, so\n * invariant checks on this event must not be async functions.\n * @param ref - the reference whose stored value changed.\n * @mode emit\n */',
     summary: 'Committed change to a provider-managed credential source: a `set`, an `unset`, or an external edit observed in storage.',
   },
@@ -2136,6 +2196,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type AgentStatus = \'idle\' | \'running\';',
   },
   {
+    name: 'ApiKeyRecord',
+    declaration: 'export interface ApiKeyRecord {\n    readonly kind: \'api-key\';\n    readonly key?: string;\n    readonly env?: Readonly<Record<string, string>>;\n}',
+  },
+  {
     name: 'ApprovalOutcome',
     declaration: 'export type ApprovalOutcome = \'allowed-once\' | \'rejected\' | \'cancelled\' | \'unavailable\';',
   },
@@ -2194,6 +2258,50 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'AttachmentId',
     declaration: 'export type AttachmentId = Branded<\'AttachmentId\'>;',
+  },
+  {
+    name: 'AuthorizationEntry',
+    declaration: 'export interface AuthorizationEntry {\n    key: CredentialKey;\n    label: string;\n    methods: readonly AuthorizationMethod[];\n    inFlight: boolean;\n}',
+  },
+  {
+    name: 'AuthorizationFlow',
+    declaration: 'export interface AuthorizationFlow {\n    readonly key: CredentialKey;\n    readonly label: string;\n    readonly methods: readonly [\n        AuthorizationMethod,\n        ...AuthorizationMethod[]\n    ];\n    run(session: AuthorizationSession): Promise<void>;\n}',
+  },
+  {
+    name: 'AuthorizationInteraction',
+    declaration: 'export interface AuthorizationInteraction {\n    notify(notice: AuthorizationNotice): void;\n    prompt(prompt: AuthorizationPrompt): Promise<string>;\n}',
+  },
+  {
+    name: 'AuthorizationMethod',
+    declaration: 'export interface AuthorizationMethod {\n    id: string;\n    label: string;\n}',
+  },
+  {
+    name: 'AuthorizationNotice',
+    declaration: 'export interface AuthorizationNotice {\n    message: string;\n    url?: string;\n    code?: string;\n}',
+  },
+  {
+    name: 'AuthorizationOutcome',
+    declaration: 'export interface AuthorizationOutcome {\n    status: AuthorizationStatus;\n}',
+  },
+  {
+    name: 'AuthorizationPrompt',
+    declaration: 'export type AuthorizationPrompt = {\n    signal?: AbortSignal;\n} & ({\n    kind: \'text\';\n    message: string;\n    placeholder?: string;\n} | {\n    kind: \'secret\';\n    message: string;\n    placeholder?: string;\n} | {\n    kind: \'select\';\n    message: string;\n    options: readonly AuthorizationPromptOption[];\n});',
+  },
+  {
+    name: 'AuthorizationPromptOption',
+    declaration: 'export interface AuthorizationPromptOption {\n    id: string;\n    label: string;\n    description?: string;\n}',
+  },
+  {
+    name: 'AuthorizationRequest',
+    declaration: 'export interface AuthorizationRequest {\n    key: CredentialKey;\n    method?: string;\n    interaction: AuthorizationInteraction;\n    signal?: AbortSignal;\n}',
+  },
+  {
+    name: 'AuthorizationSession',
+    declaration: 'export interface AuthorizationSession {\n    readonly method: string;\n    readonly signal: AbortSignal;\n    notify(notice: AuthorizationNotice): void;\n    prompt(prompt: AuthorizationPrompt): Promise<string>;\n}',
+  },
+  {
+    name: 'AuthorizationStatus',
+    declaration: 'export type AuthorizationStatus = \'authorized\' | \'cancelled\';',
   },
   {
     name: 'BashEnvContributor',
@@ -2454,6 +2562,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'CredentialInfo',
     declaration: 'export interface CredentialInfo {\n    configured: boolean;\n    source?: string;\n    writable: boolean;\n}',
+  },
+  {
+    name: 'CredentialKey',
+    declaration: 'export type CredentialKey = Branded<\'CredentialKey\'>;',
+  },
+  {
+    name: 'CredentialRecord',
+    declaration: 'export type CredentialRecord = ApiKeyRecord | GrantRecord;',
+  },
+  {
+    name: 'CredentialRecordEntry',
+    declaration: 'export interface CredentialRecordEntry {\n    key: CredentialKey;\n    kind: CredentialRecord[\'kind\'];\n}',
+  },
+  {
+    name: 'CredentialRecordInfo',
+    declaration: 'export interface CredentialRecordInfo {\n    configured: boolean;\n    kind?: CredentialRecord[\'kind\'];\n    writable: boolean;\n}',
   },
   {
     name: 'CredentialRef',
@@ -2722,6 +2846,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'GoalView',
     declaration: 'export interface GoalView extends GoalSnapshot {\n    readonly roundsStarted: number;\n    readonly createdAt: number;\n    readonly updatedAt: number;\n    readonly activation: GoalActivation;\n}',
+  },
+  {
+    name: 'GrantRecord',
+    declaration: 'export interface GrantRecord {\n    readonly kind: \'grant\';\n    readonly payload: unknown;\n}',
   },
   {
     name: 'HostCordisInspectProviderRegistration',
