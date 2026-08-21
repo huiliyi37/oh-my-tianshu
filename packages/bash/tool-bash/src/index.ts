@@ -25,6 +25,7 @@ import type { SandboxPolicyService } from '@huiliyi37/dsh-sandbox-policy'
 import { DSH_ENV_PREFIX } from '@huiliyi37/dsh-bash'
 import type { BashRunResult } from '@huiliyi37/dsh-bash'
 import type { SaveTextSpill, SpillRef } from '@huiliyi37/dsh-spill'
+import { commandFilterDropsLines, type CommandFilterConfig } from './command-filters.ts'
 import { composeResultBody, outputShapingDropsLines, type OutputShaping } from './model-output.ts'
 import { processOutcome } from './background.ts'
 import { parseExitStatus, renderProcessRead, renderResult } from './render.ts'
@@ -38,6 +39,12 @@ const DEFAULT_SUCCESS_TAIL_LINES = 20
 const DEFAULT_ERROR_THRESHOLD_LINES = 40
 /** Default total line budget for error-aware selection. */
 const DEFAULT_ERROR_BUDGET_LINES = 60
+/** Default commit cap for the git log command filter. */
+const DEFAULT_GIT_LOG_MAX_COMMITS = 15
+/** Default per-hunk line cap for the git diff command filter. */
+const DEFAULT_GIT_DIFF_HUNK_MAX_LINES = 60
+/** Default line cap for the test-run command filter. */
+const DEFAULT_TEST_RUN_MAX_LINES = 120
 
 /** Configuration for the bash tool. */
 export interface Config {
@@ -49,6 +56,20 @@ export interface Config {
   outputErrorThresholdLines?: number
   /** Total line budget for the failed-run error-aware selection (default 60). */
   outputErrorBudgetLines?: number
+  /**
+   * Per-command output filters (git log / git diff / test runs) applied before
+   * the generic shaping; see `command-filters.ts`. Defaults enable all three.
+   */
+  commandFilters?: {
+    /** Master switch (default true; false disables all three families). */
+    enabled?: boolean
+    /** git log: maximum commits kept (0 disables that family; default 15). */
+    gitLogMaxCommits?: number
+    /** git diff: maximum lines kept per hunk (0 disables; default 60). */
+    gitDiffHunkMaxLines?: number
+    /** test runs: maximum lines kept (0 disables; default 120). */
+    testRunMaxLines?: number
+  }
 }
 
 /** Runtime configuration schema for the bash tool plugin. */
@@ -57,6 +78,12 @@ export const Config: z<Config> = z.object({
   outputSuccessTailLines: z.number().default(DEFAULT_SUCCESS_TAIL_LINES),
   outputErrorThresholdLines: z.number().default(DEFAULT_ERROR_THRESHOLD_LINES),
   outputErrorBudgetLines: z.number().default(DEFAULT_ERROR_BUDGET_LINES),
+  commandFilters: z.object({
+    enabled: z.boolean().default(true),
+    gitLogMaxCommits: z.number().default(DEFAULT_GIT_LOG_MAX_COMMITS),
+    gitDiffHunkMaxLines: z.number().default(DEFAULT_GIT_DIFF_HUNK_MAX_LINES),
+    testRunMaxLines: z.number().default(DEFAULT_TEST_RUN_MAX_LINES),
+  }),
 })
 
 /** Resolve and validate the shaping knobs once at load (misconfiguration fails loud here, not per call). */
@@ -75,6 +102,34 @@ function resolveShapingConfig(config: Config): Pick<OutputShaping, 'successTailL
     }
   }
   return { successTailLines, errorThresholdLines, errorBudgetLines }
+}
+
+/** Resolve and validate the command-filter knobs once at load (0 disables a family; negatives fail loud). */
+function resolveCommandFilterConfig(config: Config): CommandFilterConfig {
+  const raw = config.commandFilters ?? {}
+  const fields: Array<[string, number | undefined, number]> = [
+    ['commandFilters.gitLogMaxCommits', raw.gitLogMaxCommits, DEFAULT_GIT_LOG_MAX_COMMITS],
+    ['commandFilters.gitDiffHunkMaxLines', raw.gitDiffHunkMaxLines, DEFAULT_GIT_DIFF_HUNK_MAX_LINES],
+    ['commandFilters.testRunMaxLines', raw.testRunMaxLines, DEFAULT_TEST_RUN_MAX_LINES],
+  ]
+  const resolved: Array<[string, number]> = []
+  for (const [name, value, fallback] of fields) {
+    const actual = value ?? fallback
+    if (!Number.isInteger(actual) || actual < 0) {
+      throw new Error(`tool-bash: ${name} must be a non-negative integer (got ${JSON.stringify(value)})`)
+    }
+    resolved.push([name, actual])
+  }
+  const enabled = raw.enabled ?? true
+  if (typeof enabled !== 'boolean') {
+    throw new Error(`tool-bash: commandFilters.enabled must be a boolean (got ${JSON.stringify(raw.enabled)})`)
+  }
+  return {
+    enabled,
+    gitLogMaxCommits: resolved[0]?.[1] ?? DEFAULT_GIT_LOG_MAX_COMMITS,
+    gitDiffHunkMaxLines: resolved[1]?.[1] ?? DEFAULT_GIT_DIFF_HUNK_MAX_LINES,
+    testRunMaxLines: resolved[2]?.[1] ?? DEFAULT_TEST_RUN_MAX_LINES,
+  }
 }
 
 /** Parsed tool args; execute validates value constraints absent from ParameterSchemaSpec. */
@@ -113,6 +168,7 @@ function bashDescription(backgroundEnabled: boolean, escalationModes: readonly S
     + 'Long output is truncated to its tail; the full output is saved to a file whose path is reported when available. '
     + 'A long SUCCESSFUL output is folded to its tail lines; a long FAILED output keeps the error-relevant lines with an omission count — '
     + 'never re-run a command just to see dropped output; read the reported full-output path instead. '
+    + 'git log / git diff / test-run outputs get semantic compaction (commit caps, per-file +A -R counts, failure blocks) with the same recovery rule. '
     + background
   if (escalationModes.length === 0) return base
   return base + ' Attempting a command the sandbox may deny is safe and expected: run it and read the '
@@ -226,6 +282,7 @@ const BACKGROUND_OUTPUT_PROPERTIES = {
 export function apply(ctx: Context, config: Config = {}): void {
   const backgroundEnabled = config.enableRunInBackground ?? true
   const shapingConfig = resolveShapingConfig(config)
+  const commandFilterConfig = resolveCommandFilterConfig(config)
   const defaultMode = ctx.bash.sandboxMode
   const escalationModes: readonly SandboxMode[] = defaultMode === undefined ? [] : ESCALATION_TARGETS
   const sandboxPolicy: SandboxPolicyService | undefined = defaultMode === undefined ? undefined : ctx.get('sandboxPolicy')
@@ -402,6 +459,9 @@ export function apply(ctx: Context, config: Config = {}): void {
             ...(value as { outputSpillPath?: string }).outputSpillPath !== undefined
               ? { spillPath: (value as { outputSpillPath?: string }).outputSpillPath }
               : {},
+          }, {
+            command: (_args as { command?: string }).command ?? '',
+            config: commandFilterConfig,
           }),
       }],
     },
@@ -464,14 +524,14 @@ export function apply(ctx: Context, config: Config = {}): void {
         error.name = 'AbortError'
         throw error
       }
-      // 成形会丢行时先把完整正文落盘（best-effort）：省略通知才有恢复路径，
+      // 成形/命令过滤会丢行时先把完整正文落盘（best-effort）：省略通知才有恢复路径，
       // 重跑命令有副作用、不可作为恢复手段。无 spill 服务/无会话主/落盘失败
       // 都降级为不带路径的诚实省略计数——绝不因此让调用失败。
       const body = composeResultBody(result)
       const failed = result.exitCode !== 0 || result.signal !== null || result.timedOut
-      const outputSpillPath = outputShapingDropsLines(body, { failed, ...shapingConfig })
-        ? await spillFullOutput(exec, body)
-        : undefined
+      const drops = outputShapingDropsLines(body, { failed, ...shapingConfig })
+        || commandFilterDropsLines(args.command, body, commandFilterConfig)
+      const outputSpillPath = drops ? await spillFullOutput(exec, body) : undefined
       return {
         kind: 'foreground' as const,
         ...canonicalBashResult(result),

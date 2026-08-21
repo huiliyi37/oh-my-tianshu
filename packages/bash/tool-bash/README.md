@@ -44,6 +44,10 @@ The model-facing body of a foreground result is shaped before the exit markers (
 
 Before shaping omits anything, the full composed body is saved to `ctx.spillStore` (best-effort: no backend, no session owner, or a save failure degrades to a pathless omission count, never a failed call) and the omission notice carries the spill locator — a rerun is never the recovery path because commands may have side effects. The foreground value exposes it as `outputSpillPath`.
 
+### Per-command filters (git log / git diff / test runs)
+
+High-noise command families get a semantic compaction BEFORE the generic shaping (the same layering the upstream internalized from rtk's per-command filters): `git log` above 30 lines keeps at most `commandFilters.gitLogMaxCommits` (default 15) newest commits — Author/Merge/trailer lines stripped, ≤3 message lines each, 120-char line cap, custom `--format`/`--pretty` respected as-is; `git diff` above 40 lines caps each hunk at `commandFilters.gitDiffHunkMaxLines` (default 60) and the body at 300 lines, appending a `# +A -R` count per file; recognized test-runner invocations above 15 lines keep failure blocks (matches ±5 context, head/tail anchors) within `commandFilters.testRunMaxLines` (default 120). `commandFilters.enabled: false` disables all three; 0 disables one family. A body a filter curated skips the generic shaping (the filter already made the relevance decisions), and the un-filtered original is spilled exactly like a shaped one.
+
 ## UI presentation
 
 The tool owns its `presentCall`/`presentResult` render intent. A foreground call is a terminal card carrying command, description, cwd, output, and parsed exit status. Because the card shows the exit as its own pill, the `[exit code: N]` / `[killed by signal: …]` marker the parse consumes leaves the output; every other marker (truncation, timeout, sandbox) stays in it. A background start is a generic execute card because it returns only a task id; the generic `task_*` tools own their own cards. These presenters are pure and replay-safe.

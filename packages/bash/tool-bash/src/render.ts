@@ -7,6 +7,7 @@
 import type { BashProcessRead, BashRunResult, BashSandboxInfo } from '@huiliyi37/dsh-bash'
 import type { SandboxMode } from '@huiliyi37/dsh-sandbox'
 import { escalationHintMarker, sandboxDenialMarker } from '@huiliyi37/dsh-sandbox'
+import { filterCommandOutput, type CommandFilterConfig } from './command-filters.ts'
 import { composeResultBody, shapeModelOutput, type OutputShaping } from './model-output.ts'
 
 /** Whether the run's own facts mark it failed for shaping purposes (non-zero exit, signal, or timeout). */
@@ -18,25 +19,38 @@ function runFailed(result: Pick<BashRunResult, 'exitCode' | 'signal' | 'timedOut
  * Shape one finished run into the text the model sees: stdout, then a marked
  * stderr section, then exit-status markers. Non-zero exits are reported, not
  * errored — the model decides how to react; only infrastructure failures
- * (spawn errors, aborts) surface as isError results. When `shaping` is given,
- * the composed body is first trimmed for the model's context (success tail
- * folding / error-aware selection, see `@huiliyi37/dsh-bash/model-output`);
- * exit markers always survive intact after the shaped body.
+ * (spawn errors, aborts) surface as isError results.
+ *
+ * When `commandFilters` is given, the per-command semantic filter (git log /
+ * git diff / test runs) runs FIRST; a body it curated skips the generic
+ * shaping (the filter already made the relevance decisions — re-folding
+ * curated output would keep the wrong end). When `shaping` is given, the
+ * generic trim (success tail folding / error-aware selection) applies to the
+ * (un-curated) body. Exit markers always survive intact after the body.
  * @param result - the completed foreground run from the executor.
  * @param escalationModes - the escalation targets this composition advertises;
  *   non-empty adds the same-turn escalation hint after a denial marker
  *   (default `[]`: no hint).
  * @param shaping - resolved output-shaping knobs with the run's failure fact
  *   and recovery spill path (omit for byte-identical legacy behavior).
+ * @param commandFilters - the executed command plus resolved command-filter
+ *   knobs (omit to skip per-command filtering).
  * @returns the model-facing text: output body (or `(no output)`), then any timeout/signal/exit markers, each on its own line.
  */
 export function renderResult(
   result: BashRunResult,
   escalationModes: readonly SandboxMode[] = [],
   shaping?: OutputShaping,
+  commandFilters?: { command: string; config: CommandFilterConfig },
 ): string {
   let body = composeResultBody(result)
-  if (shaping !== undefined) {
+  let curated = false
+  if (commandFilters !== undefined) {
+    const filtered = filterCommandOutput(commandFilters.command, body, commandFilters.config)
+    body = filtered.text
+    curated = filtered.curated
+  }
+  if (shaping !== undefined && !curated) {
     body = shapeModelOutput(body, { ...shaping, failed: shaping.failed || runFailed(result) })
   }
   if (body.length === 0) body = '(no output)'

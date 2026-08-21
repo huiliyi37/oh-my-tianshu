@@ -1,6 +1,7 @@
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { execSync } from 'node:child_process'
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
 import { CallId } from '@huiliyi37/dsh-llm'
@@ -1280,29 +1281,29 @@ describe('the model-facing bash tool builds its request from named args only (no
   })
 })
 
+/** 记录保存请求的假 spill 后端（Service 形态，ctx.spillStore 可解析）。 */
+class StubSpillStore extends SpillStore {
+  saves: SaveTextSpill[] = []
+  override async saveText(input: SaveTextSpill): Promise<SpillRef> {
+    this.saves.push(input)
+    return {
+      locator: SpillLocator('/spill/bash.txt'),
+      bytes: Buffer.byteLength(input.content, 'utf8'),
+      retrievalHint: 'stub',
+    }
+  }
+}
+
+async function setupShaped(withSpill = false): Promise<{ ctx: Context; stub?: StubSpillStore }> {
+  const ctx = await setup()
+  if (withSpill) {
+    await ctx.plugin(StubSpillStore)
+    return { ctx, stub: ctx.spillStore as StubSpillStore }
+  }
+  return { ctx }
+}
+
 describe('bash tool 模型输出成形（成功折叠 / 失败精选 / 恢复路径）', () => {
-  /** 记录保存请求的假 spill 后端（Service 形态，ctx.spillStore 可解析）。 */
-  class StubSpillStore extends SpillStore {
-    saves: SaveTextSpill[] = []
-    override async saveText(input: SaveTextSpill): Promise<SpillRef> {
-      this.saves.push(input)
-      return {
-        locator: SpillLocator('/spill/bash.txt'),
-        bytes: Buffer.byteLength(input.content, 'utf8'),
-        retrievalHint: 'stub',
-      }
-    }
-  }
-
-  async function setupShaped(withSpill = false): Promise<{ ctx: Context; stub?: StubSpillStore }> {
-    const ctx = await setup()
-    if (withSpill) {
-      await ctx.plugin(StubSpillStore)
-      return { ctx, stub: ctx.spillStore as StubSpillStore }
-    }
-    return { ctx }
-  }
-
   it('成功长输出折叠为尾部并带省略计数', async () => {
     const { ctx } = await setupShaped()
     const result = await call(ctx, 'bash', { command: 'seq 1 50', description: 'numbered output' })
@@ -1348,5 +1349,71 @@ describe('bash tool 模型输出成形（成功折叠 / 失败精选 / 恢复路
     const { ctx } = await setupShaped()
     const result = await call(ctx, 'bash', { command: 'echo hi', description: 'tiny' })
     expect(text(result)).toBe('hi\n')
+  })
+})
+
+describe('bash tool 每命令输出过滤（真 git 仓库 e2e）', () => {
+  /** 临时 git 仓:N 个提交、一个含大 hunk 的未提交改动。 */
+  function makeTempRepo(commits: number): string {
+    const dir = mkdtempSync(join(tmpdir(), 'dsh-gitlog-'))
+    const git = (cwd: string, ...args: string[]) => {
+      try {
+        execSync(`git -c user.email=t@t -c user.name=t ${args.join(' ')}`, { cwd, stdio: 'pipe' })
+      } catch (error) {
+        const stderr = error instanceof Error && 'stderr' in error ? String((error as { stderr: Buffer }).stderr) : ''
+        throw new Error(`git ${args.join(' ')} failed: ${stderr}`)
+      }
+    }
+    git(dir, 'init', '-q')
+    for (let i = 1; i <= commits; i++) {
+      writeFileSync(join(dir, `f${i}.txt`), `content ${i}\n`)
+      git(dir, 'add', '.')
+      git(dir, 'commit', '-q', '-m', `"commit number ${i}"`)
+    }
+    writeFileSync(join(dir, 'big.txt'), `${'line\n'.repeat(200)}changed\n`)
+    git(dir, 'add', '.')
+    return dir
+  }
+
+  it('git log 超 30 行 → 语义压缩(剥 Author/Date 保留计数),完整正文落盘', async () => {
+    const { ctx, stub } = await setupShaped(true)
+    const agent = registerFakeAgent(ctx, 'session-gitlog-1')
+    const dir = makeTempRepo(25)
+    const result = await call(ctx, 'bash', { command: `git -C ${dir} log`, description: 'long history' }, agent)
+    const out = text(result)
+    // 25 个 commit 的默认格式远超 30 行 → 过滤生效。
+    expect(out).toContain('[git-log filter: kept 15 of 25 commits — oldest dropped]')
+    // 保留最新 15 个(25..11),丢弃最旧 10 个(10..1)。
+    expect(out).toContain('    commit number 25')
+    expect(out).toContain('    commit number 11')
+    expect(out).not.toContain('    commit number 10')
+    expect(out).not.toContain('Author:')
+    // 落盘谓词命中：完整未过滤正文已存。
+    expect(stub?.saves.length).toBeGreaterThanOrEqual(1)
+    expect(stub?.saves[0]?.content).toContain('Author:')
+    expect(stub?.saves[0]?.content).toContain('commit number 25')
+  })
+
+  it('git log 少量提交不过滤', async () => {
+    const { ctx } = await setupShaped()
+    const dir = makeTempRepo(2)
+    const result = await call(ctx, 'bash', { command: `git -C ${dir} log`, description: 'short history' })
+    const out = text(result)
+    expect(out).toContain('commit number 2')
+    expect(out).not.toContain('git-log filter')
+    // 少量提交仍在通用折叠阈值之上时也不折叠?2 个提交约 10 行 < 20,直接原样。
+    expect(out).toContain('Author:')
+  })
+
+  it('git diff 大 hunk → 截断 + 文件计数', async () => {
+    const { ctx } = await setupShaped()
+    const dir = makeTempRepo(2)
+    const result = await call(ctx, 'bash', { command: `git -C ${dir} diff --cached`, description: 'large staged diff' })
+    const out = text(result)
+    // 200+ 行的 staged diff 超过 40 行阈值 → 每 hunk 截 60 + 总量封顶。
+    expect(out).toContain('diff --git')
+    expect(out).toMatch(/# \+\d+ -\d+$/m)
+    const lineCount = out.split('\n').length
+    expect(lineCount).toBeLessThan(220)
   })
 })
