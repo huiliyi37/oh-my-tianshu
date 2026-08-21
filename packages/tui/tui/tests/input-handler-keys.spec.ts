@@ -214,3 +214,15 @@ describe('InputLine 长草稿视窗与行内编辑', () => {
     expect(line.cursor).toBe('aaa\nbbb\n'.length)
   })
 })
+
+describe('Alt+控制字符（ESC + 控制码组合）', () => {
+  it('ESC+DEL → meta+backspace（原先落 unknown，按名路由收不到）', async () => {
+    const stdin = makeStdin()
+    const handler = new InputHandler({ stdin, mode: 'input' })
+    const keys: Array<{ name: string; meta: boolean }> = []
+    handler.onAnyKey((key) => { keys.push({ name: key.name, meta: key.meta }) })
+    stdin.emit('data', '\x1b\x7f')
+    await new Promise(resolve => setTimeout(resolve, 100)) // 越过孤 ESC 超时窗（同 chunk 应立即解析）
+    expect(keys).toEqual([{ name: 'backspace', meta: true }])
+  })
+})

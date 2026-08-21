@@ -7648,6 +7648,44 @@ describe('TuiApp 剪贴板图片与复制（opencode 接线移植）', () => {
     ])
     await app.dispose()
   })
+
+  it('空行 Alt+Backspace → 移除末张附件（📎 行消失，键位提示随行展示）', async () => {
+    vi.mocked(readImageFromClipboard).mockResolvedValueOnce({ dataUrl: PNG_DATA_URL, mime: 'image/png', name: 'clipboard.png', source: 'png' })
+    const { stdin, stdout, app } = boot()
+    await app.attach()
+    stdin.emit('data', '\x1b[200~\x1b[201~') // 触发剪贴板读图（右键粘贴路由）
+    await vi.waitFor(() => {
+      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('📎 1 image · Alt+⌫ 移除末张')
+    }, { timeout: 5_000, interval: 25 })
+    stdout.write.mockClear()
+    stdin.emit('data', '\x1b\x7f') // Alt+Backspace（ESC + DEL）
+    await vi.waitFor(() => {
+      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).not.toContain('📎')
+    }, { timeout: 5_000, interval: 25 })
+    await app.dispose()
+  })
+
+  it('非空行 Alt+Backspace → 仍是词删除，不动附件', async () => {
+    vi.mocked(readImageFromClipboard).mockResolvedValueOnce({ dataUrl: PNG_DATA_URL, mime: 'image/png', name: 'clipboard.png', source: 'png' })
+    const { stdin, stdout, app } = boot()
+    await app.attach()
+    stdin.emit('data', '\x1b[200~\x1b[201~')
+    await vi.waitFor(() => {
+      const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('📎 1 image')
+    }, { timeout: 5_000, interval: 25 })
+    for (const ch of 'hi ') stdin.emit('data', ch)
+    await new Promise(resolve => setTimeout(resolve, 40))
+    // 删词后画面回到与打字前相同的一帧（内容去重 → 零输出），像素断言不可
+    // 用；直接断言状态：词被删、图保留。
+    stdin.emit('data', '\x1b\x7f') // 词删除（光标在文本尾）：删词不删图
+    await new Promise(resolve => setTimeout(resolve, 60))
+    const line = (app as unknown as { inputLine: { images: string[]; value: string } }).inputLine
+    expect(line.images).toHaveLength(1)
+    expect(line.value).toBe('')
+  })
 })
 describe('LSP 诊断桥（黑盒：假 server 注入）', () => {
   /** 假诊断行（FakeLspServer 与 tsError 共用；line/character 为 0-based LSP 坐标）。 */

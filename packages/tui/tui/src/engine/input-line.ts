@@ -682,7 +682,10 @@ export class InputLine {
    */
   imageSummary(maxWidth?: number): string[] {
     if (this._images.length === 0) return []
-    const label = `📎 ${this._images.length} image${this._images.length > 1 ? 's' : ''}`
+    // 空行时才提示移除键位：该键位仅在空行生效（非空时 Alt+Backspace 是
+    // 词删除），带文本时提示会误导。
+    const hint = this._value.length === 0 ? ' · Alt+⌫ 移除末张' : ''
+    const label = `📎 ${this._images.length} image${this._images.length > 1 ? 's' : ''}${hint}`
     if (!maxWidth || label.length <= maxWidth) return [label]
     return [label.slice(0, maxWidth - 1) + '…']
   }

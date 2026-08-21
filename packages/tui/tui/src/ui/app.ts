@@ -4105,6 +4105,14 @@ export class TuiApp {
       this.flushLiveRender()
       return
     }
+    // 空行 Alt+Backspace → 移除末张附件：有文本时 Alt+Backspace 仍是词删除
+    //（空行上词删除本就是空操作，两职责零冲突）；📎 行同步更新。
+    if (key.name === 'backspace' && key.meta
+      && this.inputLine.value === '' && this.inputLine.images.length > 0) {
+      this.inputLine.removeImage(this.inputLine.images.length - 1)
+      this.flushLiveRender()
+      return
+    }
     if (key.name === 'up' || key.name === 'down') {
       // 交给 InputLine 的历史导航（InputLineEvent 'history' 不消费即已处理）
       this.inputLine.handleKey(key.name, key.char, key.ctrl, key.meta, key.shift, key.inline === true)

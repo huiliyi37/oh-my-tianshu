@@ -632,6 +632,16 @@ export class InputHandler {
             consumed: 2,
           }
         }
+        // Alt+控制字符：ESC+控制码按 CTRL_CODES 命名（如 ESC+DEL =
+        // meta+backspace）——否则落进「可打印字符」分支得 name 'unknown'，
+        // 消费方按名路由永远收不到。
+        const ctrlName = CTRL_CODES[char.charCodeAt(0)]
+        if (ctrlName !== undefined) {
+          return {
+            key: { raw: data.slice(0, 2), char: '', name: ctrlName, ctrl: false, meta: true, shift: false },
+            consumed: 2,
+          }
+        }
         const isUpper = char >= 'A' && char <= 'Z'
         return {
           key: { raw: data.slice(0, 2), char, name: 'unknown', ctrl: false, meta: true, shift: isUpper },
