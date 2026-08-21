@@ -280,22 +280,26 @@ describe('probeDeepSeekKey — 真实探测（fetch 外部边界打桩）', () =
   })
 
   it('key 只进 Authorization 头，不进 URL', async () => {
-    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }))
+    const fetchMock = vi.fn(async (_url: string, _init?: { headers: Record<string, string> }) => new Response('{}', { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
     // 宿主机可能设了 DEEPSEEK_BASE_URL（根 .env 分层）——固定缺省端点再断言
     vi.stubEnv('DEEPSEEK_BASE_URL', undefined)
     await probeDeepSeekKey('sk-secret-value')
-    const [url, init] = fetchMock.mock.calls[0] as [string, { headers: Record<string, string> }]
+    const call = fetchMock.mock.calls[0]
+    if (call === undefined) throw new Error('expected fetch to be called')
+    const [url, init] = call
     expect(url).not.toContain('sk-secret-value')
     expect(url).toBe('https://api.deepseek.com/models')
-    expect(init.headers.Authorization).toBe('Bearer sk-secret-value')
+    expect(init?.headers.Authorization).toBe('Bearer sk-secret-value')
   })
 
   it('DEEPSEEK_BASE_URL 覆盖端点（尾随斜杠归一）', async () => {
-    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }))
+    const fetchMock = vi.fn(async (_url: string) => new Response('{}', { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
     vi.stubEnv('DEEPSEEK_BASE_URL', 'https://proxy.example.com/')
     await probeDeepSeekKey('k')
-    expect((fetchMock.mock.calls[0] as [string])[0]).toBe('https://proxy.example.com/models')
+    const call = fetchMock.mock.calls[0]
+    if (call === undefined) throw new Error('expected fetch to be called')
+    expect(call[0]).toBe('https://proxy.example.com/models')
   })
 })

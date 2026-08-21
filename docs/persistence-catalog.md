@@ -615,6 +615,77 @@ Source: [`packages/core/session/src/types.ts:295`](../packages/core/session/src/
 
 Source: [`packages/core/session/src/types.ts:290`](../packages/core/session/src/types.ts)
 
+### `router/*`
+
+#### `router/adoption` — log-only
+
+```ts persistence-catalog
+/**
+ * Durable adoption record on the parent session's own log: log-only
+ * (never reaches the model surface), whole-value append via the
+ * `router_adopt` tool. Pairs with a `router/outcome` record — the main
+ * agent declares adopt/reject with a reason; at most one per outcome.
+ */
+'router/adoption': { subagentSessionId: string; verdict: 'adopt' | 'reject'; reason: string }
+```
+
+Source: [`packages/guard/agent-router/src/index.ts:76`](../packages/guard/agent-router/src/index.ts)
+
+#### `router/decision` — log-only
+
+```ts persistence-catalog
+/**
+ * 触发评估的持久记录（父会话日志，log-only，不进模型面）：每次 turn-end
+ * 评估落一条——profile/task/targets 是判定输入，mode 区分 shadow（只记录
+ * 不派发）与 auto（真实派发），dispatched 与 subagentSessionId 记录派发
+ * 结果（仅 auto 且真实派发时携带 subagentSessionId）。
+ */
+'router/decision': {
+  profile: 'code_scout' | 'verifier'
+  task: string
+  targets: string[]
+  reason: 'turn-end'
+  mode: 'shadow' | 'auto'
+  dispatched: boolean
+  subagentSessionId?: string
+}
+```
+
+Source: [`packages/guard/agent-router/src/index.ts:83`](../packages/guard/agent-router/src/index.ts)
+
+#### `router/outcome` — log-only
+
+```ts persistence-catalog
+/**
+ * Durable outcome record on the PARENT session's log: log-only (never
+ * reaches the model surface), whole-value append when the child settles.
+ * Paired one-to-one with the acceptance `router/route` record.
+ */
+'router/outcome': { subagentSessionId: string; stopReason: string }
+```
+
+Source: [`packages/guard/agent-router/src/index.ts:69`](../packages/guard/agent-router/src/index.ts)
+
+#### `router/route` — log-only
+
+```ts persistence-catalog
+/**
+ * Durable route record on the PARENT session's log: log-only (never
+ * reaches the model surface), whole-value append at acceptance. One per
+ * accepted delegate — a session may route many delegates.
+ */
+'router/route': {
+  profile: 'code_scout' | 'verifier'
+  task: string
+  targets: string[]
+  subagentSessionId: string
+  /** 记录用预算（shape 计算 + 绝对帽；方案 a 只记录不强制）。 */
+  budget?: { maxTurns: number; deadlineMs: number }
+}
+```
+
+Source: [`packages/guard/agent-router/src/index.ts:49`](../packages/guard/agent-router/src/index.ts)
+
 ### `sandbox/*`
 
 #### `sandbox/mode` — log-only
@@ -705,7 +776,7 @@ Source: [`packages/session/session-title/src/index.ts:100`](../packages/session/
 
 Types: [SessionTitleLlmRequestEventData](subsystems/session-title.md)
 
-Source: [`packages/session/session-title-llm/src/index.ts:43`](../packages/session/session-title-llm/src/index.ts)
+Source: [`packages/session/session-title-llm/src/index.ts:46`](../packages/session/session-title-llm/src/index.ts)
 
 ### `step/*`
 

@@ -1974,6 +1974,7 @@ describe('内置命令 — /effort', () => {
       sessionCostReport: vi.fn(() => []),
       openModelPicker: vi.fn(),
       openRoleModelPicker: vi.fn(),
+      openKeyDialog: vi.fn(),
       openThemePicker: vi.fn(),
       openSessionPicker: vi.fn(),
       listCommands: vi.fn<() => SlashCommand[]>(() => []),

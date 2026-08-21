@@ -29,7 +29,11 @@ export interface BudgetConfig {
   turnsPerExtraFile: number
 }
 
-/** 校验并默认预算配置（形状非法 fail loud；帽必须 ≥ 缺省）。 */
+/**
+ * 校验并默认预算配置（形状非法 fail loud；帽必须 ≥ 缺省）。
+ * @param raw - 组合层原始预算字段（全部可选；缺省值见实现）。
+ * @returns 字段齐备且通过校验的预算配置。
+ */
 export function resolveBudgetConfig(raw: {
   defaultMaxTurns?: number
   ceilMaxTurns?: number

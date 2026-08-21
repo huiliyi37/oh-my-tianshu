@@ -74,6 +74,12 @@ declare module '@huiliyi37/dsh-session/types' {
      * agent declares adopt/reject with a reason; at most one per outcome.
      */
     'router/adoption': { subagentSessionId: string; verdict: 'adopt' | 'reject'; reason: string }
+    /**
+     * 触发评估的持久记录（父会话日志，log-only，不进模型面）：每次 turn-end
+     * 评估落一条——profile/task/targets 是判定输入，mode 区分 shadow（只记录
+     * 不派发）与 auto（真实派发），dispatched 与 subagentSessionId 记录派发
+     * 结果（仅 auto 且真实派发时携带 subagentSessionId）。
+     */
     'router/decision': {
       profile: 'code_scout' | 'verifier'
       task: string
