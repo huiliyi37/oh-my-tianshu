@@ -27,15 +27,18 @@ interface TimingState {
   descriptorSeen: boolean
 }
 
-// Zod's optional output includes explicit `undefined`; with
-// exactOptionalPropertyTypes the public interface permits omission only.
-const projectionSchema = z.object({
+const activeIntervalSchema = z.object({
+  since: z.number().int().nonnegative(),
+  through: z.number().int().nonnegative(),
+}).strict()
+
+const projectionSchema: z.ZodType<SubagentTimingProjection> = z.object({
   settledMs: z.number().int().nonnegative(),
-  active: z.object({
-    since: z.number().int().nonnegative(),
-    through: z.number().int().nonnegative(),
-  }).strict().optional(),
-}).strict() as unknown as z.ZodType<SubagentTimingProjection>
+  active: activeIntervalSchema.optional(),
+}).strict().transform(({ settledMs, active }) => ({
+  settledMs,
+  ...active === undefined ? {} : { active },
+}))
 
 /**
  * Fold turn boundaries around the child's own durable descriptor.

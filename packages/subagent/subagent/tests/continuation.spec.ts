@@ -53,9 +53,17 @@ class GatedAdapter extends LlmAdapter {
   }
 }
 
-const roots: string[] = []
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
+// Each persistence-backed temp root cleans up by closing its handle before
+// removing the directory: Windows rmSync over a dir holding a still-open handle
+// fails with EPERM.
+const cleanups: Array<() => Promise<void>> = []
+afterEach(async () => {
+  const errors: unknown[] = []
+  for (const cleanup of cleanups.splice(0)) {
+    try { await cleanup() } catch (error) { errors.push(error) }
+  }
+  if (errors.length === 1) throw errors[0]
+  if (errors.length > 1) throw new AggregateError(errors, 'temp-root cleanup failed')
 })
 
 /** Boot the full continuable stack: loop, persistence, providers, and subagents. */
@@ -66,9 +74,13 @@ async function setupWith(adapter: LlmAdapter, options: { persistence?: boolean }
   let root: string | undefined
   if (options.persistence !== false) {
     root = mkdtempSync(join(tmpdir(), 'dsh-subagent-continuation-'))
-    roots.push(root)
+    const persistedRoot = root
     const persistenceFiber = await ctx.plugin(JsonlSessionPersistence, { root })
     disposePersistence = () => persistenceFiber.dispose()
+    cleanups.push(async () => {
+      await persistenceFiber.dispose()
+      rmSync(persistedRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
+    })
   }
   await ctx.plugin(AgentLoop, { agents: [] })
   await ctx.plugin(SubagentService)
@@ -385,7 +397,10 @@ describe('SubagentService.startContinuable', () => {
 
     const fresh = new Context()
     await mountAgentLoopTestDependencies(fresh)
-    await fresh.plugin(JsonlSessionPersistence, { root: root! })
+    const freshPersistence = await fresh.plugin(JsonlSessionPersistence, { root: root! })
+    // This context opened a second handle on the same root; register it so
+    // afterEach closes it before removing the root (even on a failure path).
+    cleanups.push(async () => { await freshPersistence.dispose() })
     await fresh.plugin(AgentLoop, { agents: [] })
     await fresh.plugin(SubagentService)
     await fresh.plugin(SubagentSpawn, { providerName: 'spawn' })
@@ -1823,8 +1838,11 @@ describe('continuable errors', () => {
     const ctx = new Context()
     await mountAgentLoopTestDependencies(ctx)
     const root = mkdtempSync(join(tmpdir(), 'dsh-subagent-continuation-'))
-    roots.push(root)
-    await ctx.plugin(JsonlSessionPersistence, { root })
+    const persistenceFiber = await ctx.plugin(JsonlSessionPersistence, { root })
+    cleanups.push(async () => {
+      await persistenceFiber.dispose()
+      rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
+    })
     await ctx.plugin(AgentLoop, { agents: [] })
     const serviceFiber = await ctx.plugin(SubagentService)
     await ctx.plugin(SubagentSpawn, { providerName: 'spawn' })
