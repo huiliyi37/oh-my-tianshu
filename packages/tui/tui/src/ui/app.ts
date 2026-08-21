@@ -104,7 +104,7 @@ import { formatElapsedHuman } from '../format/spinner-status.js'
 import {
   projectQuestionPanel,
 } from '../question-panel.js'
-import type { ConfigModelRolesInput, ConfigPanelProjection } from '../config-panel.js'
+import { ConfigPanelController, type ConfigCategory, type ConfigField, type ConfigFieldAction, type ConfigPanelData } from '../config-panel.js'
 import type { SkillSummaryInput } from '../skill-panel.js'
 /** Wave 2：renderLive 7 面板纯函数 + 单帧快照类型（app.ts → render/ 单向依赖）。 */
 import {
@@ -113,7 +113,6 @@ import {
   renderStatusPanel,
   renderDelegationPanel,
   renderWorkflowPanel,
-  renderConfigPanel,
   renderSkillsPanel,
   renderLspPanel,
 } from '../render/live-panels.js'
@@ -574,8 +573,31 @@ function toSlashHint(command: { name: string; description: string; argsHint?: st
  * `@huiliyi37/` 下同级);找不到回退 `@huiliyi37/dsh-tui`(TUI 包,源码/单测
  * 场景)。欢迎页副标题展示用。
  */
-function readDistributionVersion(): string | undefined {
-  const start = fileURLToPath(new URL('.', import.meta.url))
+/** /config 概览字段的值显示：标量直出、对象紧凑 JSON、null → —（防渲染崩溃的形状回退同旧面板）。 */
+function formatConfigValue(value: unknown): string {
+  if (value === undefined || value === null) return '—'
+  switch (typeof value) {
+    case 'string':
+    case 'number':
+    case 'boolean':
+      return String(value)
+    case 'symbol':
+    case 'function':
+    case 'bigint':
+      return typeof value
+    default:
+      return JSON.stringify(value)
+  }
+}
+
+/** /config 概览字段的 secrets 脱敏标记（有值槽计数 / 空槽占位）。 */
+function configSecretMark(secrets: { set: boolean }[] | undefined): string {
+  if (secrets === undefined || secrets.length === 0) return ''
+  const set = secrets.filter(secret => secret.set).length
+  return set > 0 ? ` 🔒 ${set} 密钥已脱敏` : ' 🔒 密钥槽'
+}
+
+function readDistributionVersion(): string | undefined {  const start = fileURLToPath(new URL('.', import.meta.url))
   let fallback: string | undefined
   let dir = start
   for (let i = 0; i < 8; i++) {
@@ -718,10 +740,10 @@ export class TuiApp {
   private taskSnapshots: TaskSnapshotView[] = []
   /** T2.3：onTaskDone 完成通知（live 区提示行；一次性，渲染后清空）。 */
   private taskNotice: string | null = null
-  /** T3.2：/config 设置面板显隐（/config 切换）。 */
-  private configPanelVisible = false
-  /** T3.2：/config 面板投影缓存（settings describe + permission + credentials；null = 服务缺失）。 */
-  private configProjection: ConfigPanelProjection | null = null
+  /** /config 交互式设置面板控制器（overlay 'config-panel'；数据注入 + 编辑分派）。 */
+  private configPanel: ConfigPanelController | null = null
+  /** 编辑器关闭后回开 /config 面板的编舞旗标（dispatchConfigEdit 置位、finishConfigReturn 消费）。 */
+  private configReturnPending = false
   /** T3.3：/skills 面板显隐（/skills 切换）。 */
   private skillsPanelVisible = false
   /** T3.3：skill 快照缓存（ctx.skills.list；空数组 = 无技能或未加载）。 */
@@ -905,13 +927,11 @@ export class TuiApp {
       forkSession: () => this.forkSession(),
       switchLiveModel: selection => this.switchLiveModel(selection),
       clearScrollback: () => {
-        // 命令切换的 live 信息面板（/config /skills /lsp /tasks /status
+        // 命令切换的 live 信息面板（/skills /lsp /tasks /status
         // /subagents /workflow）随清屏一并收起：这些面板渲染在 live 区，
         // 只清 scrollback 不清可见性标志的话，2J 清屏后的全量重绘会把面板
-        // 内容原样画回来——用户看到的便是「/clear 清不掉命令输出」（如
-        // /config 的配置面板残留）。与既有语义一致：会话切换时 task/status
-        // 面板同样被重置（见 mountSession）。
-        this.configPanelVisible = false
+        // 内容原样画回来——用户看到的便是「/clear 清不掉命令输出」。
+        // /config 已改为 overlay 面板（非 live 区），无需在此收起。
         this.skillsPanelVisible = false
         this.lspPanelVisible = false
         this.taskPanelVisible = false
@@ -1013,20 +1033,14 @@ export class TuiApp {
         this.renderBatcher.schedule()
       },
     })
-    // T3.2：/config 设置面板显隐切换（数据源为 settings/permission/credentials 投影；
-    // 切换时刷新投影——部分服务缺失时对应段显示占位；三者全缺时面板无数据，回显警告）。
+    // /config 交互式设置面板：双栏 overlay（模型/权限/凭据/概览四类目，
+    // Enter 即时编辑——写面全部热生效，无草稿保存机制）。数据由
+    // buildConfigPanelData 现取，编辑分派见 dispatchConfigEdit。
     this.slash.register({
       name: 'config',
-      description: '切换设置面板（settings/permission/credentials）',
+      description: '设置面板（模型角色 / 权限预设 / 供应商密钥 / 设置概览）',
       run: async () => {
-        this.configPanelVisible = !this.configPanelVisible
-        if (this.configPanelVisible) {
-          await this.refreshConfigProjection()
-          if (this.configProjection === null) {
-            this.echoWarn('⚠ settings/permission/credentials 服务均不可用，设置面板无数据')
-          }
-        }
-        this.renderBatcher.schedule()
+        await this.openConfigPanel()
       },
     })
     // T3.3：/skills 技能浏览面板显隐切换（数据源为 ctx.skills.list 快照；
@@ -1274,6 +1288,14 @@ export class TuiApp {
       onSaved: () => { void this.refreshApiKeyReady() },
     })
     this.overlay.register('key-dialog', this.keyDialog)
+    // /config 交互式设置面板（编辑分派 + 关闭都由 actions 面承担；键路由
+    // 见 activeId() === 'config-panel' 分支）。
+    this.configPanel = new ConfigPanelController({
+      getTheme: () => this.theme,
+      edit: (action) => { this.dispatchConfigEdit(action) },
+      close: () => { this.overlay?.deactivate() },
+    })
+    this.overlay.register('config-panel', this.configPanel)
     this.input.setMode('input')
     this.ticker = setInterval(() => { this.tick++ ; this.renderLive() }, 120)
     this.ticker.unref()
@@ -2873,67 +2895,261 @@ export class TuiApp {
     }
   }
 
-  /** T3.2：刷新 /config 面板投影（settings describe + 模型角色 pin + permission + credentials；服务缺失降级）。 */
-  private async refreshConfigProjection(): Promise<void> {
-    const settings = this.ctx.reflect.get('settings', false) as
-      | { describe(options?: { redactSecrets?: boolean }): unknown[] } | undefined
-    const permission = this.ctx.reflect.get('permission', false) as
-      | { names: readonly string[]; current(events: readonly unknown[]): string } | undefined
-    const credentials = this.ctx.reflect.get('credentials', false) as CredentialsDescribeFacet | undefined
-    if (settings === undefined && permission === undefined && credentials === undefined) {
-      this.configProjection = null
+  /**
+   * 打开 /config 面板：构建数据（四类目现取）→ open → activate。模型类目
+   * 恒在（服务缺席的字段显示 — 并不可编辑），权限/凭据/概览按服务在场附加。
+   */
+  private async openConfigPanel(): Promise<void> {
+    const controller = this.configPanel
+    const overlay = this.overlay
+    if (controller === null || overlay === null) return
+    if (overlay.activeId() === 'config-panel') {
+      overlay.deactivate()
       return
     }
-    const settingsDescriptors = settings === undefined ? [] : settings.describe({ redactSecrets: true })
-    const permissionView = permission === undefined ? null : {
-      options: permission.names.map(n => ({ value: n, name: n })),
-      currentValue: permission.current([]),
-    }
-    this.configProjection = {
-      settings: settingsDescriptors as ConfigPanelProjection['settings'],
-      modelRoles: this.projectModelRoles(),
-      permission: permissionView,
-      credentials: [],
-    }
-    if (credentials !== undefined) await this.fillCredentials(credentials)
+    controller.open(await this.buildConfigPanelData())
+    /* v8 ignore next 1 -- 数据构建窗口内 dispose 的竞态无法在同步测试中构造 */
+    if (this.disposed) return
+    overlay.activate('config-panel')
   }
 
   /**
-   * /config 模型角色段投影：主模型当前选择（agent-default-model 面）+ 三角色
-   * pin 状态（modelRoles 可选服务经 ctx.get 现取）。面板只如实显示 pin——各
-   * 消费者的完整回退链跨插件不可得，不在这里复制。
-   * @returns 模型角色段输入（未 pin 的角色为 undefined，主模型服务缺失为 null）。
+   * 编辑器关闭后的回开：刷新数据但保持游标（refresh 按类目/字段键定位）。
    */
-  private projectModelRoles(): ConfigModelRolesInput {
-    const current = (this.ctx as unknown as { agentDefaultModel?: ModelFacet }).agentDefaultModel
-      ?.currentSelection()
-    const roles = this.ctx.get('modelRoles')
-    return {
-      main: current === undefined ? null : { provider: current.provider, model: current.model },
-      vision: roles?.resolve('vision'),
-      secondary: roles?.resolve('secondary'),
-      subagent: roles?.resolve('subagent'),
+  private async reopenConfigPanel(): Promise<void> {
+    const controller = this.configPanel
+    const overlay = this.overlay
+    if (controller === null || overlay === null) return
+    const data = await this.buildConfigPanelData()
+    /* v8 ignore next 1 -- 数据构建窗口内 dispose 的竞态无法在同步测试中构造 */
+    if (this.disposed) return
+    controller.refresh(data)
+    overlay.activate('config-panel')
+  }
+
+  /** 编舞消费点：picker/key-dialog 因关闭而 deactivate 后，回开 /config。 */
+  private finishConfigReturn(): void {
+    if (!this.configReturnPending) return
+    this.configReturnPending = false
+    void this.reopenConfigPanel()
+  }
+
+  /**
+   * 分派 /config 字段编辑：面板失活 + 置回开旗标，按动作打开对应编辑器
+   * （/model picker / 角色 picker / effort picker / 权限 picker / /key 供应商
+   * 对话框）；编辑器关闭路径统一经 finishConfigReturn 回开面板。
+   * @param action - 字段动作意图。
+   */
+  private dispatchConfigEdit(action: ConfigFieldAction): void {
+    this.configReturnPending = true
+    this.overlay?.deactivate()
+    switch (action.kind) {
+      case 'edit-default-model':
+        void this.openModelPicker()
+        return
+      case 'edit-effort':
+        this.openEffortPicker()
+        return
+      case 'edit-role':
+        void this.openRoleModelPicker(action.role)
+        return
+      case 'edit-permission':
+        this.openPermissionPresetPicker()
+        return
+      case 'edit-credential':
+        void this.openCredentialFromConfig(action.provider)
+        return
+      case 'none':
+        this.finishConfigReturn()
+        return
     }
   }
 
-  /** 把 DEEPSEEK_API_KEY 的 describe 结果填进 /config 凭据段（与欢迎页同源）。 */
-  private async fillCredentials(credentials: CredentialsDescribeFacet): Promise<void> {
-    try {
-      const info = await credentials.describe('DEEPSEEK_API_KEY')
-      if (this.disposed || !this.configPanelVisible || this.configProjection === null) return
-      this.configProjection = {
-        ...this.configProjection,
-        credentials: [{
-          ref: 'DEEPSEEK_API_KEY',
-          configured: info.configured,
-          writable: info.writable !== false,
-          ...(info.source === undefined ? {} : { source: info.source }),
-        }],
-      }
-      this.renderBatcher.schedule()
-    } catch {
-      // 面不匹配时保持空凭据段
+  /** 推理档位 picker：选项取当前模型的 efforts（回退 off/high/max），选中即 saveSelection。 */
+  private openEffortPicker(): void {
+    const overlay = this.overlay
+    const picker = this.picker
+    const facet = (this.ctx as unknown as { agentDefaultModel?: ModelFacet }).agentDefaultModel
+    if (overlay === null || picker === null || facet === undefined) {
+      this.finishConfigReturn()
+      return
     }
+    const current = facet.currentSelection()
+    const llm = this.ctx.reflect.get('llm', false) as
+      | {
+        resolveModelInfo?: (provider: string, model: string) => Promise<
+          { reasoning?: { efforts: Array<{ id: string }> } } | Record<string, never>
+        >
+      }
+      | undefined
+    void Promise.resolve()
+      .then(() => llm?.resolveModelInfo?.(current.provider, current.model))
+      .catch(() => undefined)
+      .then((info) => {
+        const options = info?.reasoning?.efforts.map(effort => effort.id)
+        const levels = options !== undefined && options.length > 0 ? options : ['off', 'high', 'max']
+        const items = levels.map(id => ({
+          label: id === current.reasoningEffort ? `${id}（当前）` : id,
+          value: id,
+          current: id === current.reasoningEffort,
+        }))
+        picker.open('选择推理档位', items, (item) => {
+          void facet.saveSelection({
+            provider: current.provider,
+            model: current.model,
+            reasoningEffort: item.value,
+          })
+          this.commitToScrollback({
+            text: `推理等级已设为 ${item.value}（当前会话与默认均生效；/effort auto 回默认）`,
+            trailingNewline: true,
+          })
+        })
+        overlay.activate('picker')
+      })
+  }
+
+  /**
+   * 权限预设 picker：选项取 permission.names，选中走 /permission 命令的同一
+   * 写路径（apply 记录意图 + approval seam 置当前会话）；无活跃会话/服务
+   * 缺席时提示并回开面板。
+   */
+  private openPermissionPresetPicker(): void {
+    const overlay = this.overlay
+    const picker = this.picker
+    const permission = this.ctx.reflect.get('permission', false) as
+      | { names: readonly string[]; apply(session: unknown, name: string, setPolicy: (policy: unknown) => void): void } | undefined
+    const agent = this.activeSessionId === null ? undefined : this.ctx.agents.get(this.activeSessionId)
+    if (overlay === null || picker === null || permission === undefined) {
+      this.echoWarn('⚠ permission 服务不可用')
+      this.finishConfigReturn()
+      return
+    }
+    if (agent === undefined) {
+      this.echoWarn('⚠ 无活跃会话——权限预设切换需要活跃会话（先开始一段对话）')
+      this.finishConfigReturn()
+      return
+    }
+    const approval = this.ctx.reflect.get('approval', false) as
+      | { setPolicy(agent: unknown, policy: unknown): void } | undefined
+    const items = permission.names.map(name => ({ label: name, value: name }))
+    picker.open('选择权限预设', items, (item) => {
+      permission.apply(agent.session, item.value, (policy) => { approval?.setPolicy(agent, policy) })
+      this.commitToScrollback({ text: `权限预设已切换: ${item.value}`, trailingNewline: true })
+    })
+    overlay.activate('picker')
+  }
+
+  /** 凭据字段编辑：从 /config 进该供应商的 /key 对话框（向导后段）。 */
+  private async openCredentialFromConfig(provider: string): Promise<void> {
+    const entry = this.keyWizardDirectory().find(candidate => candidate.provider === provider)
+    const credentials = this.ctx.reflect.get('credentials', false) as KeyDialogCredentials | undefined
+    if (entry === undefined) {
+      this.finishConfigReturn()
+      return
+    }
+    await this.openKeyDialogForEntry(entry, credentials)
+  }
+
+  /**
+   * 构建 /config 面板数据：模型（默认模型/推理档位/三角色 pin）恒在；
+   * 权限（permission 服务）、凭据（key-wizard 目录 + describe）、概览
+   * （settings describe 脱敏）按服务在场附加。全部只读拼装，无写面。
+   */
+  private async buildConfigPanelData(): Promise<ConfigPanelData> {
+    const categories: ConfigCategory[] = []
+    const facet = (this.ctx as unknown as { agentDefaultModel?: ModelFacet }).agentDefaultModel
+    const current = facet?.currentSelection()
+    const roles = this.ctx.get('modelRoles')
+    const roleField = (key: string, label: string, role: 'vision' | 'secondary' | 'subagent', hint: string): ConfigField => {
+      const pin = roles?.resolve(role)
+      return {
+        key,
+        label,
+        value: pin === undefined ? '跟随默认' : `${pin.provider}/${pin.model}`,
+        editable: roles !== undefined,
+        action: { kind: 'edit-role', role },
+        hint,
+      }
+    }
+    categories.push({
+      key: 'model',
+      label: '模型',
+      fields: [
+        {
+          key: 'default-model',
+          label: '默认模型',
+          value: current === undefined ? '—' : `${current.provider}/${current.model}`,
+          editable: current !== undefined,
+          action: { kind: 'edit-default-model' },
+          hint: '与 /model 同路径：保存 + 当前会话热切',
+        },
+        {
+          key: 'effort',
+          label: '推理档位',
+          value: current?.reasoningEffort ?? '默认',
+          editable: current !== undefined,
+          action: { kind: 'edit-effort' },
+          hint: 'off = 不思考；缺省档位跟随提供方默认',
+        },
+        roleField('role-vision', '视觉模型', 'vision', '未 pin 时按各消费者默认回退（/model vision）'),
+        roleField('role-secondary', '副模型', 'secondary', '会话标题/compact 等后台工作'),
+        roleField('role-subagent', '子代理模型', 'subagent', '委派子代理会话的默认路由'),
+      ],
+    })
+    const permission = this.ctx.reflect.get('permission', false) as
+      | { names: readonly string[]; current(events: readonly unknown[]): string } | undefined
+    if (permission !== undefined) {
+      categories.push({
+        key: 'permission',
+        label: '权限',
+        fields: [{
+          key: 'preset',
+          label: '预设',
+          value: permission.current([]),
+          editable: true,
+          action: { kind: 'edit-permission' },
+          hint: '切换即写当前会话并记录意图（与 /permission 同路径）',
+        }],
+      })
+    }
+    const credentials = this.ctx.reflect.get('credentials', false) as KeyDialogCredentials | undefined
+    const directory = this.keyWizardDirectory()
+    if (credentials !== undefined && directory.length > 0) {
+      const sections = this.readResolvedSettingsSections()
+      const fields = await Promise.all(directory.map(async (entry): Promise<ConfigField> => {
+        const ref = resolveKeyRef(entry.provider, this.profileApiKeyEnv(sections, entry))
+        const info = await credentials.describe(ref).then(value => value, () => undefined)
+        return {
+          key: `credential:${entry.provider}`,
+          label: entry.displayName,
+          value: info?.configured === true
+            ? `✓ ${info.source ?? '已配置'}`
+            : '○ 未配置',
+          editable: info?.writable !== false,
+          action: { kind: 'edit-credential', provider: entry.provider },
+          hint: `引用 ${ref} · Enter 进入 /key 配置`,
+        }
+      }))
+      categories.push({ key: 'credentials', label: '凭据', fields })
+    }
+    const settings = this.ctx.reflect.get('settings', false) as
+      | { describe(options?: { redactSecrets?: boolean }): unknown[] } | undefined
+    if (settings !== undefined) {
+      const descriptors = settings.describe({ redactSecrets: true }) as Array<{ ns: string; value: unknown; secrets?: { set: boolean }[] }>
+      categories.push({
+        key: 'overview',
+        label: '概览',
+        fields: descriptors.map((descriptor): ConfigField => ({
+          key: `ns:${descriptor.ns}`,
+          label: descriptor.ns,
+          value: `${formatConfigValue(descriptor.value)}${configSecretMark(descriptor.secrets)}`,
+          editable: false,
+          action: { kind: 'none' },
+          hint: '已解析的 settings 命名空间（只读；编辑经各归属命令/界面）',
+        })),
+      })
+    }
+    return { categories }
   }
 
   /** T3.3：刷新 skill 快照（ctx.skills.list；服务缺失时空数组）。 */
@@ -3539,6 +3755,13 @@ export class TuiApp {
       }
       return
     }
+    // /config 面板打开——双栏导航/编辑分派交给面板状态机；close 动作在
+    // actions 里直接 deactivate，这里只重绘。
+    if (this.overlay?.activeId() === 'config-panel' && this.configPanel !== null) {
+      this.configPanel.handleKey(key.name, key.char)
+      this.overlay.rerender()
+      return
+    }
     // /key：API Key 对话框打开——Ctrl+V 只读剪贴板文本进 Key 字段；其余键交给
     // 对话框状态机（输入态收字符/退格/Enter/Esc），wantsClose 后 deactivate。
     if (this.overlay?.activeId() === 'key-dialog' && this.keyDialog !== null) {
@@ -3548,8 +3771,12 @@ export class TuiApp {
         return
       }
       dialog.handleKey(key.name, key.char)
-      if (dialog.wantsClose()) this.overlay.deactivate()
-      else this.overlay.rerender()
+      if (dialog.wantsClose()) {
+        this.overlay.deactivate()
+        this.finishConfigReturn()
+      } else {
+        this.overlay.rerender()
+      }
       return
     }
     // #31：选择器 overlay 打开：↑/↓（j/k）移动、PageUp/PageDown 翻页、
@@ -3559,6 +3786,7 @@ export class TuiApp {
       if (key.name === 'escape' || key.name === 'ctrl_c' || key.char === 'q') {
         picker.close()
         this.overlay.deactivate()
+        this.finishConfigReturn()
       } else if (key.name === 'up' || key.char === 'k') {
         picker.move(-1)
         this.overlay.rerender()
@@ -3574,6 +3802,7 @@ export class TuiApp {
       } else if (key.name === 'return') {
         picker.commit()
         this.overlay.deactivate()
+        this.finishConfigReturn()
       }
       return
     }
@@ -4272,8 +4501,6 @@ export class TuiApp {
       externalRuns: this.externalRuns,
       workflowPanelVisible: this.workflowPanelVisible,
       workflowRuns,
-      configPanelVisible: this.configPanelVisible,
-      configProjection: this.configProjection,
       skillsPanelVisible: this.skillsPanelVisible,
       skillItems: this.skillItems,
       // LSP 面板（本地语言服务诊断；bridge 缓存折叠——桥未创建时视为无诊断）
@@ -4304,8 +4531,6 @@ export class TuiApp {
     for (const line of renderDelegationPanel(snapshot)) lines.push({ text: line })
     // T2.2：workflow 面板（列表行 + 终态汇总；cancelled 置灰由纯函数承担）。
     for (const line of renderWorkflowPanel(snapshot)) lines.push({ text: line })
-    // T3.2：/config 设置面板（projection null 降级在 renderConfigPanel 内）。
-    for (const line of renderConfigPanel(snapshot)) lines.push({ text: line })
     // T3.3：/skills 技能浏览面板。
     for (const line of renderSkillsPanel(snapshot)) lines.push({ text: line })
     // LSP：/lsp 诊断面板（本地语言服务；bridge 缓存折叠，纯展示）。

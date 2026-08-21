@@ -21,7 +21,6 @@ import type {
   ExternalRunEntry,
 } from '../delegation-panel.js'
 import type { WorkflowRunView } from '../workflow-panel.js'
-import type { ConfigPanelProjection } from '../config-panel.js'
 import type { SkillSummaryInput } from '../skill-panel.js'
 import type { LspDiagnosticView } from '../lsp/lsp-bridge.js'
 
@@ -92,9 +91,7 @@ export interface LiveSnapshot {
 
   // config 面板
   /** /config 面板显隐。 */
-  configPanelVisible: boolean
   /** config 面板投影（服务缺失 null → 不渲染）。 */
-  configProjection: ConfigPanelProjection | null
 
   // skills 面板
   /** /skills 面板显隐。 */

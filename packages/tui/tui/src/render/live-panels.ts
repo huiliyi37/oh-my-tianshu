@@ -21,7 +21,6 @@ import { projectTaskPanel } from '../format/task-panel.js'
 import { projectStatusPanel } from '../status-panel.js'
 import { projectDelegationTree, projectExternalRunSection, type DelegationTreeEntry } from '../delegation-panel.js'
 import { projectWorkflow, type WorkflowChildState, type WorkflowRunView } from '../workflow-panel.js'
-import { projectConfigPanel } from '../config-panel.js'
 import { projectSkillPanel } from '../skill-panel.js'
 import { projectLspPanel, groupLspDiagnostics } from '../format/lsp-diagnostics.js'
 import { formatLiveCard, liveCardGlyph, type LiveCardStatus } from '../format/live-card.js'
@@ -93,29 +92,6 @@ export function renderTasksPanel(snapshot: LiveSnapshot): string[] {
     }))
   }
   return rows
-}
-
-/**
- * 渲染 /config 设置面板（设置段 + 权限预设选择器 + 凭据徽章）。面板隐藏或
- * 投影为 null（服务缺失）→ 空数组。settings 契约是数组；违约形状（非数组，
- * 如单对象）归一为 descriptor 数组再渲染，避免 for...of 对非迭代对象抛错。
- * @param snapshot - 当前帧快照。
- * @returns 面板行数组。
- */
-export function renderConfigPanel(snapshot: LiveSnapshot): string[] {
-  if (!snapshot.configPanelVisible) return []
-  if (snapshot.configProjection === null) return []
-  const projection = snapshot.configProjection
-  const settings = Array.isArray(projection.settings)
-    ? projection.settings
-    : Object.entries(projection.settings as unknown as Record<string, unknown>)
-      .map(([ns, value]) => ({ ns, value }))
-  // permission 契约是 null（未组合权限服务）；违约 undefined 归一为 null，
-  // 避免 projectPermissionSection 对 undefined 解构 options 抛错。
-  return projectConfigPanel(
-    { ...projection, settings, permission: projection.permission ?? null },
-    { width: snapshot.cols },
-  )
 }
 
 /**

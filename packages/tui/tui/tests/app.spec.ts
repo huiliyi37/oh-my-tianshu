@@ -2999,7 +2999,7 @@ describe('TuiApp Phase 6.1 slash 命令系统', () => {
     await app.dispose()
   })
 
-  it('/clear 收起命令切换的 live 面板（/config /skills 不再重绘）', async () => {
+  it('/clear 收起命令切换的 live 面板（/skills 不再重绘；/config 已改 overlay 不受影响）', async () => {
     const ctx = makeCtx()
     const fallback = ctx.reflect.get.getMockImplementation() as ((name: string) => unknown) | undefined
     ctx.reflect.get.mockImplementation((name: string) => {
@@ -3016,11 +3016,9 @@ describe('TuiApp Phase 6.1 slash 命令系统', () => {
     const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
     await app.attach()
 
-    app.handleSubmit('/config')
     app.handleSubmit('/skills')
     await new Promise(resolve => setTimeout(resolve, 40))
     let written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('⚙ 配置')      // 配置面板已渲染
     expect(written).toContain('code-review') // 技能面板已渲染
 
     app.handleSubmit('/clear')
@@ -3029,8 +3027,6 @@ describe('TuiApp Phase 6.1 slash 命令系统', () => {
     expect(written).toContain('已清空')
     // /clear 光标回顶（\x1b[H）之后的 live 区全量重绘不应再包含命令面板
     const tail = written.slice(written.lastIndexOf('\x1b[H'))
-    expect(tail).not.toContain('⚙ 配置')
-    expect(tail).not.toContain('已配置')
     expect(tail).not.toContain('code-review')
     await app.dispose()
   })
@@ -4245,7 +4241,7 @@ describe('TuiApp /key 供应商向导（多供应商密钥配置）', () => {
 describe('TuiApp 会话交互 UX 对齐（显示层 = 实际能力）', () => {
   const PNG_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
 
-  it('/config：credentials.describe(DEEPSEEK_API_KEY) 报 file → 凭据段显示已配置', async () => {
+  it('/config 凭据类目：llm 目录 + describe 状态行（Enter 进 /key 向导）', async () => {
     const ctx = makeCtx()
     const describe = vi.fn(async (ref: string) => {
       expect(ref).toBe('DEEPSEEK_API_KEY')
@@ -4254,21 +4250,36 @@ describe('TuiApp 会话交互 UX 对齐（显示层 = 实际能力）', () => {
     const fallback = ctx.reflect.get.getMockImplementation() as (name: string) => unknown
     ctx.reflect.get.mockImplementation((name: string) => {
       if (name === 'credentials') return { describe }
-      return fallback(name)
+      if (name === 'llm') {
+        return {
+          listConfigurableProviders: () => [
+            { provider: 'deepseek-official', displayName: 'DeepSeek', settingsNs: 'llm-deepseek', settingsPath: [] },
+          ],
+          resolveModelInfo: async () => ({ supportsVision: false }),
+        }
+      }
+      if (name === 'settings') {
+        // llm-deepseek 段经 schema 缺省解析出 apiKeyEnv（真实 settings 行为）。
+        return { describe: () => [{ ns: 'llm-deepseek', value: { apiKeyEnv: 'DEEPSEEK_API_KEY' } }] }
+      }
+      return fallback ? fallback(name) : undefined
     })
     const agent = makeAgent('cfg-key')
     ctx.agents.create.mockResolvedValue(makeHandle(agent))
     ctx.sessions.get.mockReturnValue(agent.session)
+    const stdin = makeStdin()
     const stdout = makeStdout()
-    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    const app = new TuiApp({ ctx, stdout, stdin })
     await app.attach()
     app.handleSubmit('/config')
     await new Promise(resolve => setTimeout(resolve, 40))
+    // 类目序：模型 → 凭据（下移一次后其字段行可见）。
+    stdin.emit('data', '[B')
+    await new Promise(resolve => setTimeout(resolve, 60))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('DEEPSEEK_API_KEY')
-    expect(written).toContain('已配置')
+    expect(written).toContain('凭据')
+    expect(written).toContain('DeepSeek')
     expect(written).toContain('file')
-    expect(written).not.toContain('（无凭据）')
     expect(describe).toHaveBeenCalledWith('DEEPSEEK_API_KEY')
     await app.dispose()
   })
@@ -4762,7 +4773,7 @@ describe('TuiApp /config /skills /density 面板命令', () => {
     await app.dispose()
   })
 
-  it('/config 模型角色段：主模型 + pin/跟随默认两态渲染（modelRoles 经 ctx.get 现取）', async () => {
+  it('/config 模型类目：默认模型 + 三角色 pin/跟随默认 两态渲染（modelRoles 经 ctx.get 现取）', async () => {
     const ctx = makeCtx()
     ctx.get.mockImplementation((name: string) => name === 'modelRoles'
       ? { resolve: vi.fn((role: string) => role === 'vision' ? { provider: 'openai', model: 'gpt-5-vision' } : undefined) }
@@ -4779,13 +4790,13 @@ describe('TuiApp /config /skills /density 面板命令', () => {
     await app.attach()
 
     app.handleSubmit('/config')
-    await new Promise(resolve => setImmediate(resolve))
+    await new Promise(resolve => setTimeout(resolve, 40))
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('◆ 模型角色')
-    expect(written).toContain('主模型 · mock/mock')
-    expect(written).toContain('视觉模型 · openai/gpt-5-vision')
-    expect(written).toContain('副模型 · 跟随默认')
-    expect(written).toContain('子代理模型 · 跟随默认')
+    expect(written).toContain('模型')
+    expect(written).toContain('默认模型')
+    expect(written).toContain('mock/mock')
+    expect(written).toContain('openai/gpt-5-vision')
+    expect(written).toContain('跟随默认')
     await app.dispose()
   })
 
@@ -6178,57 +6189,198 @@ describe('TuiApp /config 服务组合分支', () => {
     ctx.agents.create.mockResolvedValue(makeHandle(agent))
     ctx.sessions.get.mockReturnValue(agent.session)
     const stdout = makeStdout()
-    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    const stdin = makeStdin()
+    const app = new TuiApp({ ctx, stdout, stdin })
     await app.attach()
     app.handleSubmit('/config')
     await new Promise(resolve => setTimeout(resolve, 40))
-    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    return { app, written }
+    const written = () => stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    return { app, stdin, written }
   }
 
-  it('仅 credentials 服务存在 → 查询 DEEPSEEK_API_KEY，未配置则显示未配置行', async () => {
+  it('仅 credentials（无 llm 目录）→ 凭据类目缺席，面板仍开（模型类目在）', async () => {
     const describe = vi.fn(async () => ({ configured: false, writable: true }))
     const { app, written } = await bootWithReflect((name: string) => {
       if (name === 'credentials') return { describe }
       return undefined
     })
-    expect(written).toContain('DEEPSEEK_API_KEY')
-    expect(written).toContain('未配置')
-    expect(describe).toHaveBeenCalledWith('DEEPSEEK_API_KEY')
+    expect(written()).toContain('⚙ 配置')
+    expect(written()).toContain('默认模型')
+    expect(written()).not.toContain('凭据')
     await app.dispose()
   })
 
-  it('credentials describe reject → catch 兜底不崩溃', async () => {
-    const { app, written } = await bootWithReflect((name: string) => {
+  it('credentials describe reject → catch 兜底不崩溃（该行显示未配置）', async () => {
+    const { app, stdin, written } = await bootWithReflect((name: string) => {
       if (name === 'credentials') return { describe: vi.fn(async () => { throw new Error('boom') }) }
+      if (name === 'llm') {
+        return {
+          listConfigurableProviders: () => [{ provider: 'deepseek-official', displayName: 'DeepSeek', settingsNs: 'llm-deepseek', settingsPath: [] }],
+          resolveModelInfo: async () => ({ supportsVision: false }),
+        }
+      }
       return undefined
     })
-    // describe 的 .catch(() => {}) 兜底分支被触达（reject 不冒泡）
-    expect(written.length).toBeGreaterThan(0)
+    // 双栏一次显示一个类目：下移到凭据类目后其字段行可见。
+    stdin.emit('data', '\x1b[B')
+    await new Promise(resolve => setTimeout(resolve, 80))
+    expect(written()).toContain('⚙ 配置')
+    expect(written()).toContain('DeepSeek')
     await app.dispose()
   })
 
-  it('仅 permission 服务存在 → 权限视图渲染', async () => {
-    const { app, written } = await bootWithReflect((name: string) => {
+  it('仅 permission 服务存在 → 权限类目渲染当前预设', async () => {
+    const { app, stdin, written } = await bootWithReflect((name: string) => {
       if (name === 'permission') return { names: ['run_shell'], current: vi.fn(() => 'ask') }
       return undefined
     })
-    expect(written).toContain('run_shell')
+    stdin.emit('data', '\x1b[B')
+    await new Promise(resolve => setTimeout(resolve, 80))
+    expect(written()).toContain('权限')
+    expect(written()).toContain('ask')
     await app.dispose()
   })
 
-  it('仅 settings 服务存在 → 设置描述渲染', async () => {
+  it('仅 settings 服务存在 → 概览类目渲染命名空间', async () => {
     const { app, written } = await bootWithReflect((name: string) => {
       if (name === 'settings') return { describe: vi.fn(() => [{ ns: 'model', value: 'deepseek' }]) }
       return undefined
     })
-    expect(written).toContain('model')
+    expect(written()).toContain('概览')
+    expect(written()).toContain('model')
     await app.dispose()
   })
 
-  it('三服务全缺失 → configProjection null（无渲染崩溃）', async () => {
+  it('服务全缺失 → 面板仍开（仅模型类目，字段只读显示 —，无渲染崩溃）', async () => {
     const { app, written } = await bootWithReflect(() => undefined)
-    expect(written.length).toBeGreaterThan(0)
+    expect(written()).toContain('⚙ 配置')
+    expect(written()).toContain('模型')
+    await app.dispose()
+  })
+})
+
+describe('TuiApp /config 编辑分派（即时生效 + 回开编舞）', () => {
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+  /** 带 llm 目录/settings/credentials/permission 面的向导装配。 */
+  function bootConfigApp(opts: {
+    permission?: { names: string[]; current: string; apply?: ReturnType<typeof vi.fn> }
+  } = {}) {
+    const ctx = makeCtx()
+    const saveSelection = vi.fn(async () => {})
+    Object.assign(ctx.agentDefaultModel, {
+      currentSelection: vi.fn(() => ({ provider: 'deepseek', model: 'v4-flash' })),
+      saveSelection,
+    })
+    const describe = vi.fn(async (ref: string) => ({ configured: false, writable: true, source: undefined, ref }))
+    const apply = opts.permission?.apply ?? vi.fn()
+    const fallback = ctx.reflect.get.getMockImplementation() as ((name: string) => unknown) | undefined
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'credentials') return { describe, set: vi.fn(async () => {}) }
+      if (name === 'settings') {
+        return { describe: () => [{ ns: 'llm-deepseek', value: { apiKeyEnv: 'DEEPSEEK_API_KEY' } }] }
+      }
+      if (name === 'permission' && opts.permission !== undefined) {
+        return { names: opts.permission.names, current: vi.fn(() => opts.permission!.current), apply }
+      }
+      if (name === 'llm') {
+        return {
+          listConfigurableProviders: () => [
+            { provider: 'deepseek-official', displayName: 'DeepSeek', settingsNs: 'llm-deepseek', settingsPath: [] },
+          ],
+          listProviders: () => [{ id: 'deepseek-official', name: 'DeepSeek' }],
+          listModels: async () => [{ id: 'v4-flash', name: 'Flash' }, { id: 'v4-pro', name: 'Pro' }],
+          resolveModelInfo: async () => ({ supportsVision: false, reasoning: { efforts: [{ id: 'off' }, { id: 'low' }, { id: 'high' }] } }),
+        }
+      }
+      return fallback ? fallback(name) : undefined
+    })
+    const agent = makeAgent('cfg-edit-1')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.agents.get.mockReturnValue(agent)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    const written = () => stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    return { app, stdin, written, saveSelection, apply }
+  }
+
+  it('默认模型 Enter → /model picker → 确认即 saveSelection → 回开面板', async () => {
+    const { app, stdin, written, saveSelection } = bootConfigApp()
+    await app.attach()
+    app.handleSubmit('/config')
+    await sleep(50)
+    stdin.emit('data', '\x1b[C')  // → 字段栏
+    await sleep(30)
+    stdin.emit('data', '\r')     // Enter 默认模型
+    await sleep(50)
+    expect(written()).toContain('选择模型')
+    stdin.emit('data', '\x1b[B') // ↓ v4-pro
+    await sleep(30)
+    stdin.emit('data', '\r')
+    await sleep(60)
+    expect(saveSelection).toHaveBeenCalledWith({ provider: 'deepseek-official', model: 'v4-pro' })
+    // 编辑器关闭后回开 config（Esc 关面板验证存活）。
+    expect(written()).toContain('⚙ 配置')
+    await app.dispose()
+  })
+
+  it('推理档位 Enter → 档位 picker（选项取 resolveModelInfo efforts）→ saveSelection 带 effort', async () => {
+    const { app, stdin, written, saveSelection } = bootConfigApp()
+    await app.attach()
+    app.handleSubmit('/config')
+    await sleep(50)
+    stdin.emit('data', '\x1b[C')
+    await sleep(30)
+    stdin.emit('data', '\x1b[B') // ↓ 推理档位
+    await sleep(30)
+    stdin.emit('data', '\r')
+    await sleep(50)
+    expect(written()).toContain('选择推理档位')
+    stdin.emit('data', '\x1b[B') // ↓ low
+    await sleep(30)
+    stdin.emit('data', '\r')
+    await sleep(60)
+    expect(saveSelection).toHaveBeenCalledWith({ provider: 'deepseek', model: 'v4-flash', reasoningEffort: 'low' })
+    await app.dispose()
+  })
+
+  it('权限预设 Enter → preset picker → permission.apply（与 /permission 同写路径）', async () => {
+    const { app, stdin, written, apply } = bootConfigApp({
+      permission: { names: ['workspace-write', 'read-only'], current: 'workspace-write', apply: vi.fn() },
+    })
+    await app.attach()
+    app.handleSubmit('/config')
+    await sleep(50)
+    stdin.emit('data', '\x1b[B') // ↓ 权限类目
+    await sleep(30)
+    stdin.emit('data', '\r')     // 下钻字段
+    await sleep(30)
+    stdin.emit('data', '\r')     // Enter 预设字段
+    await sleep(50)
+    expect(written()).toContain('选择权限预设')
+    stdin.emit('data', '\r')
+    await sleep(60)
+    expect(apply).toHaveBeenCalledTimes(1)
+    const [sessionArg, nameArg] = apply.mock.calls[0] as [unknown, string]
+    expect(nameArg).toBe('workspace-write')
+    expect(sessionArg).toBeDefined()
+    await app.dispose()
+  })
+
+  it('凭据字段 Enter → 直接进该供应商的 /key 对话框', async () => {
+    const { app, stdin, written } = bootConfigApp()
+    await app.attach()
+    app.handleSubmit('/config')
+    await sleep(50)
+    stdin.emit('data', '\x1b[B') // ↓ 凭据类目（模型 → 凭据）
+    await sleep(30)
+    stdin.emit('data', '\r')     // 下钻
+    await sleep(30)
+    stdin.emit('data', '\r')     // Enter DeepSeek 行
+    await sleep(60)
+    expect(written()).toContain('设置 DeepSeek API Key')
     await app.dispose()
   })
 })

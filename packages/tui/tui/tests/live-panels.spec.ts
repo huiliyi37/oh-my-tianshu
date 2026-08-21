@@ -15,7 +15,6 @@ import type { RivetTheme } from '../src/theme.js'
 import type { LiveSnapshot } from '../src/render/live-snapshot.js'
 import {
   renderTasksPanel,
-  renderConfigPanel,
   renderSkillsPanel,
   renderDelegationPanel,
   renderWorkflowPanel,
@@ -109,32 +108,6 @@ describe('renderTasksPanel', () => {
     expect(text).toContain('compiling')
     expect(text).toContain('›')
     expect(text).toContain('vitest')
-  })
-})
-
-describe('renderConfigPanel', () => {
-  it('面板隐藏 → 零行', () => {
-    expect(renderConfigPanel(baseSnapshot())).toEqual([])
-  })
-
-  it('面板打开 + projection → 设置行', () => {
-    const snap = {
-      ...baseSnapshot(),
-      configPanelVisible: true,
-      configProjection: {
-        settings: [{ ns: 'provider', value: 'deepseek' }],
-        modelRoles: null,
-        permission: null,
-        credentials: [],
-      },
-    }
-    const rows = renderConfigPanel(snap)
-    expect(rows.length).toBeGreaterThan(0)
-    expect(rows.join('\n')).toContain('provider')
-  })
-
-  it('面板打开 + projection null（服务缺失）→ 零行', () => {
-    expect(renderConfigPanel({ ...baseSnapshot(), configPanelVisible: true })).toEqual([])
   })
 })
 

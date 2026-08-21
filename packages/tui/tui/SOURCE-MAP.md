@@ -32,7 +32,7 @@
 | src/command-palette.ts | command-palette.ts | modified |
 | src/commands/registry.ts | — | new |
 | src/completion/file-completer.ts | file-completer.ts | modified（目录重排 src/tui/ → src/completion/；`resolveFileCompletion` Tab 协调入口为 dsh 新增） |
-| src/config-panel.ts | — | new |
+| src/config-panel.ts | — | new（/config 交互式双栏设置面板：framed overlay 控制器 + 渲染器，四类目即时编辑分派） |
 | src/controllers/approval-controller.ts | — | new |
 | src/controllers/btw-controller.ts | — | new |
 | src/controllers/question-controller.ts | — | new |

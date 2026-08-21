@@ -1,387 +1,172 @@
 /**
- * config-panel.spec.ts — /config 设置面板纯函数（T3.2）。
+ * config-panel.spec.ts — /config 交互式设置面板（双栏 framed overlay）单测。
  *
- * 覆盖：标题与四段（设置/模型角色/权限预设/凭据）顺序、设置行（ns + 值 + secrets
- * 脱敏标记）、值渲染（string/number/boolean/object/空值）、secrets 脱敏
- * 标记三态（无槽 / 空槽 / 已脱敏计数）、模型角色段（主模型 + 三角色 pin/跟随默认
- * 两态、服务缺席整段不渲染）、权限预设选择器（names 动态取、仅 custom 保留字
- * 补行）、凭据徽章（configured/source/writable，writable 整行 DIM 置灰）、空输入
- * 占位、窄宽截断与极端窄宽不抛错。数据面形状以
- * packages/settings/settings、packages/core/model-roles、
- * packages/interaction/permission、packages/credentials/credentials 实测为准。
+ * 覆盖：控制器状态机（导航/切栏/Enter 分派/Esc 关闭/只读提示/游标保持的
+ * refresh）、framed 渲染（标题/双栏/状态行/页脚/宽度截断/窗口滚动）。
+ * 主题与 actions 均为测试桩（纯渲染层，无服务）。
  */
-import { describe, expect, it } from 'vitest'
-import { projectConfigPanel, type ConfigPanelProjection } from '../src/config-panel.js'
-import { displayWidth } from '../src/width.js'
+import { describe, expect, it, vi } from 'vitest'
+import { ConfigPanelController, type ConfigFieldAction, type ConfigPanelData } from '../src/config-panel.js'
+import type { RivetTheme } from '../src/theme.js'
 
-/** DIM 置灰转义序列（与 workflow-panel 同款）。 */
-const DIM = '\x1B[2m'
-const RESET = '\x1B[0m'
-
-/** 全空投影：无设置、无模型角色段（null）、无权限服务（permission null）、无凭据。 */
-const emptyProjection: ConfigPanelProjection = {
-  settings: [],
-  modelRoles: null,
-  permission: null,
-  credentials: [],
+function fakeTheme(): RivetTheme {
+  return {
+    primary: '#111111', secondary: '#222222', success: '#333333',
+    warning: '#444444', error: '#555555', dim: '#666666', muted: '#777777',
+    pulseQuiet: '#888888', pulseActive: '#999999', pulseAlert: '#aaaaaa',
+    userColor: '#bbbbbb', assistantColor: '#cccccc', systemColor: '#dddddd',
+    brandColor: '#eeeeee', toolColor: () => '#000000', contextColor: () => '#000000',
+  }
 }
 
-/** 完整投影：设置（string/number/boolean/object/secret 槽）+ 权限 + 凭据。 */
-const fullProjection: ConfigPanelProjection = {
-  settings: [
-    { ns: 'model', value: 'gpt-4o' },
-    { ns: 'max-turns', value: 8 },
-    { ns: 'strict', value: true },
-    { ns: 'theme', value: { accent: 'blue' } },
-    {
-      ns: 'api-key',
-      value: undefined,
-      secrets: [{ path: ['apiKey'], set: true }],
-    },
-    {
-      ns: 'token',
-      value: undefined,
-      secrets: [{ path: ['token'], set: false }],
-    },
-    {
-      ns: 'provider',
-      value: { url: 'https://api.example.com', key: 'sk-abc' },
-      secrets: [
-        { path: ['key'], set: true },
-        { path: ['backup'], set: true },
-      ],
-    },
-  ],
-  modelRoles: null,
-  permission: {
-    options: [
-      { value: 'preset-a', name: '预设 A' },
-      { value: 'preset-b', name: '预设 B' },
-    ],
-    currentValue: 'preset-a',
-  },
-  credentials: [
-    { ref: 'DEEPSEEK_API_KEY', configured: true, source: 'env', writable: true },
-    { ref: 'GH_TOKEN', configured: false, writable: false },
-    { ref: 'KEY2', configured: true, writable: true },
-  ],
+function plain(lines: readonly string[]): string[] {
+  return lines.map(line => line.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''))
 }
 
-describe('projectConfigPanel 标题与段顺序', () => {
-  it('首行为标题行', () => {
-    const rows = projectConfigPanel(emptyProjection, { width: 80 })
-    expect(rows[0]).toBe('⚙ 配置')
-  })
-
-  it('完整投影按 设置/权限预设/凭据 顺序渲染三段', () => {
-    const rows = projectConfigPanel(fullProjection, { width: 80 })
-    const settingsIdx = rows.indexOf('◆ 设置')
-    const permissionIdx = rows.indexOf('◆ 权限预设')
-    const credentialsIdx = rows.indexOf('◆ 凭据')
-    expect(settingsIdx).toBeGreaterThan(0)
-    expect(permissionIdx).toBeGreaterThan(settingsIdx)
-    expect(credentialsIdx).toBeGreaterThan(permissionIdx)
-  })
-})
-
-describe('projectConfigPanel 空态', () => {
-  it('设置为空渲染占位（无设置项）', () => {
-    const rows = projectConfigPanel(emptyProjection, { width: 80 })
-    expect(rows).toContain('  （无设置项）')
-  })
-
-  it('凭据为空渲染占位（无凭据）', () => {
-    const rows = projectConfigPanel(emptyProjection, { width: 80 })
-    expect(rows).toContain('  （无凭据）')
-  })
-
-  it('permission 为 null 时不渲染权限预设段', () => {
-    const rows = projectConfigPanel(emptyProjection, { width: 80 })
-    expect(rows.some(r => r.includes('权限预设'))).toBe(false)
-  })
-})
-
-describe('设置段 值渲染', () => {
-  it('string 值原样渲染', () => {
-    const rows = projectConfigPanel(fullProjection, { width: 80 })
-    expect(rows).toContain('  model · gpt-4o')
-  })
-
-  it('number 值渲染为十进制', () => {
-    const rows = projectConfigPanel(fullProjection, { width: 80 })
-    expect(rows).toContain('  max-turns · 8')
-  })
-
-  it('boolean 值渲染为 true/false', () => {
-    const rows = projectConfigPanel(fullProjection, { width: 80 })
-    expect(rows).toContain('  strict · true')
-  })
-
-  it('object 值紧凑 JSON 渲染', () => {
-    const rows = projectConfigPanel(fullProjection, { width: 80 })
-    expect(rows).toContain('  theme · {"accent":"blue"}')
-  })
-
-  it('null/undefined 值渲染占位 —', () => {
-    const rows = projectConfigPanel(
+/** 两类目 × 若干字段的标准数据桩。 */
+function sampleData(): ConfigPanelData {
+  return {
+    categories: [
       {
-        settings: [{ ns: 'legacy', value: null }, { ns: 'unset', value: undefined }],
-        modelRoles: null,
-        permission: null,
-        credentials: [],
-      },
-      { width: 80 },
-    )
-    expect(rows).toContain('  legacy · —')
-    expect(rows).toContain('  unset · —')
-  })
-
-  it('非 JSON 值（函数）不抛错且回退 String 渲染', () => {
-    const rows = projectConfigPanel(
-      { settings: [{ ns: 'fn', value: () => undefined }], modelRoles: null, permission: null, credentials: [] },
-      { width: 80 },
-    )
-    expect(rows.some(r => r.startsWith('  fn · '))).toBe(true)
-  })
-
-  it('symbol 顶层值回退类型名', () => {
-    const rows = projectConfigPanel(
-      { settings: [{ ns: 'sym', value: Symbol('x') }], modelRoles: null, permission: null, credentials: [] },
-      { width: 80 },
-    )
-    expect(rows).toContain('  sym · symbol')
-  })
-
-  it('bigint 顶层值回退类型名', () => {
-    const rows = projectConfigPanel(
-      { settings: [{ ns: 'big', value: 9007199254740993n }], modelRoles: null, permission: null, credentials: [] },
-      { width: 80 },
-    )
-    expect(rows).toContain('  big · bigint')
-  })
-})
-
-describe('设置段 secrets 脱敏标记', () => {
-  it('无 secrets 字段不渲染标记', () => {
-    const rows = projectConfigPanel(fullProjection, { width: 80 })
-    expect(rows).toContain('  model · gpt-4o')
-    expect(rows.some(r => r.startsWith('  model') && r.includes('🔒'))).toBe(false)
-  })
-
-  it('secrets 空数组不渲染标记', () => {
-    const rows = projectConfigPanel(
-      { settings: [{ ns: 'plain', value: 'x', secrets: [] }], modelRoles: null, permission: null, credentials: [] },
-      { width: 80 },
-    )
-    expect(rows).toContain('  plain · x')
-    expect(rows.some(r => r.startsWith('  plain') && r.includes('🔒'))).toBe(false)
-  })
-
-  it('有已脱敏密钥渲染计数标记', () => {
-    const rows = projectConfigPanel(fullProjection, { width: 80 })
-    expect(rows.some(r => r.includes('api-key') && r.includes('🔒 1 密钥已脱敏'))).toBe(true)
-    expect(rows.some(r => r.includes('provider') && r.includes('🔒 2 密钥已脱敏'))).toBe(true)
-  })
-
-  it('secret 槽存在但未设置渲染空槽标记', () => {
-    const rows = projectConfigPanel(fullProjection, { width: 80 })
-    expect(rows.some(r => r.includes('token') && r.includes('🔒 密钥槽'))).toBe(true)
-  })
-})
-
-describe('权限预设选择器（names 动态）', () => {
-  it('动态渲染 options 的 name，当前值打勾 ✓、非当前 ○', () => {
-    const rows = projectConfigPanel(fullProjection, { width: 80 })
-    expect(rows).toContain('  ✓ 预设 A')
-    expect(rows).toContain('  ○ 预设 B')
-  })
-
-  it('仅 currentValue 匹配的选项打勾', () => {
-    const rows = projectConfigPanel(
-      {
-        settings: [],
-        modelRoles: null,
-        permission: {
-          options: [
-            { value: 'preset-a', name: 'A' },
-            { value: 'preset-b', name: 'B' },
-          ],
-          currentValue: 'preset-b',
-        },
-        credentials: [],
-      },
-      { width: 80 },
-    )
-    expect(rows).toContain('  ○ A')
-    expect(rows).toContain('  ✓ B')
-  })
-
-  it('currentValue 为 custom 且 options 无 custom 时补保留字行', () => {
-    const rows = projectConfigPanel(
-      {
-        settings: [],
-        modelRoles: null,
-        permission: { options: [{ value: 'preset-a', name: 'A' }], currentValue: 'custom' },
-        credentials: [],
-      },
-      { width: 80 },
-    )
-    expect(rows).toContain('  ✓ custom')
-    expect(rows).toContain('  ○ A')
-  })
-
-  it('custom 已在 options 时不重复补行', () => {
-    const rows = projectConfigPanel(
-      {
-        settings: [],
-        modelRoles: null,
-        permission: {
-          options: [
-            { value: 'preset-a', name: 'A' },
-            { value: 'custom', name: '自定义' },
-          ],
-          currentValue: 'custom',
-        },
-        credentials: [],
-      },
-      { width: 80 },
-    )
-    expect(rows).toContain('  ✓ 自定义')
-    expect(rows.some(r => r.includes('  ✓ custom'))).toBe(false)
-  })
-})
-
-describe('凭据徽章（configured/source/writable）', () => {
-  it('已配置 + source + 可写 → 徽章齐全且不置灰', () => {
-    const rows = projectConfigPanel(fullProjection, { width: 80 })
-    expect(rows).toContain('  DEEPSEEK_API_KEY ● 已配置 · env · 可写')
-    const line = rows.find(r => r.includes('DEEPSEEK_API_KEY'))
-    expect(line).not.toContain(DIM)
-  })
-
-  it('未配置 + 无 source + 只读 → ○ 徽章且整行 DIM 置灰', () => {
-    const rows = projectConfigPanel(fullProjection, { width: 80 })
-    const line = rows.find(r => r.includes('GH_TOKEN'))
-    expect(line).toBe(`${DIM}  GH_TOKEN ○ 未配置 · 只读${RESET}`)
-  })
-
-  it('已配置但无 source → 不渲染 source 段', () => {
-    const rows = projectConfigPanel(fullProjection, { width: 80 })
-    expect(rows).toContain('  KEY2 ● 已配置 · 可写')
-  })
-
-  it('可写徽章不置灰（无 DIM 包裹）', () => {
-    const rows = projectConfigPanel(fullProjection, { width: 80 })
-    const line = rows.find(r => r.includes('KEY2'))
-    expect(line).not.toContain(DIM)
-  })
-
-  it('段尾恒带 /key 入口提示（含空凭据段）', () => {
-    const full = projectConfigPanel(fullProjection, { width: 80 })
-    expect(full[full.length - 1]).toBe('  运行 /key 设置 API Key')
-    const empty = projectConfigPanel(emptyProjection, { width: 80 })
-    expect(empty[empty.length - 1]).toBe('  运行 /key 设置 API Key')
-  })
-})
-
-describe('窄宽截断', () => {
-  it('长值在窄宽下截断补 …，且所有行不超 width', () => {
-    const longValue = '这是一个非常非常长的模型标识符用于验证窄宽截断降级逻辑是否正常工作且不应溢出'
-    const rows = projectConfigPanel(
-      { settings: [{ ns: 'model', value: longValue }], modelRoles: null, permission: null, credentials: [] },
-      { width: 20 },
-    )
-    for (const row of rows) {
-      expect(displayWidth(row)).toBeLessThanOrEqual(20)
-    }
-    expect(rows.some(r => r.includes('…'))).toBe(true)
-  })
-
-  it('窄宽下含 DIM 置灰行不超 width', () => {
-    const rows = projectConfigPanel(
-      {
-        settings: [],
-        modelRoles: null,
-        permission: null,
-        credentials: [
-          { ref: 'VERY_LONG_CREDENTIAL_REFERENCE_NAME', configured: false, writable: false },
+        key: 'model',
+        label: '模型',
+        fields: [
+          { key: 'default', label: '默认模型', value: 'openrouter/stealth/ox-alpha', editable: true, action: { kind: 'edit-default-model' } },
+          { key: 'effort', label: '推理档位', value: 'max', editable: true, action: { kind: 'edit-effort' }, hint: 'off = 不思考' },
+          { key: 'vision', label: '视觉模型', value: '跟随默认', editable: true, action: { kind: 'edit-role', role: 'vision' } },
         ],
       },
-      { width: 20 },
-    )
-    for (const row of rows) {
-      expect(displayWidth(row)).toBeLessThanOrEqual(20)
-    }
+      {
+        key: 'overview',
+        label: '概览',
+        fields: [
+          { key: 'ns:a', label: 'llm-deepseek', value: '—', editable: false, action: { kind: 'none' } },
+        ],
+      },
+    ],
+  }
+}
+
+/** 装配控制器：edit/close 记录调用；返回面板与桩。 */
+function makePanel() {
+  const edit = vi.fn()
+  const close = vi.fn()
+  const panel = new ConfigPanelController({ getTheme: fakeTheme, edit, close })
+  return { panel, edit, close }
+}
+
+describe('ConfigPanelController — 导航与分派', () => {
+  it('右/Enter 下钻到字段栏；↑↓ 环移；Enter 分派编辑动作', () => {
+    const { panel, edit } = makePanel()
+    panel.open(sampleData())
+    panel.handleKey('right', '')
+    panel.handleKey('return', '')
+    expect(edit).toHaveBeenCalledWith({ kind: 'edit-default-model' })
+    panel.handleKey('down', '')
+    panel.handleKey('return', '')
+    expect(edit).toHaveBeenCalledWith({ kind: 'edit-effort' })
+    panel.handleKey('down', '')
+    panel.handleKey('return', '')
+    expect(edit).toHaveBeenCalledWith({ kind: 'edit-role', role: 'vision' })
   })
 
-  it('极端窄宽（width ≤ 1）不抛错', () => {
-    expect(() => projectConfigPanel(fullProjection, { width: 1 })).not.toThrow()
+  it('Tab/左键回类目栏；类目栏 Enter 下钻到字段', () => {
+    const { panel, edit } = makePanel()
+    panel.open(sampleData())
+    panel.handleKey('tab', '')
+    panel.handleKey('return', '') // 类目栏 Enter = 下钻到字段
+    panel.handleKey('return', '') // 字段栏 Enter = 分派
+    expect(edit).toHaveBeenCalledWith({ kind: 'edit-default-model' })
   })
 
-  it('宽幅下不截断', () => {
-    const rows = projectConfigPanel(fullProjection, { width: 80 })
-    expect(rows).toContain('  model · gpt-4o')
-    expect(rows).toContain('  ✓ 预设 A')
+  it('只读字段 Enter 给状态行提示、不分派；Esc 请求关闭', () => {
+    const { panel, edit, close } = makePanel()
+    panel.open(sampleData())
+    // 类目栏下移到「概览」，Enter 下钻到其只读字段。
+    panel.handleKey('down', '')
+    panel.handleKey('return', '')
+    panel.handleKey('return', '')
+    expect(edit).not.toHaveBeenCalled()
+    expect(plain(panel.render(60, 14)).join('\n')).toContain('该项只读')
+    panel.handleKey('escape', '')
+    expect(close).toHaveBeenCalledOnce()
+    expect(panel.wantsClose()).toBe(true)
+  })
+
+  it('refresh 按键保持游标（编辑回开后停在原字段）', () => {
+    const { panel, edit } = makePanel()
+    panel.open(sampleData())
+    panel.handleKey('right', '')
+    panel.handleKey('down', '') // effort
+    panel.refresh(sampleData())
+    panel.handleKey('return', '')
+    expect(edit).toHaveBeenCalledWith({ kind: 'edit-effort' })
+  })
+
+  it('空类目字段列表：Enter 不下钻、右键不切栏；渲染占位', () => {
+    const { panel, edit } = makePanel()
+    panel.open({ categories: [{ key: 'empty', label: '空', fields: [] }] })
+    panel.handleKey('right', '')
+    panel.handleKey('return', '')
+    expect(edit).not.toHaveBeenCalled()
+    expect(plain(panel.render(50, 10)).join('\n')).toContain('（无配置项）')
   })
 })
 
-describe('模型角色段（pin 状态只读）', () => {
-  /** 三角色全 pin 的投影。 */
-  const pinned: ConfigPanelProjection = {
-    settings: [],
-    modelRoles: {
-      main: { provider: 'deepseek-official', model: 'deepseek-v4-pro' },
-      vision: { provider: 'openai', model: 'gpt-5-vision' },
-      secondary: { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
-      subagent: { provider: 'anthropic', model: 'claude-sonnet' },
-    },
-    permission: null,
-    credentials: [],
-  }
-
-  it('pin/未 pin 两态：已 pin 显示 provider/model，未 pin 显示「跟随默认」', () => {
-    const rows = projectConfigPanel(pinned, { width: 80 })
-    expect(rows).toContain('◆ 模型角色')
-    expect(rows).toContain('  主模型 · deepseek-official/deepseek-v4-pro')
-    expect(rows).toContain('  视觉模型 · openai/gpt-5-vision')
-    expect(rows).toContain('  副模型 · deepseek-official/deepseek-v4-flash')
-    expect(rows).toContain('  子代理模型 · anthropic/claude-sonnet')
-    const unpinned = projectConfigPanel(
-      { ...pinned, modelRoles: { main: { provider: 'deepseek-official', model: 'deepseek-v4-pro' }, vision: undefined, secondary: undefined, subagent: undefined } },
-      { width: 80 },
-    )
-    expect(unpinned).toContain('  视觉模型 · 跟随默认')
-    expect(unpinned).toContain('  副模型 · 跟随默认')
-    expect(unpinned).toContain('  子代理模型 · 跟随默认')
+describe('ConfigPanelController — framed 渲染', () => {
+  it('标题 + 双栏 + 状态行 + 页脚键位 + 框线', () => {
+    const { panel } = makePanel()
+    panel.open(sampleData())
+    const lines = plain(panel.render(64, 14))
+    const text = lines.join('\n')
+    expect(text).toContain('⚙ 配置')
+    expect(text).toContain('模型')
+    expect(text).toContain('概览')
+    expect(text).toContain('默认模型')
+    expect(text).toContain('openrouter/stealth/ox-alpha')
+    expect(text).toContain('↑↓ 移动 · ←→ 切栏 · Enter 编辑 · Esc 退出')
+    expect(lines[0]).toContain('┌')
+    expect(lines.at(-1)).toContain('└')
   })
 
-  it('段首小字说明回退语义（不复制消费者回退链）', () => {
-    const rows = projectConfigPanel(pinned, { width: 80 })
-    const titleIdx = rows.indexOf('◆ 模型角色')
-    expect(rows[titleIdx + 1]).toBe('  未 pin 的角色按各消费者默认回退（详见 /model <role>）')
+  it('字段选中时状态行显示 hint', () => {
+    const { panel } = makePanel()
+    panel.open(sampleData())
+    panel.handleKey('right', '')
+    panel.handleKey('down', '') // effort 带 hint
+    expect(plain(panel.render(64, 14)).join('\n')).toContain('off = 不思考')
   })
 
-  it('主模型服务缺失（main null）显示 —', () => {
-    const rows = projectConfigPanel(
-      { ...pinned, modelRoles: { main: null, vision: undefined, secondary: undefined, subagent: undefined } },
-      { width: 80 },
-    )
-    expect(rows).toContain('  主模型 · —')
+  it('类目栏焦点时状态行显示类目回退提示', () => {
+    const { panel } = makePanel()
+    panel.open(sampleData())
+    expect(plain(panel.render(64, 14)).join('\n')).toContain('←→ 切栏')
   })
 
-  it('modelRoles 为 null 时整段不渲染', () => {
-    const rows = projectConfigPanel(emptyProjection, { width: 80 })
-    expect(rows.some(r => r.includes('模型角色'))).toBe(false)
+  it('窄宽/矮高退化：超窄单行、行宽截断不越框', () => {
+    const { panel } = makePanel()
+    panel.open(sampleData())
+    expect(panel.render(3, 10)).toEqual(['⚙ …'])
+    for (const line of plain(panel.render(30, 12))) {
+      expect(line.length).toBeLessThanOrEqual(30)
+    }
+    expect(plain(panel.render(30, 12)).join('\n')).toContain('…')
   })
 
-  it('段顺序：设置 → 模型角色 → 权限预设 → 凭据', () => {
-    const rows = projectConfigPanel({ ...fullProjection, modelRoles: pinned.modelRoles }, { width: 80 })
-    const settingsIdx = rows.indexOf('◆ 设置')
-    const rolesIdx = rows.indexOf('◆ 模型角色')
-    const permissionIdx = rows.indexOf('◆ 权限预设')
-    const credentialsIdx = rows.indexOf('◆ 凭据')
-    expect(rolesIdx).toBeGreaterThan(settingsIdx)
-    expect(permissionIdx).toBeGreaterThan(rolesIdx)
-    expect(credentialsIdx).toBeGreaterThan(permissionIdx)
+  it('长字段列表窗口滚动：选中项保持在窗口内、远处项不在', () => {
+    const { panel } = makePanel()
+    const fields = Array.from({ length: 30 }, (_, i) => ({
+      key: `f${i}`,
+      label: `字段${i}`,
+      value: `v${i}`,
+      editable: false,
+      action: { kind: 'none' } as ConfigFieldAction,
+    }))
+    panel.open({ categories: [{ key: 'big', label: '大', fields }] })
+    panel.handleKey('right', '')
+    for (let i = 0; i < 15; i++) panel.handleKey('down', '')
+    const text = plain(panel.render(50, 12)).join('\n')
+    expect(text).toContain('字段15')
+    expect(text).not.toContain('字段0')
   })
 })
