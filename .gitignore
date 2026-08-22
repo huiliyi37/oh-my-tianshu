@@ -60,3 +60,8 @@ packages/**/src/*.js
 packages/**/src/*.js.map
 packages/**/src/*.d.ts
 packages/**/src/*.d.ts.map
+
+# 私有迭代文档(2026-08-22 从公开史剥离,本地继续编辑,永不入库;归档见 ../tianshu-private-archive)
+docs/dsh-*
+docs/2026-08-16-phase2-isolation.*
+docs/cache-hit-baseline-*
