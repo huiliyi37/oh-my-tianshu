@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tool-subagent-report",
   "description": "Child-scoped report tool over ctx.subagents continuations",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publishConfig": {
     "access": "public"
   },

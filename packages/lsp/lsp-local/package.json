@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-lsp-local",
   "description": "Generic stdio language-server provider for the Tianshu Harness LSP capability seam (ctx.lsp) — spawns configured servers, translates JSON-RPC, and serves transient-open goToDefinition/findReferences/goToImplementation/hover queries in the host filesystem namespace",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publishConfig": {
     "access": "public"
   },

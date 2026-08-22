@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-compact",
   "description": "Abstract compaction service seam (ctx.compact) for the Tianshu Harness",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publishConfig": {
     "access": "public"
   },

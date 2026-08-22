@@ -1,7 +1,7 @@
 {
   "name": "jsonrpc-agent-example",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "Unattended JSON-RPC coding-agent composition"
 }

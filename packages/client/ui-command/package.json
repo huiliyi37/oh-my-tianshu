@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-client-ui-command",
   "description": "Client command surface: global directory cache, '/' source, three command UI kinds, popupSelect registry",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publishConfig": {
     "access": "public"
   },

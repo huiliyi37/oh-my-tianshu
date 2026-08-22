@@ -2,6 +2,34 @@
 
 [English](CHANGELOG.md) | 中文
 
+## 2026-08-22 — 0.4.0
+
+0.4.0 落地单专家路由灰度地基、自动记忆管线、多供应商视觉链，以及 TUI 的配置/密钥/预览三个面——自 0.3.0 起 127 个提交。
+
+### agent-router：单专家 Auto 灰度（Phase 1–4）
+
+每个非 zen 的合格 turn-end 都落一条全量决策账本（`router/decision`，self 与 delegate 一视同仁，品牌化 `decisionId` + 完整指标输入）——任一会话日志可重建合格 turn 分母、self/delegate 比例与每条决策的证据。闭合的观察窗口归账为 `router/evaluation`（recovered / persisted / inconclusive；窗口不越过更晚的决策，会话尾部窗口在终结时收尾）。两道确定性晋升关卡——shadow readiness 与 canary health——以 log-only 的 `router/gate` 记录判定与 veto 理由；模式切换始终由人完成。子代理 seam 新增 `runBudget`（步数 + 墙钟，进程内强制，以可区分的 `budget-exhausted` 终态收敛）；auto 派发要求装配级显式 canary 上限（单飞锁、累计帽、合格 turn 冷却），缺失即 fail loud。完成的子代理返回有界结构化 finding（闭合判别 schema、父边界一次性净化），综合节逐字引用进 adopt/reject 闭环。发货 TUI 保持 shadow——晋升等待 ≥30 条真实 shadow 决策。
+
+### 记忆：自动管线
+
+`dsh-memory-pipeline` 回填历史：闲置扫描持久化的历史会话，经租约与台账工作流提取候选（`sourceRefs` 溯源去重、逐会话终态、重试上限），达可配阈值后进入跨会话全局整合阶段。sqlite 记忆面在条目上返回 `sourceRefs`；Markdown 存储按设计不携带来源。
+
+### 多供应商与视觉
+
+`dsh-llm-pi-ai` 增加 pi-ai 认证面（凭据存储、环境上下文适配器、提供方登录流）与模型条目的图片输入声明。内置路由：OpenRouter `stealth/ox-alpha`（1M 上下文、视觉）与官方支持视觉的 `deepseek-v4-flash-vision-exp`。上游 rc.2 统一图片管线分两组落地——规范化附件与请求版本 seam；视觉描述撞输出上限时自动续写一次（缺省预算 1024 → 2048）。
+
+### TUI
+
+`/key` 是多供应商密钥向导（供应商选择 → 掩码输入 → 实时探测 → 热保存），`/config` 是基于热生效 seam 的交互式双栏编辑面板，图片发送获得像素级预览：编辑期间的真彩半块字符缩略图（任意终端可用），无图形协议终端在用户气泡下回退同样的半块渲染。输入历史跨会话持久化（↑/↓），`Alt+Backspace` 移除末张附件，超限剪贴板图片走预算管线，subagent/workflow/后台活动收敛为统一封顶活动带。`/model vision|secondary|subagent` 经新的 `model-roles` seam pin 角色模型并带各消费者回退链；路由键按首个斜杠分割，含斜杠模型 id 不再截断。
+
+### token 效率
+
+tool-bash 系列落地：成功输出折叠尾部与失败错误行精选（P1）、git log/diff 与测试运行的语义压缩（P2）、read 引用去重与环境失败标准化诊断（P3）。
+
+### 上游与平台
+
+上游 v0.1.1-rc.1 波次（凭证记录与授权链、web client 修复、subagent/sandbox/turn 错误的运行时修复）与 rc.2 图片管线。`$DSH_HOME` 缺省独立为 `~/.dsh-tianshu` 并提供 `migrate-home` 迁移。host 面 typecheck 门全仓归零。
+
 ## 2026-08-19 — 0.3.0
 
 0.3.0 是 2026-08-12 TUI 落地之后的第一个产品切口。新的顶层 TUI 会话从禅相位起步，首条消息可改写成任务卡或经意图对齐桥澄清，测试运行与 JSON-in-content 工具调用各有专用插件，活区对工具、子代理与后台任务使用同一套卡片语言。

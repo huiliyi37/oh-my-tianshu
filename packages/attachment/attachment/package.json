@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-attachment",
   "description": "Durable immutable attachment storage seam for the Tianshu Harness",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publishConfig": {
     "access": "public"
   },

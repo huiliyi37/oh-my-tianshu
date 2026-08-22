@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-memory-consolidate",
   "description": "Session-end memory consolidation: heuristic experience extraction behind a success gate, conflict uncertainty marking, and retirement (phase 3)",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publishConfig": {
     "access": "public"
   },

@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-vision-bridge",
   "description": "视觉桥插件：主控模型不识图时，把用户图片附件经独立视觉模型转文字描述，随 agent/pre-step 注入模型可见上下文",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publishConfig": {
     "access": "public"
   },

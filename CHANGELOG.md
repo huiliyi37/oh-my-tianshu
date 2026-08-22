@@ -2,6 +2,34 @@
 
 English | [中文](CHANGELOG.zh.md)
 
+## 2026-08-22 — 0.4.0
+
+0.4.0 lands the single-expert routing rollout foundation, the automatic memory pipeline, a multi-provider vision chain, and the configuration/keys/preview surfaces of the TUI — 127 commits since 0.3.0.
+
+### agent-router: single-expert auto rollout (Phases 1–4)
+
+Every non-zen qualified turn-end now records a full decision ledger entry (`router/decision`, self and delegate alike, branded `decisionId` + complete metric inputs), so any session log reconstructs the denominator, the self/delegate ratio, and every decision's evidence. Closed observation windows settle into `router/evaluation` (recovered / persisted / inconclusive; windows never cross a later decision, and a session's final window closes at disposal). Two deterministic promotion gates — shadow readiness and canary health — record verdicts and veto reasons as log-only `router/gate` records; mode switches stay human. The subagent seam gained `runBudget` (steps + wall clock, enforced in-process, settling distinguishably as `budget-exhausted`); auto dispatching requires explicit assembly-level canary caps (single-flight, total, cooldown over qualified turns) and fails loud without them. Completed children return bounded structured findings (closed discriminant schema, one-shot parent-boundary sanitization) that the synthesis section quotes verbatim into the adopt/reject loop. The shipped TUI stays in shadow — promotion waits for ≥30 real shadow decisions.
+
+### Memory: automatic pipeline
+
+`dsh-memory-pipeline` backfills history: an idle sweep scans persisted past sessions, extracts candidates through a lease-and-ledger workflow (provenance dedup via `sourceRefs`, per-session outcomes, retry caps), and accumulates into a cross-session global consolidation phase once a configurable threshold is met. The sqlite memory surface now returns `sourceRefs` on entries; Markdown stores stay source-free by design.
+
+### Multi-provider and vision
+
+`dsh-llm-pi-ai` gains the pi-ai authentication face (credential storage, environment-context adapters, provider login flows) and image-input declarations on model entries. Built-in routes: OpenRouter `stealth/ox-alpha` (1M context, vision) and the officially vision-capable `deepseek-v4-flash-vision-exp`. The upstream rc.2 unified image pipeline lands in two groups — normalized attachments and the request-version seam — and vision descriptions that hit the output ceiling now auto-continue once (default budget 1024 → 2048).
+
+### TUI
+
+`/key` is a multi-provider key wizard (provider picker → masked input → live probe → hot save), `/config` is an interactive two-pane editing panel over live seams, and image sending gained pixel-level preview: truecolor half-block thumbnails in any terminal while composing, with a half-block fallback under the user bubble for terminals without graphics protocols. Input history persists across sessions (↑/↓), `Alt+Backspace` removes the last attachment, oversized clipboard images route through the budget pipeline, and a unified capped activity band converges subagent/workflow/background activity. `/model vision|secondary|subagent` pins role models through the new `model-roles` seam with per-consumer fallback chains; route keys split on the first slash so slashed model ids survive.
+
+### Token efficiency
+
+The tool-bash series ships: successful output tail-folding with failure error-line selection (P1), semantic compaction for git log/diff and test runs (P2), and read-reference dedup plus standardized environment-failure diagnostics (P3).
+
+### Upstream and platform
+
+Upstream v0.1.1-rc.1 waves (credential records with the authorization chain, web client fixes, runtime fixes for subagent/sandbox/turn errors) and the rc.2 image pipeline. `$DSH_HOME` defaults to the isolated `~/.dsh-tianshu` with a `migrate-home` path. The host-face typecheck gate returned to green across the tree.
+
 ## 2026-08-19 — 0.3.0
 
 0.3.0 is the first product cut after the 2026-08-12 TUI landing. New top-level TUI sessions start in a zen phase, first messages can become task cards or pass through an intent-alignment bridge, test runs and JSON-in-content tool calls have dedicated plugins, and the live area uses one card language for tools, subagents, and background tasks.

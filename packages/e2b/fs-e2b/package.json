@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-fs-e2b",
   "description": "E2B filesystem implementation for Tianshu Harness",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publishConfig": {
     "access": "public"
   },

@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-host-directory-picker-native",
   "description": "Native-OS-chooser backend of the directory-picker seam for the Tianshu Harness web GUI host",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publishConfig": {
     "access": "public"
   },

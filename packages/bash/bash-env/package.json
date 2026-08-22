@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-bash-env",
   "description": "Tool-independent managed DSH_* shell environment registry",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publishConfig": {
     "access": "public"
   },
