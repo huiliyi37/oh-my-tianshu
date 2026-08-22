@@ -3,6 +3,10 @@
   "version": "0.4.0",
   "type": "module",
   "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./lib/types/index.d.ts",
