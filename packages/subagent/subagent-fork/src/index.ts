@@ -59,7 +59,10 @@ function completedTurnPrefix(parent: Agent): SessionEvent[] {
  * restrict() and a scoped shadowing persona section).
  */
 class ForkProvider implements SubagentProvider {
-  readonly capabilities: SubagentCapabilities = { outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true }
+  // runBudget: fork 复用进程内 driver 的步数/墙钟强制。
+  readonly capabilities: SubagentCapabilities = {
+    outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true,
+  }
   // Context contract: a forked child IS seeded with the parent's completed-turn prefix.
   readonly inheritsParentContext = true
 

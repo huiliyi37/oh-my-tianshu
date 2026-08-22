@@ -66,7 +66,7 @@ describe('real Loader composition', () => {
     expect((await ctx.agentDefinitions.get('explore'))?.sandbox).toBe('read-only')
     const scout = await ctx.agentDefinitions.get('scout')
     expect(scout).toMatchObject({ name: 'scout', tools: ['grep'], content: 'Scout body.' })
-    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['explore', 'scout'])
+    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['explore', 'scout', 'verify'])
   })
 
   it('rejects a config violating the schema at load', async () => {

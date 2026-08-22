@@ -18,7 +18,10 @@ const OFF = ReasoningEffortId('off')
  * 分支解析失败并以抛错 fail loud，而不是静默落到默认分支。
  */
 const ADOPT_SECTION_MARKER = `declare adopt or reject with ${ADOPT_TOOL_NAME}`
-const ADOPT_SECTION_ROW_RE = new RegExp(`- subagent (\\S+) \\([^)]*\\) — ${ADOPT_SECTION_MARKER}`)
+// 行格式钉在 packages/guard/agent-router/src/synthesis.ts（renderSynthesisSection）：
+// `- subagent <id> (<stopReason>)[ — …多行 finding…]\n  <marker>`——id 后允许任意
+// 内容跨行，故以行首锚点捕获 id、marker 单独存在性由 ADOPT_SECTION_MARKER 保证。
+const ADOPT_SECTION_ROW_RE = /- subagent (\S+) \(/
 
 /** Keyless headless-agent adapter: one real bash call followed by a final answer. */
 class CliMockAdapter extends LlmAdapter {
@@ -103,6 +106,32 @@ class CliMockAdapter extends LlmAdapter {
       .map(b => b.text)
       .join('\n')
     if (taskText.includes(SUBAGENT_TASK_PREFIX)) {
+      // 结构化 finding 模式（agent-router auto e2e）：请求带 structured_output
+      // 指令时，先以闭合 schema 申报 verify 结论（summary 故意带换行——父边界
+      // 净化为单行的证明面），捕获到账后回复 DONE 收尾。
+      if (options.system?.includes('structured_output') === true) {
+        if (toolResult !== undefined) {
+          const reply = 'SUBAGENT DONE'
+          yield { type: 'block-start', index: 0, blockType: 'text' }
+          yield { type: 'text-delta', index: 0, text: reply }
+          yield { type: 'block-end', index: 0, block: { type: 'text', text: reply } }
+          yield { type: 'usage', usage: { inputTokens: 7, outputTokens: 5, reasoningTokens: 1 } }
+          yield { type: 'finish', reason: { kind: 'stop' } }
+          return
+        }
+        const findingArgs = JSON.stringify({
+          kind: 'verify',
+          summary: '独立复核：主会话连败已复现\n换行注入尝试',
+          findings: ['bash exit 1 x8'],
+          verdict: 'supported',
+        })
+        yield { type: 'block-start', index: 0, blockType: 'tool-call' }
+        yield { type: 'tool-call-delta', index: 0, id: CallId('cli-subagent-finding'), name: 'structured_output', argumentsDelta: findingArgs }
+        yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: CallId('cli-subagent-finding'), name: 'structured_output', arguments: findingArgs } }
+        yield { type: 'usage', usage: { inputTokens: 9, outputTokens: 6 } }
+        yield { type: 'finish', reason: { kind: 'tool-calls' } }
+        return
+      }
       if (toolResult !== undefined && toolResult.content.some(b => b.type === 'text' && b.text.includes('ROUND_TRIP'))) {
         const reply = 'SUBAGENT DONE'
         yield { type: 'block-start', index: 0, blockType: 'text' }

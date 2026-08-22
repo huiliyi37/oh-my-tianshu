@@ -29,6 +29,7 @@ const FULL_CAPABILITIES: SubagentCapabilities = {
   toolFilter: true,
   persona: true,
   sandboxMode: true,
+  runBudget: true,
 }
 
 interface CapturedTool {
@@ -280,19 +281,19 @@ describe('memory_deep_recall', () => {
     apply(noProvider.ctx, {})
     await expect(runRecall(noProvider)).rejects.toThrow('spawn')
 
-    const noOutputSchema = makeCtx({ capabilities: { outputSchema: false } })
+    const noOutputSchema = makeCtx({ capabilities: { outputSchema: false, runBudget: false } })
     apply(noOutputSchema.ctx, {})
     await expect(runRecall(noOutputSchema)).rejects.toThrow('outputSchema')
 
-    const noToolFilter = makeCtx({ capabilities: { toolFilter: false } })
+    const noToolFilter = makeCtx({ capabilities: { toolFilter: false, runBudget: false } })
     apply(noToolFilter.ctx, {})
     await expect(runRecall(noToolFilter)).rejects.toThrow('toolFilter')
 
-    const noPersona = makeCtx({ capabilities: { persona: false } })
+    const noPersona = makeCtx({ capabilities: { persona: false, runBudget: false } })
     apply(noPersona.ctx, {})
     await expect(runRecall(noPersona)).rejects.toThrow('persona')
 
-    const noDepthLimit = makeCtx({ capabilities: { depthLimit: false } })
+    const noDepthLimit = makeCtx({ capabilities: { depthLimit: false, runBudget: false } })
     apply(noDepthLimit.ctx, {})
     await expect(runRecall(noDepthLimit)).rejects.toThrow('depthLimit')
   })

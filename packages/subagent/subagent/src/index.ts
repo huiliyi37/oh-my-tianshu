@@ -518,6 +518,7 @@ export class SubagentService extends Service {
       { when: request.toolFilter !== undefined, cap: 'toolFilter' },
       { when: request.persona !== undefined, cap: 'persona' },
       { when: request.sandboxMode !== undefined, cap: 'sandboxMode' },
+      { when: request.runBudget !== undefined, cap: 'runBudget' },
     ]
     for (const { when, cap } of needs) {
       if (when && !provider.capabilities[cap]) {

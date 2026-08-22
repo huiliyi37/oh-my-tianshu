@@ -85,6 +85,15 @@ export interface SubagentCapabilities {
   readonly toolFilter: boolean
   readonly persona: boolean
   readonly sandboxMode: boolean
+  /**
+   * Whether the provider can honor {@link SubagentStartRequest.runBudget}:
+   * enforce a relative step + wall-clock budget on the child run and settle it
+   * with a distinguishable `budget-exhausted` stop reason. Providers that
+   * cannot guarantee the contract must declare `false` — the service rejects a
+   * budgeted request on them before `start` runs (fail loud, no
+   * accepted-then-ignored budgets).
+   */
+  readonly runBudget: boolean
 }
 
 /**
@@ -153,6 +162,16 @@ export interface SubagentStartRequest {
    * through this field.
    */
   readonly sandboxMode?: 'read-only'
+  /**
+   * Optional relative run budget for the child: a maximum model-step count and
+   * a wall-clock timeout, both measured on the child run itself. Requires
+   * {@link SubagentCapabilities.runBudget}; rejected at start otherwise. A
+   * budgeted child that exhausts either bound settles with the
+   * `budget-exhausted` stop reason — distinguishable from a parent
+   * cancellation (`aborted`) so consumers can tell "the budget said no" from
+   * "the parent said stop".
+   */
+  readonly runBudget?: { maxSteps: number; timeoutMs: number }
 }
 
 /**
@@ -215,6 +234,12 @@ export interface SubagentStopReasonMap {
   'max-tokens': 'max-tokens'
   /** The child declined the task. */
   refusal: 'refusal'
+  /**
+   * The child exhausted its declared {@link SubagentStartRequest.runBudget}
+   * (step count or wall clock). Distinct from `aborted` so consumers can tell
+   * "the budget said no" from "the parent said stop".
+   */
+  'budget-exhausted': 'budget-exhausted'
 }
 
 /** The union over {@link SubagentStopReasonMap} — widens automatically as backends merge in variants. */

@@ -14,6 +14,12 @@
     profileTools:
       codeScout: ['read', 'bash']
       verifier: ['read', 'bash']
+    # 真实 turn/end 自动派发证明（DSH_ROUTER_AUTO=1）：canary 上限与子代理预算
+    # 是显式装配值；缺省 off——既有快照/e2e 不受影响。
+    trigger:
+      mode: !!js "process.env.DSH_ROUTER_AUTO === '1' ? 'auto' : 'off'"
+      onTurnEnd: !!js "process.env.DSH_ROUTER_AUTO === '1'"
+    auto: !!js "process.env.DSH_ROUTER_AUTO === '1' ? { maxConcurrent: 1, maxTotal: 3, cooldownTurns: 3, maxSteps: 24, timeoutMs: 600000 } : undefined"
 
 - id: str-replace-editor
   name: '@huiliyi37/dsh-tool-str-replace-editor'

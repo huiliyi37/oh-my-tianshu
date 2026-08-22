@@ -71,10 +71,9 @@ describe('agent-router 真实装配（连败 → escalate → delegate）', () =
     expect(firstEvent).toBeDefined()
     expect(subagentId).not.toBe(firstEvent!['sessionId'])
     expect(lines.find(line => line['type'] === 'router_dispatch_failed')).toBeUndefined()
-    // 子代理真实完成一轮（mock 分支产物经 forwardAllSessions 转发可见）：
-    // tool-call 触发 bash printf SUBAGENT_ROUND_TRIP，收到结果后回复 SUBAGENT DONE。
-    expect(stdout).toContain('SUBAGENT_ROUND_TRIP')
-    expect(stdout).toContain('SUBAGENT DONE')
+    // 子代理真实完成一轮（Phase 3 结构化面）：structured_output 捕获 finding
+    // 即该轮终点（router_dispatched stopReason completed 已断言）。
+    expect(stdout).toContain('structured_output')
   }, LOADER_SMOKE_TEST_TIMEOUT_MS)
 
   it('正常路径（无连败）路由决策为 self', async () => {
@@ -94,5 +93,41 @@ describe('agent-router 真实装配（连败 → escalate → delegate）', () =
     expect(routerState).toBeDefined()
     const action = routerState!['action'] as { kind: string }
     expect(action.kind).toBe('self')
+  }, LOADER_SMOKE_TEST_TIMEOUT_MS)
+
+  it('真实 turn/end 自动派发：插件自行 decide+dispatch，恰好一次且子代理完成一轮', async () => {
+    const { stdout, stderr } = await runLoaderSmoke({
+      label: 'headless-agent-router-auto',
+      tempDirPrefix: 'headless-agent-router-auto-',
+      binScript,
+      libBinScript: binScript,
+      configPath,
+      binArgs: [configPath, 'prove the auto path'],
+      tsconfigPath,
+      env: {
+        // 8 连败使首轮 turn/end 处于 escalate → 触发器自动派发 verifier 子代理
+        DSH_CLI_MOCK_FAIL_LOOP: '1',
+        DSH_ROUTER_AUTO: '1',
+      },
+    })
+    expect(stderr).toBe('')
+    const lines = stdout.trimEnd().split('\n').map(line => JSON.parse(line) as Record<string, unknown>)
+    const settled = lines.find(line => line['type'] === 'router_auto_settled')
+    expect(settled).toBeDefined()
+    // 恰好一次自动派发：1 route + 1 outcome + 恰一条 dispatched:true 决策
+    expect(settled!['routes']).toBe(1)
+    expect(settled!['outcomes']).toBe(1)
+    expect(settled!['dispatchedDecisions']).toBe(1)
+    // 结构化 finding：子代理 structured_output 捕获经父边界净化（换行折叠为
+    // 单行）后入账 outcome——模型可见与日志持久逐字一致。
+    expect(settled!['outcomeFinding']).toEqual({
+      kind: 'verify',
+      summary: '独立复核：主会话连败已复现 换行注入尝试',
+      findings: ['bash exit 1 x8'],
+      verdict: 'supported',
+    })
+    // 子代理真实完成一轮的证据即 outcome.finding 本身：structured 捕获到账并
+    // 经父边界净化入账。route/outcome/decision 落在 runFixtureTurn 的事件转发
+    // 窗口之后（turn-end 微任务出窗），由 settled 汇总行权威计数。
   }, LOADER_SMOKE_TEST_TIMEOUT_MS)
 })

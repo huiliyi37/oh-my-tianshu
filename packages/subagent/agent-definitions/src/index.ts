@@ -117,6 +117,8 @@ export interface Config {
   bundledAgentDir?: string
   /** Register the built-in read-only `explore` role (default true). */
   builtinExplore?: boolean
+  /** Register the built-in read-only `verify` role (default true). */
+  builtinVerify?: boolean
   /** Maximum number of completed cwd catalogs kept in memory. */
   collectCacheMaxEntries?: number
   /** Whether host-local agent roots are watched for catalog changes. */
@@ -176,6 +178,28 @@ const BUILTIN_EXPLORE: AgentDefinitionRegistration = {
 }
 
 /**
+ * The built-in read-only verification role: an independent second channel that
+ * re-checks claims and runs verification commands (tests) without ever writing.
+ * Companion to {@link BUILTIN_EXPLORE} — agent-router maps its verifier profile
+ * onto this role. The allow list names only base-assembly tools; a deployment
+ * missing one fails the delegation loud through `tools.restrict()`.
+ */
+const BUILTIN_VERIFY: AgentDefinitionRegistration = {
+  name: 'verify',
+  description:
+    'Independent read-only verification: re-checks specific claims, reproduces defects, and runs read-only '
+    + 'verification commands (e.g. focused tests) with evidence-backed verdicts. Cannot modify files or the workspace.',
+  content: [
+    'You are an independent verification subagent. Your job is to re-check a claim from scratch — never to fix or change anything.',
+    'Work read-only: read the cited code, reproduce the claimed behavior, and run only read-only or test-running shell commands.',
+    'Deliver a verdict — supported, unsupported, or inconclusive — backed by concrete evidence you gathered yourself.',
+    'State exactly what you ran and observed; if you cannot decide, say inconclusive and what evidence would decide it.',
+  ].join('\n'),
+  tools: ['grep', 'read', 'glob', 'repo_graph', 'bash'],
+  sandbox: 'read-only',
+}
+
+/**
  * Registry of agent role definitions. It merges the runtime registrations with
  * local filesystem discovery using stable first-wins duplicate handling,
  * exposes sorted invocation-neutral summaries, and loads full role bodies on
@@ -191,6 +215,7 @@ export class AgentDefinitionService extends Service {
     customAgentDirs: z.array(z.string()).default([]),
     bundledAgentDir: z.string(),
     builtinExplore: z.boolean().default(true),
+    builtinVerify: z.boolean().default(true),
     collectCacheMaxEntries: z.number().default(DEFAULT_COLLECT_CACHE_ENTRIES),
     watch: z.boolean().default(true),
     watchUsePolling: z.boolean().default(false),
@@ -231,6 +256,7 @@ export class AgentDefinitionService extends Service {
       this.watchManager.observeHostMutation(target.displayPath)
     })
     if (config.builtinExplore !== false) this.register(BUILTIN_EXPLORE)
+    if (config.builtinVerify !== false) this.register(BUILTIN_VERIFY)
   }
 
   /**
@@ -267,7 +293,6 @@ export class AgentDefinitionService extends Service {
         invalidateCache()
       }
     }, 'agentDefinitions.register()')
-    // oxlint-disable-next-line typescript/no-misused-promises -- synchronous cleanup; direct return preserves disposer identity
     return dispose
   }
 

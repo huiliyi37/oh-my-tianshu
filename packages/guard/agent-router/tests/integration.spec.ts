@@ -92,9 +92,42 @@ function toolResult(isError: boolean): unknown {
 function runTool(
   emit: (name: string, ...args: unknown[]) => void,
   isError: boolean,
-  session: { id: string; header?: { parentSession?: string } } = { id: 'session-1' },
+  session: { id: string; header?: { parentSession?: string }; events?: unknown[] } = { id: 'session-1' },
 ): void {
-  emit('session/event', session, toolResult(isError))
+  // 归账投影读取 owner.events（真 Session 恒有）；替身缺省补空数组。
+  emit('session/event', { events: [], ...session }, toolResult(isError))
+}
+
+/**
+ * 归账测试替身：session.append 同步落 records + events（镜像真实 Session 的
+ * 日志面），emitTool 双面落（emit 喂指标面、append 落日志面——真实装配中
+ * 工具结果由 agent-loop 写入 Session.append）。
+ */
+function makeLedgerSession(
+  emit: (name: string, ...args: unknown[]) => void,
+  id: SessionId,
+): {
+  records: Array<{ type: string; data: Record<string, unknown> }>
+  session: { id: SessionId; header: object; events: SessionEvent[]; append: (type: string, data: unknown) => void }
+  emitTool: (failed: boolean) => void
+} {
+  const records: Array<{ type: string; data: Record<string, unknown> }> = []
+  const events: SessionEvent[] = []
+  const session = {
+    id,
+    header: {},
+    events,
+    append: (type: string, data: unknown) => {
+      records.push({ type, data: data as Record<string, unknown> })
+      events.push({ type, data } as SessionEvent)
+    },
+  }
+  const emitTool = (failed: boolean): void => {
+    const event = toolResult(failed) as { type: string; data: unknown }
+    emit('session/event', session, event)
+    session.append(event.type, event.data)
+  }
+  return { records, session, emitTool }
 }
 
 describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
@@ -174,7 +207,7 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     const router = ctx.get('router') as RouterService
     for (let i = 0; i < 5; i++) {
       // @ts-expect-error -- 测试拆开 payload 派发（session/event 参数形状宽松）
-      (ctx.emit)('session/event', { id: PARENT_ID }, toolResult(true))
+      (ctx.emit)('session/event', { id: PARENT_ID, events: [] }, toolResult(true))
     }
     const action = router.decide({ sessionId: PARENT_ID })
     expect(action.kind).toBe('delegate')
@@ -231,16 +264,26 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     })
     await vi.waitFor(() => { expect(appended).toHaveLength(1) })
     expect(appended[0]!.type).toBe('router/decision')
-    const decision = appended[0]!.data as { profile: string; mode: string; dispatched: boolean; subagentSessionId?: string }
+    const decision = appended[0]!.data as {
+      decisionId: string
+      profile: string
+      mode: string
+      dispatched: boolean
+      subagentSessionId?: string
+      metrics: { interventionLevel: string }
+    }
+    expect(decision.decisionId).toBe('rtdec-0')
     expect(decision.profile).toBe('verifier')
     expect(decision.mode).toBe('shadow')
     expect(decision.dispatched).toBe(false)
     expect(decision.subagentSessionId).toBeUndefined()
+    // 完整指标输入随决策落盘（判定依据可从日志重建）
+    expect(decision.metrics.interventionLevel).toBe('escalate')
     expect(seam.start).not.toHaveBeenCalled()
   }, 10000)
 
   it('trigger auto：turn/end 决策后经 seam 派发，决策记录 dispatched true', async () => {
-    const { seam, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true } })
+    const { seam, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true }, auto: { maxConcurrent: 1, maxTotal: 999, cooldownTurns: 1, maxSteps: 24, timeoutMs: 600000 } })
     const A = SessionId('session-a')
     const appended: Array<{ type: string; data: unknown }> = []
     const session = {
@@ -263,7 +306,7 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
   }, 10000)
 
   it('trigger auto：seam.start 拒绝时失败收敛（decision 落 dispatched false + 错误日志，turn 不被打断）', async () => {
-    const { ctx, seam, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true } })
+    const { ctx, seam, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true }, auto: { maxConcurrent: 1, maxTotal: 999, cooldownTurns: 1, maxSteps: 24, timeoutMs: 600000 } })
     const A = SessionId('session-a')
     const appended: Array<{ type: string; data: unknown }> = []
     const session = {
@@ -293,7 +336,7 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
   }, 10000)
 
   it('trigger auto：子代理 result reject（基础设施故障）时失败收敛——route 已落、outcome 不落', async () => {
-    const { ctx, seam, counters, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true } })
+    const { ctx, seam, counters, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true }, auto: { maxConcurrent: 1, maxTotal: 999, cooldownTurns: 1, maxSteps: 24, timeoutMs: 600000 } })
     const A = SessionId('session-a')
     const appended: Array<{ type: string; data: unknown }> = []
     const session = {
@@ -327,7 +370,7 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
   }, 10000)
 
   it('trigger auto：缺 provider/model 时短路——decision 落 dispatched false 且 seam 未调用', async () => {
-    const { seam, emit } = makeContext({ provider: undefined, model: undefined, trigger: { mode: 'auto', onTurnEnd: true } })
+    const { seam, emit } = makeContext({ provider: undefined, model: undefined, trigger: { mode: 'auto', onTurnEnd: true }, auto: { maxConcurrent: 1, maxTotal: 999, cooldownTurns: 1, maxSteps: 24, timeoutMs: 600000 } })
     const A = SessionId('session-a')
     const appended: Array<{ type: string; data: unknown }> = []
     const session = {
@@ -343,13 +386,15 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
       type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
     })
     await vi.waitFor(() => { expect(appended).toHaveLength(1) })
-    const decision = appended[0]!.data as { dispatched: boolean; subagentSessionId?: string }
+    const decision = appended[0]!.data as { action: string; mode: string; dispatched: boolean; subagentSessionId?: string }
+    expect(decision.action).toBe('delegate')
+    expect(decision.mode).toBe('auto')
     expect(decision.dispatched).toBe(false)
     expect(decision.subagentSessionId).toBeUndefined()
     expect(seam.start).not.toHaveBeenCalled()
   }, 10000)
 
-  it('trigger off / child 会话 turn/end 不触发决策', async () => {
+  it('trigger off / child 会话 turn/end 不触发决策；self 决策全量记账', async () => {
     const offCtx = makeContext({ trigger: { mode: 'shadow', onTurnEnd: true } })
     const router = offCtx.ctx.get('router') as RouterService
     const A = SessionId('session-a')
@@ -367,20 +412,26 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     offCtx.emit('session/event', { id: 'session-child-1', header: { parentSession: A }, append: () => {} }, {
       type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
     })
-    // self 决策（连续 3 次成功重置）→ 不落记录
+    // self 决策（连续 3 次成功重置）→ Phase 1 全量记账：self 也落一条带完整
+    // 指标输入的决策（消除只有 delegate 分子的偏差）。
     for (let i = 0; i < 3; i++) runTool(offCtx.emit, false, { id: A })
     offCtx.emit('session/event', session, {
       type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
     })
     await new Promise(resolve => setTimeout(resolve, 10))
-    expect(appended).toHaveLength(0)
+    expect(appended).toHaveLength(1)
+    const selfDecision = appended[0]!.data as { action: string; mode: string; dispatched: boolean; metrics: Record<string, unknown> }
+    expect(selfDecision.action).toBe('self')
+    expect(selfDecision.mode).toBe('shadow')
+    expect(selfDecision.dispatched).toBe(false)
+    expect(selfDecision.metrics).toEqual(router.metrics({ sessionId: A }))
     // 缺省配置（无 trigger）不触发
     const defaultCtx = makeContext()
     const defaultRouter = defaultCtx.ctx.get('router') as RouterService
     for (let i = 0; i < 8; i++) runTool(defaultCtx.emit, true, { id: 'session-a' })
     expect(defaultRouter.metrics({ sessionId: SessionId('session-a') }).interventionLevel).toBe('escalate')
     const defaultAppended: Array<{ type: string }> = []
-    defaultCtx.emit('session/event', { id: 'session-a', header: {}, append: (type: string) => { defaultAppended.push({ type }) } }, {
+    defaultCtx.emit('session/event', { id: 'session-a', header: {}, events: [], append: (type: string) => { defaultAppended.push({ type }) } }, {
       type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
     })
     await new Promise(resolve => setTimeout(resolve, 10))
@@ -388,7 +439,7 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
   }, 10000)
 
   it('禅阶段（zen/phase 折叠为 zen）turn/end 不触发：不决策、不记录、不派发', async () => {
-    const { seam, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true } })
+    const { seam, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true }, auto: { maxConcurrent: 1, maxTotal: 999, cooldownTurns: 1, maxSteps: 24, timeoutMs: 600000 } })
     const A = SessionId('session-a')
     const appended: Array<{ type: string; data: unknown }> = []
     const events: SessionEvent[] = [
@@ -458,6 +509,53 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     await vi.waitFor(() => { expect(appended).toHaveLength(1) })
   }, 10000)
 
+  it('决策归账：窗口闭合落 router/evaluation + readiness gate 留痕（shadow 零派发）', async () => {
+    const { seam, emit } = makeContext({ trigger: { mode: 'shadow', onTurnEnd: true } })
+    const { records, session, emitTool } = makeLedgerSession(emit, SessionId('session-a'))
+    // 决策 d1：8 连败 → delegate（shadow 只记录）
+    for (let i = 0; i < 8; i++) emitTool(true)
+    emit('session/event', session, {
+      type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
+    })
+    await vi.waitFor(() => { expect(records.map(record => record.type)).toContain('router/decision') })
+    // 窗口闭合：8 条父会话工具结果（3 败 + 5 成，尾部连续成功 ≥3 → recovered）
+    for (let i = 0; i < 3; i++) emitTool(true)
+    for (let i = 0; i < 5; i++) emitTool(false)
+    await vi.waitFor(() => { expect(records.map(record => record.type)).toContain('router/gate') })
+    const ledger = records.filter(record => record.type.startsWith('router/'))
+    expect(ledger.map(record => record.type)).toEqual(['router/decision', 'router/evaluation', 'router/gate'])
+    const decisionId = (ledger[0]!.data as { decisionId: string }).decisionId
+    const evaluationRecord = ledger[1]!.data as { decisionId: string; classification: string; samples: number; windowFailures: number }
+    expect(evaluationRecord.decisionId).toBe(decisionId)
+    expect(evaluationRecord.classification).toBe('recovered')
+    expect(evaluationRecord.samples).toBe(8)
+    expect(evaluationRecord.windowFailures).toBe(3)
+    const gate = ledger[2]!.data as { kind: string; verdict: string; vetoSignals: string[] }
+    expect(gate.kind).toBe('shadow-readiness')
+    // 样本 1 < 30：关卡只留痕否决理由，绝不自行切换模式
+    expect(gate.verdict).toBe('veto')
+    expect(gate.vetoSignals[0]).toContain('insufficient evaluated decisions')
+    expect(seam.start).not.toHaveBeenCalled()
+  }, 10000)
+
+  it('auto 装配归账加记 canary-health gate：零真实派发不伪造收益边际', async () => {
+    const { emit } = makeContext({ provider: undefined, model: undefined, trigger: { mode: 'auto', onTurnEnd: true }, auto: { maxConcurrent: 1, maxTotal: 999, cooldownTurns: 1, maxSteps: 24, timeoutMs: 600000 } })
+    const { records, session, emitTool } = makeLedgerSession(emit, SessionId('session-a'))
+    for (let i = 0; i < 8; i++) emitTool(true)
+    emit('session/event', session, {
+      type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
+    })
+    await vi.waitFor(() => { expect(records.map(record => record.type)).toContain('router/decision') })
+    for (let i = 0; i < 8; i++) emitTool(false)
+    await vi.waitFor(() => { expect(records.filter(record => record.type === 'router/gate')).toHaveLength(2) })
+    const kinds = records.filter(record => record.type === 'router/gate').map(record => record.data as { kind: string; verdict: string })
+    expect(kinds[0]).toMatchObject({ kind: 'shadow-readiness', verdict: 'veto' })
+    expect(kinds[1]).toMatchObject({ kind: 'canary-health', verdict: 'veto' })
+    const canarySignals = (records.find(record => record.type === 'router/gate' && (record.data as { kind: string }).kind === 'canary-health')!.data as { vetoSignals: string[] }).vetoSignals
+    expect(canarySignals[0]).toContain('insufficient actual dispatches')
+    expect(canarySignals[0]).toContain('no benefit proxy')
+  }, 10000)
+
   it('trigger 配置非法 fail loud', () => {
     expect(() => { applyAgentRouter(new Context(), { trigger: { mode: 'hyper' as never } }) }).toThrow(/trigger.mode/)
     expect(() => { applyAgentRouter(new Context(), { trigger: { onTurnEnd: 'yes' as never } }) }).toThrow(/onTurnEnd/)
@@ -465,6 +563,73 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     expect(() => { applyAgentRouter(new Context(), { escalation: { minConsecutiveFailures: 0 } }) }).toThrow(/minConsecutiveFailures/)
     expect(() => { applyAgentRouter(new Context(), { budget: { defaultMaxTurns: -1 } }) }).toThrow(/budget.defaultMaxTurns/)
   })
+
+  it('mode auto 缺显式 auto 策略 fail loud（灰度上限是装配值，不设插件默认）', () => {
+    expect(() => { applyAgentRouter(new Context(), { trigger: { mode: 'auto', onTurnEnd: true } }) })
+      .toThrow(/requires explicit auto\.maxConcurrent/)
+    expect(() => {
+      applyAgentRouter(new Context(), {
+        trigger: { mode: 'auto', onTurnEnd: true },
+        auto: { maxConcurrent: 1, maxTotal: 1, cooldownTurns: 1, maxSteps: 0, timeoutMs: 1000 },
+      })
+    }).toThrow(/auto\.maxSteps/)
+  })
+
+  it('canary 门：单飞锁/冷却/总帽拦下重复派发，决策仍全量落盘（dispatched false）', async () => {
+    const { seam, emit } = makeContext({
+      trigger: { mode: 'auto', onTurnEnd: true },
+      auto: { maxConcurrent: 1, maxTotal: 2, cooldownTurns: 3, maxSteps: 24, timeoutMs: 600000 },
+    })
+    const appended: Array<{ type: string; data: Record<string, unknown> }> = []
+    let releaseFirst: (() => void) | undefined
+    const firstResult = new Promise<{ stopReason: string; output: [] }>((resolve) => { releaseFirst = () => resolve({ stopReason: 'completed', output: [] }) })
+    seam.start.mockImplementationOnce(async () => ({
+      id: SessionId('session-child-1'),
+      result: firstResult,
+      dispose: async () => {},
+    }))
+    const A = SessionId('session-a')
+    const session = {
+      id: A,
+      header: {},
+      events: [] as SessionEvent[],
+      append: (type: string, data: unknown) => { appended.push({ type, data: data as Record<string, unknown> }) },
+    }
+    const endTurn = (): void => {
+      emit('session/event', session, {
+        type: 'turn/end', seq: appended.length, time: 1, data: { turn: appended.length, reason: { kind: 'completed' } },
+      })
+    }
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    // 第 1 个合格 turn-end：真实派发（挂起不结算；其决策记录待结算后落盘）
+    endTurn()
+    await vi.waitFor(() => { expect(seam.start).toHaveBeenCalledTimes(1) })
+    // 第 2、3 个 turn-end：单飞锁 + 冷却拦下——先落 dispatched:false 决策
+    endTurn()
+    endTurn()
+    await vi.waitFor(() => { expect(appended).toHaveLength(2) })
+    expect(seam.start).toHaveBeenCalledTimes(1)
+    expect(appended.every(entry => (entry.data as { dispatched: boolean }).dispatched === false)).toBe(true)
+    // 放行在飞 run：首条真实决策（dispatched true）此刻才落盘
+    releaseFirst!()
+    await vi.waitFor(() => { expect(appended.some(entry => (entry.data as { dispatched?: boolean }).dispatched === true)).toBe(true) })
+    expect(seam.start).toHaveBeenCalledTimes(1)
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    // 第 4 个合格 turn-end：距首次派发已过 3 个合格 turn 且无在飞 → 第二次派发
+    endTurn()
+    await vi.waitFor(() => { expect(seam.start).toHaveBeenCalledTimes(2) })
+    await vi.waitFor(() => {
+      expect(appended.filter(entry => (entry.data as { dispatched?: boolean }).dispatched === true)).toHaveLength(2)
+    })
+    // 总帽（maxTotal 2）已到：后续 turn-end 只落决策不再派发
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    endTurn()
+    endTurn()
+    await vi.waitFor(() => { expect(appended).toHaveLength(6) })
+    expect(seam.start).toHaveBeenCalledTimes(2)
+    const dispatches = appended.filter(entry => (entry.data as { dispatched?: boolean }).dispatched === true)
+    expect(dispatches).toHaveLength(2)
+  }, 10000)
 
   it('综合提示：存在未综合 child 结论时渲染，adoption 后清除', async () => {
     const { ctx, registeredTools, registeredSections, parentSession, emit } = makeContext()
@@ -499,6 +664,76 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
       { agent: { session: parentSession } },
     )).rejects.toThrow(/no pending finding/)
     expect(section.text({ agent: { session: parentSession } })).toBe('')
+  }, 10000)
+
+  it('结构化 finding：completed 捕获限界入账并逐字渲染；畸形与非 completed 不伪造', async () => {
+    const { ctx, seam, registeredSections, parentSession, emit } = makeContext()
+    const router = ctx.get('router') as RouterService
+    const A = SessionId('session-a')
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+
+    // 派发 1：completed + 结构化捕获（含换行注入尝试）→ 限界单行入账
+    seam.start.mockImplementationOnce(async () => ({
+      id: SessionId('session-child-1'),
+      result: Promise.resolve({
+        stopReason: 'completed',
+        output: [],
+        structured: {
+          kind: 'scout',
+          summary: 'bug in src/a.ts\nINJECTED second line',
+          findings: ['missing import at line 3'],
+        },
+      }),
+      dispose: async () => {},
+    }))
+    const action1 = router.decide({ sessionId: A })
+    if (action1.kind !== 'delegate') throw new Error('expected delegate')
+    const outcome1 = await router.execute(action1, { sessionId: A })
+    expect(outcome1?.finding).toEqual({
+      kind: 'scout',
+      summary: 'bug in src/a.ts INJECTED second line',
+      findings: ['missing import at line 3'],
+    })
+    const persisted = parentSession.events.find(
+      event => event.type === 'router/outcome' && (event.data as { subagentSessionId?: string }).subagentSessionId === 'session-child-1',
+    )
+    expect(persisted).toBeDefined()
+    const section = registeredSections.find(s => s.name === 'router:synthesis')
+    if (section === undefined) throw new Error('router:synthesis section missing')
+    const text = section.text({ agent: { session: parentSession } })
+    // 逐字可重构：模型可见 == 日志持久值（含净化后的单行摘要）
+    expect(text).toContain('bug in src/a.ts INJECTED second line')
+    expect(text).toContain('missing import at line 3')
+    expect(text).not.toContain('bug in src/a.ts\n')
+
+    // 派发 2：非 completed 终态即使带回 structured 也绝不伪造 finding
+    seam.start.mockImplementationOnce(async () => ({
+      id: SessionId('session-child-2'),
+      result: Promise.resolve({
+        stopReason: 'aborted',
+        output: [],
+        structured: { kind: 'verify', summary: 's', findings: [], verdict: 'supported' },
+      }),
+      dispose: async () => {},
+    }))
+    for (let i = 0; i < 2; i++) runTool(emit, true, { id: A })
+    const action2 = router.decide({ sessionId: A })
+    if (action2.kind !== 'delegate') throw new Error('expected delegate')
+    const outcome2 = await router.execute(action2, { sessionId: A })
+    expect(outcome2?.stopReason).toBe('aborted')
+    expect(outcome2?.finding).toBeUndefined()
+
+    // 派发 3：completed 但形状非法（kind 不认识）→ 不入账
+    seam.start.mockImplementationOnce(async () => ({
+      id: SessionId('session-child-3'),
+      result: Promise.resolve({ stopReason: 'completed', output: [], structured: { kind: 'alien', summary: 's' } }),
+      dispose: async () => {},
+    }))
+    const action3 = router.decide({ sessionId: A })
+    if (action3.kind !== 'delegate') throw new Error('expected delegate')
+    const outcome3 = await router.execute(action3, { sessionId: A })
+    expect(outcome3?.stopReason).toBe('completed')
+    expect(outcome3?.finding).toBeUndefined()
   }, 10000)
 
   it('综合面按可派发性门控：缺 provider/model（shadow 重挂形状）或 dispatchEnabled:false 时不注册，可派发时装配齐', () => {

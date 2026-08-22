@@ -53,6 +53,33 @@ try {
   }).router
   const mainAgent = (ctx as Context & { agents?: { list(): Array<{ session: { id: string } }> } }).agents?.list()[0]
   let finalResult: FixtureTurnResult = result
+  // 真实 turn/end 自动派发证明（DSH_ROUTER_AUTO=1，装配在 cli.cordis.yml）：
+  // 首轮结束后的微任务里由插件自行 decide+dispatch——此处轮询主会话日志直到
+  // router/outcome 落盘（有界等待），再打印汇总行供 e2e 断言。events 每次
+  // 轮询重新取（sessions.get 的 events 引用可能随派生刷新）。
+  if (mainAgent !== undefined && process.env.DSH_ROUTER_AUTO === '1') {
+    const mainId = mainAgent.session.id
+    const sessionsFacet = (ctx as Context & {
+      sessions?: { get(id: string): { events: Array<{ type: string; data?: unknown; seq?: number }> } | undefined }
+    }).sessions
+    const readEvents = (): Array<{ type: string; data?: unknown; seq?: number }> => sessionsFacet?.get(mainId)?.events ?? []
+    const deadline = Date.now() + 15_000
+    while (Date.now() < deadline) {
+      if (readEvents().some(event => event.type === 'router/outcome')) break
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+    const events = readEvents()
+    const decisions = events.filter(event => event.type === 'router/decision')
+    const lastOutcome = events.findLast(event => event.type === 'router/outcome')
+    process.stdout.write(`${JSON.stringify({
+      type: 'router_auto_settled',
+      routes: events.filter(event => event.type === 'router/route').length,
+      outcomes: events.filter(event => event.type === 'router/outcome').length,
+      decisions: decisions.length,
+      dispatchedDecisions: decisions.filter(event => (event.data as { dispatched?: boolean })?.dispatched === true).length,
+      outcomeFinding: (lastOutcome?.data as { finding?: unknown } | undefined)?.finding,
+    })}\n`)
+  }
   if (router !== undefined && mainAgent !== undefined && process.env.DSH_ROUTER_DEMO === '1') {
     const sessionId = mainAgent.session.id
     const action = router.decide({ sessionId })

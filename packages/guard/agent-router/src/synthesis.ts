@@ -11,6 +11,7 @@
  */
 
 import type { SessionEvent } from '@huiliyi37/dsh-session'
+import type { RouterFinding } from './finding.js'
 
 /** 采用声明工具名。 */
 export const ADOPT_TOOL_NAME = 'router_adopt'
@@ -37,12 +38,14 @@ export const DEFAULT_SYNTHESIS_SECTION = [
   'Synthesis discipline: you own the final synthesis and all writes — findings are skeleton/risk/conflict/alternative inputs, never votes; do not blend or average findings; a deferred decision is not a deletion; resolve conflicts explicitly, never drop one silently.',
 ].join(' ')
 
-/** 一条未综合的 child 结论（派生自日志）。 */
+/** 一条未综合的 child 结论（派生自日志；finding 为持久有界值）。 */
 export interface PendingOutcome {
   /** child 会话 id。 */
   subagentSessionId: string
   /** 终态原因。 */
   stopReason: string
+  /** 有界结构化 finding（仅 completed 且捕获成功时存在；逐字渲染）。 */
+  finding?: RouterFinding
 }
 
 /**
@@ -55,9 +58,15 @@ export function pendingOutcomes(events: readonly SessionEvent[]): PendingOutcome
   const pending: PendingOutcome[] = []
   for (const event of events) {
     if (event.type === 'router/outcome') {
-      const { subagentSessionId, stopReason } = event.data as { subagentSessionId?: unknown; stopReason?: unknown }
-      if (typeof subagentSessionId === 'string' && typeof stopReason === 'string') {
-        pending.push({ subagentSessionId, stopReason })
+      const data = event.data as { subagentSessionId?: unknown; stopReason?: unknown; finding?: unknown }
+      if (typeof data.subagentSessionId === 'string' && typeof data.stopReason === 'string') {
+        pending.push({
+          subagentSessionId: data.subagentSessionId,
+          stopReason: data.stopReason,
+          ...(data.finding !== undefined && typeof data.finding === 'object' && data.finding !== null
+            ? { finding: data.finding as RouterFinding }
+            : {}),
+        })
       }
     } else if (event.type === 'router/adoption') {
       const { subagentSessionId } = event.data as { subagentSessionId?: unknown }
@@ -92,8 +101,9 @@ export function verificationGap(events: readonly SessionEvent[]): boolean {
 }
 
 /**
- * 渲染主代理综合提示：列出未综合结论 + rubric；含验证缺口时附软提醒
- * （不硬拦——主代理拥有最终权）。
+ * 渲染主代理综合提示：列出未综合结论（有 finding 时逐字引用持久值）+
+ * rubric；含验证缺口时附软提醒（不硬拦——主代理拥有最终权）。finding 字符串
+ * 在派发边界已一次性净化限界，此处不再加工——模型可见与日志持久逐字一致。
  * @param pending - 未综合结论。
  * @param gap - 验证缺口。
  * @param rubric - rubric 文本（Config 覆盖或缺省）。
@@ -105,8 +115,16 @@ export function renderSynthesisSection(
   rubric: string,
 ): string {
   if (pending.length === 0) return ''
-  const lines = pending.map(entry =>
-    `- subagent ${entry.subagentSessionId} (${entry.stopReason}) — declare adopt or reject with router_adopt`)
+  const lines = pending.map((entry) => {
+    const head = `- subagent ${entry.subagentSessionId} (${entry.stopReason})`
+    if (entry.finding === undefined) return `${head} — declare adopt or reject with router_adopt`
+    const verdict = entry.finding.kind === 'verify' ? ` [${entry.finding.verdict}]` : ''
+    const items = entry.finding.findings.length > 0
+      ? ` Findings:\n${entry.finding.findings.map(item => `  • ${item}`).join('\n')}`
+      : ''
+    // 行尾短语是 cli-mock-llm ADOPT_SECTION_MARKER 的契约锚点，逐字保留。
+    return `${head}${verdict} — ${entry.finding.summary}.${items}\n  declare adopt or reject with router_adopt`
+  })
   const gapLine = gap
     ? 'Note: recent file mutations have no fresh verification in the log — if you claim verification passed, point at the verification that proves it.'
     : ''

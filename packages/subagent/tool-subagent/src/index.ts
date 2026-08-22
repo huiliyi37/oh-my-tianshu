@@ -195,7 +195,7 @@ function stopReasonError(result: SubagentResult): string | undefined {
     // Merge-extensible union: a backend may add stop reasons. Treat an unknown
     // terminal reason as a failure rather than reporting partial output as success.
     default:
-      return `subagent run ended abnormally (${String(result.stopReason)})`
+      return `subagent run ended abnormally (${result.stopReason})`
   }
 }
 

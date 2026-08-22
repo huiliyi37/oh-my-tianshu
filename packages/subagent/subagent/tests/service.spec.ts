@@ -23,8 +23,12 @@ function fakeParent(id = 'parent-1'): Agent {
   return { id: SessionId(id) } as unknown as Agent
 }
 
-const ALL_CAPS: SubagentCapabilities = { outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true }
-const NO_CAPS: SubagentCapabilities = { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false }
+const ALL_CAPS: SubagentCapabilities = {
+  outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true,
+}
+const NO_CAPS: SubagentCapabilities = {
+  outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false,
+}
 
 function baseRequest(overrides: Partial<SubagentStartRequest> = {}): SubagentStartRequest {
   return {
@@ -197,6 +201,7 @@ describe('SubagentService', () => {
     ['toolFilter', { toolFilter: { deny: ['bash'] } }],
     ['persona', { persona: 'reviewer' }],
     ['sandboxMode', { sandboxMode: 'read-only' }],
+    ['runBudget', { runBudget: { maxSteps: 3, timeoutMs: 60_000 } }],
   ] as const)('rejects unsupported %s before provider startup', async (_capability, override) => {
     const { subagents } = await service()
     const provider = new StubProvider('weak', NO_CAPS)
@@ -321,7 +326,6 @@ describe('SubagentService', () => {
     const heard: string[] = []
     ctx.on('subagent/provider-removed', () => { throw new Error('sync boom') })
     // Runtime listeners may return thenables even though the declaration's observable result is void.
-    // oxlint-disable-next-line typescript/no-misused-promises -- exercises rejected-listener containment
     ctx.on('subagent/provider-removed', async () => { throw new Error('async boom') })
     ctx.on('subagent/provider-removed', () => { throw { toString: () => { throw new Error('coercion') } } })
     ctx.on('subagent/provider-removed', name => void heard.push(name))

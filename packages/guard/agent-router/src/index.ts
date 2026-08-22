@@ -1,7 +1,7 @@
 /**
  * agent-router — Cordis 插件接线：指标采集 → 路由决策 → dsh 原生子代理派发。
  *
- * 三个钩子（全部走 dsh 既有机制）：
+ * 四个钩子（全部走 dsh 既有机制）：
  * 1. 指标采集：`ctx.on('session/event')` tool/result → recordPrediction
  *    （工具成败累计器，按 session 隔离、child 会话排除）；evidence tracker
  *    指标经 reflect.get('evidence', false) 读取（无 evidence-gate 时缺省
@@ -9,6 +9,11 @@
  * 2. 路由决策：`ctx.router.decide()` 返回 RouterAction（纯函数 decideRouterAction）。
  * 3. 子代理派发：delegate 动作 → dispatchSubagent（dsh 子代理 seam：
  *    ctx.subagents.start；血统/深度/投影由 seam 自动写）。
+ * 4. 持久账本（Phase 1）：每个非 zen 的合格 turn-end 落一条带品牌化
+ *    decisionId 与完整指标输入的 `router/decision`（self 与 delegate 全量，
+ *    消除只有 delegate 分子的偏差）；闭合的观察窗口归账 `router/evaluation`
+ *    （recovered/persisted/inconclusive），关卡判定留痕 `router/gate`——只
+ *    记录不切换模式。
  *
  * 综合面（router_adopt 工具 + router:synthesis 节）按可派发性门控：仅当派发
  * 被显式打开（provider+model 齐备且 dispatchEnabled）才注册——shadow 重挂等
@@ -35,9 +40,22 @@ import {
   shouldTippingPointReset,
 } from './prediction.js'
 import { decideRouterAction, type EscalationPolicy, type RouterAction, type RouterMetrics } from './router.js'
-import { DEFAULT_PROFILE_TOOLS, dispatchSubagent, type DispatchOptions, type DispatchOutcome } from './dispatch.js'
+import { DEFAULT_PROFILE_TOOLS, dispatchSubagent, type DispatchOptions, type DispatchOutcome, type DispatchRole } from './dispatch.js'
 import { mergeBudgetOverride, resolveBudgetConfig, shapeWriteBudget, type BudgetConfig } from './budget.js'
 import { ADOPT_TOOL_NAME, DEFAULT_SYNTHESIS_SECTION, parseAdoptArgs, pendingOutcomes, renderSynthesisSection, verificationGap } from './synthesis.js'
+import {
+  canaryHealth,
+  classifyObservation,
+  observeWindow,
+  pendingEvaluations,
+  resolveCanaryConfig,
+  resolveEvaluationConfig,
+  resolveReadinessConfig,
+  shadowReadiness,
+} from './evaluation.js'
+import { resolveCanaryHealthGate, resolveShadowReadinessGate } from './promotion.js'
+import { RouterDecisionId } from './ids.js'
+import { FINDING_SCHEMA_BY_PROFILE, type RouterFinding } from './finding.js'
 
 /** 插件名（cordis.yml 装配用）。 */
 export const name = 'agent-router'
@@ -69,9 +87,13 @@ declare module '@huiliyi37/dsh-session/types' {
     /**
      * Durable outcome record on the PARENT session's log: log-only (never
      * reaches the model surface), whole-value append when the child settles.
-     * Paired one-to-one with the acceptance `router/route` record.
+     * Paired one-to-one with the acceptance `router/route` record. A bounded
+     * structured `finding` is present only when the child completed AND its
+     * structured capture passed the parent-boundary shape check — errors,
+     * cancellations, budget terminals, and malformed captures never fabricate
+     * one.
      */
-    'router/outcome': { subagentSessionId: string; stopReason: string }
+    'router/outcome': { subagentSessionId: string; stopReason: string; finding?: RouterFinding }
     /**
      * Durable adoption record on the parent session's own log: log-only
      * (never reaches the model surface), whole-value append via the
@@ -80,19 +102,36 @@ declare module '@huiliyi37/dsh-session/types' {
      */
     'router/adoption': { subagentSessionId: string; verdict: 'adopt' | 'reject'; reason: string }
     /**
-     * 触发评估的持久记录（父会话日志，log-only，不进模型面）：每次 turn-end
-     * 评估落一条——profile/task/targets 是判定输入，mode 区分 shadow（只记录
-     * 不派发）与 auto（真实派发），dispatched 与 subagentSessionId 记录派发
-     * 结果（仅 auto 且真实派发时携带 subagentSessionId）。
+     * 触发评估的持久记录（父会话日志，log-only，不进模型面）：每个非 zen
+     * 的合格 turn-end 落一条——self 与 delegate 全量记账（分母/比例可从任一
+     * 日志重建），带品牌化 decisionId 与决策时的完整 RouterMetrics 输入。
+     * 判别联合以 action 区分（{@link RouterDecisionRecord}）。
      */
-    'router/decision': {
-      profile: 'code_scout' | 'verifier'
-      task: string
-      targets: string[]
-      reason: 'turn-end'
-      mode: 'shadow' | 'auto'
-      dispatched: boolean
-      subagentSessionId?: string
+    'router/decision': RouterDecisionRecord
+    /**
+     * 决策评估的持久归账（父会话日志，log-only，不进模型面）：决策的观察
+     * 窗口（其后至多 windowToolResults 条父会话 tool/result）闭合时落一条，
+     * 分类 recovered / persisted / inconclusive；每条 decision 至多一条
+     * evaluation（不变量强制），decisionId 必须引用本会话更早的决策。
+     */
+    'router/evaluation': {
+      decisionId: string
+      classification: 'recovered' | 'persisted' | 'inconclusive'
+      /** 归账窗口内的父会话工具结果数。 */
+      samples: number
+      /** 归账窗口内的失败数（false-green 判定输入）。 */
+      windowFailures: number
+    }
+    /**
+     * 晋升关卡留痕（父会话日志，log-only，不进模型面）：关卡是纯函数判定，
+     * 只记录 verdict 与 veto 理由，绝不自行切换模式——产品始终通过配置人工
+     * 晋升。shadow-readiness 回答 shadow 数据是否可信；canary-health 仅在
+     * auto 装配上记录，回答灰度本身是否健康。
+     */
+    'router/gate': {
+      kind: 'shadow-readiness' | 'canary-health'
+      verdict: 'pass' | 'veto'
+      vetoSignals: string[]
     }
   }
 }
@@ -103,6 +142,41 @@ interface EvidenceFacet {
   cooldownTable(): Record<string, number>
   verificationCount(): number
 }
+
+/**
+ * self 决策记录（`router/decision` 判别联合的 self 分支）：不携带 delegate
+ * 专属字段，dispatched 恒 false。
+ */
+export interface RouterSelfDecision {
+  /** 品牌化决策 id（`rtdec-<seq>`；与 router/evaluation 一对一配对）。 */
+  decisionId: RouterDecisionId
+  action: 'self'
+  reason: 'turn-end'
+  mode: 'shadow' | 'auto'
+  dispatched: false
+  /** 决策时的完整指标输入（判定依据可从日志重建）。 */
+  metrics: RouterMetrics
+}
+
+/**
+ * delegate 决策记录（`router/decision` 判别联合的 delegate 分支）：
+ * dispatched 与 subagentSessionId 配对（仅 auto 且真实派发时携带 id）。
+ */
+export interface RouterDelegateDecision {
+  decisionId: RouterDecisionId
+  action: 'delegate'
+  profile: 'code_scout' | 'verifier'
+  task: string
+  targets: string[]
+  reason: 'turn-end'
+  mode: 'shadow' | 'auto'
+  dispatched: boolean
+  subagentSessionId?: SessionId
+  metrics: RouterMetrics
+}
+
+/** `router/decision` 判别联合（action 区分 self / delegate 分支）。 */
+export type RouterDecisionRecord = RouterSelfDecision | RouterDelegateDecision
 
 /* jscpd:ignore-start */
 /** 从 tool/result 消息提取文本（tool-result 块内 text 拼接；成败判定用）。 */
@@ -187,6 +261,58 @@ export interface AgentRouterConfig {
     /** 允许 escalate 的最小连续失败次数（正整数）。 */
     minConsecutiveFailures?: number
   }
+  /**
+   * 决策评估观察窗口（Phase 1 归账）：决策后的父会话工具轨迹归账为
+   * recovered/persisted/inconclusive。tunables 全部经此配置注入并校验。
+   */
+  evaluation?: {
+    /** 固定观察窗口：决策后计多少条父会话 tool/result（正整数）。 */
+    windowToolResults?: number
+    /** 归账所需最小样本；不足 → inconclusive（正整数）。 */
+    minSamples?: number
+    /** 窗口尾部连续成功 ≥ 此值 → recovered（正整数）。 */
+    recoveredConsecutive?: number
+    /** 窗口错误率 ≥ 此值 → persisted（[0,1]）。 */
+    persistedErrorRate?: number
+  }
+  /** shadow readiness 关卡阈值（证据投影窗口与 veto 阈值）。 */
+  readiness?: {
+    /** 统计窗口：最近多少条已评估决策（正整数）。 */
+    window?: number
+    /** 最小样本（正整数）。 */
+    minSamples?: number
+    /** 假绿率上限（> 即 veto；[0,1]）。 */
+    maxFalseGreenRate?: number
+    /** persisted 占比 ≥ 此值 → scopeHealth high（[0,1]）。 */
+    persistedScopeShare?: number
+  }
+  /** canary health 关卡阈值（真实派发后的运行健康；auto 装配记录）。 */
+  canary?: {
+    /** 统计窗口：最近多少次真实派发（正整数）。 */
+    window?: number
+    /** 最小派发数（正整数）。 */
+    minDispatches?: number
+    /** 预算耗尽占比上限（> 即 veto；[0,1]）。 */
+    maxBudgetExhaustedShare?: number
+    /** 收益代理下限（有已评估派发且低于此值即 veto；[0,1]）。 */
+    minBenefitProxy?: number
+  }
+  /**
+   * 自动派发的 canary 上限与子代理运行预算。mode 'auto' 时五个字段全部必填
+   * （装配显式声明——这些是灰度装配值，不设插件默认）；shadow/off 下忽略。
+   */
+  auto?: {
+    /** 每会话同时在飞自动派发上限（正整数）。 */
+    maxConcurrent?: number
+    /** 每会话累计自动派发上限（正整数；达到后不再派发，只记录决策）。 */
+    maxTotal?: number
+    /** 两次自动派发之间的最小合格 turn 间隔（正整数）。 */
+    cooldownTurns?: number
+    /** 子代理步数预算（seam runBudget 强制；正整数）。 */
+    maxSteps?: number
+    /** 子代理墙钟预算毫秒（seam runBudget 强制；正整数）。 */
+    timeoutMs?: number
+  }
 }
 
 /** 触发策略（Config 经 resolveTriggerPolicy 解析后传入）。 */
@@ -230,6 +356,48 @@ export function resolveEscalationPolicy(config: AgentRouterConfig): EscalationPo
     throw new Error(`agent-router: escalation.minConsecutiveFailures must be a positive integer, got ${JSON.stringify(minConsecutiveFailures)}`)
   }
   return { cap, minConsecutiveFailures }
+}
+
+/** 自动派发 canary 策略（Config 经 resolveAutoPolicy 解析后传入）。 */
+export interface AutoDispatchPolicy {
+  /** 每会话同时在飞自动派发上限。 */
+  maxConcurrent: number
+  /** 每会话累计自动派发上限。 */
+  maxTotal: number
+  /** 两次自动派发之间的最小合格 turn 间隔。 */
+  cooldownTurns: number
+  /** 子代理步数预算（seam runBudget）。 */
+  maxSteps: number
+  /** 子代理墙钟预算毫秒（seam runBudget）。 */
+  timeoutMs: number
+}
+
+/** 自动派发策略的五个必填字段。 */
+const AUTO_POLICY_FIELDS = ['maxConcurrent', 'maxTotal', 'cooldownTurns', 'maxSteps', 'timeoutMs'] as const
+
+/**
+ * 校验并默认自动派发策略：mode 'auto' 时五个字段全部显式必填（灰度上限是
+ * 装配值，不设插件默认——缺字段即装配期 fail loud）；shadow/off 下返回
+ * undefined（不触发派发路径，无需策略）。
+ * @param config - 插件配置。
+ * @returns 解析后的策略；非 auto 装配为 undefined。
+ */
+export function resolveAutoPolicy(config: AgentRouterConfig): AutoDispatchPolicy | undefined {
+  if (config.trigger?.mode !== 'auto') return undefined
+  const missing = AUTO_POLICY_FIELDS.filter(field => config.auto?.[field] === undefined)
+  if (missing.length > 0) {
+    throw new Error(`agent-router: trigger.mode 'auto' requires explicit auto.${missing.join(', auto.')} (canary caps are assembly values, never plugin defaults)`)
+  }
+  const raw = config.auto ?? {}
+  const policy = {} as Record<keyof AutoDispatchPolicy, number>
+  for (const field of AUTO_POLICY_FIELDS) {
+    const value: number | undefined = raw[field]
+    if (!Number.isInteger(value) || (value as number) < 1) {
+      throw new Error(`agent-router: auto.${field} must be a positive integer, got ${JSON.stringify(value)}`)
+    }
+    policy[field] = value as number
+  }
+  return policy as AutoDispatchPolicy
 }
 
 /**
@@ -299,6 +467,10 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
     throw new Error('agent-router: subagentProvider must be a non-empty provider name')
   }
   const budgetConfig: BudgetConfig = resolveBudgetConfig(config.budget ?? {})
+  const autoPolicy = resolveAutoPolicy(config)
+  const evaluationConfig = resolveEvaluationConfig(config.evaluation ?? {})
+  const readinessConfig = resolveReadinessConfig(config.readiness ?? {})
+  const canaryConfig = resolveCanaryConfig(config.canary ?? {})
   const synthesisSection = config.synthesis?.section ?? DEFAULT_SYNTHESIS_SECTION
   if (typeof synthesisSection !== 'string' || synthesisSection.trim() === '') {
     throw new Error('agent-router: synthesis.section must be a non-empty string')
@@ -379,6 +551,60 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
     }
   }
 
+  // —— 每会话派发控制器（Phase 2）：单飞锁、累计帽、冷却与可收敛的 run 信号 ——
+  interface SessionRunState {
+    /** 在飞自动派发数（单飞锁数据源）。 */
+    inFlight: number
+    /** 累计自动派发数（canary 总帽）。 */
+    total: number
+    /** 合格 turn 计数（冷却间隔的分母）。 */
+    qualifiedTurns: number
+    /** 上次真实派发时的 qualifiedTurns 值。 */
+    lastDispatchTurn: number | undefined
+    /** 在飞 run 的取消通道（父 dispose 时统一收敛）。 */
+    controllers: Set<AbortController>
+  }
+  const runStates = new Map<SessionId, SessionRunState>()
+  const stateOf = (sessionId: SessionId): SessionRunState => {
+    const existing = runStates.get(sessionId)
+    if (existing !== undefined) return existing
+    const created: SessionRunState = {
+      inFlight: 0, total: 0, qualifiedTurns: 0, lastDispatchTurn: undefined, controllers: new Set(),
+    }
+    runStates.set(sessionId, created)
+    return created
+  }
+
+  // —— 角色解析（agent-definitions 可选在场）：profile → 固定角色映射 ——
+  const definitions = ctx.reflect.get('agentDefinitions', false) as
+    | { get(name: string, options?: { cwd?: string }): Promise<{ content: string; tools?: readonly string[]; sandbox?: 'read-only' } | undefined> }
+    | undefined
+  /** profile → 角色名（结构性映射；角色由 agent-definitions 内置提供）。 */
+  const ROLE_BY_PROFILE: Record<DispatchOptions['profile'], string> = { code_scout: 'explore', verifier: 'verify' }
+  const resolveDispatchRole = async (
+    profile: DispatchOptions['profile'],
+    sessionId: SessionId,
+  ): Promise<DispatchRole | undefined> => {
+    if (definitions === undefined) return undefined
+    const name = ROLE_BY_PROFILE[profile]
+    const agents = ctx.reflect.get('agents', false) as { get(sessionId: SessionId): { session?: { header?: { cwd?: string } } } | undefined } | undefined
+    const cwd: string | undefined = agents?.get(sessionId)?.session?.header?.cwd
+    const definition = await definitions.get(name, cwd === undefined ? {} : { cwd })
+    if (definition === undefined) {
+      throw new Error(`agent-router: role "${name}" (profile ${profile}) is not registered — agent-definitions must provide it before dispatch`)
+    }
+    const ceiling = profileTools[profile]
+    const tools = ceiling.filter(tool => definition.tools?.includes(tool) ?? false)
+    if (tools.length === 0) {
+      throw new Error(`agent-router: role "${name}" tool set intersects profile ${profile} ceiling to nothing (ceiling: ${ceiling.join(', ')})`)
+    }
+    return {
+      tools,
+      persona: definition.content,
+      ...(definition.sandbox !== undefined ? { sandboxMode: definition.sandbox } : {}),
+    }
+  }
+
   // —— 派发执行（service.execute 与 turn-end 触发共用）——
   const executeAction = async (
     action: RouterAction,
@@ -388,57 +614,164 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
     // 短路条件即 canDispatch 的展开（保留 undefined 收窄，TS 友好）。
     if (action.kind !== 'delegate' || !dispatchEnabled) return null
     if (config.provider === undefined || config.model === undefined) return null
-    const opts: DispatchOptions = {
-      profile: action.profile,
-      task: action.task,
-      targets: action.targets,
-      provider: config.provider,
-      model: config.model,
-      tools: profileTools[action.profile],
-      subagentProvider,
-      parentSessionId: sessionId,
-      signal: signal ?? new AbortController().signal,
-      budget: mergeBudgetOverride(undefined, shapeWriteBudget(action.targets.length, budgetConfig)),
+    // 每会话派发控制器：run 信号挂到可被父 dispose 收敛的 controller 上
+    // （删除永不触发的临时 AbortController().signal）；外部 signal 仍可取消。
+    const controller = new AbortController()
+    if (signal !== undefined) {
+      signal.addEventListener('abort', () => { controller.abort() }, { once: true })
     }
-    return dispatchSubagent(ctx, opts)
+    const state = stateOf(sessionId)
+    state.controllers.add(controller)
+    try {
+      const dispatchRole = await resolveDispatchRole(action.profile, sessionId)
+      const opts: DispatchOptions = {
+        profile: action.profile,
+        task: action.task,
+        targets: action.targets,
+        provider: config.provider,
+        model: config.model,
+        // 角色在场时以「角色工具集 ∩ profile 天花板」收紧（resolveDispatchRole
+        // 已保证非空交集）并透传 persona/sandbox；缺省回落 profile 内置工具集。
+        ...(dispatchRole !== undefined ? { role: dispatchRole } : {}),
+        tools: profileTools[action.profile],
+        subagentProvider,
+        parentSessionId: sessionId,
+        signal: controller.signal,
+        budget: mergeBudgetOverride(undefined, shapeWriteBudget(action.targets.length, budgetConfig)),
+        ...(autoPolicy !== undefined
+          ? { runBudget: { maxSteps: autoPolicy.maxSteps, timeoutMs: autoPolicy.timeoutMs } }
+          : {}),
+        findingSchema: FINDING_SCHEMA_BY_PROFILE[action.profile],
+      }
+      return await dispatchSubagent(ctx, opts)
+    } finally {
+      state.controllers.delete(controller)
+    }
   }
 
-  // —— turn-end 触发：自动 decide + 决策记录（shadow）/ seam 派发（auto）——
+  // —— 决策 id：append 时点铸造，预测 seq = 当前事件数（同步无并发）——
+  const rtdecId = (owner: Session): RouterDecisionId => RouterDecisionId(`rtdec-${owner.events.length}`)
+
+  // —— 决策归账（Phase 1）：闭合的观察窗口 → router/evaluation + 关卡留痕 ——
+  // 纯投影从日志推导待归账决策；本函数只在微任务中调用（绝不重入发布中的
+  // Session.append）。关卡只记录 verdict/veto 理由，绝不切换模式。
+  const closeDueEvaluations = (owner: Session): void => {
+    const due = pendingEvaluations(owner.events, evaluationConfig)
+    if (due.length === 0) return
+    for (const entry of due) {
+      const stats = observeWindow(owner.events, entry.decisionIndex, evaluationConfig)
+      owner.append('router/evaluation', {
+        decisionId: entry.decisionId,
+        classification: classifyObservation(stats, evaluationConfig),
+        samples: stats.samples,
+        windowFailures: stats.failures,
+      })
+    }
+    const readiness = resolveShadowReadinessGate(shadowReadiness(owner.events, readinessConfig))
+    owner.append('router/gate', {
+      kind: 'shadow-readiness',
+      verdict: readiness.enabled ? 'pass' : 'veto',
+      vetoSignals: readiness.vetoSignals,
+    })
+    if (trigger.mode === 'auto') {
+      const canary = resolveCanaryHealthGate(canaryHealth(owner.events, canaryConfig), {
+        maxBudgetExhaustedShare: canaryConfig.maxBudgetExhaustedShare,
+        minBenefitProxy: canaryConfig.minBenefitProxy,
+      })
+      owner.append('router/gate', {
+        kind: 'canary-health',
+        verdict: canary.enabled ? 'pass' : 'veto',
+        vetoSignals: canary.vetoSignals,
+      })
+    }
+  }
+
+  // —— turn-end 触发：全量决策记账（self+delegate）/ shadow 只记录 / seam 派发（auto）——
   const runTrigger = async (owner: Session): Promise<void> => {
-    const action = decideRouterAction(collectMetrics(owner.id), obligationHint(), escalationPolicy)
-    if (action.kind !== 'delegate') return // self 决策不落记录（避免逐轮噪声）
+    const metricsSnapshot = collectMetrics(owner.id)
+    const action = decideRouterAction(metricsSnapshot, obligationHint(), escalationPolicy)
+    if (action.kind === 'self') {
+      // 合格 turn-end 全量落决策：self 也带完整指标输入，消除只有 delegate
+      // 分子的偏差（合格 turn 分母与 self/delegate 比例可从任一日志重建）。
+      owner.append('router/decision', {
+        decisionId: rtdecId(owner),
+        action: 'self',
+        reason: 'turn-end',
+        mode: trigger.mode === 'auto' ? 'auto' : 'shadow',
+        dispatched: false,
+        metrics: metricsSnapshot,
+      })
+      return
+    }
     if (trigger.mode === 'shadow') {
       owner.append('router/decision', {
+        decisionId: rtdecId(owner),
+        action: 'delegate',
         profile: action.profile,
         task: action.task,
         targets: action.targets,
         reason: 'turn-end',
         mode: 'shadow',
         dispatched: false,
+        metrics: metricsSnapshot,
       })
       return
     }
-    // auto：决策 + 派发；派发失败不打断 turn，但必须留痕（决策记录 + 错误日志）。
-    const decision: { dispatched: boolean; subagentSessionId?: string } = { dispatched: true }
+    // auto：决策 + canary 门（单飞锁/累计帽/冷却）+ 派发；失败不打断 turn，
+    // 但必须留痕（决策记录 + 错误日志）。被 canary 门拦下时同样落
+    // dispatched:false 的决策——路由意愿与灰度上限都在日志里可重建。
+    // mode 'auto' 在装配期已保证 autoPolicy 就位（resolveAutoPolicy fail loud）。
+    if (autoPolicy === undefined) return
+    const runState = stateOf(owner.id)
+    runState.qualifiedTurns++
+    const cooled = runState.lastDispatchTurn !== undefined
+      && runState.qualifiedTurns - runState.lastDispatchTurn < autoPolicy.cooldownTurns
+    if (runState.inFlight >= autoPolicy.maxConcurrent
+      || runState.total >= autoPolicy.maxTotal || cooled) {
+      owner.append('router/decision', {
+        decisionId: rtdecId(owner),
+        action: 'delegate',
+        profile: action.profile,
+        task: action.task,
+        targets: action.targets,
+        reason: 'turn-end',
+        mode: 'auto',
+        dispatched: false,
+        metrics: metricsSnapshot,
+      })
+      return
+    }
+    let dispatched = false
+    let subagentSessionId: SessionId | undefined
+    runState.inFlight++
+    runState.total++
+    runState.lastDispatchTurn = runState.qualifiedTurns
     try {
       const outcome = await executeAction(action, owner.id)
       if (outcome === null) {
         // 缺 provider/model 等短路：决策记录 dispatched false（原因在装配态）。
-        decision.dispatched = false
+        dispatched = false
       } else {
-        decision.subagentSessionId = outcome.sessionId
+        dispatched = true
+        subagentSessionId = outcome.sessionId
       }
     } catch (error) {
-      decision.dispatched = false
+      dispatched = false
       ctx.logger.error('agent-router: turn-end dispatch failed for %s: %o', owner.id, error)
+    } finally {
+      runState.inFlight--
     }
     owner.append('router/decision', {
+      decisionId: rtdecId(owner),
+      action: 'delegate',
       profile: action.profile,
       task: action.task,
       targets: action.targets,
       reason: 'turn-end',
       mode: 'auto',
-      ...decision,
+      dispatched,
+      ...(subagentSessionId !== undefined ? { subagentSessionId } : {}),
+      metrics: metricsSnapshot,
     })
   }
 
@@ -462,23 +795,33 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
       if (shouldTippingPointReset(next)) {
         predictions.set(owner.id, resetAccumulator(next))
       }
+      // 观察窗口归账：tool/result 可能闭合某条决策的窗口，微任务出窗补记。
+      queueMicrotask(() => { closeDueEvaluations(owner) })
     }
-    // turn-end 触发（生产触发点）：shadow 只决策并记录；auto 决策并派发。
-    // 禅阶段（对齐/锚定轮）整体跳过：会话尚在进入状态，受限工具面上的指标
-    // 决策不出可信路由——不决策、不记录、不派发，晋升 full 后的下一轮起
-    // 才参与。微任务出窗：runTrigger 的同步前缀（shadow 的记录 append）会
-    // 重入 turn/end 尚在发布中的 Session.append，撞上重入守卫即 fatal。
+    // turn-end 触发（生产触发点）：全量决策记账；shadow 只记录；auto 决策并
+    // 派发。禅阶段（对齐/锚定轮）整体跳过：会话尚在进入状态，受限工具面上的
+    // 指标决策不出可信路由——不决策、不记录、不派发、不归账，晋升 full 后的
+    // 下一轮起才参与。微任务出窗：runTrigger 的同步前缀（决策 append）与
+    // closeDueEvaluations 的归账 append 会重入 turn/end 尚在发布中的
+    // Session.append，撞上重入守卫即 fatal。触发前先归账已满窗口，触发后
+    // 再归账一次——新决策点会取代上一条未满窗口（每条决策恰一条评估）。
     if (event.type === 'turn/end' && trigger.onTurnEnd && trigger.mode !== 'off') {
-      void queueMicrotask(() => {
+      queueMicrotask(() => {
         if (foldZenPhase(owner.events) === 'zen') return
-        void runTrigger(owner)
+        closeDueEvaluations(owner)
+        void runTrigger(owner).then(() => { closeDueEvaluations(owner) })
       })
     }
   })
 
-  // —— 会话终结回收：agent 注销时 evict 该会话的累计器（长驻进程防无界增长）——
+  // —— 会话终结回收：agent 注销时 evict 该会话的累计器与派发状态（长驻进程
+  // 防无界增长），并收敛在飞自动 run（父 dispose → abort 全部 controller）——
   ctx.on('agent/disposed', ({ agent }) => {
     predictions.delete(agent.session.id)
+    const state = runStates.get(agent.session.id)
+    if (state === undefined) return
+    for (const controller of state.controllers) controller.abort()
+    runStates.delete(agent.session.id)
   })
 
   // —— 义务提示（delegate 任务描述素材）——
@@ -507,7 +850,29 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
 
 export { createPredictionAccumulator, getConsecutiveFailures, getErrorRate, getInterventionLevel, recordPrediction, resetAccumulator, shouldTippingPointReset } from './prediction.js'
 export { decideRouterAction, type EscalationPolicy, type RouterAction, type RouterMetrics } from './router.js'
-export { dispatchSubagent, SUBAGENT_TASK_PREFIX, type DispatchOptions, type DispatchOutcome } from './dispatch.js'
+export { dispatchSubagent, SUBAGENT_TASK_PREFIX, type DispatchOptions, type DispatchOutcome, type DispatchRole } from './dispatch.js'
+export { boundFinding, boundFindingText, FINDING_SCHEMA_BY_PROFILE, FINDING_SUMMARY_MAX_CHARS, FINDING_ITEM_MAX_CHARS, FINDING_ITEMS_MAX, type RouterFinding, type ScoutFinding, type VerifyFinding } from './finding.js'
 export { ADOPT_TOOL_NAME, DEFAULT_SYNTHESIS_SECTION, parseAdoptArgs, pendingOutcomes, renderSynthesisSection, verificationGap, type AdoptArgs, type AdoptVerdict, type PendingOutcome } from './synthesis.js'
 export { mergeBudgetOverride, resolveBudgetConfig, shapeWriteBudget, type BudgetConfig, type BudgetShape } from './budget.js'
-export { MIN_MARGIN, MIN_SAMPLES, effectivePromotionMode, resolvePromotionGate, type PromotionEvidence, type PromotionGateResult, type PromotionMode } from './promotion.js'
+export { MIN_SAMPLES, effectivePromotionMode, resolveCanaryHealthGate, resolveShadowReadinessGate, type CanaryGatePolicy, type PromotionGateResult, type PromotionMode } from './promotion.js'
+export {
+  canaryHealth,
+  classifyObservation,
+  evaluatedDecisions,
+  observeWindow,
+  pendingEvaluations,
+  resolveCanaryConfig,
+  resolveEvaluationConfig,
+  resolveReadinessConfig,
+  shadowReadiness,
+  type CanaryConfig,
+  type CanaryHealthEvidence,
+  type EvaluatedDecision,
+  type EvaluationConfig,
+  type ObservationClassification,
+  type ObservationStats,
+  type PendingEvaluation,
+  type ReadinessConfig,
+  type ShadowReadinessEvidence,
+} from './evaluation.js'
+export { RouterDecisionId } from './ids.js'

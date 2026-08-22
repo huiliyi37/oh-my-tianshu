@@ -95,7 +95,7 @@ describe('dsh-agent-definitions watcher', () => {
     const rootWatcher = watcherHarness.watchers[0]
     expect(rootWatcher?.options).toMatchObject({ depth: 0, atomic: true })
     const initial = (await ctx.agentDefinitions.list()).map(entry => entry.name)
-    expect(initial).toEqual(['explore'])
+    expect(initial).toEqual(['explore', 'verify'])
 
     // Irrelevant events keep the cached catalog: a non-markdown file, a
     // subdirectory event, and anything below a nested directory.
@@ -104,13 +104,13 @@ describe('dsh-agent-definitions watcher', () => {
     rootWatcher?.emitter.emit('addDir', join(root, 'nested'))
     rootWatcher?.emitter.emit('add', join(root, 'nested/hidden.md'))
     await settle()
-    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['explore'])
+    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['explore', 'verify'])
 
     // A role file add invalidates; the next lookup rediscovers.
     await writeFile(join(root, 'scout.md'), roleFile('scout', 'watched role'))
     rootWatcher?.emitter.emit('add', join(root, 'scout.md'))
     await settle()
-    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['explore', 'scout'])
+    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['explore', 'scout', 'verify'])
 
     // Change and unlink follow the same path.
     await writeFile(join(root, 'scout.md'), roleFile('scout', 'renamed description'))
@@ -120,7 +120,7 @@ describe('dsh-agent-definitions watcher', () => {
     await rm(join(root, 'scout.md'))
     rootWatcher?.emitter.emit('unlink', join(root, 'scout.md'))
     await settle()
-    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['explore'])
+    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['explore', 'verify'])
 
     await fiber.dispose()
     expect(rootWatcher?.closeCalls).toBeGreaterThan(0)
@@ -144,7 +144,7 @@ describe('dsh-agent-definitions watcher', () => {
 
     const snapshot = await ctx.agentDefinitions.snapshot()
     expect(snapshot.complete).toBe(false)
-    expect(snapshot.definitions.map(entry => entry.name)).toEqual(['explore', 'resilient'])
+    expect(snapshot.definitions.map(entry => entry.name)).toEqual(['explore', 'resilient', 'verify'])
     expect((await ctx.agentDefinitions.get('resilient'))?.content).toBe('Body.')
 
     await fiber.dispose()

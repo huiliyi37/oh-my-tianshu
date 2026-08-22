@@ -28,6 +28,7 @@ export const NO_START_CAPABILITIES: SubagentCapabilities = Object.freeze({
   toolFilter: false,
   persona: false,
   sandboxMode: false,
+  runBudget: false,
 })
 
 /**

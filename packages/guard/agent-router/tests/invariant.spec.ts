@@ -94,32 +94,58 @@ describe('agent-router route-record invariants', () => {
     }).not.toThrow()
   })
 
-  it('accepts a shadow decision record and rejects malformed ones', async () => {
+  it('accepts well-formed self/delegate decision records and rejects malformed ones', async () => {
     const ctx = await setup()
     const parent = Session.create(SessionId('parent-1'))
+    const metrics = { interventionLevel: 'none', consecutiveFailures: 0, unresolvedHigh: 0, verifications: 0, probeCooledTargets: 0 }
     const decision = (over: Record<string, unknown> = {}): SessionEvent => ({
       type: 'router/decision',
       seq: 0,
       time: 0,
       data: {
-        profile: 'verifier',
-        task: '复核',
-        targets: [],
+        decisionId: 'rtdec-3',
+        action: 'self',
         reason: 'turn-end',
         mode: 'shadow',
         dispatched: false,
+        metrics,
         ...over,
       },
-    } as SessionEvent)
+    } as unknown as SessionEvent)
     expect(() => { ctx.emit('session/event', parent, decision()) }).not.toThrow()
-    expect(() => { ctx.emit('session/event', parent, decision({ mode: 'auto', dispatched: true })) })
-      .toThrow(/subagentSessionId/)
+    const delegate = decision({
+      action: 'delegate',
+      profile: 'verifier',
+      task: '复核',
+      targets: [],
+      mode: 'auto',
+      dispatched: true,
+      subagentSessionId: 'child-7',
+    })
+    expect(() => { ctx.emit('session/event', parent, delegate) }).not.toThrow()
+    // 判别联合卫生：self 不携带 delegate 字段、dispatched 恒 false
+    expect(() => { ctx.emit('session/event', parent, decision({ task: 'x' })) })
+      .toThrow(/delegate-only fields/)
+    expect(() => { ctx.emit('session/event', parent, decision({ dispatched: true })) })
+      .toThrow(/dispatched false/)
+    // delegate 分支的既有约束
+    expect(() => { ctx.emit('session/event', parent, decision({ action: 'delegate' })) })
+      .toThrow(/known profile/)
+    expect(() => { ctx.emit('session/event', parent, decision({ action: 'hyper' })) })
+      .toThrow(/known action/)
     expect(() => { ctx.emit('session/event', parent, decision({ mode: 'hyper' })) })
       .toThrow(/known mode/)
-    expect(() => { ctx.emit('session/event', parent, decision({ dispatched: 'yes' })) })
-      .toThrow(/boolean dispatched/)
     expect(() => { ctx.emit('session/event', parent, decision({ reason: 'boot' })) })
       .toThrow(/known reason/)
+    expect(() => { ctx.emit('session/event', parent, decision({ decisionId: '' })) })
+      .toThrow(/decisionId/)
+    // 指标输入 fail loud
+    expect(() => { ctx.emit('session/event', parent, decision({ metrics: undefined })) })
+      .toThrow(/metrics object/)
+    expect(() => { ctx.emit('session/event', parent, decision({ metrics: { ...metrics, interventionLevel: 'panic' } })) })
+      .toThrow(/interventionLevel/)
+    expect(() => { ctx.emit('session/event', parent, decision({ metrics: { ...metrics, consecutiveFailures: -1 } })) })
+      .toThrow(/consecutiveFailures/)
   })
 
   it('rejects a dispatched decision whose live child names another parent', async () => {
@@ -131,6 +157,8 @@ describe('agent-router route-record invariants', () => {
       seq: 0,
       time: 0,
       data: {
+        decisionId: 'rtdec-1',
+        action: 'delegate',
         profile: 'verifier',
         task: '复核',
         targets: [],
@@ -138,8 +166,9 @@ describe('agent-router route-record invariants', () => {
         mode: 'auto',
         dispatched: true,
         subagentSessionId: 'child-1',
+        metrics: { interventionLevel: 'escalate', consecutiveFailures: 2, unresolvedHigh: 0, verifications: 0, probeCooledTargets: 0 },
       },
-    } as SessionEvent
+    } as unknown as SessionEvent
     expect(() => { ctx.emit('session/event', parent, decision) })
       .toThrow(/parentSession/)
   })
@@ -238,6 +267,111 @@ describe('agent-router route-record invariants', () => {
     } as SessionEvent)
     expect(() => { ctx.emit('session/event', withOutcome, adoption({ verdict: 'maybe' })) }).toThrow(/known verdict/)
     expect(() => { ctx.emit('session/event', withOutcome, adoption({ reason: '' })) }).toThrow(/non-empty reason/)
+  })
+
+  it('accepts a well-formed evaluation after its decision and rejects violations', async () => {
+    const ctx = await setup()
+    const parent = Session.create(SessionId('parent-1'))
+    const metrics = { interventionLevel: 'none', consecutiveFailures: 0, unresolvedHigh: 0, verifications: 0, probeCooledTargets: 0 }
+    ctx.emit('session/event', parent, {
+      type: 'router/decision',
+      seq: 0,
+      time: 0,
+      data: { decisionId: 'rtdec-1', action: 'self', reason: 'turn-end', mode: 'shadow', dispatched: false, metrics },
+    } as unknown as SessionEvent)
+    const evaluation = (over: Record<string, unknown> = {}): SessionEvent => ({
+      type: 'router/evaluation',
+      seq: 1,
+      time: 1,
+      data: { decisionId: 'rtdec-1', classification: 'recovered', samples: 8, windowFailures: 2, ...over },
+    } as unknown as SessionEvent)
+    expect(() => { ctx.emit('session/event', parent, evaluation()) }).not.toThrow()
+    // 每条 decision 至多一条 evaluation
+    expect(() => { ctx.emit('session/event', parent, evaluation()) }).toThrow(/at most one evaluation/)
+    // 引用不存在的决策 fail loud
+    expect(() => { ctx.emit('session/event', parent, evaluation({ decisionId: 'rtdec-404' })) })
+      .toThrow(/unknown decision/)
+    // 形状违规
+    expect(() => { ctx.emit('session/event', parent, evaluation({ classification: 'fine' })) })
+      .toThrow(/known classification/)
+    expect(() => { ctx.emit('session/event', parent, evaluation({ samples: -1 })) })
+      .toThrow(/samples/)
+    expect(() => { ctx.emit('session/event', parent, evaluation({ windowFailures: 1.5 })) })
+      .toThrow(/windowFailures/)
+  })
+
+  it('rejects an evaluation without any prior decision on the same log', async () => {
+    const ctx = await setup()
+    const parent = Session.create(SessionId('parent-1'))
+    const other = Session.create(SessionId('parent-2'))
+    const metrics = { interventionLevel: 'none', consecutiveFailures: 0, unresolvedHigh: 0, verifications: 0, probeCooledTargets: 0 }
+    // 决策在另一条日志上：本会话的评估引用不了它
+    ctx.emit('session/event', other, {
+      type: 'router/decision',
+      seq: 0,
+      time: 0,
+      data: { decisionId: 'rtdec-9', action: 'self', reason: 'turn-end', mode: 'shadow', dispatched: false, metrics },
+    } as unknown as SessionEvent)
+    expect(() => { ctx.emit('session/event', parent, {
+      type: 'router/evaluation',
+      seq: 0,
+      time: 0,
+      data: { decisionId: 'rtdec-9', classification: 'persisted', samples: 3, windowFailures: 3 },
+    } as unknown as SessionEvent) }).toThrow(/unknown decision/)
+  })
+
+  it('accepts well-formed gate records and rejects verdict/signal mismatches', async () => {
+    const ctx = await setup()
+    const parent = Session.create(SessionId('parent-1'))
+    const gate = (over: Record<string, unknown> = {}): SessionEvent => ({
+      type: 'router/gate',
+      seq: 0,
+      time: 0,
+      data: { kind: 'shadow-readiness', verdict: 'pass', vetoSignals: [], ...over },
+    } as unknown as SessionEvent)
+    expect(() => { ctx.emit('session/event', parent, gate()) }).not.toThrow()
+    expect(() => { ctx.emit('session/event', parent, gate({ kind: 'canary-health' })) }).not.toThrow()
+    expect(() => { ctx.emit('session/event', parent, gate({ kind: 'vibes' })) }).toThrow(/known kind/)
+    expect(() => { ctx.emit('session/event', parent, gate({ verdict: 'maybe' })) }).toThrow(/known verdict/)
+    expect(() => { ctx.emit('session/event', parent, gate({ vetoSignals: 'samples' })) })
+      .toThrow(/string-array vetoSignals/)
+    expect(() => { ctx.emit('session/event', parent, gate({ verdict: 'pass', vetoSignals: ['x'] })) })
+      .toThrow(/must cite no veto signals/)
+    expect(() => { ctx.emit('session/event', parent, gate({ verdict: 'veto', vetoSignals: [] })) })
+      .toThrow(/at least one veto signal/)
+  })
+
+  it('accepts a bounded finding on an outcome and rejects malformed ones', async () => {
+    const ctx = await setup()
+    const parent = Session.create(SessionId('parent-1'))
+    const outcome = (finding: unknown): SessionEvent => ({
+      type: 'router/outcome',
+      seq: 0,
+      time: 0,
+      data: { subagentSessionId: 'child-1', stopReason: 'completed', ...(finding === undefined ? {} : { finding }) },
+    } as unknown as SessionEvent)
+    // 合法：verify 带三值裁定；scout 无 verdict
+    expect(() => { ctx.emit('session/event', parent, outcome({
+      kind: 'verify', summary: 'reproduced the crash', findings: ['test X fails on main'], verdict: 'supported',
+    })) }).not.toThrow()
+    expect(() => { ctx.emit('session/event', parent, outcome({
+      kind: 'scout', summary: 'hot spot', findings: ['a', 'b'],
+    })) }).not.toThrow()
+    // 形状非法 fail loud
+    expect(() => { ctx.emit('session/event', parent, outcome({ kind: 'alien' })) })
+      .toThrow(/kind must be scout \| verify/)
+    expect(() => { ctx.emit('session/event', parent, outcome({ kind: 'scout', summary: '', findings: [] })) })
+      .toThrow(/summary/)
+    expect(() => { ctx.emit('session/event', parent, outcome({ kind: 'scout', summary: 's'.repeat(1201), findings: [] })) })
+      .toThrow(/summary/)
+    expect(() => { ctx.emit('session/event', parent, outcome({ kind: 'scout', summary: 's', findings: Array.from({ length: 9 }, () => 'x') })) })
+      .toThrow(/findings/)
+    expect(() => { ctx.emit('session/event', parent, outcome({ kind: 'scout', summary: 's', findings: ['x'.repeat(401)] })) })
+      .toThrow(/findings/)
+    expect(() => { ctx.emit('session/event', parent, outcome({ kind: 'verify', summary: 's', findings: [], verdict: 'maybe' })) })
+      .toThrow(/verdict/)
+    expect(() => { ctx.emit('session/event', parent, outcome({ kind: 'scout', summary: 's', findings: [], verdict: 'supported' })) })
+      .toThrow(/must not carry a verdict/)
   })
 
   it('rejects invalid existing state on late registration', async () => {

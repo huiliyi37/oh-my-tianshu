@@ -47,6 +47,7 @@ const FULL_CAPABILITIES: SubagentCapabilities = {
   toolFilter: true,
   persona: true,
   sandboxMode: true,
+  runBudget: true,
 }
 
 /** Scripted structured outputs, keyed by phase; planner/critic/selector queues are consumed in order. */
@@ -168,7 +169,7 @@ function makeHarness(opts: {
       ? undefined
       : {
         name: 'spawn',
-        capabilities: { ...FULL_CAPABILITIES, ...opts.capabilities },
+        capabilities: { ...FULL_CAPABILITIES, ...opts.capabilities, runBudget: false },
         inheritsParentContext: opts.inheritsParentContext ?? false,
       }),
     start: vi.fn(async (_provider: string, request: SubagentStartRequest): Promise<SubagentRun> => {
@@ -546,7 +547,7 @@ describe('/next-workflow command', () => {
     const providerResult = await runCommand(noProvider)
     expect(providerResult.kind === 'error' ? providerResult.text : '').toContain('"spawn"')
 
-    const noSchema = makeHarness({ capabilities: { outputSchema: false } })
+    const noSchema = makeHarness({ capabilities: { outputSchema: false, runBudget: false } })
     apply(noSchema.ctx, await makeConfig())
     const capabilityResult = await runCommand(noSchema)
     expect(capabilityResult.kind === 'error' ? capabilityResult.text : '').toContain('outputSchema')
@@ -556,7 +557,7 @@ describe('/next-workflow command', () => {
     const freshResult = await runCommand(inheriting)
     expect(freshResult.kind === 'error' ? freshResult.text : '').toContain('fresh-context')
 
-    const noPersona = makeHarness({ capabilities: { persona: false } })
+    const noPersona = makeHarness({ capabilities: { persona: false, runBudget: false } })
     apply(noPersona.ctx, await makeConfig())
     const personaResult = await runCommand(noPersona)
     expect(personaResult.kind === 'error' ? personaResult.text : '').toContain('persona')

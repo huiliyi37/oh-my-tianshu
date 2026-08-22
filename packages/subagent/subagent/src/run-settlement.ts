@@ -36,7 +36,7 @@ function runOutcome(result: SubagentResult): TaskOutcome {
       return { status: 'failed', detail: result.stopReason }
     // Merge-extensible reasons remain failures with their raw detail.
     default:
-      return { status: 'failed', detail: String(result.stopReason) }
+      return { status: 'failed', detail: result.stopReason }
   }
 }
 

@@ -192,7 +192,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'weird',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async () => ({
         id: SessionId('weird-child'),
@@ -218,7 +218,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'capture',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         seen = request
@@ -248,7 +248,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'bare',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         seen = request
@@ -378,7 +378,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'spy',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async () => ({
         id: SessionId('spy-child'),
@@ -401,7 +401,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'spy',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async () => ({
         id: SessionId('spy-child'),
@@ -425,7 +425,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'spy',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async () => ({
         id: SessionId('spy-child'),
@@ -453,7 +453,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'spy',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async () => ({
         id: SessionId('spy-child'),
@@ -480,7 +480,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'spy',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         if (request.signal.aborted) throw new Error('start aborted')
@@ -519,7 +519,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'spy',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         if (request.signal.aborted) sawAborted()
@@ -670,7 +670,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'capture4',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         seen = request
@@ -734,7 +734,7 @@ describe('dsh-tool-subagent background mode', () => {
     let prepareCalls = 0
     ctx.subagents.registerProvider({
       name: 'resumable',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async request => ({
         id: SessionId('one-shot-child'),
@@ -840,7 +840,7 @@ describe('dsh-tool-subagent background mode', () => {
     const parent = ownerAgent(ctx, 'sess-parent')
     ctx.subagents.registerProvider({
       name: 'broken-start',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async () => { throw new Error('setup failed') },
     })
@@ -869,7 +869,7 @@ describe('dsh-tool-subagent background mode', () => {
     const parent = ownerAgent(ctx, 'sess-parent')
     ctx.subagents.registerProvider({
       name: 'pending-start',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: request => new Promise((_resolve, reject) => {
         request.signal.addEventListener('abort', () => { reject(new Error('startup aborted')) }, { once: true })
@@ -909,7 +909,7 @@ describe('dsh-tool-subagent background mode', () => {
     let starts = 0
     ctx.subagents.registerProvider({
       name: 'hanging',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         let settle!: (value: { output: { type: 'text'; text: string }[]; stopReason: 'aborted' }) => void
@@ -1025,7 +1025,7 @@ describe('background preflight failure (no orphaned child, by construction)', ()
     let starts = 0
     ctx.subagents.registerProvider({
       name: 'probe',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async () => {
         starts += 1
@@ -1063,7 +1063,7 @@ describe('depth budget configuration', () => {
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'capture',
-      capabilities: { outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true },
+      capabilities: { outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true },
       inheritsParentContext: false,
       start: async (request) => {
         requests.push(request)
@@ -1101,7 +1101,7 @@ describe('depth budget configuration', () => {
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'no-depth',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async () => { throw new Error('unreachable') },
     })
@@ -1117,7 +1117,7 @@ describe('depth budget configuration', () => {
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'external',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         requests.push(request)
@@ -1164,12 +1164,12 @@ describe('agent roles and the available-agents catalog', () => {
         dshHome: path.join(home, '.dsh'),
         agentsHome: path.join(home, '.agents'),
         watch: false,
-        ...options.builtinExplore === false ? { builtinExplore: false } : {},
+        ...options.builtinExplore === false ? { builtinExplore: false, builtinVerify: false } : {},
       })
     }
     ctx.subagents.registerProvider({
       name: 'capture',
-      capabilities: { outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true },
+      capabilities: { outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true },
       inheritsParentContext: false,
       start: async (request) => {
         requests.push(request)
@@ -1350,7 +1350,7 @@ describe('agent roles and the available-agents catalog', () => {
   })
 
   it('replaces the catalog when the role set changes and empties it when none remain', async () => {
-    const { ctx } = await roleSetup({ agentCatalog: true }, { builtinExplore: false })
+    const { ctx } = await roleSetup({ agentCatalog: true }, { builtinExplore: false, builtinVerify: false })
     const { agent, session } = catalogAgent('/ws')
     // Never-published + empty: no catalog at all.
     await fireStep(ctx, agent)

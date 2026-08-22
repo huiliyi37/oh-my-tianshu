@@ -39,7 +39,10 @@ export const Config: z<Config> = z.object({
  * creation window).
  */
 class SpawnProvider implements SubagentProvider {
-  readonly capabilities: SubagentCapabilities = { outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true }
+  // runBudget: 进程内 driver 以子作用域 pre-step + 组合信号强制步数与墙钟。
+  readonly capabilities: SubagentCapabilities = {
+    outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true,
+  }
   // Context contract: a spawned child starts fresh — it never sees the parent conversation.
   readonly inheritsParentContext = false
 

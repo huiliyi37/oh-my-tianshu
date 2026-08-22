@@ -15,6 +15,22 @@
 import type { Context } from '@huiliyi37/cordis'
 import type { ContentBlock } from '@huiliyi37/dsh-llm'
 import type { SessionId } from '@huiliyi37/dsh-session'
+import type { ObjectJsonSchema } from '@huiliyi37/dsh-tools'
+import { boundFinding, type RouterFinding } from './finding.js'
+
+/**
+ * Resolved delegation role (agent-definitions) merged into one dispatch: the
+ * role's tool allow list already intersected with the profile ceiling, plus the
+ * persona body and sandbox narrowing to transfer.
+ */
+export interface DispatchRole {
+  /** Effective tool allow list: role tools ∩ profileTools ceiling (non-empty). */
+  tools: string[]
+  /** Role persona body, transferred as the child's shadowing persona. */
+  persona: string
+  /** Role sandbox narrowing; only `read-only` is representable. */
+  sandboxMode?: 'read-only'
+}
 
 /** 子代理派发选项。 */
 export interface DispatchOptions {
@@ -37,6 +53,18 @@ export interface DispatchOptions {
   signal: AbortSignal
   /** 预算形状（resolveBudgetConfig + shapeWriteBudget 计算；记录用）。 */
   budget: { maxTurns: number; timeoutMs: number }
+  /**
+   * 相对运行预算（Phase 2 强制面）：步数与墙钟经 seam runBudget 强制，越界以
+   * 可区分的 budget-exhausted 终态收敛；缺省不预算（手工 execute 路径）。
+   */
+  runBudget?: { maxSteps: number; timeoutMs: number }
+  /** 已解析角色（agent-definitions；缺省按 profile 内置工具集派发）。 */
+  role?: DispatchRole
+  /**
+   * 结构化 finding schema（Phase 3）：请求子代理闭合结构化输出；completed 且
+   * 捕获成功时经 boundFinding 限界后写入 router/outcome。
+   */
+  findingSchema?: ObjectJsonSchema
 }
 
 /**
@@ -67,9 +95,12 @@ interface SubagentsFacet {
     signal: AbortSignal
     agentOptions?: { provider?: string; model?: string }
     toolFilter?: { allow: string[] }
+    persona?: string
+    sandboxMode?: 'read-only'
+    runBudget?: { maxSteps: number; timeoutMs: number }
   }): Promise<{
     id: SessionId
-    result: Promise<{ stopReason: string; output: ContentBlock[] }>
+    result: Promise<{ stopReason: string; output: ContentBlock[]; structured?: unknown }>
     dispose(): Promise<void>
   }>
 }
@@ -89,6 +120,8 @@ export interface DispatchOutcome {
   output: ContentBlock[]
   /** 记录用预算（maxTurns + deadlineMs=派发时点+timeoutMs）。 */
   budget: { maxTurns: number; deadlineMs: number }
+  /** 有界结构化 finding（completed 且捕获成功；与 router/outcome 持久值一致）。 */
+  finding?: RouterFinding
 }
 
 /**
@@ -121,7 +154,13 @@ export async function dispatchSubagent(ctx: Context, opts: DispatchOptions): Pro
     parent,
     signal: opts.signal,
     agentOptions: { provider: opts.provider, model: opts.model },
-    toolFilter: { allow: opts.tools },
+    // 角色在场时以角色工具集（已与 profile 天花板求交）收紧 toolFilter，
+    // 并透传 persona 与 sandbox 收窄；缺省回落 profile 内置工具集。
+    toolFilter: { allow: opts.role !== undefined ? opts.role.tools : opts.tools },
+    ...opts.role?.persona !== undefined ? { persona: opts.role.persona } : {},
+    ...opts.role?.sandboxMode !== undefined ? { sandboxMode: opts.role.sandboxMode } : {},
+    ...opts.runBudget !== undefined ? { runBudget: opts.runBudget } : {},
+    ...opts.findingSchema !== undefined ? { outputSchema: opts.findingSchema } : {},
   })
   try {
     // 路由接受记录（决策可审计）：log-only 落父会话，start 成功即写
@@ -141,11 +180,23 @@ export async function dispatchSubagent(ctx: Context, opts: DispatchOptions): Pro
     // result 在子级失败时不 reject（stopReason: 'error'）；仅基础设施故障
     // reject——finally dispose 覆盖两条路径（含 append 抛错）。
     const result = await run.result
+    // 结构化 finding：仅在 completed 且捕获成功时限界持久；错误、取消、预算
+    // 终态与形状非法都不伪造 finding（父边界一次性净化，见 boundFinding）。
+    const finding: RouterFinding | undefined = result.stopReason === 'completed' && result.structured !== undefined
+      ? boundFinding(result.structured)
+      : undefined
     parentSession.append('router/outcome', {
       subagentSessionId: run.id,
       stopReason: result.stopReason,
+      ...(finding !== undefined ? { finding } : {}),
     })
-    return { sessionId: run.id, stopReason: result.stopReason, output: result.output, budget }
+    return {
+      sessionId: run.id,
+      stopReason: result.stopReason,
+      output: result.output,
+      budget,
+      ...(finding !== undefined ? { finding } : {}),
+    }
   } finally {
     await run.dispose()
   }

@@ -128,6 +128,7 @@ describe('dsh-agent-definitions', () => {
       'proj-two:project-agents',
       'shared:project-dsh',
       'user-role:user-dsh',
+      'verify:runtime',
     ])
   })
 
@@ -204,7 +205,7 @@ describe('dsh-agent-definitions', () => {
     await writeAgent(join(root, 'nested'), 'ignored.md', roleFile('ignored', 'subdirectories are not scanned'))
     const ctx = await setup(home, { builtinExplore: false })
 
-    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['good'])
+    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['good', 'verify'])
   })
 
   it('returns undefined for unknown and invalid names', async () => {
@@ -242,11 +243,11 @@ describe('dsh-agent-definitions', () => {
     const home = await tempDir('agents-observed')
     const root = join(home, '.dsh/agents')
     const ctx = await setup(home)
-    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['explore'])
+    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['explore', 'verify'])
 
     await writeAgent(root, 'observed.md', roleFile('observed', 'observed role'))
     // Without a watcher the cached catalog still serves the stale view…
-    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['explore'])
+    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['explore', 'verify'])
     // …until a first-party write/edit observation synchronously invalidates it.
     const path = join(root, 'observed.md')
     ctx.emit(
@@ -255,7 +256,7 @@ describe('dsh-agent-definitions', () => {
       { kind: 'present', version: FsVersion('observed') },
       { name: 'write' },
     )
-    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['explore', 'observed'])
+    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['explore', 'observed', 'verify'])
     // Irrelevant actors and non-role paths do not invalidate.
     await writeAgent(root, 'notes.txt', 'not a role')
     ctx.emit(
@@ -264,7 +265,7 @@ describe('dsh-agent-definitions', () => {
       { kind: 'present', version: FsVersion('observed') },
       { name: 'write' },
     )
-    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['explore', 'observed'])
+    expect((await ctx.agentDefinitions.list()).map(entry => entry.name)).toEqual(['explore', 'observed', 'verify'])
   })
 
   it('reads through the filesystem service when one is present', async () => {
@@ -276,7 +277,7 @@ describe('dsh-agent-definitions', () => {
     const fs = ctx.fs as PassthroughFileSystem
 
     const list = await ctx.agentDefinitions.list()
-    expect(list.map(entry => entry.name)).toEqual(['via-fs'])
+    expect(list.map(entry => entry.name)).toEqual(['verify', 'via-fs'])
     expect(fs.listDirCalls).toContain(custom)
     expect((await ctx.agentDefinitions.get('via-fs'))?.content).toBe('Fs body.')
   })
@@ -286,6 +287,6 @@ describe('dsh-agent-definitions', () => {
     const ctx = await setup(home)
     const snapshot = await ctx.agentDefinitions.snapshot()
     expect(snapshot.complete).toBe(true)
-    expect(snapshot.definitions.map(entry => entry.name)).toEqual(['explore'])
+    expect(snapshot.definitions.map(entry => entry.name)).toEqual(['explore', 'verify'])
   })
 })
