@@ -60,9 +60,9 @@ try {
   if (mainAgent !== undefined && process.env.DSH_ROUTER_AUTO === '1') {
     const mainId = mainAgent.session.id
     const sessionsFacet = (ctx as Context & {
-      sessions?: { get(id: string): { events: Array<{ type: string; data?: unknown; seq?: number }> } | undefined }
+      sessions?: { get(id: string): { events: readonly { type: string; data?: unknown; seq?: number }[] } | undefined }
     }).sessions
-    const readEvents = (): Array<{ type: string; data?: unknown; seq?: number }> => sessionsFacet?.get(mainId)?.events ?? []
+    const readEvents = (): readonly { type: string; data?: unknown; seq?: number }[] => sessionsFacet?.get(mainId)?.events ?? []
     const deadline = Date.now() + 15_000
     while (Date.now() < deadline) {
       if (readEvents().some(event => event.type === 'router/outcome')) break

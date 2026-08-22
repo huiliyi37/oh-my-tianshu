@@ -66,8 +66,6 @@ function baseSnapshot(): LiveSnapshot {
     externalRuns: [],
     workflowPanelVisible: false,
     workflowRuns: [],
-    configPanelVisible: false,
-    configProjection: null,
     skillsPanelVisible: false,
     skillItems: [],
     glanceStatus: '○ 空闲',

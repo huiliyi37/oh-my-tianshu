@@ -583,7 +583,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'capture2',
-      capabilities: { outputSchema: false, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true },
+      capabilities: { outputSchema: false, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         seen = request
@@ -640,7 +640,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'capture3',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: true, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: true, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         seen = request
@@ -695,7 +695,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'p',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: true, persona: false, sandboxMode: false },
+      capabilities: { outputSchema: false, depthLimit: false, toolFilter: true, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: () => { throw new Error('unreachable') },
     })
@@ -1150,7 +1150,7 @@ describe('agent roles and the available-agents catalog', () => {
   /** Mount the tool over a request-capturing provider, optionally with the definitions service. */
   async function roleSetup(
     toolConfig: Partial<tool.Config> = {},
-    options: { withDefinitions?: boolean; builtinExplore?: boolean } = {},
+    options: { withDefinitions?: boolean; builtinExplore?: boolean; builtinVerify?: boolean } = {},
   ) {
     const requests: SubagentStartRequest[] = []
     const ctx = new Context()

@@ -110,7 +110,7 @@ describe('runBudget enforcement', () => {
     const run = await startInProcessRun({
       ...request(parent),
       signal: signalController.signal,
-      prompt: [createUserMessage({ content: [{ type: 'text', text: 'child task' }], source: { kind: 'user' } })],
+      prompt: createUserMessage({ content: [{ type: 'text', text: 'child task' }], source: { kind: 'user' } }).content,
     }, {})
     const settled = run.result
     signalController.abort()

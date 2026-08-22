@@ -153,7 +153,7 @@ describe('memory-pipeline plugin apply', () => {
       let seq = 0
       const event = (type: SessionEvent['type'], data: unknown): SessionEvent =>
         ({ type, seq: seq++, time: lastEventTime - (100 - seq), data }) as SessionEvent
-      const surface = (e: SessionEvent): SessionEvent => ({ ...e, surfaceOp: 'append' })
+      const surface = (e: SessionEvent): SessionEvent => ({ ...e, surfaceOp: 'append' }) as SessionEvent
       await persistence.append(meta.id, [
         event('turn/start', { turn: 1 }),
         surface(event('user/message', createUserMessage({
@@ -188,7 +188,7 @@ describe('memory-pipeline plugin apply', () => {
     const event = (type: SessionEvent['type'], data: unknown): SessionEvent =>
       ({ type, seq: seq++, time: lastEventTime - (100 - seq), data }) as SessionEvent
     // surface-eligible 事件必须携带 surfaceOp 标记（持久化边界校验）。
-    const surface = (e: SessionEvent): SessionEvent => ({ ...e, surfaceOp: 'append' })
+    const surface = (e: SessionEvent): SessionEvent => ({ ...e, surfaceOp: 'append' }) as SessionEvent
     await persistence.append(meta.id, [
       event('turn/start', { turn: 1 }),
       surface(event('user/message', createUserMessage({
@@ -244,7 +244,7 @@ describe('memory-pipeline plugin apply', () => {
 
   it('phase2 累计触发：单次扫描不达阈值跨扫描累计，达阈值后注册全局整合作业', async () => {
     const root = await tempDir()
-    const { ctx, started, settled, emit, seed } = await assemblePipeline(root)
+    const { ctx, started, settled, seed } = await assemblePipeline(root)
     await seed('acc-1', 'remember: prefer pnpm here')
     apply(ctx, {
       enabled: true,
