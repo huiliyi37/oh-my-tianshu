@@ -169,7 +169,15 @@ export function pendingEvaluations(
     samples: number
   }
   const open: OpenDecision[] = []
-  const evaluated = new Set<string>()
+  // Collect the complete pairing set before opening windows. An evaluation is
+  // physically later than its decision, so discovering it during the same
+  // forward scan is too late: a still-retained entry can be closed again by a
+  // later decision.
+  const evaluated = new Set(events.flatMap((event) => {
+    if (event.type !== 'router/evaluation') return []
+    const { decisionId } = event.data as { decisionId?: unknown }
+    return typeof decisionId === 'string' ? [decisionId] : []
+  }))
   for (let index = 0; index < events.length; index++) {
     const event = events[index]
     if (event === undefined) continue
@@ -189,14 +197,6 @@ export function pendingEvaluations(
       continue
     }
     if (event.type === 'router/evaluation') {
-      const { decisionId } = event.data as { decisionId?: unknown }
-      if (typeof decisionId === 'string') {
-        evaluated.add(decisionId)
-        // 已归账的在途决策立即出列（至多一条 evaluation 的投影侧保证）。
-        for (const entry of open) {
-          if (entry.decisionId === decisionId) entry.samples = -1
-        }
-      }
       continue
     }
     if (event.type === 'tool/result') {

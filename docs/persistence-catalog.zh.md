@@ -528,7 +528,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 'next-workflow/end': { runId: string; outcome: NextWorkflowOutcome; detail?: string }
 ```
 
-来源：[`packages/workflow/next-workflow/src/index.ts:97`](../packages/workflow/next-workflow/src/index.ts)
+来源：[`packages/workflow/next-workflow/src/index.ts:98`](../packages/workflow/next-workflow/src/index.ts)
 
 #### `next-workflow/phase` — log-only
 
@@ -543,7 +543,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 'next-workflow/phase': { runId: string; phase: NextWorkflowPhase; artifact?: string; detail?: string; selection?: SelectionAudit }
 ```
 
-来源：[`packages/workflow/next-workflow/src/index.ts:91`](../packages/workflow/next-workflow/src/index.ts)
+来源：[`packages/workflow/next-workflow/src/index.ts:92`](../packages/workflow/next-workflow/src/index.ts)
 
 ### `permission/*`
 
@@ -631,7 +631,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 'router/adoption': { subagentSessionId: string; verdict: 'adopt' | 'reject'; reason: string }
 ```
 
-来源：[`packages/guard/agent-router/src/index.ts:80`](../packages/guard/agent-router/src/index.ts)
+来源：[`packages/guard/agent-router/src/index.ts:115`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/decision` — log-only
 
@@ -645,7 +645,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 'router/decision': RouterDecisionRecord
 ```
 
-来源：[`packages/guard/agent-router/src/index.ts`](../packages/guard/agent-router/src/index.ts)
+来源：[`packages/guard/agent-router/src/index.ts:122`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/evaluation` — log-only
 
@@ -667,7 +667,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 }
 ```
 
-来源：[`packages/guard/agent-router/src/index.ts`](../packages/guard/agent-router/src/index.ts)
+来源：[`packages/guard/agent-router/src/index.ts:130`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/gate` — log-only
 
@@ -685,7 +685,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 }
 ```
 
-来源：[`packages/guard/agent-router/src/index.ts`](../packages/guard/agent-router/src/index.ts)
+来源：[`packages/guard/agent-router/src/index.ts:144`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/outcome` — log-only
 
@@ -702,7 +702,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 'router/outcome': { subagentSessionId: string; stopReason: string; finding?: RouterFinding }
 ```
 
-来源：[`packages/guard/agent-router/src/index.ts:73`](../packages/guard/agent-router/src/index.ts)
+来源：[`packages/guard/agent-router/src/index.ts:108`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/route` — log-only
 
@@ -717,12 +717,14 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
   task: string
   targets: string[]
   subagentSessionId: string
+  /** Auto trigger acceptance identity; absent on direct/manual execute. */
+  decisionId?: RouterDecisionId
   /** 记录用预算（shape 计算 + 绝对帽；方案 a 只记录不强制）。 */
   budget?: { maxTurns: number; deadlineMs: number }
 }
 ```
 
-来源：[`packages/guard/agent-router/src/index.ts:53`](../packages/guard/agent-router/src/index.ts)
+来源：[`packages/guard/agent-router/src/index.ts:82`](../packages/guard/agent-router/src/index.ts)
 
 ### `sandbox/*`
 

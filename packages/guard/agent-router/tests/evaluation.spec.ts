@@ -117,11 +117,10 @@ describe('pendingEvaluations', () => {
     events.push(evaluation('d1', 'persisted', 8))
     // 已归账 → 出列
     expect(pendingEvaluations(events, CONFIG)).toHaveLength(0)
-    // 未满窗口被更晚决策取代 → 旧决策到期，新决策未满不出
+    // 后续决策不能让已归账的旧决策重新入列；新决策未满也不出。
     events.push(decision('d2'))
     due = pendingEvaluations(events, CONFIG)
-    expect(due.map(entry => entry.decisionId)).toEqual(['d1'])
-    expect(due[0]!.decisionIndex).toBe(0)
+    expect(due).toHaveLength(0)
   })
 
   it('多条在途决策各自独立计数（重叠窗口）', () => {

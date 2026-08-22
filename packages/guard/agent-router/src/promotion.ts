@@ -63,6 +63,9 @@ export function resolveShadowReadinessGate(
   if (evidence.samples < policy.minSamples) {
     vetoSignals.push(`insufficient evaluated decisions (${evidence.samples} < ${policy.minSamples})`)
   }
+  if (evidence.delegateSamples < 1) {
+    vetoSignals.push('insufficient evaluated delegate decisions (0 < 1)')
+  }
   if (evidence.falseGreenRate > policy.maxFalseGreenRate) {
     vetoSignals.push(`false-green rate ${evidence.falseGreenRate} > ${policy.maxFalseGreenRate}`)
   }
@@ -74,6 +77,8 @@ export function resolveShadowReadinessGate(
 
 /** canary 关卡策略（Config 经 resolveCanaryConfig 解析后传入）。 */
 export interface CanaryGatePolicy {
+  /** 实际派发与已评估派发各自所需的最小样本。 */
+  minDispatches: number
   /** 预算耗尽占比上限（> 即 veto）。 */
   maxBudgetExhaustedShare: number
   /** 收益代理下限（低于即 veto）。 */
@@ -90,8 +95,8 @@ export interface CanaryGatePolicy {
  */
 export function resolveCanaryHealthGate(evidence: CanaryHealthEvidence, policy: CanaryGatePolicy): PromotionGateResult {
   const vetoSignals: string[] = []
-  if (evidence.dispatches < 1 || evidence.evaluatedDispatches < 1) {
-    vetoSignals.push(`insufficient actual dispatches (${evidence.dispatches} dispatched, ${evidence.evaluatedDispatches} evaluated) — no benefit proxy without real runs`)
+  if (evidence.dispatches < policy.minDispatches || evidence.evaluatedDispatches < policy.minDispatches) {
+    vetoSignals.push(`insufficient actual dispatches (${evidence.dispatches} dispatched, ${evidence.evaluatedDispatches} evaluated < ${policy.minDispatches}) — no benefit proxy until both reach the sample gate`)
     return { enabled: false, vetoSignals }
   }
   if (evidence.adopted + evidence.rejected < evidence.evaluatedDispatches) {

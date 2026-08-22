@@ -11,7 +11,7 @@ agent 路由层——基础指标 → 算法 → MoE 路由 → dsh 原生子代
   1. escalate（错误率 ≥0.8）→ `delegate verifier`（独立通道复核）
   2. gate（≥0.6）+ 探针冷却耗尽 → `delegate code_scout`（新角度侦查）
   3. 默认 `self` — 义务/验证计数已采集进指标但尚无规则消费；先写探针的责任在证据门
-- **dispatch**（dsh 子代理 seam）：`ctx.subagents.start`（named provider，默认 `spawn`）把任务作为 child 首条用户消息投递 → `await run.result`（结构化终态）→ `dispose` 清理。seam 自动写血统（`parentSession`/`origin: 'subagent'`/`delegationDepth`），被路由的 child 进入 `/subagents`、`list_agents` 与后代投影，且 zen 永不 arm 它们。profile 工具限制经 `toolFilter` fail loud 安装——未知工具名或缺失服务会中止派发，profile 绝不带着全量工具面静默运行。agent-definitions 服务在场时，派发按 cwd 解析 profile 的角色（`code_scout → explore`、`verifier → verify`），工具收紧为「角色工具集 ∩ profile 天花板」，并透传角色 persona 与 `read-only` 沙箱；未知角色或空交集 fail loud。每个被接受的 delegate 会在父会话落一条 log-only 的 `router/route` 记录（决策可审计），child settle 后落配对的 `router/outcome` 记录（终态可自日志重建；完成的结构化捕获落为有界 `finding`）。结果经 session/event 自动归账回 evidence-gate（零新通道）。
+- **dispatch**（dsh 子代理 seam）：`ctx.subagents.start`（named provider，默认 `spawn`）把任务作为 child 首条用户消息投递 → `await run.result`（结构化终态）→ `dispose` 清理。seam 自动写血统（`parentSession`/`origin: 'subagent'`/`delegationDepth`），被路由的 child 进入 `/subagents`、`list_agents` 与后代投影，且 zen 永不 arm 它们。profile 工具限制经 `toolFilter` fail loud 安装——未知工具名或缺失服务会中止派发，profile 绝不带着全量工具面静默运行。agent-definitions 在场时，派发按 cwd 解析 `code_scout → explore` 或 `verifier → verify`，把角色工具集与 profile 天花板求交并透传 persona；未知角色或空交集 fail loud。即使 agent-definitions 缺席或覆盖配置省略沙箱元数据，两个 router profile 也会在派发边界以 `sandboxMode: 'read-only'` 限定为只读；进程内 seam 会把该上限与审批策略 `never` 配对。每个被接受的 auto delegate 都会落一条携带决策身份的 `router/route`，随后立即记录 `dispatched:true`，无需等待结算。结算时恰好落一条配对的 `router/outcome`；接受后发生基础设施拒绝时也记录 `stopReason: 'error'`。
 
 ## 装配
 
@@ -50,7 +50,7 @@ declare const apply: (ctx: any, config: Record<string, unknown>) => void
 export {}
 apply(ctx, {
   dispatchEnabled: true,   // 是否实际派发（false 时只决策不回显）
-  provider: 'deepseek',    // 子代理模型（派发必需）
+  provider: 'deepseek',    // 子代理模型（auto + dispatchEnabled 时必需）
   model: 'deepseek-v4-flash',
   subagentProvider: 'spawn', // 可选：子代理 provider（缺省 spawn；需 ctx.subagents 已注册）
   profileTools: {          // 可选：profile 工具集覆盖（缺省用内置只读/验证集合）
@@ -88,7 +88,7 @@ apply(ctx, {
     maxTotal: 3,           // 每会话累计自动派发上限
     cooldownTurns: 3,      // 两次自动派发间的最小合格 turn 间隔（self 轮也计数）
     maxSteps: 24,          // 子代理步数预算（seam runBudget 强制）
-    timeoutMs: 600_000,    // 子代理墙钟预算毫秒（seam runBudget 强制）
+    timeoutMs: 600_000,    // 子代理墙钟预算毫秒（1..2_147_483_647）
   },
   synthesis: {             // 可选：主代理综合提示 rubric（缺省内置角色裁定纪律）
     section: '...',        // 覆盖 rubric 文本；存在未综合 child 结论时渲染
@@ -106,15 +106,15 @@ apply(ctx, {
 
 - `prediction.ts` — 工具成败预测累计器（天枢纯函数核心，零依赖）
 - `router.ts` — 确定性路由表（指标 → 动作），含升级迟滞策略
-- `dispatch.ts` — dsh 子代理 seam 派发（start/result/dispose），profile 工具限制 fail loud，可选已解析角色（persona/沙箱/只读工具交集）与结构化 finding 捕获
+- `dispatch.ts` — dsh 子代理 seam 派发（start/result/dispose），profile 工具限制 fail loud，可选角色的 persona/工具交集、强制只读约束与结构化 finding 捕获
 - `synthesis.ts` — 主代理综合节 + 采用声明（`router:synthesis` 逐字引用持久 finding 渲染、`router_adopt` 参数校验、outcome 减 adoption 的未综合推导）
 - `budget.ts` — 派发预算定价（天枢同构按文件数加回合 + 双绝对帽；只计算与记录）
 - `evaluation.ts` — 会话日志的纯投影：观察窗口 → `router/evaluation` 分类，shadow-readiness 与 canary-health 证据
 - `finding.ts` — 有界结构化 finding：每 profile 的闭合判别 outputSchema + 父边界一次性净化（折叠/单行化/截断）
-- `ids.ts` — 品牌化 `RouterDecisionId`（`rtdec-<seq>`，append 时点按 `seq = log.length` 连续性契约铸造）
+- `ids.ts` — 品牌化 `RouterDecisionId`；同步 append 使用短 `rtdec-<seq>`，auto 准入预留追加随机后缀，防止多个尚未落盘的并发决策身份碰撞
 - `promotion.ts` — 两道确定性晋升关卡纯函数：`resolveShadowReadinessGate`（样本/假绿/范围，阈值取 `readiness.*`）与 `resolveCanaryHealthGate`（派发/adopt-reject/预算占比/收益代理，阈值取 `canary.*`）；判定只留痕，模式切换始终人工
 - `index.ts` — Cordis 插件接线（事件采集 + 全量决策账本 + 服务面 + 按可派发性门控的综合面贡献）
-- `invariant.ts` — 运行时不变量 companion：校验 `router/route`/`router/outcome`/`router/adoption`/`router/decision`/`router/evaluation`/`router/gate` 记录（payload 形状、按会话 adoption↔outcome 与 decision↔evaluation 配对状态、有界 finding、live child 血统；已加载历史在晚注册时重放校验）
+- `invariant.ts` — 运行时不变量 companion：校验 `router/route`/`router/outcome`/`router/adoption`/`router/decision`/`router/evaluation`/`router/gate` 记录（payload 形状、按会话 route→outcome→adoption 与 decision→evaluation 配对状态、有界 finding、live child 血统；已加载历史在晚注册时重放校验）
 
 ## 验证
 
@@ -132,12 +132,12 @@ None directly; the delegate session is an independent model request, and the par
 
 ## Known Limitations and Deferred Work
 
-- **派发需要显式模型配置** — `dispatchEnabled: true` 时必须提供 `provider`/`model`；未配置时只决策不派发（决策结果仍可查询），且综合面贡献（`router:synthesis` 节、`router_adopt` 工具）不注册——不可派发即无 outcome 可综合，模型面不背死重。
+- **Auto 需要显式模型配置** — `trigger.mode: 'auto'` 与 `dispatchEnabled: true` 同时启用时，若未提供非空 `provider` 和 `model`，装配会失败。shadow/off 装配可省略两者；此类装配不会注册 `router:synthesis` 或 `router_adopt`，因为它们无法产生可供综合的 outcome。
 - **派发需要活的父会话** — `execute` 接收父 `sessionId`，该会话不是活 agent 时 fail loud；seam 从父会话派生 child 的 workspace、血统与委派深度。
 - **turn-end 触发以 shadow 发货** — 发货 TUI 挂 `trigger: { mode: 'shadow', onTurnEnd: true }`：每个非 zen 的合格 turn-end 都落一条 log-only `router/decision`（self 与 delegate 全量，携带完整指标快照），shadow 下 delegate 决策绝不派发。切 `auto` 是 readiness 关卡在真实 shadow 数据上通过后的产品决定；`auto` 需要 `provider`/`model` 加五个显式 `auto.*` canary 上限。触发会跳过 `zen/phase` 折叠仍为 `zen` 的会话——对齐/锚定轮跑在受限工具面上，其成败不构成可路由信号，晋升 `full` 前不决策、不记录、不派发；且触发在 `turn/end` 发布窗口之外执行，否则 shadow 的 `router/decision` append 会在发布中重入 `Session.append` 并撞上重入守卫。
-- **综合是主代理的行为** — 存在未综合 child 结论时渲染 `router:synthesis` 提示节（完成的 child 的有界 finding 逐字引用——持久值即模型可见值），`router_adopt` 工具把采用/拒绝声明落成 log-only `router/adoption`（每条 outcome 至多一条，工具边界与 invariant companion 配对状态双重强制）。router 从不合并或投票，只搬运结论与声明。
-- **晋升关卡只留痕，切模式是人工动作** — 每个闭合的观察窗口落一条 `router/evaluation`（recovered/persisted/inconclusive）并随后落一条 log-only `router/gate` 判定：shadow-readiness（样本/假绿/范围，阈值取 `readiness.*`）恒记录，canary-health（真实派发、adopt/reject 覆盖、预算耗尽占比、收益代理，阈值取 `canary.*`）在 auto 下记录。关卡绝不自行切模式；晋升 `auto` 是人工配置变更。会话的最后一条决策在 `agent/disposed` 时以 final 窗口收尾归账，尾部样本不静默丢失。
-- **auto 派发在 seam 层强制预算** — `auto.maxSteps`/`auto.timeoutMs` 走 `SubagentStartRequest.runBudget`：进程内 driver 以子作用域 pre-step 计数强制步数、组合信号计时器强制墙钟，越界以可区分的 `budget-exhausted` 终态收敛（区别于 `aborted`）；无法保证该契约的 provider 在启动前被拒。`budget` 配置本身仍是随 route 记录的计算与记录型定价。auto 派发另受每会话单飞锁、累计帽与合格 turn 冷却（self 轮也推进冷却时钟）约束，父 dispose 经被跟踪的 controller 收敛在飞 run。
+- **综合是主 agent 的行为** — 存在未综合的 child finding 时，`router:synthesis` 逐字列出持久化的有界值，`router_adopt` 将一条采用/拒绝声明记录为 log-only `router/adoption`。动态综合文本作为仅解析一次的变量值进入提示词，因此 finding 中的字面 `{{...}}` 不会被解释为另一个提示词引用。router 从不合并或投票。
+- **晋升关卡只留痕，切模式是人工动作** — 每个闭合的观察窗口落一条 `router/evaluation`（recovered/persisted/inconclusive），随后落一条 log-only `router/gate` 判定。shadow readiness 要求达到配置的总样本数且至少有一条已评估的 delegate；canary health 要求实际派发数与已评估派发数都达到 `canary.minDispatches`，再检查声明、预算占比和收益。关卡不切模式。`agent/disposed` 会先中止并等待该会话已准入的 trigger，再闭合最终窗口。
+- **auto 派发强制预算且重启稳定** — `auto.maxSteps`/`auto.timeoutMs` 走 `SubagentStartRequest.runBudget`；若 timeout 值超过平台计时器上限，装配会失败。持久化的 child 终态不会被较晚的取消或计时器改写。准入会在 provider 启动前预留累计帽与冷却容量；重启时同时投影已接受的 auto route 与决策，因此接受后、决策前崩溃仍会消耗容量。插件释放时先中止并等待活跃触发，再注销其工具与提示词贡献。
 - **预测窗口是内存态** — 滑动窗口与 tipping point 状态随进程消失。累计按会话隔离且排除 child 会话（`header.parentSession`），被路由的子代理绝不污染父会话窗口。
 - **路由表是固定策略** — 三级干预阈值（0.4/0.6/0.8）与动作映射为移植时的天枢常量；可配置化随实际调参需求再做。
 - **profile 工具集随部署而定** — 内置默认面向发货工具目录（`grep`/`read`/`glob`/`repo_graph`/`semantic_search`/`bash`）；精简装配经 `profileTools` 声明自己的子集，未知工具名会让派发响亮失败而不是放宽工具面。

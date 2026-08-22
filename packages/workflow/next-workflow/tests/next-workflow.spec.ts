@@ -170,7 +170,7 @@ function makeHarness(opts: {
       ? undefined
       : {
         name: 'spawn',
-        capabilities: { ...FULL_CAPABILITIES, ...opts.capabilities, runBudget: false },
+        capabilities: { ...FULL_CAPABILITIES, ...opts.capabilities },
         inheritsParentContext: opts.inheritsParentContext ?? false,
       }),
     start: vi.fn(async (_provider: string, request: SubagentStartRequest): Promise<SubagentRun> => {
@@ -355,6 +355,20 @@ describe('/next-workflow command', () => {
     ])
     expect(h.session.surface.nodes).toEqual([])
     expect(h.session.deriveMessages()).toEqual([])
+  })
+
+  it('passes configured runBudget to every one-shot phase subagent', async () => {
+    const h = makeHarness()
+    apply(h.ctx, await makeConfig({
+      subagentRunBudget: { maxSteps: 16, timeoutMs: 45_000 },
+    }))
+
+    const result = await runCommand(h)
+
+    expect(result.kind).toBe('success')
+    expect(h.subagentRequests.length).toBeGreaterThan(0)
+    expect(h.subagentRequests.every(request =>
+      request.runBudget?.maxSteps === 16 && request.runBudget.timeoutMs === 45_000)).toBe(true)
   })
 
   it('planCandidates = 3 fans PLAN out, an independent selector picks the winner, and CRITIQUE receives it', async () => {
@@ -571,6 +585,14 @@ describe('/next-workflow command', () => {
     const personaResult = await runCommand(noPersona)
     expect(personaResult.kind === 'error' ? personaResult.text : '').toContain('persona')
 
+    const noBudget = makeHarness({ capabilities: { runBudget: false } })
+    apply(noBudget.ctx, await makeConfig({
+      subagentRunBudget: { maxSteps: 16, timeoutMs: 45_000 },
+    }))
+    const budgetResult = await runCommand(noBudget)
+    expect(budgetResult.kind === 'error' ? budgetResult.text : '').toContain('runBudget')
+    expect(noBudget.subagentRequests).toHaveLength(0)
+
     const noBash = makeHarness({ bash: false })
     apply(noBash.ctx, await makeConfig({ verifyCommand: 'pnpm test' }))
     const bashResultText = await runCommand(noBash)
@@ -737,6 +759,8 @@ describe('/next-workflow command', () => {
       [{ maxVerifyOutputChars: 0 }, 'maxVerifyOutputChars'],
       [{ maxDiffChars: 0 }, 'maxDiffChars'],
       [{ verifyTimeoutMs: Number.MAX_SAFE_INTEGER + 1 }, 'verifyTimeoutMs'],
+      [{ subagentRunBudget: { maxSteps: 0, timeoutMs: 1 } }, 'subagentRunBudget.maxSteps'],
+      [{ subagentRunBudget: { maxSteps: 1, timeoutMs: 2_147_483_648 } }, 'subagentRunBudget.timeoutMs'],
       [{ phaseEfforts: { nope: 'high' } }, 'phaseEfforts'],
       [{ phaseEfforts: { plan: '' } }, 'phaseEfforts'],
       [{ phaseEfforts: { plan: ' high' } }, 'phaseEfforts'],

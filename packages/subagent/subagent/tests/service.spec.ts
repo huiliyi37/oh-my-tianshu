@@ -223,6 +223,21 @@ describe('SubagentService', () => {
     expect(() => { assertSubagentMaxDepth(undefined) }).not.toThrow()
   })
 
+  it('validates runBudget bounds before provider startup and rejects timer-clamping values', async () => {
+    const { subagents } = await service()
+    const provider = new StubProvider('strong')
+    subagents.registerProvider(provider)
+    for (const runBudget of [
+      { maxSteps: 0, timeoutMs: 1 },
+      { maxSteps: 1, timeoutMs: 0 },
+      { maxSteps: 1, timeoutMs: 2_147_483_648 },
+    ]) {
+      await expect(subagents.start('strong', baseRequest({ runBudget })))
+        .rejects.toThrow(/runBudget/)
+    }
+    expect(provider.startCount).toBe(0)
+  })
+
   it('publishes lifecycle only after async provider start and keeps parent scope', async () => {
     const { ctx, subagents } = await service()
     const ready = Promise.withResolvers<SubagentRun>()
@@ -326,7 +341,8 @@ describe('SubagentService', () => {
     const heard: string[] = []
     ctx.on('subagent/provider-removed', () => { throw new Error('sync boom') })
     // Runtime listeners may return thenables even though the declaration's observable result is void.
-    ctx.on('subagent/provider-removed', async () => { throw new Error('async boom') })
+    const asyncFailure: () => unknown = () => Promise.reject(new Error('async boom'))
+    ctx.on('subagent/provider-removed', asyncFailure)
     ctx.on('subagent/provider-removed', () => { throw { toString: () => { throw new Error('coercion') } } })
     ctx.on('subagent/provider-removed', name => void heard.push(name))
     const dispose = subagents.registerProvider(new StubProvider('contained'))

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-21-tui-single-expert-auto-rollout.md
-2026-08-21-tui-single-expert-auto-rollout.md: 8fc70516a5897a62e9ecc23de383c2dfbb255b28
-2026-08-21-tui-single-expert-auto-rollout.zh.md: b6d716cb9f880a4126c28e288906b4cf34770c3c
+2026-08-21-tui-single-expert-auto-rollout.md: 2f8ecbd5d1214c3f9163286244c2283dbf5c1ef7
+2026-08-21-tui-single-expert-auto-rollout.zh.md: c8d0d4f0d49c46df3dcf1c9d2b491025d0d6859d

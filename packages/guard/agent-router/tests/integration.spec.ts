@@ -10,14 +10,20 @@
 import { describe, expect, it, vi, type Mock } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
 import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
+import SystemPrompt, { renderPrompt } from '@huiliyi37/dsh-system-prompt'
 import type {} from '@huiliyi37/dsh-zen' // 'zen/phase' 事件声明合并（类型面）
 import { apply as applyAgentRouter, resolveProfileTools, type RouterService } from '../src/index.js'
 
 const PARENT_ID = SessionId('session-1')
 
+type TestSubagentStart = (
+  provider: string,
+  request: { signal: AbortSignal },
+) => Promise<{ id: SessionId; result: Promise<unknown>; dispose(): Promise<void> }>
+
 function makeContext(config: Record<string, unknown> = {}): {
   ctx: Context
-  seam: { start: Mock<() => Promise<{ id: SessionId; result: Promise<unknown>; dispose(): Promise<void> }>> }
+  seam: { start: Mock<TestSubagentStart> }
   counters: { result: number; dispose: number; append: Array<{ type: string; data: unknown }> }
   registeredTools: Array<Record<string, unknown>>
   registeredSections: Array<{ name: string; text: (context: { agent?: { session: { events: SessionEvent[] } } }) => string }>
@@ -30,7 +36,7 @@ function makeContext(config: Record<string, unknown> = {}): {
     append: [],
   }
   const seam = {
-    start: vi.fn(async () => ({
+    start: vi.fn(async (_provider: string, _request: { signal: AbortSignal }) => ({
       id: SessionId('session-child-1'),
       result: Promise.resolve({ stopReason: 'completed', output: [] }).then((r: unknown) => { counters.result++; return r }),
       dispose: vi.fn(async () => { counters.dispose++ }),
@@ -39,8 +45,33 @@ function makeContext(config: Record<string, unknown> = {}): {
   const ctx = new Context()
   const registeredTools: Array<Record<string, unknown>> = []
   const registeredSections: Array<{ name: string; text: (context: { agent?: { session: { events: SessionEvent[] } } }) => string }> = []
+  const promptVariables = new Map<string, (context: { agent?: { session: { events: SessionEvent[] } } }) => string | undefined>()
   ctx.provide('tools', { register: (definition: Record<string, unknown>) => { registeredTools.push(definition); return () => {} } })
-  ctx.provide('systemPrompt', { section: (section: { name: string; text: (context: unknown) => string }) => { registeredSections.push(section); return () => {} } })
+  ctx.provide('systemPrompt', {
+    variable: (
+      name: string,
+      provider: (context: { agent?: { session: { events: SessionEvent[] } } }) => string | undefined,
+    ) => {
+      promptVariables.set(name, provider)
+      return () => { promptVariables.delete(name) }
+    },
+    section: (section: {
+      name: string
+      text: string | ((context: { agent?: { session: { events: SessionEvent[] } } }) => string)
+    }) => {
+      registeredSections.push({
+        name: section.name,
+        text: (context) => {
+          const template = typeof section.text === 'string' ? section.text : section.text(context)
+          return template.replace(/\{\{([A-Za-z_][A-Za-z0-9_]*)\}\}/g, (reference, name: string) => {
+            const value = promptVariables.get(name)?.(context)
+            return value === undefined ? reference : value
+          })
+        },
+      })
+      return () => {}
+    },
+  })
   ctx.provide('subagents', seam)
   const appended: Array<{ type: string; data: unknown }> = []
   const parentEvents: SessionEvent[] = []
@@ -96,6 +127,18 @@ function runTool(
 ): void {
   // 归账投影读取 owner.events（真 Session 恒有）；替身缺省补空数组。
   emit('session/event', { events: [], ...session }, toolResult(isError))
+}
+
+function emitCompletedTurn(
+  emit: (name: string, ...args: unknown[]) => void,
+  session: { events: SessionEvent[] },
+): void {
+  emit('session/event', session, {
+    type: 'turn/end',
+    seq: session.events.length,
+    time: 1,
+    data: { turn: session.events.length, reason: { kind: 'completed' } },
+  })
 }
 
 /**
@@ -216,6 +259,21 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     expect(seam.start).not.toHaveBeenCalled()
   }, 10000)
 
+  it('execute 收到已中止 signal 时不会在新 controller 上丢失取消', async () => {
+    const { ctx, seam, emit } = makeContext()
+    const router = ctx.get('router') as RouterService
+    for (let i = 0; i < 8; i++) runTool(emit, true)
+    const action = router.decide({ sessionId: PARENT_ID })
+    if (action.kind !== 'delegate') throw new Error('expected delegate')
+    const controller = new AbortController()
+    controller.abort(new Error('parent already stopped'))
+
+    await router.execute(action, { sessionId: PARENT_ID, signal: controller.signal })
+    const request = (seam.start.mock.calls[0] as unknown as [string, { signal: AbortSignal }])[1]
+    expect(request.signal.aborted).toBe(true)
+    expect(request.signal.reason).toBe(controller.signal.reason)
+  })
+
   it('subagentProvider 非法（空串）时装配 fail loud', () => {
     expect(() => { applyAgentRouter(new Context(), { subagentProvider: '' }) }).toThrow(/non-empty provider name/)
   })
@@ -335,7 +393,7 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     loggerError.mockRestore()
   }, 10000)
 
-  it('trigger auto：子代理 result reject（基础设施故障）时失败收敛——route 已落、outcome 不落', async () => {
+  it('trigger auto：子代理 result reject 时保留已接受决策并归账 error outcome', async () => {
     const { ctx, seam, counters, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true }, auto: { maxConcurrent: 1, maxTotal: 999, cooldownTurns: 1, maxSteps: 24, timeoutMs: 600000 } })
     const A = SessionId('session-a')
     const appended: Array<{ type: string; data: unknown }> = []
@@ -359,40 +417,82 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     })
     await vi.waitFor(() => { expect(appended).toHaveLength(1) })
     const decision = appended[0]!.data as { dispatched: boolean; subagentSessionId?: string }
-    expect(decision.dispatched).toBe(false)
-    expect(decision.subagentSessionId).toBeUndefined()
+    expect(decision.dispatched).toBe(true)
+    expect(decision.subagentSessionId).toBe('session-child-1')
     expect(loggerError).toHaveBeenCalledOnce()
-    // acceptance 的 router/route 在 result 结算前已落父会话；无 settle 则无 outcome，
-    // 孤儿 route 不进 synthesis 的 pending（pendingOutcomes 只认 outcome）。
-    expect(counters.append.map(entry => entry.type)).toEqual(['router/route'])
+    // acceptance 已发生，基础设施 reject 不能倒写成“未派发”，且必须给 route
+    // 配对一个可重构终态。
+    expect(counters.append.map(entry => entry.type)).toEqual(['router/route', 'router/outcome'])
+    expect(counters.append[1]?.data).toMatchObject({
+      subagentSessionId: 'session-child-1',
+      stopReason: 'error',
+    })
     expect(counters.dispose).toBe(1)
     loggerError.mockRestore()
   }, 10000)
 
-  it('trigger auto：缺 provider/model 时短路——decision 落 dispatched false 且 seam 未调用', async () => {
-    const { seam, emit } = makeContext({ provider: undefined, model: undefined, trigger: { mode: 'auto', onTurnEnd: true }, auto: { maxConcurrent: 1, maxTotal: 999, cooldownTurns: 1, maxSteps: 24, timeoutMs: 600000 } })
+  it('trigger auto：route 接受后的 decision 瞬时写失败会重试真实决策并配对 error outcome', async () => {
+    const { ctx, counters, emit } = makeContext({
+      trigger: { mode: 'auto', onTurnEnd: true },
+      auto: { maxConcurrent: 1, maxTotal: 999, cooldownTurns: 1, maxSteps: 24, timeoutMs: 600000 },
+    })
+    const loggerError = vi.spyOn(ctx.logger, 'error').mockImplementation(() => undefined)
     const A = SessionId('session-a')
-    const appended: Array<{ type: string; data: unknown }> = []
+    const events: SessionEvent[] = []
+    let failDecisionOnce = true
     const session = {
       id: A,
       header: {},
-      // foldZenPhase 读取 events（禅阶段跳过触发）；无 zen/phase 事件折为 full。
-      events: [] as SessionEvent[],
-      append: (type: string, data: unknown) => { appended.push({ type, data }) },
+      events,
+      append: (type: string, data: unknown) => {
+        if (type === 'router/decision' && failDecisionOnce) {
+          failDecisionOnce = false
+          throw new Error('decision ledger temporarily unavailable')
+        }
+        events.push({ type, data } as SessionEvent)
+      },
     }
 
     for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
     emit('session/event', session, {
       type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
     })
-    await vi.waitFor(() => { expect(appended).toHaveLength(1) })
-    const decision = appended[0]!.data as { action: string; mode: string; dispatched: boolean; subagentSessionId?: string }
-    expect(decision.action).toBe('delegate')
-    expect(decision.mode).toBe('auto')
-    expect(decision.dispatched).toBe(false)
-    expect(decision.subagentSessionId).toBeUndefined()
-    expect(seam.start).not.toHaveBeenCalled()
+
+    await vi.waitFor(() => {
+      expect(events.filter(event => event.type === 'router/decision')).toHaveLength(1)
+      expect(counters.append.map(entry => entry.type)).toEqual(['router/route', 'router/outcome'])
+    })
+    expect(events[0]?.data).toMatchObject({
+      dispatched: true,
+      subagentSessionId: 'session-child-1',
+    })
+    expect(counters.append[1]?.data).toMatchObject({
+      subagentSessionId: 'session-child-1',
+      stopReason: 'error',
+    })
+    expect(loggerError).toHaveBeenCalledWith(
+      expect.stringContaining('turn-end dispatch failed'),
+      A,
+      expect.any(Error),
+    )
+    loggerError.mockRestore()
   }, 10000)
+
+  it('trigger auto：缺 provider/model 在装配期 fail loud', () => {
+    const auto = {
+      maxConcurrent: 1,
+      maxTotal: 999,
+      cooldownTurns: 1,
+      maxSteps: 24,
+      timeoutMs: 600000,
+    }
+    expect(() => {
+      makeContext({ provider: undefined, trigger: { mode: 'auto', onTurnEnd: true }, auto })
+    }).toThrow(/auto.*provider/)
+    expect(() => {
+      makeContext({ model: undefined, trigger: { mode: 'auto', onTurnEnd: true }, auto })
+    }).toThrow(/auto.*model/)
+  })
 
   it('trigger off / child 会话 turn/end 不触发决策；self 决策全量记账', async () => {
     const offCtx = makeContext({ trigger: { mode: 'shadow', onTurnEnd: true } })
@@ -539,7 +639,9 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
   }, 10000)
 
   it('auto 装配归账加记 canary-health gate：零真实派发不伪造收益边际', async () => {
-    const { emit } = makeContext({ provider: undefined, model: undefined, trigger: { mode: 'auto', onTurnEnd: true }, auto: { maxConcurrent: 1, maxTotal: 999, cooldownTurns: 1, maxSteps: 24, timeoutMs: 600000 } })
+    const { ctx, seam, emit } = makeContext({ trigger: { mode: 'auto', onTurnEnd: true }, auto: { maxConcurrent: 1, maxTotal: 999, cooldownTurns: 1, maxSteps: 24, timeoutMs: 600000 } })
+    const loggerError = vi.spyOn(ctx.logger, 'error').mockImplementation(() => undefined)
+    seam.start.mockRejectedValueOnce(new Error('provider unavailable'))
     const { records, session, emitTool } = makeLedgerSession(emit, SessionId('session-a'))
     for (let i = 0; i < 8; i++) emitTool(true)
     emit('session/event', session, {
@@ -554,6 +656,7 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     const canarySignals = (records.find(record => record.type === 'router/gate' && (record.data as { kind: string }).kind === 'canary-health')!.data as { vetoSignals: string[] }).vetoSignals
     expect(canarySignals[0]).toContain('insufficient actual dispatches')
     expect(canarySignals[0]).toContain('no benefit proxy')
+    loggerError.mockRestore()
   }, 10000)
 
   it('trigger 配置非法 fail loud', () => {
@@ -573,6 +676,14 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
         auto: { maxConcurrent: 1, maxTotal: 1, cooldownTurns: 1, maxSteps: 0, timeoutMs: 1000 },
       })
     }).toThrow(/auto\.maxSteps/)
+    expect(() => {
+      applyAgentRouter(new Context(), {
+        provider: 'mock',
+        model: 'mock',
+        trigger: { mode: 'auto', onTurnEnd: true },
+        auto: { maxConcurrent: 1, maxTotal: 1, cooldownTurns: 1, maxSteps: 1, timeoutMs: 2_147_483_648 },
+      })
+    }).toThrow(/auto\.timeoutMs/)
   })
 
   it('canary 门：单飞锁/冷却/总帽拦下重复派发，决策仍全量落盘（dispatched false）', async () => {
@@ -582,53 +693,215 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     })
     const appended: Array<{ type: string; data: Record<string, unknown> }> = []
     let releaseFirst: (() => void) | undefined
-    const firstResult = new Promise<{ stopReason: string; output: [] }>((resolve) => { releaseFirst = () => resolve({ stopReason: 'completed', output: [] }) })
+    const firstResult = new Promise<{ stopReason: string; output: [] }>((resolve) => {
+      releaseFirst = () => { resolve({ stopReason: 'completed', output: [] }) }
+    })
     seam.start.mockImplementationOnce(async () => ({
       id: SessionId('session-child-1'),
       result: firstResult,
       dispose: async () => {},
     }))
     const A = SessionId('session-a')
+    const events: SessionEvent[] = []
     const session = {
       id: A,
       header: {},
-      events: [] as SessionEvent[],
-      append: (type: string, data: unknown) => { appended.push({ type, data: data as Record<string, unknown> }) },
+      events,
+      append: (type: string, data: unknown) => {
+        appended.push({ type, data: data as Record<string, unknown> })
+        events.push({ type, data } as SessionEvent)
+      },
     }
-    const endTurn = (): void => {
-      emit('session/event', session, {
-        type: 'turn/end', seq: appended.length, time: 1, data: { turn: appended.length, reason: { kind: 'completed' } },
-      })
-    }
+    const decisions = (): Array<{ type: string; data: Record<string, unknown> }> =>
+      appended.filter(entry => entry.type === 'router/decision')
+    const endTurn = emitCompletedTurn.bind(undefined, emit, session)
     for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
-    // 第 1 个合格 turn-end：真实派发（挂起不结算；其决策记录待结算后落盘）
+    // 第 1 个合格 turn-end：start 接受即落 dispatched:true；result 仍挂起。
     endTurn()
-    await vi.waitFor(() => { expect(seam.start).toHaveBeenCalledTimes(1) })
-    // 第 2、3 个 turn-end：单飞锁 + 冷却拦下——先落 dispatched:false 决策
+    await vi.waitFor(() => {
+      expect(seam.start).toHaveBeenCalledTimes(1)
+      expect(decisions()).toHaveLength(1)
+      expect(decisions()[0]?.data).toMatchObject({ dispatched: true, subagentSessionId: 'session-child-1' })
+    })
+    // 第 2、3 个 turn-end：单飞锁 + 冷却拦下——继续落 dispatched:false 决策。
     endTurn()
     endTurn()
-    await vi.waitFor(() => { expect(appended).toHaveLength(2) })
+    await vi.waitFor(() => { expect(decisions()).toHaveLength(3) })
     expect(seam.start).toHaveBeenCalledTimes(1)
-    expect(appended.every(entry => (entry.data as { dispatched: boolean }).dispatched === false)).toBe(true)
-    // 放行在飞 run：首条真实决策（dispatched true）此刻才落盘
+    expect(decisions().slice(1).every(entry => !(entry.data as { dispatched: boolean }).dispatched)).toBe(true)
+    // 放行在飞 run 只结算 outcome，不再补写或改写首条决策。
     releaseFirst!()
-    await vi.waitFor(() => { expect(appended.some(entry => (entry.data as { dispatched?: boolean }).dispatched === true)).toBe(true) })
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(decisions()).toHaveLength(3)
     expect(seam.start).toHaveBeenCalledTimes(1)
     for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
     // 第 4 个合格 turn-end：距首次派发已过 3 个合格 turn 且无在飞 → 第二次派发
     endTurn()
     await vi.waitFor(() => { expect(seam.start).toHaveBeenCalledTimes(2) })
     await vi.waitFor(() => {
-      expect(appended.filter(entry => (entry.data as { dispatched?: boolean }).dispatched === true)).toHaveLength(2)
+      expect(decisions().filter(entry => (entry.data as { dispatched?: boolean }).dispatched === true)).toHaveLength(2)
     })
     // 总帽（maxTotal 2）已到：后续 turn-end 只落决策不再派发
     for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
     endTurn()
     endTurn()
-    await vi.waitFor(() => { expect(appended).toHaveLength(6) })
+    await vi.waitFor(() => { expect(decisions()).toHaveLength(6) })
     expect(seam.start).toHaveBeenCalledTimes(2)
-    const dispatches = appended.filter(entry => (entry.data as { dispatched?: boolean }).dispatched === true)
+    const dispatches = decisions().filter(entry => (entry.data as { dispatched?: boolean }).dispatched === true)
     expect(dispatches).toHaveLength(2)
+  }, 10000)
+
+  it('maxConcurrent > 1 时 acceptance 前的预留仍阻止并发穿透 cooldown', async () => {
+    const { seam, emit } = makeContext({
+      trigger: { mode: 'auto', onTurnEnd: true },
+      auto: { maxConcurrent: 2, maxTotal: 2, cooldownTurns: 3, maxSteps: 24, timeoutMs: 600000 },
+    })
+    let releaseStart: (() => void) | undefined
+    const startGate = new Promise<void>((resolve) => { releaseStart = resolve })
+    seam.start.mockImplementationOnce(async () => {
+      await startGate
+      return {
+        id: SessionId('session-child-reserved'),
+        result: Promise.resolve({ stopReason: 'completed', output: [] }),
+        dispose: async () => {},
+      }
+    })
+    const A = SessionId('session-reservation')
+    const events: SessionEvent[] = []
+    const session = {
+      id: A,
+      header: {},
+      events,
+      append: (type: string, data: unknown) => { events.push({ type, data } as SessionEvent) },
+    }
+    const endTurn = emitCompletedTurn.bind(undefined, emit, session)
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    endTurn()
+    await vi.waitFor(() => { expect(seam.start).toHaveBeenCalledOnce() })
+    endTurn()
+    await vi.waitFor(() => {
+      expect(events.filter(event => event.type === 'router/decision')).toHaveLength(1)
+    })
+    expect(seam.start).toHaveBeenCalledOnce()
+    expect(events[0]?.data).toMatchObject({ dispatched: false })
+
+    releaseStart!()
+    await vi.waitFor(() => {
+      expect(events.filter(event => event.type === 'router/decision')).toHaveLength(2)
+    })
+    const decisionIds = events
+      .filter(event => event.type === 'router/decision')
+      .map(event => (event.data as { decisionId: string }).decisionId)
+    expect(new Set(decisionIds).size).toBe(2)
+  }, 10000)
+
+  it('进程重挂后从 session 日志恢复 maxTotal，不会重置累计派发帽', async () => {
+    const { seam, emit } = makeContext({
+      trigger: { mode: 'auto', onTurnEnd: true },
+      auto: { maxConcurrent: 1, maxTotal: 1, cooldownTurns: 1, maxSteps: 24, timeoutMs: 600000 },
+    })
+    const A = SessionId('session-resumed-total')
+    const events: SessionEvent[] = [{
+      type: 'router/decision',
+      data: {
+        decisionId: 'rtdec-prior',
+        action: 'delegate',
+        profile: 'verifier',
+        task: 'prior',
+        targets: [],
+        reason: 'turn-end',
+        mode: 'auto',
+        dispatched: true,
+        subagentSessionId: 'session-prior-child',
+        metrics: { errorRate: 1, consecutiveFailures: 8, unresolvedHigh: 0, verifications: 0, cooledTargets: 0, interventionLevel: 'escalate' },
+      },
+    } as SessionEvent]
+    const session = {
+      id: A,
+      header: {},
+      events,
+      append: (type: string, data: unknown) => { events.push({ type, data } as SessionEvent) },
+    }
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    emit('session/event', session, {
+      type: 'turn/end', seq: 2, time: 1, data: { turn: 2, reason: { kind: 'completed' } },
+    })
+    await vi.waitFor(() => {
+      expect(events.filter(event => event.type === 'router/decision')).toHaveLength(2)
+    })
+    expect(seam.start).not.toHaveBeenCalled()
+    expect((events.findLast(event => event.type === 'router/decision')?.data as { dispatched: boolean }).dispatched).toBe(false)
+  }, 10000)
+
+  it('进程重挂后以 orphan auto route 保守恢复 acceptance 配额', async () => {
+    const { seam, emit } = makeContext({
+      trigger: { mode: 'auto', onTurnEnd: true },
+      auto: { maxConcurrent: 1, maxTotal: 1, cooldownTurns: 1, maxSteps: 24, timeoutMs: 600000 },
+    })
+    const A = SessionId('session-resumed-orphan-route')
+    const events: SessionEvent[] = [{
+      type: 'router/route',
+      data: {
+        decisionId: 'rtdec-crashed-acceptance',
+        profile: 'verifier',
+        task: 'prior',
+        targets: [],
+        subagentSessionId: 'session-prior-child',
+      },
+    } as SessionEvent]
+    const session = {
+      id: A,
+      header: {},
+      events,
+      append: (type: string, data: unknown) => { events.push({ type, data } as SessionEvent) },
+    }
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    emit('session/event', session, {
+      type: 'turn/end', seq: 2, time: 1, data: { turn: 2, reason: { kind: 'completed' } },
+    })
+    await vi.waitFor(() => {
+      expect(events.filter(event => event.type === 'router/decision')).toHaveLength(1)
+    })
+    expect(seam.start).not.toHaveBeenCalled()
+    expect((events.at(-1)?.data as { dispatched: boolean }).dispatched).toBe(false)
+  }, 10000)
+
+  it('进程重挂后从 session 日志恢复 cooldown，不会提前再次派发', async () => {
+    const { seam, emit } = makeContext({
+      trigger: { mode: 'auto', onTurnEnd: true },
+      auto: { maxConcurrent: 1, maxTotal: 5, cooldownTurns: 3, maxSteps: 24, timeoutMs: 600000 },
+    })
+    const A = SessionId('session-resumed-cooldown')
+    const events: SessionEvent[] = [{
+      type: 'router/decision',
+      data: {
+        decisionId: 'rtdec-prior',
+        action: 'delegate',
+        profile: 'verifier',
+        task: 'prior',
+        targets: [],
+        reason: 'turn-end',
+        mode: 'auto',
+        dispatched: true,
+        subagentSessionId: 'session-prior-child',
+        metrics: { errorRate: 1, consecutiveFailures: 8, unresolvedHigh: 0, verifications: 0, cooledTargets: 0, interventionLevel: 'escalate' },
+      },
+    } as SessionEvent]
+    const session = {
+      id: A,
+      header: {},
+      events,
+      append: (type: string, data: unknown) => { events.push({ type, data } as SessionEvent) },
+    }
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    emit('session/event', session, {
+      type: 'turn/end', seq: 2, time: 1, data: { turn: 2, reason: { kind: 'completed' } },
+    })
+    await vi.waitFor(() => {
+      expect(events.filter(event => event.type === 'router/decision')).toHaveLength(2)
+    })
+    expect(seam.start).not.toHaveBeenCalled()
+    expect((events.findLast(event => event.type === 'router/decision')?.data as { dispatched: boolean }).dispatched).toBe(false)
   }, 10000)
 
   it('冷却按合格 turn 全量计数：self 决策轮也推进冷却间隔', async () => {
@@ -638,17 +911,17 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     })
     const A = SessionId('session-a')
     const appended: Array<{ type: string; data: Record<string, unknown> }> = []
+    const events: SessionEvent[] = []
     const session = {
       id: A,
       header: {},
-      events: [] as SessionEvent[],
-      append: (type: string, data: unknown) => { appended.push({ type, data: data as Record<string, unknown> }) },
+      events,
+      append: (type: string, data: unknown) => {
+        appended.push({ type, data: data as Record<string, unknown> })
+        events.push({ type, data } as SessionEvent)
+      },
     }
-    const endTurn = (): void => {
-      emit('session/event', session, {
-        type: 'turn/end', seq: appended.length, time: 1, data: { turn: appended.length, reason: { kind: 'completed' } },
-      })
-    }
+    const endTurn = emitCompletedTurn.bind(undefined, emit, session)
     // t1：连败 → 首次派发（冷却起点，qualifiedTurns=1）。
     for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
     endTurn()
@@ -770,6 +1043,45 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     expect(outcome3?.finding).toBeUndefined()
   }, 10000)
 
+  it('结构化 finding 的 {{...}} 经真实 prompt assembly 保持为字面文本', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SystemPrompt, { persona: '' })
+    ctx.provide('tools', { register: () => () => {} })
+    ctx.provide('subagents', { start: vi.fn() })
+    ctx.provide('agents', { get: () => ({}) })
+    applyAgentRouter(ctx, { provider: 'mock', model: 'mock' })
+    const events: SessionEvent[] = [
+      {
+        type: 'router/route',
+        data: {
+          profile: 'code_scout',
+          task: 'inspect',
+          targets: [],
+          subagentSessionId: 'session-child-template',
+          budget: { maxTurns: 1, deadlineMs: Date.now() + 1000 },
+        },
+      } as SessionEvent,
+      {
+        type: 'router/outcome',
+        data: {
+          subagentSessionId: 'session-child-template',
+          stopReason: 'completed',
+          finding: {
+            kind: 'scout',
+            summary: 'literal {{unknown}} and {{model}}',
+            findings: ['keep {{cwd}} unchanged'],
+          },
+        },
+      } as SessionEvent,
+    ]
+
+    const assembly = await ctx.systemPrompt.assemble({
+      agent: { session: { events } },
+    } as never)
+    expect(renderPrompt(assembly)).toContain('literal {{unknown}} and {{model}}')
+    expect(renderPrompt(assembly)).toContain('keep {{cwd}} unchanged')
+  })
+
   it('综合面按可派发性门控：缺 provider/model（shadow 重挂形状）或 dispatchEnabled:false 时不注册，可派发时装配齐', () => {
     // 发货 TUI 形状：shadow 重挂、无 provider/model——综合节恒空、adopt 每调必抛，
     // 常驻模型面只是白占请求 token，故两者都不注册。
@@ -805,6 +1117,214 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
       | undefined
     expect(finalEvaluation).toMatchObject({ classification: 'inconclusive', samples: 2 })
     expect(router.metrics({ sessionId: A }).interventionLevel).toBe('none')
+  }, 10000)
+
+  it('账本归账异常留在插件边界，不成为未处理的微任务异常', async () => {
+    const { ctx, emit } = makeContext({ trigger: { mode: 'shadow', onTurnEnd: true } })
+    const loggerError = vi.spyOn(ctx.logger, 'error').mockImplementation(() => undefined)
+    const A = SessionId('session-a')
+    const events: SessionEvent[] = [
+      {
+        type: 'router/decision',
+        data: {
+          decisionId: 'rtdec-0',
+          action: 'delegate',
+          profile: 'verifier',
+          task: 'verify',
+          targets: [],
+          reason: 'turn-end',
+          mode: 'shadow',
+          dispatched: false,
+          metrics: { errorRate: 1, missingEvidenceCount: 0, repeatedToolFailures: 8, interventionLevel: 'escalate' },
+        },
+      } as SessionEvent,
+      ...Array.from({ length: 8 }, () => toolResult(false) as SessionEvent),
+    ]
+    const session = {
+      id: A,
+      header: {},
+      events,
+      append: (type: string) => {
+        if (type === 'router/evaluation') throw new Error('ledger write failed')
+      },
+    }
+
+    emit('session/event', session, toolResult(false))
+    await vi.waitFor(() => {
+      expect(loggerError).toHaveBeenCalledWith(
+        expect.stringContaining('evaluation close failed'),
+        expect.any(Error),
+      )
+    })
+    loggerError.mockRestore()
+  }, 10000)
+
+  it('agent/disposed 即使 final 归账失败也会中止在飞派发并回收状态', async () => {
+    const { ctx, seam, emit } = makeContext({
+      trigger: { mode: 'auto', onTurnEnd: true },
+      auto: { maxConcurrent: 1, maxTotal: 2, cooldownTurns: 1, maxSteps: 24, timeoutMs: 600000 },
+    })
+    const loggerError = vi.spyOn(ctx.logger, 'error').mockImplementation(() => undefined)
+    let childSignal: AbortSignal | undefined
+    let release: (() => void) | undefined
+    const result = new Promise<{ stopReason: string; output: [] }>((resolve) => {
+      release = () => { resolve({ stopReason: 'aborted', output: [] }) }
+    })
+    seam.start.mockImplementationOnce(async (_provider, request: { signal: AbortSignal }) => {
+      childSignal = request.signal
+      return { id: SessionId('session-child-1'), result, dispose: async () => {} }
+    })
+    const A = SessionId('session-a')
+    const events: SessionEvent[] = []
+    const session = {
+      id: A,
+      header: {},
+      events,
+      append: (type: string, data: unknown) => {
+        if (type === 'router/evaluation') throw new Error('final ledger write failed')
+        events.push({ type, data } as SessionEvent)
+      },
+    }
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    emit('session/event', session, {
+      type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
+    })
+    await vi.waitFor(() => {
+      expect(childSignal).toBeDefined()
+      expect(events.some(event => event.type === 'router/decision')).toBe(true)
+    })
+
+    let thrown: unknown
+    try {
+      emit('agent/disposed', { agent: { session } })
+    } catch (error) {
+      thrown = error
+    } finally {
+      release!()
+    }
+    expect(thrown).toBeUndefined()
+    expect(childSignal?.aborted).toBe(true)
+    await vi.waitFor(() => {
+      expect(loggerError).toHaveBeenCalledWith(
+        expect.stringContaining('final evaluation close failed'),
+        expect.any(Error),
+      )
+    })
+    loggerError.mockRestore()
+  }, 10000)
+
+  it('agent/disposed 等待尚未 acceptance 的 trigger 后再 final 归账', async () => {
+    const { seam, emit } = makeContext({
+      trigger: { mode: 'auto', onTurnEnd: true },
+      auto: { maxConcurrent: 1, maxTotal: 2, cooldownTurns: 1, maxSteps: 24, timeoutMs: 600000 },
+    })
+    let releaseStart: (() => void) | undefined
+    const startGate = new Promise<void>((resolve) => { releaseStart = resolve })
+    seam.start.mockImplementationOnce(async (_provider, request: { signal: AbortSignal }) => {
+      await startGate
+      return {
+        id: SessionId('session-child-delayed-start'),
+        result: Promise.resolve({
+          stopReason: request.signal.aborted ? 'aborted' : 'completed',
+          output: [],
+        }),
+        dispose: async () => {},
+      }
+    })
+    const A = SessionId('session-disposed-before-acceptance')
+    const events: SessionEvent[] = []
+    const session = {
+      id: A,
+      header: {},
+      events,
+      append: (type: string, data: unknown) => { events.push({ type, data } as SessionEvent) },
+    }
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    emit('session/event', session, {
+      type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
+    })
+    await vi.waitFor(() => { expect(seam.start).toHaveBeenCalledOnce() })
+
+    emit('agent/disposed', { agent: { session } })
+    releaseStart!()
+
+    await vi.waitFor(() => {
+      const decision = events.find(event => event.type === 'router/decision')
+      const evaluation = events.find(event => event.type === 'router/evaluation')
+      expect(decision).toBeDefined()
+      expect(evaluation?.data).toMatchObject({
+        decisionId: (decision?.data as { decisionId: string }).decisionId,
+      })
+    })
+  }, 10000)
+
+  it('插件 HMR dispose 会中止并等待在飞自动派发收敛', async () => {
+    const ctx = new Context()
+    const unregisterTool = vi.fn()
+    const unregisterVariable = vi.fn()
+    const unregisterSection = vi.fn()
+    ctx.provide('tools', { register: () => unregisterTool })
+    ctx.provide('systemPrompt', {
+      variable: () => unregisterVariable,
+      section: () => unregisterSection,
+    })
+    let childSignal: AbortSignal | undefined
+    const runDispose = vi.fn(async () => {})
+    const seam = {
+      start: vi.fn(async (_provider: string, request: { signal: AbortSignal }) => {
+        childSignal = request.signal
+        const result = new Promise<{ stopReason: string; output: [] }>((resolve) => {
+          request.signal.addEventListener('abort', () => {
+            resolve({ stopReason: 'aborted', output: [] })
+          }, { once: true })
+        })
+        return { id: SessionId('session-child-hmr'), result, dispose: runDispose }
+      }),
+    }
+    const parentEvents: SessionEvent[] = []
+    ctx.provide('subagents', seam)
+    ctx.provide('agents', {
+      get: () => ({
+        session: {
+          events: parentEvents,
+          append: (type: string, data: unknown) => { parentEvents.push({ type, data } as SessionEvent) },
+        },
+      }),
+    })
+    const module = await import('../src/index.js')
+    const fiber = await ctx.plugin(module, {
+      provider: 'mock',
+      model: 'mock',
+      trigger: { mode: 'auto', onTurnEnd: true },
+      auto: { maxConcurrent: 1, maxTotal: 1, cooldownTurns: 1, maxSteps: 24, timeoutMs: 600000 },
+    })
+    const A = SessionId('session-hmr')
+    const ownerEvents: SessionEvent[] = []
+    const owner = {
+      id: A,
+      header: {},
+      events: ownerEvents,
+      append: (type: string, data: unknown) => { ownerEvents.push({ type, data } as SessionEvent) },
+    }
+    for (let i = 0; i < 8; i++) {
+      // @ts-expect-error -- 测试按运行时事件签名驱动
+      ctx.emit('session/event', owner, toolResult(true))
+    }
+    // @ts-expect-error -- 测试按运行时事件签名驱动
+    ctx.emit('session/event', owner, {
+      type: 'turn/end', seq: 1, time: 1, data: { turn: 1, reason: { kind: 'completed' } },
+    })
+    await vi.waitFor(() => {
+      expect(childSignal).toBeDefined()
+      expect(childSignal?.aborted).toBe(false)
+    })
+
+    await fiber.dispose()
+    expect(childSignal?.aborted).toBe(true)
+    expect(runDispose).toHaveBeenCalledOnce()
+    expect(unregisterTool).toHaveBeenCalledOnce()
+    expect(unregisterVariable).toHaveBeenCalledOnce()
+    expect(unregisterSection).toHaveBeenCalledOnce()
   }, 10000)
 
   it('resetPrediction 按会话重置（不影响其他会话）', async () => {

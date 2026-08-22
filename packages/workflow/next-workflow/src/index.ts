@@ -51,7 +51,7 @@ import type { Git } from '@huiliyi37/dsh-git'
 import { createUserMessage, ReasoningEffortId } from '@huiliyi37/dsh-llm'
 import type { LlmCallConfig } from '@huiliyi37/dsh-llm'
 import { dshHomePath } from '@huiliyi37/dsh-paths'
-import type {} from '@huiliyi37/dsh-subagent'
+import { MAX_SUBAGENT_RUN_TIMEOUT_MS } from '@huiliyi37/dsh-subagent'
 import type { SubagentResult, SubagentRun, SubagentService } from '@huiliyi37/dsh-subagent'
 import type { ObjectJsonSchema } from '@huiliyi37/dsh-tools'
 
@@ -103,6 +103,13 @@ declare module '@huiliyi37/dsh-session/types' {
 export interface Config {
   /** One-shot structured-output provider for every subagent phase (default `spawn`). */
   provider?: string
+  /** Optional step and wall-clock bound applied to every one-shot subagent phase. */
+  subagentRunBudget?: {
+    /** Maximum model steps per phase child. */
+    maxSteps: number
+    /** Maximum wall-clock duration per phase child in milliseconds. */
+    timeoutMs: number
+  }
   /** Artifact root; one `<run-id>` directory per run holding `SPEC.md`/`PLAN.md`/`REVIEW.md`
    * (plus `PLAN-*.md`/`SELECTION.md` for best-of-N). Default `$DSH_HOME/workflows`. */
   workflowsRoot?: string
@@ -131,6 +138,10 @@ export interface Config {
 /** Schemastery configuration for the `/next-workflow` command. */
 export const Config: z<Config> = z.object({
   provider: z.string().default('spawn'),
+  subagentRunBudget: z.object({
+    maxSteps: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).required(),
+    timeoutMs: z.number().step(1).min(1).max(MAX_SUBAGENT_RUN_TIMEOUT_MS).required(),
+  }).default(undefined as unknown as { maxSteps: number; timeoutMs: number }),
   // Empty means "the harness home's workflows directory": the default is a
   // runtime path, while the config catalog walks this schema statically.
   workflowsRoot: z.string().default(''),
@@ -149,6 +160,7 @@ export const Config: z<Config> = z.object({
 /** Fully resolved configuration: schema defaults plus load-time validation. */
 interface ResolvedConfig {
   readonly provider: string
+  readonly subagentRunBudget: { maxSteps: number; timeoutMs: number } | undefined
   readonly workflowsRoot: string
   readonly verifyCommand: string | undefined
   readonly verifyTimeoutMs: number
@@ -245,8 +257,20 @@ function resolveConfig(config: Config): ResolvedConfig {
   const selectEffort = phaseEfforts.select ?? phaseEfforts.critique
   if (selectEffort !== undefined) phaseEfforts.select = selectEffort
   const workflowsRoot = (config.workflowsRoot ?? '').trim()
+  const subagentRunBudget = config.subagentRunBudget
+  if (subagentRunBudget !== undefined) {
+    if (!Number.isSafeInteger(subagentRunBudget.maxSteps) || subagentRunBudget.maxSteps < 1) {
+      throw new TypeError('next-workflow: subagentRunBudget.maxSteps must be a positive safe integer')
+    }
+    if (!Number.isSafeInteger(subagentRunBudget.timeoutMs)
+      || subagentRunBudget.timeoutMs < 1
+      || subagentRunBudget.timeoutMs > MAX_SUBAGENT_RUN_TIMEOUT_MS) {
+      throw new TypeError(`next-workflow: subagentRunBudget.timeoutMs must be a positive safe integer <= ${MAX_SUBAGENT_RUN_TIMEOUT_MS}`)
+    }
+  }
   return {
     provider,
+    subagentRunBudget,
     workflowsRoot: workflowsRoot === '' ? dshHomePath('workflows') : workflowsRoot,
     verifyCommand,
     ...bounds,
@@ -621,6 +645,7 @@ async function runPhaseSubagent(
     signal,
     outputSchema: options.schema,
     persona: options.persona,
+    ...(config.subagentRunBudget !== undefined ? { runBudget: config.subagentRunBudget } : {}),
   })
   const result = await settlePhaseRun(run)
   if (result.stopReason !== 'completed') {
@@ -789,6 +814,12 @@ async function executeNextWorkflow(ctx: Context, config: ResolvedConfig, invocat
     if (!provider.capabilities[capability]) {
       return { kind: 'error', text: `/next-workflow is unavailable: subagent provider "${config.provider}" does not support the "${capability}" capability` }
     }
+  }
+  if (config.subagentRunBudget !== undefined && !provider.capabilities.runBudget) {
+    return { kind: 'error', text: `/next-workflow is unavailable: subagent provider "${config.provider}" does not support the "runBudget" capability` }
+  }
+  if (config.subagentRunBudget !== undefined && !provider.capabilities.runBudget) {
+    return { kind: 'error', text: `/next-workflow is unavailable: subagent provider "${config.provider}" does not support the "runBudget" capability` }
   }
   if (provider.inheritsParentContext) {
     return { kind: 'error', text: `/next-workflow is unavailable: subagent provider "${config.provider}" inherits parent context; critique and review require a fresh-context provider` }
@@ -1080,7 +1111,7 @@ export function apply(ctx: Context, config: Config = {}): void {
           echo('⚠ /next-workflow 需要活动会话')
           return
         }
-        const agent = (runCtx as TuiRunContext).agents?.get(sessionId)
+        const agent = runCtx.agents?.get(sessionId)
         if (agent === undefined) {
           echo('⚠ /next-workflow 需要活动会话')
           return

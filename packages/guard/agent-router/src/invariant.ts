@@ -127,11 +127,12 @@ function validateFinding(finding: unknown, fail: InvariantFailure): void {
  */
 function validateEvent(event: SessionEvent, fail: InvariantFailure): void {
   if (event.type === 'router/route') {
-    const { profile, task, targets, subagentSessionId } = event.data as {
+    const { profile, task, targets, subagentSessionId, decisionId } = event.data as {
       profile?: unknown
       task?: unknown
       targets?: unknown
       subagentSessionId?: unknown
+      decisionId?: unknown
     }
     if (!ROUTE_PROFILES.has(profile)) {
       fail(`agent-router: a route record must carry a known profile (code_scout | verifier), got ${JSON.stringify(profile)}`)
@@ -144,6 +145,9 @@ function validateEvent(event: SessionEvent, fail: InvariantFailure): void {
     }
     if (typeof subagentSessionId !== 'string' || subagentSessionId === '') {
       fail('agent-router: a route record must carry a non-empty subagentSessionId')
+    }
+    if (decisionId !== undefined && (typeof decisionId !== 'string' || decisionId === '')) {
+      fail('agent-router: a route record decisionId must be a non-empty string when present')
     }
     const budget = (event.data as { budget?: unknown }).budget
     if (budget !== undefined) {
@@ -239,10 +243,10 @@ function validateEvent(event: SessionEvent, fail: InvariantFailure): void {
     if (subagentSessionId !== undefined && (typeof subagentSessionId !== 'string' || subagentSessionId === '')) {
       fail('agent-router: a delegate decision record subagentSessionId must be a non-empty string when present')
     }
-    if (dispatched === true && subagentSessionId === undefined) {
+    if (dispatched && subagentSessionId === undefined) {
       fail('agent-router: a dispatched decision record must carry its subagentSessionId')
     }
-    if (dispatched === false && subagentSessionId !== undefined) {
+    if (!dispatched && subagentSessionId !== undefined) {
       fail('agent-router: a non-dispatched decision record must not carry a subagentSessionId')
     }
     return
@@ -291,20 +295,48 @@ function validateEvent(event: SessionEvent, fail: InvariantFailure): void {
 
 /** Install validation for live appends and loaded history at late registration. */
 const install: InvariantInstaller = Object.assign((ctx: Context, fail: InvariantFailure) => {
-  // 每会话配对状态：outcome 已见 / 已声明（adoption 必须引用本会话在先的
-  // outcome，且每条 outcome 至多一条声明）；decision 已见 / 已评估
-  // （evaluation 必须引用本会话在先的 decision，且每条 decision 至多一条）。
-  const seen = new WeakMap<Session, { outcomes: Set<string>; adopted: Set<string>; decisions: Set<string>; evaluated: Set<string> }>()
-  const stateOf = (session: Session): { outcomes: Set<string>; adopted: Set<string>; decisions: Set<string>; evaluated: Set<string> } =>
-    seen.get(session) ?? { outcomes: new Set(), adopted: new Set(), decisions: new Set(), evaluated: new Set() }
+  // 每会话配对状态：route → outcome → adoption 与 decision → evaluation 均按
+  // 日志先后、至多一次推进。
+  interface PairingState {
+    routes: Set<string>
+    outcomes: Set<string>
+    adopted: Set<string>
+    decisions: Set<string>
+    evaluated: Set<string>
+  }
+  const seen = new WeakMap<Session, PairingState>()
+  const stateOf = (session: Session): PairingState =>
+    seen.get(session) ?? {
+      routes: new Set(),
+      outcomes: new Set(),
+      adopted: new Set(),
+      decisions: new Set(),
+      evaluated: new Set(),
+    }
   const track = (session: Session, event: SessionEvent): void => {
     if (event.type !== 'router/route' && event.type !== 'router/decision' && event.type !== 'router/outcome' && event.type !== 'router/adoption' && event.type !== 'router/evaluation' && event.type !== 'router/gate') return
     // 形状校验先行：配对簿记只在形状通过后提交（失败记录不留配对状态）。
     validateEvent(event, fail)
     const state = stateOf(session)
+    if (event.type === 'router/route') {
+      const { subagentSessionId } = event.data as { subagentSessionId?: unknown }
+      if (typeof subagentSessionId === 'string' && subagentSessionId !== '') {
+        if (state.routes.has(subagentSessionId)) {
+          fail(`agent-router: route on ${session.id} repeats child ${subagentSessionId} — at most one acceptance per child`)
+        }
+        state.routes.add(subagentSessionId)
+      }
+      seen.set(session, state)
+    }
     if (event.type === 'router/outcome') {
       const { subagentSessionId } = event.data as { subagentSessionId?: unknown }
       if (typeof subagentSessionId === 'string' && subagentSessionId !== '') {
+        if (!state.routes.has(subagentSessionId)) {
+          fail(`agent-router: outcome on ${session.id} names child ${subagentSessionId} without a prior route record`)
+        }
+        if (state.outcomes.has(subagentSessionId)) {
+          fail(`agent-router: outcome on ${session.id} repeats child ${subagentSessionId} — at most one terminal per route`)
+        }
         state.outcomes.add(subagentSessionId)
       }
       seen.set(session, state)

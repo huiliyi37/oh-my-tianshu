@@ -71,6 +71,7 @@ import * as SchedulePlugin from '@huiliyi37/dsh-schedule'
 import LlmService from '@huiliyi37/dsh-llm'
 import AgentLoop from '@huiliyi37/dsh-agent-loop'
 import * as ToolWorkflow from '@huiliyi37/dsh-tool-workflow'
+import * as AgentRouter from '@huiliyi37/dsh-agent-router'
 
 const root = resolve(import.meta.dirname, '..')
 const OUT = 'docs/tool-catalog.md'
@@ -124,7 +125,7 @@ async function mountCatalogChildScope(
 interface ToolPackage {
   /** The npm package name, used as the catalog section heading. */
   pkg: string
-  /** The `packages/<group>/<dir>` leaf name — matched by the completeness guard. */
+  /** The `packages/<group>/<dir>` leaf name; `tool-*` leaves are matched by the completeness guard. */
   dir: string
   /**
    * Repo-relative implementation source linked per harvested tool. Packages
@@ -161,11 +162,24 @@ interface ToolPackage {
 }
 
 /**
- * The boot manifest: every shipped tool package (a `tool-*` leaf under
- * `packages/`). Ordered by package name (the render order); the completeness
- * guard proves it is exhaustive against the on-disk glob.
+ * The boot manifest: every shipped tool package plus packages such as
+ * agent-router that contribute a conditional model tool outside a `tool-*`
+ * leaf. Ordered by package name (the render order); the completeness guard
+ * proves the `tool-*` subset exhaustive against the on-disk glob.
  */
 const TOOL_PACKAGES: ToolPackage[] = [
+  {
+    pkg: '@huiliyi37/dsh-agent-router',
+    dir: 'agent-router',
+    source: 'packages/guard/agent-router/src/index.ts',
+    requires: ['ctx.tools', 'ctx.systemPrompt', 'a calling agent with pending router/outcome'],
+    writes: ['router/adoption', 'tool/call', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(AgentRouter, { provider: 'tool-catalog', model: 'tool-catalog' })
+    },
+    note:
+      'router_adopt is registered only on dispatch-capable assemblies and records one adopt/reject declaration for each pending bounded finding.',
+  },
   {
     pkg: '@huiliyi37/dsh-tool-ask-user',
     dir: 'tool-ask-user',
@@ -775,7 +789,7 @@ export function render(catalog: ToolCatalog): string {
     '',
     'This file is GENERATED and verified fresh by `pnpm run verify-tool-catalog` (part of `doc-sync`) — do not edit it by hand. Unlike the cordis catalog (a pure source-AST pass), this generator BOOTS each tool plugin on a real context and reads `ctx.tools.schemas()`, because a tool schema is not statically knowable (runtime-spread enums, concatenated descriptions, config-driven names, raw-JSON-Schema MCP tools). A completeness guard globs `packages/*/tool-*` and fails if any package is missing from the generator\'s boot manifest, so a new tool cannot be silently undocumented. See [the tool-schema-catalog Agent Note](../.agents/notes/implemented/process/2026-07-02-tool-schema-catalog.md).',
     '',
-    'Scope: shipped product tools under `packages/*/tool-*`, each booted with its DEFAULT config, except where a Config field is REQUIRED with no default — there the generator must choose, and the per-package note records which branch this page shows. The registered tool NAME can be a load-time config (e.g. `tool-subagent`\'s `toolName`), so a deployment may surface a package under a different or additional name — a per-package note records those shipped aliases where they exist. The `examples/` demo tools (e.g. `echo`) are excluded, matching the cordis catalog\'s packages-only scope.',
+    'Scope: shipped product tools under `packages/*/tool-*` plus explicitly listed conditional contributors outside that leaf pattern (currently agent-router), each booted with the manifest config. Where a Config field is REQUIRED with no default, the generator must choose, and the per-package note records which branch this page shows. The registered tool NAME can be a load-time config (e.g. `tool-subagent`\'s `toolName`), so a deployment may surface a package under a different or additional name — a per-package note records those shipped aliases where they exist. The `examples/` demo tools (e.g. `echo`) are excluded, matching the cordis catalog\'s packages-only scope.',
     '',
     '## Tool Package Map',
     '',

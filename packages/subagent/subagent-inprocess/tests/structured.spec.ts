@@ -264,18 +264,18 @@ describe('in-process structured output', () => {
     await run.dispose()
   })
 
-  it('a cancel landing after a clean capture-less turn settles aborted, not error', async () => {
+  it('a cancel landing after a clean capture-less terminal does not overwrite its error', async () => {
     const { ctx, parent } = await setup([textResponse('prose, no capture')])
     const controller = new AbortController()
     const run = await ctx.subagents.start('spawn', structuredRequest(parent, { signal: controller.signal }))
-    // Cancel synchronously inside the turn's end recording: the cancel
-    // contract outranks the schema shortfall, so the result maps to aborted.
+    // Cancel synchronously inside the turn's end recording. The durable
+    // non-aborted terminal remains authoritative over this later signal.
     ctx.on('session/event', (session, event) => {
       const child = ctx.agents.get(run.id)
       if (session === child?.session && event.type === 'turn/end') controller.abort('cancelled at turn end')
     })
     const result = await run.result
-    expect(result.stopReason).toBe('aborted')
+    expect(result.stopReason).toBe('error')
     await run.dispose()
   })
 

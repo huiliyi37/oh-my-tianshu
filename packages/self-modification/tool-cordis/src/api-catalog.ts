@@ -255,12 +255,20 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         jsDoc: '/**\n * Validate one image without persisting it.\n * Batch callers validate every member before saving any member.\n * @param input - encoded bytes, declared media type, and optional display name.\n * @returns completion after the encoded raster has been fully decoded.\n */',
       },
       {
+        signature: 'async saveImages(inputs: readonly SaveImageAttachment[]): Promise<readonly ImageAttachmentRef[]>',
+        jsDoc: '/**\n * Validate and durably commit one ordered image batch.\n * Validation failures start no writes; storage failures return no partial\n * references, although already published content-addressed objects may stay\n * unreachable until a future retention policy collects them.\n * @param inputs - encoded images in owning-message order.\n * @returns durable normalized attachment references in the same order after every member succeeds.\n */',
+      },
+      {
         signature: 'abstract saveImage(input: SaveImageAttachment): Promise<ImageAttachmentRef>',
-        jsDoc: '/**\n * Validate and durably commit one image before its owning session event is appended.\n * @param input - encoded bytes, declared media type, and optional display name.\n * @returns a durable content-addressed reference.\n */',
+        jsDoc: '/**\n * Validate and durably commit one image before its owning session event is appended.\n * The returned reference describes the persisted normalized image. When\n * normalization reduces the raster, its `originalDimensions` records the\n * orientation-applied input dimensions.\n * @param input - encoded bytes, declared media type, and optional display name.\n * @returns the durable content-addressed normalized image reference.\n */',
       },
       {
         signature: 'abstract readImage(ref: ImageAttachmentRef, signal?: AbortSignal): Promise<StoredImageAttachment>',
-        jsDoc: '/**\n * Read one image and verify that bytes still match the recorded reference.\n * @param ref - durable reference from the session log.\n * @param signal - optional cancellation for backend read and verification work.\n * @returns the verified bytes and canonical reference.\n * @throws the signal reason when aborted, or a storage error when verification fails.\n */',
+        jsDoc: '/**\n * Read one image and verify that bytes still match the recorded reference.\n * @param ref - durable reference from the session log.\n * @param signal - optional cancellation for backend read and verification work.\n * @returns the verified bytes and normalized attachment reference.\n * @throws the signal reason when aborted, or a storage error when verification fails.\n */',
+      },
+      {
+        signature: 'readImageRequest( ref: ImageAttachmentRef, policy: ImageRequestPolicy, signal?: AbortSignal, ): Promise<RequestImageAttachment>',
+        jsDoc: '/**\n * Generate or read one deterministic model-request version from the stored normalized image.\n * @param ref - durable provider-independent normalized attachment reference.\n * @param policy - exact route pixel and encoded-byte budget.\n * @param signal - optional cancellation.\n * @returns request bytes and the cache/upload identity covering every transform input.\n */',
       },
     ],
   },
@@ -2861,7 +2869,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ImageAttachmentRef',
-    declaration: 'export interface ImageAttachmentRef {\n    attachmentId: AttachmentId;\n    mediaType: ImageMediaType;\n    bytes: number;\n    width: number;\n    height: number;\n    name?: string;\n}',
+    declaration: 'export interface ImageAttachmentRef {\n    attachmentId: AttachmentId;\n    mediaType: ImageMediaType;\n    bytes: number;\n    width: number;\n    height: number;\n    name?: string;\n    originalDimensions?: {\n        width: number;\n        height: number;\n    };\n}',
   },
   {
     name: 'ImageBlock',
@@ -2870,6 +2878,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ImageMediaType',
     declaration: 'export type ImageMediaType = \'image/png\' | \'image/jpeg\' | \'image/webp\' | \'image/gif\';',
+  },
+  {
+    name: 'ImageRequestPolicy',
+    declaration: 'export interface ImageRequestPolicy {\n    maxPixels: number;\n    maxBytes: number;\n}',
+  },
+  {
+    name: 'ImageVariantId',
+    declaration: 'export type ImageVariantId = Branded<\'ImageVariantId\'>;',
   },
   {
     name: 'Inbox',
@@ -2941,7 +2957,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'LlmAdapter',
-    declaration: 'export abstract class LlmAdapter {\n    providerInfo(provider: string): LlmProviderInfo;\n    providerRetryPolicy(_provider: string): ResolvedRetryPolicy | undefined;\n    listModels(_provider: string): Promise<readonly LlmModelInfo[]>;\n    resolveModel(provider: string, model: string, _signal?: AbortSignal): Promise<LlmResolvedModelInfo>;\n    abstract stream(options: GenerateOptions): AsyncIterable<StreamChunk>;\n}',
+    declaration: 'export abstract class LlmAdapter {\n    providerInfo(provider: string): LlmProviderInfo;\n    providerRetryPolicy(_provider: string): ResolvedRetryPolicy | undefined;\n    listModels(_provider: string): Promise<readonly LlmModelInfo[]>;\n    resolveModel(provider: string, model: string, _signal?: AbortSignal): Promise<LlmResolvedModelInfo>;\n    async prepareCall(provider: string, model: string, signal?: AbortSignal): Promise<PreparedAdapterCall>;\n    abstract stream(options: GenerateOptions): AsyncIterable<StreamChunk>;\n}',
   },
   {
     name: 'LlmCallConfig',
@@ -3092,6 +3108,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ModelMessageSource extends AssistantProvenance {\n    kind: \'model\';\n}',
   },
   {
+    name: 'ModelModality',
+    declaration: 'export type ModelModality = ModelModalityMap[keyof ModelModalityMap];',
+  },
+  {
+    name: 'ModelModalityMap',
+    declaration: 'export interface ModelModalityMap {\n    text: \'text\';\n    image: \'image\';\n}',
+  },
+  {
     name: 'ModelRole',
     declaration: 'export type ModelRole = \'vision\' | \'secondary\' | \'subagent\';',
   },
@@ -3116,8 +3140,12 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface PermissionSelect {\n    options: PresetOption[];\n    currentValue: string;\n}',
   },
   {
+    name: 'PreparedAdapterCall',
+    declaration: 'export interface PreparedAdapterCall {\n    readonly model: LlmResolvedModelInfo;\n    stream(options: GenerateOptions): AsyncIterable<StreamChunk>;\n}',
+  },
+  {
     name: 'PreparedLlmCall',
-    declaration: 'export interface PreparedLlmCall {\n    readonly config: LlmCallConfig;\n    readonly retryPolicy: ResolvedRetryPolicy;\n    readonly context?: LlmModelContext;\n    readonly adapterDefaults: LlmCallConfigAdapterDefaults;\n    stream(options: GenerateOptions): AsyncIterable<StreamChunk>;\n}',
+    declaration: 'export interface PreparedLlmCall {\n    readonly config: LlmCallConfig;\n    readonly retryPolicy: ResolvedRetryPolicy;\n    readonly context?: LlmModelContext;\n    readonly inputModalities: readonly ModelModality[];\n    readonly adapterDefaults: LlmCallConfigAdapterDefaults;\n    stream(options: GenerateOptions): AsyncIterable<StreamChunk>;\n}',
   },
   {
     name: 'PreparedReferencedMessage',
@@ -3286,6 +3314,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'RequestHeaderReason',
     declaration: 'export type RequestHeaderReason = \'initial\' | \'resume\' | \'change\';',
+  },
+  {
+    name: 'RequestImageAttachment',
+    declaration: 'export interface RequestImageAttachment {\n    variantId: ImageVariantId;\n    attachment: ImageAttachmentRef;\n    data: Uint8Array;\n    mediaType: ImageMediaType;\n    bytes: number;\n    width: number;\n    height: number;\n    depth: \'uchar\';\n    space: \'srgb\';\n    hasAlpha: boolean;\n}',
   },
   {
     name: 'ResolvedAlwaysRetryPolicy',
@@ -3500,10 +3532,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SessionProjectionMap {\n}',
   },
   {
-    name: 'SessionRecord',
-    declaration: 'export interface SessionRecord {\n    header: SessionHeader;\n    live: boolean;\n    persisted: boolean;\n}',
-  },
-  {
     name: 'SessionReferenceCandidate',
     declaration: 'export interface SessionReferenceCandidate {\n    sessionId: SessionId;\n    label: string;\n    cwd?: string;\n    createdAt: number;\n}',
   },
@@ -3705,7 +3733,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SubagentCapabilities',
-    declaration: 'export interface SubagentCapabilities {\n    readonly outputSchema: boolean;\n    readonly depthLimit: boolean;\n    readonly toolFilter: boolean;\n    readonly persona: boolean;\n    readonly sandboxMode: boolean;\n}',
+    declaration: 'export interface SubagentCapabilities {\n    readonly outputSchema: boolean;\n    readonly depthLimit: boolean;\n    readonly toolFilter: boolean;\n    readonly persona: boolean;\n    readonly sandboxMode: boolean;\n    readonly runBudget: boolean;\n}',
   },
   {
     name: 'SubagentDescendantListEntry',
@@ -3753,7 +3781,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SubagentStartRequest',
-    declaration: 'export interface SubagentStartRequest {\n    readonly label?: string;\n    readonly prompt: ContentBlock[];\n    readonly parent: Agent;\n    readonly signal: AbortSignal;\n    readonly agentOptions?: AgentOptions;\n    readonly outputSchema?: ObjectJsonSchema;\n    readonly maxDepth?: number;\n    readonly toolFilter?: ToolRestriction;\n    readonly persona?: string;\n    readonly sandboxMode?: \'read-only\';\n}',
+    declaration: 'export interface SubagentStartRequest {\n    readonly label?: string;\n    readonly prompt: ContentBlock[];\n    readonly parent: Agent;\n    readonly signal: AbortSignal;\n    readonly agentOptions?: AgentOptions;\n    readonly outputSchema?: ObjectJsonSchema;\n    readonly maxDepth?: number;\n    readonly toolFilter?: ToolRestriction;\n    readonly persona?: string;\n    readonly sandboxMode?: \'read-only\';\n    readonly runBudget?: {\n        maxSteps: number;\n        timeoutMs: number;\n    };\n}',
   },
   {
     name: 'SubagentStopReason',
@@ -3761,7 +3789,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SubagentStopReasonMap',
-    declaration: 'export interface SubagentStopReasonMap {\n    completed: \'completed\';\n    aborted: \'aborted\';\n    error: \'error\';\n    \'max-tokens\': \'max-tokens\';\n    refusal: \'refusal\';\n}',
+    declaration: 'export interface SubagentStopReasonMap {\n    completed: \'completed\';\n    aborted: \'aborted\';\n    blocked: \'blocked\';\n    error: \'error\';\n    \'max-tokens\': \'max-tokens\';\n    refusal: \'refusal\';\n    \'budget-exhausted\': \'budget-exhausted\';\n}',
   },
   {
     name: 'SubagentTimingProjection',

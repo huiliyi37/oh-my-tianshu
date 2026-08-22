@@ -579,6 +579,8 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   MessageFeedbackDeleteResult: 'message feedback response contract is owned by packages/feedback/message-feedback/src/types.ts',
   ToolPresentationMode: 'tool presentation vocabulary is owned by packages/core/tools/src/index.ts',
   ImageAttachmentRef: 'image attachment contract is owned by packages/attachment/attachment/src/types.ts',
+  ImageRequestPolicy: 'image request projection contract is owned by packages/attachment/attachment/src/types.ts',
+  RequestImageAttachment: 'image request projection contract is owned by packages/attachment/attachment/src/types.ts',
   SaveImageAttachment: 'image attachment contract is owned by packages/attachment/attachment/src/types.ts',
   StoredImageAttachment: 'image attachment contract is owned by packages/attachment/attachment/src/types.ts',
   SubagentRunInfo: 'event payload contract is owned by packages/subagent/subagent/src/types.ts',

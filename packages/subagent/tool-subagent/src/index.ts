@@ -26,7 +26,7 @@ import { createUserMessage } from '@huiliyi37/dsh-llm'
 import type { ContentBlock } from '@huiliyi37/dsh-llm'
 import type { JsonValue, UserMessage } from '@huiliyi37/dsh-session'
 import { escapeText } from '@huiliyi37/dsh-skill'
-import { assertSubagentMaxDepth, settleRun } from '@huiliyi37/dsh-subagent'
+import { assertSubagentMaxDepth, MAX_SUBAGENT_RUN_TIMEOUT_MS, settleRun } from '@huiliyi37/dsh-subagent'
 import type { SubagentProvider, SubagentResult, SubagentRun } from '@huiliyi37/dsh-subagent'
 import type { TaskOutcome } from '@huiliyi37/dsh-tasks'
 // Type-only: resolve the optional `ctx.agentDefinitions` service when the
@@ -91,6 +91,17 @@ export interface Config {
    */
   maxDepth?: number | 'provider-managed'
   /**
+   * Optional bound for each one-shot foreground or background child. Omission
+   * leaves the run provider-managed; a configured value requires the
+   * provider's `runBudget` capability.
+   */
+  runBudget?: {
+    /** Maximum child model steps. */
+    maxSteps: number
+    /** Maximum child wall-clock duration in milliseconds. */
+    timeoutMs: number
+  }
+  /**
    * Publish the durable `<available_agents>` catalog message on sessions whose
    * agent can see this exact tool instance (default false). The catalog follows
    * the optional `ctx.agentDefinitions` service: absent service, no catalog.
@@ -127,6 +138,10 @@ export const Config: z<Config> = z.object({
     deny: z.array(z.string()).default(undefined as unknown as string[]),
   }).default(undefined as unknown as { allow: string[]; deny: string[] }),
   maxDepth: z.union([z.natural().max(Number.MAX_SAFE_INTEGER), z.const('provider-managed' as const)]).default(3),
+  runBudget: z.object({
+    maxSteps: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).required(),
+    timeoutMs: z.number().step(1).min(1).max(MAX_SUBAGENT_RUN_TIMEOUT_MS).required(),
+  }).default(undefined as unknown as { maxSteps: number; timeoutMs: number }),
   agentCatalog: z.boolean().default(false),
   catalogDescriptionMaxLength: z.number().default(DEFAULT_CATALOG_DESCRIPTION_MAX_LENGTH),
 })
@@ -283,6 +298,16 @@ export function apply(ctx: Context, config: Config): void {
   // Direct apply() bypasses Schemastery's numeric constraints. A direct-apply
   // omission stays capless (the schema default only runs through the loader).
   if (config.maxDepth !== 'provider-managed') { assertSubagentMaxDepth(config.maxDepth) }
+  if (config.runBudget !== undefined) {
+    if (!Number.isSafeInteger(config.runBudget.maxSteps) || config.runBudget.maxSteps < 1) {
+      throw new Error('tool-subagent: runBudget.maxSteps must be a positive safe integer')
+    }
+    if (!Number.isSafeInteger(config.runBudget.timeoutMs)
+      || config.runBudget.timeoutMs < 1
+      || config.runBudget.timeoutMs > MAX_SUBAGENT_RUN_TIMEOUT_MS) {
+      throw new Error(`tool-subagent: runBudget.timeoutMs must be a positive safe integer <= ${MAX_SUBAGENT_RUN_TIMEOUT_MS}`)
+    }
+  }
   // Reject an empty explicit filter at load instead of failing every delegation.
   if (config.toolFilter !== undefined && config.toolFilter.allow === undefined && config.toolFilter.deny === undefined) {
     throw new Error('tool-subagent: `toolFilter` is configured but names neither `allow` nor `deny` — remove the key or fill the filter')
@@ -304,6 +329,11 @@ export function apply(ctx: Context, config: Config): void {
       throw new Error(
         `tool-subagent: provider "${provider.name}" cannot enforce maxDepth (no depthLimit capability) — `
         + 'set maxDepth: \'provider-managed\' to leave the recursion budget to the provider',
+      )
+    }
+    if (config.runBudget !== undefined && !provider.capabilities.runBudget) {
+      throw new Error(
+        `tool-subagent: provider "${provider.name}" cannot enforce runBudget (no runBudget capability)`,
       )
     }
     const wording = providerWording(provider.inheritsParentContext)
@@ -447,7 +477,11 @@ export function apply(ctx: Context, config: Config): void {
             owner: parent,
             run: () => {
               const controller = new AbortController()
-              const start = ctx.subagents.start(config.provider, { ...request, signal: controller.signal })
+              const start = ctx.subagents.start(config.provider, {
+                ...request,
+                ...(config.runBudget !== undefined ? { runBudget: config.runBudget } : {}),
+                signal: controller.signal,
+              })
               return {
                 cancel: (reason?: string) => {
                   controller.abort(reason ?? 'background subagent task killed')
@@ -462,6 +496,7 @@ export function apply(ctx: Context, config: Config): void {
 
         const run: SubagentRun = await ctx.subagents.start(config.provider, {
           ...request,
+          ...(config.runBudget !== undefined ? { runBudget: config.runBudget } : {}),
           signal: exec.signal,
         })
         return settleForegroundRun(run)

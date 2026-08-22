@@ -49,6 +49,7 @@ import type {
   SubagentRunInfo,
   SubagentStartRequest,
 } from './types.ts'
+import { MAX_SUBAGENT_RUN_TIMEOUT_MS } from './types.ts'
 import { SubagentError } from './error.ts'
 import { assertSubagentMaxDepth } from './depth.ts'
 import { createActivationObserver, createLifecycleEmitter, observeRun } from './lifecycle.ts'
@@ -72,6 +73,18 @@ import {
   subagentProgressProjectionDefinition,
   subagentTimingProjectionDefinition,
 } from './projection.ts'
+
+/** Validate the numeric budget contract before transferring it to a provider. */
+function assertRunBudget(runBudget: NonNullable<SubagentStartRequest['runBudget']>): void {
+  if (!Number.isSafeInteger(runBudget.maxSteps) || runBudget.maxSteps < 1) {
+    throw new Error(`subagent runBudget.maxSteps must be a positive safe integer, got ${JSON.stringify(runBudget.maxSteps)}`)
+  }
+  if (!Number.isSafeInteger(runBudget.timeoutMs)
+    || runBudget.timeoutMs < 1
+    || runBudget.timeoutMs > MAX_SUBAGENT_RUN_TIMEOUT_MS) {
+    throw new Error(`subagent runBudget.timeoutMs must be a positive safe integer <= ${MAX_SUBAGENT_RUN_TIMEOUT_MS}, got ${JSON.stringify(runBudget.timeoutMs)}`)
+  }
+}
 
 export * from './out-of-process.ts'
 export { SubagentRunId } from './types.ts'
@@ -124,6 +137,7 @@ export type {
 } from './continuation.ts'
 export type { ContinuableSetupContribution } from './activation-setup-registry.ts'
 export type { SubagentDescendantListEntry, SubagentListEntry } from './list-children.ts'
+export { MAX_SUBAGENT_RUN_TIMEOUT_MS } from './types.ts'
 export type { SubagentActiveExternalRun, SubagentRunEndInfo, SubagentRunInfo } from './types.ts'
 export type { SubagentIdentityProjection, SubagentTimingProjection } from './projection-types.ts'
 
@@ -423,13 +437,14 @@ export class SubagentService extends Service {
     this.assertCapabilities(provider, request)
     assertSubagentMaxDepth(request.maxDepth)
     if (request.outputSchema !== undefined) assertObjectJsonSchema(request.outputSchema)
+    if (request.runBudget !== undefined) assertRunBudget(request.runBudget)
     const descriptor = snapshotSubagentDescriptor({
       mode: 'one-shot',
       provider: name,
       ...request.label !== undefined ? { label: request.label } : {},
     })
     const resolved: ResolvedSubagentStartRequest = { ...request, descriptor }
-    const run = await observeRun(this.emitLifecycle, name, request.parent, await provider.start(resolved))
+    const run = observeRun(this.emitLifecycle, name, request.parent, await provider.start(resolved))
     // G3：无本地 Session 的外部 run 登记进等价状态面（session 枚举看不到它们）；
     // result 结算即移除（result 契约不 reject，但仍双分支兜底防泄漏）。
     if (run.localAgent === undefined) {

@@ -7,7 +7,7 @@ Every model-facing tool a shipped plugin contributes to `ctx.tools`: the `name`,
 
 This file is GENERATED and verified fresh by `pnpm run verify-tool-catalog` (part of `doc-sync`) — do not edit it by hand. Unlike the cordis catalog (a pure source-AST pass), this generator BOOTS each tool plugin on a real context and reads `ctx.tools.schemas()`, because a tool schema is not statically knowable (runtime-spread enums, concatenated descriptions, config-driven names, raw-JSON-Schema MCP tools). A completeness guard globs `packages/*/tool-*` and fails if any package is missing from the generator's boot manifest, so a new tool cannot be silently undocumented. See [the tool-schema-catalog Agent Note](../.agents/notes/implemented/process/2026-07-02-tool-schema-catalog.md).
 
-Scope: shipped product tools under `packages/*/tool-*`, each booted with its DEFAULT config, except where a Config field is REQUIRED with no default — there the generator must choose, and the per-package note records which branch this page shows. The registered tool NAME can be a load-time config (e.g. `tool-subagent`'s `toolName`), so a deployment may surface a package under a different or additional name — a per-package note records those shipped aliases where they exist. The `examples/` demo tools (e.g. `echo`) are excluded, matching the cordis catalog's packages-only scope.
+Scope: shipped product tools under `packages/*/tool-*` plus explicitly listed conditional contributors outside that leaf pattern (currently agent-router), each booted with the manifest config. Where a Config field is REQUIRED with no default, the generator must choose, and the per-package note records which branch this page shows. The registered tool NAME can be a load-time config (e.g. `tool-subagent`'s `toolName`), so a deployment may surface a package under a different or additional name — a per-package note records those shipped aliases where they exist. The `examples/` demo tools (e.g. `echo`) are excluded, matching the cordis catalog's packages-only scope.
 
 ## Tool Package Map
 
@@ -15,6 +15,7 @@ This table connects model-visible tool names to the plugin package and service s
 
 | Tool package | Model-visible names | Requires | Writes / affects | Shipped aliases | Deployment note |
 | --- | --- | --- | --- | --- | --- |
+| `@huiliyi37/dsh-agent-router` | `router_adopt` | `ctx.tools`, `ctx.systemPrompt`, `a calling agent with pending router/outcome` | `router/adoption`, `tool/call`, `tool/result` | - | router_adopt is registered only on dispatch-capable assemblies and records one adopt/reject declaration for each pending bounded finding. |
 | `@huiliyi37/dsh-tool-ask-user` | `ask_user_question` | `ctx.tools`, `ctx.userInteraction` | `tool/call`, `tool/result after a UI/provider answers the question` | - | ask_user_question pauses the tool call until the active UI provider returns a human answer. |
 | `@huiliyi37/dsh-tools` | `run_code` | `ctx.tools`, `ctx.codeRuntime (execution time)`, `ctx.systemPrompt` | `tool/call`, `one tool/code-dispatch-start + tool/code-dispatch pair per bridged sub-call`, `tool/result` | - | Owned by the tool registry as a reserved transport outside filterable capability layers under `mode: code` / `mode: both` (see the Code Mode Agent Note). Under `code` it is the registry's only wire contribution; the other visible capabilities are declared in a generated SDK section in the loaded runtime's language, and a program calls them through bindings scheduled under the native concurrency contract (submission-ordered starts and policy; concurrency-safe bodies overlap up to `maxParallelSubCalls`) that re-enter the complete guarded tool pipeline and link each nested execution to this outer result. |
 | `@huiliyi37/dsh-plan-mode` | `exit_plan_mode` | `ctx.tools`, `ctx.systemPrompt`, `ctx.userInteraction (execution time, opportunistic)` | `tool/call`, `plan/mode inactive on an approved review`, `tool/result` | - | exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-interaction seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary. |
@@ -47,6 +48,40 @@ This table connects model-visible tool names to the plugin package and service s
 | `@huiliyi37/dsh-tool-memory-recall` | `memory_deep_recall` | `ctx.tools`, `ctx.systemPrompt`, `ctx.sessionQuery (execution time)`, `ctx.subagents (execution time)` | `tool/call`, `tool/result` | - | memory_deep_recall fans out to a read-only reader subagent and returns a budget-clamped distillation; missing sessionQuery, session-query tools, or a full-capability subagent provider fail loud at execute. Raw transcripts never enter the parent context. |
 | `@huiliyi37/dsh-tool-meridian` | `repo_graph` | `ctx.tools`, `ctx.systemPrompt`, `ctx.meridian (execution time)` | `tool/call`, `tool/result` | - | repo_graph queries the code-graph index (repo map, impact analysis, flow queries) lazily at execution time; its system-prompt section is injected by the runtime-context content-diff only when the index is present. |
 | `@huiliyi37/dsh-tool-semantic-search` | `semantic_search` | `ctx.tools`, `ctx.systemPrompt`, `ctx.semanticIndex (execution time)` | `tool/call`, `tool/result` | - | semantic_search runs workspace retrieval (definition-aligned BM25 with optional vector fusion) lazily at execution time; its system-prompt section is injected by the runtime-context content-diff only when the index is present. |
+
+## `@huiliyi37/dsh-agent-router`
+
+### `router_adopt`
+
+Declare your adoption decision for one dispatched subagent finding: adopt (integrate it) or reject (state why). Call exactly once per finding listed in your synthesis prompt.
+
+```json
+{
+  "subagentSessionId": {
+    "type": "string",
+    "required": true,
+    "description": "The subagent session id from the synthesis prompt."
+  },
+  "verdict": {
+    "type": "string",
+    "required": true,
+    "enum": [
+      "adopt",
+      "reject"
+    ],
+    "description": "adopt or reject the finding."
+  },
+  "reason": {
+    "type": "string",
+    "required": true,
+    "description": "Why you adopt or reject it."
+  }
+}
+```
+
+Source: [`packages/guard/agent-router/src/index.ts`](../packages/guard/agent-router/src/index.ts)
+
+router_adopt is registered only on dispatch-capable assemblies and records one adopt/reject declaration for each pending bounded finding.
 
 ## `@huiliyi37/dsh-tool-ask-user`
 

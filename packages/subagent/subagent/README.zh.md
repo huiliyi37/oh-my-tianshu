@@ -25,7 +25,7 @@ subagent seam 允许一个 agent（智能体）通过具名提供方把工作委
 | `listChildren(parentSessionId, signal?)` | 按 `createdAt` 再按 id 的顺序列出由会话支撑的直接 subagent，包括其 `one-shot`／`continuable` 模式、`running`／`inactive` 活动状态、基于 origin 分类的一层 `hasChildren` 提示与逐 child diagnostic，且不会加载或恢复它们。直接读取在线会话存储与可选的会话持久化（持久化缺席时仅枚举在线 child），并要求已挂载 `sessionProjections` 注册表；不要求 `ctx.agents`、继续执行管理器或任何查询服务。 |
 | `listDescendants(rootSessionId, signal?)` | 从同一份实时优先语料按稳定 pre-order 展平根的完整会话树，并为每个 subagent 条目附加持久 `parentId` 与相对根的 `depth`。当同一投影 cut 折叠出有意义的值时，`child` 行还携带 `progress`/`timing`；`listChildren()` 行保持纯身份。普通会话与一次性 child 仍作为遍历节点，因此其下的可继续后代仍可发现。身份、diagnostic、依赖与取消约定均沿用 `listChildren()`。 |
 
-`SubagentStartRequest.label` 是由会话支撑的一次性 child 所使用的可选简短持久化显示标签。面向模型的委派会提供其已有的 `description`；底层调用方无需凭空构造展示元数据。可继续启动始终携带自身的必填标签。`signal` 是必填项，也是一次性 `start` 的规范取消通道。发布前中止会使 `start()` 在回滚后拒绝；发布后中止会取消已返回 run 的剩余轮次工作，但不会隐藏其 id。请求还可以选择模型、要求结构化输出、限制委派深度、约束子 agent 工具或设置子 agent persona。进程内组合按逐级升序解析子 agent 路由：继承的父级路由，然后是可选 `ctx.modelRoles` 中的 `subagent` 角色 pin（创建时即时读取，settings 提交后下一个 child 即生效），最后是 `request.agentOptions`；可继续描述符会记录解析后的路由，因此冷恢复重放创建时路由，而不会重新读取后来的 pin。对于可继续启动或后续操作，调用方信号只在 inbox 接受之前掌管查找、物化和准入；此后由管理器独立拥有 Activation，因此调用方后续取消既不会取消已接受的轮次，也不会 dispose（资源释放）子 agent。
+`SubagentStartRequest.label` 是由会话支撑的一次性 child 所使用的可选简短持久化显示标签。面向模型的委派会提供其已有的 `description`；底层调用方无需凭空构造展示元数据。可继续启动始终携带自身的必填标签。`signal` 是必填项，也是一次性 `start` 的规范取消通道。发布前中止会使 `start()` 在回滚后拒绝；发布后中止会取消已返回 run 的剩余轮次工作，但不会隐藏其 id。请求还可以选择模型、要求结构化输出、限制委派深度、约束子 agent 工具、设置子 agent persona、将沙箱收窄为 `read-only`，或要求 `{ maxSteps, timeoutMs }` 运行预算。进程内一次性只读请求还会把审批策略强制为 `never`，使子 agent 无法通过审批 seam 提权。服务会在提供方启动前校验预算值均为正安全整数，并拒绝超过 `2_147_483_647` 的 `timeoutMs`，因为 Node 定时器会对超出该值的延迟进行钳制。进程内组合按逐级升序解析子 agent 路由：继承的父级路由，然后是可选 `ctx.modelRoles` 中的 `subagent` 角色 pin（创建时即时读取，settings 提交后下一个 child 即生效），最后是 `request.agentOptions`；可继续描述符会记录解析后的路由，因此冷恢复重放创建时路由，而不会重新读取后来的 pin。对于可继续启动或后续操作，调用方信号只在 inbox 接受之前掌管查找、物化和准入；此后由管理器独立拥有 Activation，因此调用方后续取消既不会取消已接受的轮次，也不会 dispose（资源释放）子 agent。
 
 后续操作的权限来自子 agent 持久化 header 中记录的确切在线直接父级。冷恢复会在重建前检查该权限，并在最终无 await 的 inbox 准入区间再次检查，因此在物化期间被注销或替换的 parent 无法授权投递。后续操作上的 `source` 记录谁提供了所投递的消息，不授予任何权限。
 
@@ -38,7 +38,9 @@ subagent seam 允许一个 agent（智能体）通过具名提供方把工作委
 - `outputSchema`：强制执行结构化最终结果；
 - `depthLimit`：强制执行 `maxDepth`；
 - `toolFilter`：应用请求的子 agent 工具限制；
-- `persona`：应用每个子 agent 独立的 persona。
+- `persona`：应用每个子 agent 独立的 persona；
+- `sandboxMode`：强制执行请求的 `read-only` 沙箱收窄；
+- `runBudget`：同时强制执行步骤与挂钟时间上限，并明确报告预算耗尽。
 
 可继续创建对应可选的 `SubagentProvider.prepareContinuable?()` 方法：方法是否存在就是能力检查，因此服务会在没有该方法的提供方上拒绝已配置的可继续启动，而具备该方法的提供方仍可服务普通一次性委派。该方法只返回分离的 `ContinuableCreateSpec`（`{ seed? }`）——这是数据，绝非能力：它不携带任何 Agent、`AgentHandle`、提示词投递、结果、dispose 或恢复操作，因为准备之后，继续执行管理器拥有身份预留、组合、Agent 创建、提示词投递、冷恢复、所有权和 dispose。一次性 `SubagentRun` 表示一次可 dispose 的前台委派，只有一个结果，且没有冷恢复操作。
 
@@ -56,7 +58,7 @@ subagent seam 允许一个 agent（智能体）通过具名提供方把工作委
 
 `provider.start(request): Promise<SubagentRun>` 是所有权转移边界；委派工具也会在其由 Task 支撑的一次性后台路径中使用它。兑现前，提供方拥有设置过程，并且每次失败时都必须取消、回滚并使未发布资源完全停稳。兑现后，调用方拥有该运行，并且必须在每条路径上调用 `dispose()`；剩余提示词和轮次工作属于 `SubagentRun.result`。
 
-`SubagentRun.result` 兑现为 `{ output, structured?, stopReason }`。子 agent 级失败会以非 `completed` 原因兑现；只有 seam 无法表示的基础设施故障才可以拒绝。`dispose()` 是幂等的，会取消剩余工作，并等待结果结算以及子 agent 资源完全停稳。`result` 的 rejection 仍归 `result` 通道；只有独立的资源释放失败会使 `dispose()` 拒绝。
+`SubagentRun.result` 兑现为 `{ output, structured?, stopReason }`。子 agent 级失败会以非 `completed` 原因兑现；只有 seam 无法表示的基础设施故障才可以拒绝。`blocked` 保留由防护机制停止的子 agent，`budget-exhausted` 表示运行达到了强制上限，`aborted` 表示调用方取消或 dispose；较晚的预算定时器触发时，提供方不得改写较早发生的取消。`dispose()` 是幂等的，会取消剩余工作，并等待结果结算以及子 agent 资源完全停稳。`result` 的 rejection 仍归 `result` 通道；只有独立的资源释放失败会使 `dispose()` 拒绝。
 
 本地运行会在 `start()` 兑现前发布普通的子 agent／会话，把该共享会话 id 作为 `SubagentRun.id` 返回，以 `SubagentRun.localAgent` 公开准确的子 agent，把 `request.parent.session.id` 记录到子 agent 的 `parentSession` header，并在其初始轮次内追加已解析的描述符。远程提供方则生成 parent 作用域的生命周期 id，并返回 `localAgent: undefined`；由于没有本地 child 会话，其一次性运行不会进入基于追踪的枚举结果。
 

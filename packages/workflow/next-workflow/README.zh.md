@@ -24,7 +24,7 @@
 |---|---|
 | `/next-workflow [candidates] <objective>` | 运行流水线；前导整数（1–5）覆盖本次运行的 `planCandidates`（`/next-workflow 3 …` = 三方案选优），不带则用 Config 缺省值。成功时汇总各相位、verdict 与产物路径。verify 重试耗尽时以指明 `failed-verification` 的错误收尾。 |
 | `/next-workflow`（空输入） | `Usage: /next-workflow [candidates] <objective>`——不启动任何运行。 |
-| 能力缺失 | 指明缺失接缝的不可用错误：无 subagents 服务、provider 未注册或能力不足（需要结构化输出、persona、全新上下文）、或配置了 `verifyCommand` 但没有 bash 执行器。 |
+| 能力缺失 | 指明缺失接缝的不可用错误：无 subagents 服务、provider 未注册或能力不足（需要结构化输出、persona、全新上下文；配置预算时还需运行预算能力）、或配置了 `verifyCommand` 但没有 bash 执行器。 |
 | 会话上已有活跃运行时再次运行 | `already running` 错误；每个会话同时只有一个运行。 |
 
 ## 装配
@@ -38,6 +38,7 @@
   name: '@huiliyi37/dsh-next-workflow'
   config:
     verifyCommand: pnpm test
+    subagentRunBudget: { maxSteps: 24, timeoutMs: 600000 }
 ```
 
 ## 配置
@@ -45,6 +46,7 @@
 | 键 | 默认值 | 含义 |
 |---|---|---|
 | `provider` | `spawn` | 各相位共用的一次性结构化输出 subagent provider。 |
+| `subagentRunBudget` | 未设置 | 应用于每个一次性 subagent 相位的可选 `{ maxSteps, timeoutMs }` 上限；要求 provider 具备 `runBudget` 能力。 |
 | `workflowsRoot` | `$DSH_HOME/workflows` | 产物根目录；每次运行一个 `<run-id>` 目录。 |
 | `verifyCommand` | 未设置 | 确定性 VERIFY 闸门命令；未设置则报告 `unverified`。 |
 | `verifyTimeoutMs` | `120000` | 单次闸门运行的超时。 |
@@ -78,6 +80,7 @@ effort 切换按设计在相位边界打破请求前缀缓存——相位边界�
 ## 已知限制与延后工作
 
 - **subagent effort 缺口**——`AgentOptions` 没有 effort 通道，因此 `phaseEfforts` 只作用于调用方会话的请求；plan/critique/review subagent 保持默认模型路由。subagent 接缝上的 effort 通道是后续工作。
+- **subagent 边界属于部署策略**——省略 `subagentRunBudget` 时，相位运行边界由 provider 管理；配置该字段即可强制 seam 的步骤与墙钟上限。
 - **脚本化 persona 保真度**——组合测试模拟各相位 subagent；真实模型运行可能暴露规划者/批评者/评审者 persona 的 prompt 层问题，只有真实模型才能暴露。
 - **verify 闸门需要部署配置**——未配置 `verifyCommand` 时运行报告 `unverified` 而非完成验证；挂载 `guard/evidence-gate` 作为验证器是延后工作。
 - **实现不做隔离**——IMPLEMENT steer 调用方会话以获得实时可见性与完整工具面；由配置路由的隔离实现 subagent 是延后工作。

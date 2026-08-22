@@ -8,7 +8,7 @@
 
 每个插件实例把一个 `provider` 绑定到一个 `toolName`；模型不会收到提供方选择器。如需公开另一种传输，请加载另一个名称不同的实例。工具只在其提供方存在时注册，从而避免对同级加载顺序和提供方重新加载的依赖。工具描述遵循 `provider.inheritsParentContext`：新建子 agent（智能体）需要独立提示词，而 fork 子 agent 已能看到父级已完成轮次。
 
-前台调用会让执行信号贯穿启动和执行，等待 `run.result`，并且在返回前总会等待 `run.dispose()`。只有 `completed` 会返回规范值 `{ kind: 'foreground', runId, output: JsonValue[] }`，并渲染为相同的最终文本；中止、拒绝、token 上限和其他失败都会变成出错的工具结果，不包含局部输出。如果结果收集与 dispose（资源释放）都 reject，出错的结果会保留两项诊断信息。
+前台调用会让执行信号贯穿启动和执行，等待 `run.result`，并且在返回前总会等待 `run.dispose()`。可选 `runBudget` 配置会把同一组步骤与墙钟上限传给每个前台和一次性后台 child；省略时由提供方管理运行边界。只有 `completed` 会返回规范值 `{ kind: 'foreground', runId, output: JsonValue[] }`，并渲染为相同的最终文本；中止、拒绝、token 上限和其他失败都会变成出错的工具结果，不包含局部输出。如果结果收集与 dispose（资源释放）都 reject，出错的结果会保留两项诊断信息。
 
 设置 `run_in_background: true` 后，`backgroundMode` 会选择路由。`one-shot` 会注册一个归父级所有的普通 Task，并返回规范值 `{ kind: 'background', taskId }`，渲染为 `started background subagent task <id>`，即使提供方支持可继续子 agent 也不例外；通用 Task 工具负责其后续状态、收集、取消和通知。`continuable` 要求提供方具备 `prepareContinuable` 能力，调用 `ctx.subagents.startContinuable()`，并返回 `{ kind: 'continuable', subagentId }`，渲染为 `started subagent <childId>`。可继续路由在 inbox 接受时结算：子 agent 自此拥有自己的轮次，因此该调用既不等待也不收集结果，而且子 agent 不会回报——通过该 id 查看其 transcript（文本记录）即是其输出来源，可选的全局 `send_message` 工具则向其发送更多工作。启动可继续工作不要求加载 `send_message`。见 [后台 subagent Agent Note](../../../.agents/notes/implemented/feature/2026-07-08-background-subagent-tasks.md)、[可继续的 subagent Agent Note](../../../.agents/notes/implemented/feature/2026-07-28-continuable-subagent-conversations.md)和[服务合并 Agent Note](../../../.agents/notes/implemented/simplification/2026-07-26-merge-subagent-control-service.md)。
 
@@ -34,6 +34,7 @@
 | `persona` | 每个子 agent 独立的 persona；要求提供方具备 `persona` 能力。 |
 | `toolFilter` | 每个子 agent 独立的全局工具限制；要求提供方具备 `toolFilter` 能力。 |
 | `maxDepth` | 绝对委派深度上限，默认 `3`（`0` 禁止委派）；数值上限要求 `depthLimit` 能力，缺失时挂载失败。对于预算由子 harness 拥有的进程外提供方，`'provider-managed'` 不发送上限。工具在达到上限时仍然可见；每次尝试启动都会检查调用 agent 的当前深度，被拒绝时返回出错的工具结果。 |
+| `runBudget` | 每个前台／一次性后台 child 的可选 `{ maxSteps, timeoutMs }` 上限；要求提供方具备 `runBudget` 能力，缺失时挂载失败。`timeoutMs` 必须处于 Node 定时器不会钳制的范围。省略时由提供方管理运行边界。 |
 | `agentCatalog` | 发布 durable `<available_agents>` 会话目录，默认 `false`；每个装配中至多一个委派工具实例开启。 |
 | `catalogDescriptionMaxLength` | 目录中角色描述的最大归一化长度，默认 `500`，最小 `3`。 |
 

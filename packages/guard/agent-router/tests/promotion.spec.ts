@@ -35,7 +35,7 @@ function canary(over: Partial<CanaryHealthEvidence> = {}): CanaryHealthEvidence 
 }
 
 /** canary 关卡策略（resolveCanaryConfig 的解析产物形状）。 */
-const CANARY_POLICY = { maxBudgetExhaustedShare: 0.1, minBenefitProxy: 0.5 }
+const CANARY_POLICY = { minDispatches: 10, maxBudgetExhaustedShare: 0.1, minBenefitProxy: 0.5 }
 
 describe('effectivePromotionMode', () => {
   it('kill switch 最优先；缺省 off', () => {
@@ -57,6 +57,12 @@ describe('resolveShadowReadinessGate', () => {
     )
     expect(result.enabled).toBe(false)
     expect(result.vetoSignals[0]).toContain('insufficient evaluated decisions')
+  })
+
+  it('总样本充足但没有 delegate 评估 → 否决', () => {
+    const result = resolveShadowReadinessGate(readiness({ delegateSamples: 0 }), READINESS_POLICY)
+    expect(result.enabled).toBe(false)
+    expect(result.vetoSignals[0]).toContain('evaluated delegate decisions')
   })
 
   it('存在假绿 → 否决（顺序在样本之后）', () => {
@@ -99,6 +105,15 @@ describe('resolveCanaryHealthGate', () => {
     const result = resolveCanaryHealthGate(canary({ evaluatedDispatches: 0 }), CANARY_POLICY)
     expect(result.enabled).toBe(false)
     expect(result.vetoSignals[0]).toContain('insufficient actual dispatches')
+  })
+
+  it('真实派发与已评估派发均须达到配置的最小样本门', () => {
+    const result = resolveCanaryHealthGate(
+      canary({ dispatches: CANARY_POLICY.minDispatches - 1, evaluatedDispatches: CANARY_POLICY.minDispatches - 1 }),
+      CANARY_POLICY,
+    )
+    expect(result.enabled).toBe(false)
+    expect(result.vetoSignals[0]).toContain(`< ${CANARY_POLICY.minDispatches}`)
   })
 
   it('全绿证据放行', () => {

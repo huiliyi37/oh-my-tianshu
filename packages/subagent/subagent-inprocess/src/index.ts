@@ -57,6 +57,8 @@ function toStopReason(reason: TurnEndReason | undefined): SubagentStopReason {
       return 'max-tokens'
     case 'aborted':
       return 'aborted'
+    case 'blocked':
+      return 'blocked'
     case 'error':
     case 'interrupted':
     default:
@@ -78,6 +80,8 @@ export interface InProcessRunOptions {
 export interface RunBudgetState {
   /** Whether either budget bound fired before the child finished on its own. */
   exhausted: boolean
+  /** Whether caller cancellation or disposal won before a budget bound fired. */
+  cancelled: boolean
 }
 
 /** Error used when cancellation wins before the child publication boundary. */
@@ -151,9 +155,18 @@ export async function startInProcessRun(
   // trip channel; tripping aborts the composed signal the run already treats
   // as its cancellation path, and readResult settles the distinguishable
   // `budget-exhausted` stop reason from the shared flag.
-  const budget = request.runBudget === undefined
+  const budget: RunBudget | undefined = request.runBudget === undefined
     ? undefined
-    : { ...request.runBudget, state: { exhausted: false } as RunBudgetState, controller: new AbortController() }
+    : (() => {
+      const state: RunBudgetState = { exhausted: false, cancelled: false }
+      const controller = new AbortController()
+      const trip = (): void => {
+        if (state.exhausted || state.cancelled || request.signal.aborted) return
+        state.exhausted = true
+        controller.abort()
+      }
+      return { ...request.runBudget, state, controller, trip }
+    })()
   const setup = (childCtx: Context): void => {
     // Inherited overrides land on the child's own log, so its effective policy
     // is reconstructable from that log alone.
@@ -169,13 +182,18 @@ export async function startInProcessRun(
       toolFilter: request.toolFilter,
       sandboxMode: request.sandboxMode,
     })
+    if (request.sandboxMode === 'read-only') {
+      // A delegated read-only ceiling is non-escalatable: otherwise a child
+      // could ask the approval seam for workspace-write and bypass the
+      // caller-owned authority bound.
+      childSession.append('approval/policy', { policy: 'never', source: 'delegation' })
+    }
     if (request.outputSchema !== undefined) {
       structured = attachStructuredRuntime(childCtx, request.outputSchema)
     }
     attachDescriptorAppend(childCtx, request.descriptor)
     if (budget !== undefined) {
-      budget.controller.signal.addEventListener('abort', () => { budget.state.exhausted = true }, { once: true })
-      attachStepBudget(childCtx, budget.maxSteps, budget.state, () => { budget.controller.abort() })
+      attachStepBudget(childCtx, budget.maxSteps, budget.state, budget.trip)
     }
   }
 
@@ -213,6 +231,7 @@ interface RunBudget {
   timeoutMs: number
   state: RunBudgetState
   controller: AbortController
+  trip: () => void
 }
 
 /**
@@ -236,11 +255,14 @@ function drivePublishedRun(
     ? signal
     : AbortSignal.any([signal, budget.controller.signal])
   const timer = budget === undefined ? undefined : setTimeout(
-    () => { budget.controller.abort() },
+    budget.trip,
     budget.timeoutMs,
   )
   const flags = { cancelled: false }
   const onAbort = (): void => {
+    if (budget !== undefined && signal.aborted && !budget.state.exhausted) {
+      budget.state.cancelled = true
+    }
     flags.cancelled = true
     child.cancel({ kind: 'parent' })
   }
@@ -276,6 +298,7 @@ function drivePublishedRun(
     async dispose(): Promise<void> {
       if (timer !== undefined) clearTimeout(timer)
       runSignal.removeEventListener('abort', onAbort)
+      if (budget !== undefined && !budget.state.exhausted) budget.state.cancelled = true
       flags.cancelled = true
       const settlements = await Promise.allSettled([handle.dispose(), result])
       const disposal = settlements[0]
@@ -299,18 +322,19 @@ function readResult(
   const lastEnd = findLastMessageTurnEnd(own)
   const output: Array<ContentBlock> = lastMessage?.data.message.content ?? []
   const recorded = toStopReason(lastEnd?.data.reason)
-  // Disposal can tear the owner down before the loop records its ordinary
-  // `aborted` end, yielding `disposed` instead.
-  let stopReason: SubagentStopReason = cancelled && recorded !== 'completed' ? 'aborted' : recorded
-  // A fired budget bound wins over any non-completed terminal — the abort it
-  // caused, plus teardown races that drop the aborted recording — but never
-  // retroactively fails a run the child already completed.
-  if (budgetExhausted && stopReason !== 'completed') stopReason = 'budget-exhausted'
+  // A durable non-aborted turn terminal is authoritative: cancellation or a
+  // timer observed afterward cannot rewrite `blocked`, `error`, max-tokens,
+  // refusal, or completion. External causes only classify an aborted/missing
+  // terminal, where the budget's own cancellation remains distinguishable.
+  const externalTerminal = lastEnd === undefined || lastEnd.data.reason.kind === 'aborted'
+  let stopReason: SubagentStopReason = recorded
+  if (externalTerminal && budgetExhausted) stopReason = 'budget-exhausted'
+  else if (externalTerminal && cancelled) stopReason = 'aborted'
   if (structured !== undefined) {
     if (structured.captured !== undefined) {
       return { output, structured: structured.captured.value, stopReason }
     }
-    if (stopReason === 'completed') return { output, stopReason: cancelled ? 'aborted' : 'error' }
+    if (stopReason === 'completed') return { output, stopReason: 'error' }
   }
   return { output, stopReason }
 }

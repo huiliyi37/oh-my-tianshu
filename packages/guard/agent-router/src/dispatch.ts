@@ -17,19 +17,19 @@ import type { ContentBlock } from '@huiliyi37/dsh-llm'
 import type { SessionId } from '@huiliyi37/dsh-session'
 import type { ObjectJsonSchema } from '@huiliyi37/dsh-tools'
 import { boundFinding, type RouterFinding } from './finding.js'
+import type { RouterDecisionId } from './ids.js'
 
 /**
  * Resolved delegation role (agent-definitions) merged into one dispatch: the
  * role's tool allow list already intersected with the profile ceiling, plus the
- * persona body and sandbox narrowing to transfer.
+ * persona body to transfer. Router dispatch itself owns the non-overridable
+ * read-only sandbox boundary.
  */
 export interface DispatchRole {
   /** Effective tool allow list: role tools ∩ profileTools ceiling (non-empty). */
   tools: string[]
   /** Role persona body, transferred as the child's shadowing persona. */
   persona: string
-  /** Role sandbox narrowing; only `read-only` is representable. */
-  sandboxMode?: 'read-only'
 }
 
 /** 子代理派发选项。 */
@@ -49,6 +49,8 @@ export interface DispatchOptions {
   subagentProvider: string
   /** 父会话（活 agent）身份——seam 由此派生 workspace/血统/深度。 */
   parentSessionId: SessionId
+  /** Auto acceptance decision identity; absent on direct/manual execute calls. */
+  decisionId?: RouterDecisionId
   /** 派发取消通道（execute 透传；缺省新 controller）。 */
   signal: AbortSignal
   /** 预算形状（resolveBudgetConfig + shapeWriteBudget 计算；记录用）。 */
@@ -124,6 +126,33 @@ export interface DispatchOutcome {
   finding?: RouterFinding
 }
 
+/** Acceptance facts available after the route record commits and before settlement. */
+export interface DispatchAcceptance {
+  /** Published child identity. */
+  sessionId: SessionId
+  /** Absolute record-only budget persisted on the route. */
+  budget: { maxTurns: number; deadlineMs: number }
+}
+
+/**
+ * Internal turn-trigger dispatch with an acceptance commit callback.
+ *
+ * The callback runs synchronously after `router/route` commits and before this
+ * function begins awaiting the child result, so the caller can durably record
+ * an accepted decision without tying that fact to child settlement.
+ * @param ctx - 宿主上下文（需 subagents 与 agents 服务）。
+ * @param opts - 派发选项。
+ * @param onAccepted - Acceptance commit owned by the turn-trigger ledger.
+ * @returns 派发终态（sessionId/stopReason/output）。
+ */
+export async function dispatchSubagentWithAcceptance(
+  ctx: Context,
+  opts: DispatchOptions,
+  onAccepted: (acceptance: DispatchAcceptance) => void,
+): Promise<DispatchOutcome> {
+  return dispatchSubagentCore(ctx, opts, onAccepted)
+}
+
 /**
  * 派发一个子代理：subagents.start（named provider）→ prompt 注入任务 →
  * await run.result → dispose。toolFilter 经 seam 的 fail-loud 校验安装
@@ -135,6 +164,15 @@ export interface DispatchOutcome {
  * @returns 派发终态（sessionId/stopReason/output）。
  */
 export async function dispatchSubagent(ctx: Context, opts: DispatchOptions): Promise<DispatchOutcome> {
+  return dispatchSubagentCore(ctx, opts)
+}
+
+/** Shared implementation; the optional callback is package-internal wiring. */
+async function dispatchSubagentCore(
+  ctx: Context,
+  opts: DispatchOptions,
+  onAccepted?: (acceptance: DispatchAcceptance) => void,
+): Promise<DispatchOutcome> {
   const subagents = ctx.reflect.get('subagents', false) as unknown as SubagentsFacet | undefined
   if (subagents === undefined) throw new Error('agent-router: subagents service unavailable (cannot dispatch subagent)')
   const agents = ctx.reflect.get('agents', false) as unknown as AgentsFacet | undefined
@@ -155,10 +193,11 @@ export async function dispatchSubagent(ctx: Context, opts: DispatchOptions): Pro
     signal: opts.signal,
     agentOptions: { provider: opts.provider, model: opts.model },
     // 角色在场时以角色工具集（已与 profile 天花板求交）收紧 toolFilter，
-    // 并透传 persona 与 sandbox 收窄；缺省回落 profile 内置工具集。
+    // 并透传 persona；缺省回落 profile 内置工具集。两个 router profile
+    // 均只产出证据，故只读沙箱在派发边界强制，角色覆盖不得放宽。
     toolFilter: { allow: opts.role !== undefined ? opts.role.tools : opts.tools },
     ...opts.role?.persona !== undefined ? { persona: opts.role.persona } : {},
-    ...opts.role?.sandboxMode !== undefined ? { sandboxMode: opts.role.sandboxMode } : {},
+    sandboxMode: 'read-only',
     ...opts.runBudget !== undefined ? { runBudget: opts.runBudget } : {},
     ...opts.findingSchema !== undefined ? { outputSchema: opts.findingSchema } : {},
   })
@@ -176,26 +215,37 @@ export async function dispatchSubagent(ctx: Context, opts: DispatchOptions): Pro
       targets: opts.targets,
       subagentSessionId: run.id,
       budget,
+      ...(opts.decisionId !== undefined ? { decisionId: opts.decisionId } : {}),
     })
-    // result 在子级失败时不 reject（stopReason: 'error'）；仅基础设施故障
-    // reject——finally dispose 覆盖两条路径（含 append 抛错）。
-    const result = await run.result
-    // 结构化 finding：仅在 completed 且捕获成功时限界持久；错误、取消、预算
-    // 终态与形状非法都不伪造 finding（父边界一次性净化，见 boundFinding）。
-    const finding: RouterFinding | undefined = result.stopReason === 'completed' && result.structured !== undefined
-      ? boundFinding(result.structured)
-      : undefined
-    parentSession.append('router/outcome', {
-      subagentSessionId: run.id,
-      stopReason: result.stopReason,
-      ...(finding !== undefined ? { finding } : {}),
-    })
-    return {
-      sessionId: run.id,
-      stopReason: result.stopReason,
-      output: result.output,
-      budget,
-      ...(finding !== undefined ? { finding } : {}),
+    try {
+      onAccepted?.({ sessionId: run.id, budget })
+      // result 在子级失败时不 reject（stopReason: 'error'）；仅基础设施故障
+      // reject。route 已提交后，回调、result 或终态 append 的任何基础设施故障
+      // 都配对一个 error outcome，再把原故障留在调用通道。
+      const result = await run.result
+      // 结构化 finding：仅在 completed 且捕获成功时限界持久；错误、取消、预算
+      // 终态与形状非法都不伪造 finding（父边界一次性净化，见 boundFinding）。
+      const finding: RouterFinding | undefined = result.stopReason === 'completed' && result.structured !== undefined
+        ? boundFinding(result.structured)
+        : undefined
+      parentSession.append('router/outcome', {
+        subagentSessionId: run.id,
+        stopReason: result.stopReason,
+        ...(finding !== undefined ? { finding } : {}),
+      })
+      return {
+        sessionId: run.id,
+        stopReason: result.stopReason,
+        output: result.output,
+        budget,
+        ...(finding !== undefined ? { finding } : {}),
+      }
+    } catch (error) {
+      parentSession.append('router/outcome', {
+        subagentSessionId: run.id,
+        stopReason: 'error',
+      })
+      throw error
     }
   } finally {
     await run.dispose()

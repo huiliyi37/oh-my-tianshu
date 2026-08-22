@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-Agent 角色定义（`ctx.agentDefinitions`）：subagent 启动请求输入的命名组合——persona 正文、工具 allow 名单、模型路由、沙箱收窄——从扁平 markdown 文件发现，外加一条承载内置只读 `explore` 角色的运行时注册缝。角色不是提供方：提供方选择仍由委派工具的部署配置决定，面向模型的 Consumer（[`dsh-tool-subagent`](../tool-subagent/README.md)）把选中的角色合并进一次委派请求。
+Agent 角色定义（`ctx.agentDefinitions`）：subagent 启动请求输入的命名组合——persona 正文、工具 allow 名单、模型路由、沙箱收窄——从扁平 markdown 文件发现，外加一个承载内置只读 `explore` 与 `verify` 角色的运行时注册 seam。角色不是提供方：提供方选择仍由委派工具的部署配置决定，面向模型的 Consumer（[`dsh-tool-subagent`](../tool-subagent/README.md)）把选中的角色合并进一次委派请求。
 
 ## 角色文件
 
@@ -26,9 +26,9 @@ You are a code-review subagent. ...
 
 发现按分级目录扫描，同名时较低级别获胜：项目 `.dsh/agents`（100）与 `.agents/agents`（200）、`customAgentDirs`（300）、用户 `~/.dsh-tianshu/agents`（400）与 `~/.agents/agents`（500），以及配置的 `bundledAgentDir`（600）。运行时注册位于第 250 级。挂载了 `ctx.fs` 服务时读取经该服务进行（bundled 根目录直接读宿主机），chokidar 监听加首方 `fs/observed` 变更通知使按 cwd 缓存的目录失效。
 
-## 运行时注册与内置 explore 角色
+## 运行时注册与内置角色
 
-`ctx.agentDefinitions.register()` 从代码安装角色——这是部署与测试用来注册随产品发布角色的接缝。它承载着内置 `explore` 角色：只读探索 persona、`grep`/`read`/`glob`/`semantic_search`/`bash` allow 名单，以及作为 durable `sandbox/mode` 委派覆写追加到子 agent 日志的 `read-only` 沙箱收窄。该收窄要求委派提供方具备 `sandboxMode` 能力（进程内 `spawn`/`fork` 提供方具备），并且因为它记录在子 agent 日志而非描述符上，冷恢复后仍然有效。`builtinExplore: false` 可省略该注册。
+`ctx.agentDefinitions.register()` 从代码安装角色——这是部署与测试用来注册随产品发布角色的 seam。`explore` 提供只读代码库勘察 persona 与 `grep`/`read`/`glob`/`semantic_search`/`bash`；`verify` 提供独立证据核验 persona 与 `grep`/`read`/`glob`/`repo_graph`/`bash`。两者都携带 `read-only` 沙箱收窄，该收窄作为持久的 `sandbox/mode` 委派覆写追加到子 agent 日志。该收窄要求委派提供方具备 `sandboxMode` 能力；由于记录在子 agent 日志而非描述符上，冷恢复后仍然有效。`builtinExplore: false` 与 `builtinVerify: false` 分别省略对应注册。
 
 ## 配置
 
@@ -40,6 +40,7 @@ You are a code-review subagent. ...
 | `customAgentDirs` | 在项目目录之后、用户目录之前扫描的额外目录。 |
 | `bundledAgentDir` | 最低优先级的安装器角色目录；按可信宿主机读取。 |
 | `builtinExplore` | 注册内置只读 `explore` 角色，默认 `true`。 |
+| `builtinVerify` | 注册内置只读 `verify` 角色，默认 `true`。 |
 | `collectCacheMaxEntries` | 内存中保留的按 cwd 完整目录上限，默认 `128`。 |
 | `watch` | 监听宿主机本地目录的目录变化，默认 `true`。 |
 | `watchUsePolling` | Chokidar 使用轮询而非原生文件系统事件，默认 `false`。 |

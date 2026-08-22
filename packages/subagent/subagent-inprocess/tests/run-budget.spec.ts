@@ -4,10 +4,10 @@
  * 影响。步数经子作用域 agent/pre-step 计数强制；墙钟经组合信号计时器强制。
  */
 import { createUserMessage } from '@huiliyi37/dsh-llm'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
 import { type Agent } from '@huiliyi37/dsh-agent'
-import { SessionId } from '@huiliyi37/dsh-session'
+import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
 import AgentLoop from '@huiliyi37/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@huiliyi37/dsh-agent-loop-testkit'
 import InvariantService from '@huiliyi37/dsh-invariants'
@@ -63,6 +63,43 @@ function request(parent: Agent, runBudget?: { maxSteps: number; timeoutMs: numbe
       label: 'budgeted child',
     }),
   }
+}
+
+function delayedChildHarness(): {
+  parent: Agent
+  childEvents: SessionEvent[]
+  releaseIdle: () => void
+} {
+  let releaseIdle: (() => void) | undefined
+  const idle = new Promise<void>((resolve) => { releaseIdle = resolve })
+  const childEvents: SessionEvent[] = []
+  const child = {
+    session: { events: childEvents },
+    followup: vi.fn(),
+    whenIdle: vi.fn(() => idle),
+    cancel: vi.fn(),
+  } as unknown as Agent
+  const childCtx = {
+    agent: child,
+    on: vi.fn(() => () => {}),
+  } as unknown as Context
+  const parent = {
+    session: { id: SessionId('parent-delayed'), header: {} },
+    options: { provider: 'mock', model: 'mock' },
+    ctx: {
+      get: () => undefined,
+      agents: {
+        create: async (options: { setup?: (context: Context) => void }) => {
+          options.setup?.(childCtx)
+          return {
+            agent: child,
+            dispose: async () => {},
+          }
+        },
+      },
+    },
+  } as unknown as Agent
+  return { parent, childEvents, releaseIdle: () => { releaseIdle!() } }
 }
 
 describe('runBudget enforcement', () => {
@@ -121,4 +158,67 @@ describe('runBudget enforcement', () => {
       await run.dispose()
     }
   })
+
+  it('父取消先发生时，稍后到期的预算不能把终因改写为 budget-exhausted', async () => {
+    const { parent, childEvents, releaseIdle } = delayedChildHarness()
+    const signalController = new AbortController()
+    const run = await startInProcessRun({
+      ...request(parent, { maxSteps: 100, timeoutMs: 20 }),
+      signal: signalController.signal,
+    }, {})
+    signalController.abort()
+    await new Promise(resolve => setTimeout(resolve, 40))
+    childEvents.push(
+      { type: 'step/start', data: { turn: 1, step: 1 } } as SessionEvent,
+      {
+        type: 'turn/end',
+        data: { turn: 1, reason: { kind: 'aborted', reason: { kind: 'parent' } } },
+      } as SessionEvent,
+    )
+    releaseIdle()
+    try {
+      await expect(run.result).resolves.toMatchObject({ stopReason: 'aborted' })
+    } finally {
+      await run.dispose()
+    }
+  })
+
+  it('blocked turn-end 保留为 subagent blocked 终因', async () => {
+    const { parent, childEvents, releaseIdle } = delayedChildHarness()
+    const run = await startInProcessRun(request(parent), {})
+    childEvents.push(
+      { type: 'step/start', data: { turn: 1, step: 1 } } as SessionEvent,
+      { type: 'turn/end', data: { turn: 1, reason: { kind: 'blocked' } } } as SessionEvent,
+    )
+    releaseIdle()
+    try {
+      await expect(run.result).resolves.toMatchObject({ stopReason: 'blocked' })
+    } finally {
+      await run.dispose()
+    }
+  })
+
+  it.each(['parent-abort', 'budget-timeout'] as const)(
+    'blocked 已落盘后发生 %s 不会改写首个终因',
+    async (laterCause) => {
+      const { parent, childEvents, releaseIdle } = delayedChildHarness()
+      const signalController = new AbortController()
+      const run = await startInProcessRun({
+        ...request(parent, { maxSteps: 100, timeoutMs: 20 }),
+        signal: signalController.signal,
+      }, {})
+      childEvents.push(
+        { type: 'step/start', data: { turn: 1, step: 1 } } as SessionEvent,
+        { type: 'turn/end', data: { turn: 1, reason: { kind: 'blocked' } } } as SessionEvent,
+      )
+      if (laterCause === 'parent-abort') signalController.abort()
+      else await new Promise(resolve => setTimeout(resolve, 40))
+      releaseIdle()
+      try {
+        await expect(run.result).resolves.toMatchObject({ stopReason: 'blocked' })
+      } finally {
+        await run.dispose()
+      }
+    },
+  )
 })

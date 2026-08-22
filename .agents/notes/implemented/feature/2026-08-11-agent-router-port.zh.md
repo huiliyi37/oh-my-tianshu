@@ -22,16 +22,16 @@ dsh 已有纪律——证据门的"不准做什么"——却没有任何东西�
 - **决策可审计**：每个被接受的 delegate 在 acceptance 时向父会话落一条 log-only 的 `router/route` 记录（profile/task/targets/child session id）——路由决策可从会话日志重建。
 - **结构化结果回传**（闭环 Phase 2）：`execute` 返回 `DispatchOutcome { sessionId, stopReason, output }`（原为只返回 child id）；child settle 后 dispatch 落配对的 log-only `router/outcome` 记录，终态可自日志重建并供调用方喂给综合。
 - **主代理综合**（闭环 Phase 2）：存在未综合 child 结论时渲染 `router:synthesis` 提示节（内容纯派生自已落盘的 `router/outcome` 减 `router/adoption` 记录——model-visible ⟺ logged）；`router_adopt` 工具把采用/拒绝声明落成 log-only `router/adoption`（每条 outcome 至多一条，工具边界与 invariant companion 的每会话配对状态双重强制）。router 从不合并或投票——综合是主代理的行为。存在验证缺口（文件改动后无新 `run_tests`/`related_tests`）时提示节附软提醒（claim-audit 新鲜度，仅建议）。插件声明 `inject: ['tools', 'systemPrompt']`，新增 `dsh-tools`/`dsh-system-prompt` peer 依赖与 tsconfig references。两个贡献都按可派发性门控（`dispatchEnabled` 且显式 `provider`/`model`）：不可派发的装配（发货 TUI 的 shadow 重挂）上 outcome 不可能存在——综合节恒空、adopt 每调必抛——故两者都不注册，模型面不背死重。
-- **预算计算与记录**（闭环 Phase 3，方案 a）：`budget` 配置（校验，no hardcoded tunables）喂天枢同构定价（`shapeWriteBudget` 按文件数加回合 + 双绝对帽；墙钟即单发帽）；route 记录与 `DispatchOutcome` 携带 `{ maxTurns, deadlineMs }`。强制是未来的 seam 能力（见 algorithm-candidates proposed note）。
-- **自适应门槛纯函数**（闭环 Phase 4）：`promotion.ts` 发货 `effectivePromotionMode`（kill-switch 优先的四模式语义）与 `resolvePromotionGate`（样本数 → 假绿 → 范围健康 → 边际四级 veto 阶梯，`MIN_SAMPLES=30`/`MIN_MARGIN=0.05`）；shadow tally 接线与 auto 模式登记为候选，不发货。
+- **预算计算与记录，加上强制运行边界**：`budget` 配置为路由的 `{ maxTurns, deadlineMs }` 定价记录提供输入，而 auto 派发另行通过 subagent 能力 seam 传递已校验的 `runBudget { maxSteps, timeoutMs }`。进程内提供方强制执行两项边界；当前终态与校验约定由[单专家 Auto 灰度 Agent Note](2026-08-21-tui-single-expert-auto-rollout.md) 负责。
+- **晋升证据，而非自主适应**：`promotion.ts` 基于持久账本暴露 kill-switch 优先的模式解析，以及 shadow readiness 与 canary 健康关卡。关卡只记录判定结果；配置仍由人修改。[单专家 Auto 灰度 Agent Note](2026-08-21-tui-single-expert-auto-rollout.md) 规定当前样本要求与 veto 顺序。
 - **路由记录不变量**：包拥有的 durable 状态是 `router/route` 记录；invariant companion 校验 payload 形状（已知 profile、非空 task、字符串数组 targets、非空 child id），且 child 在场时校验血统一致性（记录所在会话是 child 的 `header.parentSession`）。child 不在场时降级为形状校验——一个会话可多次 route，故无唯一性检查。
 - **累计器回收**：按会话的 prediction map 在 `agent/disposed` 时逐条 evict，长驻 TUI 进程不会为每个已结束会话累积小对象。
 - **升级迟滞**（闭环 Phase 1）：累计器新增 `consecutiveFailed`，经 `RouterMetrics.consecutiveFailures` 供 escalate 分支消费——连续失败 ≥ `escalation.minConsecutiveFailures`（缺省 2）且 `escalation.cap` 非 `off` 才升级，单次偶发失败不触发。策略经 `resolveEscalationPolicy` 解析（非法配置 fail loud）。
-- **turn-end 触发**（生产触发点）：`trigger: { mode, onTurnEnd }` 缺省 off。shadow 在 `turn/end` 决策并落 log-only `router/decision`（绝不派发——标准起步）；auto 经 seam 派发并记录 `dispatched` + `subagentSessionId`，派发失败被收敛（日志 + 记录未派发），后台触发绝不打断 turn。child 会话按 `parentSession` 跳过（与指标同源）。发货 TUI 以 `trigger: { mode: 'shadow', onTurnEnd: true }` 重挂 agent-router（bundle-patch 测试钉住该配置）；切 auto 是闭环验证后的产品决定。
+- **turn-end 触发**（生产触发点）：`trigger: { mode, onTurnEnd }` 缺省 off。shadow 在 `turn/end` 作出决策并追加一条 log-only `router/decision`；auto 经 seam 派发，并在接受时、结果结算前记录 `dispatched:true` + `subagentSessionId`。接受前失败记录 `dispatched:false`；接受后的基础设施拒绝记录一条配对错误 outcome，不覆写已接受的决策。排除 child 会话。发货 TUI 仍为 shadow；切换到 auto 是闭环验证后的产品决定。
 
 ## 关键验证事实
 
-- 包级测试 95 全绿（prediction 18 / router 12 / dispatch 8 / integration 19 / invariant 17 / synthesis 9 / budget 6 / promotion 6）。
+- 针对性的包级、集成与快照检查覆盖路由表、派发生命周期、持久账本、综合、预算、晋升关卡与真实装配。
 - 快照义务：`examples/headless-agent/tests/headless.snapshot.ts` 的 `agent-router-synthesis` 场景钉住装配 transcript——连败升级 → 真实 verifier 派发 → followup 请求的 `header.system` 逐字携带 `router:synthesis` 节 → mock 调 `router_adopt` → `router/adoption` 落账（route/outcome/adopt-call/adoption 链；预算钉住、墙钟 deadline 归零）。
 - integration（真实 cordis Context + 事件对象，不 mock 中间层）：8 连败 → escalate → delegate verifier → execute 派发调用序断言；3 连成 → tipping point 重置 → decide 回 self；dispatchEnabled:false 不派发。
 - 测试驱动修正：mock Context 覆盖真实 `ctx.reflect` 会崩（`ctx.on` 的 proxy 依赖反射层）——**集成测试永远用真实 `new Context()` + provide**，不手改 reflect。
@@ -78,6 +78,6 @@ npx tsc -p packages/guard/agent-router/tsconfig.json                   # 0 错�
 
 ## 后果
 
-路由层是建立在基础指标之上的纯决策函数，因此 91 个包级测试加上跑在真实 Context 上的集成用例就能钉住它；没有 evidence-gate 时 prediction 仍独立工作；归账零新增事件类型。代价是所有自适应能力都留在门外：没有 bandit promotion 和 EFE 全套，路由只对写死在表里的错误率阈值与冷却状态作出反应，扩展它意味着加规则，而不是学规则。
+路由层是建立在基础指标之上的纯决策函数，包级测试加上跑在真实 Context 上的集成用例能钉住它；没有 evidence-gate 时 prediction 仍独立工作；归账零新增事件通道。代价是所有自适应能力都留在门外：没有 bandit promotion 和 EFE 全套，路由只对该表所依据的已配置阈值与冷却状态作出反应，扩展它意味着加规则，而不是学规则。
 
 派发继承了同样有界的形态。profile 工具限制 fail loud 安装（restrict 签名已探明：未知工具名抛错），被委派的子代理只拿到 profile 允许的只读/验证工具集；headless e2e 已覆盖 verifier 子代理的完整往返（`DSH_ROUTER_EXECUTE`）；路由表只带写作时的那几个 profile，没有 doc_scout/verifier 变体；与 evidence-gate 的联系是单向的指标消费——escalate 不建义务，delegate attempt 本身有记录（acceptance 落 `router/route`，turn-end 落 `router/decision`）。真实装配换回了两处修正：因为 dsh bash 不标 isError，成败判定改为读取 `[exit code: …]` 文本；evidence-gate 也暴露出 `cooldownTable()`/`verificationCount()`，把 tracker 已持的状态开放出来。

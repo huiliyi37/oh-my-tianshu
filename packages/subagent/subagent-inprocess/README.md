@@ -12,21 +12,25 @@ The driver follows this sequence:
 
 1. Validate the parent depth and optional absolute `maxDepth`, then derive child depth as parent depth plus one and persist it in the child session header.
 2. Call `parent.ctx.agents.create` directly, passing the required request signal into the factory's creation transaction.
-3. During that transaction's unpublished setup window, install the requested persona, tool restriction, and structured-output runtime.
+3. During that transaction's unpublished setup window, install the requested persona, tool restriction, sandbox narrowing, structured-output runtime, and optional step-budget observer; a requested read-only ceiling also installs `approval/policy: never`, so the child cannot request an authority escalation.
 4. Publish the child, retain the returned `AgentHandle`, and drive one task with `child.followup(prompt)` followed by `child.whenIdle()`.
-5. Read the child's own last assistant message and final durable turn reason from the complete owned child run, excluding any fork seed.
+5. Race the owned child run against the optional wall-clock budget, then read the child's own last assistant message and final durable turn reason, excluding any fork seed.
 
 The child gets the parent's working-directory/session lineage and resolves its route in ascending precedence: the inherited parent provider, model, and output-token cap, then the optional `subagent` role pin from `ctx.modelRoles` (read live at creation), then `request.agentOptions`. It gets a fresh flat registration scope: parent ownership does not import parent tool restrictions or establish an authority subset.
 
 This result boundary is valid because the provider owns an isolated child lifecycle from publication through quiescence. Steering submitted during that lifecycle belongs to the child run; the provider does not pretend the initial follow-up alone owns its output.
 
-When the optional sandbox-policy or approval service is composed, the driver snapshots the parent's explicit session override before child creation and appends a source-tagged event during unpublished setup, after any fork history and before session publication. It never copies deployment defaults or one-shot grants; later child switches still win. See the [policy-inheritance decision](../../../.agents/notes/implemented/feature/2026-07-25-subagent-policy-inheritance.md).
+When the optional sandbox-policy or approval service is composed, the driver snapshots the parent's explicit session override before child creation and appends a source-tagged event during unpublished setup, after any fork history and before session publication. It never copies deployment defaults or one-shot grants. A request-owned read-only narrowing then forces approval policy `never`; ordinary inherited policy remains switchable by later child events. See the [policy-inheritance decision](../../../.agents/notes/implemented/feature/2026-07-25-subagent-policy-inheritance.md).
 
 ## Cancellation and ownership
 
 The required request signal covers both startup and the live run. Before publication, `AgentCreationTransaction` observes it, rolls back, and rejects. The factory detaches that creation-only listener before returning; the driver immediately checks the signal once more before installing a minimal live-run listener, closing the handoff race. After publication, abort cancels the child.
 
-After fulfillment, the caller owns the run. Provider-plugin unload does not revoke it. `dispose()` removes the live abort listener, records cancellation, and delegates to the returned `AgentHandle.dispose()`, whose memoized quiescence transaction stops the loop, removes the agent and session, and unwinds scoped registrations. Cancellation owns every non-completed in-flight outcome and reports `aborted`; an already-completed turn remains completed.
+After fulfillment, the caller owns the run. Provider-plugin unload does not revoke it. `dispose()` removes the live abort listener, records cancellation, and delegates to the returned `AgentHandle.dispose()`, whose memoized quiescence transaction stops the loop, removes the agent and session, and unwinds scoped registrations. A durable non-aborted turn terminal (`blocked`, error, token ceiling, refusal, or completion) wins over cancellation and budget signals observed later. When the durable terminal is absent or aborted, the first external cause distinguishes caller cancellation (`aborted`) from budget exhaustion (`budget-exhausted`).
+
+## Run budgets
+
+When `request.runBudget` is present, the driver counts child-scoped `agent/pre-step` events and trips before a step beyond `maxSteps`; an independent timer trips at `timeoutMs`. Either bound cancels the child and reports `budget-exhausted`. Caller cancellation or disposal reports `aborted`, and a guard-produced `turn/end` reason of `blocked` remains `blocked`. The Service Definition validates both bounds before provider startup, including Node's maximum non-clamping timer delay.
 
 ## Spawn and fork inputs
 

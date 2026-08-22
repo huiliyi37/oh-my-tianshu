@@ -108,9 +108,10 @@ interface SubagentStartRequest {
    * {@link SubagentCapabilities.sandboxMode}; rejected at start otherwise.
    * In-process backends append a durable `sandbox/mode` override
    * (`source: 'delegation'`) inside the child's creation window, so the
-   * narrowing lives on the child's own log and survives cold resume. Only
-   * narrowing is representable — a delegation can never widen the sandbox
-   * through this field.
+   * narrowing lives on the child's own log. One-shot in-process runs also
+   * append `approval/policy: never`, making this caller-owned ceiling
+   * non-escalatable by the child. Only narrowing is representable — a
+   * delegation can never widen the sandbox through this field.
    */
   readonly sandboxMode?: 'read-only'
   /**
@@ -438,6 +439,8 @@ interface SubagentStopReasonMap {
   completed: 'completed'
   /** Cancelled through the request signal or disposal. */
   aborted: 'aborted'
+  /** The child was stopped by a guard before it could continue its turn. */
+  blocked: 'blocked'
   /** Model or transport failure. */
   error: 'error'
   /** The child hit its token ceiling before finishing. */
@@ -610,7 +613,7 @@ async snapshot(options: AgentDefinitionLookupOptions = {}): Promise<AgentDefinit
 async get(name: string, options: AgentDefinitionLookupOptions = {}): Promise<AgentDefinition | undefined>
 ```
 
-Source: [`packages/subagent/agent-definitions/src/index.ts:185`](../../packages/subagent/agent-definitions/src/index.ts)
+Source: [`packages/subagent/agent-definitions/src/index.ts:212`](../../packages/subagent/agent-definitions/src/index.ts)
 
 <a id="ctxsubagents--subagentservice"></a>
 
@@ -795,7 +798,7 @@ activeExternalRuns(): SubagentActiveExternalRun[]
 
 Types: [Agent](core.md) · [ContentBlock](llm-streaming.md) · [MessageId](llm-streaming.md) · [SessionId](core.md)
 
-Source: [`packages/subagent/subagent/src/index.ts:172`](../../packages/subagent/subagent/src/index.ts)
+Source: [`packages/subagent/subagent/src/index.ts:186`](../../packages/subagent/subagent/src/index.ts)
 
 <a id="subagent-events"></a>
 
@@ -821,7 +824,7 @@ A published child settled. Scope-filtered dispatch uses the same delegating pare
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/subagent/subagent/src/index.ts:167`](../../packages/subagent/subagent/src/index.ts)
+Source: [`packages/subagent/subagent/src/index.ts:181`](../../packages/subagent/subagent/src/index.ts)
 
 <a id="subagentprovider-added--emit"></a>
 
@@ -838,7 +841,7 @@ A provider became resolvable in the registry.
 'subagent/provider-added'(provider: SubagentProvider): void
 ```
 
-Source: [`packages/subagent/subagent/src/index.ts:141`](../../packages/subagent/subagent/src/index.ts)
+Source: [`packages/subagent/subagent/src/index.ts:155`](../../packages/subagent/subagent/src/index.ts)
 
 <a id="subagentprovider-removed--emit"></a>
 
@@ -855,7 +858,7 @@ A provider left the registry. Accepted runs remain holder-owned.
 'subagent/provider-removed'(name: string): void
 ```
 
-Source: [`packages/subagent/subagent/src/index.ts:147`](../../packages/subagent/subagent/src/index.ts)
+Source: [`packages/subagent/subagent/src/index.ts:161`](../../packages/subagent/subagent/src/index.ts)
 
 <a id="subagentstart--emit"></a>
 
@@ -879,5 +882,5 @@ A provider established a published child. For in-process providers, `ctx.agents.
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/subagent/subagent/src/index.ts:158`](../../packages/subagent/subagent/src/index.ts)
+Source: [`packages/subagent/subagent/src/index.ts:172`](../../packages/subagent/subagent/src/index.ts)
 <!-- END GENERATED cordis-surface -->

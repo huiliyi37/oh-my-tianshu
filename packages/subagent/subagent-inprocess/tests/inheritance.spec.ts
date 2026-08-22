@@ -224,7 +224,12 @@ describe('in-process policy inheritance', () => {
         type: 'sandbox/mode',
         data: { mode: 'read-only', source: 'delegation' },
       })
+      expect(child.session.events[1]).toMatchObject({
+        type: 'approval/policy',
+        data: { policy: 'never', source: 'delegation' },
+      })
       expect(ctx.sandboxPolicy.overrideOf(child.session)).toBe('read-only')
+      expect(ctx.approval.overrideOf(child.session)).toBe('never')
       expect(parent.session.events.some(event => event.type === 'sandbox/mode')).toBe(false)
     } finally {
       await run.dispose()

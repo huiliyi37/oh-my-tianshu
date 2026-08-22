@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Agent role definitions (`ctx.agentDefinitions`): named compositions of subagent start-request inputs — persona body, tool allow list, model route, sandbox narrowing — discovered from flat markdown files, plus a runtime registration seam that hosts the built-in read-only `explore` role. A role is not a provider: provider selection stays with the delegation tool's deployment configuration, and the model-facing Consumer ([`dsh-tool-subagent`](../tool-subagent/README.md)) merges a chosen role into one delegation request.
+Agent role definitions (`ctx.agentDefinitions`): named compositions of subagent start-request inputs — persona body, tool allow list, model route, sandbox narrowing — discovered from flat markdown files, plus a runtime registration seam that hosts the built-in read-only `explore` and `verify` roles. A role is not a provider: provider selection stays with the delegation tool's deployment configuration, and the model-facing Consumer ([`dsh-tool-subagent`](../tool-subagent/README.md)) merges a chosen role into one delegation request.
 
 ## Role files
 
@@ -26,9 +26,9 @@ You are a code-review subagent. ...
 
 Discovery scans ranked roots, and a lower rank wins a duplicate name: project `.dsh/agents` (100) and `.agents/agents` (200), `customAgentDirs` (300), user `~/.dsh-tianshu/agents` (400) and `~/.agents/agents` (500), and the configured `bundledAgentDir` (600). Runtime registrations sit at rank 250. Reads go through the `ctx.fs` service when one is mounted (the bundled root reads the host directly), and chokidar-backed watching plus first-party `fs/observed` mutation notices invalidate the per-cwd catalog cache.
 
-## Runtime registration and the built-in explore role
+## Runtime registration and the built-in roles
 
-`ctx.agentDefinitions.register()` installs a role from code — the seam deployments and tests use for roles that ship with the product. It hosts the built-in `explore` role: a read-only exploration persona, a `grep`/`read`/`glob`/`semantic_search`/`bash` allow list, and a `read-only` sandbox narrowing appended as a durable `sandbox/mode` delegation override on the child log. The narrowing needs the delegation provider's `sandboxMode` capability (the in-process `spawn`/`fork` providers have it) and survives the child's cold resume because it lives on the child log, not in the descriptor. `builtinExplore: false` omits the registration.
+`ctx.agentDefinitions.register()` installs a role from code — the seam deployments and tests use for roles that ship with the product. `explore` supplies a read-only codebase-survey persona and `grep`/`read`/`glob`/`semantic_search`/`bash`; `verify` supplies an independent evidence-checking persona and `grep`/`read`/`glob`/`repo_graph`/`bash`. Both carry a `read-only` sandbox narrowing appended as a durable `sandbox/mode` delegation override on the child log. The narrowing needs the delegation provider's `sandboxMode` capability and survives cold resume because it lives on the child log, not in the descriptor. `builtinExplore: false` and `builtinVerify: false` omit their respective registrations.
 
 ## Config
 
@@ -40,6 +40,7 @@ Discovery scans ranked roots, and a lower rank wins a duplicate name: project `.
 | `customAgentDirs` | Extra roots scanned after project roots and before user roots. |
 | `bundledAgentDir` | Installer-supplied role root at the lowest precedence; trusted-host reads. |
 | `builtinExplore` | Register the built-in read-only `explore` role, default `true`. |
+| `builtinVerify` | Register the built-in read-only `verify` role, default `true`. |
 | `collectCacheMaxEntries` | Maximum completed per-cwd catalogs kept in memory, default `128`. |
 | `watch` | Watch host-local roots for catalog changes, default `true`. |
 | `watchUsePolling` | Use Chokidar polling instead of native filesystem events, default `false`. |

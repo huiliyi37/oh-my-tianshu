@@ -68,7 +68,7 @@ function makeParent(append?: (type: string, data: unknown) => void): {
   return { session: { append: append ?? (() => {}) } }
 }
 
-function makeCtx(seam: ReturnType<typeof makeSeam>, parent: unknown | undefined): Context {
+function makeCtx(seam: ReturnType<typeof makeSeam>, parent: unknown): Context {
   return {
     reflect: {
       get: (name: string, _strict: boolean) => {
@@ -95,6 +95,9 @@ describe('dispatchSubagent', () => {
     expect(request.parent).toBeDefined()
     expect(request.signal).toBeInstanceOf(AbortSignal)
     expect(request.agentOptions).toEqual({ provider: 'mock', model: 'mock' })
+    // Router profiles are read-only at the dispatch boundary even when no
+    // agent-definitions service or role sandbox metadata is present.
+    expect(request.sandboxMode).toBe('read-only')
     // 工具限制：profile → toolFilter allow 列表（真实工具名）
     const toolFilter = request.toolFilter as { allow: string[] }
     expect(toolFilter.allow).toContain('grep')

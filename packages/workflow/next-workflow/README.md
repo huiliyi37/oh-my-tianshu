@@ -24,7 +24,7 @@ While a run is active, an `agent/request` waterfall listener on the invoking age
 |---|---|
 | `/next-workflow [candidates] <objective>` | Runs the pipeline; a leading integer (1–5) overrides `planCandidates` for this run (`/next-workflow 3 …` = best-of-3), omitting it keeps the Config default. Success summarizes phases, verdicts, and artifact paths. Verify exhaustion settles as an error naming `failed-verification`. |
 | `/next-workflow` (empty input) | `Usage: /next-workflow [candidates] <objective>` — nothing starts. |
-| Missing capabilities | An unavailable error naming the missing seam: no subagents service, unregistered or incapable provider (needs structured output, personas, fresh context), or a configured `verifyCommand` without a bash executor. |
+| Missing capabilities | An unavailable error naming the missing seam: no subagents service, unregistered or incapable provider (needs structured output, personas, fresh context, plus run budgets when configured), or a configured `verifyCommand` without a bash executor. |
 | A second run while one is active on the session | An `already running` error; one run per session at a time. |
 
 ## Composition
@@ -38,6 +38,7 @@ The plugin injects only `commands`; the subagent provider, bash executor, and gi
   name: '@huiliyi37/dsh-next-workflow'
   config:
     verifyCommand: pnpm test
+    subagentRunBudget: { maxSteps: 24, timeoutMs: 600000 }
 ```
 
 ## Config
@@ -45,6 +46,7 @@ The plugin injects only `commands`; the subagent provider, bash executor, and gi
 | Key | Default | Meaning |
 |---|---|---|
 | `provider` | `spawn` | One-shot structured-output subagent provider for every phase. |
+| `subagentRunBudget` | unset | Optional `{ maxSteps, timeoutMs }` bound applied to every one-shot subagent phase; requires provider `runBudget` capability. |
 | `workflowsRoot` | `$DSH_HOME/workflows` | Artifact root; one `<run-id>` directory per run. |
 | `verifyCommand` | unset | Deterministic VERIFY gate command; unset reports `unverified`. |
 | `verifyTimeoutMs` | `120000` | Timeout for one gate run. |
@@ -78,6 +80,7 @@ Effort switches break the request prefix cache at phase boundaries by design —
 ## Known Limitations and Deferred Work
 
 - **Subagent effort gap** — `AgentOptions` has no effort channel, so `phaseEfforts` applies only to the invoking session's requests; plan/critique/review subagents keep the default model route. An effort channel on the subagent seam is a follow-up.
+- **Subagent bounds are deployment policy** — omitted `subagentRunBudget` leaves phase-run limits provider-managed; configure it to enforce the seam's step and wall-clock bounds.
 - **Scripted-persona fidelity** — composition tests simulate the phase subagents; real-model runs may surface prompt-level issues in the planner/critic/reviewer personas that only real models expose.
 - **The verify gate requires deployment config** — without `verifyCommand` the run reports `unverified` rather than verifying; mounting `guard/evidence-gate` as the verifier is deferred.
 - **Implementation is not isolated** — IMPLEMENT steers the invoking session for live visibility and the full tool surface; a Config-routed isolated implementation subagent is deferred.

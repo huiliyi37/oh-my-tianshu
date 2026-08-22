@@ -37,6 +37,7 @@
     "@huiliyi37/dsh-invariants": "^0.2.0",
     "@huiliyi37/dsh-llm": "^0.2.0",
     "@huiliyi37/dsh-session": "^0.2.0",
+    "@huiliyi37/dsh-subagent": "^0.4.0",
     "@huiliyi37/dsh-system-prompt": "^0.2.0",
     "@huiliyi37/dsh-tools": "^0.2.0",
     "@huiliyi37/dsh-zen": "^0.3.0",
@@ -50,6 +51,7 @@
     "@huiliyi37/dsh-tools": "workspace:^",
     "@huiliyi37/dsh-llm": "workspace:^",
     "@huiliyi37/dsh-session": "workspace:^",
+    "@huiliyi37/dsh-subagent": "workspace:^",
     "@huiliyi37/dsh-zen": "workspace:^",
     "@huiliyi37/cordis": "^4.0.0-rc.7"
   }

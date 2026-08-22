@@ -25,8 +25,10 @@
  * @module @huiliyi37/dsh-agent-router
  */
 
+import { randomUUID } from 'node:crypto'
 import type { Context } from '@huiliyi37/cordis'
 import type { Session, SessionEvent, SessionId } from '@huiliyi37/dsh-session'
+import { MAX_SUBAGENT_RUN_TIMEOUT_MS } from '@huiliyi37/dsh-subagent'
 import type {} from '@huiliyi37/dsh-agent' // 'agent/disposed' 事件声明合并
 import type {} from '@huiliyi37/dsh-tools' // ctx.tools 声明合并
 import type {} from '@huiliyi37/dsh-system-prompt' // ctx.systemPrompt 声明合并'
@@ -40,7 +42,15 @@ import {
   shouldTippingPointReset,
 } from './prediction.js'
 import { decideRouterAction, type EscalationPolicy, type RouterAction, type RouterMetrics } from './router.js'
-import { DEFAULT_PROFILE_TOOLS, dispatchSubagent, type DispatchOptions, type DispatchOutcome, type DispatchRole } from './dispatch.js'
+import {
+  DEFAULT_PROFILE_TOOLS,
+  dispatchSubagent,
+  dispatchSubagentWithAcceptance,
+  type DispatchAcceptance,
+  type DispatchOptions,
+  type DispatchOutcome,
+  type DispatchRole,
+} from './dispatch.js'
 import { mergeBudgetOverride, resolveBudgetConfig, shapeWriteBudget, type BudgetConfig } from './budget.js'
 import { ADOPT_TOOL_NAME, DEFAULT_SYNTHESIS_SECTION, parseAdoptArgs, pendingOutcomes, renderSynthesisSection, verificationGap } from './synthesis.js'
 import {
@@ -74,6 +84,8 @@ declare module '@huiliyi37/dsh-session/types' {
       task: string
       targets: string[]
       subagentSessionId: string
+      /** Auto trigger acceptance identity; absent on direct/manual execute. */
+      decisionId?: RouterDecisionId
       /** 记录用预算（shape 计算 + 绝对帽；方案 a 只记录不强制）。 */
       budget?: { maxTurns: number; deadlineMs: number }
     }
@@ -201,9 +213,9 @@ export interface AgentRouterConfig {
   dispatchEnabled?: boolean
   /**
    * 派发子代理所用 provider。与 `model` 一起构成派发的显式前提：任一缺省时
-   * execute 短路返回 null（auto 触发落 `dispatched:false`），且 `router_adopt`
-   * 工具与 `router:synthesis` 节不注册——不可派发即无 outcome 可综合，常驻
-   * 模型面只是白占请求 token。
+   * shadow/off 装配可缺省；auto 且 dispatchEnabled 时两者必须为非空字符串，
+   * 否则装配 fail loud。不可派发装配不注册 `router_adopt` 工具与
+   * `router:synthesis` 节——无 outcome 可综合时不占常驻模型 token。
    */
   provider?: string
   /** 派发子代理所用模型名（与 `provider` 同为派发的显式前提；缺省不派发）。 */
@@ -330,7 +342,7 @@ export interface TriggerPolicy {
  * @returns 解析后的策略。
  */
 export function resolveTriggerPolicy(config: AgentRouterConfig): TriggerPolicy {
-  const mode = config.trigger?.mode ?? 'off'
+  const mode: unknown = config.trigger?.mode ?? 'off'
   if (mode !== 'off' && mode !== 'shadow' && mode !== 'auto') {
     throw new Error(`agent-router: trigger.mode must be 'off' | 'shadow' | 'auto', got ${JSON.stringify(mode)}`)
   }
@@ -348,7 +360,7 @@ export function resolveTriggerPolicy(config: AgentRouterConfig): TriggerPolicy {
  * @returns 解析后的策略（缺省 cap 'verifier'、minConsecutiveFailures 2）。
  */
 export function resolveEscalationPolicy(config: AgentRouterConfig): EscalationPolicy {
-  const cap = config.escalation?.cap ?? 'verifier'
+  const cap: unknown = config.escalation?.cap ?? 'verifier'
   if (cap !== 'verifier' && cap !== 'off') {
     throw new Error(`agent-router: escalation.cap must be 'verifier' | 'off', got ${JSON.stringify(cap)}`)
   }
@@ -393,8 +405,11 @@ export function resolveAutoPolicy(config: AgentRouterConfig): AutoDispatchPolicy
   const raw = config.auto ?? {}
   const positiveInt = (field: AutoPolicyField): number => {
     const value = raw[field]
-    if (value === undefined || !Number.isInteger(value) || value < 1) {
-      throw new Error(`agent-router: auto.${field} must be a positive integer, got ${JSON.stringify(value)}`)
+    if (value === undefined || !Number.isSafeInteger(value) || value < 1) {
+      throw new Error(`agent-router: auto.${field} must be a positive safe integer, got ${JSON.stringify(value)}`)
+    }
+    if (field === 'timeoutMs' && value > MAX_SUBAGENT_RUN_TIMEOUT_MS) {
+      throw new Error(`agent-router: auto.timeoutMs must be <= ${MAX_SUBAGENT_RUN_TIMEOUT_MS} to avoid timer clamping, got ${JSON.stringify(value)}`)
     }
     return value
   }
@@ -483,6 +498,21 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
     throw new Error('agent-router: synthesis.section must be a non-empty string')
   }
   const dispatchEnabled = config.dispatchEnabled ?? true
+  if (typeof dispatchEnabled !== 'boolean') {
+    throw new Error(`agent-router: dispatchEnabled must be a boolean, got ${JSON.stringify(dispatchEnabled)}`)
+  }
+  for (const key of ['provider', 'model'] as const) {
+    const value = config[key]
+    if (value !== undefined && (typeof value !== 'string' || value.trim() === '')) {
+      throw new Error(`agent-router: ${key} must be a non-empty string when provided`)
+    }
+  }
+  if (trigger.mode === 'auto' && dispatchEnabled) {
+    const missing = (['provider', 'model'] as const).filter(key => config[key] === undefined)
+    if (missing.length > 0) {
+      throw new Error(`agent-router: trigger.mode 'auto' with dispatchEnabled requires explicit ${missing.join(' and ')}`)
+    }
+  }
   // 可派发性门控：outcome 只在显式派发装配上存在。shadow 重挂（无 provider/model）
   // 等装配上综合节恒空、router_adopt 每调必抛"no pending finding"，常驻模型面
   // 只是白占每轮请求 token——两者都不注册。executeAction 内的短路是同一条件的
@@ -491,7 +521,7 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
 
   // —— 采用声明工具：主代理对每条 child 结论逐条声明 adopt/reject ——
   if (canDispatch) {
-    ctx.tools.register({
+    ctx.effect(() => ctx.tools.register({
       name: ADOPT_TOOL_NAME,
       description: 'Declare your adoption decision for one dispatched subagent finding: '
         + 'adopt (integrate it) or reject (state why). Call exactly once per finding listed in your synthesis prompt.',
@@ -508,7 +538,7 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
         },
         render: () => [{ type: 'text', text: 'Finding adoption recorded.' }],
       },
-      execute: async (args, exec) => {
+      execute: (args, exec) => Promise.resolve().then(() => {
         const agent = exec.agent
         if (agent === undefined) throw new Error(`${ADOPT_TOOL_NAME} requires a calling agent`)
         const parsed = parseAdoptArgs(args)
@@ -524,21 +554,23 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
           reason: parsed.reason,
         })
         return { adopted: true as const }
-      },
-    })
+      }),
+    }), 'agent-router.router-adopt')
 
-    // —— 主代理综合提示：存在未综合 child 结论时渲染（model-visible 内容
-    //    全部派生自已落盘的 router/outcome 与 router/adoption 记录）——
-    ctx.systemPrompt.section({
+    // —— 主代理综合提示：动态 finding 作为变量值在模板插值时单次注入，
+    //    其中的 `{{...}}` 不会被二次解释为 prompt 变量。model-visible 内容
+    //    全部派生自已落盘的 router/outcome 与 router/adoption 记录。——
+    ctx.effect(() => ctx.systemPrompt.variable('router_synthesis', (context) => {
+      const agent = context.agent
+      if (agent === undefined) return ''
+      const events = agent.session.events
+      return renderSynthesisSection(pendingOutcomes(events), verificationGap(events), synthesisSection)
+    }), 'agent-router.synthesis-variable')
+    ctx.effect(() => ctx.systemPrompt.section({
       name: 'router:synthesis',
       order: 51,
-      text: (context) => {
-        const agent = context.agent
-        if (agent === undefined) return ''
-        const events = agent.session.events
-        return renderSynthesisSection(pendingOutcomes(events), verificationGap(events), synthesisSection)
-      },
-    })
+      text: '{{router_synthesis}}',
+    }), 'agent-router.synthesis-section')
   }
   const predictions = new Map<SessionId, ReturnType<typeof createPredictionAccumulator>>()
 
@@ -562,12 +594,8 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
   interface SessionRunState {
     /** 在飞自动派发数（单飞锁数据源）。 */
     inFlight: number
-    /** 累计自动派发数（canary 总帽）。 */
-    total: number
-    /** 合格 turn 计数（冷却间隔的分母）。 */
-    qualifiedTurns: number
-    /** 上次真实派发时的 qualifiedTurns 值。 */
-    lastDispatchTurn: number | undefined
+    /** 已准入但尚未提交 route 的配额预留。 */
+    reservations: Set<{ decisionId: RouterDecisionId; qualifiedTurn: number }>
     /** 在飞 run 的取消通道（父 dispose 时统一收敛）。 */
     controllers: Set<AbortController>
   }
@@ -576,15 +604,30 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
     const existing = runStates.get(sessionId)
     if (existing !== undefined) return existing
     const created: SessionRunState = {
-      inFlight: 0, total: 0, qualifiedTurns: 0, lastDispatchTurn: undefined, controllers: new Set(),
+      inFlight: 0, reservations: new Set(), controllers: new Set(),
     }
     runStates.set(sessionId, created)
     return created
   }
+  let stopping = false
+  const activeTriggers = new Set<Promise<void>>()
+  const activeTriggersBySession = new Map<SessionId, Set<Promise<void>>>()
+  const disposedSessions = new Set<SessionId>()
+  ctx.effect(() => async () => {
+    stopping = true
+    for (const state of runStates.values()) {
+      for (const controller of state.controllers) controller.abort()
+    }
+    await Promise.allSettled([...activeTriggers])
+    runStates.clear()
+    predictions.clear()
+    activeTriggersBySession.clear()
+    disposedSessions.clear()
+  }, 'agent-router.active-runs')
 
   // —— 角色解析（agent-definitions 可选在场）：profile → 固定角色映射 ——
   const definitions = ctx.reflect.get('agentDefinitions', false) as
-    | { get(name: string, options?: { cwd?: string }): Promise<{ content: string; tools?: readonly string[]; sandbox?: 'read-only' } | undefined> }
+    | { get(name: string, options?: { cwd?: string }): Promise<{ content: string; tools?: readonly string[] } | undefined> }
     | undefined
   /** profile → 角色名（结构性映射；角色由 agent-definitions 内置提供）。 */
   const ROLE_BY_PROFILE: Record<DispatchOptions['profile'], string> = { code_scout: 'explore', verifier: 'verify' }
@@ -608,7 +651,6 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
     return {
       tools,
       persona: definition.content,
-      ...(definition.sandbox !== undefined ? { sandboxMode: definition.sandbox } : {}),
     }
   }
 
@@ -617,6 +659,8 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
     action: RouterAction,
     sessionId: SessionId,
     signal?: AbortSignal,
+    onAccepted?: (acceptance: DispatchAcceptance) => void,
+    decisionId?: RouterDecisionId,
   ): Promise<DispatchOutcome | null> => {
     // 短路条件即 canDispatch 的展开（保留 undefined 收窄，TS 友好）。
     if (action.kind !== 'delegate' || !dispatchEnabled) return null
@@ -624,8 +668,10 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
     // 每会话派发控制器：run 信号挂到可被父 dispose 收敛的 controller 上
     // （删除永不触发的临时 AbortController().signal）；外部 signal 仍可取消。
     const controller = new AbortController()
+    const propagateAbort = (): void => { controller.abort(signal?.reason) }
     if (signal !== undefined) {
-      signal.addEventListener('abort', () => { controller.abort() }, { once: true })
+      if (signal.aborted) propagateAbort()
+      else signal.addEventListener('abort', propagateAbort, { once: true })
     }
     const state = stateOf(sessionId)
     state.controllers.add(controller)
@@ -638,11 +684,12 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
         provider: config.provider,
         model: config.model,
         // 角色在场时以「角色工具集 ∩ profile 天花板」收紧（resolveDispatchRole
-        // 已保证非空交集）并透传 persona/sandbox；缺省回落 profile 内置工具集。
+        // 已保证非空交集）并透传 persona；只读沙箱由 dispatch 边界固定。
         ...(dispatchRole !== undefined ? { role: dispatchRole } : {}),
         tools: profileTools[action.profile],
         subagentProvider,
         parentSessionId: sessionId,
+        ...(decisionId !== undefined ? { decisionId } : {}),
         signal: controller.signal,
         budget: mergeBudgetOverride(undefined, shapeWriteBudget(action.targets.length, budgetConfig)),
         ...(autoPolicy !== undefined
@@ -650,14 +697,20 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
           : {}),
         findingSchema: FINDING_SCHEMA_BY_PROFILE[action.profile],
       }
-      return await dispatchSubagent(ctx, opts)
+      return await (onAccepted === undefined
+        ? dispatchSubagent(ctx, opts)
+        : dispatchSubagentWithAcceptance(ctx, opts, onAccepted))
     } finally {
+      signal?.removeEventListener('abort', propagateAbort)
       state.controllers.delete(controller)
     }
   }
 
-  // —— 决策 id：append 时点铸造，预测 seq = 当前事件数（同步无并发）——
-  const rtdecId = (owner: Session): RouterDecisionId => RouterDecisionId(`rtdec-${owner.events.length}`)
+  // —— 决策 id：普通同步 append 保留短 seq；auto admission 加随机后缀，
+  // 使多个尚未落盘的并发预留也不会铸造同一个身份。——
+  const rtdecId = (owner: Session, concurrent = false): RouterDecisionId => RouterDecisionId(
+    concurrent ? `rtdec-${owner.events.length}-${randomUUID()}` : `rtdec-${owner.events.length}`,
+  )
 
   // —— 决策归账（Phase 1）：闭合的观察窗口 → router/evaluation + 关卡留痕 ——
   // 纯投影从日志推导待归账决策；本函数只在微任务中调用（绝不重入发布中的
@@ -682,6 +735,7 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
     })
     if (trigger.mode === 'auto') {
       const canary = resolveCanaryHealthGate(canaryHealth(owner.events, canaryConfig), {
+        minDispatches: canaryConfig.minDispatches,
         maxBudgetExhaustedShare: canaryConfig.maxBudgetExhaustedShare,
         minBenefitProxy: canaryConfig.minBenefitProxy,
       })
@@ -692,14 +746,22 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
       })
     }
   }
+  const closeDueEvaluationsSafely = (
+    owner: Session,
+    opts: { final?: boolean } = {},
+  ): void => {
+    try {
+      closeDueEvaluations(owner, opts)
+    } catch (error) {
+      const phase = opts.final === true ? 'final evaluation close failed' : 'evaluation close failed'
+      ctx.logger.error(`agent-router: ${phase} for ${owner.id}`, error)
+    }
+  }
 
   // —— turn-end 触发：全量决策记账（self+delegate）/ shadow 只记录 / seam 派发（auto）——
   const runTrigger = async (owner: Session): Promise<void> => {
     const metricsSnapshot = collectMetrics(owner.id)
     const action = decideRouterAction(metricsSnapshot, obligationHint(), escalationPolicy)
-    // 冷却分母是「合格 turn」全量（self 也计数）——间隔衡量真实时间推进，
-    // 不因路由恰好走 self 而暂停。
-    if (trigger.mode === 'auto' && autoPolicy !== undefined) stateOf(owner.id).qualifiedTurns++
     if (action.kind === 'self') {
       // 合格 turn-end 全量落决策：self 也带完整指标输入，消除只有 delegate
       // 分子的偏差（合格 turn 分母与 self/delegate 比例可从任一日志重建）。
@@ -733,10 +795,62 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
     // mode 'auto' 在装配期已保证 autoPolicy 就位（resolveAutoPolicy fail loud）。
     if (autoPolicy === undefined) return
     const runState = stateOf(owner.id)
-    const cooled = runState.lastDispatchTurn !== undefined
-      && runState.qualifiedTurns - runState.lastDispatchTurn < autoPolicy.cooldownTurns
+    const acceptedDecisionIds = new Set(owner.events.flatMap((event) => {
+      if (event.type !== 'router/decision') return []
+      const data = event.data as { decisionId?: unknown; mode?: unknown; dispatched?: unknown }
+      return data.mode === 'auto' && data.dispatched === true && typeof data.decisionId === 'string'
+        ? [data.decisionId]
+        : []
+    }))
+    const autoRouteIds = new Set(owner.events.flatMap((event) => {
+      if (event.type !== 'router/route') return []
+      const { decisionId } = event.data as { decisionId?: unknown }
+      return typeof decisionId === 'string' ? [decisionId] : []
+    }))
+    let qualifiedTurns = 0
+    let lastDispatchTurn: number | undefined
+    for (const event of owner.events) {
+      if (event.type === 'router/route') {
+        const { decisionId } = event.data as { decisionId?: unknown }
+        // A process crash may land the authoritative acceptance route before
+        // its companion decision. Count that missing qualified turn
+        // conservatively so restart cannot reset the cap or cooldown.
+        if (typeof decisionId === 'string' && !acceptedDecisionIds.has(decisionId)) {
+          qualifiedTurns++
+          lastDispatchTurn = qualifiedTurns
+        }
+        continue
+      }
+      if (event.type === 'router/decision') {
+        const data = event.data as { mode?: unknown; action?: unknown; dispatched?: unknown }
+        if (data.mode !== 'auto') continue
+        qualifiedTurns++
+        if (data.action === 'delegate' && data.dispatched === true) {
+          lastDispatchTurn = qualifiedTurns
+        }
+      }
+    }
+    const currentTurn = qualifiedTurns + 1
+    const pendingReservations = [...runState.reservations]
+      .filter(reservation => !autoRouteIds.has(reservation.decisionId))
+    const reservedDispatchTurn = pendingReservations.reduce<number | undefined>(
+      (latest, reservation) => latest === undefined
+        ? reservation.qualifiedTurn
+        : Math.max(latest, reservation.qualifiedTurn),
+      undefined,
+    )
+    const effectiveLastDispatchTurn = lastDispatchTurn === undefined
+      ? reservedDispatchTurn
+      : reservedDispatchTurn === undefined
+        ? lastDispatchTurn
+        : Math.max(lastDispatchTurn, reservedDispatchTurn)
+    const totalAccepted = autoRouteIds.size
+      + [...acceptedDecisionIds].filter(decisionId => !autoRouteIds.has(decisionId)).length
+      + pendingReservations.length
+    const cooled = effectiveLastDispatchTurn !== undefined
+      && currentTurn - effectiveLastDispatchTurn < autoPolicy.cooldownTurns
     if (runState.inFlight >= autoPolicy.maxConcurrent
-      || runState.total >= autoPolicy.maxTotal || cooled) {
+      || totalAccepted >= autoPolicy.maxTotal || cooled) {
       owner.append('router/decision', {
         decisionId: rtdecId(owner),
         action: 'delegate',
@@ -750,38 +864,59 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
       })
       return
     }
-    let dispatched = false
-    let subagentSessionId: SessionId | undefined
+    const decisionId = rtdecId(owner, true)
+    const reservation = { decisionId, qualifiedTurn: currentTurn }
+    runState.reservations.add(reservation)
+    let acceptance: DispatchAcceptance | undefined
+    const ledgerState = { acceptedDecisionRecorded: false }
+    const appendAcceptedDecision = (): void => {
+      if (acceptance === undefined) return
+      owner.append('router/decision', {
+        decisionId,
+        action: 'delegate',
+        profile: action.profile,
+        task: action.task,
+        targets: action.targets,
+        reason: 'turn-end',
+        mode: 'auto',
+        dispatched: true,
+        subagentSessionId: acceptance.sessionId,
+        metrics: metricsSnapshot,
+      })
+      ledgerState.acceptedDecisionRecorded = true
+    }
     runState.inFlight++
-    runState.total++
-    runState.lastDispatchTurn = runState.qualifiedTurns
     try {
-      const outcome = await executeAction(action, owner.id)
-      if (outcome === null) {
-        // 缺 provider/model 等短路：决策记录 dispatched false（原因在装配态）。
-        dispatched = false
-      } else {
-        dispatched = true
-        subagentSessionId = outcome.sessionId
+      try {
+        await executeAction(action, owner.id, undefined, (accepted) => {
+          acceptance = accepted
+          appendAcceptedDecision()
+        }, decisionId)
+      } catch (error) {
+        ctx.logger.error('agent-router: turn-end dispatch failed for %s: %o', owner.id, error)
       }
-    } catch (error) {
-      dispatched = false
-      ctx.logger.error('agent-router: turn-end dispatch failed for %s: %o', owner.id, error)
+      if (acceptance !== undefined) {
+        // Session.append rejects before mutation. If the acceptance callback
+        // lost its first ledger write, retry the same true decision rather
+        // than fabricating dispatched:false for a committed route.
+        if (!ledgerState.acceptedDecisionRecorded) appendAcceptedDecision()
+      } else {
+        owner.append('router/decision', {
+          decisionId,
+          action: 'delegate',
+          profile: action.profile,
+          task: action.task,
+          targets: action.targets,
+          reason: 'turn-end',
+          mode: 'auto',
+          dispatched: false,
+          metrics: metricsSnapshot,
+        })
+      }
     } finally {
       runState.inFlight--
+      runState.reservations.delete(reservation)
     }
-    owner.append('router/decision', {
-      decisionId: rtdecId(owner),
-      action: 'delegate',
-      profile: action.profile,
-      task: action.task,
-      targets: action.targets,
-      reason: 'turn-end',
-      mode: 'auto',
-      dispatched,
-      ...(subagentSessionId !== undefined ? { subagentSessionId } : {}),
-      metrics: metricsSnapshot,
-    })
   }
 
   // —— 指标采集：tool/result 成败喂 prediction（按 session 隔离）——
@@ -805,7 +940,9 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
         predictions.set(owner.id, resetAccumulator(next))
       }
       // 观察窗口归账：tool/result 可能闭合某条决策的窗口，微任务出窗补记。
-      queueMicrotask(() => { closeDueEvaluations(owner) })
+      queueMicrotask(() => {
+        if (!stopping) closeDueEvaluationsSafely(owner)
+      })
     }
     // turn-end 触发（生产触发点）：全量决策记账；shadow 只记录；auto 决策并
     // 派发。禅阶段（对齐/锚定轮）整体跳过：会话尚在进入状态，受限工具面上的
@@ -816,9 +953,31 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
     // 再归账一次——新决策点会取代上一条未满窗口（每条决策恰一条评估）。
     if (event.type === 'turn/end' && trigger.onTurnEnd && trigger.mode !== 'off') {
       queueMicrotask(() => {
-        if (foldZenPhase(owner.events) === 'zen') return
-        closeDueEvaluations(owner)
-        void runTrigger(owner).then(() => { closeDueEvaluations(owner) })
+        if (stopping || disposedSessions.has(owner.id)) return
+        try {
+          if (foldZenPhase(owner.events) === 'zen') return
+          closeDueEvaluationsSafely(owner)
+        } catch (error) {
+          ctx.logger.error(`agent-router: turn-end preparation failed for ${owner.id}`, error)
+          return
+        }
+        const task = runTrigger(owner)
+        activeTriggers.add(task)
+        const sessionTasks = activeTriggersBySession.get(owner.id) ?? new Set<Promise<void>>()
+        sessionTasks.add(task)
+        activeTriggersBySession.set(owner.id, sessionTasks)
+        void task
+          .then(() => {
+            if (!stopping) closeDueEvaluationsSafely(owner)
+          })
+          .catch((error: unknown) => {
+            ctx.logger.error(`agent-router: turn-end trigger failed for ${owner.id}`, error)
+          })
+          .finally(() => {
+            activeTriggers.delete(task)
+            sessionTasks.delete(task)
+            if (sessionTasks.size === 0) activeTriggersBySession.delete(owner.id)
+          })
       })
     }
   })
@@ -828,12 +987,33 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
   // 终结前以 final 模式归账尾部未闭合窗口——会话最后一条决策不再系统性漏记
   // （样本即所得，不足 minSamples 自然落 inconclusive）——
   ctx.on('agent/disposed', ({ agent }) => {
-    predictions.delete(agent.session.id)
-    closeDueEvaluations(agent.session, { final: true })
-    const state = runStates.get(agent.session.id)
-    if (state === undefined) return
-    for (const controller of state.controllers) controller.abort()
-    runStates.delete(agent.session.id)
+    const sessionId = agent.session.id
+    predictions.delete(sessionId)
+    disposedSessions.add(sessionId)
+    const state = runStates.get(sessionId)
+    if (state !== undefined) {
+      for (const controller of state.controllers) controller.abort()
+    }
+    const finalize = (): void => {
+      closeDueEvaluationsSafely(agent.session, { final: true })
+      runStates.delete(sessionId)
+      activeTriggersBySession.delete(sessionId)
+      // Any turn-end microtask queued before disposal observes the tombstone
+      // first; release it only on the following microtask checkpoint.
+      queueMicrotask(() => { disposedSessions.delete(sessionId) })
+    }
+    const tasks = [...(activeTriggersBySession.get(sessionId) ?? [])]
+    if (tasks.length === 0) {
+      finalize()
+      return
+    }
+    const finalization = Promise.allSettled(tasks).then(finalize)
+    activeTriggers.add(finalization)
+    void finalization
+      .catch((error: unknown) => {
+        ctx.logger.error(`agent-router: disposed-session finalization failed for ${sessionId}`, error)
+      })
+      .finally(() => { activeTriggers.delete(finalization) })
   })
 
   // —— 义务提示（delegate 任务描述素材）——

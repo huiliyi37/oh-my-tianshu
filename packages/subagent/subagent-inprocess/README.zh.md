@@ -12,21 +12,25 @@
 
 1. 校验父 agent 深度和可选的绝对 `maxDepth`，然后把子 agent 深度推导为父 agent 深度加一，并将其持久化到子 agent 会话 header。
 2. 直接调用 `parent.ctx.agents.create`，把必需的请求信号传入工厂的创建事务。
-3. 在该事务未发布的设置窗口中，安装请求的 persona、工具限制和结构化输出运行时。
+3. 在该事务未发布的设置窗口中，安装请求的 persona、工具限制、沙箱收窄、结构化输出运行时和可选的步骤预算观察器；请求只读上限时还会安装 `approval/policy: never`，使子 agent 无法申请权限升级。
 4. 发布子 agent，保留返回的 `AgentHandle`，并通过先调用 `child.followup(prompt)`、再调用 `child.whenIdle()` 来驱动一项任务。
-5. 从完整的自有子运行中读取子 agent 自身最后一条 assistant 消息和最终持久化的轮次原因，并排除任何 fork 初始内容。
+5. 让自有子运行与可选的挂钟时间预算竞速，然后读取子 agent 自身最后一条 assistant 消息和最终持久化的轮次原因，并排除任何 fork 初始内容。
 
 子 agent 会获得父 agent 的工作目录／会话谱系，并按逐级升序解析自身路由：继承父 agent 的提供方、模型和输出 token 上限，然后是可选 `ctx.modelRoles` 中的 `subagent` 角色 pin（创建时即时读取），最后是 `request.agentOptions`。它获得全新的扁平注册作用域：父级所有权不会导入父 agent 的工具限制，也不会建立权限子集。
 
 该结果边界成立，是因为提供方拥有从发布到完全停稳的隔离子 agent 生命周期。在该生命周期内提交的 steering（中途引导）属于子运行；提供方不会声称输出只归初始 follow-up 所有。
 
-当组合中挂载了可选的沙箱策略或审批服务时，驱动器会在创建子 agent 前对父级的显式会话覆盖项获取快照，并在未发布的设置阶段追加一条带来源标记的事件，使其位于所有 fork 历史之后、会话发布之前。它绝不复制部署默认值或一次性授权；子 agent 后续的切换仍然优先。参见[策略继承决策](../../../.agents/notes/implemented/feature/2026-07-25-subagent-policy-inheritance.md)。
+当组合中挂载了可选的沙箱策略或审批服务时，驱动器会在创建子 agent 前对父级的显式会话覆盖项获取快照，并在未发布的设置阶段追加一条带来源标记的事件，使其位于所有 fork 历史之后、会话发布之前。它绝不复制部署默认值或一次性授权。请求侧拥有的只读收窄随后会把审批策略强制为 `never`；普通继承策略仍可被子 agent 后续事件切换。参见[策略继承决策](../../../.agents/notes/implemented/feature/2026-07-25-subagent-policy-inheritance.md)。
 
 ## 取消与所有权
 
 必需的请求信号同时覆盖启动阶段和实时运行。发布前，`AgentCreationTransaction` 会观察该信号、回滚并拒绝。工厂返回前会移除仅用于创建阶段的监听器；驱动器随即再次检查信号，然后安装最小化的实时运行监听器，从而消除交接竞态。发布后，中止会取消子 agent。
 
-兑现后，调用方拥有该运行。提供方插件卸载不会撤销它。`dispose()` 会移除实时中止监听器、记录取消，并委托给返回的 `AgentHandle.dispose()`；后者通过经记忆化的完全停稳事务停止循环、移除 agent 和会话，并撤销作用域内的注册。取消流程会接管所有尚未完成的进行中结果，并将其报告为 `aborted`；已经完成的轮次仍保持完成状态。
+兑现后，调用方拥有该运行。提供方插件卸载不会撤销它。`dispose()` 会移除实时中止监听器、记录取消，并委托给返回的 `AgentHandle.dispose()`；后者通过经记忆化的完全停稳事务停止循环、移除 agent 和会话，并撤销作用域内的注册。持久化的非中止轮次终态（`blocked`、错误、token 上限、拒绝或完成）优先于之后观察到的取消与预算信号。持久终态缺失或为 `aborted` 时，首个外部原因才区分调用方取消（`aborted`）与预算耗尽（`budget-exhausted`）。
+
+## 运行预算
+
+存在 `request.runBudget` 时，驱动器会统计子 agent 作用域内的 `agent/pre-step` 事件；一旦即将执行的步骤会使计数超过 `maxSteps`，就在该步骤前触发上限。独立的定时器会在 `timeoutMs` 后触发。任一上限都会取消子 agent 并报告 `budget-exhausted`。调用方取消或 dispose 会报告 `aborted`，防护机制产生的 `turn/end` 原因 `blocked` 则仍为 `blocked`。Service Definition 会在提供方启动前校验这两个上限，其中 `timeoutMs` 不得超过 Node 定时器不会钳制的最大延迟。
 
 ## spawn 与 fork 输入
 

@@ -261,9 +261,9 @@ export interface AgentRouterConfig {
   dispatchEnabled?: boolean
   /**
    * 派发子代理所用 provider。与 `model` 一起构成派发的显式前提：任一缺省时
-   * execute 短路返回 null（auto 触发落 `dispatched:false`），且 `router_adopt`
-   * 工具与 `router:synthesis` 节不注册——不可派发即无 outcome 可综合，常驻
-   * 模型面只是白占请求 token。
+   * shadow/off 装配可缺省；auto 且 dispatchEnabled 时两者必须为非空字符串，
+   * 否则装配 fail loud。不可派发装配不注册 `router_adopt` 工具与
+   * `router:synthesis` 节——无 outcome 可综合时不占常驻模型 token。
    */
   provider?: string
   /** 派发子代理所用模型名（与 `provider` 同为派发的显式前提；缺省不派发）。 */
@@ -377,7 +377,7 @@ export interface AgentRouterConfig {
 }
 ```
 
-来源：[`packages/guard/agent-router/src/index.ts:198`](../packages/guard/agent-router/src/index.ts)
+来源：[`packages/guard/agent-router/src/index.ts:211`](../packages/guard/agent-router/src/index.ts)
 
 ## `@huiliyi37/dsh-agent-spine-demo`
 
@@ -1675,6 +1675,13 @@ export type Config = Record<string, never>
 export interface Config {
   /** One-shot structured-output provider for every subagent phase (default `spawn`). */
   provider?: string
+  /** Optional step and wall-clock bound applied to every one-shot subagent phase. */
+  subagentRunBudget?: {
+    /** Maximum model steps per phase child. */
+    maxSteps: number
+    /** Maximum wall-clock duration per phase child in milliseconds. */
+    timeoutMs: number
+  }
   /** Artifact root; one `<run-id>` directory per run holding `SPEC.md`/`PLAN.md`/`REVIEW.md`
    * (plus `PLAN-*.md`/`SELECTION.md` for best-of-N). Default `$DSH_HOME/workflows`. */
   workflowsRoot?: string
@@ -1701,7 +1708,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/workflow/next-workflow/src/index.ts:102`](../packages/workflow/next-workflow/src/index.ts)
+来源：[`packages/workflow/next-workflow/src/index.ts:103`](../packages/workflow/next-workflow/src/index.ts)
 
 ## `@huiliyi37/dsh-permission`
 
@@ -3171,6 +3178,17 @@ export interface Config {
    * budget belongs to the child runtime or its own deployment.
    */
   maxDepth?: number | 'provider-managed'
+  /**
+   * Optional bound for each one-shot foreground or background child. Omission
+   * leaves the run provider-managed; a configured value requires the
+   * provider's `runBudget` capability.
+   */
+  runBudget?: {
+    /** Maximum child model steps. */
+    maxSteps: number
+    /** Maximum child wall-clock duration in milliseconds. */
+    timeoutMs: number
+  }
   /**
    * Publish the durable `<available_agents>` catalog message on sessions whose
    * agent can see this exact tool instance (default false). The catalog follows

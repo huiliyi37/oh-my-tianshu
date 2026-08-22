@@ -134,7 +134,16 @@ abstract saveImage(input: SaveImageAttachment): Promise<ImageAttachmentRef>
  * @throws the signal reason when aborted, or a storage error when verification fails.
  */
 abstract readImage(ref: ImageAttachmentRef, signal?: AbortSignal): Promise<StoredImageAttachment>
+
+/**
+ * Generate or read one deterministic model-request version from the stored normalized image.
+ * @param ref - durable provider-independent normalized attachment reference.
+ * @param policy - exact route pixel and encoded-byte budget.
+ * @param signal - optional cancellation.
+ * @returns request bytes and the cache/upload identity covering every transform input.
+ */
+readImageRequest( ref: ImageAttachmentRef, policy: ImageRequestPolicy, signal?: AbortSignal, ): Promise<RequestImageAttachment>
 ```
 
-Source: [`packages/attachment/attachment/src/index.ts:31`](../../packages/attachment/attachment/src/index.ts)
+Source: [`packages/attachment/attachment/src/index.ts:35`](../../packages/attachment/attachment/src/index.ts)
 <!-- END GENERATED cordis-surface -->

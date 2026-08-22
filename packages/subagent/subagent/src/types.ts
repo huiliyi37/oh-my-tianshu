@@ -16,6 +16,9 @@ import type { SessionEvent, SessionId } from '@huiliyi37/dsh-session'
 import type { ObjectJsonSchema, ToolRestriction } from '@huiliyi37/dsh-tools'
 import type { SubagentDescriptorData } from './descriptor.ts'
 
+/** Largest wall-clock run budget Node timers preserve without clamping. */
+export const MAX_SUBAGENT_RUN_TIMEOUT_MS = 2_147_483_647
+
 /** Identifies one accepted subagent run across its lifecycle event pair. */
 export type SubagentRunId = Branded<'SubagentRunId'>
 
@@ -157,9 +160,10 @@ export interface SubagentStartRequest {
    * {@link SubagentCapabilities.sandboxMode}; rejected at start otherwise.
    * In-process backends append a durable `sandbox/mode` override
    * (`source: 'delegation'`) inside the child's creation window, so the
-   * narrowing lives on the child's own log and survives cold resume. Only
-   * narrowing is representable — a delegation can never widen the sandbox
-   * through this field.
+   * narrowing lives on the child's own log. One-shot in-process runs also
+   * append `approval/policy: never`, making this caller-owned ceiling
+   * non-escalatable by the child. Only narrowing is representable — a
+   * delegation can never widen the sandbox through this field.
    */
   readonly sandboxMode?: 'read-only'
   /**
@@ -228,6 +232,8 @@ export interface SubagentStopReasonMap {
   completed: 'completed'
   /** Cancelled through the request signal or disposal. */
   aborted: 'aborted'
+  /** The child was stopped by a guard before it could continue its turn. */
+  blocked: 'blocked'
   /** Model or transport failure. */
   error: 'error'
   /** The child hit its token ceiling before finishing. */

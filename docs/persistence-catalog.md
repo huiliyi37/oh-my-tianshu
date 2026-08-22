@@ -526,7 +526,7 @@ Source: [`packages/memory/adaptive-memory/src/types.ts:63`](../packages/memory/a
 'next-workflow/end': { runId: string; outcome: NextWorkflowOutcome; detail?: string }
 ```
 
-Source: [`packages/workflow/next-workflow/src/index.ts:97`](../packages/workflow/next-workflow/src/index.ts)
+Source: [`packages/workflow/next-workflow/src/index.ts:98`](../packages/workflow/next-workflow/src/index.ts)
 
 #### `next-workflow/phase` — log-only
 
@@ -541,7 +541,7 @@ Source: [`packages/workflow/next-workflow/src/index.ts:97`](../packages/workflow
 'next-workflow/phase': { runId: string; phase: NextWorkflowPhase; artifact?: string; detail?: string; selection?: SelectionAudit }
 ```
 
-Source: [`packages/workflow/next-workflow/src/index.ts:91`](../packages/workflow/next-workflow/src/index.ts)
+Source: [`packages/workflow/next-workflow/src/index.ts:92`](../packages/workflow/next-workflow/src/index.ts)
 
 ### `permission/*`
 
@@ -629,7 +629,7 @@ Source: [`packages/core/session/src/types.ts:290`](../packages/core/session/src/
 'router/adoption': { subagentSessionId: string; verdict: 'adopt' | 'reject'; reason: string }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:103`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:115`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/decision` — log-only
 
@@ -643,7 +643,7 @@ Source: [`packages/guard/agent-router/src/index.ts:103`](../packages/guard/agent
 'router/decision': RouterDecisionRecord
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:110`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:122`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/evaluation` — log-only
 
@@ -665,7 +665,7 @@ Source: [`packages/guard/agent-router/src/index.ts:110`](../packages/guard/agent
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:118`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:130`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/gate` — log-only
 
@@ -683,7 +683,7 @@ Source: [`packages/guard/agent-router/src/index.ts:118`](../packages/guard/agent
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:132`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:144`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/outcome` — log-only
 
@@ -700,7 +700,7 @@ Source: [`packages/guard/agent-router/src/index.ts:132`](../packages/guard/agent
 'router/outcome': { subagentSessionId: string; stopReason: string; finding?: RouterFinding }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:96`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:108`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/route` — log-only
 
@@ -715,12 +715,14 @@ Source: [`packages/guard/agent-router/src/index.ts:96`](../packages/guard/agent-
   task: string
   targets: string[]
   subagentSessionId: string
+  /** Auto trigger acceptance identity; absent on direct/manual execute. */
+  decisionId?: RouterDecisionId
   /** 记录用预算（shape 计算 + 绝对帽；方案 a 只记录不强制）。 */
   budget?: { maxTurns: number; deadlineMs: number }
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:72`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:82`](../packages/guard/agent-router/src/index.ts)
 
 ### `sandbox/*`
 

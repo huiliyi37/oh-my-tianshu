@@ -4314,6 +4314,9 @@ importers:
       '@huiliyi37/dsh-session':
         specifier: workspace:^
         version: link:../../core/session
+      '@huiliyi37/dsh-subagent':
+        specifier: workspace:^
+        version: link:../../subagent/subagent
       '@huiliyi37/dsh-system-prompt':
         specifier: workspace:^
         version: link:../../core/system-prompt

@@ -58,6 +58,7 @@ export const CAPABILITY_GROUPS: readonly CapabilityGroup[] = [
   { id: 'schedule', tools: ['schedule_create', 'schedule_delete', 'schedule_list'], substitutable: false },
   { id: 'self-modification', tools: ['cordis_inspect', 'cordis_mount', 'cordis_unmount'], substitutable: false },
   { id: 'interaction', tools: ['ask_user_question'], substitutable: false },
+  { id: 'routing-adoption', tools: ['router_adopt'], substitutable: false },
   { id: 'plan-mode', tools: ['exit_plan_mode'], substitutable: false },
   { id: 'tests', tools: ['run_tests', 'related_tests'], substitutable: false },
 ]
@@ -213,6 +214,10 @@ export const EXCLUDED_CAPABILITIES: readonly ExcludedCapability[] = [
   {
     capability: 'interaction',
     reason: 'ask_user_question blocks until a human answers.',
+  },
+  {
+    capability: 'routing-adoption',
+    reason: 'router_adopt exists only on a dispatch-capable agent-router assembly and is actionable only with pending outcomes.',
   },
   {
     capability: 'code-mode',

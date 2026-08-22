@@ -575,15 +575,15 @@ describe('dsh-tool-subagent', () => {
     expect(unwrapped.Config).toBeDefined()
   })
 
-  it('passes persona/toolFilter/maxDepth config through to the start request', async () => {
-    let seen: { persona?: string; toolFilter?: unknown; maxDepth?: number } | undefined
+  it('passes persona/toolFilter/maxDepth/runBudget config through to the start request', async () => {
+    let seen: { persona?: string; toolFilter?: unknown; maxDepth?: number; runBudget?: unknown } | undefined
     const ctx = new Context()
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
     ctx.subagents.registerProvider({
       name: 'capture2',
-      capabilities: { outputSchema: false, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: false },
+      capabilities: { outputSchema: false, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true },
       inheritsParentContext: false,
       start: async (request) => {
         seen = request
@@ -600,12 +600,21 @@ describe('dsh-tool-subagent', () => {
       persona: 'You are the child.',
       toolFilter: { deny: ['subagent'] },
       maxDepth: 2,
+      runBudget: { maxSteps: 12, timeoutMs: 30_000 },
     })
 
     await callSubagent(ctx, { description: 'd', prompt: 'p' })
     expect(seen?.persona).toBe('You are the child.')
     expect(seen?.toolFilter).toMatchObject({ deny: ['subagent'] })
     expect(seen?.maxDepth).toBe(2)
+    expect(seen?.runBudget).toEqual({ maxSteps: 12, timeoutMs: 30_000 })
+  })
+
+  it('rejects configured runBudget when the selected provider cannot enforce it', async () => {
+    await expect(setup(
+      { provider: 'mock', runBudget: { maxSteps: 12, timeoutMs: 30_000 } },
+      { capabilities: { runBudget: false } },
+    )).rejects.toThrow(/cannot enforce runBudget/)
   })
 
   it.each([
@@ -630,6 +639,16 @@ describe('dsh-tool-subagent', () => {
         maxDepth: Number.NaN,
       })
     }).toThrow('subagent maxDepth must be a non-negative safe integer')
+  })
+
+  it('validates runBudget when apply() is invoked directly without Schemastery', () => {
+    const ctx = new Context()
+    expect(() => {
+      tool.apply(ctx, {
+        provider: 'unused',
+        runBudget: { maxSteps: 1, timeoutMs: 2_147_483_648 },
+      })
+    }).toThrow(/runBudget\.timeoutMs/)
   })
 
   it('a partial toolFilter (deny only) does not materialize an empty allow-list (deny-all trap)', async () => {
