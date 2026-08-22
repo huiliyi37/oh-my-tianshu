@@ -82,4 +82,52 @@ describe('next-workflow real Loader composition', () => {
     expect(session.surface.nodes).toEqual([])
     expect(session.deriveMessages()).toEqual([])
   })
+
+  it('registers the menu entry once tui.commands is provided after the row (real inject fiber)', async () => {
+    root = await mkdtemp(join(tmpdir(), 'dsh-next-workflow-loader-'))
+    const configPath = join(root, 'cordis.yml')
+    // Row order reproduces the shipped composition: dsh-base rows (next-workflow)
+    // precede the leaf bundle row that provides tui.commands.
+    await writeFile(configPath, [
+      "- name: '@huiliyi37/dsh-commands'",
+      "- name: '@huiliyi37/dsh-next-workflow'",
+      '- name: test-tui-commands-stub',
+      '',
+    ].join('\n'))
+    const registry = {
+      registered: [] as Array<{ name: string; description: string; argsHint?: string }>,
+      register: (command: { name: string }) => { registry.registered.push(command as never) },
+    }
+    const stub = {
+      name: 'test-tui-commands-stub',
+      apply(ctx: Context) {
+        ctx.provide('tui.commands', registry)
+      },
+    }
+
+    context = new Context()
+    context.baseUrl = pathToFileURL(root).href + '/'
+    await context.plugin(Loader)
+    context.loader.builtins.include = Include
+    const modules = new Map<string, unknown>([
+      ['@huiliyi37/dsh-commands', CommandService],
+      ['@huiliyi37/dsh-next-workflow', nextWorkflow],
+      ['test-tui-commands-stub', stub],
+    ])
+    context.loader.internal = {
+      version: 'v2',
+      async import(specifier: string) {
+        if (!modules.has(specifier)) throw new Error(`unexpected Loader import: ${specifier}`)
+        return modules.get(specifier)
+      },
+    } as unknown as NonNullable<typeof context.loader.internal>
+    await context.loader.create({
+      name: 'cordis:include',
+      config: { path: pathToFileURL(configPath).href },
+    })
+    await context.loader.await()
+
+    expect(registry.registered.map(entry => entry.name)).toEqual(['next-workflow'])
+    expect(registry.registered[0]?.description).toContain('固定意图管线')
+  })
 })

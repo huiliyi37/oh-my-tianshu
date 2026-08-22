@@ -45,6 +45,7 @@ import type { Agent } from '@huiliyi37/dsh-agent'
 import type {} from '@huiliyi37/dsh-bash'
 import type { BashExecRequest, BashExecutor } from '@huiliyi37/dsh-bash'
 import type { CommandInvocation, CommandResult } from '@huiliyi37/dsh-commands'
+import type { SessionId } from '@huiliyi37/dsh-session'
 import type {} from '@huiliyi37/dsh-git'
 import type { Git } from '@huiliyi37/dsh-git'
 import { createUserMessage, ReasoningEffortId } from '@huiliyi37/dsh-llm'
@@ -159,6 +160,33 @@ interface ResolvedConfig {
   readonly maxArtifactChars: number
   readonly maxVerifyOutputChars: number
   readonly maxDiffChars: number
+}
+
+/** `tui.commands` 斜杠命令注册表最小消费面（不引入 dsh-tui 运行时依赖；reflect 动态获取）。 */
+interface TuiSlashFacet {
+  register(command: {
+    name: string
+    description: string
+    argsHint?: string
+    run(args: TuiSlashRunArgs): void | Promise<void>
+  }): void
+}
+
+/** TUI 斜杠命令执行参数（与 dsh-tui 的 SlashCommandArgs 对齐的最小面）。 */
+interface TuiSlashRunArgs {
+  /** 命令名后参数（已 trim；无参数为空串）。 */
+  text: string
+  /** TUI 运行上下文（agents 已在该上下文注入）。 */
+  ctx: TuiRunContext
+  /** 当前会话 id；尚未 attach 时为 null。 */
+  sessionId: SessionId | null
+  /** 回显一行命令结果到 scrollback。 */
+  echo: (text: string) => void
+}
+
+/** TUI 运行上下文的最小 agents 面。 */
+interface TuiRunContext {
+  agents?: { get(id: SessionId): Agent | undefined }
 }
 
 /** Normalize and validate the deployment config, including direct `apply()` calls outside Loader schema normalization. */
@@ -1034,5 +1062,40 @@ export function apply(ctx: Context, config: Config = {}): void {
         activeSessions.delete(key)
       }
     },
+  })
+  // TUI 斜杠菜单（可选缝）：host CommandService（ctx.commands）平面不会出现在
+  // TUI 的 `/` 菜单里——菜单数据源是 TUI 暴露的 tui.commands 注册表。打包顺序
+  // 是 dsh-base 行先于 tui-runner 行应用，apply 时该服务尚未提供：经 ctx.inject
+  // 等服务可用后再注册（headless 装配保持 pending）；执行仍委托下方的
+  // CommandService（保持 command/run 生命周期事件与逐 agent 命令视图）。
+  ctx.inject(['tui.commands'], (tuiCtx) => {
+    const tuiCommands = tuiCtx.get('tui.commands') as TuiSlashFacet
+    tuiCommands.register({
+      name: 'next-workflow',
+      description: '固定意图管线：规范 → 计划 → 批判 → 实现 → 验证 → 评审',
+      argsHint: '[candidates] <objective>',
+      run: async ({ text, ctx: runCtx, sessionId, echo }) => {
+        const input = text.trim() === '' ? '/next-workflow' : `/next-workflow ${text.trim()}`
+        if (sessionId === null) {
+          echo('⚠ /next-workflow 需要活动会话')
+          return
+        }
+        const agent = (runCtx as TuiRunContext).agents?.get(sessionId)
+        if (agent === undefined) {
+          echo('⚠ /next-workflow 需要活动会话')
+          return
+        }
+        const execution = await ctx.commands.execute(agent, input, new AbortController().signal)
+        if (execution === undefined) {
+          echo(`未知命令: ${input}`)
+          return
+        }
+        if (execution.result.kind === 'success') {
+          echo(execution.result.text ?? '已执行')
+        } else {
+          echo(`⚠ 命令执行失败: ${execution.result.text}`)
+        }
+      },
+    })
   })
 }

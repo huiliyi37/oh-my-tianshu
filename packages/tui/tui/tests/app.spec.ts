@@ -3166,6 +3166,41 @@ describe('TuiApp Phase 6.1 slash 命令系统', () => {
     await app.dispose()
   })
 
+  it('构造后经 tui.commands 追加的命令进入斜杠菜单（含中文描述）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('slash-ext')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin, theme: 'paper' })
+    const tuiCommands = ctx.provide.mock.calls.find(call => call[0] === 'tui.commands')?.[1] as {
+      register(command: {
+        name: string
+        description: string
+        argsHint?: string
+        run: (args: { text: string; echo: (t: string) => void }) => void
+      }): void
+    }
+    // 模拟外部插件在构造后注册（/next-workflow 的中文菜单项）。
+    tuiCommands.register({
+      name: 'next-workflow',
+      description: '固定意图管线：规范 → 计划 → 批判 → 实现 → 验证 → 评审',
+      argsHint: '[candidates] <objective>',
+      run: () => {},
+    })
+    await app.attach()
+    stdin.emit('data', '/next-w')
+    await new Promise(resolve => setImmediate(resolve))
+
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('/next-workflow [candidates] <objective>')
+    expect(written).toContain('固定意图管线')
+    await app.dispose()
+  })
+
   it('/ 前缀输入渲染内联命令提示', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('slash-hint')

@@ -118,6 +118,7 @@ function makeHarness(opts: {
   omitCwd?: boolean
   priorEffort?: ReturnType<typeof ReasoningEffortId>
   subagentRun?: (request: SubagentStartRequest, structured: unknown) => SubagentRun | Promise<SubagentRun>
+  tuiCommands?: { register: ReturnType<typeof vi.fn> }
 } = {}): Harness {
   const script = opts.script ?? HAPPY_SCRIPT
   const plans = [...script.plans ?? []]
@@ -213,7 +214,15 @@ function makeHarness(opts: {
   }
 
   harness.ctx = {
-    commands: { register: vi.fn((definition: CommandDefinition) => { commands.push(definition) }) },
+    commands: {
+      register: vi.fn((definition: CommandDefinition) => { commands.push(definition) }),
+      execute: vi.fn(async (): Promise<unknown> => undefined),
+    },
+    inject: vi.fn((_deps: unknown, callback: (injected: object) => void) => {
+      // tui.commands 可选缝：与真实 cordis 一致——服务未提供时 fiber 保持 pending。
+      if (opts.tuiCommands === undefined) return
+      callback({ get: vi.fn((key: string) => (key === 'tui.commands' ? opts.tuiCommands : undefined)) })
+    }),
     get: vi.fn((key: string) => {
       if (key === 'subagents') return opts.subagents === false ? undefined : subagents
       if (key === 'bash') return opts.bash === false ? undefined : bash
@@ -655,6 +664,52 @@ describe('/next-workflow command', () => {
     apply(h.ctx, await makeConfig())
     const result = await runCommand(h, '')
     expect(result).toEqual({ kind: 'error', text: 'Usage: /next-workflow [candidates] <objective>' })
+  })
+
+  it('TUI 装配时经 tui.commands 注册中文菜单项；菜单执行委托 CommandService', async () => {
+    const tuiCommands = { register: vi.fn() }
+    const h = makeHarness({ tuiCommands })
+    const dir = await mkdtemp(join(tmpdir(), 'dsh-next-workflow-'))
+    roots.push(dir)
+    apply(h.ctx, { workflowsRoot: dir })
+
+    const registered = tuiCommands.register.mock.calls[0]?.[0] as {
+      name: string
+      description: string
+      argsHint?: string
+      run: (args: {
+        text: string
+        ctx: { agents?: { get(id: unknown): unknown } }
+        sessionId: unknown
+        echo: (text: string) => void
+      }) => Promise<void>
+    }
+    expect(registered).toBeDefined()
+    expect(registered.name).toBe('next-workflow')
+    expect(registered.description).toContain('固定意图管线')
+    expect(registered.argsHint).toBe('[candidates] <objective>')
+
+    const execute = (h.ctx as unknown as { commands: { execute: ReturnType<typeof vi.fn> } }).commands.execute
+    execute.mockResolvedValueOnce({ result: { kind: 'success', text: '完成' } })
+    const echoes: string[] = []
+    await registered.run({
+      text: '3 添加测试',
+      ctx: { agents: { get: () => h.agent } },
+      sessionId: h.session.id,
+      echo: (text: string) => { echoes.push(text) },
+    })
+    expect(execute).toHaveBeenCalledWith(h.agent, '/next-workflow 3 添加测试', expect.any(AbortSignal))
+    expect(echoes).toEqual(['完成'])
+
+    const noSessionEcho: string[] = []
+    await registered.run({
+      text: '',
+      ctx: { agents: { get: () => h.agent } },
+      sessionId: null,
+      echo: (text: string) => { noSessionEcho.push(text) },
+    })
+    expect(noSessionEcho[0]).toContain('需要活动会话')
+    expect(execute).toHaveBeenCalledTimes(1)
   })
 
   it('fails the run loud when a phase subagent returns malformed output', async () => {

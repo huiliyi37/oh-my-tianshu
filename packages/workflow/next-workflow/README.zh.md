@@ -29,7 +29,7 @@
 
 ## 装配
 
-插件只注入 `commands`；subagent provider、bash 执行器与 git 服务都在处理器执行时探测。`dsh-base` 挂载中性配置行，因此每个发货 profile 都只继承一次该行。后续 profile overlay 可以替换该行以设置 `verifyCommand`。IMPLEMENT 会 steer 调用方会话；当实现需要完整工具集时，TUI 用户应在禅相位晋升后调用该命令。plan-mode 与 `tool-ralph` 仍是独立表面。
+插件只注入 `commands`；subagent provider、bash 执行器与 git 服务都在处理器执行时探测。 在终端 UI 中，当可选服务 `tui.commands` 提供后（经 `ctx.inject` 延迟——bundle 顺序使本行先于 TUI 叶子行应用），插件还会向斜杠菜单（`/` 建议与 Tab 补全）注册一条中文描述的 `next-workflow` 条目；该条目仍经同一 CommandService 通道执行，命令生命周期事件与逐 agent 命令视图保持不变。`dsh-base` 挂载中性配置行，因此每个发货 profile 都只继承一次该行。后续 profile overlay 可以替换该行以设置 `verifyCommand`。IMPLEMENT 会 steer 调用方会话；当实现需要完整工具集时，TUI 用户应在禅相位晋升后调用该命令。plan-mode 与 `tool-ralph` 仍是独立表面。
 
 ```yaml
 - id: commands

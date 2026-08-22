@@ -920,7 +920,9 @@ export class TuiApp {
       onTabComplete: () => this.handleTabComplete(),
       // slash 菜单状态随输入变化刷新（键入/粘贴/外部 setValue 统一入口；
       // 渲染由各调用路径 flushLiveRender 承担，此处不触发重绘）。
-      onChange: (value) => { this.inputController.refreshSlash(value) },
+      // 输入变化前重投影：外部插件可经 tui.commands 服务在构造后追加斜杠命令
+      // （如 /next-workflow 的中文菜单项），快照必须随注册刷新。
+      onChange: (value) => { this.syncSlashHints(); this.inputController.refreshSlash(value) },
       // 附件增删 → composer 半块缩略图（异步渲染，完成时自行触发重绘）。
       onImagesChange: (images) => { void this.refreshAttachmentPreview(images) },
     })
@@ -1102,7 +1104,7 @@ export class TuiApp {
       },
     })
     // 命令提示数据源投影到 InputController（slash hint / Tab 补全目标）。
-    this.inputController.slashCommands = this.slash.list().map(toSlashHint)
+    this.syncSlashHints()
     this.ctx.provide('tui.commands', this.slash)
     // Phase 5.3：glance 数据源是惰性闭包（statusLine/liveAgent 随会话挂载），
     // 构造期只固定取数路径，会话切换后自动读到新投影。throttleMs: 0——
@@ -3453,6 +3455,14 @@ export class TuiApp {
   private previewBackground(): { r: number; g: number; b: number } {
     const bg = this.theme.userMsgBg !== undefined ? hexToRgb(this.theme.userMsgBg) : null
     return bg ?? NEUTRAL_PREVIEW_BACKGROUND
+  }
+
+  /** 把 slash 注册表投影到 InputController（菜单 / Tab 补全数据源）。
+   * 注册表可被外部插件经 tui.commands 服务在构造后扩展（如 /next-workflow 的
+   * 中文菜单项），故每次输入变化前重投影一次（列表很小，成本可忽略）。
+   */
+  private syncSlashHints(): void {
+    this.inputController.slashCommands = this.slash.list().map(toSlashHint)
   }
 
   /**

@@ -29,7 +29,7 @@ While a run is active, an `agent/request` waterfall listener on the invoking age
 
 ## Composition
 
-The plugin injects only `commands`; the subagent provider, bash executor, and git service are probed at handler time. `dsh-base` mounts the neutral row, so every shipped profile inherits it once. A later profile overlay may replace the row to set `verifyCommand`. IMPLEMENT steers the invoking session, so TUI users invoke it after zen promotion when implementation needs the full tool set. plan-mode and `tool-ralph` stay separate surfaces.
+The plugin injects only `commands`; the subagent provider, bash executor, and git service are probed at handler time. `dsh-base` mounts the neutral row, so every shipped profile inherits it once. In the terminal UI, the plugin also registers a `next-workflow` entry with a Chinese description into the `tui.commands` slash menu (`/` suggestions and Tab completion) once that optional service is provided (deferred through `ctx.inject`, since bundle order applies this row before the TUI leaf); the entry routes execution through the same CommandService channel, so command lifecycle events and per-agent command views stay unchanged. A later profile overlay may replace the row to set `verifyCommand`. IMPLEMENT steers the invoking session, so TUI users invoke it after zen promotion when implementation needs the full tool set. plan-mode and `tool-ralph` stay separate surfaces.
 
 ```yaml
 - id: commands

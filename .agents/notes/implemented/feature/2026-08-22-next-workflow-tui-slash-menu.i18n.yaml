@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-next-workflow-tui-slash-menu.md
+2026-08-22-next-workflow-tui-slash-menu.md: 5636259c7a0a2658f51b4590cbc2d61b3743435b
+2026-08-22-next-workflow-tui-slash-menu.zh.md: 2a8641550a9b84c9165f40c09a75867a3f69c926
