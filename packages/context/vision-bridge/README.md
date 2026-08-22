@@ -15,7 +15,7 @@ The TUI input box lets users paste images (data URLs enter the session as `image
     provider: deepseek-official     # explicit vision model (omit when visionAutoBridge is on)
     model: deepseek-vl             # explicit vision model id (omit when visionAutoBridge is on)
     prompt: ''                     # optional; custom description prompt (auto mode otherwise)
-    maxTokens: 1024                # optional; description output cap (default 1024)
+    maxTokens: 2048                # optional; description output cap (default 2048)
     primarySupportsVision: false   # optional; whether the primary sees images (default false)
     enabled: true                  # optional; master switch (default true)
     fallback:                      # optional; backup vision model on error/aborted
@@ -50,7 +50,7 @@ When the primary cannot see images, an image-carrying user message is replaced b
 
 #### Token effect
 
-Each description costs one auxiliary call with `purpose: 'vision-description'` (capped by `maxTokens`, default 1024); the description text then enters the primary context as a user message. Bridge failure produces no description tokens (only a few fallback lines).
+Each description costs one auxiliary call with `purpose: 'vision-description'` (capped by `maxTokens`, default 2048). When the output hits the cap, the bridge makes one automatic continuation call (assistant partial + a continue instruction) and stitches the tail in; only a second consecutive cap hit or a continuation failure appends the `[图片描述被截断]` marker. The description text then enters the primary context as a user message. Bridge failure produces no description tokens (only a few fallback lines).
 
 #### KV Cache effect
 

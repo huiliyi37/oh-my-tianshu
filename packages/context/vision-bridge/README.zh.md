@@ -15,7 +15,7 @@ TUI 输入框允许用户粘贴图片（data URL 以 `image` ContentBlock 进入
     provider: deepseek-official     # explicit vision model (omit when visionAutoBridge is on)
     model: deepseek-vl             # explicit vision model id (omit when visionAutoBridge is on)
     prompt: ''                     # optional; custom description prompt (auto mode otherwise)
-    maxTokens: 1024                # optional; description output cap (default 1024)
+    maxTokens: 2048                # optional; description output cap (default 2048)
     primarySupportsVision: false   # optional; whether the primary sees images (default false)
     enabled: true                  # optional; master switch (default true)
     fallback:                      # optional; backup vision model on error/aborted
@@ -50,7 +50,7 @@ NO_COLOR=1 pnpm vitest run packages/context/vision-bridge/tests/
 
 #### Token effect
 
-每条描述按视觉模型输出计入一次 `purpose: 'vision-description'` 的辅助调用（`maxTokens` 封顶，缺省 1024）；描述文本随后作为 user message 进入主控上下文。桥失败时不产生描述 token（只有几行降级提示）。
+每条描述按视觉模型输出计入一次 `purpose: 'vision-description'` 的辅助调用（`maxTokens` 封顶，缺省 2048）。输出撞限时桥自动续写一次（助手截断文本 + 继续指令）并拼接尾部；只有连续两次撞限或续写失败才落 `[图片描述被截断]` 标记。描述文本随后作为 user message 进入主控上下文。桥失败时不产生描述 token（只有几行降级提示）。
 
 #### KV Cache effect
 

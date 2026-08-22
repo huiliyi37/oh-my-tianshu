@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/context/vision-bridge/README.md
-README.md: 71f72a7a8064d88e9bc7f2ce1906d42fda5556e9
-README.zh.md: f4d7cb754e86139081b915f8b46dd4d5c1aa98e2
+README.md: 3edc929f47efd4134d33b2634d2467988d7ec44c
+README.zh.md: e57fc2212d287cc7b418d0efee20d68d9d54f25f

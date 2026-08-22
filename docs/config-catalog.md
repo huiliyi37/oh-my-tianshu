@@ -161,6 +161,8 @@ export interface Config {
   bundledAgentDir?: string
   /** Register the built-in read-only `explore` role (default true). */
   builtinExplore?: boolean
+  /** Register the built-in read-only `verify` role (default true). */
+  builtinVerify?: boolean
   /** Maximum number of completed cwd catalogs kept in memory. */
   collectCacheMaxEntries?: number
   /** Whether host-local agent roots are watched for catalog changes. */
@@ -318,10 +320,62 @@ export interface AgentRouterConfig {
     /** 允许 escalate 的最小连续失败次数（正整数）。 */
     minConsecutiveFailures?: number
   }
+  /**
+   * 决策评估观察窗口（Phase 1 归账）：决策后的父会话工具轨迹归账为
+   * recovered/persisted/inconclusive。tunables 全部经此配置注入并校验。
+   */
+  evaluation?: {
+    /** 固定观察窗口：决策后计多少条父会话 tool/result（正整数）。 */
+    windowToolResults?: number
+    /** 归账所需最小样本；不足 → inconclusive（正整数）。 */
+    minSamples?: number
+    /** 窗口尾部连续成功 ≥ 此值 → recovered（正整数）。 */
+    recoveredConsecutive?: number
+    /** 窗口错误率 ≥ 此值 → persisted（[0,1]）。 */
+    persistedErrorRate?: number
+  }
+  /** shadow readiness 关卡阈值（证据投影窗口与 veto 阈值）。 */
+  readiness?: {
+    /** 统计窗口：最近多少条已评估决策（正整数）。 */
+    window?: number
+    /** 最小样本（正整数）。 */
+    minSamples?: number
+    /** 假绿率上限（> 即 veto；[0,1]）。 */
+    maxFalseGreenRate?: number
+    /** persisted 占比 ≥ 此值 → scopeHealth high（[0,1]）。 */
+    persistedScopeShare?: number
+  }
+  /** canary health 关卡阈值（真实派发后的运行健康；auto 装配记录）。 */
+  canary?: {
+    /** 统计窗口：最近多少次真实派发（正整数）。 */
+    window?: number
+    /** 最小派发数（正整数）。 */
+    minDispatches?: number
+    /** 预算耗尽占比上限（> 即 veto；[0,1]）。 */
+    maxBudgetExhaustedShare?: number
+    /** 收益代理下限（有已评估派发且低于此值即 veto；[0,1]）。 */
+    minBenefitProxy?: number
+  }
+  /**
+   * 自动派发的 canary 上限与子代理运行预算。mode 'auto' 时五个字段全部必填
+   * （装配显式声明——这些是灰度装配值，不设插件默认）；shadow/off 下忽略。
+   */
+  auto?: {
+    /** 每会话同时在飞自动派发上限（正整数）。 */
+    maxConcurrent?: number
+    /** 每会话累计自动派发上限（正整数；达到后不再派发，只记录决策）。 */
+    maxTotal?: number
+    /** 两次自动派发之间的最小合格 turn 间隔（正整数）。 */
+    cooldownTurns?: number
+    /** 子代理步数预算（seam runBudget 强制；正整数）。 */
+    maxSteps?: number
+    /** 子代理墙钟预算毫秒（seam runBudget 强制；正整数）。 */
+    timeoutMs?: number
+  }
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:123`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:198`](../packages/guard/agent-router/src/index.ts)
 
 ## `@huiliyi37/dsh-agent-spine-demo`
 
@@ -436,20 +490,26 @@ Source: [`packages/core/agent-tool-presentation/src/index.ts:38`](../packages/co
 export interface Config {
   /** Explicit harness home; omitted follows `DSH_HOME`, then `~/.dsh-tianshu`. */
   dshHome?: string
-  /** Maximum encoded bytes accepted for one image. */
+  /** Maximum encoded bytes accepted for one submitted image. Default: 20 MiB. */
   maxImageBytes?: number
-  /** Maximum image count accepted in one submitted message. */
+  /** Maximum image count accepted in one submitted message. Default: 20. */
   maxImagesPerMessage?: number
-  /** Maximum aggregate encoded image bytes accepted in one submitted message. */
+  /** Maximum aggregate encoded image bytes accepted in one submitted message. Default: 200 MiB. */
   maxMessageImageBytes?: number
-  /** Maximum intrinsic width multiplied by height accepted for one image. */
+  /** Maximum intrinsic width multiplied by height accepted for one submitted image. Default: 64,000,000. */
   maxImagePixels?: number
-  /** Maximum intrinsic width and maximum intrinsic height accepted for one image. */
+  /** Maximum intrinsic width and maximum intrinsic height accepted for one submitted image. Default: 8192px. */
   maxImageDimension?: number
+  /** Long-edge pixel cap of the stored provider-independent normalized image. Default: 2048px. */
+  normalizedImageMaxDimension?: number
+  /** Encoded-byte safety cap of the stored provider-independent normalized image. Default: 4 MiB. */
+  normalizedImageMaxBytes?: number
+  /** Maximum simultaneous normalization or request-image transformations in this service instance. Default: 2. */
+  imageCompressionConcurrency?: number
 }
 ```
 
-Source: [`packages/attachment/attachment-local/src/index.ts:31`](../packages/attachment/attachment-local/src/index.ts)
+Source: [`packages/attachment/attachment-local/src/index.ts:51`](../packages/attachment/attachment-local/src/index.ts)
 
 ## `@huiliyi37/dsh-bash-env`
 
@@ -1506,6 +1566,80 @@ export type ExtractorKind = 'heuristic' | 'llm'
 ```
 
 Source: [`packages/memory/memory-consolidate/src/index.ts:77`](../packages/memory/memory-consolidate/src/index.ts)
+
+## `@huiliyi37/dsh-memory-pipeline`
+
+```ts config-catalog
+/** 插件配置：全部阈值经 schemastery 校验，缺省值在 schema 上。 */
+export interface Config {
+  /** 总开关（缺省 false——opt-in，阈值校准前不作为产品默认）。 */
+  enabled?: boolean
+  /** 根会话启动后到首次扫描的防抖毫秒数（缺省 30000）。 */
+  startDelayMs?: number
+  /** 周期重扫间隔毫秒数（缺省 0 = 每进程仅首根会话触发一次）。 */
+  rescanIntervalMs?: number
+  /** 会话最后事件距今的最大年龄天数（超出即终态过期；缺省 14）。 */
+  maxAgeDays?: number
+  /** 会话最后事件距今的最小闲置小时数（避免抽进行中的会话；缺省 1）。 */
+  minIdleHours?: number
+  /** 元数据列举上限（缺省 20）。 */
+  scanLimit?: number
+  /** 单次扫描最多处理的会话数（缺省 3）。 */
+  maxClaimedPerSweep?: number
+  /** 单会话最大尝试次数（失败退避；缺省 3）。 */
+  maxRetriesPerSession?: number
+  /** 提取器选择（缺省 'llm'；需成对配置 llmProvider/llmModel）。 */
+  extractor?: ExtractorKind
+  /** LLM 显式路由对（与 llmModel 成对；回填无会话路由可借，'llm' 时必填）。 */
+  llmProvider?: string
+  /** LLM 显式路由对（与 llmProvider 成对）。 */
+  llmModel?: string
+  /** LLM 输入转写字符上限（缺省 20000）。 */
+  llmMaxInputChars?: number
+  /** LLM 输出 token 上限（缺省 2000）。 */
+  llmMaxOutputTokens?: number
+  /** reasoning effort（缺省 'off'；词表见 {@link EffortLevel}）。 */
+  llmEffort?: EffortLevel
+  /** LLM 端到端超时毫秒数（缺省 30000）。 */
+  llmTimeoutMs?: number
+  /** 单条候选文本字符上限（缺省 280）。 */
+  maxTextChars?: number
+  /** 会话摘要条目的字符上限（缺省 600）。 */
+  maxSummaryChars?: number
+  /** 单条候选实体数上限（缺省 8）。 */
+  maxEntities?: number
+  /** 是否产出 procedure 条目（缺省 true）。 */
+  proceduresEnabled?: boolean
+  /** 门控未通过的会话是否记录 failure-pattern 经验（缺省 true）。 */
+  recordFailures?: boolean
+  /** 单会话写入候选数上限（缺省 8）。 */
+  maxCandidatesPerSession?: number
+  /** phase2 全局整合开关（缺省 false）。 */
+  phase2Enabled?: boolean
+  /** 累计新增候选（跨多次扫描累计于台账 pendingCount）达到该阈值后触发全局整合（缺省 8）。 */
+  phase2MinNewEntries?: number
+  /** 全局整合输入条目数上限（缺省 40）。 */
+  phase2MaxInputEntries?: number
+  /** 全局整合输入渲染字符上限（缺省 24000）。 */
+  phase2MaxInputChars?: number
+  /** 全局整合 canonical 文本字符上限（缺省 600）。 */
+  phase2MaxCanonicalChars?: number
+  /** 租约时长毫秒数（缺省 600000）。 */
+  leaseMs?: number
+  /** 台账文件路径（缺省 `<cwd>/.dsh/memory/pipeline/ledger.json`；自定义记忆库根的宿主须对齐）。 */
+  ledgerPath?: string
+  /** 工作区过滤（缺省当前进程 cwd；仅处理 header.cwd 等于该值的会话）。 */
+  workspaceCwd?: string
+}
+
+/** 提取器选择：'llm'（缺省——回填的价值在模型质量）或 heuristic（零模型调用）。 */
+export type ExtractorKind = 'heuristic' | 'llm'
+
+/** 可选推理档位词表（与 dsh-llm 的 ReasoningEffortId 级集对齐；加载即拒拼写错误）。 */
+export type EffortLevel = 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+```
+
+Source: [`packages/memory/memory-pipeline/src/index.ts:73`](../packages/memory/memory-pipeline/src/index.ts)
 
 ## `@huiliyi37/dsh-message-feedback`
 
@@ -3378,7 +3512,7 @@ export interface Config {
   model?: string
   /** 自定义描述 prompt；缺省按随图文本自动选通用/精确转写模式。 */
   prompt?: string
-  /** 描述输出 token 上限（缺省 1024）。 */
+  /** 描述输出 token 上限（缺省 2048；撞限时自动续写一次，仍超限才落截断标记）。 */
   maxTokens?: number
   /** 主控模型是否原生支持识图（缺省 false；true 时本插件不干预，图片直发）。 */
   primarySupportsVision?: boolean
@@ -3394,7 +3528,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/context/vision-bridge/src/index.ts:52`](../packages/context/vision-bridge/src/index.ts)
+Source: [`packages/context/vision-bridge/src/index.ts:55`](../packages/context/vision-bridge/src/index.ts)
 
 ## `@huiliyi37/dsh-web`
 

@@ -27,7 +27,7 @@ export interface AcpConfig {
 }
 ```
 
-依赖：`Stream`（`@agentclientprotocol/sdk`）
+依赖：`Stream` （`@agentclientprotocol/sdk`）
 
 来源：[`packages/acp/acp/src/index.ts:70`](../packages/acp/acp/src/index.ts)
 
@@ -146,7 +146,6 @@ export interface Config {
 
 来源：[`packages/core/agent-default-model/src/index.ts:41`](../packages/core/agent-default-model/src/index.ts)
 
-
 ## `@huiliyi37/dsh-agent-definitions`
 
 ```ts config-catalog
@@ -164,6 +163,8 @@ export interface Config {
   bundledAgentDir?: string
   /** Register the built-in read-only `explore` role (default true). */
   builtinExplore?: boolean
+  /** Register the built-in read-only `verify` role (default true). */
+  builtinVerify?: boolean
   /** Maximum number of completed cwd catalogs kept in memory. */
   collectCacheMaxEntries?: number
   /** Whether host-local agent roots are watched for catalog changes. */
@@ -249,10 +250,9 @@ export type PresetTrust = 'system' | 'user'
 
 来源：[`packages/preset/agent-presets/src/preset.ts:52`](../packages/preset/agent-presets/src/preset.ts)
 
-
 ## `@huiliyi37/dsh-agent-router`
 
-Requires: `tools` · `systemPrompt`
+需要：`tools` · `systemPrompt`
 
 ```ts config-catalog
 /** 插件配置。 */
@@ -322,10 +322,62 @@ export interface AgentRouterConfig {
     /** 允许 escalate 的最小连续失败次数（正整数）。 */
     minConsecutiveFailures?: number
   }
+  /**
+   * 决策评估观察窗口（Phase 1 归账）：决策后的父会话工具轨迹归账为
+   * recovered/persisted/inconclusive。tunables 全部经此配置注入并校验。
+   */
+  evaluation?: {
+    /** 固定观察窗口：决策后计多少条父会话 tool/result（正整数）。 */
+    windowToolResults?: number
+    /** 归账所需最小样本；不足 → inconclusive（正整数）。 */
+    minSamples?: number
+    /** 窗口尾部连续成功 ≥ 此值 → recovered（正整数）。 */
+    recoveredConsecutive?: number
+    /** 窗口错误率 ≥ 此值 → persisted（[0,1]）。 */
+    persistedErrorRate?: number
+  }
+  /** shadow readiness 关卡阈值（证据投影窗口与 veto 阈值）。 */
+  readiness?: {
+    /** 统计窗口：最近多少条已评估决策（正整数）。 */
+    window?: number
+    /** 最小样本（正整数）。 */
+    minSamples?: number
+    /** 假绿率上限（> 即 veto；[0,1]）。 */
+    maxFalseGreenRate?: number
+    /** persisted 占比 ≥ 此值 → scopeHealth high（[0,1]）。 */
+    persistedScopeShare?: number
+  }
+  /** canary health 关卡阈值（真实派发后的运行健康；auto 装配记录）。 */
+  canary?: {
+    /** 统计窗口：最近多少次真实派发（正整数）。 */
+    window?: number
+    /** 最小派发数（正整数）。 */
+    minDispatches?: number
+    /** 预算耗尽占比上限（> 即 veto；[0,1]）。 */
+    maxBudgetExhaustedShare?: number
+    /** 收益代理下限（有已评估派发且低于此值即 veto；[0,1]）。 */
+    minBenefitProxy?: number
+  }
+  /**
+   * 自动派发的 canary 上限与子代理运行预算。mode 'auto' 时五个字段全部必填
+   * （装配显式声明——这些是灰度装配值，不设插件默认）；shadow/off 下忽略。
+   */
+  auto?: {
+    /** 每会话同时在飞自动派发上限（正整数）。 */
+    maxConcurrent?: number
+    /** 每会话累计自动派发上限（正整数；达到后不再派发，只记录决策）。 */
+    maxTotal?: number
+    /** 两次自动派发之间的最小合格 turn 间隔（正整数）。 */
+    cooldownTurns?: number
+    /** 子代理步数预算（seam runBudget 强制；正整数）。 */
+    maxSteps?: number
+    /** 子代理墙钟预算毫秒（seam runBudget 强制；正整数）。 */
+    timeoutMs?: number
+  }
 }
 ```
 
-来源：[`packages/guard/agent-router/src/index.ts:123`](../packages/guard/agent-router/src/index.ts)
+来源：[`packages/guard/agent-router/src/index.ts:198`](../packages/guard/agent-router/src/index.ts)
 
 ## `@huiliyi37/dsh-agent-spine-demo`
 
@@ -410,6 +462,7 @@ export interface GoalConfig {
 依赖：[`AgentLoopConfig`](#huiliyi37dsh-agent-loop) · [`GoalDomainConfig`](#huiliyi37dsh-goal) · [`InvariantConfig`](#huiliyi37dsh-invariants) · [`SessionTitleConfig`](#huiliyi37dsh-session-title) · [`SkillLocal`](../packages/skill/skill-local/src/index.ts) · [`SkillRegistryConfig`](#huiliyi37dsh-skill) · [`SystemPromptConfig`](#huiliyi37dsh-system-prompt) · [`toolBash`](../packages/bash/tool-bash/src/index.ts) · [`toolGoal`](../packages/goal/tool-goal/src/index.ts) · [`ToolsConfig`](#huiliyi37dsh-tools) · [`toolSkill`](../packages/skill/tool-skill/src/index.ts) · [`toolTasks`](../packages/tasks/tool-tasks/src/index.ts) · [`workspaceContext`](../packages/context/workspace-context/src/index.ts)
 
 来源：[`packages/examples/agent-spine-demo/src/index.ts:90`](../packages/examples/agent-spine-demo/src/index.ts)
+
 ## `@huiliyi37/dsh-agent-tool-presentation`
 
 需要：`tools`
@@ -432,7 +485,6 @@ export interface Config {
 
 来源：[`packages/core/agent-tool-presentation/src/index.ts:38`](../packages/core/agent-tool-presentation/src/index.ts)
 
-
 ## `@huiliyi37/dsh-attachment-local`
 
 ```ts config-catalog
@@ -440,21 +492,26 @@ export interface Config {
 export interface Config {
   /** Explicit harness home; omitted follows `DSH_HOME`, then `~/.dsh-tianshu`. */
   dshHome?: string
-  /** Maximum encoded bytes accepted for one image. */
+  /** Maximum encoded bytes accepted for one submitted image. Default: 20 MiB. */
   maxImageBytes?: number
-  /** Maximum image count accepted in one submitted message. */
+  /** Maximum image count accepted in one submitted message. Default: 20. */
   maxImagesPerMessage?: number
-  /** Maximum aggregate encoded image bytes accepted in one submitted message. */
+  /** Maximum aggregate encoded image bytes accepted in one submitted message. Default: 200 MiB. */
   maxMessageImageBytes?: number
-  /** Maximum intrinsic width multiplied by height accepted for one image. */
+  /** Maximum intrinsic width multiplied by height accepted for one submitted image. Default: 64,000,000. */
   maxImagePixels?: number
-  /** Maximum intrinsic width and maximum intrinsic height accepted for one image. */
+  /** Maximum intrinsic width and maximum intrinsic height accepted for one submitted image. Default: 8192px. */
   maxImageDimension?: number
+  /** Long-edge pixel cap of the stored provider-independent normalized image. Default: 2048px. */
+  normalizedImageMaxDimension?: number
+  /** Encoded-byte safety cap of the stored provider-independent normalized image. Default: 4 MiB. */
+  normalizedImageMaxBytes?: number
+  /** Maximum simultaneous normalization or request-image transformations in this service instance. Default: 2. */
+  imageCompressionConcurrency?: number
 }
 ```
 
-来源：[`packages/attachment/attachment-local/src/index.ts:31`](../packages/attachment/attachment-local/src/index.ts)
-
+来源：[`packages/attachment/attachment-local/src/index.ts:51`](../packages/attachment/attachment-local/src/index.ts)
 
 ## `@huiliyi37/dsh-bash-env`
 
@@ -656,7 +713,6 @@ export interface Config {
 ```
 
 来源：[`packages/self-modification/cordis-host-runner/src/index.ts:88`](../packages/self-modification/cordis-host-runner/src/index.ts)
-
 
 ## `@huiliyi37/dsh-credentials-local`
 
@@ -985,7 +1041,7 @@ export interface JsonRpcConfig {
 }
 ```
 
-依赖：`Readable`（`node:stream`）· `Writable`（`node:stream`）
+依赖：`Readable` （`node:stream`） · `Writable` （`node:stream`）
 
 来源：[`packages/scaffold/server/src/index.ts:29`](../packages/scaffold/server/src/index.ts)
 
@@ -1293,7 +1349,7 @@ export type PiAiReasoningEfforts = Partial<Record<ModelThinkingLevel, string | n
 export type PiAiThinkingFormat = NonNullable<OpenAICompletionsCompat['thinkingFormat']>
 ```
 
-依赖：`CacheRetention`（`@earendil-works/pi-ai`）· `ModelThinkingLevel`（`@earendil-works/pi-ai`）· `OpenAICompletionsCompat`（`@earendil-works/pi-ai`）· [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts) · `ThinkingBudgets`（`@earendil-works/pi-ai`）· `Transport`（`@earendil-works/pi-ai`）
+依赖：`CacheRetention` （`@earendil-works/pi-ai`） · `ModelThinkingLevel` （`@earendil-works/pi-ai`） · `OpenAICompletionsCompat` （`@earendil-works/pi-ai`） · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts) · `ThinkingBudgets` （`@earendil-works/pi-ai`） · `Transport` （`@earendil-works/pi-ai`）
 
 来源：[`packages/llm/llm-pi-ai/src/config.ts:170`](../packages/llm/llm-pi-ai/src/config.ts)
 
@@ -1358,7 +1414,7 @@ export interface ReplayModelConfig {
 export type Config = Readonly<Record<string, never>>
 ```
 
-来源：[`packages/llm/llm-retry/src/index.ts:46`](../packages/llm/llm-retry/src/index.ts)
+来源：[`packages/llm/llm-retry/src/index.ts:24`](../packages/llm/llm-retry/src/index.ts)
 
 ## `@huiliyi37/dsh-lsp-local`
 
@@ -1513,6 +1569,80 @@ export type ExtractorKind = 'heuristic' | 'llm'
 
 来源：[`packages/memory/memory-consolidate/src/index.ts:77`](../packages/memory/memory-consolidate/src/index.ts)
 
+## `@huiliyi37/dsh-memory-pipeline`
+
+```ts config-catalog
+/** 插件配置：全部阈值经 schemastery 校验，缺省值在 schema 上。 */
+export interface Config {
+  /** 总开关（缺省 false——opt-in，阈值校准前不作为产品默认）。 */
+  enabled?: boolean
+  /** 根会话启动后到首次扫描的防抖毫秒数（缺省 30000）。 */
+  startDelayMs?: number
+  /** 周期重扫间隔毫秒数（缺省 0 = 每进程仅首根会话触发一次）。 */
+  rescanIntervalMs?: number
+  /** 会话最后事件距今的最大年龄天数（超出即终态过期；缺省 14）。 */
+  maxAgeDays?: number
+  /** 会话最后事件距今的最小闲置小时数（避免抽进行中的会话；缺省 1）。 */
+  minIdleHours?: number
+  /** 元数据列举上限（缺省 20）。 */
+  scanLimit?: number
+  /** 单次扫描最多处理的会话数（缺省 3）。 */
+  maxClaimedPerSweep?: number
+  /** 单会话最大尝试次数（失败退避；缺省 3）。 */
+  maxRetriesPerSession?: number
+  /** 提取器选择（缺省 'llm'；需成对配置 llmProvider/llmModel）。 */
+  extractor?: ExtractorKind
+  /** LLM 显式路由对（与 llmModel 成对；回填无会话路由可借，'llm' 时必填）。 */
+  llmProvider?: string
+  /** LLM 显式路由对（与 llmProvider 成对）。 */
+  llmModel?: string
+  /** LLM 输入转写字符上限（缺省 20000）。 */
+  llmMaxInputChars?: number
+  /** LLM 输出 token 上限（缺省 2000）。 */
+  llmMaxOutputTokens?: number
+  /** reasoning effort（缺省 'off'；词表见 {@link EffortLevel}）。 */
+  llmEffort?: EffortLevel
+  /** LLM 端到端超时毫秒数（缺省 30000）。 */
+  llmTimeoutMs?: number
+  /** 单条候选文本字符上限（缺省 280）。 */
+  maxTextChars?: number
+  /** 会话摘要条目的字符上限（缺省 600）。 */
+  maxSummaryChars?: number
+  /** 单条候选实体数上限（缺省 8）。 */
+  maxEntities?: number
+  /** 是否产出 procedure 条目（缺省 true）。 */
+  proceduresEnabled?: boolean
+  /** 门控未通过的会话是否记录 failure-pattern 经验（缺省 true）。 */
+  recordFailures?: boolean
+  /** 单会话写入候选数上限（缺省 8）。 */
+  maxCandidatesPerSession?: number
+  /** phase2 全局整合开关（缺省 false）。 */
+  phase2Enabled?: boolean
+  /** 累计新增候选（跨多次扫描累计于台账 pendingCount）达到该阈值后触发全局整合（缺省 8）。 */
+  phase2MinNewEntries?: number
+  /** 全局整合输入条目数上限（缺省 40）。 */
+  phase2MaxInputEntries?: number
+  /** 全局整合输入渲染字符上限（缺省 24000）。 */
+  phase2MaxInputChars?: number
+  /** 全局整合 canonical 文本字符上限（缺省 600）。 */
+  phase2MaxCanonicalChars?: number
+  /** 租约时长毫秒数（缺省 600000）。 */
+  leaseMs?: number
+  /** 台账文件路径（缺省 `<cwd>/.dsh/memory/pipeline/ledger.json`；自定义记忆库根的宿主须对齐）。 */
+  ledgerPath?: string
+  /** 工作区过滤（缺省当前进程 cwd；仅处理 header.cwd 等于该值的会话）。 */
+  workspaceCwd?: string
+}
+
+/** 提取器选择：'llm'（缺省——回填的价值在模型质量）或 heuristic（零模型调用）。 */
+export type ExtractorKind = 'heuristic' | 'llm'
+
+/** 可选推理档位词表（与 dsh-llm 的 ReasoningEffortId 级集对齐；加载即拒拼写错误）。 */
+export type EffortLevel = 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+```
+
+来源：[`packages/memory/memory-pipeline/src/index.ts:73`](../packages/memory/memory-pipeline/src/index.ts)
+
 ## `@huiliyi37/dsh-message-feedback`
 
 需要：`storageDomain` · `sessionPersistence` · `sessions`
@@ -1631,7 +1761,6 @@ export interface Config {
 ```
 
 来源：[`packages/preset/persona/src/index.ts:34`](../packages/preset/persona/src/index.ts)
-
 
 ## `@huiliyi37/dsh-plan-mode`
 
@@ -1753,7 +1882,6 @@ export type Config = LocalConfig
 
 来源：[`packages/bash/pwsh-sandbox/src/index.ts:40`](../packages/bash/pwsh-sandbox/src/index.ts)
 
-
 ## `@huiliyi37/dsh-repeat-tool-guard`
 
 ```ts config-catalog
@@ -1814,7 +1942,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/sandbox/sandbox-local/src/index.ts:24`](../packages/sandbox/sandbox-local/src/index.ts)
+来源：[`packages/sandbox/sandbox-local/src/index.ts:30`](../packages/sandbox/sandbox-local/src/index.ts)
 
 ## `@huiliyi37/dsh-sandbox-policy`
 
@@ -2038,7 +2166,7 @@ export enum TelemetryMode {
 }
 ```
 
-依赖：`BatchLogRecordProcessorOptions`（`@opentelemetry/sdk-logs`）· `OTLPExporterNodeConfigBase`（`@opentelemetry/otlp-exporter-base`）
+依赖：`BatchLogRecordProcessorOptions` （`@opentelemetry/sdk-logs`） · `OTLPExporterNodeConfigBase` （`@opentelemetry/otlp-exporter-base`）
 
 来源：[`packages/session/session-telemetry-otel/src/index.ts:80`](../packages/session/session-telemetry-otel/src/index.ts)
 
@@ -2586,7 +2714,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/bash/tool-bash/src/index.ts:43`](../packages/bash/tool-bash/src/index.ts)
+来源：[`packages/bash/tool-bash/src/index.ts:50`](../packages/bash/tool-bash/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-bash-persistent`
 
@@ -2625,6 +2753,7 @@ export interface Config {
 ```
 
 来源：[`packages/self-modification/tool-cordis/src/index.ts:25`](../packages/self-modification/tool-cordis/src/index.ts)
+
 ## `@huiliyi37/dsh-tool-file-info`
 
 需要：`tools` · `fs`
@@ -3190,7 +3319,7 @@ export interface Config {
 export type ToolPresentationMode = 'native' | 'code' | 'both'
 ```
 
-来源：[`packages/core/tools/src/index.ts:616`](../packages/core/tools/src/index.ts)
+来源：[`packages/core/tools/src/index.ts:634`](../packages/core/tools/src/index.ts)
 
 ## `@huiliyi37/dsh-tui`
 
@@ -3283,7 +3412,7 @@ export type KeyName =
   | 'unknown'
 ```
 
-依赖：`ReadStream`（`node:tty`）· [`SessionId`](subsystems/core.md) · `WriteStream`（`node:tty`）
+依赖：`ReadStream` （`node:tty`） · [`SessionId`](subsystems/core.md) · `WriteStream` （`node:tty`）
 
 来源：[`packages/tui/tui/src/index.ts:23`](../packages/tui/tui/src/index.ts)
 
@@ -3385,7 +3514,7 @@ export interface Config {
   model?: string
   /** 自定义描述 prompt；缺省按随图文本自动选通用/精确转写模式。 */
   prompt?: string
-  /** 描述输出 token 上限（缺省 1024）。 */
+  /** 描述输出 token 上限（缺省 2048；撞限时自动续写一次，仍超限才落截断标记）。 */
   maxTokens?: number
   /** 主控模型是否原生支持识图（缺省 false；true 时本插件不干预，图片直发）。 */
   primarySupportsVision?: boolean
@@ -3401,7 +3530,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/context/vision-bridge/src/index.ts:52`](../packages/context/vision-bridge/src/index.ts)
+来源：[`packages/context/vision-bridge/src/index.ts:55`](../packages/context/vision-bridge/src/index.ts)
 
 ## `@huiliyi37/dsh-web`
 
@@ -3609,7 +3738,7 @@ export interface Config {
 
 ## `@huiliyi37/dsh-zen`
 
-依赖：`tools` · `systemPrompt`
+需要：`tools` · `systemPrompt`
 
 ```ts config-catalog
 /** Deployment-owned zen-phase policy. */
@@ -3685,129 +3814,130 @@ export interface ZenConfig {
 
 来源：[`packages/guard/zen/src/index.ts:78`](../packages/guard/zen/src/index.ts)
 
-## 无配置的可加载插件
+## Loadable plugins with no config
 
-这些插件通过 `cordis.yml` 中不含 `config:` 块的条目加载；它们未声明任何配置接口。
+These load from a `cordis.yml` entry with no `config:` block; they declare no config surface.
 
-- `@huiliyi37/dsh-agent`（[`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts)）
-- `@huiliyi37/dsh-api-gateway` — 需要 `typert`（[`packages/api/gateway/src/index.ts`](../packages/api/gateway/src/index.ts)）
-- `@huiliyi37/dsh-api-remotes`（[`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts)）
-- `@huiliyi37/dsh-authorization` — 需要 `credentials`（[`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts)）
-- `@huiliyi37/dsh-client-locale`（[`packages/client/locale/src/index.ts`](../packages/client/locale/src/index.ts)）
-- `@huiliyi37/dsh-client-modules` — 需要 `httpServer` · `loader`（[`packages/client/modules/src/index.ts`](../packages/client/modules/src/index.ts)）
-- `@huiliyi37/dsh-client-runtime`（[`packages/client/runtime/src/index.ts`](../packages/client/runtime/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-command`（[`packages/client/ui-command/src/index.ts`](../packages/client/ui-command/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-conversation`（[`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-deliverables`（[`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-goal`（[`packages/client/ui-goal/src/index.ts`](../packages/client/ui-goal/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-input-trigger`（[`packages/client/ui-input-trigger/src/index.ts`](../packages/client/ui-input-trigger/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-layout`（[`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-model`（[`packages/client/ui-model/src/index.ts`](../packages/client/ui-model/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-models`（[`packages/client/ui-models/src/index.ts`](../packages/client/ui-models/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-permission`（[`packages/client/ui-permission/src/index.ts`](../packages/client/ui-permission/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-plan`（[`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-question` — 需要 `tools` · `userInteraction`（[`packages/client/ui-question/src/index.ts`](../packages/client/ui-question/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-settings`（[`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-settings-general`（[`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-sidebar`（[`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-skill`（[`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-slash`（[`packages/client/ui-slash/src/index.ts`](../packages/client/ui-slash/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-subagent`（[`packages/client/ui-subagent/src/index.ts`](../packages/client/ui-subagent/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-theme`（[`packages/client/ui-theme/src/index.ts`](../packages/client/ui-theme/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-tool`（[`packages/client/ui-tool/src/index.ts`](../packages/client/ui-tool/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-trajectory`（[`packages/client/ui-trajectory/src/index.ts`](../packages/client/ui-trajectory/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-workspace`（[`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.ts)）
-- `@huiliyi37/dsh-command-compact` — 需要 `commands` · `compact`（[`packages/compact/command-compact/src/index.ts`](../packages/compact/command-compact/src/index.ts)）
-- `@huiliyi37/dsh-command-feedback` — 需要 `commands`（[`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts)）
-- `@huiliyi37/dsh-command-goal` — 需要 `commands` · `goals`（[`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts)）
-- `@huiliyi37/dsh-command-memory` — 需要 `commands`（[`packages/memory/command-memory/src/index.ts`](../packages/memory/command-memory/src/index.ts)）
-- `@huiliyi37/dsh-commands`（[`packages/interaction/commands/src/index.ts`](../packages/interaction/commands/src/index.ts)）
-- `@huiliyi37/dsh-cordis-client-runner`（[`packages/self-modification/cordis-client-runner/src/index.ts`](../packages/self-modification/cordis-client-runner/src/index.ts)）
-- `@huiliyi37/dsh-fs-e2b` — 需要 `e2b`（[`packages/e2b/fs-e2b/src/index.ts`](../packages/e2b/fs-e2b/src/index.ts)）
-- `@huiliyi37/dsh-fs-policy`（[`packages/fs/fs-policy/src/index.ts`](../packages/fs/fs-policy/src/index.ts)）
-- `@huiliyi37/dsh-goal-session` — 需要 `agents` · `goals` · `sessions`（[`packages/goal/goal-session/src/index.ts`](../packages/goal/goal-session/src/index.ts)）
-- `@huiliyi37/dsh-host-directory-picker-auto` — 需要 `httpServer` · `loader`（[`packages/host/directory-picker-auto/src/index.ts`](../packages/host/directory-picker-auto/src/index.ts)）
-- `@huiliyi37/dsh-host-directory-picker-native`（[`packages/host/directory-picker-native/src/index.ts`](../packages/host/directory-picker-native/src/index.ts)）
-- `@huiliyi37/dsh-host-plugin-inventory` — 需要 `loader`（[`packages/host/plugin-inventory/src/index.ts`](../packages/host/plugin-inventory/src/index.ts)）
-- `@huiliyi37/dsh-llm`（[`packages/llm/llm/src/index.ts`](../packages/llm/llm/src/index.ts)）
-- `@huiliyi37/dsh-lsp`（[`packages/lsp/lsp/src/index.ts`](../packages/lsp/lsp/src/index.ts)）
-- `@huiliyi37/dsh-pty`（[`packages/pty/pty/src/index.ts`](../packages/pty/pty/src/index.ts)）
-- `@huiliyi37/dsh-schedule` — 需要 `agents` · `sessions` · `tools` · `sessionPersistence`（[`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts)）
-- `@huiliyi37/dsh-session`（[`packages/core/session/src/index.ts`](../packages/core/session/src/index.ts)）
-- `@huiliyi37/dsh-session-checkpoint-policy` — 需要 `llm` · `sessionPersistence` · `sessions` · `tools`（[`packages/session/session-checkpoint-policy/src/index.ts`](../packages/session/session-checkpoint-policy/src/index.ts)）
-- `@huiliyi37/dsh-session-projection`（[`packages/session/session-projection/src/index.ts`](../packages/session/session-projection/src/index.ts)）
-- `@huiliyi37/dsh-session-stats` — 需要 `sessionProjections`（[`packages/session/session-stats/src/index.ts`](../packages/session/session-stats/src/index.ts)）
-- `@huiliyi37/dsh-skill-badge` — 需要 `skills`（[`packages/skill/skill-badge/src/index.ts`](../packages/skill/skill-badge/src/index.ts)）
-- `@huiliyi37/dsh-storage`（[`packages/storage/storage/src/index.ts`](../packages/storage/storage/src/index.ts)）
-- `@huiliyi37/dsh-subagent`（[`packages/subagent/subagent/src/index.ts`](../packages/subagent/subagent/src/index.ts)）
-- `@huiliyi37/dsh-subprocess-local`（[`packages/subprocess/subprocess-local/src/index.ts`](../packages/subprocess/subprocess-local/src/index.ts)）
-- `@huiliyi37/dsh-tasks-local`（[`packages/tasks/tasks-local/src/index.ts`](../packages/tasks/tasks-local/src/index.ts)）
-- `@huiliyi37/dsh-timeout-policy` — 需要 `tools`（[`packages/guard/timeout-policy/src/index.ts`](../packages/guard/timeout-policy/src/index.ts)）
-- `@huiliyi37/dsh-tool-ask-user` — 需要 `tools` · `userInteraction`（[`packages/interaction/tool-ask-user/src/index.ts`](../packages/interaction/tool-ask-user/src/index.ts)）
-- `@huiliyi37/dsh-tool-subagent-control` — 需要 `tools` · `subagents`（[`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.ts)）
-- `@huiliyi37/dsh-ui-cordis`（[`packages/self-modification/ui-cordis/src/index.ts`](../packages/self-modification/ui-cordis/src/index.ts)）
-- `@huiliyi37/dsh-user-interaction`（[`packages/interaction/user-interaction/src/index.ts`](../packages/interaction/user-interaction/src/index.ts)）
-- `@huiliyi37/dsh-workspace` — 需要 `storageDomain` · `sessionPersistence`（[`packages/workspace/workspace/src/index.ts`](../packages/workspace/workspace/src/index.ts)）
+- `@huiliyi37/dsh-agent` ([`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts))
+- `@huiliyi37/dsh-api-gateway` — requires `typert` ([`packages/api/gateway/src/index.ts`](../packages/api/gateway/src/index.ts))
+- `@huiliyi37/dsh-api-remotes` ([`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts))
+- `@huiliyi37/dsh-authorization` — requires `credentials` ([`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts))
+- `@huiliyi37/dsh-client-locale` ([`packages/client/locale/src/index.ts`](../packages/client/locale/src/index.ts))
+- `@huiliyi37/dsh-client-modules` — requires `httpServer` · `loader` ([`packages/client/modules/src/index.ts`](../packages/client/modules/src/index.ts))
+- `@huiliyi37/dsh-client-runtime` ([`packages/client/runtime/src/index.ts`](../packages/client/runtime/src/index.ts))
+- `@huiliyi37/dsh-client-ui-command` ([`packages/client/ui-command/src/index.ts`](../packages/client/ui-command/src/index.ts))
+- `@huiliyi37/dsh-client-ui-conversation` ([`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts))
+- `@huiliyi37/dsh-client-ui-deliverables` ([`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts))
+- `@huiliyi37/dsh-client-ui-goal` ([`packages/client/ui-goal/src/index.ts`](../packages/client/ui-goal/src/index.ts))
+- `@huiliyi37/dsh-client-ui-input-trigger` ([`packages/client/ui-input-trigger/src/index.ts`](../packages/client/ui-input-trigger/src/index.ts))
+- `@huiliyi37/dsh-client-ui-layout` ([`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts))
+- `@huiliyi37/dsh-client-ui-model` ([`packages/client/ui-model/src/index.ts`](../packages/client/ui-model/src/index.ts))
+- `@huiliyi37/dsh-client-ui-models` ([`packages/client/ui-models/src/index.ts`](../packages/client/ui-models/src/index.ts))
+- `@huiliyi37/dsh-client-ui-permission` ([`packages/client/ui-permission/src/index.ts`](../packages/client/ui-permission/src/index.ts))
+- `@huiliyi37/dsh-client-ui-plan` ([`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.ts))
+- `@huiliyi37/dsh-client-ui-question` — requires `tools` · `userInteraction` ([`packages/client/ui-question/src/index.ts`](../packages/client/ui-question/src/index.ts))
+- `@huiliyi37/dsh-client-ui-settings` ([`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts))
+- `@huiliyi37/dsh-client-ui-settings-general` ([`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts))
+- `@huiliyi37/dsh-client-ui-sidebar` ([`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.ts))
+- `@huiliyi37/dsh-client-ui-skill` ([`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.ts))
+- `@huiliyi37/dsh-client-ui-slash` ([`packages/client/ui-slash/src/index.ts`](../packages/client/ui-slash/src/index.ts))
+- `@huiliyi37/dsh-client-ui-subagent` ([`packages/client/ui-subagent/src/index.ts`](../packages/client/ui-subagent/src/index.ts))
+- `@huiliyi37/dsh-client-ui-theme` ([`packages/client/ui-theme/src/index.ts`](../packages/client/ui-theme/src/index.ts))
+- `@huiliyi37/dsh-client-ui-tool` ([`packages/client/ui-tool/src/index.ts`](../packages/client/ui-tool/src/index.ts))
+- `@huiliyi37/dsh-client-ui-trajectory` ([`packages/client/ui-trajectory/src/index.ts`](../packages/client/ui-trajectory/src/index.ts))
+- `@huiliyi37/dsh-client-ui-workspace` ([`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.ts))
+- `@huiliyi37/dsh-command-compact` — requires `commands` · `compact` ([`packages/compact/command-compact/src/index.ts`](../packages/compact/command-compact/src/index.ts))
+- `@huiliyi37/dsh-command-feedback` — requires `commands` ([`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts))
+- `@huiliyi37/dsh-command-goal` — requires `commands` · `goals` ([`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts))
+- `@huiliyi37/dsh-command-memory` — requires `commands` ([`packages/memory/command-memory/src/index.ts`](../packages/memory/command-memory/src/index.ts))
+- `@huiliyi37/dsh-commands` ([`packages/interaction/commands/src/index.ts`](../packages/interaction/commands/src/index.ts))
+- `@huiliyi37/dsh-cordis-client-runner` ([`packages/self-modification/cordis-client-runner/src/index.ts`](../packages/self-modification/cordis-client-runner/src/index.ts))
+- `@huiliyi37/dsh-fs-e2b` — requires `e2b` ([`packages/e2b/fs-e2b/src/index.ts`](../packages/e2b/fs-e2b/src/index.ts))
+- `@huiliyi37/dsh-fs-policy` ([`packages/fs/fs-policy/src/index.ts`](../packages/fs/fs-policy/src/index.ts))
+- `@huiliyi37/dsh-goal-session` — requires `agents` · `goals` · `sessions` ([`packages/goal/goal-session/src/index.ts`](../packages/goal/goal-session/src/index.ts))
+- `@huiliyi37/dsh-host-directory-picker-auto` — requires `httpServer` · `loader` ([`packages/host/directory-picker-auto/src/index.ts`](../packages/host/directory-picker-auto/src/index.ts))
+- `@huiliyi37/dsh-host-directory-picker-native` ([`packages/host/directory-picker-native/src/index.ts`](../packages/host/directory-picker-native/src/index.ts))
+- `@huiliyi37/dsh-host-plugin-inventory` — requires `loader` ([`packages/host/plugin-inventory/src/index.ts`](../packages/host/plugin-inventory/src/index.ts))
+- `@huiliyi37/dsh-llm` ([`packages/llm/llm/src/index.ts`](../packages/llm/llm/src/index.ts))
+- `@huiliyi37/dsh-lsp` ([`packages/lsp/lsp/src/index.ts`](../packages/lsp/lsp/src/index.ts))
+- `@huiliyi37/dsh-pty` ([`packages/pty/pty/src/index.ts`](../packages/pty/pty/src/index.ts))
+- `@huiliyi37/dsh-schedule` — requires `agents` · `sessions` · `tools` · `sessionPersistence` ([`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.ts))
+- `@huiliyi37/dsh-session` ([`packages/core/session/src/index.ts`](../packages/core/session/src/index.ts))
+- `@huiliyi37/dsh-session-checkpoint-policy` — requires `llm` · `sessionPersistence` · `sessions` · `tools` ([`packages/session/session-checkpoint-policy/src/index.ts`](../packages/session/session-checkpoint-policy/src/index.ts))
+- `@huiliyi37/dsh-session-projection` ([`packages/session/session-projection/src/index.ts`](../packages/session/session-projection/src/index.ts))
+- `@huiliyi37/dsh-session-stats` — requires `sessionProjections` ([`packages/session/session-stats/src/index.ts`](../packages/session/session-stats/src/index.ts))
+- `@huiliyi37/dsh-skill-badge` — requires `skills` ([`packages/skill/skill-badge/src/index.ts`](../packages/skill/skill-badge/src/index.ts))
+- `@huiliyi37/dsh-storage` ([`packages/storage/storage/src/index.ts`](../packages/storage/storage/src/index.ts))
+- `@huiliyi37/dsh-subagent` ([`packages/subagent/subagent/src/index.ts`](../packages/subagent/subagent/src/index.ts))
+- `@huiliyi37/dsh-subprocess-local` ([`packages/subprocess/subprocess-local/src/index.ts`](../packages/subprocess/subprocess-local/src/index.ts))
+- `@huiliyi37/dsh-tasks-local` ([`packages/tasks/tasks-local/src/index.ts`](../packages/tasks/tasks-local/src/index.ts))
+- `@huiliyi37/dsh-timeout-policy` — requires `tools` ([`packages/guard/timeout-policy/src/index.ts`](../packages/guard/timeout-policy/src/index.ts))
+- `@huiliyi37/dsh-tool-ask-user` — requires `tools` · `userInteraction` ([`packages/interaction/tool-ask-user/src/index.ts`](../packages/interaction/tool-ask-user/src/index.ts))
+- `@huiliyi37/dsh-tool-subagent-control` — requires `tools` · `subagents` ([`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.ts))
+- `@huiliyi37/dsh-ui-cordis` ([`packages/self-modification/ui-cordis/src/index.ts`](../packages/self-modification/ui-cordis/src/index.ts))
+- `@huiliyi37/dsh-user-interaction` ([`packages/interaction/user-interaction/src/index.ts`](../packages/interaction/user-interaction/src/index.ts))
+- `@huiliyi37/dsh-workspace` — requires `storageDomain` · `sessionPersistence` ([`packages/workspace/workspace/src/index.ts`](../packages/workspace/workspace/src/index.ts))
 
-## Seam 包（不可直接加载）
+## Seam packages (not directly loadable)
 
-抽象服务类——部署时应改为加载具体的实现包（参见[能力 seam](../.agents/notes/implemented/architecture/2026-06-13-capability-seams.md)）。
+Abstract service classes — a deployment loads a concrete implementation package instead ([capability seams](../.agents/notes/implemented/architecture/2026-06-13-capability-seams.md)).
 
-- `@huiliyi37/dsh-attachment` — 抽象 `AttachmentStore`（[`packages/attachment/attachment/src/index.ts`](../packages/attachment/attachment/src/index.ts)）
-- `@huiliyi37/dsh-bash` — 抽象 `BashExecutor`（[`packages/bash/bash/src/index.ts`](../packages/bash/bash/src/index.ts)）
-- `@huiliyi37/dsh-code-runtime` — 抽象 `CodeRuntime`（[`packages/code-runtime/code-runtime/src/index.ts`](../packages/code-runtime/code-runtime/src/index.ts)）
-- `@huiliyi37/dsh-compact` — 抽象 `CompactService`（[`packages/compact/compact/src/index.ts`](../packages/compact/compact/src/index.ts)）
-- `@huiliyi37/dsh-credentials` — 抽象 `Credentials`（[`packages/credentials/credentials/src/index.ts`](../packages/credentials/credentials/src/index.ts)）
-- `@huiliyi37/dsh-fs` — 抽象 `FileSystem`（[`packages/fs/fs/src/index.ts`](../packages/fs/fs/src/index.ts)）
-- `@huiliyi37/dsh-host-directory-picker` — 抽象 `DirectoryPicker`（[`packages/host/directory-picker/src/index.ts`](../packages/host/directory-picker/src/index.ts)）
-- `@huiliyi37/dsh-sandbox` — 抽象 `SandboxProvider`（[`packages/sandbox/sandbox/src/index.ts`](../packages/sandbox/sandbox/src/index.ts)）
-- `@huiliyi37/dsh-session-persistence` — 抽象 `SessionPersistence`（[`packages/session/session-persistence/src/index.ts`](../packages/session/session-persistence/src/index.ts)）
-- `@huiliyi37/dsh-session-query` — 抽象 `SessionQueryService`（[`packages/session-query/session-query/src/index.ts`](../packages/session-query/session-query/src/index.ts)）
-- `@huiliyi37/dsh-settings` — 抽象 `Settings`（[`packages/settings/settings/src/index.ts`](../packages/settings/settings/src/index.ts)）
-- `@huiliyi37/dsh-spill` — 抽象 `SpillStore`（[`packages/spill/spill/src/index.ts`](../packages/spill/spill/src/index.ts)）
-- `@huiliyi37/dsh-subprocess` — 抽象 `SubprocessService`（[`packages/subprocess/subprocess/src/index.ts`](../packages/subprocess/subprocess/src/index.ts)）
-- `@huiliyi37/dsh-tasks` — 抽象 `TaskService`（[`packages/tasks/tasks/src/index.ts`](../packages/tasks/tasks/src/index.ts)）
-- `@huiliyi37/dsh-workflow` — 抽象 `WorkflowService`（[`packages/workflow/workflow/src/index.ts`](../packages/workflow/workflow/src/index.ts)）
-## 库包（无插件入口）
+- `@huiliyi37/dsh-attachment` — abstract `AttachmentStore` ([`packages/attachment/attachment/src/index.ts`](../packages/attachment/attachment/src/index.ts))
+- `@huiliyi37/dsh-bash` — abstract `BashExecutor` ([`packages/bash/bash/src/index.ts`](../packages/bash/bash/src/index.ts))
+- `@huiliyi37/dsh-code-runtime` — abstract `CodeRuntime` ([`packages/code-runtime/code-runtime/src/index.ts`](../packages/code-runtime/code-runtime/src/index.ts))
+- `@huiliyi37/dsh-compact` — abstract `CompactService` ([`packages/compact/compact/src/index.ts`](../packages/compact/compact/src/index.ts))
+- `@huiliyi37/dsh-credentials` — abstract `CredentialProvider` ([`packages/credentials/credentials/src/index.ts`](../packages/credentials/credentials/src/index.ts))
+- `@huiliyi37/dsh-fs` — abstract `FileSystem` ([`packages/fs/fs/src/index.ts`](../packages/fs/fs/src/index.ts))
+- `@huiliyi37/dsh-host-directory-picker` — abstract `DirectoryPicker` ([`packages/host/directory-picker/src/index.ts`](../packages/host/directory-picker/src/index.ts))
+- `@huiliyi37/dsh-sandbox` — abstract `SandboxProvider` ([`packages/sandbox/sandbox/src/index.ts`](../packages/sandbox/sandbox/src/index.ts))
+- `@huiliyi37/dsh-session-persistence` — abstract `SessionPersistence` ([`packages/session/session-persistence/src/index.ts`](../packages/session/session-persistence/src/index.ts))
+- `@huiliyi37/dsh-session-query` — abstract `SessionQueryService` ([`packages/session-query/session-query/src/index.ts`](../packages/session-query/session-query/src/index.ts))
+- `@huiliyi37/dsh-settings` — abstract `Settings` ([`packages/settings/settings/src/index.ts`](../packages/settings/settings/src/index.ts))
+- `@huiliyi37/dsh-spill` — abstract `SpillStore` ([`packages/spill/spill/src/index.ts`](../packages/spill/spill/src/index.ts))
+- `@huiliyi37/dsh-subprocess` — abstract `SubprocessService` ([`packages/subprocess/subprocess/src/index.ts`](../packages/subprocess/subprocess/src/index.ts))
+- `@huiliyi37/dsh-tasks` — abstract `TaskService` ([`packages/tasks/tasks/src/index.ts`](../packages/tasks/tasks/src/index.ts))
+- `@huiliyi37/dsh-workflow` — abstract `WorkflowService` ([`packages/workflow/workflow/src/index.ts`](../packages/workflow/workflow/src/index.ts))
 
-由其他包作为库导入；`cordis.yml` 无法加载它们。
+## Library packages (no plugin entry)
 
-- `@huiliyi37/dsh-acp-snapshot`（[`packages/support/acp-snapshot/src/index.ts`](../packages/support/acp-snapshot/src/index.ts)）
-- `@huiliyi37/dsh-agent-loop-testkit`（[`packages/support/agent-loop-testkit/src/index.ts`](../packages/support/agent-loop-testkit/src/index.ts)）
-- `@huiliyi37/dsh-anonymous-user-id`（[`packages/identity/anonymous-user-id/src/index.ts`](../packages/identity/anonymous-user-id/src/index.ts)）
-- `@huiliyi37/dsh-app-boot`（[`packages/boot/app-boot/src/index.ts`](../packages/boot/app-boot/src/index.ts)）
-- `@huiliyi37/dsh-atomic-write`（[`packages/util/atomic-write/src/index.ts`](../packages/util/atomic-write/src/index.ts)）
-- `@huiliyi37/dsh-base`（[`packages/bundle/base/src/index.ts`](../packages/bundle/base/src/index.ts)）
-- `@huiliyi37/dsh-brand`（[`packages/util/brand/src/index.ts`](../packages/util/brand/src/index.ts)）
-- `@huiliyi37/dsh-client-schema-form`（[`packages/client/schema-form/src/index.ts`](../packages/client/schema-form/src/index.ts)）
-- `@huiliyi37/dsh-client-test-runtime`（[`packages/client/test-runtime/src/index.ts`](../packages/client/test-runtime/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-primitives`（[`packages/client/ui-primitives/src/index.ts`](../packages/client/ui-primitives/src/index.ts)）
-- `@huiliyi37/dsh-client-ui-slots`（[`packages/client/ui-slots/src/index.ts`](../packages/client/ui-slots/src/index.ts)）
-- `@huiliyi37/dsh-client-web`（[`packages/client/web/src/index.ts`](../packages/client/web/src/index.ts)）
-- `@huiliyi37/dsh-client-web-react`（[`packages/client/web-react/src/index.ts`](../packages/client/web-react/src/index.ts)）
-- `@huiliyi37/dsh-code-runtime-python`（[`packages/code-runtime/code-runtime-python/src/index.ts`](../packages/code-runtime/code-runtime-python/src/index.ts)）
-- `@huiliyi37/dsh-environment`（[`packages/util/environment/src/index.ts`](../packages/util/environment/src/index.ts)）
-- `@huiliyi37/dsh-fs-snapshot`（[`packages/fs/fs-snapshot/src/index.ts`](../packages/fs/fs-snapshot/src/index.ts)）
-- `@huiliyi37/dsh-hook-protocol`（[`packages/hooks/hook-protocol/src/index.ts`](../packages/hooks/hook-protocol/src/index.ts)）
-- `@huiliyi37/dsh-jsonrpc-demo`（[`packages/examples/jsonrpc-demo/src/index.ts`](../packages/examples/jsonrpc-demo/src/index.ts)）
-- `@huiliyi37/dsh-llm-mock-server`（[`packages/support/llm-mock-server/src/index.ts`](../packages/support/llm-mock-server/src/index.ts)）
-- `@huiliyi37/dsh-loader-smoke`（[`packages/support/loader-smoke/src/index.ts`](../packages/support/loader-smoke/src/index.ts)）
-- `@huiliyi37/dsh-memory`（[`packages/memory/memory/src/index.ts`](../packages/memory/memory/src/index.ts)）
-- `@huiliyi37/dsh-memory-sqlite`（[`packages/memory/memory-sqlite/src/index.ts`](../packages/memory/memory-sqlite/src/index.ts)）
-- `@huiliyi37/dsh-meridian`（[`packages/search/meridian/src/index.ts`](../packages/search/meridian/src/index.ts)）
-- `@huiliyi37/dsh-native-command`（[`packages/util/native-command/src/index.ts`](../packages/util/native-command/src/index.ts)）
-- `@huiliyi37/dsh-paths`（[`packages/util/paths/src/index.ts`](../packages/util/paths/src/index.ts)）
-- `@huiliyi37/dsh-pheromone`（[`packages/guard/pheromone/src/index.ts`](../packages/guard/pheromone/src/index.ts)）
-- `@huiliyi37/dsh-retention`（[`packages/util/retention/src/index.ts`](../packages/util/retention/src/index.ts)）
-- `@huiliyi37/dsh-sandbox-windows-acl`（[`packages/sandbox/sandbox-windows-acl/src/index.ts`](../packages/sandbox/sandbox-windows-acl/src/index.ts)）
-- `@huiliyi37/dsh-scope`（[`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.ts)）
-- `@huiliyi37/dsh-sdk-client`（[`packages/scaffold/client/src/index.ts`](../packages/scaffold/client/src/index.ts)）
-- `@huiliyi37/dsh-sdk-protocol`（[`packages/scaffold/protocol/src/index.ts`](../packages/scaffold/protocol/src/index.ts)）
-- `@huiliyi37/dsh-semantic-index`（[`packages/search/semantic-index/src/index.ts`](../packages/search/semantic-index/src/index.ts)）
-- `@huiliyi37/dsh-session-telemetry`（[`packages/session/session-telemetry/src/index.ts`](../packages/session/session-telemetry/src/index.ts)）
-- `@huiliyi37/dsh-session-title-llm`（[`packages/session/session-title-llm/src/index.ts`](../packages/session/session-title-llm/src/index.ts)）
-- `@huiliyi37/dsh-subagent-inprocess`（[`packages/subagent/subagent-inprocess/src/index.ts`](../packages/subagent/subagent-inprocess/src/index.ts)）
-- `@huiliyi37/dsh-timeout`（[`packages/util/timeout/src/index.ts`](../packages/util/timeout/src/index.ts)）
-- `@huiliyi37/dsh-type-meta`（[`packages/typert/type-meta/src/index.ts`](../packages/typert/type-meta/src/index.ts)）
-- `@huiliyi37/dsh-typert-generator`（[`packages/typert/generator/src/index.ts`](../packages/typert/generator/src/index.ts)）
-- `@huiliyi37/dsh-typert-registry`（[`packages/typert/registry/src/index.ts`](../packages/typert/registry/src/index.ts)）
+Imported as libraries by other packages; a `cordis.yml` cannot load them.
+
+- `@huiliyi37/dsh-acp-snapshot` ([`packages/support/acp-snapshot/src/index.ts`](../packages/support/acp-snapshot/src/index.ts))
+- `@huiliyi37/dsh-agent-loop-testkit` ([`packages/support/agent-loop-testkit/src/index.ts`](../packages/support/agent-loop-testkit/src/index.ts))
+- `@huiliyi37/dsh-anonymous-user-id` ([`packages/identity/anonymous-user-id/src/index.ts`](../packages/identity/anonymous-user-id/src/index.ts))
+- `@huiliyi37/dsh-app-boot` ([`packages/boot/app-boot/src/index.ts`](../packages/boot/app-boot/src/index.ts))
+- `@huiliyi37/dsh-atomic-write` ([`packages/util/atomic-write/src/index.ts`](../packages/util/atomic-write/src/index.ts))
+- `@huiliyi37/dsh-base` ([`packages/bundle/base/src/index.ts`](../packages/bundle/base/src/index.ts))
+- `@huiliyi37/dsh-brand` ([`packages/util/brand/src/index.ts`](../packages/util/brand/src/index.ts))
+- `@huiliyi37/dsh-client-schema-form` ([`packages/client/schema-form/src/index.ts`](../packages/client/schema-form/src/index.ts))
+- `@huiliyi37/dsh-client-test-runtime` ([`packages/client/test-runtime/src/index.ts`](../packages/client/test-runtime/src/index.ts))
+- `@huiliyi37/dsh-client-ui-primitives` ([`packages/client/ui-primitives/src/index.ts`](../packages/client/ui-primitives/src/index.ts))
+- `@huiliyi37/dsh-client-ui-slots` ([`packages/client/ui-slots/src/index.ts`](../packages/client/ui-slots/src/index.ts))
+- `@huiliyi37/dsh-client-web` ([`packages/client/web/src/index.ts`](../packages/client/web/src/index.ts))
+- `@huiliyi37/dsh-client-web-react` ([`packages/client/web-react/src/index.ts`](../packages/client/web-react/src/index.ts))
+- `@huiliyi37/dsh-code-runtime-python` ([`packages/code-runtime/code-runtime-python/src/index.ts`](../packages/code-runtime/code-runtime-python/src/index.ts))
+- `@huiliyi37/dsh-environment` ([`packages/util/environment/src/index.ts`](../packages/util/environment/src/index.ts))
+- `@huiliyi37/dsh-fs-snapshot` ([`packages/fs/fs-snapshot/src/index.ts`](../packages/fs/fs-snapshot/src/index.ts))
+- `@huiliyi37/dsh-hook-protocol` ([`packages/hooks/hook-protocol/src/index.ts`](../packages/hooks/hook-protocol/src/index.ts))
+- `@huiliyi37/dsh-jsonrpc-demo` ([`packages/examples/jsonrpc-demo/src/index.ts`](../packages/examples/jsonrpc-demo/src/index.ts))
+- `@huiliyi37/dsh-llm-mock-server` ([`packages/support/llm-mock-server/src/index.ts`](../packages/support/llm-mock-server/src/index.ts))
+- `@huiliyi37/dsh-loader-smoke` ([`packages/support/loader-smoke/src/index.ts`](../packages/support/loader-smoke/src/index.ts))
+- `@huiliyi37/dsh-memory` ([`packages/memory/memory/src/index.ts`](../packages/memory/memory/src/index.ts))
+- `@huiliyi37/dsh-memory-sqlite` ([`packages/memory/memory-sqlite/src/index.ts`](../packages/memory/memory-sqlite/src/index.ts))
+- `@huiliyi37/dsh-meridian` ([`packages/search/meridian/src/index.ts`](../packages/search/meridian/src/index.ts))
+- `@huiliyi37/dsh-native-command` ([`packages/util/native-command/src/index.ts`](../packages/util/native-command/src/index.ts))
+- `@huiliyi37/dsh-paths` ([`packages/util/paths/src/index.ts`](../packages/util/paths/src/index.ts))
+- `@huiliyi37/dsh-pheromone` ([`packages/guard/pheromone/src/index.ts`](../packages/guard/pheromone/src/index.ts))
+- `@huiliyi37/dsh-retention` ([`packages/util/retention/src/index.ts`](../packages/util/retention/src/index.ts))
+- `@huiliyi37/dsh-sandbox-windows-acl` ([`packages/sandbox/sandbox-windows-acl/src/index.ts`](../packages/sandbox/sandbox-windows-acl/src/index.ts))
+- `@huiliyi37/dsh-scope` ([`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.ts))
+- `@huiliyi37/dsh-sdk-client` ([`packages/scaffold/client/src/index.ts`](../packages/scaffold/client/src/index.ts))
+- `@huiliyi37/dsh-sdk-protocol` ([`packages/scaffold/protocol/src/index.ts`](../packages/scaffold/protocol/src/index.ts))
+- `@huiliyi37/dsh-semantic-index` ([`packages/search/semantic-index/src/index.ts`](../packages/search/semantic-index/src/index.ts))
+- `@huiliyi37/dsh-session-telemetry` ([`packages/session/session-telemetry/src/index.ts`](../packages/session/session-telemetry/src/index.ts))
+- `@huiliyi37/dsh-session-title-llm` ([`packages/session/session-title-llm/src/index.ts`](../packages/session/session-title-llm/src/index.ts))
+- `@huiliyi37/dsh-subagent-inprocess` ([`packages/subagent/subagent-inprocess/src/index.ts`](../packages/subagent/subagent-inprocess/src/index.ts))
+- `@huiliyi37/dsh-timeout` ([`packages/util/timeout/src/index.ts`](../packages/util/timeout/src/index.ts))
+- `@huiliyi37/dsh-type-meta` ([`packages/typert/type-meta/src/index.ts`](../packages/typert/type-meta/src/index.ts))
+- `@huiliyi37/dsh-typert-generator` ([`packages/typert/generator/src/index.ts`](../packages/typert/generator/src/index.ts))
+- `@huiliyi37/dsh-typert-registry` ([`packages/typert/registry/src/index.ts`](../packages/typert/registry/src/index.ts))

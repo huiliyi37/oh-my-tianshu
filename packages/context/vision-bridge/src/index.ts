@@ -10,6 +10,9 @@
  * 职责边界：
  * - **主控能力声明**：`primarySupportsVision` 由装配方按主控模型事实配置
  *   （缺省 false = 不识图 → 有图即走桥）。声明 true 时本插件不干预，图片直发。
+ * - **截断续写**：描述撞 `maxTokens` 上限时自动续写一次（助手截断文本 + 继续
+ *   指令），拼接为完整描述；续写仍撞限或失败才落 `[图片描述被截断]` 标记——
+ *   多主体图片不再因输出预算丢尾。
  * - **桥失败不炸轮**：视觉模型超时/报错/返回空，都降级为可见的桥接提示文本，
  *   让主控知道"有图但没读到"，而非静默吞图或整轮 failed。
  * - **TUI 提示一致性**：TUI 的 `vision.bridgeEnabled` 提示与本插件配置同源
@@ -23,7 +26,7 @@
 import type { Context } from '@huiliyi37/cordis'
 import z from '@huiliyi37/schemastery'
 import type { PreStepDecision } from '@huiliyi37/dsh-agent'
-import { BlockAssembler, createUserMessage, LlmError } from '@huiliyi37/dsh-llm'
+import { BlockAssembler, createAssistantMessage, createUserMessage, LlmError } from '@huiliyi37/dsh-llm'
 import type { ContentBlock, GenerateOptions, UserMessage } from '@huiliyi37/dsh-llm'
 // Type-only：让 `ctx.get('modelRoles')` 在组合装配时解析到角色 pin 服务——
 // 本插件机会式消费（`ctx.get` 可选服务模式），从不硬依赖。
@@ -58,7 +61,7 @@ export interface Config {
   model?: string
   /** 自定义描述 prompt；缺省按随图文本自动选通用/精确转写模式。 */
   prompt?: string
-  /** 描述输出 token 上限（缺省 1024）。 */
+  /** 描述输出 token 上限（缺省 2048；撞限时自动续写一次，仍超限才落截断标记）。 */
   maxTokens?: number
   /** 主控模型是否原生支持识图（缺省 false；true 时本插件不干预，图片直发）。 */
   primarySupportsVision?: boolean
@@ -83,7 +86,7 @@ export const Config: z<Config> = z.object({
   provider: z.string(),
   model: z.string(),
   prompt: z.string(),
-  maxTokens: z.number().step(1).min(1).default(1024),
+  maxTokens: z.number().step(1).min(1).default(2048),
   primarySupportsVision: z.boolean().default(false),
   // union(object, never)：fallback 缺省为 null/undefined；一旦给出则 provider/model 必填。
   fallback: z.union([
@@ -213,6 +216,25 @@ export async function describeImages(
       'NO_ADAPTER',
     )
   }
+  /** 续写指令：让视觉模型从截断处接续，不重复已有文字。 */
+  const CONTINUE_INSTRUCTION =
+    '你的上一段输出在 token 上限处被截断。请从中断处直接继续输出剩余内容：'
+    + '不要重复任何已输出的文字，不要重新开始，不要加前言。'
+  const callOnce = async (
+    options: GenerateOptions,
+  ): Promise<{ text: string; truncated: boolean }> => {
+    const assembler = new BlockAssembler()
+    for await (const chunk of ctx.llm.stream(options)) assembler.push(chunk)
+    const finish = assembler.finish
+    if (finish.kind === 'error' || finish.kind === 'aborted') {
+      throw new LlmError(finish.failure.message, finish.failure.code, finish.failure)
+    }
+    const text = assembler.blocks()
+      .filter(block => block.type === 'text')
+      .map(block => block.text)
+      .join('')
+    return { text, truncated: finish.kind === 'max-tokens' }
+  }
   const attempt = async (route: { provider: string; model: string }): Promise<string> => {
     const request: GenerateOptions = {
       provider: route.provider,
@@ -222,17 +244,33 @@ export async function describeImages(
       purpose: 'vision-description',
       ...signal === undefined ? {} : { signal },
     }
-    const assembler = new BlockAssembler()
-    for await (const chunk of ctx.llm.stream(request)) assembler.push(chunk)
-    const finish = assembler.finish
-    if (finish.kind === 'error' || finish.kind === 'aborted') {
-      throw new LlmError(finish.failure.message, finish.failure.code, finish.failure)
+    const first = await callOnce(request)
+    if (!first.truncated) return first.text
+    // 撞上限 → 自动续写一次（有界）：助手截断文本 + 继续指令；仍截断才落标记。
+    // 续写自身失败不丢已有部分——部分描述 + 截断标记仍优于空描述。
+    let tail = ''
+    let stillTruncated = true
+    try {
+      const second = await callOnce({
+        ...request,
+        messages: [
+          ...request.messages,
+          createAssistantMessage({
+            content: [{ type: 'text', text: first.text }],
+            source: { provider: route.provider, model: route.model },
+          }),
+          createUserMessage({
+            content: [{ type: 'text', text: CONTINUE_INSTRUCTION }],
+            source: { kind: 'plugin', plugin: name },
+          }),
+        ],
+      })
+      tail = second.text
+      stillTruncated = second.truncated
+    } catch {
+      return `${first.text}\n[图片描述被截断]`.trim()
     }
-    const text = assembler.blocks()
-      .filter(block => block.type === 'text')
-      .map(block => block.text)
-      .join('')
-    return (finish.kind === 'max-tokens' ? `${text}\n[图片描述被截断]` : text).trim()
+    return `${first.text}${tail}${stillTruncated ? '\n[图片描述被截断]' : ''}`.trim()
   }
   try {
     return await attempt(route)

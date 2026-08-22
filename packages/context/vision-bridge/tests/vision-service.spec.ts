@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
 import LlmService from '@huiliyi37/dsh-llm'
 import { LlmAdapter } from '@huiliyi37/dsh-llm'
-import type { GenerateOptions, StreamChunk, LlmModelInfo } from '@huiliyi37/dsh-llm'
+import type { GenerateOptions, LlmModelInfo, LlmResolvedModelInfo, StreamChunk } from '@huiliyi37/dsh-llm'
 import ModelRolesService from '@huiliyi37/dsh-model-roles'
 import { MemorySettings } from '../../../settings/settings/tests/memory.ts'
 import { describeImages, selectVisionPrompt, apply, Config } from '../src/index.ts'
@@ -44,6 +44,7 @@ describe('Config（provider/model 显式 或 visionAutoBridge）', () => {
     // schema 不再强制 provider/model
     const resolved = Config({})
     expect(resolved).toMatchObject({ enabled: true, visionAutoBridge: false })
+    expect(resolved.maxTokens).toBe(2048)
     // 缺显式路由且未开自动桥 → apply 装配抛错
     expect(() => { apply(new Context(), { enabled: true }) }).toThrow(/未配置视觉模型/)
     expect(() => { apply(new Context(), { enabled: true, provider: 'p', model: 'm' }) }).not.toThrow()
@@ -65,19 +66,33 @@ describe('Config（provider/model 显式 或 visionAutoBridge）', () => {
 })
 
 /** 预置 chunk 流的假视觉 adapter：记录请求、按场景返回固定流。 */
+type FakeScene = 'ok' | 'error' | 'max-tokens' | 'empty' | 'continue-ok' | 'continue-double' | 'continue-error'
 class FakeVisionAdapter extends LlmAdapter {
   requests: GenerateOptions[] = []
-  private scene: 'ok' | 'error' | 'max-tokens' | 'empty'
+  private scene: FakeScene
 
-  constructor(scene: 'ok' | 'error' | 'max-tokens' | 'empty' = 'ok') {
+  constructor(scene: FakeScene = 'ok') {
     super()
     this.scene = scene
   }
 
+  // 声明识图能力：llm 层经 resolveModel 的 supportsVision 决定是否把
+  // image block 剥成占位文本——不声明则请求内容断言拿不到原始 image block。
+  override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
+    return Promise.resolve({ provider, id: model, name: model, supportsVision: true })
+  }
+
   override stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     this.requests.push(options)
+    const callIndex = this.requests.length - 1
     const scene = this.scene
-    return (async function* () {
+    const emit = async function * (text: string, truncated: boolean): AsyncIterable<StreamChunk> {
+      yield { type: 'block-start', index: 0, blockType: 'text' }
+      yield { type: 'text-delta', index: 0, text }
+      yield { type: 'block-end', index: 0, block: { type: 'text', text } }
+      yield { type: 'finish', reason: truncated ? { kind: 'max-tokens' } : { kind: 'stop' } }
+    }
+    return (async function * () {
       if (scene === 'error') {
         yield { type: 'finish', reason: { kind: 'error', failure: { message: 'vision boom', code: 'VISION_ERR' } } }
         return
@@ -87,20 +102,21 @@ class FakeVisionAdapter extends LlmAdapter {
         yield { type: 'finish', reason: { kind: 'stop' } }
         return
       }
-      yield { type: 'block-start', index: 0, blockType: 'text' }
-      yield { type: 'text-delta', index: 0, text: '截图显示：' }
-      yield { type: 'text-delta', index: 0, text: 'Error: foo' }
-      yield { type: 'block-end', index: 0, block: { type: 'text', text: '截图显示：Error: foo' } }
-      if (scene === 'max-tokens') {
-        yield { type: 'finish', reason: { kind: 'max-tokens' } }
-      } else {
-        yield { type: 'finish', reason: { kind: 'stop' } }
+      // 续写场景：首次调用截断，后续调用按场景给尾巴/再截断/报错。
+      if (scene === 'continue-ok' || scene === 'continue-double' || scene === 'continue-error') {
+        if (callIndex === 0) yield * emit('部分描述', true)
+        else if (scene === 'continue-error') {
+          yield { type: 'finish', reason: { kind: 'error', failure: { message: 'continuation boom', code: 'CONT_ERR' } } }
+        } else if (scene === 'continue-ok') yield * emit('续写尾巴', false)
+        else yield * emit('仍然很长', true)
+        return
       }
+      yield * emit('截图显示：Error: foo', scene === 'max-tokens')
     })()
   }
 }
 
-async function mount(scene: 'ok' | 'error' | 'max-tokens' | 'empty' = 'ok') {
+async function mount(scene: FakeScene = 'ok') {
   const ctx = new Context()
   await ctx.plugin(LlmService)
   const adapter = new FakeVisionAdapter(scene)
@@ -135,10 +151,31 @@ describe('describeImages（桥接描述生成）', () => {
     await expect(describeImages(ctx, CONFIG, [IMG], 'hi')).rejects.toThrow('vision boom')
   })
 
-  it('max-tokens finish → 文本追加截断标记', async () => {
-    const { ctx } = await mount('max-tokens')
+  it('max-tokens 且续写仍截断 → 合并文本追加截断标记（两次调用）', async () => {
+    const { ctx, adapter } = await mount('max-tokens')
     const description = await describeImages(ctx, CONFIG, [IMG], 'hi')
     expect(description).toContain('[图片描述被截断]')
+    expect(adapter.requests).toHaveLength(2)
+    // 续写请求携带助手截断文本 + 用户继续指令。
+    const second = adapter.requests[1]?.messages ?? []
+    expect(second).toHaveLength(3)
+    expect(second[1]).toMatchObject({ role: 'assistant' })
+    expect(second[2]).toMatchObject({ role: 'user' })
+  })
+
+  it('首次截断 → 自动续写一次拼接完整描述（无标记）', async () => {
+    const { ctx, adapter } = await mount('continue-ok')
+    const description = await describeImages(ctx, CONFIG, [IMG], 'hi')
+    expect(description).toBe('部分描述续写尾巴')
+    expect(description).not.toContain('[图片描述被截断]')
+    expect(adapter.requests).toHaveLength(2)
+  })
+
+  it('续写调用失败 → 保留部分描述并落截断标记（fail soft）', async () => {
+    const { ctx, adapter } = await mount('continue-error')
+    const description = await describeImages(ctx, CONFIG, [IMG], 'hi')
+    expect(description).toBe('部分描述\n[图片描述被截断]')
+    expect(adapter.requests).toHaveLength(2)
   })
 
   it('非法 data URL（非 data: 前缀）→ 发起模型调用前抛错', async () => {
