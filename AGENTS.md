@@ -47,6 +47,16 @@ When the user personally asks to push, do not push until you have verified **bot
 
 **Never push before establishing the repository's nature.** If visibility cannot be confirmed, do not push — stop and ask the user. A push to a public repository is irreversible exposure; treat it as a critical incident.
 
+## Workspace discipline（工作区纪律）
+
+The working tree routinely carries uncommitted work from other sessions (cross-session WIP) that exists nowhere else. Treat tree-write operations as destructive until proven otherwise:
+
+- **Never casually `git stash`, `git stash pop|apply|drop`, `git reset --hard|--merge`, or `git checkout HEAD -- .` on a dirty tree.** A stash is uncommitted work, often from an older lineage whose parent commit no longer exists (verify with `git merge-base --is-ancestor <parent> HEAD`); reset/checkout revert the tree to HEAD and destroy uncommitted work with no git copy. Any of these on a dirty tree caused real loss in this repo.
+- **Export before you hide.** On a dirty tree, never run a risky write without first: record `git status` (exact file list), export `git diff --binary > <file>.patch`, and note every stash identity (`git stash list` + `git stash show --stat`). Restore via clean-tree `git apply` and diff the resulting `git status` against the recorded one; manual stash/apply/pop is not the recovery path.
+- **Verify stash identity before touching it.** Check its parent ancestry, file list, and content against HEAD. A stash whose changes are already in history (e.g. `git show 'stash@{0}:<path>'` equals HEAD's blob) is stale and must not be applied onto a newer tree.
+- **Recovery, not rework**: if unstaged work disappears, `git fsck --no-reflogs --unreachable` often holds a dangling stash commit (lefthook's `stage_fixed` flow snapshots unstaged changes; look for commits whose parent is the current HEAD, subjects `WIP on …` / `index on …`). Recover the tree from that commit's diff before rewriting anything.
+- **Committing on a dirty tree**: lefthook's `stage_fixed` stash/restore conflicts with pre-existing unstaged changes. When the hook interferes, run its jobs manually (translation pairing `--cached`, `git diff --cached --check`, `scripts/check-vendor-manifest.sh`, staged-oxlint) and commit with `--no-verify` — never "fix" it with stash/reset.
+
 ## Secrets / .env
 
 Real-API tests and demos read `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_URL`, and root `.env`. cordis.yml allows `!!js` (never `!js`) under plugin `config` and entry `disabled`; other metadata stays literal, so conditional composition also uses overlays ([primer](docs/cordis-primer.md#loader-configuration)). Never commit credentials. CI e2e skips without a key; [testing.md](docs/testing.md) owns key policy.
