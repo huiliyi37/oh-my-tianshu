@@ -13,7 +13,7 @@ Status: implemented
 zen 阶段是内建的 agent（智能体）生命周期阶段，由 `packages/guard/zen`（`@huiliyi37/dsh-zen`，ctx key `zen`）拥有，挂载在 TUI bundle patch 中：
 
 - **锚定初始 face。**在 `agent/created`（driver 与首次组装之前、具备否决能力的 seam）处，新建顶层会话获得 `ctx.tools.restrict({ allow: face })`——默认值为官方评测配方（`bash`、`str_replace_editor`、`todo_write`）加一个 agent 作用域的 `zen_anchor` 工具——并记录 `zen/phase {'zen', 'arm'}`。`request/header` 本就记录模型看到的每个 face，因此「模型可见 ⟺ 已记录」不花任何代价即成立。
-- **晋升（promotion）由宿主验证，绝不采信自我声明。**三个谓词晋升到完整 face：经校验的 `zen_anchor` 调用（非空目标、2–4 个地标、pass 级别，且默认要求日志中已有至少 1 条成功的非簿记类工具结果）、带注入叙述的步骤预算超时、或首条消息分诊（triage；足够短的单行提示词在首次请求之前直接跳过该阶段）。晋升先追加 `zen/phase {'full', reason}`，再解除 zen 允许列表（若设置了 `promoteDeny` 则安装该拒绝列表；TUI 发货 `BASH_OVERLAP_TOOLS`）；段落文本按日志折叠为空，因此恢复／fork 重建 face 时没有实时镜像。
+- **晋升（promotion）由宿主验证，绝不采信自我声明。**三个谓词晋升到完整 face：经校验的 `zen_anchor` 调用（非空目标、2–4 个地标、pass 级别，且默认要求日志中已有至少 1 条成功的非簿记类工具结果）、带注入叙述的步骤预算超时、或首条消息分诊（triage；足够短的单行提示词在首次请求之前直接跳过该阶段）。晋升先追加 `zen/phase {'full', reason}`，再解除 zen 允许列表（若设置了 `promoteDeny` 则安装该拒绝列表；TUI 的列表由 `BASH_OVERLAP_TOOLS` 减去已在其 face 上的 `read`，再加上 `interrupt_agent` 与 `semantic_search` 派生而来：`[edit, file_info, git, glob, grep, interrupt_agent, semantic_search, write]`）；段落文本按日志折叠为空，因此恢复／fork 重建 face 时没有实时镜像。
 - **配置错误大声失败。**配置校验在插件加载时抛错；face 中列出未注册工具则在同步的 `agent/created` 监听器内抛错，从而否决 agent 发布——这里发现的约束是：`agent/session-start` 的监听器错误会被循环*包住*，在那里武装会把配置错误退化成无声跳过。
 - **纵深防御。**只要*折叠后的日志*仍显示 zen，`ctx.tools.guard` 就拒绝 face 之外的执行，与实时 restrict 簿记相互独立；`zen/phase` 序列本身受不变量检查（持久边界的形状校验、至多武装一次、full 之后不再重复记录）。
 - **正交组合。**preset 选择会话的 roster（哪些工具存在），zen 把 roster 的暴露按时间分阶段，计划模式按权限门控变更操作，skill 仍是模型侧纪律。subagent 会话（设置了 `header.parentSession`）从不武装——它们的派发提示词就是锚点，其 profile 由路由方拥有。
@@ -39,17 +39,18 @@ zen 阶段是内建的 agent（智能体）生命周期阶段，由 `packages/gu
 - 新建顶层会话的最初几个步骤只面对不超过 4 个 schema 加锚定工具，而非约 35 个，代价是每个晋升会话一次 schema 前缀重填，多步骤任务多一次锚定往返。
 - 该阶段是部署策略，完全由配置拥有（`section`、`face`、`timeoutSteps`、`requireEvidence`、`triage`、`faceSelection`、`diet`、`promoteDeny`、`enabled`）——想保持原有行为的 bundle 设 `enabled: false` 即可。
 - 新的持久事件 `zen/phase` 加入会话词汇；消费方折叠它（最后一条生效），而不是镜像状态。
-- TUI 已接线的工具表面（memory、session-query、vision）在每个新建会话的 zen 阶段期间隐藏；分诊启发式与步骤预算限定隐藏多久。
-- TUI 顶边状态栏在相位布防期间渲染 `禅` 徽章（`preset-surface.ts` 中 `zenPhaseLabel` 折叠已记录的 `zen/phase`；晋升或 compaction 剪除后消失），发货默认值编码官方 minimal 配方 + `todo_write` + `subagent`、4 步预算、经裁剪的 `promoteDeny`。检索仍推迟，因为轴是重叠不是计数。
+- zen 阶段的隐藏只够得着部署仍然挂载的工具。TUI 把自己的 memory 与 session-query 工具行整体不挂载，因此它们是从每个请求里消失，而不是被隐藏一阵子；对仍然挂载的工具，分诊启发式与步骤预算限定该阶段隐藏它多久。
+- TUI 顶边状态栏在相位布防期间渲染 `禅` 徽章（`preset-surface.ts` 中 `zenPhaseLabel` 折叠已记录的 `zen/phase`；晋升或 compaction 剪除后消失）。包级默认值仍是官方 minimal 配方 + `todo_write` 与 4 步预算；TUI patch 把 face 覆写成极简探针对 `[bash, read]`，并配一份经裁剪的 `promoteDeny`。检索仍推迟，因为轴是重叠不是计数。
 
 ## 测试
 
 - `packages/guard/zen/tests/zen.spec.ts`——配置大声失败用例表、折叠语义、证据谓词。
 - `packages/guard/zen/tests/integration.spec.ts`——脚本化模型的完整循环运行：首个 header 的 face 快照，带 header 变更断言的锚定／超时／分诊晋升，裸锚定拒绝，zen 期间的执行拒绝，配置错误否决，subagent 排除，已武装／已晋升种子的折叠，`enabled: false`。
 - `packages/guard/zen/tests/invariant.spec.ts`——载荷形状与序列不变量，覆盖实时与迟注册两种情形。
-- `packages/tui/tui/tests/bundle-patch.spec.ts`——TUI patch 挂载 `zen` 行，带非空 section、含 `subagent` 的 `face`、等于 `BASH_OVERLAP_TOOLS` 的 `promoteDeny`，以及 diet。
+- `packages/tui/tui/tests/bundle-patch.spec.ts`——`zen` 行的非空 section、`[bash, read]` 的 face、由 `BASH_OVERLAP_TOOLS` 派生的 `promoteDeny`、两份列表互不相交，以及 diet；外加三个就地停用的工具行和六个按 id 覆写的 base 行，每一个都对照 base patch 校验 id/name 配对是否仍然存活。
 
 ## 相关
 
+- [提示词段落随工具面收窄](../bug-fix/2026-08-22-prompt-sections-follow-the-tool-face.md)——把每个 `tool:<name>` 段落随 face 一起剪除的提示词一致性不变量，以及发货的 TUI face 组合。
 - [TUI 天枢能力 roster](../feature/2026-08-17-tui-bundle-tianshu-capability-roster.md)——本阶段随之发货的接线批次。
 - [Repeat-tool-guard](../../archived/feature/2026-07-08-repeat-tool-guard.md)——guard 家族的建议档；本包这个强制档阶段与它并列。

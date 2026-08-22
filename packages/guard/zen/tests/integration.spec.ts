@@ -333,18 +333,47 @@ describe('zen phase through the agent loop', () => {
     expect(zenPhases(agent.session.events)).toEqual([{ phase: 'zen', reason: 'arm' }])
   })
 
-  it('a face naming an unregistered tool vetoes agent creation loud', async () => {
-    const adapter = new MockAdapter([])
-    const ctx = await harness(adapter, { section: SECTION, face: ['nonexistent_tool'] })
-    expect(() => ctx.agentLoop.create(SessionId('zen-misconfig'), { provider: 'mock', model: 'mock' }))
-      .toThrow(/unknown global tool/)
+  it('a face naming a tool that registers after creation still reaches the first header whole', async () => {
+    const adapter = new MockAdapter([textResponse('thinking on the completed face')])
+    const ctx = await harness(adapter, { ...BASE_CONFIG, face: ['probe', 'latecomer'] })
+    const agent = ctx.agentLoop.create(SessionId('zen-late-registration'), { provider: 'mock', model: 'mock' })
+    // A plugin waiting on an injected service registers whenever that service
+    // lands, which a front door attaching on its own services can precede.
+    ctx.tools.register(defineContentToolFixture({
+      name: 'latecomer',
+      description: 'test tool latecomer',
+      parameters: {},
+      execute: () => Promise.resolve([{ type: 'text', text: 'ran latecomer' }]),
+    }))
+
+    ask(agent, 'multi-step task: refactor the thing\nacross files')
+    await waitForIdle(ctx, agent)
+
+    expect(headerFaces(agent.session.events)[0])
+      .toEqual({ reason: 'initial', tools: ['latecomer', 'probe', 'zen_anchor'] })
   })
 
-  it('promoteDeny naming an unregistered tool vetoes agent creation loud', async () => {
+  it('a face naming a tool nothing registers survives creation but never reaches the model', async () => {
+    const adapter = new MockAdapter([textResponse('should never be requested')])
+    const ctx = await harness(adapter, { section: SECTION, face: ['nonexistent_tool'], triage: { enabled: false } })
+    const agent = ctx.agentLoop.create(SessionId('zen-misconfig'), { provider: 'mock', model: 'mock' })
+
+    ask(agent, 'multi-step task: refactor the thing\nacross files')
+    await waitForIdle(ctx, agent)
+
+    // The debt is never settled, so the pre-step waterfall keeps rejecting: a
+    // misspelled face costs the session rather than silently widening it.
+    expect(adapter.requests).toHaveLength(0)
+    expect(headerFaces(agent.session.events)).toHaveLength(0)
+  })
+
+  it('promoteDeny naming an unregistered tool fails loud when the deny list is installed', async () => {
     const adapter = new MockAdapter([])
     const ctx = await harness(adapter, { ...BASE_CONFIG, promoteDeny: ['ghost'] })
-    expect(() => ctx.agentLoop.create(SessionId('zen-promote-deny-misconfig'), { provider: 'mock', model: 'mock' }))
-      .toThrow(/unknown global tool/)
+    const agent = ctx.agentLoop.create(SessionId('zen-promote-deny-misconfig'), { provider: 'mock', model: 'mock' })
+
+    await expect(ctx.commands.execute(agent, '/fast', new AbortController().signal))
+      .rejects.toThrow(/unknown global tool/)
   })
 
   it('subagent sessions (parentSession) never arm', async () => {
@@ -512,6 +541,39 @@ describe('zen phase through the agent loop', () => {
     ask(resumedAgent, 'continue the multi-step task\nfrom the fork')
     await waitForIdle(resumedCtx, resumedAgent)
     expect(headerFaces(resumedAgent.session.events)).toEqual([{ reason: 'initial', tools: ['probe', 'zen_anchor'] }])
+  })
+
+  it('a narrowed face takes its tool guidance with it, on both the zen and the promoted side', async () => {
+    const adapter = new MockAdapter([
+      toolCallResponse('c1', 'probe', {}, 'Probing a landmark.'),
+      toolCallResponse('c2', 'zen_anchor', { goal: 'refactor the thing', landmarks: ['src/a.ts', 'pnpm test'], pass: 'full' }),
+      textResponse('done on the curated face'),
+    ])
+    const ctx = await harness(adapter, { ...BASE_CONFIG, promoteDeny: ['hammer'] })
+    ctx.systemPrompt.section({ name: 'tool:probe', order: 100, text: 'PROBE-GUIDANCE' })
+    ctx.systemPrompt.section({ name: 'tool:hammer', order: 100, text: 'HAMMER-GUIDANCE' })
+    // No tool is named `family`, so the suffix documents a group and survives.
+    ctx.systemPrompt.section({ name: 'tool:family', order: 100, text: 'FAMILY-GUIDANCE' })
+    const agent = ctx.agentLoop.create(SessionId('zen-section-strip'), { provider: 'mock', model: 'mock' })
+
+    ask(agent, 'multi-step task: refactor the thing\nacross files')
+    await waitForIdle(ctx, agent)
+
+    // Zen narrows by allow-list: `hammer` is registered but off the face, so
+    // its guidance would otherwise argue for a call the guard rejects.
+    const zenRequest = adapter.requests[0]?.system ?? ''
+    expect(zenRequest).toContain('PROBE-GUIDANCE')
+    expect(zenRequest).toContain('FAMILY-GUIDANCE')
+    expect(zenRequest).not.toContain('HAMMER-GUIDANCE')
+
+    // promoteDeny narrows the same way, and drops the model into an
+    // unknown-tool error rather than the zen guard's callable-set hint.
+    const promoted = adapter.requests.at(-1)?.system ?? ''
+    expect(promoted).toContain('PROBE-GUIDANCE')
+    expect(promoted).not.toContain('HAMMER-GUIDANCE')
+    expect(promoted).not.toContain(SECTION)
+    // The registered catalog is untouched; only the assembly narrowed.
+    expect(ctx.tools.get('hammer')).toBeDefined()
   })
 
   it('triage with promoteDeny never exposes the overlapping tool', async () => {

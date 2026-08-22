@@ -9,9 +9,11 @@
  * `/fast` command) promotes the session to the full face: it lifts the
  * zen-phase `tools.restrict({ allow: face })` and,
  * when `promoteDeny` is set, installs `restrict({ deny })` so overlapping
- * stacks leave the parent catalog. Arming is at `agent/created` (the
- * veto-capable seam, so a misconfigured face or deny list fails creation
- * loud).
+ * stacks leave the parent catalog. Arming is at `agent/created`, on whichever
+ * of the configured names the registry already carries: plugins awaiting an
+ * injected service register later, and a front door can reach this seam first.
+ * The remainder lands at the first per-agent seam, where a name nothing
+ * registers is misconfiguration and fails loud.
  *
  * Phase state is logged per session (`zen/phase`, last one wins) and folded
  * on read, so resume and fork reinstall the face without a live mirror, and
@@ -45,9 +47,11 @@ import type {} from '@huiliyi37/dsh-system-prompt'
 import type {} from '@huiliyi37/dsh-commands'
 import { selectFaceExtras, selectedFace } from './face-selection.ts'
 import { clipDescription } from './schema-diet.ts'
+import { stripUnbackedToolSections } from './tool-sections.ts'
 
 export { BASH_OVERLAP_TOOLS, selectFaceExtras, selectedFace } from './face-selection.ts'
 export { clipDescription } from './schema-diet.ts'
+export { stripUnbackedToolSections } from './tool-sections.ts'
 
 declare module '@huiliyi37/dsh-session/types' {
   interface SessionEventMap {
@@ -140,8 +144,9 @@ export interface ZenConfig {
    * (the default) lifts the zen restriction and exposes every registered
    * global tool. Non-empty installs `restrict({ deny })` so overlapping
    * stacks stay registered for subagent roles but leave the parent catalog.
-   * Unknown names fail at agent creation; a name that also appears in `face`
-   * fails at plugin load. The TUI ships {@link BASH_OVERLAP_TOOLS}.
+   * Unknown names fail when the list is installed; a name that also appears in
+   * `face` fails at plugin load. The TUI derives its list from {@link BASH_OVERLAP_TOOLS}.
+   * A denied tool's `tool:<name>` prompt section leaves the assembly with it.
    */
   promoteDeny?: readonly string[]
   /** Master switch; `false` mounts the service with no behavior. Default true. */
@@ -370,6 +375,12 @@ interface ZenInstall {
   anchor: () => void
   /** The frozen allow-list while zen is armed (alt-0, or the one-shot selection). */
   face: readonly string[]
+  /**
+   * The restriction this agent still owes because some of its names were not
+   * registered yet at `agent/created`; reapplied whole at the first per-agent
+   * seam. Absent once the live restriction matches the configured list.
+   */
+  pending?: { kind: 'allow' | 'deny'; names: readonly string[] }
 }
 
 /**
@@ -405,6 +416,24 @@ export class ZenPhaseService extends Service {
         // derives from the same per-agent face the guard and restriction enforce.
         return `${this.config.section}\n\nZen-phase callable tools: ${callableFace(face)}. Only these tools run until the phase ends.`
       },
+    })
+
+    // Narrowing the face without pruning the prompt leaves the model arguing
+    // with itself: `tool:read` says to prefer `read` over `cat` while `read`
+    // is unreachable, so it burns calls on a tool that cannot run and is told
+    // not to use the shell path that can. Both the zen allow-list and
+    // `promoteDeny` narrow, and subagent tool filters narrow the same way, so
+    // the filter keys on the assembly's own tool list rather than on config.
+    ctx.on('system-prompt/assemble', async (_assembly, _context, next) => {
+      const assembled = await next()
+      return {
+        ...assembled,
+        sections: stripUnbackedToolSections(
+          assembled.sections,
+          new Set(assembled.tools.map(tool => tool.name)),
+          name => ctx.tools.get(name) !== undefined,
+        ),
+      }
     })
 
     if (this.config.diet !== undefined) {
@@ -444,7 +473,6 @@ export class ZenPhaseService extends Service {
     // in `face`) fails creation loud instead of silently skipping the phase.
     ctx.on('agent/created', ({ agent }) => {
       if (agent.session.header.parentSession !== undefined) return
-      this.assertPromoteDenyRegistered()
       const anchor = agent.ctx.tools.register(this.anchorTool())
       const events = agent.session.events
       if (foldZenPhase(events) === 'zen') {
@@ -452,22 +480,27 @@ export class ZenPhaseService extends Service {
         // (one-shot selection survives in request/header; a pre-request seed
         // has none yet and falls back to the deployment face).
         const face = faceFromLog(events, this.config.face)
-        this.installs.set(agent, { restrict: this.installRestrict(agent, face), anchor, face })
+        this.installs.set(agent, { ...this.armRestrict(agent, 'allow', face), anchor, face })
         return
       }
       if (hasZenEvents(events) || conversationStarted(events)) {
         // Promoted history or a mid-conversation fork: reinstall the curated
         // top face (deny list, or unrestricted when the list is empty).
-        const restrict = this.installPromoteRestrict(agent)
+        const armed = this.config.promoteDeny.length === 0
+          ? undefined
+          : this.armRestrict(agent, 'deny', this.config.promoteDeny)
         this.installs.set(agent, {
           anchor,
           face: this.config.face,
-          ...(restrict === undefined ? {} : { restrict }),
+          ...(armed === undefined ? {} : armed),
         })
         return
       }
-      const restrict = this.installRestrict(agent)
-      this.installs.set(agent, { restrict, anchor, face: this.config.face })
+      this.installs.set(agent, {
+        ...this.armRestrict(agent, 'allow', this.config.face),
+        anchor,
+        face: this.config.face,
+      })
       agent.session.append('zen/phase', { phase: 'zen', reason: 'arm' })
     })
 
@@ -481,6 +514,9 @@ export class ZenPhaseService extends Service {
     // and before the driver claims it, so a skip lands before the first
     // assembly and the model never sees the zen face.
     ctx.on('agent/inbox/inserted', ({ agent, message }) => {
+      // The first inbox insert precedes the first assembly, so completing here
+      // corrects a raced arm before the model ever sees a face.
+      this.completeArm(agent)
       if (this.installs.get(agent)?.restrict === undefined) return
       const events = agent.session.events
       if (foldZenPhase(events) !== 'zen' || conversationStarted(events)) return
@@ -500,6 +536,9 @@ export class ZenPhaseService extends Service {
     ctx.on('agent/pre-step', async ({ agent, signal }, next) => {
       const decision = await next()
       if (decision.kind === 'reject' || signal.aborted) return decision
+      // A seeded or programmatic session can reach a step without an inbox
+      // insert; completing here keeps that path off a partial face too.
+      this.completeArm(agent)
       if (this.config.faceSelection.enabled) return decision
       if (this.installs.get(agent)?.restrict === undefined) return decision
       if (foldZenPhase(agent.session.events) !== 'zen') return decision
@@ -575,19 +614,68 @@ export class ZenPhaseService extends Service {
     return agent.ctx.tools.restrict({ allow: [...face] })
   }
 
+  /** Global tool names registered so far; a plugin awaiting a service is still absent. */
+  private registeredNames(): ReadonlySet<string> {
+    return new Set(this.ctx.tools.schemas().map(schema => schema.name))
+  }
+
   /**
-   * Fail loud when `promoteDeny` names a tool this deployment did not register.
-   * Called at `agent/created` so a bad deny list cannot wait until promotion.
+   * Arm a restriction against a registry that may still be filling in.
+   *
+   * `restrict()` rejects a name it cannot see, and at `agent/created` it cannot
+   * see the tools of any plugin still waiting on an injected service —
+   * `tool-bash` waits for the bash executor, `tool-fs-search` for `subprocess`,
+   * and a front door that attaches on its own services reaches this seam first.
+   * Arming on the subset that exists is strictly narrower than configured, so
+   * no tool leaks; {@link completeArm} reapplies the whole list at the first
+   * per-agent seam, where an absent name is misconfiguration rather than a race.
+   *
+   * @param agent - the agent whose scope carries the restriction.
+   * @param kind - `allow` for the zen face, `deny` for the promoted top face.
+   * @param names - the configured list.
+   * @returns the disposer plus the list still owed, if any.
    */
-  private assertPromoteDenyRegistered(): void {
-    if (this.config.promoteDeny.length === 0) return
-    const registered = new Set(this.ctx.tools.schemas().map(schema => schema.name))
-    const unknown = this.config.promoteDeny.filter(name => !registered.has(name))
-    if (unknown.length === 0) return
-    throw new Error(
-      `tools.restrict() names unknown global tool${unknown.length > 1 ? 's' : ''} `
-      + unknown.map(name => `"${name}"`).join(', '),
-    )
+  private armRestrict(
+    agent: Agent,
+    kind: 'allow' | 'deny',
+    names: readonly string[],
+  ): { restrict: () => void; pending?: { kind: 'allow' | 'deny'; names: readonly string[] } } {
+    const registered = this.registeredNames()
+    const present = names.filter(name => registered.has(name))
+    const restrict = agent.ctx.tools.restrict(kind === 'allow' ? { allow: present } : { deny: present })
+    if (present.length === names.length) return { restrict }
+    return { restrict, pending: { kind, names } }
+  }
+
+  /**
+   * Reapply a restriction armed against an incomplete registry, and fail loud
+   * when a name is still absent now that the registry has settled.
+   *
+   * The debt survives a failed attempt: `agent/inbox/inserted` contains a
+   * listener throw, so a genuinely misspelled name has to reach the waterfall
+   * at `agent/pre-step`, whose rejection the loop propagates. Reaching it costs
+   * nothing — the face stayed narrower than configured the whole time.
+   *
+   * @param agent - the agent whose armed restriction may be partial.
+   */
+  private completeArm(agent: Agent): void {
+    const install = this.installs.get(agent)
+    const pending = install?.pending
+    if (install === undefined || pending === undefined) return
+    const registered = this.registeredNames()
+    const unknown = pending.names.filter(name => !registered.has(name))
+    if (unknown.length > 0) {
+      throw new Error(
+        `dsh-zen: ${pending.kind === 'allow' ? 'face' : 'promoteDeny'} names unknown global tool`
+        + `${unknown.length > 1 ? 's' : ''} ${unknown.map(name => `"${name}"`).join(', ')}; `
+        + `known global tools: ${[...registered].sort().join(', ') || '(none)'}`,
+      )
+    }
+    install.restrict?.()
+    install.restrict = pending.kind === 'allow'
+      ? agent.ctx.tools.restrict({ allow: [...pending.names] })
+      : agent.ctx.tools.restrict({ deny: [...pending.names] })
+    delete install.pending
   }
 
   /**
@@ -707,8 +795,11 @@ export class ZenPhaseService extends Service {
           throw new Error(`${ZEN_ANCHOR} needs 2-4 non-empty landmarks (got ${landmarks.length})`)
         }
         if (this.config.requireEvidence && !hasAnchorEvidence(agent.session.events)) {
+          // Name the deployment's own face: a fixed example (`bash ls`) is the
+          // same dangling recommendation the section filter exists to remove.
+          const probes = this.installs.get(agent)?.face ?? this.config.face
           throw new Error('anchor rejected: verify one landmark first with a read-only probe '
-            + '(e.g. bash ls / cat / git status), then call zen_anchor again')
+            + `(one of: ${probes.join(', ')}), then call ${ZEN_ANCHOR} again`)
         }
         this.promote(agent, 'anchor')
         return Promise.resolve({ unlocked: true as const })
