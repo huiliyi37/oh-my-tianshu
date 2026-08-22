@@ -28,9 +28,6 @@ export interface PromotionGateResult {
   vetoSignals: string[]
 }
 
-/** 最小 readiness 样本数（天枢 MIN_TOTAL_TIER_SAMPLES 同源）。 */
-export const MIN_SAMPLES = 30
-
 /**
  * 有效模式（天枢 effectiveBanditMode 语义）：kill switch（'off'）最优先；
  * 显式模式次之。DSH 无 legacy 旗标对账。
@@ -43,19 +40,31 @@ export function effectivePromotionMode(mode: PromotionMode | undefined, killSwit
   return mode ?? 'off'
 }
 
+/** readiness 关卡策略（Config 经 resolveReadinessConfig 解析后传入）。 */
+export interface ShadowReadinessPolicy {
+  /** 最小已评估样本（低于即 veto；缺省 30，天枢 MIN_TOTAL_TIER_SAMPLES 同源）。 */
+  minSamples: number
+  /** 假绿率上限（> 即 veto；缺省 0——任何假绿都不可信）。 */
+  maxFalseGreenRate: number
+}
+
 /**
  * shadow readiness 否决阶梯（顺序敏感）：已评估决策不足 → 存在假绿 →
  * 范围健康受损。任何一级命中即不放行。
  * @param evidence - readiness 证据（evaluation.ts 投影）。
+ * @param policy - 阈值策略（Config 解析产物，无插件内默认）。
  * @returns 判定结果。
  */
-export function resolveShadowReadinessGate(evidence: ShadowReadinessEvidence): PromotionGateResult {
+export function resolveShadowReadinessGate(
+  evidence: ShadowReadinessEvidence,
+  policy: ShadowReadinessPolicy,
+): PromotionGateResult {
   const vetoSignals: string[] = []
-  if (evidence.samples < MIN_SAMPLES) {
-    vetoSignals.push(`insufficient evaluated decisions (${evidence.samples} < ${MIN_SAMPLES})`)
+  if (evidence.samples < policy.minSamples) {
+    vetoSignals.push(`insufficient evaluated decisions (${evidence.samples} < ${policy.minSamples})`)
   }
-  if (evidence.falseGreenRate > 0) {
-    vetoSignals.push(`false-green rate ${evidence.falseGreenRate} > 0`)
+  if (evidence.falseGreenRate > policy.maxFalseGreenRate) {
+    vetoSignals.push(`false-green rate ${evidence.falseGreenRate} > ${policy.maxFalseGreenRate}`)
   }
   if (evidence.scopeHealth !== 'healthy') {
     vetoSignals.push(`scope health ${evidence.scopeHealth}`)

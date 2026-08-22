@@ -110,8 +110,9 @@ declare module '@huiliyi37/dsh-session/types' {
     'router/decision': RouterDecisionRecord
     /**
      * 决策评估的持久归账（父会话日志，log-only，不进模型面）：决策的观察
-     * 窗口（其后至多 windowToolResults 条父会话 tool/result）闭合时落一条，
-     * 分类 recovered / persisted / inconclusive；每条 decision 至多一条
+     * 窗口（其后至多 windowToolResults 条父会话 tool/result，不越过更晚的
+     * 决策；日志终结时以 final 模式收尾）闭合时落一条，分类
+     * recovered / persisted / inconclusive；每条 decision 至多一条
      * evaluation（不变量强制），decisionId 必须引用本会话更早的决策。
      */
     'router/evaluation': {
@@ -374,6 +375,7 @@ export interface AutoDispatchPolicy {
 
 /** 自动派发策略的五个必填字段。 */
 const AUTO_POLICY_FIELDS = ['maxConcurrent', 'maxTotal', 'cooldownTurns', 'maxSteps', 'timeoutMs'] as const
+type AutoPolicyField = typeof AUTO_POLICY_FIELDS[number]
 
 /**
  * 校验并默认自动派发策略：mode 'auto' 时五个字段全部显式必填（灰度上限是
@@ -389,15 +391,20 @@ export function resolveAutoPolicy(config: AgentRouterConfig): AutoDispatchPolicy
     throw new Error(`agent-router: trigger.mode 'auto' requires explicit auto.${missing.join(', auto.')} (canary caps are assembly values, never plugin defaults)`)
   }
   const raw = config.auto ?? {}
-  const policy = {} as Record<keyof AutoDispatchPolicy, number>
-  for (const field of AUTO_POLICY_FIELDS) {
-    const value: number | undefined = raw[field]
-    if (!Number.isInteger(value) || (value as number) < 1) {
+  const positiveInt = (field: AutoPolicyField): number => {
+    const value = raw[field]
+    if (value === undefined || !Number.isInteger(value) || value < 1) {
       throw new Error(`agent-router: auto.${field} must be a positive integer, got ${JSON.stringify(value)}`)
     }
-    policy[field] = value as number
+    return value
   }
-  return policy as AutoDispatchPolicy
+  return {
+    maxConcurrent: positiveInt('maxConcurrent'),
+    maxTotal: positiveInt('maxTotal'),
+    cooldownTurns: positiveInt('cooldownTurns'),
+    maxSteps: positiveInt('maxSteps'),
+    timeoutMs: positiveInt('timeoutMs'),
+  }
 }
 
 /**
@@ -655,8 +662,8 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
   // —— 决策归账（Phase 1）：闭合的观察窗口 → router/evaluation + 关卡留痕 ——
   // 纯投影从日志推导待归账决策；本函数只在微任务中调用（绝不重入发布中的
   // Session.append）。关卡只记录 verdict/veto 理由，绝不切换模式。
-  const closeDueEvaluations = (owner: Session): void => {
-    const due = pendingEvaluations(owner.events, evaluationConfig)
+  const closeDueEvaluations = (owner: Session, opts: { final?: boolean } = {}): void => {
+    const due = pendingEvaluations(owner.events, evaluationConfig, opts)
     if (due.length === 0) return
     for (const entry of due) {
       const stats = observeWindow(owner.events, entry.decisionIndex, evaluationConfig)
@@ -667,7 +674,7 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
         windowFailures: stats.failures,
       })
     }
-    const readiness = resolveShadowReadinessGate(shadowReadiness(owner.events, readinessConfig))
+    const readiness = resolveShadowReadinessGate(shadowReadiness(owner.events, readinessConfig), readinessConfig)
     owner.append('router/gate', {
       kind: 'shadow-readiness',
       verdict: readiness.enabled ? 'pass' : 'veto',
@@ -690,6 +697,9 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
   const runTrigger = async (owner: Session): Promise<void> => {
     const metricsSnapshot = collectMetrics(owner.id)
     const action = decideRouterAction(metricsSnapshot, obligationHint(), escalationPolicy)
+    // 冷却分母是「合格 turn」全量（self 也计数）——间隔衡量真实时间推进，
+    // 不因路由恰好走 self 而暂停。
+    if (trigger.mode === 'auto' && autoPolicy !== undefined) stateOf(owner.id).qualifiedTurns++
     if (action.kind === 'self') {
       // 合格 turn-end 全量落决策：self 也带完整指标输入，消除只有 delegate
       // 分子的偏差（合格 turn 分母与 self/delegate 比例可从任一日志重建）。
@@ -723,7 +733,6 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
     // mode 'auto' 在装配期已保证 autoPolicy 就位（resolveAutoPolicy fail loud）。
     if (autoPolicy === undefined) return
     const runState = stateOf(owner.id)
-    runState.qualifiedTurns++
     const cooled = runState.lastDispatchTurn !== undefined
       && runState.qualifiedTurns - runState.lastDispatchTurn < autoPolicy.cooldownTurns
     if (runState.inFlight >= autoPolicy.maxConcurrent
@@ -815,9 +824,12 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
   })
 
   // —— 会话终结回收：agent 注销时 evict 该会话的累计器与派发状态（长驻进程
-  // 防无界增长），并收敛在飞自动 run（父 dispose → abort 全部 controller）——
+  // 防无界增长），并收敛在飞自动 run（父 dispose → abort 全部 controller）；
+  // 终结前以 final 模式归账尾部未闭合窗口——会话最后一条决策不再系统性漏记
+  // （样本即所得，不足 minSamples 自然落 inconclusive）——
   ctx.on('agent/disposed', ({ agent }) => {
     predictions.delete(agent.session.id)
+    closeDueEvaluations(agent.session, { final: true })
     const state = runStates.get(agent.session.id)
     if (state === undefined) return
     for (const controller of state.controllers) controller.abort()
@@ -854,7 +866,7 @@ export { dispatchSubagent, SUBAGENT_TASK_PREFIX, type DispatchOptions, type Disp
 export { boundFinding, boundFindingText, FINDING_SCHEMA_BY_PROFILE, FINDING_SUMMARY_MAX_CHARS, FINDING_ITEM_MAX_CHARS, FINDING_ITEMS_MAX, type RouterFinding, type ScoutFinding, type VerifyFinding } from './finding.js'
 export { ADOPT_TOOL_NAME, DEFAULT_SYNTHESIS_SECTION, parseAdoptArgs, pendingOutcomes, renderSynthesisSection, verificationGap, type AdoptArgs, type AdoptVerdict, type PendingOutcome } from './synthesis.js'
 export { mergeBudgetOverride, resolveBudgetConfig, shapeWriteBudget, type BudgetConfig, type BudgetShape } from './budget.js'
-export { MIN_SAMPLES, effectivePromotionMode, resolveCanaryHealthGate, resolveShadowReadinessGate, type CanaryGatePolicy, type PromotionGateResult, type PromotionMode } from './promotion.js'
+export { effectivePromotionMode, resolveCanaryHealthGate, resolveShadowReadinessGate, type CanaryGatePolicy, type PromotionGateResult, type PromotionMode, type ShadowReadinessPolicy } from './promotion.js'
 export {
   canaryHealth,
   classifyObservation,

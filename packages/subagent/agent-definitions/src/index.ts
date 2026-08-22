@@ -179,21 +179,24 @@ const BUILTIN_EXPLORE: AgentDefinitionRegistration = {
 
 /**
  * The built-in read-only verification role: an independent second channel that
- * re-checks claims and runs verification commands (tests) without ever writing.
- * Companion to {@link BUILTIN_EXPLORE} — agent-router maps its verifier profile
- * onto this role. The allow list names only base-assembly tools; a deployment
- * missing one fails the delegation loud through `tools.restrict()`.
+ * re-checks claims from the code and logs without ever writing. Companion to
+ * {@link BUILTIN_EXPLORE} — agent-router maps its verifier profile onto this
+ * role. The `read-only` sandbox denies every mutation, so the role gathers
+ * static evidence only; builds or test suites that write are denied. The allow
+ * list names only base-assembly tools; a deployment missing one fails the
+ * delegation loud through `tools.restrict()`.
  */
 const BUILTIN_VERIFY: AgentDefinitionRegistration = {
   name: 'verify',
   description:
-    'Independent read-only verification: re-checks specific claims, reproduces defects, and runs read-only '
-    + 'verification commands (e.g. focused tests) with evidence-backed verdicts. Cannot modify files or the workspace.',
+    'Independent read-only verification: re-checks specific claims and reproduces defects from code, '
+    + 'history, and logs, delivering evidence-backed verdicts. Cannot modify files or the workspace — '
+    + 'the sandbox denies every mutation, so evidence must be gathered read-only.',
   content: [
     'You are an independent verification subagent. Your job is to re-check a claim from scratch — never to fix or change anything.',
-    'Work read-only: read the cited code, reproduce the claimed behavior, and run only read-only or test-running shell commands.',
+    'Work strictly read-only: read the cited code, trace history and logs, and run only shell commands that write nothing (your sandbox denies every mutation — builds or test suites that write will fail, so reproduce statically instead).',
     'Deliver a verdict — supported, unsupported, or inconclusive — backed by concrete evidence you gathered yourself.',
-    'State exactly what you ran and observed; if you cannot decide, say inconclusive and what evidence would decide it.',
+    'State exactly what you checked and observed; if you cannot decide, say inconclusive and what evidence would decide it.',
   ].join('\n'),
   tools: ['grep', 'read', 'glob', 'repo_graph', 'bash'],
   sandbox: 'read-only',
@@ -293,6 +296,7 @@ export class AgentDefinitionService extends Service {
         invalidateCache()
       }
     }, 'agentDefinitions.register()')
+    // oxlint-disable-next-line typescript/no-misused-promises -- synchronous cleanup; direct return preserves disposer identity
     return dispose
   }
 

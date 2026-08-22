@@ -30,6 +30,15 @@ interface SubagentCapabilities {
   readonly toolFilter: boolean
   readonly persona: boolean
   readonly sandboxMode: boolean
+  /**
+   * Whether the provider can honor {@link SubagentStartRequest.runBudget}:
+   * enforce a relative step + wall-clock budget on the child run and settle it
+   * with a distinguishable `budget-exhausted` stop reason. Providers that
+   * cannot guarantee the contract must declare `false` — the service rejects a
+   * budgeted request on them before `start` runs (fail loud, no
+   * accepted-then-ignored budgets).
+   */
+  readonly runBudget: boolean
 }
 ```
 
@@ -104,6 +113,16 @@ interface SubagentStartRequest {
    * through this field.
    */
   readonly sandboxMode?: 'read-only'
+  /**
+   * Optional relative run budget for the child: a maximum model-step count and
+   * a wall-clock timeout, both measured on the child run itself. Requires
+   * {@link SubagentCapabilities.runBudget}; rejected at start otherwise. A
+   * budgeted child that exhausts either bound settles with the
+   * `budget-exhausted` stop reason — distinguishable from a parent
+   * cancellation (`aborted`) so consumers can tell "the budget said no" from
+   * "the parent said stop".
+   */
+  readonly runBudget?: { maxSteps: number; timeoutMs: number }
 }
 ```
 
@@ -124,7 +143,7 @@ interface ResolvedSubagentStartRequest extends SubagentStartRequest {
 
 ## Agent role definitions (`ctx.agentDefinitions`)
 
-A **role** is a named composition of start-request inputs — persona body, tool allow list, model route, sandbox narrowing — that one delegation call merges into its request; it is not a provider, and provider selection stays with the delegation tool's deployment configuration. `AgentDefinitionService` discovers roles from flat `<name>.md` files whose YAML frontmatter carries a required `name` and `description` plus an optional `tools` allow list and `model`, with the markdown body becoming the persona. Discovery mirrors [the skill seam's](skills.md) local shape: ranked roots — project `.dsh/agents` (100) and `.agents/agents` (200), custom roots (300), user `~/.dsh-tianshu/agents` (400) and `~/.agents/agents` (500), a configured bundled root (600) — first-wins duplicate handling, and watcher-driven invalidation. Runtime registrations through `register()` sit at rank 250; that seam hosts the built-in read-only `explore` role (a `grep`/`read`/`glob`/`semantic_search`/`bash` allow list plus a `read-only` sandbox narrowing).
+A **role** is a named composition of start-request inputs — persona body, tool allow list, model route, sandbox narrowing — that one delegation call merges into its request; it is not a provider, and provider selection stays with the delegation tool's deployment configuration. `AgentDefinitionService` discovers roles from flat `<name>.md` files whose YAML frontmatter carries a required `name` and `description` plus an optional `tools` allow list and `model`, with the markdown body becoming the persona. Discovery mirrors [the skill seam's](skills.md) local shape: ranked roots — project `.dsh/agents` (100) and `.agents/agents` (200), custom roots (300), user `~/.dsh-tianshu/agents` (400) and `~/.agents/agents` (500), a configured bundled root (600) — first-wins duplicate handling, and watcher-driven invalidation. Runtime registrations through `register()` sit at rank 250; that seam hosts the built-in read-only `explore` role (a `grep`/`read`/`glob`/`semantic_search`/`bash` allow list plus a `read-only` sandbox narrowing) and the built-in read-only `verify` role (an evidence-verdict companion agent-router maps its verifier profile onto; static evidence only, since the `read-only` sandbox denies every mutation).
 
 ```ts type-equiv
 /** Invocation-neutral role metadata returned by `ctx.agentDefinitions.list()`. */
@@ -425,6 +444,12 @@ interface SubagentStopReasonMap {
   'max-tokens': 'max-tokens'
   /** The child declined the task. */
   refusal: 'refusal'
+  /**
+   * The child exhausted its declared {@link SubagentStartRequest.runBudget}
+   * (step count or wall clock). Distinct from `aborted` so consumers can tell
+   * "the budget said no" from "the parent said stop".
+   */
+  'budget-exhausted': 'budget-exhausted'
 }
 ```
 

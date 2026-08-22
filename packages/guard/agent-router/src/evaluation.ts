@@ -2,12 +2,13 @@
  * evaluation.ts — shadow 评估的纯函数投影：会话日志 → 观察窗口分类与
  * readiness/canary 证据。
  *
- * 决策（`router/decision`）落盘后，其观察窗口是该会话日志中紧随其后的
- * 至多 `windowToolResults` 条 `tool/result`。窗口闭合（样本满或被更晚的
- * 决策取代）时归账为一条 `router/evaluation`，分类 recovered / persisted /
- * inconclusive；每条决策至多一条评估（不变量强制）。readiness/canary 证据
- * 同样从日志投影——shadow 无真实派发时 canary 证据恒为零值，绝不伪造
- * 收益边际（veto 阶梯见 promotion.ts）。
+ * 决策（`router/decision`）落盘后，其观察窗口是该会话日志中紧随其后、且
+ * 不越过更晚决策的至多 `windowToolResults` 条 `tool/result`（归属边界：
+ * 同一批结果不重复进两条决策的窗口）。窗口闭合（样本满、被更晚的决策
+ * 取代、或日志终结的 final 收尾）时归账为一条 `router/evaluation`，分类
+ * recovered / persisted / inconclusive；每条决策至多一条评估（不变量强制）。
+ * readiness/canary 证据同样从日志投影——shadow 无真实派发时 canary 证据
+ * 恒为零值，绝不伪造收益边际（veto 阶梯见 promotion.ts）。
  *
  * @module @huiliyi37/dsh-agent-router/evaluation
  */
@@ -93,7 +94,9 @@ function isFailedResult(event: SessionEvent): boolean {
 
 /**
  * 统计某条决策之后的观察窗口（事件数组下标制，不依赖 seq——测试替身的
- * 追加事件可无 seq）。只统计 `tool/result`；其余记录类型原样越过。
+ * 追加事件可无 seq）。只统计 `tool/result`；其余记录类型原样越过，但窗口
+ * 不越过更晚的 `router/decision`——归属边界：同一批工具结果只进它所属
+ * 决策点的窗口，不被上一条决策重复归账。
  * @param events - 会话事件日志（权威来源）。
  * @param decisionIndex - 决策事件在数组中的下标。
  * @param config - 评估配置。
@@ -107,6 +110,7 @@ export function observeWindow(
   const stats: ObservationStats = { samples: 0, failures: 0, trailingSuccesses: 0 }
   for (let index = decisionIndex + 1; index < events.length && stats.samples < config.windowToolResults; index++) {
     const event = events[index]
+    if (event?.type === 'router/decision') break
     if (event?.type !== 'tool/result') continue
     stats.samples++
     if (isFailedResult(event)) {
@@ -149,12 +153,18 @@ export interface PendingEvaluation {
 /**
  * 待归账决策投影：尚无配对 `router/evaluation` 且窗口已闭合的决策。
  * 闭合条件（任一）：窗口样本满；日志中存在更晚的决策（该决策点取代了
- * 未满的窗口）。按日志顺序返回。
+ * 未满的窗口）；`final` 模式（日志终结，会话尾部）下所有未归账决策一律
+ * 到期——样本即所得，不足 minSamples 自然落 inconclusive。按日志顺序返回。
  * @param events - 会话事件日志。
  * @param config - 评估配置。
+ * @param opts - `final: true` 时按日志终结归账（agent/disposed 终末收尾用）。
  * @returns 待归账决策列表。
  */
-export function pendingEvaluations(events: readonly SessionEvent[], config: EvaluationConfig): PendingEvaluation[] {
+export function pendingEvaluations(
+  events: readonly SessionEvent[],
+  config: EvaluationConfig,
+  opts: { final?: boolean } = {},
+): PendingEvaluation[] {
   interface OpenDecision extends PendingEvaluation {
     samples: number
   }
@@ -195,7 +205,7 @@ export function pendingEvaluations(events: readonly SessionEvent[], config: Eval
       }
     }
   }
-  return open.filter(entry => entry.samples >= config.windowToolResults)
+  return open.filter(entry => opts.final === true || entry.samples >= config.windowToolResults)
 }
 
 /* jscpd:ignore-start */
@@ -357,7 +367,8 @@ export interface CanaryHealthEvidence {
   budgetExhausted: number
   /**
    * 收益代理：canary 窗口内「已评估的真实派发决策」中 recovered 占比
-   * （0-1）；无已评估派发时为 0（由 veto 阶梯以样本门先行拦住）。
+   * （0-1）；无已评估派发时为 0（由 veto 阶梯以样本门先行拦住）。分子
+   * 分母与 dispatches/adopted/rejected 同窗口（最近 canary.window 次派发）。
    */
   benefitProxy: number
   /** 参与收益代理计算的已评估派发决策数。 */
@@ -439,12 +450,15 @@ export function canaryHealth(events: readonly SessionEvent[], config: CanaryConf
       if (typeof subagentSessionId === 'string' && windowChildIds.has(subagentSessionId)) budgetExhausted++
     }
   }
-  // 收益代理：真实派发（dispatched 的 delegate 决策）经评估后 recovered 占比。
+  // 收益代理：窗口内真实派发（dispatched 的 delegate 决策）经评估后
+  // recovered 占比——与上方 dispatch/adopt/reject 同一窗口口径。
   const dispatchedByDecision = new Map<string, string>()
   for (const event of events) {
     if (event.type !== 'router/decision') continue
-    const data = event.data as { decisionId?: unknown; dispatched?: unknown; subagentSessionId?: unknown }
-    if (data.dispatched === true && typeof data.decisionId === 'string' && typeof data.subagentSessionId === 'string') {
+    const data = event.data as { decisionId?: unknown; action?: unknown; dispatched?: unknown; subagentSessionId?: unknown }
+    if (data.action === 'delegate' && data.dispatched === true
+      && typeof data.decisionId === 'string' && typeof data.subagentSessionId === 'string'
+      && windowChildIds.has(data.subagentSessionId)) {
       dispatchedByDecision.set(data.decisionId, data.subagentSessionId)
     }
   }

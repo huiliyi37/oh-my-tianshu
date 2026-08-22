@@ -631,6 +631,40 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     expect(dispatches).toHaveLength(2)
   }, 10000)
 
+  it('冷却按合格 turn 全量计数：self 决策轮也推进冷却间隔', async () => {
+    const { seam, emit } = makeContext({
+      trigger: { mode: 'auto', onTurnEnd: true },
+      auto: { maxConcurrent: 1, maxTotal: 5, cooldownTurns: 2, maxSteps: 24, timeoutMs: 600000 },
+    })
+    const A = SessionId('session-a')
+    const appended: Array<{ type: string; data: Record<string, unknown> }> = []
+    const session = {
+      id: A,
+      header: {},
+      events: [] as SessionEvent[],
+      append: (type: string, data: unknown) => { appended.push({ type, data: data as Record<string, unknown> }) },
+    }
+    const endTurn = (): void => {
+      emit('session/event', session, {
+        type: 'turn/end', seq: appended.length, time: 1, data: { turn: appended.length, reason: { kind: 'completed' } },
+      })
+    }
+    // t1：连败 → 首次派发（冷却起点，qualifiedTurns=1）。
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    endTurn()
+    await vi.waitFor(() => { expect(seam.start).toHaveBeenCalledTimes(1) })
+    // t2：全成功 → self 决策（qualifiedTurns=2；self 轮也计入冷却分母）。
+    for (let i = 0; i < 8; i++) runTool(emit, false, { id: A })
+    endTurn()
+    await vi.waitFor(() => {
+      expect(appended.some(entry => (entry.data as { action?: string }).action === 'self')).toBe(true)
+    })
+    // t3：再连败 → 距首派发已过 2 个合格 turn（3-1 ≥ cooldown 2）→ 第二次派发。
+    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    endTurn()
+    await vi.waitFor(() => { expect(seam.start).toHaveBeenCalledTimes(2) }, { timeout: 5_000 })
+  }, 10000)
+
   it('综合提示：存在未综合 child 结论时渲染，adoption 后清除', async () => {
     const { ctx, registeredTools, registeredSections, parentSession, emit } = makeContext()
     const router = ctx.get('router') as RouterService
@@ -751,14 +785,25 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     expect(open.registeredSections.some(section => section.name === 'router:synthesis')).toBe(true)
   })
 
-  it('agent/disposed 时 evict 该会话的累计器', async () => {
-    const { ctx, emit } = makeContext()
+  it('agent/disposed 时 evict 累计器，并以 final 模式归账尾部未闭合窗口', async () => {
+    const { ctx, emit } = makeContext({ trigger: { mode: 'shadow', onTurnEnd: true } })
     const router = ctx.get('router') as RouterService
     const A = SessionId('session-a')
+    const { records, session, emitTool } = makeLedgerSession(emit, A)
 
-    for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
+    for (let i = 0; i < 8; i++) emitTool(true)
     expect(router.metrics({ sessionId: A }).interventionLevel).toBe('escalate')
-    emit('agent/disposed', { agent: { session: { id: A } } })
+    emit('session/event', session, { type: 'turn/end', seq: 90, time: 1, data: { turn: 1, reason: { kind: 'completed' } } })
+    await vi.waitFor(() => { expect(records.some(record => record.type === 'router/decision')).toBe(true) })
+    // 尾部：2 条成功后日志终结——窗口未满也未被取代。
+    emitTool(false)
+    emitTool(false)
+    // dispose 载荷携带真 Session（events 可读）；handler 先 final 归账再 evict。
+    emit('agent/disposed', { agent: { session } })
+    const finalEvaluation = records.find(record => record.type === 'router/evaluation')?.data as
+      | { classification: string; samples: number }
+      | undefined
+    expect(finalEvaluation).toMatchObject({ classification: 'inconclusive', samples: 2 })
     expect(router.metrics({ sessionId: A }).interventionLevel).toBe('none')
   }, 10000)
 

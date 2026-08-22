@@ -130,6 +130,31 @@ describe('pendingEvaluations', () => {
     const due = pendingEvaluations(events, CONFIG)
     expect(due.map(entry => entry.decisionId)).toEqual(['d1'])
   })
+
+  it('final 模式：日志终结时所有未归账决策到期（会话尾部不漏记）', () => {
+    const events: SessionEvent[] = [decision('d1'), toolResult(true), decision('d2')]
+    // 常规模式：d1 被取代到期，d2 样本 0 未到期。
+    expect(pendingEvaluations(events, CONFIG).map(entry => entry.decisionId)).toEqual(['d1'])
+    // final 模式：d2 一并到期（样本即所得，分类交由 minSamples 判 inconclusive）。
+    expect(pendingEvaluations(events, CONFIG, { final: true }).map(entry => entry.decisionId)).toEqual(['d1', 'd2'])
+  })
+})
+
+describe('observeWindow 归属边界', () => {
+  it('被取代窗口截断到更晚的决策点：不重复归账它决策的工具结果', () => {
+    const events: SessionEvent[] = [
+      decision('d1'),
+      toolResult(true), toolResult(true),
+      decision('d2'),
+      toolResult(true), toolResult(true), toolResult(true), toolResult(true),
+    ]
+    // d1 窗口只含 d2 之前的 2 条失败；d2 之后的 4 条属于 d2 的窗口。
+    const d1 = observeWindow(events, 0, CONFIG)
+    expect(d1.samples).toBe(2)
+    expect(d1.failures).toBe(2)
+    const d2 = observeWindow(events, 3, CONFIG)
+    expect(d2.samples).toBe(4)
+  })
 })
 
 describe('evaluatedDecisions + shadowReadiness', () => {
@@ -222,5 +247,24 @@ describe('canaryHealth', () => {
     ]
     const evidence = canaryHealth(events, { ...CANARY, window: 2 })
     expect(evidence.dispatches).toBe(2)
+  })
+
+  it('收益代理与声明同窗口：窗口外的已评估派发不进分子分母', () => {
+    const events: SessionEvent[] = [
+      decision('d1', { action: 'delegate', profile: 'verifier', task: 't', targets: [], mode: 'auto', dispatched: true, subagentSessionId: 'child-1' }),
+      route('child-1'),
+      adoption('child-1', 'adopt'),
+      evaluation('d1', 'recovered', 2),
+      decision('d2', { action: 'delegate', profile: 'verifier', task: 't', targets: [], mode: 'auto', dispatched: true, subagentSessionId: 'child-2' }),
+      route('child-2'),
+      adoption('child-2', 'reject'),
+      evaluation('d2', 'persisted', 6),
+    ]
+    // 窗口 1：只剩 child-2 的派发在窗口内——d1 的评估不再计入收益代理，
+    // 声明比对（adopt+reject ≥ evaluatedDispatches）也按同窗口口径成立。
+    const evidence = canaryHealth(events, { ...CANARY, window: 1 })
+    expect(evidence.dispatches).toBe(1)
+    expect(evidence.evaluatedDispatches).toBe(1)
+    expect(evidence.benefitProxy).toBe(0)
   })
 })

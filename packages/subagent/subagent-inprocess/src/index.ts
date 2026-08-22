@@ -302,8 +302,9 @@ function readResult(
   // Disposal can tear the owner down before the loop records its ordinary
   // `aborted` end, yielding `disposed` instead.
   let stopReason: SubagentStopReason = cancelled && recorded !== 'completed' ? 'aborted' : recorded
-  // A fired budget bound wins over the abort it caused, unless the child had
-  // already completed — the budget never retroactively fails a finished run.
+  // A fired budget bound wins over any non-completed terminal — the abort it
+  // caused, plus teardown races that drop the aborted recording — but never
+  // retroactively fails a run the child already completed.
   if (budgetExhausted && stopReason !== 'completed') stopReason = 'budget-exhausted'
   if (structured !== undefined) {
     if (structured.captured !== undefined) {

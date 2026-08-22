@@ -40,6 +40,7 @@ worktrees/
 
 # Harness runtime state (plans, knowledge, scratch, backups, artifacts).
 .rivet/
+plans/
 
 # Cross-session memory the dsh-memory plugins write under process.cwd()
 # (global.md, ltm.sqlite) when dogfooding inside this repository.

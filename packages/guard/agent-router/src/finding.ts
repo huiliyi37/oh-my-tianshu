@@ -32,8 +32,9 @@ export interface VerifyFinding {
 /** 有界 finding 判别联合。 */
 export type RouterFinding = ScoutFinding | VerifyFinding
 
-/** 安全限界（不变量而非可调旋钮）：摘要与每条 finding 的字符上限。 */
+/** 安全限界（不变量而非可调旋钮）。 */
 export const FINDING_SUMMARY_MAX_CHARS = 1200
+/** 单条 finding 的字符上限。 */
 export const FINDING_ITEM_MAX_CHARS = 400
 /** findings 数组的条数上限。 */
 export const FINDING_ITEMS_MAX = 8
@@ -41,7 +42,7 @@ export const FINDING_ITEMS_MAX = 8
 /** verifier 裁定的闭合枚举。 */
 const VERDICTS: ReadonlySet<string> = new Set(['supported', 'unsupported', 'inconclusive'])
 
-/** 两个 profile 的闭合 outputSchema（seam 支持子集：type/enum/properties/required/items）。 */
+/** 两个 profile 的闭合 outputSchema（seam 支持子集：type/enum/properties/required/items/additionalProperties）。 */
 export const FINDING_SCHEMA_BY_PROFILE: Record<'code_scout' | 'verifier', ObjectJsonSchema> = {
   code_scout: {
     type: 'object',
@@ -68,8 +69,10 @@ export const FINDING_SCHEMA_BY_PROFILE: Record<'code_scout' | 'verifier', Object
 
 /**
  * 父边界的一次性净化：折叠控制字符与换行为单行空格、裁掉首尾空白、按上限
- * 截断。持久值即渲染值——synthesis 逐字取用，不再二次加工。
+ * 截断（UTF-16 截断后丢弃尾部孤立代理对，不落半个字符）。持久值即渲染值
+ * ——synthesis 逐字取用，不再二次加工。
  * @param raw - 子代理产出的原始字符串。
+ * @param maxChars - 截断上限（UTF-16 code unit 数）。
  * @returns 净化后的单行有界字符串。
  */
 export function boundFindingText(raw: unknown, maxChars: number): string {
@@ -77,7 +80,11 @@ export function boundFindingText(raw: unknown, maxChars: number): string {
   const singleLine = raw.replace(/[\r\n\t\f\v]+/g, ' ')
   // 去除 C0 控制字符（保留空格）；再截断到上限。
   const printable = singleLine.replace(/[\u0000-\u001f\u007f]/g, '').trim()
-  return printable.length > maxChars ? printable.slice(0, maxChars) : printable
+  if (printable.length <= maxChars) return printable
+  let cut = printable.slice(0, maxChars)
+  // 尾字符是高代理（低代理被截掉）时丢弃，避免持久化半个字符。
+  if (/[\uD800-\uDBFF]$/.test(cut)) cut = cut.slice(0, -1)
+  return cut
 }
 
 /**

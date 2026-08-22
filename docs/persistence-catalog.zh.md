@@ -637,23 +637,55 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 
 ```ts persistence-catalog
 /**
- * 触发评估的持久记录（父会话日志，log-only，不进模型面）：每次 turn-end
- * 评估落一条——profile/task/targets 是判定输入，mode 区分 shadow（只记录
- * 不派发）与 auto（真实派发），dispatched 与 subagentSessionId 记录派发
- * 结果（仅 auto 且真实派发时携带 subagentSessionId）。
+ * 触发评估的持久记录（父会话日志，log-only，不进模型面）：每个非 zen
+ * 的合格 turn-end 落一条——self 与 delegate 全量记账（分母/比例可从任一
+ * 日志重建），带品牌化 decisionId 与决策时的完整 RouterMetrics 输入。
+ * 判别联合以 action 区分（{@link RouterDecisionRecord}）。
  */
-'router/decision': {
-  profile: 'code_scout' | 'verifier'
-  task: string
-  targets: string[]
-  reason: 'turn-end'
-  mode: 'shadow' | 'auto'
-  dispatched: boolean
-  subagentSessionId?: string
+'router/decision': RouterDecisionRecord
+```
+
+来源：[`packages/guard/agent-router/src/index.ts`](../packages/guard/agent-router/src/index.ts)
+
+#### `router/evaluation` — log-only
+
+```ts persistence-catalog
+/**
+ * 决策评估的持久归账（父会话日志，log-only，不进模型面）：决策的观察
+ * 窗口（其后至多 windowToolResults 条父会话 tool/result，不越过更晚的
+ * 决策；日志终结时以 final 模式收尾）闭合时落一条，分类
+ * recovered / persisted / inconclusive；每条 decision 至多一条
+ * evaluation（不变量强制），decisionId 必须引用本会话更早的决策。
+ */
+'router/evaluation': {
+  decisionId: string
+  classification: 'recovered' | 'persisted' | 'inconclusive'
+  /** 归账窗口内的父会话工具结果数。 */
+  samples: number
+  /** 归账窗口内的失败数（false-green 判定输入）。 */
+  windowFailures: number
 }
 ```
 
-来源：[`packages/guard/agent-router/src/index.ts:87`](../packages/guard/agent-router/src/index.ts)
+来源：[`packages/guard/agent-router/src/index.ts`](../packages/guard/agent-router/src/index.ts)
+
+#### `router/gate` — log-only
+
+```ts persistence-catalog
+/**
+ * 晋升关卡留痕（父会话日志，log-only，不进模型面）：关卡是纯函数判定，
+ * 只记录 verdict 与 veto 理由，绝不自行切换模式——产品始终通过配置人工
+ * 晋升。shadow-readiness 回答 shadow 数据是否可信；canary-health 仅在
+ * auto 装配上记录，回答灰度本身是否健康。
+ */
+'router/gate': {
+  kind: 'shadow-readiness' | 'canary-health'
+  verdict: 'pass' | 'veto'
+  vetoSignals: string[]
+}
+```
+
+来源：[`packages/guard/agent-router/src/index.ts`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/outcome` — log-only
 
@@ -661,9 +693,13 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 /**
  * Durable outcome record on the PARENT session's log: log-only (never
  * reaches the model surface), whole-value append when the child settles.
- * Paired one-to-one with the acceptance `router/route` record.
+ * Paired one-to-one with the acceptance `router/route` record. A bounded
+ * structured `finding` is present only when the child completed AND its
+ * structured capture passed the parent-boundary shape check — errors,
+ * cancellations, budget terminals, and malformed captures never fabricate
+ * one.
  */
-'router/outcome': { subagentSessionId: string; stopReason: string }
+'router/outcome': { subagentSessionId: string; stopReason: string; finding?: RouterFinding }
 ```
 
 来源：[`packages/guard/agent-router/src/index.ts:73`](../packages/guard/agent-router/src/index.ts)

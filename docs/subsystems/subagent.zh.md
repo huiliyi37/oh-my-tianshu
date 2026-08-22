@@ -30,6 +30,15 @@ interface SubagentCapabilities {
   readonly toolFilter: boolean
   readonly persona: boolean
   readonly sandboxMode: boolean
+  /**
+   * Whether the provider can honor {@link SubagentStartRequest.runBudget}:
+   * enforce a relative step + wall-clock budget on the child run and settle it
+   * with a distinguishable `budget-exhausted` stop reason. Providers that
+   * cannot guarantee the contract must declare `false` — the service rejects a
+   * budgeted request on them before `start` runs (fail loud, no
+   * accepted-then-ignored budgets).
+   */
+  readonly runBudget: boolean
 }
 ```
 
@@ -104,6 +113,16 @@ interface SubagentStartRequest {
    * through this field.
    */
   readonly sandboxMode?: 'read-only'
+  /**
+   * Optional relative run budget for the child: a maximum model-step count and
+   * a wall-clock timeout, both measured on the child run itself. Requires
+   * {@link SubagentCapabilities.runBudget}; rejected at start otherwise. A
+   * budgeted child that exhausts either bound settles with the
+   * `budget-exhausted` stop reason — distinguishable from a parent
+   * cancellation (`aborted`) so consumers can tell "the budget said no" from
+   * "the parent said stop".
+   */
+  readonly runBudget?: { maxSteps: number; timeoutMs: number }
 }
 ```
 
@@ -124,7 +143,7 @@ interface ResolvedSubagentStartRequest extends SubagentStartRequest {
 
 ## Agent 角色定义（`ctx.agentDefinitions`）
 
-**角色**是一组启动请求输入的命名组合——persona 正文、工具 allow 名单、模型路由、沙箱收窄——由一次委派调用合并进它的请求；角色不是提供方，提供方选择仍由委派工具的部署配置决定。`AgentDefinitionService` 从扁平的 `<name>.md` 文件发现角色：YAML frontmatter 携带必填的 `name` 与 `description` 以及可选的 `tools` allow 名单和 `model`,markdown 正文成为 persona。发现机制镜像 [skill seam](skills.md) 的本地形态：分级目录——项目 `.dsh/agents`(100）与 `.agents/agents`(200)、custom 目录（300)、用户 `~/.dsh-tianshu/agents`(400）与 `~/.agents/agents`(500)、配置的 bundled 目录（600)——同名 first-wins 去重，以及监听器驱动的失效。通过 `register()` 的运行时注册位于第 250 级；该接缝承载着内置只读 `explore` 角色（`grep`/`read`/`glob`/`semantic_search`/`bash` allow 名单加 `read-only` 沙箱收窄）。
+**角色**是一组启动请求输入的命名组合——persona 正文、工具 allow 名单、模型路由、沙箱收窄——由一次委派调用合并进它的请求；角色不是提供方，提供方选择仍由委派工具的部署配置决定。`AgentDefinitionService` 从扁平的 `<name>.md` 文件发现角色：YAML frontmatter 携带必填的 `name` 与 `description` 以及可选的 `tools` allow 名单和 `model`,markdown 正文成为 persona。发现机制镜像 [skill seam](skills.md) 的本地形态：分级目录——项目 `.dsh/agents`(100）与 `.agents/agents`(200)、custom 目录（300)、用户 `~/.dsh-tianshu/agents`(400）与 `~/.agents/agents`(500)、配置的 bundled 目录（600)——同名 first-wins 去重，以及监听器驱动的失效。通过 `register()` 的运行时注册位于第 250 级；该接缝承载着内置只读 `explore` 角色（`grep`/`read`/`glob`/`semantic_search`/`bash` allow 名单加 `read-only` 沙箱收窄）与内置只读 `verify` 角色（带证据裁定的复核角色，agent-router 的 verifier profile 映射于此；`read-only` 沙箱拒绝一切变更，故只做静态取证）。
 
 ```ts type-equiv
 /** Invocation-neutral role metadata returned by `ctx.agentDefinitions.list()`. */
@@ -425,6 +444,12 @@ interface SubagentStopReasonMap {
   'max-tokens': 'max-tokens'
   /** The child declined the task. */
   refusal: 'refusal'
+  /**
+   * The child exhausted its declared {@link SubagentStartRequest.runBudget}
+   * (step count or wall clock). Distinct from `aborted` so consumers can tell
+   * "the budget said no" from "the parent said stop".
+   */
+  'budget-exhausted': 'budget-exhausted'
 }
 ```
 

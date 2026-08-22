@@ -28,6 +28,8 @@ import type { Context } from '@huiliyi37/cordis'
 import type { InvariantFailure, InvariantInstaller } from '@huiliyi37/dsh-invariants'
 import type { Session, SessionEvent } from '@huiliyi37/dsh-session'
 import { SessionId as brandSessionId } from '@huiliyi37/dsh-session'
+// 限界常量与父边界净化同源（finding.ts 是 owner），校验面零漂移。
+import { FINDING_ITEM_MAX_CHARS, FINDING_ITEMS_MAX, FINDING_SUMMARY_MAX_CHARS } from './finding.js'
 
 const PACKAGE_NAME = '@huiliyi37/dsh-agent-router'
 
@@ -77,12 +79,9 @@ function validateDecisionMetrics(metrics: unknown, fail: InvariantFailure): void
 }
 
 
-/** Finding bounds mirror finding.ts's fixed parent-boundary limits. */
+/** Finding discriminants (closed unions owned by finding.ts). */
 const FINDING_KINDS: ReadonlySet<unknown> = new Set(['scout', 'verify'])
 const FINDING_VERDICTS: ReadonlySet<unknown> = new Set(['supported', 'unsupported', 'inconclusive'])
-const FINDING_SUMMARY_MAX_CHARS = 1200
-const FINDING_ITEM_MAX_CHARS = 400
-const FINDING_ITEMS_MAX = 8
 
 /**
  * Validate an optional bounded finding on a router/outcome record: closed

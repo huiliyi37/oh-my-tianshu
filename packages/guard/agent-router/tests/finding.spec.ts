@@ -72,6 +72,14 @@ describe('boundFinding', () => {
     expect(finding?.findings).toHaveLength(FINDING_ITEMS_MAX)
     for (const item of finding!.findings) expect(item.length).toBeLessThanOrEqual(FINDING_ITEM_MAX_CHARS)
   })
+
+  it('截断不落半个字符：上限劈开代理对时丢弃尾部孤立高代理', () => {
+    // '😀' = U+1F600 = 高代理 + 低代理两个 code unit；上限取在中间。
+    const emojiRun = '😀'.repeat(10)
+    const bounded = boundFindingText(emojiRun, 5)
+    expect(bounded).toHaveLength(4)
+    expect(bounded).toBe('😀'.repeat(2))
+  })
 })
 
 describe('FINDING_SCHEMA_BY_PROFILE', () => {
