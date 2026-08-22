@@ -350,13 +350,31 @@ describe('TuiApp agent-ensure 三分支', () => {
     await app.dispose()
   })
 
+  it('newSession 在 intentBridge enabled:false 时回退常规创建（createAlignedSession 在关闭态会抛）', async () => {
+    const ctx = makeCtx()
+    const createAlignedSession = vi.fn()
+    ctx.reflect.get.mockImplementation((name: string) => (
+      name === 'intentBridge' ? { enabled: false, createAlignedSession } : undefined
+    ))
+    const agent = makeAgent('bridge-disabled-1')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+    await expect(app.newSession()).resolves.toEqual(expect.any(String))
+    expect(createAlignedSession).not.toHaveBeenCalled()
+    expect(ctx.agents.create).toHaveBeenCalledTimes(1)
+    await app.dispose()
+  })
+
   it('newSession 在 intentBridge 装配时走 createAlignedSession，主会话跟随当前模型', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('align-1')
     const handle = makeHandle(agent)
     const createAlignedSession = vi.fn(async () => ({ sessionId: 'align-session', handle }))
     ctx.reflect.get.mockImplementation((name: string) => (
-      name === 'intentBridge' ? { createAlignedSession } : undefined
+      name === 'intentBridge' ? { enabled: true, createAlignedSession } : undefined
     ))
     ctx.sessions.get.mockReturnValue(agent.session)
 
@@ -383,7 +401,7 @@ describe('TuiApp agent-ensure 三分支', () => {
     const handle = makeHandle(agent)
     const createAlignedSession = vi.fn(async () => ({ sessionId: 'align-session', handle }))
     ctx.reflect.get.mockImplementation((name: string) => (
-      name === 'intentBridge' ? { createAlignedSession } : undefined
+      name === 'intentBridge' ? { enabled: true, createAlignedSession } : undefined
     ))
     // 对齐会话的真实种子形状（intent-bridge createAlignedSession）：zen/phase ×2
     // + end-seed + session/title——事件数非零，按事件数猜测会把新建误报成恢复。
@@ -414,7 +432,7 @@ describe('TuiApp agent-ensure 三分支', () => {
     const handle = makeHandle(agent)
     const createAlignedSession = vi.fn(async () => ({ sessionId: 'align-session', handle }))
     ctx.reflect.get.mockImplementation((name: string) => (
-      name === 'intentBridge' ? { createAlignedSession } : undefined
+      name === 'intentBridge' ? { enabled: true, createAlignedSession } : undefined
     ))
     ctx.sessions.get.mockReturnValue(agent.session)
 

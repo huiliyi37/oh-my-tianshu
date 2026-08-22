@@ -1884,8 +1884,10 @@ export class TuiApp {
     // 模型选择与 reasoningEffort（exec override），cwd 与常规新会话一致。
     // 经 reflect.get 读取：runtimeCtx 只 inject sessions/agents/agentDefaultModel，
     // 属性访问未声明的 intentBridge 在 Cordis 4 抛 without inject（真实装配已复现）。
+    // enabled:false 的挂载保留服务但 createAlignedSession 会抛——检查主开关，
+    // 关闭时回退常规新建（直连进禅）。
     const intentBridge = this.ctx.reflect.get('intentBridge', false) as IntentBridgeService | undefined
-    if (intentBridge !== undefined) {
+    if (intentBridge !== undefined && intentBridge.enabled) {
       const align = await intentBridge.createAlignedSession({
         cwd: process.cwd(),
         exec: callConfigFrom(selection),

@@ -1027,9 +1027,10 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
  * whole-value replace. The last `zen/phase` wins; a log with none folds to
  * `'full'` (never armed) through {@link foldZenPhase}. `reason` names the
  * transition: `'arm'` (session start, always with phase `'zen'`) or one of
- * the promotions `'anchor' | 'timeout' | 'triage'` (always with `'full'`).
+ * the promotions `'anchor' | 'timeout' | 'triage' | 'user'` (always with
+ * `'full'`; `'user'` is the explicit `/fast` skip).
  */
 'zen/phase': { phase: ZenPhase; reason: ZenTransitionReason }
 ```
 
-来源：[`packages/guard/zen/src/index.ts:50`](../packages/guard/zen/src/index.ts)
+来源：[`packages/guard/zen/src/index.ts:62`](../packages/guard/zen/src/index.ts)

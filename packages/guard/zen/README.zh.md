@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-zen 阶段是内建的 agent（智能体）生命周期阶段，而非 skill（技能）：新建顶层会话的最初几个步骤运行在一个最小的锚定工具 face 上——官方 DeepSeek 评测配方（`bash`、`str_replace_editor`、`todo_write`）加 agent 作用域的 `zen_anchor`——同时一段 `zen:policy` 提示词段落指示模型锚定任务：重述目标，用只读探针验证一个地标，然后调用 `zen_anchor`。由宿主验证的谓词把会话晋升（promotion）到完整 face；绝不采信模型自称已就绪。决策记录见 [zen 阶段 Agent Note](../../../.agents/notes/implemented/architecture/2026-08-17-zen-phase-engineering-paradigm.md)。晋升之后 TUI 父级目录会隐藏与 `bash` 抢同一意图的栈（`promoteDeny`）。
+zen 阶段是内建的 agent（智能体）生命周期阶段，而非 skill（技能）：新建顶层会话的最初几个步骤运行在一个最小的锚定工具 face 上——官方 DeepSeek 评测配方（`bash`、`str_replace_editor`、`todo_write`）加 agent 作用域的 `zen_anchor`——同时一段 `zen:policy` 提示词段落指示模型锚定任务：重述目标，用只读探针验证一个地标，然后调用 `zen_anchor`。由宿主验证的谓词——或用户显式的 `/fast` 跳过——把会话晋升（promotion）到完整 face；绝不采信模型自称已就绪。决策记录见 [zen 阶段 Agent Note](../../../.agents/notes/implemented/architecture/2026-08-17-zen-phase-engineering-paradigm.md)。晋升之后 TUI 父级目录会隐藏与 `bash` 抢同一意图的栈（`promoteDeny`）。
 
 该阶段物理收窄首次请求的工具 face，而不是请模型自行忽略多余工具：在宽 face 上叠加指引不能代替更小的目录。晋升之后剩余的重叠来自与 `bash` 抢同一意图，因此 TUI 用 `promoteDeny` 隐藏那些栈，而不是把目录再做大。
 
@@ -35,11 +35,12 @@ zen 阶段是内建的 agent（智能体）生命周期阶段，而非 skill（�
 - **武装（arm）**——在 `agent/created`（driver 与首次组装之前），插件在 agent 作用域上注册 `zen_anchor`，安装 `ctx.tools.restrict({ allow: face })`，并记录 `zen/phase {phase: 'zen', reason: 'arm'}`。因此第一条 `request/header` 就已携带锚定 face：「模型可见 ⟺ 已记录」无需任何额外簿记即成立。
 - **subagent 从不武装**——带 `header.parentSession` 的会话保留由派发方拥有的工具 profile；派发提示词本身就是它的锚点。
 - **恢复与 fork 折叠日志**——`foldZenPhase`（最后一条 `zen/phase` 生效）决定是重装 zen 允许列表，还是重装晋升后的 face（`promoteDeny`；列表为空则为无限制）；不存在会漂移的实时镜像。
-- **晋升**——三个宿主谓词之一记录 `zen/phase {phase: 'full', reason}`，解除 zen 允许列表，并在 `promoteDeny` 非空时安装 `restrict({ deny: promoteDeny })`：
+- **晋升**——晋升谓词之一记录 `zen/phase {phase: 'full', reason}`，解除 zen 允许列表，并在 `promoteDeny` 非空时安装 `restrict({ deny: promoteDeny })`：
   - `anchor`——模型调用 `zen_anchor`，给出非空目标、2–4 个地标和一个 pass 级别，且（在 `requireEvidence` 下）日志中已有至少 1 条成功的非簿记类工具结果；裸锚定会连同「先探针」指令一起驳回给模型。
   - `timeout`——步骤预算耗尽。晋升在预算的最后一个步骤触发，解锁在下一次组装可见；一条插件来源的通知会告知模型。
   - `triage`——首条用户消息足够短（≤ `maxChars`、单行、纯文本），该阶段在首次请求组装之前即被跳过。
-- **晋升之后**，`zen:policy` 段落折叠为空，`zen_anchor` 保持注册；阶段结束后（锚定、预算或分诊）再调用它会解析为良性的空操作成功——完整工具集已经解锁——呼应计划模式的稳定目录规则。跨越边界只改变限制本身。重叠栈的插件仍保持注册，因此 subagent 角色仍可允许 `grep`／`read`／`glob`。
+  - `user`——用户执行了 `/fast [消息]`：阶段应请求结束，可选消息在完整 face 上转向（steer）该轮。命令子插件只在装配了命令注册表时注册（TUI 经其 CommandService 回退可达，与 `/plan` 同路）；`faceSelection` 下它会拒绝——face 已冻结。
+- **晋升之后**，`zen:policy` 段落折叠为空，`zen_anchor` 保持注册；阶段结束后（锚定、预算、分诊或 `/fast`）再调用它会解析为良性的空操作成功——完整工具集已经解锁——呼应计划模式的稳定目录规则。跨越边界只改变限制本身。重叠栈的插件仍保持注册，因此 subagent 角色仍可允许 `grep`／`read`／`glob`。
 - **纵深防御**——只要*日志中的*阶段仍是 zen，注册表 guard 就拒绝 face 之外的工具执行，与实时限制簿记相互独立。
 
 `zen/phase` 序列受不变量检查（`@huiliyi37/dsh-zen/invariant`）：载荷在持久边界做形状校验，一个会话至多武装一次，晋升绝不重复记录。
@@ -64,7 +65,7 @@ zen 阶段是内建的 agent（智能体）生命周期阶段，而非 skill（�
 
 #### 模型看到的内容
 
-一个按 `generic` 渲染的工具：`goal`（一句话）、`landmarks`（2–4 个字符串）、`pass`（`fast | full | loop`）、可选的 `forbidden`。接受时返回 "Anchor accepted — the full toolset unlocks from your next step…"；拒绝时把「先探针」指令作为工具错误返回。阶段结束后（锚定、预算或分诊）再调用则解析为良性的空操作成功。
+一个按 `generic` 渲染的工具：`goal`（一句话）、`landmarks`（2–4 个字符串）、`pass`（`fast | full | loop`）、可选的 `forbidden`。接受时返回 "Anchor accepted — the full toolset unlocks from your next step…"；拒绝时把「先探针」指令作为工具错误返回。阶段结束后（锚定、预算、分诊或 `/fast`）再调用则解析为良性的空操作成功。
 
 #### Token 影响
 
@@ -93,6 +94,20 @@ Zen phase ended (step budget reached); the full toolset unlocks from your next s
 #### KV Cache 影响
 
 仅追加。
+
+### /fast 跳过
+
+#### 模型看到的内容
+
+没有新增内容。在首条消息之前跳过（常见情形）时，首次请求就已携带完整 face，与分诊完全一致；在 zen 中途跳过时，`zen:policy` 段落折叠、完整 schema 在下一次组装出现，转向消息（若有）以普通用户消息到达——不注入任何叙述。
+
+#### Token 影响
+
+除完整 face 的 schema 外没有额外开销。
+
+#### KV Cache 影响
+
+zen 中途跳过即上文已计入的晋升重填；首次请求之前跳过则没有需要重填的前缀。
 
 ## 已知限制与暂缓事项
 

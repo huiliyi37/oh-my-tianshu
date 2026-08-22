@@ -1,9 +1,10 @@
 /**
  * Full-loop integration: a scripted mock model drives the REAL zen plugin
  * through the agent loop — arming at agent/created, the anchored first
- * request/header (the model-visible face snapshot), the three promotion
- * predicates, and the fail-loud face misconfiguration veto. Only the model is
- * mocked; the loop, the session log, and the plugin are real.
+ * request/header (the model-visible face snapshot), the promotion
+ * predicates (including the /fast user skip), and the fail-loud face
+ * misconfiguration veto. Only the model is mocked; the loop, the session
+ * log, and the plugin are real.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -14,6 +15,7 @@ import SystemPrompt from '@huiliyi37/dsh-system-prompt'
 import ToolRegistry, { defineContentToolFixture } from '@huiliyi37/dsh-tools'
 import AgentRegistry, { type Agent } from '@huiliyi37/dsh-agent'
 import AgentLoop from '@huiliyi37/dsh-agent-loop'
+import CommandService from '@huiliyi37/dsh-commands'
 import ZenPhaseService, { foldZenPhase, type ZenConfig } from '@huiliyi37/dsh-zen'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 
@@ -29,7 +31,10 @@ async function harness(adapter: MockAdapter, config: ZenConfig = BASE_CONFIG): P
   await ctx.plugin(ToolRegistry)
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(AgentLoop, { agents: [] })
+  await ctx.plugin(CommandService)
   await ctx.plugin(ZenPhaseService, config)
+  // The /fast command child mounts asynchronously once `commands` resolves.
+  await new Promise(resolve => setImmediate(resolve))
   ctx.llm.registerAdapter(['mock'], adapter)
   for (const name of ['probe', 'hammer']) {
     ctx.tools.register(defineContentToolFixture({
@@ -266,6 +271,66 @@ describe('zen phase through the agent loop', () => {
     ])
     expect(headerFaces(log)).toEqual([{ reason: 'initial', tools: ['hammer', 'probe', 'zen_anchor'] }])
     expect(adapter.requests[0]?.system).not.toContain(SECTION)
+  })
+
+  it('/fast with a message skips the phase before the first request and drives the turn on the full face', async () => {
+    const adapter = new MockAdapter([textResponse('answered directly on the full face')])
+    const ctx = await harness(adapter)
+    const agent = ctx.agentLoop.create(SessionId('zen-fast-skip'), { provider: 'mock', model: 'mock' })
+
+    const execution = await ctx.commands.execute(agent, '/fast multi-step task: refactor the thing', new AbortController().signal)
+    expect(execution?.result).toEqual({ kind: 'success', text: 'Zen phase skipped — the full toolset is unlocked.' })
+    await waitForIdle(ctx, agent)
+
+    const log = agent.session.events
+    expect(zenPhases(log)).toEqual([
+      { phase: 'zen', reason: 'arm' },
+      { phase: 'full', reason: 'user' },
+    ])
+    // The skip lands before the first assembly: the model never sees the zen face.
+    expect(headerFaces(log)).toEqual([{ reason: 'initial', tools: ['hammer', 'probe', 'zen_anchor'] }])
+    expect(adapter.requests[0]?.system).not.toContain(SECTION)
+    const steered = log.find(event => event.type === 'user/message')
+    expect(steered?.type === 'user/message' && JSON.stringify(steered.data.content)).toContain('refactor the thing')
+  })
+
+  it('/fast mid-zen promotes for the next assembly; repeating it is a benign no-op', async () => {
+    const adapter = new MockAdapter([textResponse('still zen'), textResponse('now on the full face')])
+    const ctx = await harness(adapter)
+    const agent = ctx.agentLoop.create(SessionId('zen-fast-midway'), { provider: 'mock', model: 'mock' })
+
+    ask(agent, 'multi-step task: refactor the thing\nacross files')
+    await waitForIdle(ctx, agent)
+    expect(foldZenPhase(agent.session.events)).toBe('zen')
+
+    const signal = new AbortController().signal
+    const skip = await ctx.commands.execute(agent, '/fast', signal)
+    expect(skip?.result).toEqual({ kind: 'success', text: 'Zen phase skipped — the full toolset is unlocked.' })
+    const again = await ctx.commands.execute(agent, '/fast', signal)
+    expect(again?.result).toEqual({ kind: 'success', text: 'Zen phase already over — the full toolset is unlocked.' })
+
+    ask(agent, 'continue with the follow-up')
+    await waitForIdle(ctx, agent)
+
+    const log = agent.session.events
+    expect(zenPhases(log)).toEqual([
+      { phase: 'zen', reason: 'arm' },
+      { phase: 'full', reason: 'user' },
+    ])
+    const headers = headerFaces(log)
+    expect(headers[0]).toEqual({ reason: 'initial', tools: ['probe', 'zen_anchor'] })
+    expect(headers.at(-1)).toEqual({ reason: 'change', tools: ['hammer', 'probe', 'zen_anchor'] })
+  })
+
+  it('/fast under faceSelection refuses: the frozen face cannot be widened', async () => {
+    const adapter = new MockAdapter([])
+    const ctx = await harness(adapter, { ...BASE_CONFIG, faceSelection: { enabled: true } })
+    const agent = ctx.agentLoop.create(SessionId('zen-fast-frozen'), { provider: 'mock', model: 'mock' })
+
+    const execution = await ctx.commands.execute(agent, '/fast jump ahead', new AbortController().signal)
+    expect(execution?.result.kind).toBe('error')
+    expect(execution?.result.text).toContain('cannot change the face')
+    expect(zenPhases(agent.session.events)).toEqual([{ phase: 'zen', reason: 'arm' }])
   })
 
   it('a face naming an unregistered tool vetoes agent creation loud', async () => {

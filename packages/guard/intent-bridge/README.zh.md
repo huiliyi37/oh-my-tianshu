@@ -23,13 +23,15 @@
     # section: custom alignment contract text (optional; default = the built-in contract)
 ```
 
-`resolveConfig` 在插件加载时对未知键、缺少 provider/model 对、或非正的 `alignMaxRounds` **响亮失败**。发货的 TUI bundle 按上述路由装配该插件（出厂 DeepSeek 适配器，与 `/model` 共用 `DEEPSEEK_API_KEY`）；部署从 `cordis.patch.yml` 覆盖它们。MiniMax 对齐路由是 overlay：先把 `llm-pi-ai` profile 和密钥加活，不是首次运行的第二把必填 key。
+`resolveConfig` 在插件加载时对未知键、缺少 provider/model 对、或非正的 `alignMaxRounds` **响亮失败**。发货的 TUI bundle 在 `cordis.patch.yml` 中保留该行但注释掉——新会话直连进禅，跳过由分诊与 `/fast` 负责——启用桥即取消注释该行（示例路由用出厂 DeepSeek 适配器，与 `/model` 共用 `DEEPSEEK_API_KEY`）。MiniMax 对齐路由是 overlay：先把 `llm-pi-ai` profile 和密钥加活，不是首次运行的第二把必填 key。
 
 该默认的决策记录：[发货 TUI 对齐路由](../../../.agents/notes/implemented/architecture/2026-08-19-intent-bridge-shipped-align-flash.md)。
 
 ## createAlignedSession
 
 `ctx.intentBridge.createAlignedSession(options)` 创建对齐会话并返回其 id 与调用方持有的 `AgentHandle`。两个选项均由调用方持有：`cwd` 让对齐会话**及其移交的主会话**都落入真实项目目录（省略 → 两者持久化到 `_no-cwd/` 下并从 Web 会话列表消失）；`exec` 覆盖本次对齐 handoff 的主会话路由（省略 → 配置中的 exec 路由），并可携带 `reasoningEffort`——TUI 传入它当前的 `/model` 选择与 `/effort`，让主会话两者都跟随。省略 `reasoningEffort` 则保留适配器默认值；对齐会话不继承它。
+
+`ctx.intentBridge.enabled` 暴露挂载态的主开关：关闭的挂载让服务仍可解析但无任何行为、`createAlignedSession` 会抛错，因此 UI 调用方（TUI 的新建会话路径）先检查它，关闭时回退常规会话。
 
 ## 交接
 

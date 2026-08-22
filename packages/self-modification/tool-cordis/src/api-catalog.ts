@@ -1703,7 +1703,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   },
   {
     key: 'zen',
-    summary: '`ctx.zen`: owns the logged zen phase, the anchored tool face, the `zen:policy` section, the `zen_anchor` tool, and the three promotion predicates (anchor, step-budget timeout, first-message triage).',
+    summary: '`ctx.zen`: owns the logged zen phase, the anchored tool face, the `zen:policy` section, the `zen_anchor` tool, and the promotion predicates (anchor, step-budget timeout, first-message triage, explicit `/fast` user skip).',
     methods: [
       {
         signature: 'phase(agent: Agent): ZenPhase',

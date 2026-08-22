@@ -22,13 +22,15 @@ function event(data: unknown, seq = 0): SessionEvent {
 }
 
 describe('zen-phase stream invariants', () => {
-  it('accepts the armed → promoted sequence', async () => {
+  it('accepts the armed → promoted sequence for every promotion reason', async () => {
     const ctx = await setup()
-    const session = Session.create(SessionId('zen-ok'))
-    expect(() => {
-      ctx.emit('session/event', session, event({ phase: 'zen', reason: 'arm' }, 0))
-      ctx.emit('session/event', session, event({ phase: 'full', reason: 'anchor' }, 1))
-    }).not.toThrow()
+    for (const reason of ['anchor', 'timeout', 'triage', 'user']) {
+      const session = Session.create(SessionId(`zen-ok-${reason}`))
+      expect(() => {
+        ctx.emit('session/event', session, event({ phase: 'zen', reason: 'arm' }, 0))
+        ctx.emit('session/event', session, event({ phase: 'full', reason }, 1))
+      }).not.toThrow()
+    }
   })
 
   it.each([

@@ -54,9 +54,9 @@
 
     # 禅相位（provide 'zen'）：新顶层会话首步跑最小锚定面（官方评测配方
     # bash + str_replace_editor + todo_write + zen_anchor），并露出 subagent
-    # 以便收窄期能走到已按角色收窄的委派路径。锚校验/超时/分诊三谓词晋升
-    # 去重后的顶层面（promoteDeny 拿掉与 bash 抢意图的栈；插件仍注册，
-    # 供 explore 子代理的 allow 列表使用）。子代理会话（parentSession）
+    # 以便收窄期能走到已按角色收窄的委派路径。锚校验/超时/分诊/用户 /fast
+    # 四谓词晋升去重后的顶层面（promoteDeny 拿掉与 bash 抢意图的栈；插件仍
+    # 注册，供 explore 子代理的 allow 列表使用）。子代理会话（parentSession）
     # 不参与。
     - id: zen
       name: '@huiliyi37/dsh-zen'
@@ -82,16 +82,17 @@
       config:
         mode: template
 
-    # 意图对齐桥：新会话先走对齐路由多轮澄清，产出任务卡后移交主会话
-    # 自然进禅。出厂两条路由都落在 llm-deepseek（同一把 DEEPSEEK_API_KEY）；
+    # 意图对齐桥（默认不挂载，注释保留）：新会话直连进禅——triage 负责短消息
+    # 跳过，/fast 是用户显式跳过；需要辅模型多轮澄清再产任务卡时取消注释恢复。
+    # 恢复时出厂两条路由都落在 llm-deepseek（同一把 DEEPSEEK_API_KEY）；
     # MiniMax 等辅模型由部署 overlay 覆写，并自行把 llm-pi-ai profile 加活。
-    - id: intent-bridge
-      name: '@huiliyi37/dsh-intent-bridge'
-      config:
-        alignProvider: deepseek-official
-        alignModel: deepseek-v4-flash
-        execProvider: deepseek-official
-        execModel: deepseek-v4-flash
+    # - id: intent-bridge
+    #   name: '@huiliyi37/dsh-intent-bridge'
+    #   config:
+    #     alignProvider: deepseek-official
+    #     alignModel: deepseek-v4-flash
+    #     execProvider: deepseek-official
+    #     execModel: deepseek-v4-flash
 
 
     # 失败预测路由：turn 结束影子决策（shadow 只记录不派发；auto 才经 seam

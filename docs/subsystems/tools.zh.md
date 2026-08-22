@@ -585,7 +585,7 @@ Source: [`packages/core/tools/src/index.ts:759`](../../packages/core/tools/src/i
 
 ### `ctx.zen` — `ZenPhaseService`
 
-`ctx.zen`: owns the logged zen phase, the anchored tool face, the `zen:policy` section, the `zen_anchor` tool, and the three promotion predicates (anchor, step-budget timeout, first-message triage). UIs observe committed flips through `session/event`; there is no live mirror.
+`ctx.zen`: owns the logged zen phase, the anchored tool face, the `zen:policy` section, the `zen_anchor` tool, and the promotion predicates (anchor, step-budget timeout, first-message triage, explicit `/fast` user skip). UIs observe committed flips through `session/event`; there is no live mirror.
 
 ```ts cordis-catalog
 /**
@@ -599,7 +599,7 @@ phase(agent: Agent): ZenPhase
 
 Types: [Agent](core.md)
 
-Source: [`packages/guard/zen/src/index.ts:377`](../../packages/guard/zen/src/index.ts)
+Source: [`packages/guard/zen/src/index.ts:382`](../../packages/guard/zen/src/index.ts)
 
 <a id="tools-events"></a>
 

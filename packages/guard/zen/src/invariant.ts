@@ -24,7 +24,7 @@ export const name = 'zen-invariant'
 export const inject = ['invariants']
 
 /** The reasons a `zen/phase` promotion to `'full'` may carry. */
-const PROMOTION_REASONS: ReadonlySet<unknown> = new Set(['anchor', 'timeout', 'triage'])
+const PROMOTION_REASONS: ReadonlySet<unknown> = new Set(['anchor', 'timeout', 'triage', 'user'])
 
 /**
  * Validate one `zen/phase` event's payload shape and its position in the
@@ -49,7 +49,7 @@ function validateEvent(
   }
   if (phase === 'full') {
     if (!PROMOTION_REASONS.has(reason)) {
-      fail(`zen/phase 'full' must carry a promotion reason (anchor | timeout | triage), got ${JSON.stringify(reason)}`)
+      fail(`zen/phase 'full' must carry a promotion reason (anchor | timeout | triage | user), got ${JSON.stringify(reason)}`)
     }
     if (previous === undefined) fail("zen/phase 'full' without a prior 'zen' — promotion requires an armed session")
     if (previous === 'full') fail("zen/phase 'full' after 'full' — promotion is idempotent and must not re-log")

@@ -1026,9 +1026,10 @@ Source: [`packages/web/web-search-deepseek/src/provider.ts:83`](../packages/web/
  * whole-value replace. The last `zen/phase` wins; a log with none folds to
  * `'full'` (never armed) through {@link foldZenPhase}. `reason` names the
  * transition: `'arm'` (session start, always with phase `'zen'`) or one of
- * the promotions `'anchor' | 'timeout' | 'triage'` (always with `'full'`).
+ * the promotions `'anchor' | 'timeout' | 'triage' | 'user'` (always with
+ * `'full'`; `'user'` is the explicit `/fast` skip).
  */
 'zen/phase': { phase: ZenPhase; reason: ZenTransitionReason }
 ```
 
-Source: [`packages/guard/zen/src/index.ts:58`](../packages/guard/zen/src/index.ts)
+Source: [`packages/guard/zen/src/index.ts:62`](../packages/guard/zen/src/index.ts)

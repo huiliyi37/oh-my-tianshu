@@ -23,13 +23,15 @@ Decision record: [the intent-bridge Agent Note](../../../.agents/notes/implement
     # section: custom alignment contract text (optional; default = the built-in contract)
 ```
 
-`resolveConfig` fails loud at plugin load on unknown keys, a missing provider/model pair, or a non-positive `alignMaxRounds`. The shipped TUI bundle mounts the plugin with the routes above (the out-of-box DeepSeek adapter, same `DEEPSEEK_API_KEY` as `/model`); deployments override them from `cordis.patch.yml`. A MiniMax alignment route is an overlay after the `llm-pi-ai` profile and its key are live — not a second required key on first run.
+`resolveConfig` fails loud at plugin load on unknown keys, a missing provider/model pair, or a non-positive `alignMaxRounds`. The shipped TUI bundle keeps this row present but commented out in `cordis.patch.yml` — new sessions go straight to the zen phase, with triage and `/fast` owning the skip — so enabling the bridge is uncommenting the row (the sample routes ride the out-of-box DeepSeek adapter, same `DEEPSEEK_API_KEY` as `/model`). A MiniMax alignment route is an overlay after the `llm-pi-ai` profile and its key are live — not a second required key on first run.
 
 Decision record for that default: [shipped TUI align route](../../../.agents/notes/implemented/architecture/2026-08-19-intent-bridge-shipped-align-flash.md).
 
 ## createAlignedSession
 
 `ctx.intentBridge.createAlignedSession(options)` creates the alignment session and returns its id plus the owned `AgentHandle`. Both options are caller-owned: `cwd` lands the alignment session AND the main session it hands off to in a real project directory (omitted → both persist under `_no-cwd/` and vanish from the Web session list); `exec` overrides the main-session route for this alignment's handoff (omitted → the config exec route) and may carry `reasoningEffort` — the TUI passes its current `/model` selection and `/effort` so the main session follows both. An omitted `reasoningEffort` leaves the adapter default; the alignment session does not inherit it.
+
+`ctx.intentBridge.enabled` exposes the mounted master switch: a disabled mount keeps the service resolvable with no behavior and `createAlignedSession` throwing, so UI callers (the TUI's new-session path) check it first and fall back to a plain session.
 
 ## Handoff
 

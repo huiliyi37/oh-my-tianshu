@@ -318,6 +318,18 @@ export class IntentBridgeService extends Service {
   }
 
   /**
+   * The mounted master switch: `false` keeps the service resolvable with no
+   * behavior and {@link createAlignedSession} throwing. UI callers check this
+   * before routing a new session through the bridge, falling back to a plain
+   * session otherwise.
+   *
+   * @returns whether the bridge routes new sessions.
+   */
+  get enabled(): boolean {
+    return this.config.enabled
+  }
+
+  /**
    * Create a fresh alignment session: seeded zen-completed (never arms),
    * tool face restricted to `finalize_alignment`, titled for the tab list.
    * Caller-owned options: `cwd` lands BOTH the alignment session and the main

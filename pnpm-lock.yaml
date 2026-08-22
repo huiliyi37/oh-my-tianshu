@@ -4511,6 +4511,9 @@ importers:
       '@huiliyi37/dsh-agent-loop-testkit':
         specifier: workspace:^
         version: link:../../support/agent-loop-testkit
+      '@huiliyi37/dsh-commands':
+        specifier: workspace:^
+        version: link:../../interaction/commands
       '@huiliyi37/dsh-invariants':
         specifier: workspace:^
         version: link:../../support/invariants

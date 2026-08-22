@@ -5,8 +5,9 @@
  * model to anchor the task — restate the goal, verify a landmark with a
  * read-only probe, then call `zen_anchor`. A host-verified predicate (anchor
  * structure + ≥1 successful non-bookkeeping tool result), a step-budget
- * timeout, or a first-message triage heuristic promotes the session to the
- * full face: it lifts the zen-phase `tools.restrict({ allow: face })` and,
+ * timeout, a first-message triage heuristic, or an explicit user skip (the
+ * `/fast` command) promotes the session to the full face: it lifts the
+ * zen-phase `tools.restrict({ allow: face })` and,
  * when `promoteDeny` is set, installs `restrict({ deny })` so overlapping
  * stacks leave the parent catalog. Arming is at `agent/created` (the
  * veto-capable seam, so a misconfigured face or deny list fails creation
@@ -40,6 +41,8 @@ import type { SessionEvent } from '@huiliyi37/dsh-session'
 import { defineTool } from '@huiliyi37/dsh-tools'
 import type { ToolDefinition } from '@huiliyi37/dsh-tools'
 import type {} from '@huiliyi37/dsh-system-prompt'
+// Type-only edge: resolves `ctx.commands` for the optional /fast command child.
+import type {} from '@huiliyi37/dsh-commands'
 import { selectFaceExtras, selectedFace } from './face-selection.ts'
 import { clipDescription } from './schema-diet.ts'
 
@@ -53,7 +56,8 @@ declare module '@huiliyi37/dsh-session/types' {
      * whole-value replace. The last `zen/phase` wins; a log with none folds to
      * `'full'` (never armed) through {@link foldZenPhase}. `reason` names the
      * transition: `'arm'` (session start, always with phase `'zen'`) or one of
-     * the promotions `'anchor' | 'timeout' | 'triage'` (always with `'full'`).
+     * the promotions `'anchor' | 'timeout' | 'triage' | 'user'` (always with
+     * `'full'`; `'user'` is the explicit `/fast` skip).
      */
     'zen/phase': { phase: ZenPhase; reason: ZenTransitionReason }
   }
@@ -69,7 +73,7 @@ declare module '@huiliyi37/cordis' {
 export type ZenPhase = 'zen' | 'full'
 
 /** Why a `zen/phase` event was logged; see the event's JSDoc for the pairing rule. */
-export type ZenTransitionReason = 'arm' | 'anchor' | 'timeout' | 'triage'
+export type ZenTransitionReason = 'arm' | 'anchor' | 'timeout' | 'triage' | 'user'
 
 /** The model-facing anchor tool's name; agent-scoped, stable across the phase boundary. */
 export const ZEN_ANCHOR = 'zen_anchor'
@@ -370,9 +374,10 @@ interface ZenInstall {
 
 /**
  * `ctx.zen`: owns the logged zen phase, the anchored tool face, the
- * `zen:policy` section, the `zen_anchor` tool, and the three promotion
- * predicates (anchor, step-budget timeout, first-message triage). UIs observe
- * committed flips through `session/event`; there is no live mirror.
+ * `zen:policy` section, the `zen_anchor` tool, and the promotion predicates
+ * (anchor, step-budget timeout, first-message triage, explicit `/fast` user
+ * skip). UIs observe committed flips through `session/event`; there is no
+ * live mirror.
  */
 export class ZenPhaseService extends Service {
   static inject = ['tools', 'systemPrompt']
@@ -506,6 +511,42 @@ export class ZenPhaseService extends Service {
         return decision
       }
       return { ...decision, messages: [...decision.messages, this.timeoutNarration()] }
+    })
+
+    // The /fast command child activates only when a command registry is
+    // composed (the TUI reaches it through its CommandService fallback, like
+    // /plan). It is the user-owned skip: triage only catches trivially short
+    // first messages, so a user who already knows anchoring will not pay off
+    // gets a direct exit regardless of message shape.
+    ctx.inject(['commands'], (commandCtx) => {
+      commandCtx.commands.register({
+        name: 'fast',
+        description: 'Skip the zen phase and continue on the full toolset',
+        input: { hint: '[message]', images: true },
+        handler: ({ agent, rawInput, attachments }) => {
+          if (this.config.faceSelection.enabled) {
+            return { kind: 'error', text: '/fast cannot change the face: this deployment freezes the tool face on the first message.' }
+          }
+          const message = rawInput.trim()
+          const skipped = foldZenPhase(agent.session.events) === 'zen'
+          if (skipped) this.promote(agent, 'user')
+          if (message !== '' || attachments.length > 0) {
+            agent.steer(createUserMessage({
+              content: [
+                ...attachments,
+                ...message === '' ? [] : [{ type: 'text' as const, text: message }],
+              ],
+              source: { kind: 'user' },
+            }))
+          }
+          return {
+            kind: 'success',
+            text: skipped
+              ? 'Zen phase skipped — the full toolset is unlocked.'
+              : 'Zen phase already over — the full toolset is unlocked.',
+          }
+        },
+      })
     })
 
     // Unload while agents live: lift every remaining installation so no
