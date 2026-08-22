@@ -78,15 +78,7 @@ export function pendingOutcomes(events: readonly SessionEvent[]): PendingOutcome
 
 /** 写/改类工具名（claim-audit 的 mutation 面）。 */
 const MUTATION_TOOLS: ReadonlySet<string> = new Set(['write', 'edit', 'str_replace_editor'])
-/**
- * 验证类工具名（claim-audit 的 verification 面）。
- *
- * TODO: 这两个名字都由 dsh-tool-run-tests 注册，而 TUI 已停用该行，于是那里
- * 的 lastVerification 恒为 -1——任何一次写/改都判成缺口。模型实际是用 bash
- * 跑测试来验证的（doom-loop-guard 的 test-churn 检测器就按「含 test 的 bash
- * 命令」识别），本集合看不见这条路径。修法是按命令内容识别 bash 验证，而不是
- * 把工具名单继续加长。
- */
+/** 验证类工具名（claim-audit 的 verification 面）。 */
 const VERIFICATION_TOOLS: ReadonlySet<string> = new Set(['run_tests', 'related_tests'])
 
 /**

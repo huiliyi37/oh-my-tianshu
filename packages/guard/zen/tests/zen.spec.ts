@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest'
 import type { SessionEvent } from '@huiliyi37/dsh-session'
-import { foldZenPhase, hasAnchorEvidence, resolveConfig, selectFaceExtras, selectedFace, clipDescription, stripUnbackedToolSections, BASH_OVERLAP_TOOLS } from '@huiliyi37/dsh-zen'
+import { foldZenPhase, hasAnchorEvidence, resolveConfig, selectFaceExtras, selectedFace, clipDescription, BASH_OVERLAP_TOOLS } from '@huiliyi37/dsh-zen'
 
 describe('resolveConfig', () => {
   it('materializes every default around a section', () => {
@@ -162,32 +162,5 @@ describe('clipDescription', () => {
   it('leaves a short description alone and clips on a word boundary', () => {
     expect(clipDescription('short', 80)).toBe('short')
     expect(clipDescription('test tool probe', 8)).toBe('test')
-  })
-})
-
-describe('stripUnbackedToolSections', () => {
-  const sections = [
-    { name: 'identity', text: 'who you are' },
-    { name: 'tool:read', text: 'Use the read tool — not shell commands like cat.' },
-    { name: 'tool:bash', text: 'Run one shell command.' },
-    { name: 'tool:tasks', text: 'Track every background task id you start.' },
-  ]
-  const registered = (name: string): boolean => ['read', 'bash', 'task_output'].includes(name)
-
-  it('drops guidance for a registered tool the face no longer carries', () => {
-    expect(stripUnbackedToolSections(sections, new Set(['bash']), registered).map(s => s.name))
-      .toEqual(['identity', 'tool:bash', 'tool:tasks'])
-  })
-
-  it('keeps every section when the face carries each documented tool', () => {
-    expect(stripUnbackedToolSections(sections, new Set(['read', 'bash']), registered))
-      .toEqual(sections)
-  })
-
-  it('keeps a family section whose suffix names no single tool', () => {
-    // `tool:tasks` documents task_output/task_kill/task_list together, so the
-    // filter cannot tell from the name alone whether its prose still applies.
-    expect(stripUnbackedToolSections(sections, new Set(), registered).map(s => s.name))
-      .toEqual(['identity', 'tool:tasks'])
   })
 })

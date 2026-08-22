@@ -34,53 +34,45 @@
     # memory_save / memory_search 模型工具 + 静态记忆指引 system prompt section
     # （digest 缺省关；开启会在每次 save 后刷新摘要、击穿前缀缓存）。
     # memory 服务缺席时工具执行 fail loud；section 仍注册（静态指引不依赖服务）。
-    # 默认停用：116 个会话里 memory_search 1 次、memory_save 0 次，而两个 schema
-    # 加指引 section 每个请求都在花 token。上面的 memory 行仍在，/remember 与
-    # /memory 斜杠命令不受影响；要恢复模型侧工具删掉 disabled 即可。
     - id: tool-memory
       name: '@huiliyi37/dsh-tool-memory'
-      disabled: true
 
     # 跨会话查询工具面（session_search 等五件）；后端 sessionQuery 服务
     # 由 dsh-base 的 session-query-sqlite 提供，本行只挂模型工具。
-    # 默认停用：五件工具合计 5 次调用，却占着五份 schema。后端服务仍在。
     - id: tool-session-query
       name: '@huiliyi37/dsh-tool-session-query'
-      disabled: true
 
     # memory_deep_recall：只读 reader 子代理蒸馏历史会话；原始转录不进主上下文。
-    # 默认停用：116 个会话零调用，而它的指引段落是全 section 里最长的几段之一。
+    # 禅锚定面不加此工具；晋升后进入全工具面。
     - id: tool-memory-recall
       name: '@huiliyi37/dsh-tool-memory-recall'
-      disabled: true
 
     # 证据门（provide 'evidence'）：验证义务归账 + 编辑门。缺省温和——
     # TDD 门 suggest 只提示不拦，编辑拦截仅命中模型自建的 high bugfix 义务。
     - id: evidence-gate
       name: '@huiliyi37/dsh-evidence-gate'
 
-    # 禅相位（provide 'zen'）：新顶层会话首步跑极简锚定面 bash + read
-    # （+ agent 作用域的 zen_anchor）。bash 覆盖一切只读查证（ls/cat/git status/
-    # rg/find），read 是 tool:read 段落祈使句点名的读文件工具，两者合起来足够
-    # 走完「重述目标 → 验一个地标 → 锚定」，且没有任何写工具可达。锚校验/超时/
-    # 分诊/用户 /fast 四谓词晋升去重后的顶层面。promoteDeny 拿掉写侧与 bash 抢
-    # 意图的栈，外加两个零调用项；插件仍注册，供 explore 子代理的 allow 列表
-    # 使用。子代理会话（parentSession）不参与。
+    # 禅相位（provide 'zen'）：新顶层会话首步跑最小锚定面（官方评测配方
+    # bash + str_replace_editor + todo_write + zen_anchor），并露出 subagent
+    # 以便收窄期能走到已按角色收窄的委派路径。锚校验/超时/分诊/用户 /fast
+    # 四谓词晋升去重后的顶层面（promoteDeny 拿掉与 bash 抢意图的栈；插件仍
+    # 注册，供 explore 子代理的 allow 列表使用）。子代理会话（parentSession）
+    # 不参与。
     - id: zen
       name: '@huiliyi37/dsh-zen'
       config:
-        face: [bash, read]
-        promoteDeny: [edit, file_info, git, glob, grep, interrupt_agent, semantic_search, write]
+        face: [bash, str_replace_editor, todo_write, subagent]
+        promoteDeny: [edit, file_info, git, glob, grep, read, write]
         diet:
           maxDescriptionChars: 80
         section: >-
           Zen phase — the toolset is reduced while you anchor the task.
           Before any modification: (1) restate the goal in one sentence;
           (2) pick 2-4 landmarks (files, commands, acceptance checks);
-          (3) verify one landmark with a read-only probe — read for a file,
-          bash for anything else (ls, git status, rg); then call zen_anchor to
-          unlock the full toolset. A question you can answer from those probes
-          needs no anchor; anything that runs or modifies does.
+          (3) verify one landmark with a read-only probe (e.g. bash ls / cat /
+          git status); then call zen_anchor to unlock the full toolset.
+          If the request is trivial (1-2 steps), do it directly with the
+          reduced toolset — anchoring is not required for answers.
 
     # 首条消息任务卡：改写为结构化卡片（标题/目标/约束/验收 + 逐字原文）。
     # bundle 无 provider 默认，template 零成本开箱即用；部署方可在 cordis.yml
@@ -119,37 +111,3 @@
       name: '@huiliyi37/dsh-agent-presets'
       config:
         default: standard
-
-# 以下停用 dsh-base 的模型工具行——它们不在上面的 insert 块里，只能按 id 覆写。
-# 依据是 116 个真实会话的调用统计：这六行贡献 8 个工具、合计 0 次调用，却每个
-# 请求都在付 schema 与 section 的 token。停用而非 promoteDeny：插件整体不装配，
-# 连它的 system prompt section 和启动开销一起消失；promoteDeny 只把工具挡在父级
-# 目录外，插件与 section 仍然活着（那条路留给子代理还要用的栈）。
-#
-# 注意失效模式：applyEntryPatches 对匹配不到的 id 只 warn 后跳过，不会 fail
-# loud——base 若改了 id 或包名，这些行会静默复活。bundle-patch 测试钉住 base
-# 侧的 id/name 配对，让改名在 CI 里响。
-
-- id: tool-run-tests
-  name: '@huiliyi37/dsh-tool-run-tests'
-  disabled: true
-
-- id: tool-workflow
-  name: '@huiliyi37/dsh-tool-workflow'
-  disabled: true
-
-- id: tool-ralph
-  name: '@huiliyi37/dsh-tool-ralph'
-  disabled: true
-
-- id: tool-subagent-fork
-  name: '@huiliyi37/dsh-tool-subagent'
-  disabled: true
-
-- id: tool-meridian
-  name: '@huiliyi37/dsh-tool-meridian'
-  disabled: true
-
-- id: tool-skill
-  name: '@huiliyi37/dsh-tool-skill'
-  disabled: true
