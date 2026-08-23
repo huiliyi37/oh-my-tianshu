@@ -137,6 +137,7 @@ export interface FormatWelcomeHeroInput {
  * The split hero is one of two rest bands: 56 columns from 80×27, and 72
  * columns from 105×33. Anything smaller uses the compact text form. A
  * 105-column terminal that lacks the 72-band row budget stays on 56.
+ * The one-line title stays beside the fox; it is never stacked above it.
  *
  * @param width - Current terminal columns.
  * @param rows - Current terminal rows.

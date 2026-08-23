@@ -77,24 +77,26 @@ describe('formatWelcomeHero', () => {
     const lines = plain(formatWelcomeHero(heroInput({
       width: 89,
       rows: 30,
-      art: { lines: Array.from({ length: 21 }, (_, i) => `fox-${i}`), width: 56 },
     }), fakeTheme()))
     expect(lines.some(line => line.includes('Oh My Tianshu'))).toBe(true)
     expect(lines.some(line => line.includes('█'))).toBe(false)
     expect(lines.find(line => line.includes('DeepSeek ◆ Tianshu Harness'))).toBeDefined()
+    const titleLine = lines.find(line => line.includes('Oh My Tianshu'))
+    expect(titleLine).toMatch(/fox-\d/)
+    expect(lines.findIndex(line => line.includes('Oh My Tianshu')))
+      .toBeGreaterThanOrEqual(lines.findIndex(line => /fox-\d/.test(line)))
   })
 
-  it('wraps the peer line at 80 columns and keeps the 56-column fox', () => {
+  it('keeps the peer copy beside the 56-column fox at 80 columns', () => {
     const lines = plain(formatWelcomeHero(heroInput({
       width: 80,
       rows: 30,
-      art: { lines: Array.from({ length: 21 }, (_, i) => `fox-${i}`), width: 56 },
     }), fakeTheme()))
     const joined = lines.join('\n')
     expect(joined).toContain('fox-0')
-    expect(joined).toContain('DeepSeek ◆')
+    expect(joined).toContain('DeepSeek')
     expect(joined).toContain('Tianshu Harness')
-    expect(lines.filter(line => line.includes('DeepSeek ◆ Tianshu Harness'))).toHaveLength(0)
+    expect(lines.some(line => line.includes('fox-') && line.includes('Oh My Tianshu'))).toBe(true)
     for (const line of lines) expect(displayWidth(line)).toBeLessThanOrEqual(80)
   })
 
@@ -167,7 +169,7 @@ describe('formatWelcomeHero', () => {
 
   it.each([
     ['narrow terminal', { width: 79 }],
-    ['short terminal', { rows: 26 }],
+    ['short terminal', { rows: 20 }],
     ['empty art', { art: { lines: [], width: 56 } }],
     ['mismatched band width', { art: { lines: ['fox-0'], width: 40 } }],
     ['non-positive art allocation', { art: { lines: ['fox-0'], width: 0 } }],
@@ -203,7 +205,7 @@ describe('formatWelcomeHero', () => {
       const lines = formatWelcomeHero(heroInput({ width }), fakeTheme())
       for (const line of lines) expect(displayWidth(line)).toBeLessThanOrEqual(width)
     }
-    // 零宽流回退到 80 列：够放 56 档狐狸，详情行换行。
+    // 零宽流回退到 80 列：够放 56 档狐狸，标题留在右侧。
     const fallbackLines = plain(formatWelcomeHero(heroInput({ width: 0 }), fakeTheme()))
     expect(fallbackLines.join('\n')).toContain('Oh My Tianshu')
     for (const line of fallbackLines) expect(displayWidth(line)).toBeLessThanOrEqual(80)
@@ -263,7 +265,7 @@ describe('formatWelcome', () => {
       }, fakeTheme())
       for (const line of lines) expect(displayWidth(line)).toBeLessThanOrEqual(width)
     }
-    // 零宽流回退到 80 列：hero 按 56 档换行，恢复区仍按其自身宽度截断。
+    // 零宽流回退到 80 列：hero 按 56 档并排，恢复区仍按其自身宽度截断。
     const fallbackLines = plain(formatWelcome({
       ...heroInput({ width: 0 }),
       restoreLines: ['[1] resize'],

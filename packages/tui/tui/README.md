@@ -29,7 +29,7 @@ The shipped bundle patch (cordis.patch.yml) mounts, besides `tui-runner`: spark-
 
 ## Startup welcome
 
-The startup welcome presents Oh My Tianshu as the product identity. Color terminals with narrow half-block glyphs host a Lanczos rest-band fox beside a one-line `Oh My Tianshu` title: 80–104 columns use the `56×42` fox (`56×21` cells), wrapping the peer line below 89 columns; 105 columns and enough rows use the `72×54` fox. The peer harnesses DeepSeek Harness and Tianshu Harness have equal visual weight and render as `DeepSeek ◆ Tianshu Harness`, followed by the selected model, effective effort, cwd, and version. Viewports that cannot host the `56×21` fox plus chrome, and no-color or full-width block-glyph terminals, use the same identity and metadata as text.
+The startup welcome presents Oh My Tianshu as the product identity. Color terminals with narrow half-block glyphs host a Lanczos rest-band fox beside a one-line `Oh My Tianshu` title: 80–104 columns use the `56×42` fox (`56×21` cells); 105 columns and enough rows use the `72×54` fox. The title stays on the right of the fox. The peer harnesses DeepSeek Harness and Tianshu Harness have equal visual weight and render as `DeepSeek ◆ Tianshu Harness`, followed by the selected model, effective effort, cwd, and version. Viewports that cannot host the `56×21` fox plus chrome, and no-color or full-width block-glyph terminals, use the same identity and metadata as text.
 
 The final welcome may add up to three restorable-session rows and one selected `Tip:`. `auto` and `off` both commit that static fox immediately; there is no opening timeline. The effort lookup is bounded and falls back to `auto`, so decorative metadata cannot block startup.
 

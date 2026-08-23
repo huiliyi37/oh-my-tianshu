@@ -29,7 +29,7 @@
 
 ## 启动欢迎
 
-启动欢迎以 Oh My Tianshu 作为产品身份。支持彩色与窄半块字形的终端在一行 `Oh My Tianshu` 标题旁放置 Lanczos 休息档狐狸：80–104 列使用 `56×42` 狐狸（`56×21` 单元格），89 列以下折行平级行；105 列且行数足够时使用 `72×54` 狐狸。平级的 DeepSeek Harness 与 Tianshu Harness 视觉权重相等，渲染为 `DeepSeek ◆ Tianshu Harness`，其后是所选模型、有效 effort、cwd 与版本。放不下 `56×21` 狐狸加 chrome 的视口，以及无色或全宽块字形终端，以同一身份与元数据的文本形式呈现。
+启动欢迎以 Oh My Tianshu 作为产品身份。支持彩色与窄半块字形的终端在一行 `Oh My Tianshu` 标题旁放置 Lanczos 休息档狐狸：80–104 列使用 `56×42` 狐狸（`56×21` 单元格）；105 列且行数足够时使用 `72×54` 狐狸。标题留在狐狸右侧。平级的 DeepSeek Harness 与 Tianshu Harness 视觉权重相等，渲染为 `DeepSeek ◆ Tianshu Harness`，其后是所选模型、有效 effort、cwd 与版本。放不下 `56×21` 狐狸加 chrome 的视口，以及无色或全宽块字形终端，以同一身份与元数据的文本形式呈现。
 
 最终欢迎最多追加三行可恢复会话与一条已选 `Tip:`。`auto` 与 `off` 都立即提交该静态狐狸，没有开场时间线。effort 查找有界并回退到 `auto`，装饰性元数据不能阻塞启动。
 
