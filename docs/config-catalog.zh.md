@@ -485,6 +485,22 @@ export interface Config {
 
 来源：[`packages/core/agent-tool-presentation/src/index.ts:38`](../packages/core/agent-tool-presentation/src/index.ts)
 
+## `@huiliyi37/dsh-approval-rules`
+
+需要：`approval`
+
+```ts config-catalog
+/** 插件配置：两个规则层文件，部署可覆盖。 */
+export interface Config {
+  /** 用户规则文件；默认 `<resolveDshHome()>/permissions.yaml`。 */
+  readonly userFile?: string
+  /** 项目规则文件；默认 `<cwd>/.dsh/permissions.yaml`。 */
+  readonly projectFile?: string
+}
+```
+
+来源：[`packages/interaction/approval-rules/src/index.ts:88`](../packages/interaction/approval-rules/src/index.ts)
+
 ## `@huiliyi37/dsh-attachment-local`
 
 ```ts config-catalog
@@ -637,6 +653,22 @@ export interface Config {
 ```
 
 来源：[`packages/code-runtime/code-runtime-worker/src/index.ts:25`](../packages/code-runtime/code-runtime-worker/src/index.ts)
+
+## `@huiliyi37/dsh-command-files`
+
+需要：`commands`
+
+```ts config-catalog
+/** 插件配置：两个命令层目录。 */
+export interface Config {
+  /** 用户命令目录（绝对）；默认 `<resolveDshHome()>/commands`。 */
+  readonly userDir?: string
+  /** 项目命令目录（绝对）；默认 `<cwd>/.dsh/commands`。 */
+  readonly projectDir?: string
+}
+```
+
+来源：[`packages/interaction/command-files/src/index.ts:62`](../packages/interaction/command-files/src/index.ts)
 
 ## `@huiliyi37/dsh-compact-basic`
 
@@ -1709,6 +1741,26 @@ export interface Config {
 ```
 
 来源：[`packages/workflow/next-workflow/src/index.ts:103`](../packages/workflow/next-workflow/src/index.ts)
+
+## `@huiliyi37/dsh-output-style`
+
+需要：`systemPrompt` · `commands`
+
+```ts config-catalog
+/** 插件配置：组合级默认值与无 provider 回退。 */
+export interface Config {
+  /**
+   * 在任何 settings 提交之前生效的风格；未装配 settings provider 时的永久
+   * 回退。缺省为 `default`。
+   */
+  defaultStyle?: OutputStyle
+}
+
+/** 封闭的输出风格词汇表。 */
+export type OutputStyle = 'default' | 'explanatory' | 'learning'
+```
+
+来源：[`packages/interaction/output-style/src/index.ts:72`](../packages/interaction/output-style/src/index.ts)
 
 ## `@huiliyi37/dsh-permission`
 
@@ -3354,6 +3406,8 @@ export interface TuiRunnerConfig {
   editorKey?: KeyName
   /** 是否启用 Vim 键位（Phase 6.5）；缺省 false。 */
   vimEnabled?: boolean
+  /** 欢迎开场策略；auto 按终端能力播放一次，off 直接提交静态终态。 */
+  welcomeAnimation?: WelcomeAnimationMode
   /** 主控模型的识图能力与视觉桥状态（图片附件气泡提示数据源）。 */
   vision?: {
     /** 主控模型是否原生支持识图（图片直发）。 */
@@ -3428,6 +3482,9 @@ export type KeyName =
   | 'ctrl_q'
   | 'shift_tab'
   | 'unknown'
+
+/** Fixed welcome-opening policy selected at runner load. */
+export type WelcomeAnimationMode = 'auto' | 'off'
 ```
 
 依赖：`ReadStream` （`node:tty`） · [`SessionId`](subsystems/core.md) · `WriteStream` （`node:tty`）
@@ -3822,7 +3879,8 @@ export interface ZenConfig {
    * global tool. Non-empty installs `restrict({ deny })` so overlapping
    * stacks stay registered for subagent roles but leave the parent catalog.
    * Unknown names fail at agent creation; a name that also appears in `face`
-   * fails at plugin load. The TUI ships {@link BASH_OVERLAP_TOOLS}.
+   * fails at plugin load. The TUI derives its list from {@link BASH_OVERLAP_TOOLS}.
+   * A denied tool's `tool:<name>` prompt section leaves the assembly with it.
    */
   promoteDeny?: readonly string[]
   /** Master switch; `false` mounts the service with no behavior. Default true. */
@@ -3830,7 +3888,7 @@ export interface ZenConfig {
 }
 ```
 
-来源：[`packages/guard/zen/src/index.ts:78`](../packages/guard/zen/src/index.ts)
+来源：[`packages/guard/zen/src/index.ts:82`](../packages/guard/zen/src/index.ts)
 
 ## Loadable plugins with no config
 

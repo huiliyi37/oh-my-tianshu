@@ -349,6 +349,9 @@ importers:
       '@huiliyi37/dsh-agent':
         specifier: workspace:*
         version: link:../packages/core/agent
+      '@huiliyi37/dsh-agent-default-model':
+        specifier: workspace:*
+        version: link:../packages/core/agent-default-model
       '@huiliyi37/dsh-agent-definitions':
         specifier: workspace:*
         version: link:../packages/subagent/agent-definitions
@@ -682,6 +685,13 @@ importers:
       '@huiliyi37/dsh-zen':
         specifier: workspace:*
         version: link:../packages/guard/zen
+    devDependencies:
+      '@xterm/headless':
+        specifier: ^6.0.0
+        version: 6.0.0
+      node-pty:
+        specifier: 1.2.0-beta.15
+        version: 1.2.0-beta.15(patch_hash=b40ae545608897914bd25fb009c97eeac478c34e8a910298ddcb01b746534bb0)
 
   native/landlock-run:
     devDependencies:
@@ -4929,6 +4939,80 @@ importers:
         specifier: workspace:^
         version: link:../../util/paths
 
+  packages/interaction/approval-rules:
+    dependencies:
+      '@huiliyi37/schemastery':
+        specifier: ^3.18.0
+        version: link:../../../vendor/schemastery
+      js-yaml:
+        specifier: ^4.2.0
+        version: 4.2.0
+    devDependencies:
+      '@huiliyi37/cordis':
+        specifier: ^4.0.0-rc.7
+        version: link:../../../vendor/cordis
+      '@huiliyi37/dsh-agent':
+        specifier: workspace:^
+        version: link:../../core/agent
+      '@huiliyi37/dsh-commands':
+        specifier: workspace:^
+        version: link:../commands
+      '@huiliyi37/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../support/invariants
+      '@huiliyi37/dsh-llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
+      '@huiliyi37/dsh-paths':
+        specifier: workspace:^
+        version: link:../../util/paths
+      '@huiliyi37/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@huiliyi37/dsh-user-approval':
+        specifier: workspace:^
+        version: link:../user-approval
+      '@types/js-yaml':
+        specifier: ^4.0.9
+        version: 4.0.9
+
+  packages/interaction/command-files:
+    dependencies:
+      '@huiliyi37/schemastery':
+        specifier: ^3.18.0
+        version: link:../../../vendor/schemastery
+      yaml:
+        specifier: ^2.4.2
+        version: 2.9.0
+    devDependencies:
+      '@huiliyi37/cordis':
+        specifier: ^4.0.0-rc.7
+        version: link:../../../vendor/cordis
+      '@huiliyi37/cordis-plugin-include':
+        specifier: workspace:^
+        version: link:../../../vendor/include
+      '@huiliyi37/cordis-plugin-loader':
+        specifier: workspace:^
+        version: link:../../../vendor/loader
+      '@huiliyi37/dsh-agent':
+        specifier: workspace:^
+        version: link:../../core/agent
+      '@huiliyi37/dsh-commands':
+        specifier: workspace:^
+        version: link:../commands
+      '@huiliyi37/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../support/invariants
+      '@huiliyi37/dsh-llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
+      '@huiliyi37/dsh-paths':
+        specifier: workspace:^
+        version: link:../../util/paths
+      '@huiliyi37/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
+
   packages/interaction/commands:
     devDependencies:
       '@huiliyi37/cordis':
@@ -4952,6 +5036,28 @@ importers:
       '@huiliyi37/dsh-session':
         specifier: workspace:^
         version: link:../../core/session
+
+  packages/interaction/output-style:
+    dependencies:
+      '@huiliyi37/schemastery':
+        specifier: ^3.18.0
+        version: link:../../../vendor/schemastery
+    devDependencies:
+      '@huiliyi37/cordis':
+        specifier: ^4.0.0-rc.7
+        version: link:../../../vendor/cordis
+      '@huiliyi37/dsh-commands':
+        specifier: workspace:^
+        version: link:../commands
+      '@huiliyi37/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../support/invariants
+      '@huiliyi37/dsh-settings':
+        specifier: workspace:^
+        version: link:../../settings/settings
+      '@huiliyi37/dsh-system-prompt':
+        specifier: workspace:^
+        version: link:../../core/system-prompt
 
   packages/interaction/permission:
     dependencies:
@@ -8140,6 +8246,9 @@ importers:
       '@huiliyi37/dsh-user-interaction':
         specifier: workspace:^
         version: link:../../interaction/user-interaction
+      '@xterm/headless':
+        specifier: ^6.0.0
+        version: 6.0.0
 
   packages/tui/vision-ask:
     devDependencies:
@@ -11970,6 +12079,9 @@ packages:
 
   '@vueuse/shared@12.8.2':
     resolution: {integrity: sha512-dznP38YzxZoNloI0qpEfpkms8knDtaoQ6Y/sfS0L7Yki4zh40LFHEhur0odJC6xTHG5dxWVPiUWBXn+wCG2s5w==}
+
+  '@xterm/headless@6.0.0':
+    resolution: {integrity: sha512-5Yj1QINYCyzrZtf8OFIHi47iQtI+0qYFPHmouEfG8dHNxbZ9Tb9YGSuLcsEwj9Z+OL75GJqPyJbyoFer80a2Hw==}
 
   '@yarnpkg/cli-dist@4.17.1':
     resolution: {integrity: sha512-2tiSQuJNl/L3QwTdrq6lKWDpkcnp9MGvCT/rIldHcbu3SWfnLdmehvt3eulX1hT7FFt1Gjfq3CesF+kvhFip6g==}
@@ -17186,6 +17298,8 @@ snapshots:
       vue: 3.5.39(typescript@6.0.3)
     transitivePeerDependencies:
       - typescript
+
+  '@xterm/headless@6.0.0': {}
 
   '@yarnpkg/cli-dist@4.17.1': {}
 

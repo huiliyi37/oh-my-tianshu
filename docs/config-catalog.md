@@ -483,6 +483,22 @@ Depends on: [`ToolPresentationMode`](../packages/core/tools/src/index.ts)
 
 Source: [`packages/core/agent-tool-presentation/src/index.ts:38`](../packages/core/agent-tool-presentation/src/index.ts)
 
+## `@huiliyi37/dsh-approval-rules`
+
+Requires: `approval`
+
+```ts config-catalog
+/** Plugin config: the two rule-layer files, overridable by a deployment. */
+export interface Config {
+  /** User-rule file; defaults to `<resolveDshHome()>/permissions.yaml`. */
+  readonly userFile?: string
+  /** Project-rule file; defaults to `<cwd>/.dsh/permissions.yaml`. */
+  readonly projectFile?: string
+}
+```
+
+Source: [`packages/interaction/approval-rules/src/index.ts:88`](../packages/interaction/approval-rules/src/index.ts)
+
 ## `@huiliyi37/dsh-attachment-local`
 
 ```ts config-catalog
@@ -635,6 +651,22 @@ export interface Config {
 ```
 
 Source: [`packages/code-runtime/code-runtime-worker/src/index.ts:25`](../packages/code-runtime/code-runtime-worker/src/index.ts)
+
+## `@huiliyi37/dsh-command-files`
+
+Requires: `commands`
+
+```ts config-catalog
+/** Plugin config: the two command-layer directories. */
+export interface Config {
+  /** Absolute user-command directory; defaults to `<resolveDshHome()>/commands`. */
+  readonly userDir?: string
+  /** Absolute project-command directory; defaults to `<cwd>/.dsh/commands`. */
+  readonly projectDir?: string
+}
+```
+
+Source: [`packages/interaction/command-files/src/index.ts:62`](../packages/interaction/command-files/src/index.ts)
 
 ## `@huiliyi37/dsh-compact-basic`
 
@@ -1707,6 +1739,26 @@ export interface Config {
 ```
 
 Source: [`packages/workflow/next-workflow/src/index.ts:103`](../packages/workflow/next-workflow/src/index.ts)
+
+## `@huiliyi37/dsh-output-style`
+
+Requires: `systemPrompt` · `commands`
+
+```ts config-catalog
+/** Plugin config: composition-level default and no-provider fallback. */
+export interface Config {
+  /**
+   * Style active until a settings commit switches it, and the permanent
+   * fallback when no settings provider is assembled. Defaults to `default`.
+   */
+  defaultStyle?: OutputStyle
+}
+
+/** The closed output-style vocabulary. */
+export type OutputStyle = 'default' | 'explanatory' | 'learning'
+```
+
+Source: [`packages/interaction/output-style/src/index.ts:72`](../packages/interaction/output-style/src/index.ts)
 
 ## `@huiliyi37/dsh-permission`
 
@@ -3352,6 +3404,8 @@ export interface TuiRunnerConfig {
   editorKey?: KeyName
   /** 是否启用 Vim 键位（Phase 6.5）；缺省 false。 */
   vimEnabled?: boolean
+  /** 欢迎开场策略；auto 按终端能力播放一次，off 直接提交静态终态。 */
+  welcomeAnimation?: WelcomeAnimationMode
   /** 主控模型的识图能力与视觉桥状态（图片附件气泡提示数据源）。 */
   vision?: {
     /** 主控模型是否原生支持识图（图片直发）。 */
@@ -3426,6 +3480,9 @@ export type KeyName =
   | 'ctrl_q'
   | 'shift_tab'
   | 'unknown'
+
+/** Fixed welcome-opening policy selected at runner load. */
+export type WelcomeAnimationMode = 'auto' | 'off'
 ```
 
 Depends on: `ReadStream` (`node:tty`) · [`SessionId`](subsystems/core.md) · `WriteStream` (`node:tty`)
@@ -3828,7 +3885,7 @@ export interface ZenConfig {
 }
 ```
 
-Source: [`packages/guard/zen/src/index.ts:78`](../packages/guard/zen/src/index.ts)
+Source: [`packages/guard/zen/src/index.ts:82`](../packages/guard/zen/src/index.ts)
 
 ## Loadable plugins with no config
 

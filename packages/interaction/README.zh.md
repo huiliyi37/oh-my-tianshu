@@ -9,6 +9,9 @@
 | [`commands/`](commands/README.md) | 为交互式适配器注册并分派用户命令。 | `ctx.commands` |
 | [`user-approval/`](user-approval/README.md) | 协调一次性审批决策。 | `ctx.approval` |
 | [`permission/`](permission/README.md) | 呈现并持久化面向用户的权限预设。 | `ctx.permission` |
+| [`output-style/`](output-style/README.md) | 以有序 prompt section 提供可切换的输出风格预设，`/style` 热切换。 | （注册到 `ctx.systemPrompt`） |
+| [`command-files/`](command-files/README.md) | 把用户与项目编写的 Markdown 命令文件载入命令注册中心。 | （注册到 `ctx.commands`） |
+| [`approval-rules/`](approval-rules/README.md) | 以持久化 per-tool allow/deny 规则应答审批，附 `/permissions` 管理面。 | （注册到 `ctx.approval` waterfall） |
 | [`user-interaction/`](user-interaction/README.md) | 定义与提供方无关的用户问答 seam。 | `ctx.userInteraction` |
 | [`tool-ask-user/`](tool-ask-user/README.md) | 向模型公开用户问题。 | （注册到 `ctx.tools`） |
 
