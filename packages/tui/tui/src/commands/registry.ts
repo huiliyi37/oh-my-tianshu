@@ -229,9 +229,10 @@ interface MemoryFacet {
  * /status 同款：注册表只声明名字参与前缀解析/提示，实际显隐切换 handler 由
  * TuiApp 经 register 接线（见 ui/app.ts）。
  * /subagents、/workflow、/tasks 的命令定义在 createBuiltinCommands（deps 注入
- * TuiApp 的显隐切换）；/status 保持 TuiApp 内注册。
+ * TuiApp 的显隐切换）；/status、/todos 保持 TuiApp 内注册（/todos：无参显隐 +
+ * all 明细展开，数据源为 todos 投影保留快照）。
  */
-export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'resume', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'key', 'login', 'preset', 'tasks', 'density', 'goal', 'status', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'export', 'exit', 'yolo', 'cost', 'help', 'restart'] as const
+export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'resume', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'key', 'login', 'preset', 'tasks', 'density', 'goal', 'status', 'todos', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'export', 'exit', 'yolo', 'cost', 'help', 'restart'] as const
 
 /**
  * /model 一键切换别名（TUI 便捷层）：展开为 deepseek-spark route 的

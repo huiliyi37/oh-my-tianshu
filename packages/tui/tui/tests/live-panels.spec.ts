@@ -1,10 +1,11 @@
 /**
- * live-panels — renderLive 7 面板段纯函数契约测试（Wave 2 TDD：RED → GREEN）。
+ * live-panels — renderLive 面板段纯函数契约测试（Wave 2 TDD：RED → GREEN）。
  *
  * 每面板 `(snapshot) => string[]`（纯文本行，renderLive 组合器负责 `{ text }`
- * 包装与 theme 着色——面板只产出面板行）。7 面板：
- * renderTasksPanel / renderConfigPanel / renderSkillsPanel / renderDelegationPanel
- * / renderWorkflowPanel / renderStatusPanel / renderGlancePanel。
+ * 包装与 theme 着色——面板只产出面板行）。面板：
+ * renderTasksPanel / renderTodosPanel / renderConfigPanel / renderSkillsPanel /
+ * renderDelegationPanel / renderWorkflowPanel / renderStatusPanel /
+ * renderGlancePanel。
  *
  * 输入 LiveSnapshot 是 renderLive 读取字段子集的快照（控制面/面板显隐/投影源/
  * 输入行五组）。面板是纯函数：同一 snapshot 恒返回同一行序列，无 I/O、无时钟。
@@ -15,6 +16,7 @@ import type { RivetTheme } from '../src/theme.js'
 import type { LiveSnapshot } from '../src/render/live-snapshot.js'
 import {
   renderTasksPanel,
+  renderTodosPanel,
   renderSkillsPanel,
   renderDelegationPanel,
   renderWorkflowPanel,
@@ -61,6 +63,9 @@ function baseSnapshot(): LiveSnapshot {
     todos: null,
     plan: null,
     sessionTotals: { turns: 0, toolCalls: 0, elapsedMs: 0 },
+    todosPanelVisible: false,
+    todosExpanded: false,
+    todosItems: null,
     subagentsPanelVisible: false,
     delegationEntries: null,
     externalRuns: [],
@@ -106,6 +111,36 @@ describe('renderTasksPanel', () => {
     expect(text).toContain('compiling')
     expect(text).toContain('›')
     expect(text).toContain('vitest')
+  })
+})
+
+describe('renderTodosPanel', () => {
+  it('面板隐藏 → 零行', () => {
+    expect(renderTodosPanel(baseSnapshot())).toEqual([])
+  })
+
+  it('面板打开 → 委派 projectTodosPanel：摘要卡（计数 + 当前进行项）', () => {
+    const snap = { ...baseSnapshot(), todosPanelVisible: true, todosItems: [
+      { content: '理解问题', status: 'completed' as const },
+      { content: '写测试', status: 'in_progress' as const },
+    ] }
+    const rows = renderTodosPanel(snap)
+    expect(rows).toEqual(['📋 待办 ✓1 ⏳1 □0 · 写测试'])
+  })
+
+  it('面板打开 + 明细展开 → 摘要行 + 条目明细', () => {
+    const snap = { ...baseSnapshot(), todosPanelVisible: true, todosExpanded: true, todosItems: [
+      { content: '任务一', status: 'pending' as const },
+    ] }
+    expect(renderTodosPanel(snap)).toEqual([
+      '📋 待办 ✓0 ⏳0 □1',
+      ' [ ] 任务一',
+    ])
+  })
+
+  it('面板打开 + 从未写入（null）→ 空态占位行', () => {
+    const rows = renderTodosPanel({ ...baseSnapshot(), todosPanelVisible: true, todosItems: null })
+    expect(rows).toEqual(['📋 待办 ·（尚无待办）'])
   })
 })
 

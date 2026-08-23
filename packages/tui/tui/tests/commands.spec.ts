@@ -876,6 +876,10 @@ describe('内置命令 — /model', () => {
   it('内置命令集含 /model', () => {
     expect(BUILTIN_COMMAND_NAMES).toContain('model')
   })
+
+  it('内置命令集含 /todos（待办紧凑面板开关）', () => {
+    expect(BUILTIN_COMMAND_NAMES).toContain('todos')
+  })
 })
 
 describe('内置命令 — /model 角色子命令（vision/secondary/subagent pin）', () => {
