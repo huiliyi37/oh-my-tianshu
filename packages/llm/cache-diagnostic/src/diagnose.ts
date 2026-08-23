@@ -47,22 +47,27 @@ export interface DriftEventLike {
 /**
  * Diagnose the latest turn's cache miss, or return null when nothing is wrong.
  *
- * Order of attribution (mirrors upstream): no counters → first turn → high hit
+ * Order of attribution: no snapshots → first turn (nothing cached yet) →
+ * provider reports no cache counters on any turn (unmeasurable) → high hit
  * rate (≥ 0.8, nothing to explain) → prefix drift (invalidates the whole
  * prefix) → compaction (restructured history) → prefix truncation (cacheRead
  * regressed vs the previous turn — mid-history divergence, categorically
  * different from tail growth) → low hit rate without a cause (eviction) →
  * ordinary growth.
  *
+ * Hit-rate math honors the `TokenUsage` disjoint contract: `inputTokens` is
+ * the uncached share only, so the turn total is
+ * `inputTokens + cacheRead + cacheWrite` and the rate is the cached fraction
+ * of it. A provider that never reports write tokens (DeepSeek) is exact here;
+ * computing the rate over cache counters alone would degenerate to 100%.
+ *
  * @param history - per-turn snapshots in chronological order.
- * @param _currentTurn - the current turn number (reserved; latest snapshot is the current turn).
  * @param drift - a detected prefix drift event, or null.
- * @param wasCompacted - whether compaction ran this turn.
+ * @param wasCompacted - whether compaction ran since the previous turn's last usage.
  * @returns a diagnosis, or null when the turn is healthy or unmeasurable.
  */
 export function diagnoseCacheMiss(
   history: readonly TurnCacheSnapshot[],
-  _currentTurn: number,
   drift: DriftEventLike | null,
   wasCompacted: boolean,
 ): CacheDiagnostic | null {
@@ -71,10 +76,7 @@ export function diagnoseCacheMiss(
   // oxlint-disable-next-line typescript/no-non-null-assertion -- non-empty check above bounds the index.
   const current = history[history.length - 1]!
 
-  // Provider reported no cache counters at all — nothing to diagnose.
-  if (current.cacheRead + current.cacheWrite === 0) return null
-
-  // First turn — no cache to hit yet.
+  // First turn — no cache to hit yet, whatever the provider reports.
   if (history.length === 1) {
     return {
       reason: 'first_turn',
@@ -84,8 +86,14 @@ export function diagnoseCacheMiss(
     }
   }
 
-  const turnTotal = current.cacheRead + current.cacheWrite
-  const turnHitRate = turnTotal > 0 ? current.cacheRead / turnTotal : 1
+  // The provider never reported a cache counter on any turn — nothing to
+  // diagnose. (A genuinely missed turn still reports cacheRead: 0 while an
+  // earlier turn reported a hit, which the fold keeps distinguishable.)
+  const anyCacheCounters = history.some(snapshot => snapshot.cacheRead + snapshot.cacheWrite > 0)
+  if (!anyCacheCounters) return null
+
+  const turnTotal = current.inputTokens + current.cacheRead + current.cacheWrite
+  const turnHitRate = turnTotal > 0 ? current.cacheRead / turnTotal : 0
 
   // High hit rate — nothing to explain.
   if (turnHitRate >= 0.8) return null

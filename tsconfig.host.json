@@ -110,6 +110,7 @@
     { "path": "./packages/util/atomic-write" },
     { "path": "./packages/llm/llm" },
     { "path": "./packages/llm/token-meter" },
+    { "path": "./packages/llm/cache-diagnostic" },
     { "path": "./packages/core/session" },
     { "path": "./packages/core/scope" },
     { "path": "./packages/typert/type-meta" },

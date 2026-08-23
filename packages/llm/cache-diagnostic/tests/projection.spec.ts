@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
+import { createAssistantMessage } from '@huiliyi37/dsh-llm'
 import type { TokenUsage } from '@huiliyi37/dsh-llm'
 import SessionStore from '@huiliyi37/dsh-session'
 import type { Session } from '@huiliyi37/dsh-session'
 import SessionProjectionRegistry from '@huiliyi37/dsh-session-projection'
 import CacheDiagnosticService from '@huiliyi37/dsh-cache-diagnostic'
-import type { CacheHealthProjection } from '@huiliyi37/dsh-cache-diagnostic/client'
+import type { CacheHealthProjection } from '@huiliyi37/dsh-cache-diagnostic'
 
 async function harness(): Promise<{
   ctx: Context
@@ -19,6 +20,7 @@ async function harness(): Promise<{
   return { ctx, session: ctx.sessions.create(), diagnosticFiber }
 }
 
+/** TokenUsage buckets are disjoint: input = uncached share, then cacheRead, cacheWrite. */
 function usage(input: number, cacheRead: number, cacheWrite: number): TokenUsage {
   return { inputTokens: input, outputTokens: 0, cacheReadTokens: cacheRead, cacheWriteTokens: cacheWrite }
 }
@@ -27,7 +29,7 @@ function appendUsage(session: Session, turn: number, step: number, u: TokenUsage
   session.append('assistant/message', {
     turn,
     step,
-    message: { role: 'assistant', content: [], source: { kind: 'model', provider: 'mock', model: 'm' } },
+    message: createAssistantMessage({ content: [], source: { provider: 'mock', model: 'm' } }),
     usage: u,
   }, { surfaceOp: 'append' })
 }
@@ -36,7 +38,9 @@ async function read(
   ctx: Context,
   session: Session,
 ): Promise<CacheHealthProjection> {
-  return ctx.sessionProjections.snapshot(session).values.cacheHealth
+  const value = ctx.sessionProjections.snapshot(session).values.cacheHealth
+  if (value === undefined) throw new Error('cacheHealth projection not registered')
+  return value
 }
 
 describe('cacheHealth projection', () => {
@@ -46,8 +50,9 @@ describe('cacheHealth projection', () => {
 
     appendUsage(session, 1, 1, usage(1200, 1000, 200))
     const projection = await read(ctx, session)
-    expect(projection.hitRate).toBeCloseTo(1000 / 1200, 5)
-    expect(projection.recentTurnHitRate).toBeCloseTo(1000 / 1200, 5)
+    // Disjoint math: 1000 cached over 1200 + 1000 + 200 billed input.
+    expect(projection.hitRate).toBeCloseTo(1000 / 2400, 5)
+    expect(projection.recentTurnHitRate).toBeCloseTo(1000 / 2400, 5)
     expect(projection.lastMissReason).toBeUndefined()
   })
 
@@ -56,8 +61,8 @@ describe('cacheHealth projection', () => {
     appendUsage(session, 1, 1, usage(1000, 800, 200))
     appendUsage(session, 2, 1, usage(2000, 1500, 500))
     const projection = await read(ctx, session)
-    expect(projection.hitRate).toBeCloseTo(2300 / 3000, 5)
-    expect(projection.recentTurnHitRate).toBeCloseTo(1500 / 2000, 5)
+    expect(projection.hitRate).toBeCloseTo(2300 / 6000, 5)
+    expect(projection.recentTurnHitRate).toBeCloseTo(1500 / 4000, 5)
   })
 
   it('exposes the latest miss reason for an unhealthy turn', async () => {

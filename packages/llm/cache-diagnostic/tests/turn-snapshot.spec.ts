@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createAssistantMessage } from '@huiliyi37/dsh-llm'
 import type { TokenUsage } from '@huiliyi37/dsh-llm'
 import type { SessionEvent } from '@huiliyi37/dsh-session'
 import { foldTurnSnapshots } from '../src/turn-snapshot.ts'
@@ -12,7 +13,7 @@ function assistantMessage(turn: number, step: number, usage?: TokenUsage): Sessi
     type: 'assistant/message',
     seq: turn * 10 + step,
     time: turn * 100 + step,
-    data: { turn, step, message: { role: 'assistant', content: [], source: { kind: 'model', provider: 'mock', model: 'm' } }, ...usage === undefined ? {} : { usage } },
+    data: { turn, step, message: createAssistantMessage({ content: [], source: { provider: 'mock', model: 'm' } }), ...usage === undefined ? {} : { usage } },
   }
 }
 

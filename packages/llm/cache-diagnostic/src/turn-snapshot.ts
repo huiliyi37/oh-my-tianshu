@@ -31,14 +31,14 @@ export function foldTurnSnapshots(events: readonly SessionEvent[]): TurnCacheSna
         turn,
         cacheRead: usage.cacheReadTokens ?? 0,
         cacheWrite: usage.cacheWriteTokens ?? 0,
-        inputTokens: usage.inputTokens ?? 0,
-        outputTokens: usage.outputTokens ?? 0,
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
       })
     } else {
       existing.cacheRead += usage.cacheReadTokens ?? 0
       existing.cacheWrite += usage.cacheWriteTokens ?? 0
-      existing.inputTokens += usage.inputTokens ?? 0
-      existing.outputTokens += usage.outputTokens ?? 0
+      existing.inputTokens += usage.inputTokens
+      existing.outputTokens += usage.outputTokens
     }
   }
   const entries = [...byTurn.entries()].sort(([a], [b]) => a - b)

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { computeFingerprint, detectDrift } from '../src/fingerprint.ts'
-import type { PrefixFingerprint } from '../src/fingerprint.ts'
 
 const SYSTEM = 'You are a helpful assistant.'
 const TOOLS = [
@@ -94,6 +93,6 @@ describe('detectDrift', () => {
 
   it('combined hash equality is the no-drift gate', () => {
     const same = computeFingerprint(SYSTEM, TOOLS, CONFIG)
-    expect((same as PrefixFingerprint).combinedSha256).toBe(base.combinedSha256)
+    expect(same.combinedSha256).toBe(base.combinedSha256)
   })
 })

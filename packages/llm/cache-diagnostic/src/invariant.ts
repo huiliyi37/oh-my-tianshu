@@ -39,11 +39,11 @@ export function validateTurnSnapshots(snapshots: readonly TurnCacheSnapshot[]): 
 }
 
 /**
- * No live runtime invariant: the fold tolerates replayed logs (ordering is
+ * No runtime invariant: the fold tolerates replayed logs (ordering is
  * normalized by `foldTurnSnapshots`), and the schema fixes the projection
- * payload. {@link validateTurnSnapshots} is the mechanically checkable
- * invariant — exercised by the package's invariant spec and available to any
- * caller that wants to gate on fold health.
+ * payload at the durable boundary. {@link validateTurnSnapshots} is the
+ * mechanically checkable relation — exercised by the package's invariant
+ * spec and available to any caller that wants to gate on fold health.
  */
 const install: InvariantInstaller = () => {}
 

@@ -73,6 +73,7 @@
     "@huiliyi37/dsh-agent-presets": "workspace:^",
     "@huiliyi37/dsh-agent-router": "workspace:^",
     "@huiliyi37/dsh-atomic-write": "workspace:^",
+    "@huiliyi37/dsh-cache-diagnostic": "workspace:^",
     "@huiliyi37/dsh-evidence-gate": "workspace:^",
     "@huiliyi37/dsh-fs-snapshot": "workspace:^",
     "@huiliyi37/dsh-intent-bridge": "workspace:^",

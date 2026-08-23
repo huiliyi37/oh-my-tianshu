@@ -55,6 +55,12 @@ interface CacheReplayState {
   snapshots: TurnCacheSnapshot[]
   /** Seq of the latest usage event folded into `snapshots`. */
   snapshotSeq: number
+  /** Seq of the previous turn's last usage — the left edge of the current turn's measurement window. */
+  prevSnapshotSeq: number
+  /** Turn of the latest usage event; a change marks a turn boundary for the window. */
+  lastUsageTurn: number
+  /** Seq of the header event that produced `drift`; diagnosis attributes it only inside its window. */
+  driftSeq: number
   lastHeaderFingerprint: PrefixFingerprint | undefined
   drift: DriftEvent | null
   lastCompactSeq: number
@@ -74,6 +80,12 @@ function configText(header: EpochHeader): string {
 }
 
 /**
+ * No settings are supported; any key fails at load. Declared as a named type
+ * so the config catalog can render the (empty) shape.
+ */
+export interface CacheDiagnosticConfig extends Record<string, never> {}
+
+/**
  * `ctx.cacheDiagnostic`: owns per-session prefix fingerprints, per-turn cache
  * snapshots, and miss diagnosis. UIs and logs observe through the query
  * methods; the service folds lazily on `session/event` for sessions it has
@@ -82,7 +94,7 @@ function configText(header: EpochHeader): string {
 export class CacheDiagnosticService extends Service {
   private readonly states = new WeakMap<Session, CacheReplayState>()
 
-  constructor(ctx: Context, config: object = {}) {
+  constructor(ctx: Context, config: CacheDiagnosticConfig = {}) {
     super(ctx, 'cacheDiagnostic')
     if (Object.keys(config).length > 0) {
       throw new Error(`CacheDiagnosticService: unknown config key(s) ${Object.keys(config).join(', ')} (no settings are supported)`)
@@ -105,17 +117,22 @@ export class CacheDiagnosticService extends Service {
 
   /**
    * Diagnose the latest turn's cache miss, or null when the turn is healthy.
+   * Drift and compaction are attributed only when their event landed inside
+   * the current turn's measurement window (after the previous turn's last
+   * usage, at or before the latest usage) — a stale signal must not mislabel
+   * later turns.
    * @param session - the session to diagnose.
    * @param options - optional overrides for drift and compaction signals.
    * @returns the diagnosis, or null when there is nothing to explain.
    */
   diagnose(session: Session, options: DiagnoseOptions = {}): CacheDiagnostic | null {
     const state = this._sync(session)
-    const drift = options.drift !== undefined ? options.drift : state.drift
-    const wasCompacted = options.wasCompacted ?? (state.lastCompactSeq > state.snapshotSeq)
-    const latest = state.snapshots[state.snapshots.length - 1]
-    const currentTurn = latest === undefined ? 0 : latest.turn
-    return diagnoseCacheMiss(state.snapshots, currentTurn, drift, wasCompacted)
+    const inWindow = (seq: number): boolean => seq > state.prevSnapshotSeq && seq <= state.snapshotSeq
+    const drift = options.drift !== undefined
+      ? options.drift
+      : state.drift !== null && inWindow(state.driftSeq) ? state.drift : null
+    const wasCompacted = options.wasCompacted ?? inWindow(state.lastCompactSeq)
+    return diagnoseCacheMiss(state.snapshots, drift, wasCompacted)
   }
 
   /**
@@ -129,9 +146,9 @@ export class CacheDiagnosticService extends Service {
   }
 
   /**
-   * Cumulative cache hit rate over the whole session: cacheRead / inputTokens.
-   * The denominator is total input tokens (not cacheRead + cacheWrite) so a
-   * provider that omits write tokens cannot degenerate the rate to 100%.
+   * Cumulative cache hit rate over the whole session: the cached fraction of
+   * the billed input, `cacheRead / (inputTokens + cacheRead + cacheWrite)`
+   * (`TokenUsage` counts are disjoint — `inputTokens` is the uncached share).
    * @param session - the session to measure.
    * @returns the rate in [0, 1], or null when no usage has been reported.
    */
@@ -141,13 +158,13 @@ export class CacheDiagnosticService extends Service {
     let totalInput = 0
     for (const snapshot of state.snapshots) {
       totalRead += snapshot.cacheRead
-      totalInput += snapshot.inputTokens
+      totalInput += snapshot.inputTokens + snapshot.cacheRead + snapshot.cacheWrite
     }
     return totalInput > 0 ? Math.min(1, totalRead / totalInput) : null
   }
 
   /**
-   * Cache hit rate over the last N turns.
+   * Cache hit rate over the last N turns, same denominator as {@link hitRate}.
    * @param session - the session to measure.
    * @param lastN - how many recent turns to include.
    * @returns the rate in [0, 1], or null when no usage has been reported.
@@ -159,7 +176,7 @@ export class CacheDiagnosticService extends Service {
     let totalInput = 0
     for (const snapshot of slice) {
       totalRead += snapshot.cacheRead
-      totalInput += snapshot.inputTokens
+      totalInput += snapshot.inputTokens + snapshot.cacheRead + snapshot.cacheWrite
     }
     return totalInput > 0 ? Math.min(1, totalRead / totalInput) : null
   }
@@ -172,6 +189,9 @@ export class CacheDiagnosticService extends Service {
         consumedEvents: 0,
         snapshots: [],
         snapshotSeq: 0,
+        prevSnapshotSeq: 0,
+        lastUsageTurn: -1,
+        driftSeq: 0,
         lastHeaderFingerprint: undefined,
         drift: null,
         lastCompactSeq: 0,
@@ -199,6 +219,7 @@ export class CacheDiagnosticService extends Service {
         state.drift = state.lastHeaderFingerprint === undefined
           ? null
           : detectDrift(state.lastHeaderFingerprint, fingerprint)
+        if (state.drift !== null) state.driftSeq = event.seq
         state.lastHeaderFingerprint = fingerprint
         break
       }
@@ -206,20 +227,26 @@ export class CacheDiagnosticService extends Service {
         const usage = event.data.usage
         if (usage === undefined) break
         const turn = event.data.turn
+        if (turn !== state.lastUsageTurn) {
+          // A new turn opens: the previous turn's end becomes the left edge of
+          // the attribution window for drift and compaction.
+          state.prevSnapshotSeq = state.snapshotSeq
+          state.lastUsageTurn = turn
+        }
         const existing = state.snapshots.find(snapshot => snapshot.turn === turn)
         if (existing === undefined) {
           state.snapshots.push({
             turn,
             cacheRead: usage.cacheReadTokens ?? 0,
             cacheWrite: usage.cacheWriteTokens ?? 0,
-            inputTokens: usage.inputTokens ?? 0,
-            outputTokens: usage.outputTokens ?? 0,
+            inputTokens: usage.inputTokens,
+            outputTokens: usage.outputTokens,
           })
         } else {
           existing.cacheRead += usage.cacheReadTokens ?? 0
           existing.cacheWrite += usage.cacheWriteTokens ?? 0
-          existing.inputTokens += usage.inputTokens ?? 0
-          existing.outputTokens += usage.outputTokens ?? 0
+          existing.inputTokens += usage.inputTokens
+          existing.outputTokens += usage.outputTokens
         }
         state.snapshotSeq = event.seq
         break

@@ -36,6 +36,12 @@ interface CacheHealthState {
   snapshots: TurnCacheSnapshot[]
   /** Seq of the latest usage event folded into `snapshots`. */
   snapshotSeq: number
+  /** Seq of the previous turn's last usage — the left edge of the current turn's measurement window. */
+  prevSnapshotSeq: number
+  /** Turn of the latest usage event; a change marks a turn boundary for the window. */
+  lastUsageTurn: number
+  /** Seq of the header event that produced `drift`; diagnosis attributes it only inside its window. */
+  driftSeq: number
   lastHeaderFingerprint: PrefixFingerprint | undefined
   drift: DriftEvent | null
   lastCompactSeq: number
@@ -79,22 +85,33 @@ function applyEvent(state: CacheHealthState, event: SessionEvent): CacheHealthSt
       const drift = state.lastHeaderFingerprint === undefined
         ? null
         : detectDrift(state.lastHeaderFingerprint, fingerprint)
-      return { ...state, drift, lastHeaderFingerprint: fingerprint }
+      return {
+        ...state,
+        drift,
+        ...drift === null ? {} : { driftSeq: event.seq },
+        lastHeaderFingerprint: fingerprint,
+      }
     }
     case 'assistant/message': {
       const usage = event.data.usage
       if (usage === undefined) return state
       const turn = event.data.turn
+      // A new turn opens: the previous turn's end becomes the left edge of
+      // the attribution window for drift and compaction.
+      const windowed = turn !== state.lastUsageTurn
+        ? { prevSnapshotSeq: state.snapshotSeq, lastUsageTurn: turn }
+        : {}
       const existing = state.snapshots.find(snapshot => snapshot.turn === turn)
       if (existing === undefined) {
         return {
           ...state,
+          ...windowed,
           snapshots: [...state.snapshots, {
             turn,
             cacheRead: usage.cacheReadTokens ?? 0,
             cacheWrite: usage.cacheWriteTokens ?? 0,
-            inputTokens: usage.inputTokens ?? 0,
-            outputTokens: usage.outputTokens ?? 0,
+            inputTokens: usage.inputTokens,
+            outputTokens: usage.outputTokens,
           }],
           snapshotSeq: event.seq,
         }
@@ -103,11 +120,12 @@ function applyEvent(state: CacheHealthState, event: SessionEvent): CacheHealthSt
         ...existing,
         cacheRead: existing.cacheRead + (usage.cacheReadTokens ?? 0),
         cacheWrite: existing.cacheWrite + (usage.cacheWriteTokens ?? 0),
-        inputTokens: existing.inputTokens + (usage.inputTokens ?? 0),
-        outputTokens: existing.outputTokens + (usage.outputTokens ?? 0),
+        inputTokens: existing.inputTokens + usage.inputTokens,
+        outputTokens: existing.outputTokens + usage.outputTokens,
       }
       return {
         ...state,
+        ...windowed,
         snapshots: state.snapshots.map(snapshot => snapshot.turn === turn ? updated : snapshot),
         snapshotSeq: event.seq,
       }
@@ -120,9 +138,10 @@ function applyEvent(state: CacheHealthState, event: SessionEvent): CacheHealthSt
 }
 
 /**
- * The cache-health projection unit. Hit rates use total input tokens as the
- * denominator (cacheRead / inputTokens) so a provider that omits write tokens
- * cannot degenerate the rate to 100%.
+ * The cache-health projection unit. Hit rates are the cached fraction of the
+ * billed input — `cacheRead / (inputTokens + cacheRead + cacheWrite)`, the
+ * `TokenUsage` counters being disjoint — so a provider that omits write
+ * tokens (DeepSeek) stays exact instead of degenerating to 100%.
  */
 export const cacheHealthProjectionDefinition:
 ProjectionDefinition<'cacheHealth', CacheHealthState> = {
@@ -131,6 +150,9 @@ ProjectionDefinition<'cacheHealth', CacheHealthState> = {
   init: () => ({
     snapshots: [],
     snapshotSeq: 0,
+    prevSnapshotSeq: 0,
+    lastUsageTurn: -1,
+    driftSeq: 0,
     lastHeaderFingerprint: undefined,
     drift: null,
     lastCompactSeq: 0,
@@ -141,26 +163,31 @@ ProjectionDefinition<'cacheHealth', CacheHealthState> = {
     let totalInput = 0
     for (const snapshot of state.snapshots) {
       totalRead += snapshot.cacheRead
-      totalInput += snapshot.inputTokens
+      totalInput += snapshot.inputTokens + snapshot.cacheRead + snapshot.cacheWrite
     }
     const hitRate = totalInput > 0 ? Math.min(1, totalRead / totalInput) : undefined
 
     const latest = state.snapshots[state.snapshots.length - 1]
-    const recentTurnHitRate = latest !== undefined && latest.inputTokens > 0
-      ? Math.min(1, latest.cacheRead / latest.inputTokens)
+    const latestTotal = latest === undefined
+      ? 0
+      : latest.inputTokens + latest.cacheRead + latest.cacheWrite
+    const recentTurnHitRate = latest !== undefined && latestTotal > 0
+      ? Math.min(1, latest.cacheRead / latestTotal)
       : undefined
 
-    const diagnosis = latest === undefined || totalInput === 0
-      ? undefined
+    // Drift and compaction attribute only inside the current turn's
+    // measurement window — a stale signal must not mislabel later turns.
+    const inWindow = (seq: number): boolean => seq > state.prevSnapshotSeq && seq <= state.snapshotSeq
+    const diagnosis = totalInput === 0
+      ? null
       : diagnoseCacheMiss(
         state.snapshots,
-        latest.turn,
-        state.drift,
-        state.lastCompactSeq > state.snapshotSeq,
+        state.drift !== null && inWindow(state.driftSeq) ? state.drift : null,
+        inWindow(state.lastCompactSeq),
       )
     // Only warn/error verdicts are health signals; info verdicts (first turn,
     // ordinary growth) are normal operation and stay out of the summary.
-    const lastMissReason = diagnosis !== undefined && diagnosis !== null && diagnosis.severity !== 'info'
+    const lastMissReason = diagnosis !== null && diagnosis.severity !== 'info'
       ? diagnosis.reason
       : undefined
 
