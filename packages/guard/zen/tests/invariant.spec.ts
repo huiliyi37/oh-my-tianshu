@@ -62,7 +62,7 @@ describe('zen-phase stream invariants', () => {
   it('rejects a promotion on a never-armed session', async () => {
     const ctx = await setup()
     const session = Session.create(SessionId('zen-unarmed'))
-    expect(() => { ctx.emit('session/event', session, event({ phase: 'full', reason: 'triage' }) as SessionEvent) })
+    expect(() => { ctx.emit('session/event', session, event({ phase: 'full', reason: 'triage' })) })
       .toThrow(/without a prior 'zen'/)
   })
 
@@ -70,7 +70,7 @@ describe('zen-phase stream invariants', () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     const session = ctx.sessions.create()
-    session.append('zen/phase', { phase: 'zen', reason: 'anchor' as never })
+    session.append('zen/phase', { phase: 'zen', reason: 'anchor' })
     await ctx.plugin(InvariantService, { enabled: true })
 
     await expect(ctx.plugin(ZenInvariant).then(() => undefined)).rejects.toThrow(/must carry reason 'arm'/)

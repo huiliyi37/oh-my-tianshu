@@ -38,9 +38,9 @@ describe('foreignOfficialPeer — @deepseek-ai/* peer 判定（纯函数）', ()
   })
 
   it('无 peerDependencies / 空 / 仅本生态 → undefined', () => {
-    expect(foreignOfficialPeer({} as ProfileManifest)).toBeUndefined()
-    expect(foreignOfficialPeer({ peerDependencies: {} } as ProfileManifest)).toBeUndefined()
-    expect(foreignOfficialPeer({ peerDependencies: { '@huiliyi37/cordis': '^4.0.0' } } as ProfileManifest)).toBeUndefined()
+    expect(foreignOfficialPeer({})).toBeUndefined()
+    expect(foreignOfficialPeer({ peerDependencies: {} })).toBeUndefined()
+    expect(foreignOfficialPeer({ peerDependencies: { '@huiliyi37/cordis': '^4.0.0' } })).toBeUndefined()
   })
 })
 
@@ -50,7 +50,7 @@ describe('warnIfForeignEcosystem — 官方生态插件混装警告（fail-open�
       'fake-official-plugin': {
         name: 'fake-official-plugin',
         peerDependencies: { '@deepseek-ai/cordis': '^4.0.0' },
-      } as ProfileManifest,
+      },
     })
     const err = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     try {
@@ -69,7 +69,7 @@ describe('warnIfForeignEcosystem — 官方生态插件混装警告（fail-open�
       'fake-omts-plugin': {
         name: 'fake-omts-plugin',
         peerDependencies: { '@huiliyi37/cordis': '^4.0.0' },
-      } as ProfileManifest,
+      },
     })
     const err = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     try {
@@ -84,7 +84,7 @@ describe('warnIfForeignEcosystem — 官方生态插件混装警告（fail-open�
     const dir = makeProfile()
     const err = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     try {
-      expect(() => warnIfForeignEcosystem('not-installed-anywhere', dir)).not.toThrow()
+      expect(() => { warnIfForeignEcosystem('not-installed-anywhere', dir) }).not.toThrow()
       expect(err.mock.calls).toHaveLength(0)
     } finally {
       err.mockRestore()

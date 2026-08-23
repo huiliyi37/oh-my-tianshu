@@ -306,7 +306,7 @@ describe('runBackfillSweep — 溯源去重与 cwd 规范化', () => {
     const persistence = new FakePersistence(ctx, [header('s1')], logs)
     const memory = fakeMemory()
     // global 已有 consolidate 写入的 auto 条目，溯源指向 s1。
-    ;(memory.service.list as (opts?: { scope?: string }) => Promise<MemoryEntry[]>) = async () => [{
+    ;(memory.service.list) = async () => [{
       id: 'm0', text: 'already extracted', scope: 'global', tags: [], createdAt: NOW, source: 'auto',
       sourceRefs: [{ sessionId: 's1', eventSeqs: [2] }],
     }]
@@ -330,7 +330,7 @@ describe('runBackfillSweep — 溯源去重与 cwd 规范化', () => {
     const logs = new Map([[ 's1', passingEvents(lastTime) ]])
     const persistence = new FakePersistence(ctx, [header('s1')], logs)
     const memory = fakeMemory()
-    ;(memory.service.list as (opts?: { scope?: string }) => Promise<MemoryEntry[]>) = async () => [{
+    ;(memory.service.list) = async () => [{
       id: 'm0', text: 'user note', scope: 'global', tags: [], createdAt: NOW, source: 'user',
       sourceRefs: [{ sessionId: 's1', eventSeqs: [2] }],
     }]

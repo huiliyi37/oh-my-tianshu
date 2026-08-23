@@ -127,7 +127,7 @@ export function clientInspectProviders(ctx: Context): ClientCordisInspectProvide
       if (theme === undefined) throw new Error('Client Theme service is not running')
       // The local ThemeService exposes no token-inspection export (the
       // official exportInspectTokens surface is absent); report an empty list.
-      return { tokens: [], referencedTypes: [] } as unknown as JsonValue
+      return { tokens: [], referencedTypes: [] }
     }),
   ]
 }

@@ -17,7 +17,7 @@ async function setup(): Promise<Context> {
 }
 
 const emit = (ctx: Context, event: string, ...args: unknown[]): void => {
-  ;(ctx.emit as (event: string, ...args: unknown[]) => void)(event, ...args)
+  ctx.emit(event as never, ...args)
 }
 
 describe('runtime slots/changed invariant', () => {

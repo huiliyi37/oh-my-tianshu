@@ -30,6 +30,10 @@ function runId(value: number): CordisDynamicPluginRunId {
   return `run-${value}` as CordisDynamicPluginRunId
 }
 
+/** vitest types expect.any() as returning any; narrow it to the matcher's structural interface. */
+const anyMatcher = (constructor: unknown): { asymmetricMatch(other: unknown): boolean } =>
+  expect.any(constructor) as { asymmetricMatch(other: unknown): boolean }
+
 /** One browser half as the host hands it over. */
 function half(overrides: Partial<DynamicCordisClientHalf> = {}): DynamicCordisClientHalf {
   return {
@@ -242,8 +246,8 @@ describe('failure stages', () => {
       ok: false,
       cause: 'evaluate',
       message: expect.stringContaining('must `return` a plugin') as string,
-      stack: expect.any(String),
-      error: expect.any(Error),
+      stack: anyMatcher(String),
+      error: anyMatcher(Error),
     })
     const leaked = [...document.querySelectorAll('style[data-dyn="dyn-1"]')]
       .filter(tag => tag.textContent === '.leak {}')
@@ -258,8 +262,8 @@ describe('failure stages', () => {
         ok: false,
         cause: 'activate',
         message: 'apply exploded',
-        stack: expect.any(String),
-        error: expect.any(Error),
+        stack: anyMatcher(String),
+        error: anyMatcher(Error),
       })
     expect(bench.removed).toEqual(['entry-1'])
     expect(bench.runner.isLoaded(PLUGIN)).toBe(false)

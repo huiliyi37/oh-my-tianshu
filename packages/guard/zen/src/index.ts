@@ -162,6 +162,24 @@ export interface ResolvedZenConfig {
 }
 
 /**
+ * Validate one config list field and narrow it from its schema-loose source
+ * type to a readonly string list.
+ * @param value - the raw config value (unknown at the config boundary).
+ * @param label - field path reported verbatim in the failure.
+ * @param nonEmpty - whether an empty list is rejected too.
+ * @returns the validated names, in config order.
+ */
+function toolNameList(value: unknown, label: string, nonEmpty: boolean): readonly string[] {
+  if (!Array.isArray(value)
+    || (nonEmpty && value.length === 0)
+    || value.some(name => typeof name !== 'string' || name.trim() === '')) {
+    const what = nonEmpty ? 'a non-empty list of non-empty tool names' : 'a list of non-empty tool names'
+    throw new Error(`ZenConfig \`${label}\` must be ${what}`)
+  }
+  return value as readonly string[]
+}
+
+/**
  * Validate deployment-owned zen policy and materialize defaults. Missing or
  * blank section, malformed face names, non-positive budgets, and unknown
  * fields fail at plugin load rather than silently shaping nothing.
@@ -179,11 +197,7 @@ export function resolveConfig(config: ZenConfig): ResolvedZenConfig {
   if (unknown.length > 0) {
     throw new Error(`ZenConfig has unknown key(s) ${unknown.join(', ')} — config is { section, face?, timeoutSteps?, requireEvidence?, triage?, faceSelection?, diet?, promoteDeny?, enabled? }`)
   }
-  const face = raw.face ?? ['bash', 'str_replace_editor', 'todo_write']
-  if (!Array.isArray(face) || face.length === 0
-    || face.some(name => typeof name !== 'string' || name.trim() === '')) {
-    throw new Error('ZenConfig `face` must be a non-empty list of non-empty tool names')
-  }
+  const face = toolNameList(raw.face ?? ['bash', 'str_replace_editor', 'todo_write'], 'face', true)
   if (new Set(face).size !== face.length) {
     throw new Error('ZenConfig `face` must not repeat tool names')
   }
@@ -232,11 +246,7 @@ export function resolveConfig(config: ZenConfig): ResolvedZenConfig {
     }
     diet = { maxDescriptionChars }
   }
-  const promoteDeny = raw.promoteDeny ?? []
-  if (!Array.isArray(promoteDeny)
-    || promoteDeny.some(name => typeof name !== 'string' || name.trim() === '')) {
-    throw new Error('ZenConfig `promoteDeny` must be a list of non-empty tool names')
-  }
+  const promoteDeny = toolNameList(raw.promoteDeny ?? [], 'promoteDeny', false)
   if (new Set(promoteDeny).size !== promoteDeny.length) {
     throw new Error('ZenConfig `promoteDeny` must not repeat tool names')
   }
@@ -347,7 +357,7 @@ export function hasAnchorEvidence(events: readonly SessionEvent[]): boolean {
     }
     if (event.type !== 'tool/result') continue
     const block = event.data.message.content[0]
-    if (block?.type !== 'tool-result' || block.isError === true) continue
+    if (block.isError === true) continue
     const name = callNames.get(String(event.data.message.source.callId))
     if (name !== undefined && !NON_EVIDENCE_TOOLS.has(name)) return true
   }

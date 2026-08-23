@@ -56,6 +56,9 @@ export function apply(ctx: ClientContext): void {
     inventory: async () => {
       // 本地 TypeRT 直接返回清单数组（null 表示命名空间不可用）
       const rows = await ctx.remote.dynamicCordisRunner.inventory()
+      // The generated stub omits the carrier's null envelope (undeliverable
+      // call); the guard is load-bearing until the stub types it.
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- TypeRT carrier resolves null when the namespace is unreachable.
       if (rows === null) throw new Error('dynamicCordisRunner namespace unavailable')
       return rows
     },

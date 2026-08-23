@@ -38,7 +38,7 @@ afterEach(async () => {
 })
 
 /** 全字段显式 Config（覆盖 resolveConfig 的 `??` 右侧）。 */
-const EXPLICIT: Config = {
+const EXPLICIT = {
   stmTokenBudget: 600,
   maxEntries: 12,
   maxIntentTokens: 6,
@@ -58,7 +58,7 @@ const EXPLICIT: Config = {
   topicBoosts: { procedure: 0.2 },
   maxRemindersPerTurn: 1,
   maxRemindersPerIntent: 3,
-}
+} satisfies Config
 
 async function harness(config: Parameters<typeof apply>[1] = EXPLICIT): Promise<{
   ctx: Context

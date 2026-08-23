@@ -256,7 +256,9 @@ ProjectionDefinition<'subagentProgress', ProgressState> = {
         }
       }
       case 'turn/end': {
-        const kind = event.data.reason.kind
+        // Replay can carry turn-end kinds beyond the static union (a session
+        // written by another deployment); widen at this durable boundary.
+        const kind = event.data.reason.kind as string
         if (kind === 'completed' || kind === 'aborted' || kind === 'blocked'
           || kind === 'error' || kind === 'max-tokens' || kind === 'interrupted') {
           return { ...state, inTurn: false, turns: state.turns + 1, lastTurnEnd: kind }

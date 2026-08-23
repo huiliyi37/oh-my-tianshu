@@ -149,7 +149,7 @@ export function renderDelegationPanel(snapshot: LiveSnapshot): string[] {
   rows.push(...projectExternalRunSection(snapshot.externalRuns, {
     width: snapshot.cols,
     now: snapshot.now,
-    ...(snapshot.theme === undefined ? {} : { theme: snapshot.theme }),
+    theme: snapshot.theme,
   }))
   return rows
 }

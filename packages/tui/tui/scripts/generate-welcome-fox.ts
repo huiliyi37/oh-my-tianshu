@@ -179,7 +179,7 @@ async function validateAuthoredSheet(sheetPath: string): Promise<void> {
   validateTransparentFrameBoundaries(data, info.width)
 }
 
-async function loadCutoutRgba(): Promise<{ data: Buffer, width: number, height: number }> {
+async function loadCutoutRgba(): Promise<{ data: Buffer; width: number; height: number }> {
   const image = sharp(cutoutPath, { failOn: 'error' })
   const metadata = await image.metadata()
   if (metadata.format !== 'png') {

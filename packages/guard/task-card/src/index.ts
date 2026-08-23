@@ -80,6 +80,9 @@ export interface ResolvedTaskCardConfig {
   section: string | undefined
 }
 
+/** The closed `mode` vocabulary, held as strings so validation survives direct `apply()` calls. */
+const TASK_CARD_MODES: readonly string[] = ['llm', 'template']
+
 /**
  * Validate deployment-owned task-card policy and materialize defaults.
  * Unknown keys, a bad mode, non-positive budgets, and a `mode: 'llm'`
@@ -99,7 +102,9 @@ export function resolveConfig(config: TaskCardConfig): ResolvedTaskCardConfig {
     throw new Error('TaskCardConfig `enabled` must be a boolean')
   }
   const mode = config.mode ?? 'llm'
-  if (mode !== 'llm' && mode !== 'template') {
+  // The schema types the vocabulary closed, but direct `apply()` calls bypass
+  // Loader validation: compare against a string list so the check survives.
+  if (!TASK_CARD_MODES.includes(mode)) {
     throw new Error('TaskCardConfig `mode` must be "llm" or "template"')
   }
   const timeoutMs = config.timeoutMs ?? 5000

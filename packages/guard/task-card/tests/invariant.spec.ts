@@ -29,7 +29,7 @@ function cardedMessage(original: string | undefined): SessionEvent {
     seq: 0,
     time: 0,
     data: createUserMessage({ content: [{ type: 'text', text }], source: { kind: 'user' } }),
-  } as SessionEvent
+  }
 }
 
 function plainMessage(text = 'plain'): SessionEvent {
@@ -38,7 +38,7 @@ function plainMessage(text = 'plain'): SessionEvent {
     seq: 0,
     time: 0,
     data: createUserMessage({ content: [{ type: 'text', text }], source: { kind: 'user' } }),
-  } as SessionEvent
+  }
 }
 
 describe('task-card stream invariants', () => {

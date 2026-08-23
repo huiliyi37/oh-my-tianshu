@@ -3,7 +3,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
 import AgentRegistry, { Inbox } from '@huiliyi37/dsh-agent'
-import type { Agent, AgentHandle, CreateAgentOptions } from '@huiliyi37/dsh-agent'
+import type { Agent, AgentHandle, AgentSetup, CreateAgentOptions } from '@huiliyi37/dsh-agent'
 import AgentDefaultModelService from '@huiliyi37/dsh-agent-default-model'
 import { createAssistantMessage } from '@huiliyi37/dsh-llm'
 import SessionStore, { SessionId } from '@huiliyi37/dsh-session'
@@ -59,7 +59,7 @@ async function bench(
   const buildAgent = async (
     ownerCtx: Context,
     session: Session,
-    setup: ((agentCtx: Context) => void) | undefined,
+    setup: AgentSetup | undefined,
   ): Promise<AgentHandle> => {
     let idle = Promise.resolve()
     const agent = {} as Agent

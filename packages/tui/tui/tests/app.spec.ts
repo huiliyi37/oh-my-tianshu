@@ -9292,7 +9292,7 @@ describe('TuiApp todos 紧凑面板（/todos + sessionProjections）', () => {
     stdout: { write: ReturnType<typeof vi.fn> },
     assert: (written: string) => void,
   ): Promise<void> {
-    await vi.waitFor(() => assert(joinedWrites(stdout)), { timeout: 2000, interval: 20 })
+    await vi.waitFor(() => { assert(joinedWrites(stdout)) }, { timeout: 2000, interval: 20 })
   }
 
   it('/todos 打开渲染保留快照摘要；onChanged 实时更新；turn/start 清空（null）不回退', async () => {
@@ -9340,7 +9340,7 @@ describe('TuiApp todos 紧凑面板（/todos + sessionProjections）', () => {
       { content: '写测试', status: 'in_progress' },
       { content: '跑门禁', status: 'pending' },
     ])
-    await waitForPanel(stdout, w => expect(w).toContain('· 写测试'))
+    await waitForPanel(stdout, (w) => { expect(w).toContain('· 写测试') })
 
     // turn/start 把投影清成 null → 面板黏滞在上一份清单：若保留快照被 null
     // 回退，随后的重绘会渲染「尚无待办」空态行落入缓冲，此处即失败。
@@ -9359,7 +9359,7 @@ describe('TuiApp todos 紧凑面板（/todos + sessionProjections）', () => {
     // /todos all 展开 → 明细行渲染（封顶内全量）
     for (const ch of '/todos all') stdin.emit('data', ch)
     stdin.emit('data', '\r')
-    await waitForPanel(stdout, w => expect(w).toContain('[ ] 跑门禁'))
+    await waitForPanel(stdout, (w) => { expect(w).toContain('[ ] 跑门禁') })
     await app.dispose()
   }, 15_000)
 
@@ -9394,13 +9394,13 @@ describe('TuiApp todos 紧凑面板（/todos + sessionProjections）', () => {
 
     // 非法参数：回显用法且不打开面板
     await typeAndEnter('/todos foo')
-    let written = joinedWrites(stdout)
+    const written = joinedWrites(stdout)
     expect(written).toContain('用法: /todos [all]')
     expect(written).not.toContain('📋 待办 ✓')
 
     // 隐藏态 all：直接显示并展开明细
     await typeAndEnter('/todos all')
-    await waitForPanel(stdout, w => expect(w).toContain(' [ ] 任务一'))
+    await waitForPanel(stdout, (w) => { expect(w).toContain(' [ ] 任务一') })
 
     // 再 /todos：隐藏面板——Enter 后的最后一帧不含面板行
     await typeAndEnter('/todos')
@@ -9412,7 +9412,7 @@ describe('TuiApp todos 紧凑面板（/todos + sessionProjections）', () => {
     // all 两连按：先展开显示，再收起明细。摘要行与展开态同文（同一份清单），
     // diff 渲染不会重写标题行——可观察信号是明细行从 Enter 后的帧里消失。
     await typeAndEnter('/todos all')
-    await waitForPanel(stdout, w => expect(w).toContain(' [ ] 任务一'))
+    await waitForPanel(stdout, (w) => { expect(w).toContain(' [ ] 任务一') })
     await typeAndEnter('/todos all')
     await new Promise(resolve => setTimeout(resolve, 200))
     expect(joinedWrites(stdout)).not.toContain('[ ] 任务一')
@@ -9440,13 +9440,13 @@ describe('TuiApp todos 紧凑面板（/todos + sessionProjections）', () => {
 
     for (const ch of '/todos') stdin.emit('data', ch)
     stdin.emit('data', '\r')
-    await waitForPanel(stdout, w => expect(w).toContain('📋 待办 ✓'))
+    await waitForPanel(stdout, (w) => { expect(w).toContain('📋 待办 ✓') })
 
     for (const ch of '/clear') stdin.emit('data', ch)
     stdin.emit('data', '\r')
     await new Promise(resolve => setTimeout(resolve, 200))
     // 清屏后的全量重绘不再含面板行（检查最新一帧；缓冲里清屏前的旧行不算）。
-    const lastFrame = stdout.write.mock.calls.at(-1)?.map(c => `${c[0]}`).join('') ?? ''
+    const lastFrame = stdout.write.mock.calls.at(-1)?.map((c: unknown[]) => `${c[0]}`).join('') ?? ''
     expect(lastFrame).not.toContain('📋 待办 ✓')
     await app.dispose()
   }, 15_000)

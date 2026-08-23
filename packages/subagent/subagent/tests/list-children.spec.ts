@@ -1086,10 +1086,12 @@ describe('SubagentService.listDescendants', () => {
       leaf.append('turn/start', { turn: 1 })
       leaf.append('subagent/descriptor', descriptorPayload('deep leaf'))
 
+      // vitest types expect.any() as returning any; narrow it to the matcher's structural interface.
+      const activeMatcher = expect.any(Object) as { asymmetricMatch(other: unknown): boolean }
       await expect(ctx.subagents.listDescendants(parent.id)).resolves.toEqual([{
         kind: 'child', id: leafId, label: 'deep leaf', mode: 'continuable',
         activity: 'running', hasChildren: false, parentId, depth,
-        timing: { settledMs: 0, active: expect.any(Object) },
+        timing: { settledMs: 0, active: activeMatcher },
       }])
     }, 30_000)
 

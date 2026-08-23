@@ -343,6 +343,10 @@ export class InputHandler {
     this.stdin.on('data', this.handleDataListener)
   }
 
+  /**
+   * Tear down the handler: clear pending escape/return-hold timers, drop
+   * buffered state, and detach the stdin data listener.
+   */
   dispose(): void {
     if (this.escapeTimer) {
       clearTimeout(this.escapeTimer)

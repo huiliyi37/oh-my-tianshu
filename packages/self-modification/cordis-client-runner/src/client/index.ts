@@ -184,6 +184,7 @@ export function apply(ctx: Context): void {
     },
     resolve: async (agentId, requestId, resolution) => {
       const answered = await ctx.remote.dynamicCordisRunner.resolveInspectQuery(agentId, requestId, resolution)
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- TypeRT carrier resolves null when undeliverable.
       if (answered === null || !answered.accepted) throw new Error(`inspect query ${requestId} was not answered`)
     },
   })
@@ -208,6 +209,7 @@ export function apply(ctx: Context): void {
       // The local TypeRT carrier returns the raw result: null when the call
       // never reached the host half, and the namespace's own `ok: false`
       // envelope when that half answers with a refusal.
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- TypeRT carrier resolves null when undeliverable.
       if (answered === null) throw new Error(wireFailure(pluginId, method, 'host half unavailable'))
       if (!answered.ok) throw new Error(wireFailure(pluginId, method, invokeFailure(pluginId, method, answered)))
       return answered.value
@@ -236,10 +238,11 @@ export function apply(ctx: Context): void {
         const answered = await ctx.remote.dynamicCordisRunner.runHostHalf(
           agentId, pluginId, packageId, mode, requestId, approveFutureVersions,
         )
-        return answered.ok ? answered : { ok: false, message: `${answered.message}` }
+        return answered.ok ? answered : { ok: false, message: answered.message }
       },
       getClientCode: async (agentId, pluginId, pluginRunId) => {
         const answered = await ctx.remote.dynamicCordisRunner.getClientCode(agentId, pluginId, pluginRunId)
+        // oxlint-disable-next-line typescript/no-unnecessary-condition -- TypeRT carrier resolves null when undeliverable.
         if (answered === null) throw new Error(`host half refused getClientCode for ${pluginId}`)
         return answered
       },
@@ -247,11 +250,13 @@ export function apply(ctx: Context): void {
         const answered = await ctx.remote.dynamicCordisRunner.resolveRequestRun(requestId, resolution)
         // Thrown rather than returned: `answer` logs and drops a failed answer,
         // and the host settles the request on its own either way.
+        // oxlint-disable-next-line typescript/no-unnecessary-condition -- TypeRT carrier resolves null when undeliverable.
         if (answered === null || !answered.accepted) throw new Error(`host half refused resolveRequestRun for ${requestId}`)
         return answered
       },
       settleUserRun: async (agentId, pluginId, resolution) => {
         const answered = await ctx.remote.dynamicCordisRunner.settleUserRun(agentId, pluginId, resolution)
+        // oxlint-disable-next-line typescript/no-unnecessary-condition -- TypeRT carrier resolves null when undeliverable.
         if (answered === null || !answered.ok) throw new Error(`host half refused settleUserRun for ${pluginId}`)
         return answered
       },

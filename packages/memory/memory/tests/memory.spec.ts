@@ -145,9 +145,9 @@ describe('MarkdownMemoryStore', () => {
     })
     // 结构化可选能力按 MemoryService 视图探测（Markdown 后端不提供，恒 undefined）。
     const service: MemoryService = store
-    expect(service.topicVersions).toBeUndefined()
-    expect(service.markUncertain).toBeUndefined()
-    expect(service.retireStale).toBeUndefined()
+    expect(typeof service.topicVersions).toBe('undefined')
+    expect(typeof service.markUncertain).toBe('undefined')
+    expect(typeof service.retireStale).toBe('undefined')
   })
 
   it('delete：移除条目；删除不存在的 id 静默 no-op', async () => {

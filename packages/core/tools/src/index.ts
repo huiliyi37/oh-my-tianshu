@@ -951,7 +951,9 @@ export class ToolRegistry extends Service {
         yield ctx.systemPrompt.section(this.sdkSection())
       }
     }.bind(this), 'tools.presentAs()')
-    return dispose
+    // The generator effect resolves to a thenable fiber; the public contract
+    // is the plain disposer, so discard the teardown promise at the seam.
+    return () => { void dispose() }
   }
 
   /**

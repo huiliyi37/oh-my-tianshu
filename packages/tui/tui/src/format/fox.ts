@@ -11,7 +11,6 @@ import { ambiguousWidthMode } from '../width.js'
 import {
   WELCOME_FOX_BANDS,
   WELCOME_FOX_PALETTE,
-  type WelcomeFoxBandWidth,
 } from './fox-frames.js'
 
 type Ansi16Foreground = 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37
@@ -409,6 +408,18 @@ function renderBrailleCells(
   return output
 }
 
+/**
+ * Render indexed-palette pixel rows as half-block ANSI terminal lines.
+ *
+ * Each pair of indexed rows becomes one terminal row (upper/lower half
+ * blocks); a `targetWidth` narrower than the source width area-averages
+ * pixels instead of clipping.
+ *
+ * @param input - pixel geometry, palette rows, color level, and optional scale target.
+ * @returns the rendered lines; empty when color is unsupported or ambiguous-width
+ *   mode is full.
+ * @throws when a palette entry carries an invalid indexed RGB color.
+ */
 export function renderIndexedHalfBlocks(input: RenderIndexedHalfBlocksInput): string[] {
   if (input.colorLevel < 1 || ambiguousWidthMode() === 'full') return []
   const colorLevel = input.colorLevel >= 3 ? 3 : input.colorLevel >= 2 ? 2 : 1
@@ -475,11 +486,11 @@ export interface FormatFoxFrameInput {
  * @throws {TypeError} When `width` is present and is not `56` or `72`.
  */
 export function formatFoxFrame(input: FormatFoxFrameInput = {}): string[] {
-  const width = (input.width ?? 56) as WelcomeFoxBandWidth
-  const band = WELCOME_FOX_BANDS[width]
-  if (band === undefined) {
+  const width = input.width ?? 56
+  if (width !== 56 && width !== 72) {
     throw new TypeError(`welcome fox band width must be 56 or 72, got ${String(input.width)}`)
   }
+  const band = WELCOME_FOX_BANDS[width]
   return renderIndexedHalfBlocks({
     width: band.width,
     rows: band.rows,

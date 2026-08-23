@@ -369,7 +369,7 @@ describe('zen phase through the agent loop', () => {
     const armed = new MockAdapter([textResponse('resumed in zen')])
     const armedCtx = await harness(armed)
     const armedSeed: SessionEvent[] = [
-      { type: 'zen/phase', seq: 0, time: 1, data: { phase: 'zen', reason: 'arm' } } as SessionEvent,
+      { type: 'zen/phase', seq: 0, time: 1, data: { phase: 'zen', reason: 'arm' } },
     ]
     const { agent: armedAgent } = await armedCtx.agents.create({
       sessionId: SessionId('zen-seed-armed'),
@@ -384,8 +384,8 @@ describe('zen phase through the agent loop', () => {
     const promoted = new MockAdapter([textResponse('resumed promoted')])
     const promotedCtx = await harness(promoted)
     const promotedSeed: SessionEvent[] = [
-      { type: 'zen/phase', seq: 0, time: 1, data: { phase: 'zen', reason: 'arm' } } as SessionEvent,
-      { type: 'zen/phase', seq: 1, time: 2, data: { phase: 'full', reason: 'timeout' } } as SessionEvent,
+      { type: 'zen/phase', seq: 0, time: 1, data: { phase: 'zen', reason: 'arm' } },
+      { type: 'zen/phase', seq: 1, time: 2, data: { phase: 'full', reason: 'timeout' } },
     ]
     const { agent: promotedAgent } = await promotedCtx.agents.create({
       sessionId: SessionId('zen-seed-promoted'),
@@ -501,8 +501,8 @@ describe('zen phase through the agent loop', () => {
     const resumed = new MockAdapter([textResponse('resumed curated')])
     const resumedCtx = await harness(resumed, { ...BASE_CONFIG, promoteDeny: ['hammer'] })
     const seed: SessionEvent[] = [
-      { type: 'zen/phase', seq: 0, time: 1, data: { phase: 'zen', reason: 'arm' } } as SessionEvent,
-      { type: 'zen/phase', seq: 1, time: 2, data: { phase: 'full', reason: 'anchor' } } as SessionEvent,
+      { type: 'zen/phase', seq: 0, time: 1, data: { phase: 'zen', reason: 'arm' } },
+      { type: 'zen/phase', seq: 1, time: 2, data: { phase: 'full', reason: 'anchor' } },
     ]
     const { agent: resumedAgent } = await resumedCtx.agents.create({
       sessionId: SessionId('zen-promote-deny-resume'),

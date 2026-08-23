@@ -34,8 +34,16 @@ const USER_RUN = {
  * bridge hands `host/remote-event` to the Remote service, which fans it out to
  * `$on` subscribers with the Host's own argument list.
  */
+/**
+ * The Client Remote fan-out face forward() drives. The official gateway client
+ * type omits the seam, and boot()'s stand-in remote provides it.
+ */
+interface RemoteDispatchFace {
+  $dispatch(event: string, args: readonly unknown[]): void
+}
+
 function forward(ctx: Context, event: string, payload: object): void {
-  ctx.remote.$dispatch(event, [payload])
+  (ctx.remote as unknown as RemoteDispatchFace).$dispatch(event, [payload])
 }
 
 interface Bench {
@@ -150,6 +158,7 @@ async function boot(): Promise<Bench> {
     ) => {
       invoked.push({ pluginId, pluginRunId, method, args })
       const refusal = invokeThrow.current
+      // oxlint-disable-next-line typescript/prefer-promise-reject-errors -- the injected non-Error refusal is the case under test
       if (refusal !== undefined) return Promise.reject(refusal)
       return answered(invokeResult.current)
     },

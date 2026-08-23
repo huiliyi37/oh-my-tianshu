@@ -192,8 +192,7 @@ describe('subagent progress projection', () => {
       event('turn/end', 1, 1, {
         turn: 1,
         reason: { kind: 'future-variant' },
-      } as unknown as SessionEvent,
-      ),
+      }),
     ])).toEqual({ ...ZERO, turns: 1 })
   })
 })
