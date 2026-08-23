@@ -112,3 +112,8 @@
       name: '@huiliyi37/dsh-agent-presets'
       config:
         default: standard
+
+    # 前缀缓存健康观测（provide 'cacheDiagnostic' + cacheHealth 会话投影）：
+    # TUI 状态栏缓存段 miss 标记与 scrollback 诊断日志的数据源。服务无设置项。
+    - id: cache-diagnostic
+      name: '@huiliyi37/dsh-cache-diagnostic'

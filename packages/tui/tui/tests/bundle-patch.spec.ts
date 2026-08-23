@@ -27,6 +27,7 @@ describe('dsh-tui bundle', () => {
       'tui-runner', 'spark-anchors', 'vision-bridge',
       'fs-snapshot', 'memory', 'tool-memory', 'tool-session-query', 'tool-memory-recall',
       'evidence-gate', 'zen', 'task-card', 'agent-router', 'agent-presets',
+      'cache-diagnostic',
     ]))
     expect(ids).not.toContain('command-memory')
     // The intent-bridge row ships both routes on the out-of-box DeepSeek
