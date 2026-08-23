@@ -416,6 +416,29 @@ export class AgentPresets extends Service {
   }
 
   /**
+   * Persist the default preset every subsequently-created session inherits.
+   *
+   * `defaultId` reads `settings.default` over `config.default`, so writing it
+   * here is the one channel through which a user's preset choice outlives the
+   * session that made it. The id is validated and the roster confirmed
+   * mountable BEFORE the write, so a bad pick fails loud and leaves the
+   * previous default untouched. Without a settings provider there is nowhere
+   * to persist, so the call fails rather than silently doing nothing.
+   * @param id - the preset to make the default.
+   * @throws when the preset is unknown or unusable, or no settings provider is composed.
+   */
+  async setDefault(id: string): Promise<void> {
+    await this.resolveMountable(id)
+    if (this.settingsService === undefined) {
+      throw new Error('agent-presets: no settings provider composed; the default preset cannot be persisted')
+    }
+    await this.settingsService.mutate(
+      settingsNamespace(SETTINGS_NAMESPACE),
+      [{ op: 'set', path: ['default'], value: id }],
+    )
+  }
+
+  /**
    * One agent's instance of a service its preset mounted.
    *
    * A preset publishes services behind `isolate` realms, which are invisible

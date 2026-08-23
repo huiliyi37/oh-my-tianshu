@@ -165,6 +165,10 @@ interface PresetFacet {
   composedPreset?(agentCtx: Context): string | undefined
   /** 把 agent 重绑到另一预设的 standing 组成；调用方负责 blank-session 检查。 */
   recompose(agentCtx: Context, id: string): Promise<{ id: string; name?: string }>
+  /** 部署当前生效的默认预设 id（settings.default 覆盖 config.default）。 */
+  defaultId?: string
+  /** 持久化默认预设：后续新建会话继承它。校验失败（未知/损坏 id）响亮抛出。 */
+  setDefault?(id: string): Promise<void>
 }
 
 /** /model 的 effort 白名单（llm 三档：off / high / max）。 */
@@ -693,8 +697,8 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
     },
     {
       name: 'preset',
-      description: '查看/切换 agent 预设模式（标准 / PTC / 极简 / 创造）',
-      argsHint: '[id]',
+      description: '查看/切换/设默认 agent 预设模式',
+      argsHint: '[id|default <id>]',
       run: async ({ text, echo, ctx }) => {
         // reflect.get 读取可选服务（Cordis 4 注入代理：未声明属性访问抛
         // "without inject"——/compact /goal 同款；agentPresets 未装配时返回
@@ -710,13 +714,15 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
           const agent = deps.currentAgent()
           const current = agent === null ? undefined : facet.composedPreset?.(agent.ctx)
           echo(`agent 预设 (${presets.length}):`)
+          const fallback = facet.defaultId
           for (const preset of presets) {
             const mark = preset.id === current ? '*' : ' '
             const name = preset.name ?? preset.id
+            const tag = preset.id === fallback ? '（默认）' : ''
             const desc = preset.description === undefined || preset.description === ''
               ? ''
               : ` — ${preset.description}`
-            echo(` ${mark} ${name} (${preset.id})${desc}`)
+            echo(` ${mark} ${name} (${preset.id})${tag}${desc}`)
           }
           // 当前预设行追加 wire 工具面（最近 request/header 的实际工具 schema，
           // 含 preset 过滤器作用后的最终面——日志事实，非插件内部状态）。
@@ -731,6 +737,26 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
             }
           }
           echo(currentLine)
+          return
+        }
+        // /preset default <id>：持久化默认（后续新会话继承），不要求有会话。
+        const defaultMatch = target.match(/^default(?:\s+(.+))?$/)
+        if (defaultMatch !== null) {
+          const id = (defaultMatch[1] ?? '').trim()
+          if (id === '') {
+            echo('用法：/preset default <id>（设为默认，后续新会话继承）')
+            return
+          }
+          if (facet.setDefault === undefined) {
+            echo('⚠ 该部署不支持设置默认预设')
+            return
+          }
+          try {
+            await facet.setDefault(id)
+            echo(`已将默认预设设为 ${id}（后续新会话继承）`)
+          } catch (error) {
+            echo(`设置失败: ${error instanceof Error ? error.message : String(error)}`)
+          }
           return
         }
         const agent = deps.currentAgent()

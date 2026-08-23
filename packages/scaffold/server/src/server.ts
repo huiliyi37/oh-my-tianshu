@@ -216,13 +216,20 @@ export class HarnessSdkServer {
   }
 
   private async createSession(sessionId: string): Promise<SessionRecord> {
+    const presets = this.ctx.get('agentPresets') as
+      | { defaultId?: string; mount?(ctx: Context, id?: string): Promise<unknown> }
+      | undefined
+    const presetId = presets?.defaultId
     const handle = await this.ctx.agents.create({
       sessionId: SessionId(sessionId),
-      meta: { cwd: this.cwd },
+      meta: { cwd: this.cwd, ...(presetId === undefined ? {} : { agentPreset: presetId }) },
       agentOptions: {
         provider: this.provider,
         model: this.model,
         ...this.maxTokens === undefined ? {} : { maxTokens: this.maxTokens },
+      },
+      setup: async (agentCtx: Context) => {
+        if (presets?.mount !== undefined) await presets.mount(agentCtx)
       },
     })
     const rec: SessionRecord = { handle }

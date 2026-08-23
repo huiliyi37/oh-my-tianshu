@@ -112,6 +112,14 @@ async function run(ctx: Context, task: string, sessionId: string | undefined, io
 
   const selection = defaultModel.currentSelection()
   const agentOptions = { provider: selection.provider, model: selection.model }
+  const presets = ctx.reflect.get('agentPresets', false) as
+    | { defaultId?: string; mount?(ctx: Context, id?: string): Promise<unknown> }
+    | undefined
+  const presetId = presets?.defaultId
+  const mountDefaultPreset = async (agentCtx: Context): Promise<void> => {
+    if (presets?.mount === undefined) return
+    await presets.mount(agentCtx)
+  }
   // session-resume 1.4：--session 恢复既有会话（上下文重建）；缺省新建。
   const { agent } = sessionId !== undefined
     ? await agents.resume({
@@ -124,11 +132,12 @@ async function run(ctx: Context, task: string, sessionId: string | undefined, io
     })
     : await agents.create({
       sessionId: SessionId(`session-${randomUUID()}`),
-      meta: { cwd: process.cwd() },
+      meta: { cwd: process.cwd(), ...(presetId === undefined ? {} : { agentPreset: presetId }) },
       agentOptions,
-      setup: (agentCtx) => {
+      setup: async (agentCtx) => {
         const selected: ModelSelectionRef = { current: selection, assembled: undefined }
         installModelSelection(agentCtx, selected)
+        await mountDefaultPreset(agentCtx)
       },
     })
   await agent.whenIdle()

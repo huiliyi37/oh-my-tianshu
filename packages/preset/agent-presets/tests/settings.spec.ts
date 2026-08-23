@@ -146,6 +146,32 @@ describe('the default preset as a user setting', () => {
     await expect(ctx.agentPresets.resolve())
       .rejects.toThrow(/preset "no-such-preset" not found/)
   })
+
+  it('setDefault persists the default and composes new sessions from it', async () => {
+    const { ctx } = await harness()
+    expect(ctx.agentPresets.defaultId).toBe('standard')
+
+    await ctx.agentPresets.setDefault('minimal')
+
+    expect(ctx.agentPresets.defaultId).toBe('minimal')
+    const handle = await ctx.agents.create({
+      sessionId: SessionId('set-default'),
+      setup: async (agentCtx: Context) => void await ctx.agentPresets.mount(agentCtx),
+    })
+    try {
+      expect(toolNames(ctx, handle.agent)).toEqual(['beta'])
+    } finally {
+      await handle.dispose()
+    }
+  })
+
+  it('setDefault rejects an unknown or unusable id without touching the default', async () => {
+    const { ctx } = await harness()
+
+    await expect(ctx.agentPresets.setDefault('no-such-preset'))
+      .rejects.toThrow(/preset "no-such-preset" not found/)
+    expect(ctx.agentPresets.defaultId).toBe('standard')
+  })
 })
 
 describe('a settings provider that goes away', () => {
@@ -159,5 +185,13 @@ describe('a settings provider that goes away', () => {
     await settingsFiber.dispose()
 
     expect(ctx.agentPresets.defaultId).toBe('standard')
+  })
+
+  it('setDefault fails loud with no settings provider rather than no-oping', async () => {
+    const { ctx, settingsFiber } = await harness()
+    await settingsFiber.dispose()
+
+    await expect(ctx.agentPresets.setDefault('minimal'))
+      .rejects.toThrow(/no settings provider composed/)
   })
 })

@@ -1125,6 +1125,8 @@ describe('内置命令 — /preset（agent 预设模式切换）', () => {
       list: vi.fn(async () => [] as Array<{ id: string; name?: string; description?: string }>),
       composedPreset: vi.fn(() => undefined as string | undefined),
       recompose: vi.fn(async (): Promise<{ id: string; name?: string }> => ({ id: 'minimal' })),
+      defaultId: 'standard',
+      setDefault: vi.fn(async () => {}),
     }
     const ctx = makeCtx({ agentPresets: presets })
     return { presets, ctx }
@@ -1246,6 +1248,40 @@ describe('内置命令 — /preset（agent 预设模式切换）', () => {
     expect(append).not.toHaveBeenCalled()
     expect(echo).toHaveBeenCalledWith(expect.stringContaining('切换失败'))
     expect(echo).toHaveBeenCalledWith(expect.stringContaining('no-such'))
+  })
+
+  it('无参列表标注默认预设', async () => {
+    const { cmd } = presetByName()
+    const { presets, ctx } = presetCtx()
+    presets.list.mockResolvedValue([
+      { id: 'standard', name: '标准模式' },
+      { id: 'minimal', name: '极简模式' },
+    ])
+    const { args, echo } = makeArgs({ text: '', ctx })
+    await cmd.run(args)
+    const standard = echo.mock.calls.map(c => String(c[0])).find(l => l.includes('标准模式'))
+    expect(standard).toContain('（默认）')
+    const minimal = echo.mock.calls.map(c => String(c[0])).find(l => l.includes('极简模式'))
+    expect(minimal).not.toContain('（默认）')
+  })
+
+  it('/preset default <id> 持久化默认并回显继承', async () => {
+    const { cmd } = presetByName()
+    const { presets, ctx } = presetCtx()
+    const { args, echo } = makeArgs({ text: 'default taiyi', ctx })
+    await cmd.run(args)
+    expect(presets.setDefault).toHaveBeenCalledWith('taiyi')
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('已将默认预设设为 taiyi'))
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('继承'))
+  })
+
+  it('/preset default 无 id 回显用法且不调 setDefault', async () => {
+    const { cmd } = presetByName()
+    const { presets, ctx } = presetCtx()
+    const { args, echo } = makeArgs({ text: 'default', ctx })
+    await cmd.run(args)
+    expect(presets.setDefault).not.toHaveBeenCalled()
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('用法'))
   })
 })
 

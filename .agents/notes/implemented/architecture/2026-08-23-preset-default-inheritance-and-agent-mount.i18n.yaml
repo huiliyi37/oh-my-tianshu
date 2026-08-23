@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-23-preset-default-inheritance-and-agent-mount.md
+2026-08-23-preset-default-inheritance-and-agent-mount.md: 4027b44f03b89d84867c7db64b5929786aa16cad
+2026-08-23-preset-default-inheritance-and-agent-mount.zh.md: 358d59a79fb1c6d166f96ad7a305f62d05a219bc

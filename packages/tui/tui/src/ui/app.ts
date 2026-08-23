@@ -2124,12 +2124,14 @@ export class TuiApp {
       this.mountSession(this.activeSessionId, { restored: false })
       return this.activeSessionId
     }
+    const presetId = this.defaultPresetId()
     const handle = await this.ctx.agents.create({
       sessionId: id,
-      meta: { cwd: process.cwd() },
+      meta: { cwd: process.cwd(), ...(presetId === undefined ? {} : { agentPreset: presetId }) },
       agentOptions: callConfigFrom(selection),
-      setup: (agentCtx) => {
+      setup: async (agentCtx) => {
         this.bindModelSelection(agentCtx, ref)
+        await this.mountDefaultPreset(agentCtx)
       },
     })
     this.ownedHandle = handle
@@ -2177,6 +2179,21 @@ export class TuiApp {
   private bindModelSelection(agentCtx: Context, ref: ModelSelectionRef): void {
     this.modelSelectionDisposer?.()
     this.modelSelectionDisposer = installModelSelection(agentCtx, ref)
+  }
+
+  /** The deployment's default preset id, or undefined when no roster is composed. */
+  private defaultPresetId(): string | undefined {
+    const facet = this.ctx.reflect.get('agentPresets', false) as { defaultId?: string } | undefined
+    return facet?.defaultId
+  }
+
+  /** Join a freshly-created agent to the default preset; no-op without a roster. */
+  private async mountDefaultPreset(agentCtx: Context): Promise<void> {
+    const facet = this.ctx.reflect.get('agentPresets', false) as
+      | { mount?(ctx: Context, id?: string): Promise<unknown> }
+      | undefined
+    if (facet?.mount === undefined) return
+    await facet.mount(agentCtx)
   }
 
   /**
@@ -2844,7 +2861,7 @@ export class TuiApp {
       if (owner.id !== id) return
       this.handleStreamEvent(event)
     })
-    // T1.1：投影总线（5 域：todos/plan/goal/subagent/subagentTiming）——全量快照 +
+    // T1.1：投影总线（6 域：todos/plan/goal/subagent/subagentTiming/cacheHealth）——全量快照 +
     // onChanged 按 key 分流缓存。经 ctx.reflect.get 读取（Cordis 4 注入代理：
     // 属性访问未注册服务抛 "without inject"——真实装配已复现）；服务缺失时
     // 整体降级：任务窗格/status 面板在切换时回显警告（fails loud），plan 徽标不显示。
@@ -2856,6 +2873,10 @@ export class TuiApp {
     this.taskItems = null
     this.planState = { active: false, pending: false }
     this.projectionCache = null
+    // cacheHealth 与 miss 去重指纹同属会话内状态：切换会话必须清零，否则旧
+    // 会话的 miss 标记残留到新会话（本方法下方专门防的跨会话残留类别）。
+    this.cacheHealth = null
+    this.lastReportedMiss = null
     const projections = this.ctx.reflect.get('sessionProjections', false) as ProjectionFacet | undefined
     if (projections !== undefined) {
       const snap = projections.snapshot(session)
@@ -2868,6 +2889,9 @@ export class TuiApp {
       this.planState = { active: plan?.active ?? false, pending: plan?.pending ?? false }
       const statusLine = this.statusLine as WorkflowStatusLine | null
       statusLine?.setPlanState(this.planState)
+      // cacheHealth 同源播种：恢复/重挂载已有缓存历史的会话时，miss 标记
+      // 不等下一次投影变更即可见。
+      this.cacheHealth = (snap.values.cacheHealth as CacheHealthWire | null | undefined) ?? null
       this.projectionDisposer = projections.onChanged((s, key, value) => {
         if (s.id !== id) {
           // T2.1：子会话运行态变化 → 重拉当前根的 listDescendants（同一 cut）。
@@ -2885,7 +2909,7 @@ export class TuiApp {
           }
           return
         }
-        // 按 key 分流缓存（5 域总线）；todos/plan 有专有消费，其余域仅进缓存。
+        // 按 key 分流缓存（6 域总线）；todos/plan 有专有消费，其余域仅进缓存。
         /* v8 ignore next -- projectionCache 在快照后恒非 null（L766 赋值），null 仅类型收窄 */
         if (this.projectionCache !== null) {
           this.projectionCache[key as ProjectionKey] = value

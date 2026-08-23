@@ -329,6 +329,21 @@ export class IntentBridgeService extends Service {
     return this.config.enabled
   }
 
+  /** The deployment's default preset id, or undefined when no roster is composed. */
+  private defaultPresetId(): string | undefined {
+    const presets = this.ctx.reflect.get('agentPresets', false) as { defaultId?: string } | undefined
+    return presets?.defaultId
+  }
+
+  /** Join a freshly-created agent to the default preset; no-op without a roster. */
+  private async mountDefaultPreset(agentCtx: Context): Promise<void> {
+    const presets = this.ctx.reflect.get('agentPresets', false) as
+      | { mount?(ctx: Context, id?: string): Promise<unknown> }
+      | undefined
+    if (presets?.mount === undefined) return
+    await presets.mount(agentCtx)
+  }
+
   /**
    * Create a fresh alignment session: seeded zen-completed (never arms),
    * tool face restricted to `finalize_alignment`, titled for the tab list.
@@ -347,11 +362,16 @@ export class IntentBridgeService extends Service {
       { type: 'zen/phase', seq: 0, time: 1, data: { phase: 'zen', reason: 'arm' } } as SessionEvent,
       { type: 'zen/phase', seq: 1, time: 2, data: { phase: 'full', reason: 'timeout' } } as SessionEvent,
     ]
+    const presetId = this.defaultPresetId()
     const handle = await this.ctx.agents.create({
       sessionId: SessionId(sessionId),
       seed,
-      ...(options.cwd === undefined ? {} : { meta: { cwd: options.cwd } }),
+      meta: {
+        ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
+        ...(presetId === undefined ? {} : { agentPreset: presetId }),
+      },
       agentOptions: { provider: this.alignRoute.provider, model: this.alignRoute.model },
+      setup: agentCtx => this.mountDefaultPreset(agentCtx),
     })
     const agent = handle.agent
     // The alignment agent's tool face: register the single tool agent-scoped
@@ -450,10 +470,15 @@ export class IntentBridgeService extends Service {
         : renderTaskCard(parsed, original)
       const mainId = `session-${randomUUID()}-exec`
       const route = state.execRoute ?? this.execRoute
+      const presetId = this.defaultPresetId()
       const handle = await this.ctx.agents.create({
         sessionId: SessionId(mainId),
-        ...(state.cwd === undefined ? {} : { meta: { cwd: state.cwd } }),
+        meta: {
+          ...(state.cwd === undefined ? {} : { cwd: state.cwd }),
+          ...(presetId === undefined ? {} : { agentPreset: presetId }),
+        },
         agentOptions: agentOptionsFor(route),
+        setup: agentCtx => this.mountDefaultPreset(agentCtx),
       })
       try {
         this.deliverCard(handle.agent, cardText, agent.session.id, reason)
@@ -494,10 +519,15 @@ export class IntentBridgeService extends Service {
     try {
       const mainId = `session-${randomUUID()}-exec`
       const route = state.execRoute ?? this.execRoute
+      const presetId = this.defaultPresetId()
       const handle = await this.ctx.agents.create({
         sessionId: SessionId(mainId),
-        ...(state.cwd === undefined ? {} : { meta: { cwd: state.cwd } }),
+        meta: {
+          ...(state.cwd === undefined ? {} : { cwd: state.cwd }),
+          ...(presetId === undefined ? {} : { agentPreset: presetId }),
+        },
         agentOptions: agentOptionsFor(route),
+        setup: agentCtx => this.mountDefaultPreset(agentCtx),
       })
       try {
         this.deliverCard(handle.agent, original, sessionId, 'alignment-error')
