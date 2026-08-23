@@ -104,6 +104,8 @@
     "verify-export-jsdoc": "tsx scripts/verify-export-jsdoc.ts",
     "gen-tool-catalog": "tsx scripts/gen-tool-catalog.ts",
     "verify-tool-catalog": "tsx scripts/gen-tool-catalog.ts --check",
+    "generate-welcome-fox": "tsx packages/tui/tui/scripts/generate-welcome-fox.ts --write",
+    "verify-welcome-fox": "tsx packages/tui/tui/scripts/generate-welcome-fox.ts --check",
     "verify-capability-coverage": "tsx scripts/verify-capability-coverage.ts",
     "gen-config-catalog": "tsx scripts/gen-config-catalog.ts",
     "verify-config-catalog": "tsx scripts/gen-config-catalog.ts --check",
