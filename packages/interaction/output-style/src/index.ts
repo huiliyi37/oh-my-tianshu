@@ -84,14 +84,14 @@ export const Config: z<Config> = z.object({
 
 /** Minimal shape of the TUI slash facet consumed through the optional seam. */
 interface TuiSlashFacet {
-  register(command: { name: string; description: string; argsHint?: string; run: (args: TuiSlashRun) => void }): void
+  register(command: { name: string; description: string; argsHint?: string; run: (args: TuiSlashRun) => void | Promise<void> }): void
 }
 
 /** Arguments the TUI slash registry hands each command invocation. */
 interface TuiSlashRun {
   text: string
   sessionId: string | null
-  echo(text: string): void
+  echo: (text: string) => void
   ctx: { agents?: { get(id: string): unknown } }
 }
 
@@ -105,7 +105,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   // TUI 斜杠菜单（可选缝）：host 命令平面不进 TUI 的 `/` 菜单——菜单数据源是
   // tui.commands 注册表（见 /next-workflow 同款双注册）。执行仍委托 host
   // CommandService，保持 command/run 生命周期事件。
-  ctx.inject(['tui.commands'], tuiCtx => {
+  ctx.inject(['tui.commands'], (tuiCtx) => {
     const tuiCommands = tuiCtx.get('tui.commands') as TuiSlashFacet
     tuiCommands.register({
       name: 'style',
@@ -142,7 +142,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   // entry whenever the settings service detaches (installSettingsSection).
   let source: () => OutputStyleSettings = () => initial
   installSettingsSection(ctx, OUTPUT_STYLE_SETTINGS_NAMESPACE, OUTPUT_STYLE_SETTINGS_SCHEMA, initial, {
-    setSource: current => { source = current },
+    setSource: (current) => { source = current },
     onChange: () => {},
   })
   // Registered once; the text closure reads the live source on every assembly,
@@ -153,26 +153,24 @@ export function apply(ctx: Context, config: Config = {}): void {
     text: () => OUTPUT_STYLE_TEXTS[source().style],
   }), 'outputStyle.section()')
 
-  ctx.inject(['commands'], commandCtx => {
-    commandCtx.commands.register({
-      name: 'style',
-      description: 'Report or switch the output style preset',
-      input: { hint: '[default|explanatory|learning]' },
-      handler: async ({ rawInput }) => {
-        const requested = rawInput.trim()
-        if (requested === '') {
-          return { kind: 'success', text: `Current output style: ${source().style}.` }
-        }
-        if (!(OUTPUT_STYLES as readonly string[]).includes(requested)) {
-          return { kind: 'error', text: `Unknown style "${requested}". Available: ${OUTPUT_STYLES.join(', ')}.` }
-        }
-        const settings = ctx.get('settings')
-        if (settings === undefined) {
-          return { kind: 'error', text: 'No settings provider is assembled; /style cannot persist a switch.' }
-        }
-        await settings.mutate(OUTPUT_STYLE_SETTINGS_NAMESPACE, [{ op: 'set', path: ['style'], value: requested }])
-        return { kind: 'success', text: `Output style set to ${requested} (applies from the next request).` }
-      },
-    })
+  ctx.commands.register({
+    name: 'style',
+    description: 'Report or switch the output style preset',
+    input: { hint: '[default|explanatory|learning]' },
+    handler: async ({ rawInput }) => {
+      const requested = rawInput.trim()
+      if (requested === '') {
+        return { kind: 'success', text: `Current output style: ${source().style}.` }
+      }
+      if (!(OUTPUT_STYLES as readonly string[]).includes(requested)) {
+        return { kind: 'error', text: `Unknown style "${requested}". Available: ${OUTPUT_STYLES.join(', ')}.` }
+      }
+      const settings = ctx.get('settings')
+      if (settings === undefined) {
+        return { kind: 'error', text: 'No settings provider is assembled; /style cannot persist a switch.' }
+      }
+      await settings.mutate(OUTPUT_STYLE_SETTINGS_NAMESPACE, [{ op: 'set', path: ['style'], value: requested }])
+      return { kind: 'success', text: `Output style set to ${requested} (applies from the next request).` }
+    },
   })
 }

@@ -2,6 +2,7 @@
 
 import type { Context } from '@huiliyi37/cordis'
 import type { InvariantFailure, InvariantInstaller } from '@huiliyi37/dsh-invariants'
+import type { PromptAssembly } from '@huiliyi37/dsh-system-prompt'
 import { OUTPUT_STYLE_SECTION_NAME } from './index.ts'
 
 const PACKAGE_NAME = '@huiliyi37/dsh-output-style'
@@ -14,18 +15,24 @@ export const inject = ['invariants']
 /**
  * Assert at most one `output-style` section per assembly: the package owns a
  * single registration, and a second contributor claiming the same section
- * name would silently double-render style prose into every request.
+ * name (for example through an assembly-waterfall rewrite) would silently
+ * double-render style prose into every request. The check bounds the settled
+ * assembly value downstream of the companion's listener, so a violating
+ * rewrite fails the assembly itself at its authoritative boundary, and a
+ * duplicate already produced at companion load fails the load.
  */
-const install: InvariantInstaller = Object.assign((ctx: Context, fail: InvariantFailure) => {
-  const assertSingleSection = async (): Promise<void> => {
-    const matches = (await ctx.systemPrompt.assemble()).sections
-      .filter(section => section.name === OUTPUT_STYLE_SECTION_NAME)
-    if (matches.length > 1) {
-      fail(`assembly carries ${matches.length} '${OUTPUT_STYLE_SECTION_NAME}' sections; at most one is allowed`)
+const install: InvariantInstaller = Object.assign(async (ctx: Context, fail: InvariantFailure): Promise<void> => {
+  const assertSingleSection = (sections: PromptAssembly['sections']): void => {
+    if (sections.filter(section => section.name === OUTPUT_STYLE_SECTION_NAME).length > 1) {
+      fail(`assembly carries more than one '${OUTPUT_STYLE_SECTION_NAME}' section; at most one is allowed`)
     }
   }
-  void assertSingleSection()
-  ctx.on('system-prompt/change', () => { void assertSingleSection() })
+  ctx.on('system-prompt/assemble', (_assembly, _context, next) =>
+    next().then((settled) => {
+      assertSingleSection(settled.sections)
+      return settled
+    }))
+  assertSingleSection((await ctx.systemPrompt.assemble()).sections)
 }, { inject: ['systemPrompt'] })
 
 /**

@@ -35,9 +35,10 @@ class MemorySettings extends Settings {
   }
 }
 
-/** The plugin as a Cordis module with its runtime config schema attached (direct plugin() boot; the Loader path reads the module's own exports). */
+/** The plugin as a Cordis module with its runtime config schema attached
+ * (direct plugin() boot; the Loader path reads the module's own exports). */
 const outputStylePlugin = Object.assign(
-  (ctx: Context, config: Config = {}) => apply(ctx, config),
+  (ctx: Context, config: Config = {}) => { apply(ctx, config) },
   { inject: ['systemPrompt', 'commands'], Config },
 )
 
@@ -66,13 +67,11 @@ async function boot(options?: { withSettings?: boolean; defaultStyle?: 'default'
   return { ctx, settingsFiber, pluginFiber }
 }
 
-async function styleSections(ctx: Context): Promise<Array<{ order: number; text: string }>> {
+/** The rendered texts of the assembled `output-style` sections, in assembly order. */
+async function styleSections(ctx: Context): Promise<string[]> {
   return (await ctx.systemPrompt.assemble()).sections
     .filter(section => section.name === OUTPUT_STYLE_SECTION_NAME)
-    .map(section => ({
-      order: section.order,
-      text: typeof section.text === 'function' ? section.text({}) : section.text,
-    }))
+    .map(section => section.text)
 }
 
 async function runStyle(ctx: Context, agent: Agent, input: string): Promise<{ kind: string; text: string }> {
@@ -94,13 +93,13 @@ describe('output-style section', () => {
     expect(at('probe:persona')).toBeLessThan(at(OUTPUT_STYLE_SECTION_NAME))
     expect(at(OUTPUT_STYLE_SECTION_NAME)).toBeLessThan(at('probe:tools'))
     const texts = await styleSections(bench.ctx)
-    expect(texts.map(s => s.text)).toEqual([OUTPUT_STYLE_TEXTS.explanatory])
+    expect(texts).toEqual([OUTPUT_STYLE_TEXTS.explanatory])
     await bench.ctx.fiber.dispose()
   })
 
   it('defaults to the `default` preset when no config is given', async () => {
     const bench = await boot({ withSettings: false })
-    expect((await styleSections(bench.ctx)).map(s => s.text)).toEqual([OUTPUT_STYLE_TEXTS.default])
+    expect(await styleSections(bench.ctx)).toEqual([OUTPUT_STYLE_TEXTS.default])
     await bench.ctx.fiber.dispose()
   })
 
@@ -108,11 +107,11 @@ describe('output-style section', () => {
     const bench = await boot()
     const settings = bench.ctx.get('settings')!
     await settings.mutate(OUTPUT_STYLE_SETTINGS_NAMESPACE, [{ op: 'set', path: ['style'], value: 'learning' }])
-    expect((await styleSections(bench.ctx)).map(s => s.text)).toEqual([OUTPUT_STYLE_TEXTS.learning])
+    expect(await styleSections(bench.ctx)).toEqual([OUTPUT_STYLE_TEXTS.learning])
     // The realtime read must not stack registrations across switches.
     await settings.mutate(OUTPUT_STYLE_SETTINGS_NAMESPACE, [{ op: 'set', path: ['style'], value: 'default' }])
     expect(await styleSections(bench.ctx)).toHaveLength(1)
-    expect((await styleSections(bench.ctx)).map(s => s.text)).toEqual([OUTPUT_STYLE_TEXTS.default])
+    expect(await styleSections(bench.ctx)).toEqual([OUTPUT_STYLE_TEXTS.default])
     await bench.ctx.fiber.dispose()
   })
 
@@ -121,7 +120,7 @@ describe('output-style section', () => {
     await expect(bench.ctx.get('settings')!.mutate(OUTPUT_STYLE_SETTINGS_NAMESPACE, [
       { op: 'set', path: ['style'], value: 'bogus' },
     ])).rejects.toThrow()
-    expect((await styleSections(bench.ctx)).map(s => s.text)).toEqual([OUTPUT_STYLE_TEXTS.default])
+    expect(await styleSections(bench.ctx)).toEqual([OUTPUT_STYLE_TEXTS.default])
     await bench.ctx.fiber.dispose()
   })
 
@@ -130,9 +129,9 @@ describe('output-style section', () => {
     await bench.ctx.get('settings')!.mutate(OUTPUT_STYLE_SETTINGS_NAMESPACE, [
       { op: 'set', path: ['style'], value: 'learning' },
     ])
-    expect((await styleSections(bench.ctx)).map(s => s.text)).toEqual([OUTPUT_STYLE_TEXTS.learning])
+    expect(await styleSections(bench.ctx)).toEqual([OUTPUT_STYLE_TEXTS.learning])
     await bench.settingsFiber!.dispose()
-    expect((await styleSections(bench.ctx)).map(s => s.text)).toEqual([OUTPUT_STYLE_TEXTS.explanatory])
+    expect(await styleSections(bench.ctx)).toEqual([OUTPUT_STYLE_TEXTS.explanatory])
     await bench.ctx.fiber.dispose()
   })
 
@@ -158,12 +157,12 @@ describe('/style command', () => {
       text: 'Output style set to learning (applies from the next request).',
     })
     // Hot: the same assembly pipeline already renders the committed preset.
-    expect((await styleSections(bench.ctx)).map(s => s.text)).toEqual([OUTPUT_STYLE_TEXTS.learning])
+    expect(await styleSections(bench.ctx)).toEqual([OUTPUT_STYLE_TEXTS.learning])
     await expect(runStyle(bench.ctx, agent, 'bogus')).resolves.toEqual({
       kind: 'error',
       text: 'Unknown style "bogus". Available: default, explanatory, learning.',
     })
-    expect((await styleSections(bench.ctx)).map(s => s.text)).toEqual([OUTPUT_STYLE_TEXTS.learning])
+    expect(await styleSections(bench.ctx)).toEqual([OUTPUT_STYLE_TEXTS.learning])
     await bench.ctx.fiber.dispose()
   })
 
@@ -198,9 +197,9 @@ describe('/style command', () => {
     const echoes: string[] = []
     const agent = makeAgent('style-tui')
     const agents = new Map<string, unknown>([['session-tui', agent]])
-    await registered[0]!.run({ text: '', sessionId: 'session-tui', echo: text => { echoes.push(text) }, ctx: { agents } })
+    await registered[0]!.run({ text: '', sessionId: 'session-tui', echo: (text) => { echoes.push(text) }, ctx: { agents } })
     expect(echoes).toEqual(['Current output style: default.'])
-    await registered[0]!.run({ text: 'learning', sessionId: 'session-tui', echo: text => { echoes.push(text) }, ctx: { agents } })
+    await registered[0]!.run({ text: 'learning', sessionId: 'session-tui', echo: (text) => { echoes.push(text) }, ctx: { agents } })
     expect(echoes.at(-1)).toContain('Output style set to learning')
     await bench.ctx.fiber.dispose()
   })

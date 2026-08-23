@@ -1,5 +1,7 @@
 # @huiliyi37/dsh-output-style
 
+English | [中文](README.zh.md)
+
 Switchable output-style presets for the assembled system prompt. The package mounts one ordered `system-prompt` section — `output-style` at order `10`, between the deployment persona (`0`) and the tool-guidance band (`100`–`199`) — carrying three verbatim presets: `default`, `explanatory`, and `learning`. The active style lives in the `output-style` settings namespace; the `/style` command reports and commits it. Mounting is opt-in; shipped defaults do not include the package.
 
 ## Public API
@@ -10,19 +12,25 @@ Switchable output-style presets for the assembled system prompt. The package mou
 
 ### Live events
 
-None. A `/style` switch writes only through the settings seam's own commit path; no session events are added. The package invariant companion (`@huiliyi37/dsh-output-style/invariant`) asserts at most one `output-style` section per assembly on every `system-prompt/change`.
+None. A `/style` switch writes only through the settings seam's own commit path; no session events are added. The package invariant companion (`@huiliyi37/dsh-output-style/invariant`) asserts at most one `output-style` section per assembly — on the settled assembly value downstream of the companion's listener, and on the full chain at companion load.
 
-## System prompt
+## Switching semantics
+
+The section is registered once and its `text` closure reads the live resolved namespace on every assembly (the realtime-read pattern shared with model role pins) — a committed switch applies from the next assembly with no dispose/re-register gap. `/style <style>` validates against the closed vocabulary and fails loud on unknown styles or a missing settings provider; bare `/style` reports the current value. Without a settings provider the composition's `Config.defaultStyle` renders permanently.
+
+## Model Experience
+
+### Style preset section
 
 #### What the model sees
 
-One extra ordered section whose body is the active preset verbatim:
+One extra ordered system-prompt section whose body is the active preset verbatim. The section renders unconditionally regardless of the zen-phase tool face — style is orthogonal to tool exposure; a deployment that wants otherwise composes without the package. The three bodies are fixed product copy pinned byte-for-byte by tests (`OUTPUT_STYLE_TEXTS`); the `default` body reads:
+
+##### Default preset body
 
 ```markdown
-Answer directly and concisely. Lead with the result or decision, then only the supporting detail needed to act on it. …
+Answer directly and concisely. Lead with the result or decision, then only the supporting detail needed to act on it. Skip preamble, restatement of the question, and unsolicited alternatives unless a real trade-off changes the answer.
 ```
-
-The three bodies are fixed product copy pinned byte-for-byte by tests (`OUTPUT_STYLE_TEXTS`). The section renders unconditionally regardless of the zen-phase tool face — style is orthogonal to tool exposure; a deployment that wants otherwise composes without the package.
 
 #### Token effect
 
@@ -31,10 +39,6 @@ One preset body (~50–70 tokens) per request while mounted, independent of tool
 #### KV Cache effect
 
 Prefix-stable while the active style stays unchanged. A `/style` commit changes the rendered section text once, invalidating prefix reuse from the first changed system-prompt token of the next request; subsequent requests are prefix-stable again at the new text.
-
-## Switching semantics
-
-The section is registered once and its `text` closure reads the live resolved namespace on every assembly (the realtime-read pattern shared with model role pins) — a committed switch applies from the next assembly with no dispose/re-register gap. `/style <style>` validates against the closed vocabulary and fails loud on unknown styles or a missing settings provider; bare `/style` reports the current value. Without a settings provider the composition's `Config.defaultStyle` renders permanently.
 
 ## Known Limitations and Deferred Work
 
