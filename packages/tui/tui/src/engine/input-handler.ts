@@ -235,6 +235,10 @@ export class InputHandler {
    * 多个 `data` 事件里；保留未处理完的尾部，等待后续字节完整后再派发。
    */
   private inputBuffer = ''
+  /** Bound data listener registered on stdin while attached. */
+  private readonly handleDataListener = (data: string): void => {
+    this.handleData(data)
+  }
 
   constructor(options: InputHandlerOptions) {
     this.stdin = options.stdin
@@ -248,7 +252,7 @@ export class InputHandler {
     }
     this.stdin.resume()
     this.stdin.setEncoding('utf8')
-    this.stdin.on('data', (data: string) =>{  this.handleData(data) })
+    this.stdin.on('data', this.handleDataListener)
   }
 
   /**
@@ -322,6 +326,23 @@ export class InputHandler {
   }
 
   /** 关闭 raw mode，恢复终端默认行为。 */
+  /**
+   * Temporarily detaches from the stdin data stream.
+   *
+   * Terminal capability probes (theme detection, live-engine CPR) read the
+   * same stream; without coordination their responses would also reach the
+   * key parser and leak into the input line. Call {@link resume} afterwards to
+   * reattach; any bytes arriving while suspended are consumed by the probe.
+   */
+  suspend(): void {
+    this.stdin.removeListener('data', this.handleDataListener)
+  }
+
+  /** Reattaches the stdin data listener after a {@link suspend}. */
+  resume(): void {
+    this.stdin.on('data', this.handleDataListener)
+  }
+
   dispose(): void {
     if (this.escapeTimer) {
       clearTimeout(this.escapeTimer)

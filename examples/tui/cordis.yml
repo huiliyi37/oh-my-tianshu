@@ -10,6 +10,13 @@
 - id: settings
   name: '@huiliyi37/dsh-settings-local'
 
+# Transport-independent route used whenever the TUI creates a fresh Agent.
+- id: agent-default-model
+  name: '@huiliyi37/dsh-agent-default-model'
+  config:
+    provider: deepseek-official
+    model: deepseek-v4-flash
+
 # Credential store: resolves DEEPSEEK_API_KEY from the process environment
 # at each request — no key is inlined in this file.
 - id: credentials
@@ -49,6 +56,8 @@
 # render core. No new event vocabulary — the session log stays authoritative.
 - id: tui-runner
   name: '@huiliyi37/dsh-tui'
+  config:
+    welcomeAnimation: auto
 
 # C3 项 3：文件快照（rewind 文件回退的底层）——写工具执行前全文件备份，
 # /rewind 的 code/both 粒度依赖它。backupDir 默认 $TMPDIR/dsh-fs-snapshot。

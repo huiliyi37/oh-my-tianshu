@@ -243,6 +243,7 @@ export function gatesForMode(selected: Mode): Gate[] {
       return [
         pnpmScript('runtime-closure', 'verify-runtime-closure', { label: 'runtime closure' }),
         pnpmScript('source-budgets', 'verify-source-budgets', { label: 'source budgets' }),
+        pnpmScript('welcome-fox', 'verify-welcome-fox', { label: 'welcome fox assets' }),
         pnpmScript('cordis-config', 'verify-cordis-config', { label: 'Cordis config' }),
         pnpmScript('client-domain-graph', 'verify-client-domain-graph', { label: 'client domain graph' }),
         pnpmScript('test', 'test'),
@@ -270,6 +271,7 @@ function ciSharedStaticGates(): Gate[] {
     pnpmScript('constraints', 'constraints'),
     pnpmScript('package-invariants', 'verify-package-invariants', { label: 'package invariants' }),
     pnpmScript('source-budgets', 'verify-source-budgets', { label: 'source budgets' }),
+    pnpmScript('welcome-fox', 'verify-welcome-fox', { label: 'welcome fox assets' }),
     pnpmScript('cordis-config', 'verify-cordis-config', { label: 'Cordis config' }),
     pnpmScript('issue-management', 'test:issue-management', { label: 'Issue management policy' }),
   ]

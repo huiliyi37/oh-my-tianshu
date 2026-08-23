@@ -1,4 +1,4 @@
-# Agent Note: TUI 欢迎页打磨——品牌头 / 友好会话行 / 常驻环境行
+# Agent Note: TUI 欢迎页打磨——友好可恢复会话行
 
 Status: implemented
 
@@ -6,35 +6,29 @@ Status: implemented
 
 ## Problem
 
-C4 B 布局 Wave 之后，启动欢迎页仍是纯文本堆叠：顶部栏之上没有品牌身份锚点；可恢复会话行显示裸 UUID（且 `cwd` 只在 live 会话才显示，持久化会话读作 `○ <uuid> · 1 小时前 · fork: <uuid>`）；环境检查行只在无可恢复会话时才渲染；菜单右对齐的 `keyHint` 占满终端最后一列，autowrap 终端把 `ctrl+q` 裁成 `ctrl+`。启动时的命令回显（如 `/model` 的「模型已切换」）紧贴菜单、无视觉分隔。
+C4 B 布局启动页让会话身份难扫读：可恢复行使用裸完整 id，且 `cwd` 只在 live 会话出现，因此持久化行可能读作 `○ <uuid> · 1 小时前 · fork: <uuid>`。短显示标签须改善识别，且不得替换用于恢复与切换的完整 id。
 
 ## Decision
 
-全部改动落在纯函数层 + `app.ts` 组装层（宽度守恒、ascii 可降级、零 IO）：
+友好会话行决策仍在 `restore-session.ts`：`formatRestorableSessions` 在有标题时用标题，并使用相对年龄、cwd basename、`#` 前缀短 id 与短 `fork #` 父 id。格式化永不改变身份；完整会话 id 仍驱动恢复与切换。
 
-- **品牌头**（`format/welcome.ts` 新增 `formatBrandHeader`）：单行渲染 `DSH`（粗体 `brandColor`）+ muted 副标题（缺省 `DeepSeek Harness`）；副标题按剩余预算截断。
-- **友好会话行**（`restore-session.ts` 的 `formatRestorableSessions`）：改为年龄在前，裸 id 换成 `#` 前缀 8 位短 id；`cwd` 对 live/持久化行一律显示 basename；fork 来源为 `fork #` 短父 id。完整 id 语义不变——`restore-session` 只做格式化，完整 id 仍驱动 `/session switch`。
-- **常驻环境行**（`format/welcome.ts` 新增 `formatEnvCheckLine`）：单行 muted `API Key ✓/✗ · Git ✓/✗ · <cols>×<rows> · <background>`，无论有无可恢复会话都渲染。措辞用「API Key」而非 footer 的「API ✗」，避免与 footer 合并段在 grep 级断言上碰撞。
-- **菜单末列预留**（`formatWelcomeMenu`）：内容预算改为 `width - 1`，右对齐 `keyHint` 不再占用终端最后一列（规避 autowrap 空行/末字被裁）。
-- **启动重组**（`app.ts` `renderRestorableSessions`）：品牌头 → 顶部栏 → 空行 → 会话列表（或首启引导）→ 空行 → 环境行 → 空行 → 菜单 → 收尾空行。环境行的 `background` 读 `getActiveThemeBackground()`（`attach` 已解析的主题明暗），不再重复 OSC 11 探测。
+[能力门槛狐狸欢迎](./2026-08-22-tui-fox-welcome.md) 部分取代本 note 的首屏组合。它用响应式 hero 与最终欢迎组装器替换原 `formatBrandHeader`、`formatEnvCheckLine` 与 `formatWelcomeMenu` 符号；这些已移除符号不是当前接口。编号启动列表使用 `formatRestorablePickerList`，并保留友好行投影。
 
 ## Verification
 
-- `tests/welcome.spec.ts` +7：品牌头（缺省/自定义/截断/width≤0）与环境行（全 OK / 缺 key 非 git / cols≤0）。
-- `tests/restore-session.spec.ts`：既有用例改写为年龄在前 + 短 id 形式；+1 长 UUID → 8 位 `#` id。
-- `tests/app.spec.ts`：会话恢复接线断言 `#` 短 id 且裸 id 不再出现；IME `caretCol` 接线用例在同套件内覆盖。
-- TUI 全量 **1457 passed / 2 todo**（80 文件）；一个对时序敏感的流利度用例在全量负载下偶发 5s 超时、单独运行通过（与本改动无关）。`tsc -b packages/tui/tui` 0 错误；oxlint 0 错误；改动文件 `verify-export-jsdoc` 无报错。
+- `restore-session.spec.ts` 钉住标题、年龄、cwd basename、短 id、fork id、损坏、编号与行上限行为，且不改变完整 id。
+- `app.spec.ts` 钉住编号欢迎行，并按完整会话 id 路由所选行。
+- 当前 hero、贴士、响应式回退与结算后的首屏组合由 [狐狸欢迎各层](./2026-08-22-tui-fox-welcome.md#verification) 验证。
 
 ## Files
 
-- `packages/tui/tui/src/format/welcome.ts`：`formatBrandHeader` + `FormatBrandHeaderInput`、`formatEnvCheckLine`、`formatWelcomeMenu` 末列预留
-- `packages/tui/tui/src/restore-session.ts`：年龄在前的友好行 + `#` 短 id + cwd basename
-- `packages/tui/tui/src/ui/app.ts`：`renderRestorableSessions` 重组；环境行用 `getActiveThemeBackground()`
-- 测试：`welcome.spec.ts`、`restore-session.spec.ts`、`app.spec.ts`
+- `packages/tui/tui/src/restore-session.ts`：友好摘要行与编号选择器投影
+- `packages/tui/tui/src/ui/app.ts`：标题查找、三行启动投影与完整 id 路由
+- `packages/tui/tui/src/format/welcome.ts`：当前首屏组合，由 [狐狸欢迎决策](./2026-08-22-tui-fox-welcome.md) 拥有
 
 ## Alternatives considered
 
-**Hero 大框 / 品牌字符画欢迎页（概念 A hero、概念 B 品牌字符画）** — 本轮否决：C4 决策记录把两者都排在 Wave 3 之后作为可选装饰；stacked 布局已覆盖功能，品牌头在不需要 ≥90 列 hero 框的前提下提供身份锚点。
+**Hero 大框 / 品牌字符画欢迎页（概念 A hero、概念 B 品牌字符画）** — 本决策推迟：友好会话身份不需要宽装饰框。其后的 [狐狸欢迎决策](./2026-08-22-tui-fox-welcome.md) 采用能力门槛的 92 列 hero，且未恢复已移除的头行、环境行或菜单组装器。
 
 **保留裸完整会话 id** — 否决：完整 UUID 一眼不可读；8 位 `#` id 对齐 git 短 SHA 惯例，完整 id 仍是 `/session switch` 的权威标识（格式化只影响显示）。
 
@@ -42,6 +36,5 @@ C4 B 布局 Wave 之后，启动欢迎页仍是纯文本堆叠：顶部栏之上
 
 ## Consequences
 
-- 欢迎页会话行把 id 截为 8 位；碰撞只影响显示（完整 id 仍驱动恢复/切换），与既有的「只展示一个」限高一致。
-- 环境行现在首屏常驻，即便存在可恢复会话也能一眼看到 API key / git / 终端状态。
-- 菜单行至多 `width - 1` 列；收尾空行把启动命令回显与欢迎页在视觉上分离。
+- 欢迎行用短 id 便于识别；碰撞只影响显示，因为完整 id 仍驱动恢复与切换。
+- 当前首屏品牌、元数据、行上限、贴士与结算行为属于 [狐狸欢迎决策](./2026-08-22-tui-fox-welcome.md)；本 note 仍为友好会话行理由保持活跃。

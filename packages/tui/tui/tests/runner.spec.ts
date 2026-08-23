@@ -45,6 +45,7 @@ function makeStdin(): NodeJS.ReadStream {
 function makeCtx(): Context & {
   sessions: { list: ReturnType<typeof vi.fn>; get: ReturnType<typeof vi.fn>; flush: ReturnType<typeof vi.fn> }
   effect: ReturnType<typeof vi.fn>
+  inject: ReturnType<typeof vi.fn>
   reflect: { get: ReturnType<typeof vi.fn> }
 } {
   const ctx = {
@@ -72,6 +73,7 @@ function makeCtx(): Context & {
   } as unknown as Context & {
     sessions: { list: ReturnType<typeof vi.fn>; get: ReturnType<typeof vi.fn>; flush: ReturnType<typeof vi.fn> }
     effect: ReturnType<typeof vi.fn>
+    inject: ReturnType<typeof vi.fn>
     reflect: { get: ReturnType<typeof vi.fn> }
   }
   return ctx
@@ -204,6 +206,53 @@ describe('index apply() 装配与退出生命周期', () => {
     const cleanup = ctx.effect.mock.results[0]?.value as (() => void) | undefined
     cleanup?.()
     expect(disposeResolved).toBe(true)
+  })
+})
+
+describe('index apply() welcomeAnimation 配置边界', () => {
+  function captureWelcomeAnimation(
+    config: Record<string, unknown>,
+  ): unknown {
+    const ctx = makeCtx()
+    let captured: unknown
+    vi.spyOn(TuiApp.prototype, 'attach').mockImplementation(function (this: TuiApp) {
+      captured = (this as unknown as { welcomeAnimation: unknown }).welcomeAnimation
+      return Promise.resolve()
+    })
+    vi.spyOn(TuiApp.prototype, 'dispose').mockResolvedValue(undefined)
+
+    apply(ctx, {
+      stdin: makeStdin(),
+      stdout: makeStdout(),
+      ...config,
+    })
+    return captured
+  }
+
+  it('fails loud during plugin load for an unknown welcomeAnimation value', () => {
+    const ctx = makeCtx()
+
+    expect(() => {
+      apply(ctx, {
+        stdin: makeStdin(),
+        stdout: makeStdout(),
+        welcomeAnimation: 'sometimes',
+      } as unknown as Parameters<typeof apply>[1])
+    }).toThrow(
+      '[tui-runner] welcomeAnimation must be "auto" or "off", got sometimes',
+    )
+    expect(ctx.inject.mock.calls).toHaveLength(0)
+  })
+
+  it.each(['auto', 'off'] as const)(
+    'passes welcomeAnimation=%s into the app',
+    (welcomeAnimation) => {
+      expect(captureWelcomeAnimation({ welcomeAnimation })).toBe(welcomeAnimation)
+    },
+  )
+
+  it('defaults the app configuration to auto', () => {
+    expect(captureWelcomeAnimation({})).toBe('auto')
   })
 })
 

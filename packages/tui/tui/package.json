@@ -66,7 +66,8 @@
     "@huiliyi37/dsh-session-title": "workspace:^",
     "@huiliyi37/dsh-tools": "workspace:^",
     "@huiliyi37/dsh-user-approval": "workspace:^",
-    "@huiliyi37/dsh-user-interaction": "workspace:^"
+    "@huiliyi37/dsh-user-interaction": "workspace:^",
+    "@xterm/headless": "^6.0.0"
   },
   "dependencies": {
     "@huiliyi37/dsh-agent-presets": "workspace:^",

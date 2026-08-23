@@ -37,6 +37,7 @@
 | src/controllers/btw-controller.ts | — | new |
 | src/controllers/question-controller.ts | — | new |
 | src/controllers/session-manager.ts | — | new |
+| src/controllers/welcome-intro-controller.ts | — | new（欢迎开场一次性生命周期：冻结启动快照、按 monotonic 时间采样生成帧、幂等 settle/cancel） |
 | src/delegation-panel.ts | — | new |
 | src/engine/ansi.ts | engine/ansi.ts | modified（新增 DECSCUSR 光标形状常量：稳态竖条 + 默认恢复，overlay 输入光标用） |
 | src/engine/clipboard-image.ts | engine/clipboard-image.ts | modified（移除未声明的 @mariozechner/clipboard native 路径，保留 shell 链 + 注入点；readText 注入测试密封化） |
@@ -71,6 +72,8 @@
 | src/format/doctor-report.ts | — | new |
 | src/format/lsp-diagnostics.ts | — | new（诊断展示纯函数：工具卡徽标 + /lsp 面板段，severity 语义色） |
 | src/format/export.ts | — | new（/export 会话导出：事件日志 → Markdown 转录，纯渲染） |
+| src/format/fox-frames.ts | — | new（由欢迎狐狸 sprite sheet 确定性生成的调色板、八帧索引数据与尺寸常量；运行时无资产 I/O） |
+| src/format/fox.ts | — | new（欢迎狐狸生成帧的 ANSI 半块渲染器：truecolor、xterm-256 与 ANSI16 分档，零色深或全宽块字符终端降级为空） |
 | src/format/fluency-policy.ts | fluency-policy.ts | modified（目录重排：上游根 → src/format/） |
 | src/format/activity-band.ts | — | new（CC 对标统一活动带：subagent/workflow/后台任务活跃项折叠 + 高度封顶固定带渲染，纯函数层） |
 | src/format/glance-bar.ts | format/glance-bar.ts | modified |
@@ -94,6 +97,7 @@
 | src/format/spinner-status.ts | format/spinner-status.ts | modified |
 | src/format/steer-message.ts | — | new |
 | src/format/task-panel.ts | — | new |
+| src/format/todos-panel.ts | — | new（/todos 紧凑待办面板：保留快照 → 摘要卡/封顶明细，纯函数层） |
 | src/format/tool-card.ts | format/tool-card.ts | modified |
 | src/format/tool-family.ts | tool-family.ts | modified（目录重排：上游根 → src/format/） |
 | src/format/tool-group.ts | — | new |
@@ -104,7 +108,6 @@
 | src/format/turn-status.ts | — | new（C4 概念稿 turn_status：spinner/◆ + 阶段文本，纯渲染） |
 | src/format/user-message.ts | format/user-message.ts | modified |
 | src/format/welcome.ts | format/welcome.ts | modified |
-| src/format/whale.ts | — | new（欢迎页鲸鱼品牌像素画：半块字符双色渲染，品牌固定色 + 色深/宽度档降级，纯渲染） |
 | src/gutter.ts | gutter.ts | ported |
 | src/index.ts | — | new |
 | src/invariant.ts | — | new |

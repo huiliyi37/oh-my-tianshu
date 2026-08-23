@@ -6,44 +6,41 @@ English | [中文](2026-08-12-tui-c4-b-layout-bottom-bar.zh.md)
 
 ## Problem
 
-The TUI bottom area and welcome page diverge from the concept draft: ① the welcome page prints every restorable session (`formatRestorableSessions` has no cap), so a large session count fills the first screen; ② the input line is bare text with no line or frame below it, unlike the claude-code-style input box. User selection: **concept B「Deep dive」(claude-code layout), no enclosing frame lines, do B's style first**; the welcome page rarely re-enters old sessions — "show just one".
+The TUI bottom area and welcome page diverged from the concept draft: the startup list lacked a cap, so a large session count could fill the first screen, and the input line had no lower edge to distinguish the composer. The selected concept B layout called for a concise startup list and a bottom-edge line without a full enclosing frame.
 
 ## Decision
 
-Three pure-function-layer changes per layout B (zero IO, width-conserving, ascii-degradable):
+Three pure-function-layer choices per layout B (zero IO, width-conserving, ascii-degradable):
 
-- **Input bottom edge rounded line** (new `format/input-divider.ts`): `formatInputDivider` emits `└` + `─`×fill (ascii degrades to `+`/`-`), colored by mode — normal `secondary` / plan (active/pending) `warning` / auto (alwaysApprove) `error`, sharing the footer badge vocabulary. Rendered below the input line in `renderLive` (B「bottom edge rounded box only」: whitespace above/below the input area, no enclosing frame).
-- **Welcome session list cap** (`restore-session.ts`): `formatRestorableSessions` gains a `maxRows` option (absent/≤0 means unlimited, backward compatible); when exceeded only the first maxRows rows render plus a fold hint「… 还有 N 个会话」. `app.ts` passes `maxRows: 1` on startup.
-- **Footer single-line merge** (`format/prompt-footer.ts`): `formatPromptFooter` gains optional `rightSegments` (token/model/API status etc.). Wide terminals (≥ `FOOTER_RIGHT_MERGE_MIN_WIDTH` = 80 columns, B's narrow-screen vertical-stack threshold) right-align them into the same line, dropping right segments back-to-front when they do not fit; narrow terminals keep the standalone metrics line (B「two stacked rows on narrow terminals」). `app.ts` feeds `glanceBarSegments(...)` output plus an `API ✓/✗` segment (read `DEEPSEEK_API_KEY` once at construction) as right segments; the metrics line is no longer rendered separately when merged.
+- **Input chrome edge, partially superseded**: this wave chose a mode-colored bottom-edge line under the input without a full enclosing frame (B「bottom edge rounded box only」). That edge symbol is gone; current input chrome is owned by `formatInputFrame` and the [Oh My Tianshu rebrand](./2026-08-15-oh-my-tianshu-rebrand.md) composer top-border status bar (`formatTopStatusBar` + mode-reactive `promptBorderColor`).
+- **Welcome session list cap, partially superseded** (`restore-session.ts`): `formatRestorableSessions` retains its backward-compatible `maxRows` option and fold hint. The current startup area projects up to three numbered rows through `formatRestorablePickerList`; the [session-resume decision](./2026-08-20-session-resume-visibility.md) owns digit routing, and the [fox welcome decision](./2026-08-22-tui-fox-welcome.md) owns the final composition and cap.
+- **Footer right-merge capability, partially superseded** (`format/prompt-footer.ts`): `formatPromptFooter` still exposes optional `rightSegments` as a pure-function merge (right-align into the same line; drop trailing right segments when they do not fit). The app does not pass `rightSegments`. Live metrics and API status sit in the rebrand's `formatTopStatusBar` on the composer top border; the footer renders mode badge and key hints only.
 
 ## Verification
 
-- New `tests/input-divider.spec.ts` 8 cases: shape/ascii/three mode colors/width≤0 empty array/width conservation.
-- `tests/restore-session.spec.ts` +3: maxRows=1 fold hint, maxRows over total no fold, maxRows≤0 unlimited.
-- `tests/prompt-footer.spec.ts` +5: wide-screen right-aligned merge, right segments dropped back-to-front, narrow no merge, empty right same as default, extreme-narrow mode-only degradation.
-- `tests/app.spec.ts` +2 wiring: wide (100 cols) output contains `└─+` and `API ✗` (merge path); narrow (70 cols) has the bottom line and no API segment (standalone-row path).
-- TUI full **1354 passed / 2 todo** (76 files); `tsc --noEmit` 0 errors; oxlint 0 errors; `verify-export-jsdoc` passes; the three changed files are 100% covered (prompt-footer's unreachable branch carries a `v8 ignore` note per repo convention).
+- `restore-session.spec.ts` pins limited, over-total, unlimited, and numbered-picker row behavior.
+- `prompt-footer.spec.ts` pins mode/hint layout and optional `rightSegments` merge when callers supply it.
+- `app.spec.ts` pins the mode/hint footer and the current three-row numbered welcome projection.
+- Composer top-border metrics and input-frame chrome are covered by the [rebrand verification](./2026-08-15-oh-my-tianshu-rebrand.md#testing).
 
 ## Files
 
-- `src/format/input-divider.ts` (new; later superseded by `packages/tui/tui/src/format/input-frame.ts`): `formatInputDivider` + `FormatInputDividerInput`
-- `packages/tui/tui/src/format/prompt-footer.ts`: `FOOTER_RIGHT_MERGE_MIN_WIDTH` + `rightSegments` merge (`mergeRightSegments` private helper)
+- `packages/tui/tui/src/format/prompt-footer.ts`: mode/hint footer with optional unused-by-app `rightSegments` merge
 - `packages/tui/tui/src/restore-session.ts`: `RestorableOptions.maxRows` + fold hint line
-- `packages/tui/tui/src/ui/app.ts`: welcome passes `maxRows: 1`; renderLive renders the bottom line, wires footer right segments (`glanceBarSegments` + `apiKeyReady` field), standalone metrics line on narrow terminals
-- `packages/tui/tui/SOURCE-MAP.md`: registers `src/format/input-divider.ts` (new)
+- `packages/tui/tui/src/ui/app.ts`: welcome projects at most three numbered rows; live footer gets mode/hints only (no `rightSegments`)
 - `docs/dsh-tui-视觉概念稿-c4.md`: decision record section 8
-- Tests: `input-divider.spec.ts` (new), `restore-session.spec.ts`, `prompt-footer.spec.ts`, `app.spec.ts`
+- Tests: `restore-session.spec.ts`, `prompt-footer.spec.ts`, `app.spec.ts`
 
 ## Alternatives considered
 
-**Full-width divider line above the input line (concept C main-screen shape)** — rejected: the user explicitly said「no enclosing frame lines」, choosing B's bottom-edge rounded line only; the message-area/input-area separator above is deferred until real-terminal acceptance.
+**Full-width divider line above the input line (concept C main-screen shape)** — rejected: the user explicitly said「no enclosing frame lines」, choosing B's bottom-edge rounded line only. Current composer chrome ownership is the [rebrand](./2026-08-15-oh-my-tianshu-rebrand.md).
 
-**Welcome session list defaulting to 5 + digit-key selection (concept C session picker)** — rejected (this round): the user said「show just one」; digit-key routing and resume interaction are deferred to a later wave.
+**Welcome session list defaulting to 5 + digit-key selection (concept C session picker)** — rejected in this layout wave because the requested first-screen cap was one. The later [session-resume decision](./2026-08-20-session-resume-visibility.md) adds digit routing, and the [fox welcome decision](./2026-08-22-tui-fox-welcome.md) settles on at most three visible rows rather than five.
 
-**Metrics merged into the footer unconditionally** — rejected: B mandates two stacked rows below 80 columns; the standalone metrics line stays as the narrow-screen fallback.
+**Metrics merged into the footer unconditionally** — rejected here because B wanted a narrow-screen stacked fallback. That layout is obsolete: metrics live in the rebrand top-border status bar, and the footer no longer carries them.
 
 ## Consequences
 
-- On wide terminals (≥80 columns) metrics no longer occupy a standalone row; token/cache/model segments move to the footer's right side and drop with width — model-layer info (cache hit rate) is invisible when very narrow, an intended B-layout information degradation.
-- `formatRestorableSessions` gains an optional parameter; default behavior is unchanged (existing callers unaffected).
-- Multiline input (Wave 3), ghost-text suggestions, the ASCII-art welcome page, and session digit-key selection remain for a later batch (per the C4 decision record).
+- `formatRestorableSessions` keeps an optional `maxRows` parameter; default unlimited behavior is unchanged for callers that omit it.
+- Optional `rightSegments` remains a pure-function capability on `formatPromptFooter` but is not part of the live assembly contract.
+- Startup hero, row cap, and settlement belong to the [fox welcome](./2026-08-22-tui-fox-welcome.md); digit routing belongs to [session-resume visibility](./2026-08-20-session-resume-visibility.md); input chrome and metrics placement belong to the [rebrand](./2026-08-15-oh-my-tianshu-rebrand.md). This note remains the rationale for the B-layout choices that still shape those later owners.

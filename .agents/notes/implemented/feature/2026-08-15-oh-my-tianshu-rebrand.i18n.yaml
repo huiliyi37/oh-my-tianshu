@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-15-oh-my-tianshu-rebrand.md
-2026-08-15-oh-my-tianshu-rebrand.md: 774f4f77d3232f9a4f4b224b12d5709c504b2835
-2026-08-15-oh-my-tianshu-rebrand.zh.md: 3bccb67efffd8457a89bffcd34e92163a24f5d70
+2026-08-15-oh-my-tianshu-rebrand.md: 2c69cfd59eb272d7813a9ded92a413066550bcb4
+2026-08-15-oh-my-tianshu-rebrand.zh.md: c78fcacc863ed69ff53705e0b0583f87f0643ecc

@@ -85,6 +85,15 @@ describe('gate graph validation', () => {
     expect(ids).toContain('public-repository-links')
   })
 
+  it.each(['ci-static', 'check-all'] as const)(
+    'keeps the welcome fox projection check in %s',
+    (mode) => {
+      const ids = withPnpmEntrypoint(() => gatesForMode(mode).map(subject => subject.id))
+
+      expect(ids).toContain('welcome-fox')
+    },
+  )
+
   it.each([
     ['empty', [], /gate graph has no gates/],
     ['duplicate ids', [gate('same'), gate('same')], /duplicate gate id "same"/],

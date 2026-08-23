@@ -11,6 +11,7 @@
     "@huiliyi37/cordis-plugin-timer": "workspace:*",
     "@huiliyi37/dsh-acp-demo": "workspace:*",
     "@huiliyi37/dsh-agent": "workspace:*",
+    "@huiliyi37/dsh-agent-default-model": "workspace:*",
     "@huiliyi37/dsh-agent-definitions": "workspace:*",
     "@huiliyi37/dsh-agent-loop": "workspace:*",
     "@huiliyi37/dsh-agent-router": "workspace:*",
@@ -122,5 +123,9 @@
     "@huiliyi37/dsh-workflow-workerthread": "workspace:*",
     "@huiliyi37/dsh-workspace-context": "workspace:*",
     "@huiliyi37/dsh-zen": "workspace:*"
+  },
+  "devDependencies": {
+    "@xterm/headless": "^6.0.0",
+    "node-pty": "1.2.0-beta.15"
   }
 }
