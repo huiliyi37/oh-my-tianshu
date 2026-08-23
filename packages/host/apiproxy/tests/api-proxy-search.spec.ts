@@ -875,6 +875,8 @@ describe('session.search', () => {
     expect(failed.result.ok).toBe(false)
     if (failed.result.ok) throw new Error('unreachable')
     expect(failed.result.error.code).toBe('internal')
-    expect(failed.result.error.message).toContain('database unavailable')
+    // Provider diagnostics are logged host-side, never carried on the wire.
+    expect(failed.result.error.message).not.toContain('database unavailable')
+    expect(failed.result.error.message).toContain('host log')
   })
 })

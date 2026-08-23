@@ -97,6 +97,18 @@ const COLD_SUMMARY_BATCH_SIZE = 16
 /** Conversation message event types (the pagination counting unit). */
 const MESSAGE_TYPES = new Set(['user/message', 'assistant/message'])
 
+/**
+ * Brands an error surfaced by the session-query provider: its wording may carry
+ * backend internals (paths, engine messages), so it is logged host-side and
+ * answered with a public-safe diagnostic instead of flowing to the wire.
+ */
+class SessionSearchProviderError extends Error {
+  constructor(readonly origin: unknown) {
+    super('session search provider failed')
+    this.name = 'SessionSearchProviderError'
+  }
+}
+
 /** Product settings intentionally exposed beside model-provider namespaces. */
 const PRODUCT_SETTINGS_NAMESPACES = new Set(['ui-onboarding'])
 
@@ -1502,7 +1514,10 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
                 cursor = undefined
                 continue
               }
-              throw error
+              if (error instanceof SessionQueryError && error.code === 'SESSION_QUERY_ABORTED') throw error
+              // Brand before rethrow: only provider-origin errors are redacted
+              // at the wire; gateway-owned guard violations keep their message.
+              throw new SessionSearchProviderError(error)
             }
             if (isAborted(signal)) return cancelled()
             const providerItemCount = page.items.length
@@ -1554,8 +1569,16 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             isAborted(signal)
             || (error instanceof SessionQueryError && error.code === 'SESSION_QUERY_ABORTED')
           ) return cancelled()
-          // XXX: Redact provider details before exposing this gateway beyond
-          // its current single-user local deployment.
+          if (error instanceof SessionSearchProviderError) {
+            // Provider diagnostics stay in the host log; the wire stays public-safe.
+            ctx.logger.warn(`session.search: provider failed: ${String(error.origin)}`)
+            return err(request, {
+              code: 'internal',
+              message: 'session search failed; see the host log for provider details',
+              details: {},
+            })
+          }
+          // Gateway-owned guard violations carry no backend internals.
           return err(request, {
             code: 'internal',
             message: `session search failed: ${String(error)}`,
