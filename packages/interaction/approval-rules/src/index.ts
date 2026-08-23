@@ -1,0 +1,327 @@
+/**
+ * Persistent per-tool allow/deny approval rules — a policy layer over the
+ * `ctx.approval` seam.
+ *
+ * The package registers an `approval/request` waterfall answerer that consults
+ * a merged list of rules loaded from two YAML layers (user home first, then
+ * project) and, on the first hit, settles the request deterministically
+ * (`allow` → `allowed-once`, `deny` → `rejected`) without consulting any
+ * interactive answerer. When no rule matches, the answerer delegates via
+ * `next()` so the rest of the chain (including a later interactive answerer)
+ * still decides. The whole thing is a strategy layer on the seam: it never
+ * changes the `ApprovalOutcome` vocabulary, never touches sandbox/mode, and
+ * the `'never'` policy still rejects before any answerer is consulted.
+ *
+ * **Mount order contract.** A Cordis waterfall has no priority mechanism;
+ * listeners run in registration order. The rule answerer only precedes an
+ * interactive answerer if this package is assembled first. Deployments must
+ * mount this package before any interactive approval answerer (the README and
+ * the tests pin this ordering).
+ *
+ * Every automatic decision appends a log-only `approval/rule` event to the
+ * owning session, so the asked → rule → decided audit stays complete and
+ * replayable without entering the model transcript.
+ *
+ * @module @huiliyi37/dsh-approval-rules
+ */
+
+import { join } from 'node:path'
+import type { Context } from '@huiliyi37/cordis'
+import z from '@huiliyi37/schemastery'
+import { dshHomePath } from '@huiliyi37/dsh-paths'
+import type { CommandDefinition, CommandInvocation, CommandResult, CommandService } from '@huiliyi37/dsh-commands'
+import type {} from '@huiliyi37/dsh-commands'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import type { ApprovalRequest, ApprovalOutcome } from '@huiliyi37/dsh-user-approval'
+import type {} from '@huiliyi37/dsh-user-approval'
+import type { CallId } from '@huiliyi37/dsh-llm'
+import type { Session } from '@huiliyi37/dsh-session'
+import type { FileRule, PermissionDecision, PermissionLayer, Rule } from './types.ts'
+import { appendRule, loadRules, mergeRules, matchRule, removeRuleAtFile } from './rules.ts'
+import { normalizeArguments } from './glob.ts'
+
+export type * from './types.ts'
+export { matchesPattern, normalizeArguments } from './glob.ts'
+export {
+  appendRule,
+  loadRules,
+  matchRule,
+  mergeRules,
+  parseRules,
+  removeRuleAtFile,
+  writeRules,
+} from './rules.ts'
+
+declare module '@huiliyi37/dsh-session/types' {
+  interface SessionEventMap {
+    /**
+     * A persistent rule settled an `approval/request` — log-only audit (NOT a
+     * surface event, carries no `surfaceOp`, never enters the model
+     * transcript). Appended to the owning session between the matching
+     * `approval/asked` and `approval/decided`; `ruleIndex` is the zero-based
+     * position in the effective (user-then-project) rule list that matched.
+     */
+    'approval/rule': {
+      /** The rule's exact tool name. */
+      tool: string
+      /** The rule's full-string-anchored glob pattern (the matched value). */
+      pattern: string
+      /** The decision the matched rule settled the request with. */
+      decision: PermissionDecision
+      /** Zero-based index of the matched rule in the effective list. */
+      ruleIndex: number
+      /** Which storage layer owned the matched rule. */
+      layer: PermissionLayer
+    }
+  }
+}
+
+/** Cordis plugin name. */
+export const name = 'approval-rules'
+
+/** Services this plugin consumes: the approval seam. The command plane and the
+ * TUI slash menu attach through optional injects so a headless rules-only
+ * composition can mount without them. */
+export const inject = ['approval']
+
+/** Plugin config: the two rule-layer files, overridable by a deployment. */
+export interface Config {
+  /** User-rule file; defaults to `<resolveDshHome()>/permissions.yaml`. */
+  readonly userFile?: string
+  /** Project-rule file; defaults to `<cwd>/.dsh/permissions.yaml`. */
+  readonly projectFile?: string
+}
+
+/** Runtime schema for the plugin config. */
+export const Config: z<Config> = z.object({
+  userFile: z.string(),
+  projectFile: z.string(),
+})
+
+/** Resolved, non-optional layer file paths. */
+interface ResolvedConfig {
+  readonly userFile: string
+  readonly projectFile: string
+}
+
+/** Resolve the two layer files from config or their documented defaults. */
+function resolveConfig(config: Config): ResolvedConfig {
+  return {
+    userFile: config.userFile ?? dshHomePath('permissions.yaml'),
+    projectFile: config.projectFile ?? join(process.cwd(), '.dsh', 'permissions.yaml'),
+  }
+}
+
+/** Minimal shape of the TUI slash facet consumed through the optional seam. */
+interface TuiSlashFacet {
+  register(command: {
+    name: string
+    description: string
+    argsHint?: string
+    run: (args: TuiSlashRun) => void
+  }): void
+}
+
+/** Arguments the TUI slash registry hands each command invocation. */
+interface TuiSlashRun {
+  text: string
+  sessionId: string | null
+  echo(text: string): void
+  ctx: { agents?: { get(id: string): unknown } }
+}
+
+/** The command's mutation surface, shared by the host handler and the answerer. */
+interface PermissionsControls {
+  readonly effective: () => readonly Rule[]
+  addRule(rule: FileRule): Promise<void>
+  removeRuleAt(index: number): Promise<void>
+}
+
+/** Extract the exact `arguments` string of the `tool/call` event a request references. */
+function toolCallArguments(req: ApprovalRequest): string {
+  const callId: CallId | undefined = req.callId
+  if (callId === undefined) return ''
+  const session: Session = req.agent.session
+  for (const event of session.events) {
+    if (event.type === 'tool/call' && event.data.callId === callId) return event.data.arguments
+  }
+  return ''
+}
+
+/** One line of the `/permissions` bare list, in effective-index order. */
+function formatRuleLine(index: number, rule: Rule): string {
+  return `${index}  ${rule.layer}  ${rule.tool}  ${rule.pattern}  ${rule.decision}`
+}
+
+/** Render the effective rule list for the `/permissions` bare listing. */
+function formatEffective(rules: readonly Rule[]): string {
+  if (rules.length === 0) return 'No approval rules configured.'
+  return rules.map((rule, index) => formatRuleLine(index, rule)).join('\n')
+}
+
+/**
+ * Settle one request from the effective rules, or delegate to the chain.
+ * @param req - the pending approval decision.
+ * @param next - delegates to the remaining waterfall listeners.
+ * @param effective - the current merged rule list.
+ * @returns the settled outcome, or the chain's own answer via `next()`.
+ */
+async function answer(
+  req: ApprovalRequest,
+  next: () => Promise<ApprovalOutcome>,
+  effective: () => readonly Rule[],
+): Promise<ApprovalOutcome> {
+  const found = matchRule(effective(), req.toolName, normalizeArguments(toolCallArguments(req)))
+  if (found === undefined) return next()
+  req.agent.session.append('approval/rule', {
+    tool: found.rule.tool,
+    pattern: found.rule.pattern,
+    decision: found.rule.decision,
+    ruleIndex: found.index,
+    layer: found.rule.layer,
+  })
+  return found.rule.decision === 'allow' ? 'allowed-once' : 'rejected'
+}
+
+/** Execute the `/permissions` host command against the shared mutation surface. */
+async function executePermissions(invocation: CommandInvocation, controls: PermissionsControls): Promise<CommandResult> {
+  const text = invocation.rawInput.trim()
+  const parts = text.split(/\s+/)
+  const [sub, first, second, third] = parts
+  if (sub === undefined || sub === '') {
+    return { kind: 'success', text: formatEffective(controls.effective()) }
+  }
+  if (sub === 'add') {
+    if (parts.length !== 4 || first === undefined || second === undefined || third === undefined) {
+      return { kind: 'error', text: 'Usage: permissions add <tool> <pattern> <allow|deny>' }
+    }
+    if (third !== 'allow' && third !== 'deny') {
+      return { kind: 'error', text: `Invalid decision "${third}" (must be "allow" or "deny")` }
+    }
+    try {
+      await controls.addRule({ tool: first, pattern: second, decision: third })
+    } catch (error: unknown) {
+      return { kind: 'error', text: error instanceof Error ? error.message : String(error) }
+    }
+    return { kind: 'success', text: `Added ${third} rule: ${first} ${second} (project)` }
+  }
+  if (sub === 'remove') {
+    if (parts.length !== 2 || first === undefined) {
+      return { kind: 'error', text: 'Usage: permissions remove <index>' }
+    }
+    const index = Number(first)
+    if (!Number.isSafeInteger(index) || index < 0) {
+      return { kind: 'error', text: `Invalid index "${first}" (must be a non-negative integer)` }
+    }
+    try {
+      await controls.removeRuleAt(index)
+    } catch (error: unknown) {
+      return { kind: 'error', text: error instanceof Error ? error.message : String(error) }
+    }
+    return { kind: 'success', text: `Removed rule at index ${index}` }
+  }
+  return { kind: 'error', text: 'Usage: permissions [add <tool> <pattern> <allow|deny> | remove <index>]' }
+}
+
+/** Build the host `/permissions` command definition. */
+function buildPermissionsCommand(controls: PermissionsControls): CommandDefinition {
+  return {
+    name: 'permissions',
+    description: 'List or manage persistent approval rules (distinct from /permission preset switching)',
+    input: { hint: '[add <tool> <pattern> <allow|deny> | remove <index>]' },
+    handler: invocation => executePermissions(invocation, controls),
+  }
+}
+
+/** Build the TUI slash-menu mirror, delegating execution to the host command service. */
+function buildTuiCommand(host: () => CommandService | undefined): {
+  name: string
+  description: string
+  argsHint: string
+  run: (args: TuiSlashRun) => Promise<void>
+} {
+  return {
+    name: 'permissions',
+    description: '查看或管理持久化审批规则（区别于 /permission 预设切换）',
+    argsHint: '[add <tool> <pattern> <allow|deny> | remove <index>]',
+    run: async ({ text, ctx: runCtx, sessionId, echo }) => {
+      const input = text.trim() === '' ? '/permissions' : `/permissions ${text.trim()}`
+      const commands = host()
+      if (sessionId === null) {
+        echo('⚠ /permissions 需要活动会话')
+        return
+      }
+      if (commands === undefined) {
+        echo('⚠ /permissions 命令服务不可用')
+        return
+      }
+      const agent = runCtx.agents?.get(sessionId)
+      if (agent === undefined) {
+        echo('⚠ /permissions 需要活动会话')
+        return
+      }
+      const execution = await commands.execute(agent as Agent, input, new AbortController().signal)
+      if (execution === undefined) {
+        echo(`未知命令: ${input}`)
+        return
+      }
+      if (execution.result.kind === 'success') {
+        echo(execution.result.text ?? '已执行')
+      } else {
+        echo(`⚠ 命令执行失败: ${execution.result.text}`)
+      }
+    },
+  }
+}
+
+/**
+ * Apply the approval-rules plugin: load both rule layers (failing loud on a
+ * malformed file), register the rule answerer, and attach the `/permissions`
+ * host command plus its TUI slash-menu mirror.
+ * @param ctx - plugin context (injects `approval`).
+ * @param config - the two rule-layer file paths.
+ */
+export async function apply(ctx: Context, config: Config = {}): Promise<void> {
+  const { userFile, projectFile } = resolveConfig(config)
+  let userRules: FileRule[] = await loadRules(userFile)
+  let projectRules: FileRule[] = await loadRules(projectFile)
+
+  const effective = (): readonly Rule[] => mergeRules(userRules, projectRules)
+
+  ctx.on('approval/request', (req, next) => answer(req, next, effective))
+
+  const addRule = async (rule: FileRule): Promise<void> => {
+    projectRules = [...projectRules, rule]
+    await appendRule(projectFile, rule)
+  }
+  const removeRuleAt = async (index: number): Promise<void> => {
+    const rules = effective()
+    const target = rules[index]
+    if (target === undefined) {
+      throw new Error(`approval-rules: no rule at effective index ${index}`)
+    }
+    if (target.layer === 'user') {
+      await removeRuleAtFile(userFile, index)
+      userRules = userRules.filter((_rule, cursor) => cursor !== index)
+    } else {
+      const projectIndex = index - userRules.length
+      await removeRuleAtFile(projectFile, projectIndex)
+      projectRules = projectRules.filter((_rule, cursor) => cursor !== projectIndex)
+    }
+  }
+  const controls: PermissionsControls = { effective, addRule, removeRuleAt }
+
+  // Host command plane (optional): register /permissions when commands exists.
+  let hostCommands: CommandService | undefined
+  ctx.inject(['commands'], commandCtx => {
+    hostCommands = commandCtx.get('commands')
+    commandCtx.commands.register(buildPermissionsCommand(controls))
+  })
+
+  // TUI slash menu (optional seam): mirror /permissions, delegating to the host
+  // registry so the command/run + command/done lifecycle stays intact.
+  ctx.inject(['tui.commands'], tuiCtx => {
+    const tui = tuiCtx.get('tui.commands') as TuiSlashFacet
+    tui.register(buildTuiCommand(() => hostCommands))
+  })
+}
