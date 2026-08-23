@@ -2,11 +2,13 @@
 
 English | [中文](README.zh.md)
 
-Tianshu Harness (`oh-my-tianshu`) is a full-capability open-source coding agent: an agent harness with vision, cross-session memory, verification gates, agent routing, semantic + graph code retrieval, file rewind, and a full-screen terminal UI — all composed as plugins.
+Tianshu Harness (`oh-my-tianshu`) is a full-capability open-source coding agent built on a plugin harness: models, tools, policies, memory, retrieval, and interfaces are all Cordis plugins a deployment can compose, replace, or extend without touching the agent loop.
 
-It is a friendly fork of [DeepSeek Harness](https://github.com/deepseek-ai) (`dsh`, MIT) released under the **Apache License 2.0**. The fork point is the 2026-08 baseline; this line evolves independently and does not track upstream. See [NOTICE](NOTICE) for the full attribution.
+One distribution, four surfaces — full-screen terminal UI, browser UI, headless one-shot runs, and an ACP automation server — over a deep capability bench: a vision bridge plus an `ask_image` co-pilot so text-only primaries still work with images, cross-session project memory with a write-quality gate, an evidence gate enforcing RED→GREEN on bugfix edits, an agent router that moves from shadow to gradual dispatch over native subagents, semantic (BM25, CJK-aware, optional vector) and tree-sitter graph code retrieval, plan mode with per-session presets, pre-write file snapshots behind `/rewind`, and prefix-cache health observation that keeps long sessions cheap.
 
-It keeps the upstream architecture where **everything is a plugin**.
+Sessions are authoritative and reconstructable: anything the model sees is logged to the session stream, and persistence, resume/fork/query, replay, telemetry, and every UI derive from the same events. Composition stays cache-friendly by design — presets own the agent plane, so the cached prefix stays byte-stable while a session's toolset and persona change.
+
+It is a friendly fork of [DeepSeek Harness](https://github.com/deepseek-ai) (`dsh`, MIT) released under the **Apache License 2.0**; this line evolves independently from the 2026-08 baseline and does not track upstream. Full attribution lives in [NOTICE](NOTICE).
 
 ## Install
 

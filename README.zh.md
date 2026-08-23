@@ -2,11 +2,13 @@
 
 [English](README.md) | 中文
 
-天枢 Harness(`oh-my-tianshu`)是一款完全体开源 coding agent:在 agent harness 之上带视觉、跨会话记忆、验证门、agent 路由、语义 + 图谱代码检索、文件回滚和全屏终端 UI——全部以插件组合。
+天枢 Harness(`oh-my-tianshu`)是一款完全体开源 coding agent,构建在插件式 harness 之上:模型、工具、策略、记忆、检索与界面全部是 Cordis 插件,部署方无需改动 agent 循环即可组合、替换或扩展。
 
-它是 [DeepSeek Harness](https://github.com/deepseek-ai)(`dsh`,MIT)的友好 fork,以 **Apache License 2.0** 发布;分叉点为 2026-08 基线;本线独立演进,不追踪上游。完整署名见 [NOTICE](NOTICE)。
+一个发行版,四种表面——全屏终端 UI、浏览器 UI、无头单发任务、ACP 自动化服务器——之下是深厚的能力面:视觉桥加 `ask_image` 副驾让纯文本主模型照样处理图片、带写入质量门的跨会话项目记忆、强制 bugfix 编辑先红后绿的证据门、从影子记录走向灰度派发的 agent 路由(派发到原生子代理)、语义检索(BM25、CJK 感知、可选向量层)与 tree-sitter 图谱代码检索、按会话预设组合的 plan mode、支撑 `/rewind` 的写前文件快照,以及让长会话保持低成本的 prefix 缓存健康观测。
 
-它保留了上游**一切皆插件**的架构。
+会话权威且可重建:模型可见的一切都记录在会话事件流里,持久化、恢复/分叉/查询、回放、遥测与所有界面都从同一份事件派生。组合天然对缓存友好——预设拥有 agent 面,会话的工具面与人设随需变化,而被缓存的前缀保持字节稳定。
+
+它是 [DeepSeek Harness](https://github.com/deepseek-ai)(`dsh`,MIT)的友好 fork,以 **Apache License 2.0** 发布;分叉点为 2026-08 基线,本线独立演进,不追踪上游。完整署名见 [NOTICE](NOTICE)。
 
 ## 安装
 
