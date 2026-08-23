@@ -610,7 +610,7 @@ async snapshot(options: AgentDefinitionLookupOptions = {}): Promise<AgentDefinit
 async get(name: string, options: AgentDefinitionLookupOptions = {}): Promise<AgentDefinition | undefined>
 ```
 
-Source: [`packages/subagent/agent-definitions/src/index.ts:185`](../../packages/subagent/agent-definitions/src/index.ts)
+Source: [`packages/subagent/agent-definitions/src/index.ts:212`](../../packages/subagent/agent-definitions/src/index.ts)
 
 <a id="ctxsubagents--subagentservice"></a>
 
