@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-22-provider-error-sanitization.md
+2026-08-22-provider-error-sanitization.md: d38e3139ae640d94a89e58a85809fc170c77375a
+2026-08-22-provider-error-sanitization.zh.md: 0e30b9491ce8748d6355dc46ca9e02a35947e53a
