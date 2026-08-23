@@ -4,7 +4,7 @@ Status: proposed
 
 [English](2026-08-22-codex-harness-enhancement-candidates.md) | 中文
 
-## 背景与范围
+## Problem
 
 对 OpenAI Codex（`codex-rs`，外部检出，2026-08-21 克隆；下文所有 `codex-rs/…` 路径均为指向该检出的时间点快照引用，非本仓链接）做了一轮只读对标，产出针对本 fork 现有能力面的增强/融合候选清单。本笔记收录选定的剩余项作为可决策目录。同一分析中的[自动记忆管线](../../implemented/feature/2026-08-21-memory-auto-pipeline.md)已单独落地（`85461be679`）。早期两项 P0 候选——带域名策略的沙箱网络代理（Codex `network-proxy`）与前缀命令策略 DSL（Codex `execpolicy`，Starlark）——不在本记录内，待另行评估。收录进本清单是候选盘点，不构成实施承诺；每项采纳时经自己的笔记落地。
 
@@ -38,6 +38,21 @@ Status: proposed
 ## 顺序与依赖
 
 P0 先行（两个小工具，零接缝改动）。P1 各项独立可并行；每挂一个 MCP 服务，`tool_search` 就更紧迫一分，而 `view_image` 趁 vision-ask 注册表还新鲜时最便宜。P2 需要工程之外的产品决策（Windows 沙箱范围、daemon 协议归属、云端后端选型）。小件跟随触碰同一区域的 PR 顺路落地。
+
+## Proposal
+
+将本目录作为决策就绪清单采纳：P0 两个上下文工具是首批落地批次（成本小、零接缝改动）；P1 各项在对应区域下次移动时独立落地；P2 等待「顺序与依赖」中列出的产品决策。每个采纳项通过自己的实施 note 标记目录条目的落地；本记录本身永不作为实施记录。
+
+## Risks
+
+- 范围蔓延：目录横跨产品面（安装器、daemon 协议、Windows 沙箱）；每个窗口采纳超过一个 P2 项会稀释评审。
+- 方向漂移：条目引用外部 checkout（codex-rs，2026-08-21 克隆）；这些引用会老化，落地 note 引用前必须重新验证。
+- 漏斗错觉：多项属于采纳漏斗类功能（插件浏览器、外部 agent 迁移、云端委托）；各自需要独立的证据方案，不能共享「表面更大 = 更好」的假设。
+
+## Alternatives considered
+
+- 带域名策略的沙箱网络代理（Codex `network-proxy`）与基于前缀的命令策略 DSL（Codex `execpolicy`，Starlark）——同一轮对照中未纳入本目录的两个 P0 候选：它们重塑沙箱接缝的方式值得单独的决策记录，评估单独搁置，不并入本目录。
+- 整体移植 codex-rs 工具批——否决：只有面向上下文与面向模型的两类缺口与本 fork 接缝干净对齐；其余会重复既有 skill/plugin 表面。
 
 ## 验收标准
 

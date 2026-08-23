@@ -4,7 +4,7 @@ Status: proposed
 
 English | [中文](2026-08-22-codex-harness-enhancement-candidates.zh.md)
 
-## Background and scope
+## Problem
 
 A read-only benchmarking pass over OpenAI Codex (`codex-rs`, external checkout cloned 2026-08-21; all `codex-rs/…` paths below are time-point references into that checkout, not links into this repository) produced an enhancement/fusion candidate list against this fork's current capability set. This note records the selected remainder as a decision-ready catalog. The [automatic memory pipeline](../../implemented/feature/2026-08-21-memory-auto-pipeline.md) from the same analysis has already landed (`85461be679`). Two earlier P0 candidates — a sandbox network proxy with domain policies (Codex `network-proxy`) and a prefix-based command-policy DSL (Codex `execpolicy`, Starlark) — are NOT part of this record and await separate evaluation. Inclusion here is a candidate inventory, not an implementation commitment; each item lands through its own note when adopted.
 
@@ -38,6 +38,21 @@ A read-only benchmarking pass over OpenAI Codex (`codex-rs`, external checkout c
 ## Order and dependencies
 
 P0 first (two small tools, no seam changes). P1 items are independent and parallelizable; `tool_search` grows urgent with every mounted MCP server, and `view_image` is cheapest while vision-ask's registry is still fresh. P2 items need product decisions beyond engineering (Windows sandbox scope, daemon protocol ownership, cloud backend choice). Polish items attach to whatever PR touches the same area.
+
+## Proposal
+
+Adopt the catalog as a decision-ready inventory: P0's two context tools are the first landing batch (small cost, no seam changes), P1 items each land independently when their area next moves, and P2 items wait on the product decisions listed under Order and dependencies. Each adoption happens through its own implementation note that marks the catalog entry landed; this record itself never becomes an implementation record.
+
+## Risks
+
+- Scope creep: the catalog spans product surfaces (installer, daemon protocol, Windows sandbox); adopting more than one P2 item per window dilutes review.
+- Direction drift: items reference an external checkout (codex-rs, cloned 2026-08-21); those references age and must be re-validated before a landing note cites them.
+- Funnel illusion: several items are adoption-funnel features (plugin browser, external-agent migration, cloud delegation); each needs its own evidence plan, not a shared assumption that "more surface = better".
+
+## Alternatives considered
+
+- Sandbox network proxy with domain policies (Codex `network-proxy`) and prefix-based command-policy DSL (Codex `execpolicy`, Starlark) — the two P0 candidates from the same pass that were NOT adopted here: they reshape the sandbox seam in ways that deserve a dedicated decision record, and their evaluation is parked separately rather than folded into this catalog.
+- Full port of codex-rs tools as a batch — rejected: only the context-facing and model-facing gaps map cleanly onto this fork's seams; the rest would duplicate existing skill/plugin surfaces.
 
 ## Acceptance criteria
 
