@@ -1181,6 +1181,18 @@ export class ToolRegistry extends Service {
   }
 
   /**
+   * Names the scope could address ignoring restrictions: the global layer plus
+   * every scope-chain layer's registrations, before any restriction filters
+   * them. Face-arming readers need this pre-filter set — a restriction they
+   * installed must not hide the very names they still owe.
+   * @param scope - the viewing scope (the agent); omitted = the global view.
+   * @returns insertion-ordered inherited names; the scope's own registrations are not restrictable and stay absent.
+   */
+  restrictableNames(scope?: ScopeKey): ReadonlySet<string> {
+    return this.view(scope).restrictableNames
+  }
+
+  /**
    * Validate candidate arguments against a visible tool's declared parameter
    * schema without executing it — the pre-commit rewrite phase's legality
    * check, so a hook's `updatedInput` lands in the audit only when the tool

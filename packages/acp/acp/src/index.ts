@@ -241,10 +241,22 @@ export function apply(ctx: Context, config: AcpConfig): void {
         assertOpen()
         validateSessionParams(params)
         const sessionId = SessionId(randomUUID())
+        // 与其余出厂工厂（TUI/intent-bridge/headless/scaffold）同款：新会话挂载
+        // 默认预设。reflect.get 可选读取——未组装 roster 的部署保持裸建不变。
+        const presets = ctx.reflect.get('agentPresets', false) as
+          | { defaultId?: string; mount?(ctx: Context, id?: string): Promise<unknown> }
+          | undefined
+        const presetId = presets?.defaultId
         const handle = await agents.create({
           sessionId,
-          meta: { cwd: params.cwd },
+          meta: {
+            cwd: params.cwd,
+            ...(presetId === undefined ? {} : { agentPreset: presetId }),
+          },
           agentOptions: agentOptions(config),
+          setup: async (agentCtx) => {
+            if (presets?.mount !== undefined) await presets.mount(agentCtx)
+          },
         })
         /* v8 ignore next 4 -- a real stdio close can race an in-flight create. */
         if (closed) {

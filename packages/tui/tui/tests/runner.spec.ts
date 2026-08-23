@@ -210,25 +210,6 @@ describe('index apply() 装配与退出生命周期', () => {
 })
 
 describe('index apply() welcomeAnimation 配置边界', () => {
-  function captureWelcomeAnimation(
-    config: Record<string, unknown>,
-  ): unknown {
-    const ctx = makeCtx()
-    let captured: unknown
-    vi.spyOn(TuiApp.prototype, 'attach').mockImplementation(function (this: TuiApp) {
-      captured = (this as unknown as { welcomeAnimation: unknown }).welcomeAnimation
-      return Promise.resolve()
-    })
-    vi.spyOn(TuiApp.prototype, 'dispose').mockResolvedValue(undefined)
-
-    apply(ctx, {
-      stdin: makeStdin(),
-      stdout: makeStdout(),
-      ...config,
-    })
-    return captured
-  }
-
   it('fails loud during plugin load for an unknown welcomeAnimation value', () => {
     const ctx = makeCtx()
 
@@ -244,15 +225,26 @@ describe('index apply() welcomeAnimation 配置边界', () => {
     expect(ctx.inject.mock.calls).toHaveLength(0)
   })
 
+  // 51824216f3 落定：欢迎开档是静态的，auto/off 无应用内行为差异——选项在
+  // 装载时校验并保持稳定配置面（未知值响亮失败），两个合法值都正常构造并
+  // attach 应用。原「透传到 app 字段」断言随被删字段一并退役。
   it.each(['auto', 'off'] as const)(
-    'passes welcomeAnimation=%s into the app',
+    'welcomeAnimation=%s constructs and attaches the app',
     (welcomeAnimation) => {
-      expect(captureWelcomeAnimation({ welcomeAnimation })).toBe(welcomeAnimation)
+      const ctx = makeCtx()
+      const attach = vi.spyOn(TuiApp.prototype, 'attach').mockResolvedValue(undefined)
+      vi.spyOn(TuiApp.prototype, 'dispose').mockResolvedValue(undefined)
+      apply(ctx, { stdin: makeStdin(), stdout: makeStdout(), welcomeAnimation })
+      expect(attach).toHaveBeenCalledTimes(1)
     },
   )
 
-  it('defaults the app configuration to auto', () => {
-    expect(captureWelcomeAnimation({})).toBe('auto')
+  it('welcomeAnimation omitted keeps the stable default load path', () => {
+    const ctx = makeCtx()
+    const attach = vi.spyOn(TuiApp.prototype, 'attach').mockResolvedValue(undefined)
+    vi.spyOn(TuiApp.prototype, 'dispose').mockResolvedValue(undefined)
+    apply(ctx, { stdin: makeStdin(), stdout: makeStdout() })
+    expect(attach).toHaveBeenCalledTimes(1)
   })
 })
 

@@ -1,0 +1,7 @@
+# The tui-profile composition test's include root: an empty entry list, the
+# same shape the launcher writes into a profile directory. The real bundle
+# patches (dsh-base then dsh-tui) apply over it as patch layers, so the booted
+# tree is the shipped TUI composition. In-repo on purpose: the Loader anchors
+# `baseUrl` here and bare package specifiers resolve upward through the
+# workspace's node_modules.
+[]

@@ -628,9 +628,18 @@ export class ZenPhaseService extends Service {
     return agent.ctx.tools.restrict({ allow: [...face] })
   }
 
-  /** Global tool names registered so far; a plugin awaiting a service is still absent. */
-  private registeredNames(): ReadonlySet<string> {
-    return new Set(this.ctx.tools.schemas().map(schema => schema.name))
+  /**
+   * Tool names the AGENT could address, ignoring restrictions. Chain-aware
+   * (`restrictableNames(agent)`) rather than global, because preset-owned
+   * tools live in the standing scope's layer and never appear in the global
+   * view — a global read would arm the face without them and then fail the
+   * completion check for names that were visible all along. Pre-restriction
+   * on purpose: the armed face must not hide the names it still owes.
+   * @param agent - the agent whose view names are collected from.
+   * @returns names addressable by the agent; a plugin awaiting a service is still absent.
+   */
+  private registeredNames(agent: Agent): ReadonlySet<string> {
+    return this.ctx.tools.restrictableNames(agent)
   }
 
   /**
@@ -654,7 +663,7 @@ export class ZenPhaseService extends Service {
     kind: 'allow' | 'deny',
     names: readonly string[],
   ): { restrict: () => void; pending?: { kind: 'allow' | 'deny'; names: readonly string[] } } {
-    const registered = this.registeredNames()
+    const registered = this.registeredNames(agent)
     const present = names.filter(name => registered.has(name))
     const restrict = agent.ctx.tools.restrict(kind === 'allow' ? { allow: present } : { deny: present })
     if (present.length === names.length) return { restrict }
@@ -676,7 +685,7 @@ export class ZenPhaseService extends Service {
     const install = this.installs.get(agent)
     const pending = install?.pending
     if (install === undefined || pending === undefined) return
-    const registered = this.registeredNames()
+    const registered = this.registeredNames(agent)
     const unknown = pending.names.filter(name => !registered.has(name))
     if (unknown.length > 0) {
       throw new Error(

@@ -12,7 +12,7 @@ English | [中文](2026-08-23-preset-default-inheritance-and-agent-mount.zh.md)
 
 - `AgentPresets.setDefault(id)` persists `settings.default` after `resolveMountable(id)`; it fails loud when no settings provider is composed, rather than silently no-oping.
 - `/preset default <id>` is the explicit persistence entry; `/preset <id>` keeps its temporary-switch semantics; the list marks the current default with `（默认）`.
-- Every production top-level agent factory mounts the default preset in its unpublished `setup` (`await agentPresets.mount(agentCtx)`) and writes `meta.agentPreset` (a new field on `CreateAgentOptions.meta`, passed through to `session.header.agentPreset`). Wired in TUI `newSession` (direct path), intent-bridge `createAlignedSession`/`finalize`/`finalizeFromSession`, headless `run`, and scaffold `createSession`.
+- Every production top-level agent factory mounts the default preset in its unpublished `setup` (`await agentPresets.mount(agentCtx)`) and writes `meta.agentPreset` (a new field on `CreateAgentOptions.meta`, passed through to `session.header.agentPreset`). Wired in TUI `newSession` (direct path), intent-bridge `createAlignedSession`/`finalize`/`finalizeFromSession`, headless `run`, scaffold `createSession`, and the ACP bridge `newSession`.
 - The taiyi preset stays opt-in: the shipped default remains `standard`; inheriting taiyi requires an explicit `/preset default taiyi`. This is the "另立决策" the taiyi plan reserved for making it a default.
 
 ## Alternatives considered
@@ -25,7 +25,7 @@ English | [中文](2026-08-23-preset-default-inheritance-and-agent-mount.zh.md)
 
 - `defaultId` becomes a user-writable durable value; the README's "changing the default only affects subsequently-created sessions" now holds, because those sessions actually mount it.
 - `session.header.agentPreset` is written at creation for the first time. Resume still does not restore the recorded preset (unchanged, out of scope).
-- The advisory bare-agent warning on `agent/created` should no longer fire on the shipped TUI / intent-bridge / headless / scaffold paths.
+- The advisory bare-agent warning on `agent/created` should no longer fire on the shipped TUI / intent-bridge / headless / scaffold / ACP paths.
 
 ## Testing
 
@@ -34,5 +34,5 @@ English | [中文](2026-08-23-preset-default-inheritance-and-agent-mount.zh.md)
 
 ## Related
 
-- [taiyi port plan](../../../docs/research/taiyi-port-plan.zh.md)
+- [taiyi port plan](../../../../docs/research/taiyi-port-plan.md)
 - [host-plane ownership after presets](2026-08-10-host-plane-ownership-after-presets.md)

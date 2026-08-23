@@ -497,6 +497,20 @@ async copy(from: string, id: string, name?: string): Promise<void>
 async remove(id: string): Promise<void>
 
 /**
+ * Persist the default preset every subsequently-created session inherits.
+ *
+ * `defaultId` reads `settings.default` over `config.default`, so writing it
+ * here is the one channel through which a user's preset choice outlives the
+ * session that made it. The id is validated and the roster confirmed
+ * mountable BEFORE the write, so a bad pick fails loud and leaves the
+ * previous default untouched. Without a settings provider there is nowhere
+ * to persist, so the call fails rather than silently doing nothing.
+ * @param id - the preset to make the default.
+ * @throws when the preset is unknown or unusable, or no settings provider is composed.
+ */
+async setDefault(id: string): Promise<void>
+
+/**
  * One agent's instance of a service its preset mounted.
  *
  * A preset publishes services behind `isolate` realms, which are invisible
@@ -724,7 +738,7 @@ list(): Agent[]
 roots(): Agent[]
 ```
 
-Source: [`packages/core/agent/src/index.ts:254`](../../packages/core/agent/src/index.ts)
+Source: [`packages/core/agent/src/index.ts:255`](../../packages/core/agent/src/index.ts)
 
 <a id="ctxintentbridge--intentbridgeservice"></a>
 
@@ -790,7 +804,7 @@ Source: [`packages/core/model-roles/src/index.ts:83`](../../packages/core/model-
 
 `ctx.taskCard`: owns the first-message rewrite. UIs observe the rewritten message as a plain `user/message` in the session log; there is no extra event surface.
 
-Source: [`packages/guard/task-card/src/index.ts:152`](../../packages/guard/task-card/src/index.ts)
+Source: [`packages/guard/task-card/src/index.ts:157`](../../packages/guard/task-card/src/index.ts)
 
 <a id="agent-events"></a>
 

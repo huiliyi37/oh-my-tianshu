@@ -12,7 +12,7 @@ Status: implemented
 
 - `AgentPresets.setDefault(id)` 在 `resolveMountable(id)` 之后持久化 `settings.default`；无 settings provider 时响亮失败，而非静默空操作。
 - `/preset default <id>` 是显式的持久化入口；`/preset <id>` 保持临时切换语义；列表用 `（默认）` 标记当前默认。
-- 每个生产顶层 agent factory 在未发布的 `setup` 里挂载默认 preset（`await agentPresets.mount(agentCtx)`），并写入 `meta.agentPreset`（`CreateAgentOptions.meta` 的新字段，传递到 `session.header.agentPreset`）。接线覆盖 TUI `newSession`（直连路径）、intent-bridge `createAlignedSession`/`finalize`/`finalizeFromSession`、headless `run`、scaffold `createSession`。
+- 每个生产顶层 agent factory 在未发布的 `setup` 里挂载默认 preset（`await agentPresets.mount(agentCtx)`），并写入 `meta.agentPreset`（`CreateAgentOptions.meta` 的新字段，传递到 `session.header.agentPreset`）。接线覆盖 TUI `newSession`（直连路径）、intent-bridge `createAlignedSession`/`finalize`/`finalizeFromSession`、headless `run`、scaffold `createSession`、ACP 桥 `newSession`。
 - taiyi preset 仍为 opt-in：出厂默认仍是 `standard`；继承 taiyi 需显式 `/preset default taiyi`。这正是太一计划为"设默认"预留的"另立决策"。
 
 ## Alternatives considered
@@ -25,7 +25,7 @@ Status: implemented
 
 - `defaultId` 成为用户可写的持久值；README 的"更改默认值只影响此后创建的会话"如今成立，因为这些会话确实挂载了它。
 - `session.header.agentPreset` 首次在创建时被写入。Resume 仍不恢复记录的 preset（未变，超出范围）。
-- `agent/created` 上的裸 agent 建议性警告，在随附的 TUI / intent-bridge / headless / scaffold 路径上不应再触发。
+- `agent/created` 上的裸 agent 建议性警告，在随附的 TUI / intent-bridge / headless / scaffold / ACP 路径上不应再触发。
 
 ## Testing
 
@@ -34,5 +34,5 @@ Status: implemented
 
 ## Related
 
-- [太一词回流计划](../../../docs/research/taiyi-port-plan.zh.md)
+- [太一词回流计划](../../../../docs/research/taiyi-port-plan.md)
 - [host-plane ownership after presets](2026-08-10-host-plane-ownership-after-presets.md)

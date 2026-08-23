@@ -14,8 +14,17 @@ export type { ScopeLayer } from './store.ts'
 /** An opaque, identity-compared scope key. */
 export type ScopeKey = object
 
-/** Context tag written by {@link createScope}. */
-const kScope = Symbol('dsh.scope')
+/**
+ * Context tag written by {@link createScope}.
+ *
+ * Registered (`Symbol.for`) on purpose: loader-mounted rows can run against a
+ * second copy of this module in mixed source/built worlds (dev hosts, test
+ * transformers), and a per-instance `Symbol()` would make the tag invisible
+ * across the copy boundary — a scoped registration would then fail its own
+ * scope-visibility check. The KEY object stays identity-compared; only the
+ * marker is global.
+ */
+const kScope = Symbol.for('dsh.scope')
 
 declare const ScopedBrand: unique symbol
 
@@ -26,8 +35,22 @@ declare const ScopedBrand: unique symbol
  */
 export type Scoped<T extends object> = object & { readonly [ScopedBrand]: T }
 
+/**
+ * Module-level state hosted on `globalThis` under a registered symbol.
+ *
+ * Loader-mounted rows can run against a second copy of this module in mixed
+ * source/built worlds (dev hosts, test transformers); a per-instance store
+ * would split scope routing across the copy boundary — a parent bound by one
+ * copy would be invisible to the other's view walk. One process, one store.
+ */
+function sharedStore<T>(name: string, init: () => T): T {
+  const marker = Symbol.for(`dsh.scope.store.${name}`)
+  const holder = globalThis as Record<symbol, T | undefined>
+  return holder[marker] ?? (holder[marker] = init())
+}
+
 /** The key associated with each carrier. Presence distinguishes an unkeyed carrier from a non-carrier. */
-const carrierKeys = new WeakMap<object, ScopeKey | undefined>()
+const carrierKeys = sharedStore('carrierKeys', () => new WeakMap<object, ScopeKey | undefined>())
 
 /**
  * The enclosing scope of each key. One relation powers both directions of
@@ -36,7 +59,7 @@ const carrierKeys = new WeakMap<object, ScopeKey | undefined>()
  * extends UP it (a listener tagged with an ancestor receives events dispatched
  * to a descendant key — {@link scopeTarget}).
  */
-const scopeParents = new WeakMap<ScopeKey, ScopeKey>()
+const scopeParents = sharedStore('scopeParents', () => new WeakMap<ScopeKey, ScopeKey>())
 
 /** The privileged handle to move one scope key's parent link. */
 export interface ScopeParentBinding {

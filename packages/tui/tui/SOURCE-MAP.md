@@ -29,6 +29,7 @@
 | src/block-stream-writer.ts | block-stream-writer.ts | modified |
 | src/box-chars.ts | box-chars.ts | ported |
 | src/braille-spinner.ts | braille-spinner.ts | modified |
+| src/cache-telemetry.ts | — | new（cacheHealth 会话投影消费：状态栏 miss 标记与 scrollback 诊断日志） |
 | src/command-palette.ts | command-palette.ts | modified |
 | src/commands/registry.ts | — | new |
 | src/completion/file-completer.ts | file-completer.ts | modified（目录重排 src/tui/ → src/completion/；`resolveFileCompletion` Tab 协调入口为 dsh 新增） |

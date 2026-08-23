@@ -212,6 +212,9 @@ importers:
       '@huiliyi37/dsh-tool-cordis':
         specifier: workspace:^
         version: link:../../packages/self-modification/tool-cordis
+      '@huiliyi37/dsh-tool-pwsh':
+        specifier: workspace:^
+        version: link:../../packages/bash/tool-pwsh
       '@huiliyi37/dsh-tool-pwsh-persistent':
         specifier: workspace:^
         version: link:../../packages/pty/tool-pwsh-persistent
@@ -1129,6 +1132,9 @@ importers:
       '@huiliyi37/cordis':
         specifier: ^4.0.0-rc.7
         version: link:../../../vendor/cordis
+      '@huiliyi37/cordis-plugin-group':
+        specifier: workspace:^
+        version: link:../../../vendor/group
       '@huiliyi37/cordis-plugin-hmr':
         specifier: workspace:^
         version: link:../../../vendor/hmr
@@ -5169,6 +5175,34 @@ importers:
         specifier: workspace:^
         version: link:../../llm/llm
 
+  packages/llm/cache-diagnostic:
+    dependencies:
+      '@huiliyi37/schemastery':
+        specifier: ^3.18.0
+        version: link:../../../vendor/schemastery
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@huiliyi37/cordis':
+        specifier: ^4.0.0-rc.7
+        version: link:../../../vendor/cordis
+      '@huiliyi37/dsh-compact':
+        specifier: workspace:^
+        version: link:../../compact/compact
+      '@huiliyi37/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../support/invariants
+      '@huiliyi37/dsh-llm':
+        specifier: workspace:^
+        version: link:../llm
+      '@huiliyi37/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@huiliyi37/dsh-session-projection':
+        specifier: workspace:^
+        version: link:../../session/session-projection
+
   packages/llm/llm:
     dependencies:
       '@huiliyi37/schemastery':
@@ -8158,6 +8192,9 @@ importers:
       '@huiliyi37/dsh-atomic-write':
         specifier: workspace:^
         version: link:../../util/atomic-write
+      '@huiliyi37/dsh-cache-diagnostic':
+        specifier: workspace:^
+        version: link:../../llm/cache-diagnostic
       '@huiliyi37/dsh-evidence-gate':
         specifier: workspace:^
         version: link:../../guard/evidence-gate

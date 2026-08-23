@@ -50,6 +50,54 @@ interface TokenSurfaceNode {
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — this section is byte-identical in both language sides of the page. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` surface lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
+<a id="ctxcachediagnostic--cachediagnosticservice"></a>
+
+### `ctx.cacheDiagnostic` — `CacheDiagnosticService`
+
+`ctx.cacheDiagnostic`: owns per-session prefix fingerprints, per-turn cache snapshots, and miss diagnosis. UIs and logs observe through the query methods; the service folds lazily on `session/event` for sessions it has been asked about.
+
+```ts cordis-catalog
+/**
+ * Diagnose the latest turn's cache miss, or null when the turn is healthy.
+ * Drift and compaction are attributed only when their event landed inside
+ * the current turn's measurement window (after the previous turn's last
+ * usage, at or before the latest usage) — a stale signal must not mislabel
+ * later turns.
+ * @param session - the session to diagnose.
+ * @param options - optional overrides for drift and compaction signals.
+ * @returns the diagnosis, or null when there is nothing to explain.
+ */
+diagnose(session: Session, options: DiagnoseOptions = {}): CacheDiagnostic | null
+
+/**
+ * Per-turn cache snapshots folded from the durable log, in turn order.
+ * @param session - the session to fold.
+ * @returns a detached list of snapshots.
+ */
+turnHistory(session: Session): readonly TurnCacheSnapshot[]
+
+/**
+ * Cumulative cache hit rate over the whole session: the cached fraction of
+ * the billed input, `cacheRead / (inputTokens + cacheRead + cacheWrite)`
+ * (`TokenUsage` counts are disjoint — `inputTokens` is the uncached share).
+ * @param session - the session to measure.
+ * @returns the rate in [0, 1], or null when no usage has been reported.
+ */
+hitRate(session: Session): number | null
+
+/**
+ * Cache hit rate over the last N turns, same denominator as {@link hitRate}.
+ * @param session - the session to measure.
+ * @param lastN - how many recent turns to include.
+ * @returns the rate in [0, 1], or null when no usage has been reported.
+ */
+recentHitRate(session: Session, lastN: number): number | null
+```
+
+Types: [Session](session.md)
+
+Source: [`packages/llm/cache-diagnostic/src/index.ts:94`](../../packages/llm/cache-diagnostic/src/index.ts)
+
 <a id="ctxtokenmeter--tokenmeterservice"></a>
 
 ### `ctx.tokenMeter` — `TokenMeterService`

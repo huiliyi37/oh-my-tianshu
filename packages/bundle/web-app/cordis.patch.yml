@@ -223,3 +223,52 @@
 
     - id: ui-trajectory
       name: '@huiliyi37/dsh-client-ui-trajectory'
+
+# dsh-base 的 agent 面行在 preset 挂载后由 preset standing 组成提供；此处禁用
+# 与 standard 预设逐行重复的 base 行（同一插件的两层注册会让 skill 提供方名
+# 冲突、工具/提示段双重注册）。宿主面行——寄存器（skill/tasks/goal/subagent）、
+# 子代理后端（subagent-spawn/-fork）、执行器与策略栈——保持 base 不动；preset
+# 不携带的面（tool-git/tool-run-tests/tool-semantic-search/tool-file-info/
+# tool-meridian/tool-str-replace-editor 等）也保留在全局层，预设会话照常可见。
+- id: workspace-context
+  disabled: true
+- id: tool-bash
+  disabled: true
+- id: tool-fs
+  disabled: true
+- id: tool-fs-search
+  disabled: true
+- id: tool-tasks
+  disabled: true
+- id: skill-local
+  disabled: true
+- id: tool-skill
+  disabled: true
+- id: tool-goal
+  disabled: true
+- id: plan-mode
+  disabled: true
+- id: compact-basic
+  disabled: true
+- id: command-compact
+  disabled: true
+- id: tool-result-prune
+  disabled: true
+- id: tool-subagent-control
+  disabled: true
+- id: tool-subagent-list-agents
+  disabled: true
+- id: tool-subagent
+  disabled: true
+- id: tool-subagent-fork
+  disabled: true
+- id: workflow-workerthread
+  disabled: true
+- id: tool-workflow
+  disabled: true
+- id: tool-ralph
+  disabled: true
+- id: tool-todo
+  disabled: true
+- id: tool-web
+  disabled: true

@@ -46,6 +46,7 @@
     "@huiliyi37/dsh-compact-tool-result-prune": "workspace:^",
     "@huiliyi37/dsh-persona": "workspace:^",
     "@huiliyi37/dsh-skill-local": "workspace:^",
+    "@huiliyi37/dsh-tool-pwsh": "workspace:^",
     "@huiliyi37/dsh-tool-tasks": "workspace:^",
     "@huiliyi37/dsh-workspace-context": "workspace:^",
     "@huiliyi37/dsh-workflow-workerthread": "workspace:^",

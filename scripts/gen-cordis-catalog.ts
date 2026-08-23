@@ -53,6 +53,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   authorization: 'credentials.md',
   bash: 'bash.md',
   bashEnv: 'bash.md',
+  cacheDiagnostic: 'token-meter.md',
   clientModuleHost: 'client-modules.md',
   codeRuntime: 'code-runtime.md',
   commands: 'commands.md',
@@ -500,6 +501,7 @@ export const FOUNDATION_TYPE_NAMES: ReadonlySet<string> = new Set([
   'Promise',
   'Record',
   'Readonly',
+  'ReadonlySet',
 ])
 
 /** Project types deliberately documented outside the subsystems catalog. */
@@ -512,6 +514,9 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   BashEnvContributor: 'service-local extension type is owned by packages/bash/tool-bash/src/index.ts',
   BashEnvVariableInfo: 'service-local metadata type is owned by packages/bash/tool-bash/src/index.ts',
   CompactAgentContext: 'compaction service input is owned by packages/compact/compact/src/index.ts',
+  CacheDiagnostic: 'miss-diagnosis verdict is owned by packages/llm/cache-diagnostic/README.md',
+  DiagnoseOptions: 'diagnosis override input is owned by packages/llm/cache-diagnostic/README.md',
+  TurnCacheSnapshot: 'per-turn usage snapshot is owned by packages/llm/cache-diagnostic/README.md',
   ManualCompactAgentContext: 'manual compaction service input is owned by packages/compact/compact/src/index.ts',
   DomainImpl: 'domain implementation contract is owned by packages/storage/storage-domain/README.md',
   CommandExecution: 'executor return contract is owned by packages/interaction/commands/src/index.ts',

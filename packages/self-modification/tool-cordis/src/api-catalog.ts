@@ -153,6 +153,10 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         jsDoc: '/**\n * Delete a locally authored preset.\n * @param id - the preset id.\n * @throws when the preset is unknown or ships with the deployment.\n */',
       },
       {
+        signature: 'async setDefault(id: string): Promise<void>',
+        jsDoc: '/**\n * Persist the default preset every subsequently-created session inherits.\n *\n * `defaultId` reads `settings.default` over `config.default`, so writing it\n * here is the one channel through which a user\'s preset choice outlives the\n * session that made it. The id is validated and the roster confirmed\n * mountable BEFORE the write, so a bad pick fails loud and leaves the\n * previous default untouched. Without a settings provider there is nowhere\n * to persist, so the call fails rather than silently doing nothing.\n * @param id - the preset to make the default.\n * @throws when the preset is unknown or unusable, or no settings provider is composed.\n */',
+      },
+      {
         signature: 'serviceFor<K extends string & keyof Context>(agent: { ctx: Context }, name: K): Context[K] | undefined',
         jsDoc: '/**\n * One agent\'s instance of a service its preset mounted.\n *\n * A preset publishes services behind `isolate` realms, which are invisible\n * outside the group that declares them — including to the host. This is how a\n * caller holding the agent reads one anyway: a request that is ABOUT a\n * session but arrives from outside it, which is every browser RPC.\n *\n * Read addressing only. A host row that `inject`s a service cannot use this,\n * because injection resolves before any session exists and has no agent to\n * key by; such a service belongs on the host plane instead.\n * @param agent - the agent whose composition to look inside.\n * @param name - the service name as the preset\'s rows resolve it.\n * @returns the agent\'s instance, or undefined when its preset mounts none.\n */',
       },
@@ -331,6 +335,28 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: 'list(): BashEnvVariableInfo[]',
         jsDoc: '/**\n * Enumerate plugin-contributed variables without executing their resolvers.\n * @returns declarations sorted by environment variable name.\n */',
+      },
+    ],
+  },
+  {
+    key: 'cacheDiagnostic',
+    summary: '`ctx.cacheDiagnostic`: owns per-session prefix fingerprints, per-turn cache snapshots, and miss diagnosis.',
+    methods: [
+      {
+        signature: 'diagnose(session: Session, options: DiagnoseOptions = {}): CacheDiagnostic | null',
+        jsDoc: '/**\n * Diagnose the latest turn\'s cache miss, or null when the turn is healthy.\n * Drift and compaction are attributed only when their event landed inside\n * the current turn\'s measurement window (after the previous turn\'s last\n * usage, at or before the latest usage) — a stale signal must not mislabel\n * later turns.\n * @param session - the session to diagnose.\n * @param options - optional overrides for drift and compaction signals.\n * @returns the diagnosis, or null when there is nothing to explain.\n */',
+      },
+      {
+        signature: 'turnHistory(session: Session): readonly TurnCacheSnapshot[]',
+        jsDoc: '/**\n * Per-turn cache snapshots folded from the durable log, in turn order.\n * @param session - the session to fold.\n * @returns a detached list of snapshots.\n */',
+      },
+      {
+        signature: 'hitRate(session: Session): number | null',
+        jsDoc: '/**\n * Cumulative cache hit rate over the whole session: the cached fraction of\n * the billed input, `cacheRead / (inputTokens + cacheRead + cacheWrite)`\n * (`TokenUsage` counts are disjoint — `inputTokens` is the uncached share).\n * @param session - the session to measure.\n * @returns the rate in [0, 1], or null when no usage has been reported.\n */',
+      },
+      {
+        signature: 'recentHitRate(session: Session, lastN: number): number | null',
+        jsDoc: '/**\n * Cache hit rate over the last N turns, same denominator as {@link hitRate}.\n * @param session - the session to measure.\n * @param lastN - how many recent turns to include.\n * @returns the rate in [0, 1], or null when no usage has been reported.\n */',
       },
     ],
   },
@@ -870,7 +896,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   },
   {
     key: 'planMode',
-    summary: '`ctx.planMode`: owns logged plan state, boundary application and narration, the `plan:policy` section, the `/plan` command, and the stable exit tool.',
+    summary: '`ctx.planMode`: owns logged plan state, boundary application and narration, per-turn tail injection of the deployment guidance, the `/plan` command, and the stable exit tool.',
     methods: [
       {
         signature: 'get(agent: Agent): { active: boolean; pending?: boolean }',
@@ -1510,6 +1536,10 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: 'schemas(scope?: ScopeKey): ToolSchema[]',
         jsDoc: '/**\n * Project visible definitions onto the allowlisted model-facing schema fields,\n * excluding execution and presentation callbacks.\n * @param scope - the viewing scope (the agent); omitted = the global view.\n * @returns one deep-cloned schema per visible tool.\n */',
+      },
+      {
+        signature: 'restrictableNames(scope?: ScopeKey): ReadonlySet<string>',
+        jsDoc: '/**\n * Names the scope could address ignoring restrictions: the global layer plus\n * every scope-chain layer\'s registrations, before any restriction filters\n * them. Face-arming readers need this pre-filter set — a restriction they\n * installed must not hide the very names they still owe.\n * @param scope - the viewing scope (the agent); omitted = the global view.\n * @returns insertion-ordered inherited names; the scope\'s own registrations are not restrictable and stay absent.\n */',
       },
       {
         signature: 'validateArguments(name: string, args: unknown, scope?: ScopeKey): string[] | undefined',
@@ -2356,6 +2386,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type Branded<B extends string> = string & {\n    readonly [BRAND]: B;\n};',
   },
   {
+    name: 'CacheDiagnostic',
+    declaration: 'export interface CacheDiagnostic {\n    reason: CacheMissReason;\n    message: string;\n    severity: \'info\' | \'warn\' | \'error\';\n    turnHitRate: number;\n}',
+  },
+  {
+    name: 'CacheMissReason',
+    declaration: 'export type CacheMissReason = \'first_turn\' | \'prefix_drift\' | \'prefix_truncation\' | \'compaction\' | \'cache_eviction\' | \'normal_growth\' | \'no_data\';',
+  },
+  {
     name: 'CallId',
     declaration: 'export type CallId = Branded<\'CallId\'>;',
   },
@@ -2549,7 +2587,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'CreateAgentOptions',
-    declaration: 'export interface CreateAgentOptions {\n    readonly sessionId: SessionId;\n    readonly meta?: {\n        readonly cwd?: string;\n        readonly parentSession?: SessionId;\n        readonly seedLength?: number;\n        readonly origin?: \'subagent\';\n        readonly delegationDepth?: number;\n    };\n    readonly seed?: readonly SessionEvent[];\n    readonly agentOptions?: AgentOptions;\n    readonly signal?: AbortSignal;\n    readonly setup?: AgentSetup;\n}',
+    declaration: 'export interface CreateAgentOptions {\n    readonly sessionId: SessionId;\n    readonly meta?: {\n        readonly cwd?: string;\n        readonly parentSession?: SessionId;\n        readonly seedLength?: number;\n        readonly origin?: \'subagent\';\n        readonly delegationDepth?: number;\n        readonly agentPreset?: string;\n    };\n    readonly seed?: readonly SessionEvent[];\n    readonly agentOptions?: AgentOptions;\n    readonly signal?: AbortSignal;\n    readonly setup?: AgentSetup;\n}',
   },
   {
     name: 'CreateAlignedSessionOptions',
@@ -2590,6 +2628,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'CredentialRef',
     declaration: 'export type CredentialRef = Branded<\'CredentialRef\'>;',
+  },
+  {
+    name: 'DiagnoseOptions',
+    declaration: 'export interface DiagnoseOptions {\n    drift?: DriftEvent | null;\n    wasCompacted?: boolean;\n}',
   },
   {
     name: 'DiffCallView',
@@ -2654,6 +2696,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'DomainTableSpec',
     declaration: 'export interface DomainTableSpec<K extends string = string, V = unknown> {\n    readonly valueSchema: ZodType<V>;\n    readonly __key?: K;\n}',
+  },
+  {
+    name: 'DriftEvent',
+    declaration: 'export interface DriftEvent {\n    systemChanged: boolean;\n    toolsChanged: boolean;\n    configChanged: boolean;\n    message: string;\n}',
   },
   {
     name: 'DshEnvironment',
@@ -4050,6 +4096,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ToolSchema',
     declaration: 'export interface ToolSchema {\n    name: string;\n    description: string;\n    parameters: Record<string, unknown>;\n}',
+  },
+  {
+    name: 'TurnCacheSnapshot',
+    declaration: 'export interface TurnCacheSnapshot {\n    turn: number;\n    cacheRead: number;\n    cacheWrite: number;\n    inputTokens: number;\n    outputTokens: number;\n}',
   },
   {
     name: 'TurnEndCancelCause',
