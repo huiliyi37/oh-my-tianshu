@@ -118,7 +118,7 @@ interface TuiSlashFacet {
     name: string
     description: string
     argsHint?: string
-    run: (args: TuiSlashRun) => void
+    run: (args: TuiSlashRun) => void | Promise<void>
   }): void
 }
 
@@ -126,7 +126,7 @@ interface TuiSlashFacet {
 interface TuiSlashRun {
   text: string
   sessionId: string | null
-  echo(text: string): void
+  echo: (text: string) => void
   ctx: { agents?: { get(id: string): unknown } }
 }
 
@@ -290,37 +290,44 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
 
   ctx.on('approval/request', (req, next) => answer(req, next, effective))
 
+  // Disk is the authoritative rule store: mutations commit to the layer file
+  // first, then mirror the in-memory snapshot the answerer reads. A failed
+  // write therefore never leaves memory holding a rule the disk lost, and an
+  // externally edited file can only diverge from the snapshot until the next
+  // mutation re-reads it (no filesystem watching — restart picks up edits).
   const addRule = async (rule: FileRule): Promise<void> => {
-    projectRules = [...projectRules, rule]
     await appendRule(projectFile, rule)
+    projectRules = await loadRules(projectFile)
   }
   const removeRuleAt = async (index: number): Promise<void> => {
-    const rules = effective()
-    const target = rules[index]
+    // Resolve the listed index against a fresh disk read, so the rule the
+    // command deletes is the one the user just saw in the listing even when
+    // the on-disk layer changed after this plugin loaded.
+    const freshUser = await loadRules(userFile)
+    const target = mergeRules(freshUser, await loadRules(projectFile))[index]
     if (target === undefined) {
       throw new Error(`approval-rules: no rule at effective index ${index}`)
     }
     if (target.layer === 'user') {
       await removeRuleAtFile(userFile, index)
-      userRules = userRules.filter((_rule, cursor) => cursor !== index)
     } else {
-      const projectIndex = index - userRules.length
-      await removeRuleAtFile(projectFile, projectIndex)
-      projectRules = projectRules.filter((_rule, cursor) => cursor !== projectIndex)
+      await removeRuleAtFile(projectFile, index - freshUser.length)
     }
+    userRules = await loadRules(userFile)
+    projectRules = await loadRules(projectFile)
   }
   const controls: PermissionsControls = { effective, addRule, removeRuleAt }
 
   // Host command plane (optional): register /permissions when commands exists.
   let hostCommands: CommandService | undefined
-  ctx.inject(['commands'], commandCtx => {
+  ctx.inject(['commands'], (commandCtx) => {
     hostCommands = commandCtx.get('commands')
     commandCtx.commands.register(buildPermissionsCommand(controls))
   })
 
   // TUI slash menu (optional seam): mirror /permissions, delegating to the host
   // registry so the command/run + command/done lifecycle stays intact.
-  ctx.inject(['tui.commands'], tuiCtx => {
+  ctx.inject(['tui.commands'], (tuiCtx) => {
     const tui = tuiCtx.get('tui.commands') as TuiSlashFacet
     tui.register(buildTuiCommand(() => hostCommands))
   })

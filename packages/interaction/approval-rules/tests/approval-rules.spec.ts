@@ -1,6 +1,7 @@
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile, rm } from 'node:fs/promises'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ApprovalOutcome } from '@huiliyi37/dsh-user-approval'
+import { writeRules } from '@huiliyi37/dsh-approval-rules'
 import { bootRules, makeAgent, requestAgent, teardown, type Harness } from './harness.ts'
 
 const active: Harness[] = []
@@ -218,6 +219,48 @@ describe('/permissions command', () => {
     expect(added.result.text).toContain('Invalid decision "maybe"')
   })
 
+  it('a failed add never reaches the effective snapshot (disk-authoritative commit)', async () => {
+    const harness = withHarness(await bootRules({ user: [], project: [], withCommands: true }))
+    const agent = makeAgent('perm-add-fail')
+    // Replace the project file with a directory: every read/write fails with
+    // EISDIR regardless of process uid, so the append cannot commit.
+    await rm(harness.projectFile)
+    await mkdir(harness.projectFile)
+    const added = await harness.ctx.commands.execute(agent, '/permissions add echo * deny', new AbortController().signal)
+    if (added === undefined) throw new Error('composition did not resolve /permissions')
+    expect(added.result.kind).toBe('error')
+
+    await rm(harness.projectFile, { recursive: true })
+    await writeRules(harness.projectFile, [])
+    const listed = await harness.ctx.commands.execute(agent, '/permissions', new AbortController().signal)
+    if (listed === undefined) throw new Error('composition did not resolve /permissions')
+    expect(listed.result.text).toBe('No approval rules configured.')
+  })
+
+  it('remove resolves the listed index against a fresh disk read (external edit coherence)', async () => {
+    const harness = withHarness(await bootRules({
+      user: [{ tool: 'echo', pattern: '*', decision: 'allow' }],
+      project: [],
+      withCommands: true,
+    }))
+    // External edit after plugin load: the user layer gains a rule the
+    // in-memory snapshot has never absorbed.
+    await writeRules(harness.userFile, [
+      { tool: 'echo', pattern: '*', decision: 'allow' },
+      { tool: 'bash', pattern: 'git*', decision: 'deny' },
+    ])
+    const agent = makeAgent('perm-remove-fresh')
+    const removed = await harness.ctx.commands.execute(agent, '/permissions remove 0', new AbortController().signal)
+    if (removed === undefined) throw new Error('composition did not resolve /permissions')
+    expect(removed.result.kind).toBe('success')
+
+    // The post-command listing re-mirrors disk: the externally added rule is
+    // visible and effective, never silently dropped from both views at once.
+    const listed = await harness.ctx.commands.execute(agent, '/permissions', new AbortController().signal)
+    if (listed === undefined) throw new Error('composition did not resolve /permissions')
+    expect(listed.result.text).toBe('0  user  bash  git*  deny')
+  })
+
   it('mirrors into the TUI slash menu when tui.commands appears, delegating to the host command', async () => {
     const harness = withHarness(await bootRules({ user: [], project: [], withCommands: true }))
     interface Registered {
@@ -235,7 +278,7 @@ describe('/permissions command', () => {
     const echoes: string[] = []
     const agent = makeAgent('perm-tui')
     const agents = new Map<string, unknown>([['sess-tui', agent]])
-    await registered[0]!.run({ text: '', sessionId: 'sess-tui', echo: text => { echoes.push(text) }, ctx: { agents } })
+    await registered[0]!.run({ text: '', sessionId: 'sess-tui', echo: (text) => { echoes.push(text) }, ctx: { agents } })
     expect(echoes).toEqual(['No approval rules configured.'])
   })
 })

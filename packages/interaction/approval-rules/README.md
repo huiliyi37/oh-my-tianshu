@@ -20,12 +20,12 @@ Rules live as a YAML list with three fields per entry. Two layers are merged, **
   pattern: '*'
   decision: allow
 - tool: bash
-  pattern: 'git push*'
+  pattern: '*git push*'
   decision: deny
 ```
 
 - `tool` — the exact tool name this rule governs (matched with strict equality).
-- `pattern` — a full-string-anchored glob matched against the tool call's **normalized argument string**. `*` crosses any characters; every other character is literal (this is a glob, not a regex). Anchoring is implicit, so `git push` never matches `safe-git push`. The pattern is matched against the normalized `arguments` string of the `tool/call` event the request references (via its `callId`); a request without a resolvable call matches against `""`.
+- `pattern` — a full-string-anchored glob matched against the tool call's **normalized argument string**: the raw `arguments` value of the `tool/call` event the request references (via its `callId`), with whitespace runs collapsed to single spaces. Most tools receive JSON-encoded arguments from the model — a bash-style call normalizes to something like `{"command":"git push","timeout":5000}` — so anchor on the stable inner substring with `*` on both sides (`'*git push*'`); a plain `'git push*'` never matches a JSON-encoded call. `*` crosses any characters; every other character is literal (this is a glob, not a regex). Anchoring is implicit, so `git push` never matches `safe-git push`. A request without a resolvable call matches against `""`.
 - `decision` — `allow` (settles `allowed-once`) or `deny` (settles `rejected`).
 
 A malformed YAML file, a non-list top level, an empty `tool` / `pattern`, or a `decision` outside `allow` / `deny` fails loud at load with the offending file path. Unknown tool names are **not** validated at load (a tool surface may be assembled later); such rules simply never match while that tool is absent.
@@ -91,6 +91,7 @@ Append-only. No model-visible content changes with rule edits.
 
 ## Known Limitations and Deferred Work
 
+- **No filesystem watching** — both layers load once at plugin start, and external edits to the YAML files surface only after a restart. `/permissions add` / `remove` re-read the layer files they touch: disk is the authoritative store, a mutation commits to disk before the in-memory snapshot the answerer reads, and `remove` resolves its listed index against a fresh disk read.
 - **Unknown tool names are not validated at load** — a rule naming a tool that is not yet assembled is accepted; it simply never matches until that tool appears. A load-time tool manifold could catch typos but is deferred.
 - **Rules apply to every agent, including subagents** — there is no per-agent rule scoping in this cut; one merged list governs all requests routed through the seam. Per-agent or per-session rule sets are deferred.
 - **`pattern` is a glob, not a regex** — only `*` is a wildcard (any run of characters); there is no character class, alternation, or grouping. A fuller glob dialect is deferred.

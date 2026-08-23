@@ -70,7 +70,10 @@ export async function bootRules(options: BootOptions = {}): Promise<Harness> {
   await ctx.plugin(SessionStore)
   await ctx.plugin(ApprovalService, options.approvalPolicy === undefined ? {} : { policy: options.approvalPolicy })
   if (options.withCommands === true) await ctx.plugin(CommandService)
-  const fiber = ctx.plugin(approvalRulesPlugin, { userFile, projectFile, ...options.config })
+  const fiber = ctx.plugin(approvalRulesPlugin, {
+    userFile: options.config?.userFile ?? userFile,
+    projectFile: options.config?.projectFile ?? projectFile,
+  })
   await fiber.await()
   return { ctx, fiber, userFile, projectFile, dir }
 }

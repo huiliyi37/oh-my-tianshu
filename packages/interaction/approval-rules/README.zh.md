@@ -20,12 +20,12 @@
   pattern: '*'
   decision: allow
 - tool: bash
-  pattern: 'git push*'
+  pattern: '*git push*'
   decision: deny
 ```
 
 - `tool` — 本规则管辖的精确工具名（严格相等匹配）。
-- `pattern` — 对工具调用的**规范化参数串**做全串锚定的 glob。`*` 跨任意字符；其余字面匹配（这是 glob，不是 regex）。锚定是隐式的，故 `git push` 永不匹配 `safe-git push`。pattern 匹配请求（经其 `callId`）所指向的 `tool/call` 事件规范化后的 `arguments` 串；无法解析出调用时按 `""` 匹配。
+- `pattern` — 对工具调用的**规范化参数串**做全串锚定的 glob：即请求（经其 `callId`）所指向的 `tool/call` 事件的原样 `arguments` 值，其中空白串折叠为单个空格。多数工具从模型收到的是 JSON 编码的参数——一次 bash 风格调用规范化后形如 `{"command":"git push","timeout":5000}`——因此应以两侧 `*` 锚定稳定的内侧子串（`'*git push*'`）；裸的 `'git push*'` 永不匹配 JSON 编码的调用。`*` 跨任意字符；其余字面匹配（这是 glob，不是 regex）。锚定是隐式的，故 `git push` 永不匹配 `safe-git push`。无法解析出调用时按 `""` 匹配。
 - `decision` — `allow`（结算为 `allowed-once`）或 `deny`（结算为 `rejected`）。
 
 YAML 格式损坏、顶层非列表、`tool`/`pattern` 为空、或 `decision` 非 `allow`/`deny`，都会在加载期 fail loud 并报出文件路径。未知工具名**不在**加载期校验（工具面可能晚装配）；此类规则在该工具缺席时自然永不命中。
@@ -91,6 +91,7 @@ Append-only。规则编辑不改变任何模型可见内容。
 
 ## 已知局限与延后工作
 
+- **无文件监听**——两层在插件启动时各加载一次，对 YAML 文件的外部编辑要重启后才可见。`/permissions add` / `remove` 会重读其触及的层文件：磁盘是权威存储，变更先提交到磁盘、再更新应答者读取的内存快照，且 `remove` 按新读的磁盘解析其列表索引。
 - **未知工具名不在加载期校验**——命名一个尚未装配工具的规则会被接受；它在该工具出现前自然永不命中。加载期工具清单可捕捉笔误，但已延后。
 - **规则作用于全部 agent，含 subagents**——本版没有 per-agent 规则作用域；一份合并列表管辖经该缝路由的所有请求。per-agent / per-session 规则集已延后。
 - **`pattern` 是 glob 而非 regex**——只有 `*` 是通配符（跨任意字符）；不支持字符类、交替或分组。更完整的 glob 方言已延后。

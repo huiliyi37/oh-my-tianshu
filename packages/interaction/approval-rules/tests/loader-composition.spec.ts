@@ -17,7 +17,6 @@ import type { Agent } from '@huiliyi37/dsh-agent'
 import CommandService from '@huiliyi37/dsh-commands'
 import ApprovalService from '@huiliyi37/dsh-user-approval'
 import { Session, SessionId } from '@huiliyi37/dsh-session'
-import { CallId } from '@huiliyi37/dsh-llm'
 import * as approvalRules from '@huiliyi37/dsh-approval-rules'
 import { writeRules } from '@huiliyi37/dsh-approval-rules'
 import type { FileRule } from '@huiliyi37/dsh-approval-rules'
@@ -150,12 +149,13 @@ describe('approval-rules real Loader composition', () => {
         return modules.get(specifier)
       },
     } as unknown as NonNullable<typeof context.loader.internal>
+    const setupCtx = context
     const setup = (async () => {
-      await context!.loader.create({
+      await setupCtx.loader.create({
         name: 'cordis:include',
         config: { path: pathToFileURL(configPath).href },
       })
-      await context!.loader.await()
+      await setupCtx.loader.await()
     })()
     await expect(setup).rejects.toThrow(/malformed YAML/)
   })
