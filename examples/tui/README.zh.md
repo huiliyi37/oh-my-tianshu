@@ -2,10 +2,7 @@
 
 [English](README.md) | 中文
 
-交互式终端 UI 组合：与 [headless-agent](../headless-agent/) 共用同一 agent 主干——真实
-DeepSeek 适配器、预创建的一个 `main` agent，以及 `@huiliyi37/dsh-tui` bundle 的
-`tui-runner` 插件。TUI 通过只读的 `adapter/transcript` 投影渲染会话日志；会话日志始终是
-权威事实源。
+交互式终端 UI 组合：与 [headless-agent](../headless-agent/) 共用同一 agent 主干——真实 DeepSeek 适配器、预创建的一个 `main` agent，以及 `@huiliyi37/dsh-tui` bundle 的 `tui-runner` 插件。TUI 通过只读的 `adapter/transcript` 投影渲染会话日志；会话日志始终是权威事实源。
 
 ## 运行
 
@@ -16,9 +13,7 @@ DeepSeek 适配器、预创建的一个 `main` agent，以及 `@huiliyi37/dsh-tu
 pnpm exec tsx ../headless-agent/tests/fixtures/headless-driver.ts ./cordis.yml "say hello"
 ```
 
-`tui-runner` 插件在该组合 boot 时挂载。上面的 headless driver 让一个任务跑过真实模型，
-把每条规范 `session/event` 喂进 transcript 投影——与 TUI 相同的读取路径——并在退出前打印
-派生视图与最终助手文本。交互式终端会话请从 TTY boot 该组合；渲染核心接管 stdin/stdout。
+`tui-runner` 插件在该组合 boot 时挂载。上面的 headless driver 让一个任务跑过真实模型，把每条规范 `session/event` 喂进 transcript 投影——与 TUI 相同的读取路径——并在退出前打印派生视图与最终助手文本。交互式终端会话请从 TTY boot 该组合；渲染核心接管 stdin/stdout。
 
 ## 组合
 
@@ -32,6 +27,8 @@ pnpm exec tsx ../headless-agent/tests/fixtures/headless-driver.ts ./cordis.yml "
 
 ## keyless 快照
 
-组合本身不含 key。transcript 投影通过折叠规范会话事件
-（`emptyTranscript` / `applyTranscriptEvent`）派生面向 TUI 的对话视图；该视图的 keyless 快照由
-真实模型冒烟写入 `.rivet/scratch/`（见 [`tests/transcript-smoke.e2e.ts`](tests/transcript-smoke.e2e.ts)）。
+组合本身不含 key。既有 transcript 冒烟经 `emptyTranscript` / `applyTranscriptEvent` 折叠规范会话事件，并把得到的面向 TUI 的对话视图写入 `.rivet/scratch/`（见 [`tests/transcript-smoke.e2e.ts`](tests/transcript-smoke.e2e.ts)）。
+
+[`tests/welcome.snapshot.ts`](tests/welcome.snapshot.ts) 中的结算欢迎快照经 Loader 用 [`tests/fixtures/welcome-driver.ts`](tests/fixtures/welcome-driver.ts) 拉起本示例真实 `cordis.yml`，经 `node-pty` 以 100×30 驱动 TUI，用 xterm 解析终端，只与 [`tests/snapshots/welcome/terminal.expected.txt`](tests/snapshots/welcome/terminal.expected.txt) 比对结算后的欢迎区。harness 隔离 `HOME`、Harness 根目录与子进程环境变量；其 loopback 请求哨兵在捕获、退出与清理前验证零次模型网络请求。
+
+`resolveExampleLaunch` 覆盖两个启动平面：source 模式经 `tsx` 与 workspace path 映射运行 TypeScript driver；`DSH_EXAMPLE_MODE=lib` 在普通 Node 下运行，使裸包导入经已构建的 `lib/` exports 解析。只有结算后的仅追加中档面进入 golden。

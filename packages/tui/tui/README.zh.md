@@ -22,9 +22,18 @@
 | `initialSessionId` | 启动即切入的会话；缺省恢复最近 live 会话，否则新建（`dsh tui --session <id>` 从命令行设置） |
 | `editorKey` | 外部编辑器触发键（Phase 6.4）；缺省 `ctrl_o` |
 | `vimEnabled` | Vim 键位（Phase 6.5）；缺省 `false` |
+| `welcomeAnimation` | 启动欢迎策略：`auto`（缺省）与 `off` 都在终端能承载时提交所选档的静态狐狸；其他值在插件加载时失败 |
 | `vision` | 主控模型识图能力与视觉桥状态（图片附件气泡提示数据源：`supportsVision` / `bridgeEnabled` / `bridgeSource`）；由装配方按 vision-bridge 插件配置派生——装配方未派生时，`bridgeEnabled` 经插件 apply 时 provide 的 `visionBridge` 服务自动探测 |
 | `workflowHistoryLimit` | `/workflow` 面板已结算 run 缓存条数上限，超限 drop-oldest；正整数，缺省 `50` |
 | `lsp` | LSP 诊断桥：`enabled`（缺省 `true`）/ `timeoutMs`（缺省 `2000`）。agent 触碰文件时按扩展名懒启动语言 server 拉取诊断，展示于工具卡徽标与 `/lsp` 面板。纯展示——不写会话事件、不注册任何模型面 |
+
+## 启动欢迎
+
+启动欢迎以 Oh My Tianshu 作为产品身份。支持彩色与窄半块字形的终端在一行 `Oh My Tianshu` 标题旁放置 Lanczos 休息档狐狸：80–104 列使用 `56×42` 狐狸（`56×21` 单元格），89 列以下折行平级行；105 列且行数足够时使用 `72×54` 狐狸。平级的 DeepSeek Harness 与 Tianshu Harness 视觉权重相等，渲染为 `DeepSeek ◆ Tianshu Harness`，其后是所选模型、有效 effort、cwd 与版本。放不下 `56×21` 狐狸加 chrome 的视口，以及无色或全宽块字形终端，以同一身份与元数据的文本形式呈现。
+
+最终欢迎最多追加三行可恢复会话与一条已选 `Tip:`。`auto` 与 `off` 都立即提交该静态狐狸，没有开场时间线。effort 查找有界并回退到 `auto`，装饰性元数据不能阻塞启动。
+
+会话挂载阶段的恢复历史——恢复横幅、回放的 transcript 与恢复分隔符——直接写入并位于欢迎之前。挂载完成且欢迎取得启动所有权之后，attach 先结算规范终态欢迎再接受输入；首次输入、粘贴、命令行初始提示词、resize，或后续 scrollback 提交，都保持该已结算块与挂起动作顺序。终块经仅追加提交路径进入 scrollback 一次，resize 永不擦除已提交历史。自动密钥设置仅在非输入结算后打开，而输入会取消挂起的 overlay。欢迎页纯展示，不增加模型可见输入、会话事件、持久化行为或 agent-loop 行为。[狐狸欢迎 Agent Note](../../../.agents/notes/implemented/feature/2026-08-22-tui-fox-welcome.md) 拥有品牌层级、结算顺序与运行时资产边界；[狐狸欢迎清晰度](../../../.agents/notes/implemented/feature/2026-08-23-tui-fox-welcome-clarity.md) 拥有两档投影、折行与静态挂载。
 
 **输入框剪贴板与图片粘贴**（移植自 opencode-tui 输入面）：`Ctrl+V` 读系统剪贴板图片（无图 fallback 剪贴板文本）；右键/终端菜单粘贴先识别剪贴板图片（命中则附图并吞掉图片字节乱码），粘贴内容像图片路径时加载为附件；编辑期间，最后一张附件以真彩半块字符缩略图（纯 ANSI 文本，任意终端可用）渲染在 `📎 N images` 计数行上方，提交后图片在用户气泡下方以终端内联图形渲染（kitty / iTerm2），终端无图形协议时回退为同样的半块渲染。vim yank / `Alt+W` 选区复制经 OSC52 写系统剪贴板。用户气泡携带识图提示——图片直发 / 经识图桥转描述 / 未发送（无识图桥）。
 
@@ -32,9 +41,11 @@
 
 **会话渲染面**（对标 Claude Code）：已结算工具卡在 `tool/result` 时实时提交进 scrollback，经软降级桥（`adapter/tool-view.ts`）消费 harness 的 presenter 渲染意图（`presentCall`/`presentResult`）——`diff` 结果渲染结构化红绿文件 diff（与审批预览共享 `renderFileDiff`），`terminal` 结果渲染命令标题 + cwd + exit/signal 徽标，其余回落文本折叠卡。think 推理通道流式期在 live 区渲染 shimmer 头行（`✻ 思考中…`，tick 驱动光带扫过，16 色终端静态降级）+ 暗色尾巴，段结束时以折叠头行落底进 scrollback（`✻ 思考 (3.2s) · 12 行`）——正文默认收起（对标竞品），`Ctrl+O` 在 live 区按需展开查看（scrollback append-only，展开不重复落底；中止的 turn 丢弃缓冲；紧凑模式只留头行）。resume/attach 经同一条桥重放，消息与工具卡按事件 seq 交错——live 与恢复转录渲染完全一致。
 
+**待办紧凑面板**（`/todos`）：消费 `todos` 会话投影（`todo/write` 全量快照）渲染一行摘要卡——`📋 待办 ✓完成 ⏳进行 □待办 · 当前进行项`；`/todos all` 展开封顶明细（缺省 6 行，超出折叠为 `└ …(+N)`），再按一次收起。投影在 `turn/start` 被清成 null（清单随回合开始重置），面板改读「保留快照」——只吸收非空投影值，已显示的清单跨回合黏滞、不随回合边界闪烁消失；null 仅在会话从未写入时出现（渲染「尚无待办」空态），空数组渲染「全部完成 ✓」完成态（两种空语义可区分）。显隐是会话内 UI 状态：默认隐藏、`/clear` 随清屏收起、重开会话不保留。与 `/status` 的完整 checklist 任务段、`/tasks` 窗格同源不同呈现——完整清单仍在 `/status`。
+
 **LSP 诊断**（移植自天枢 LSP 栈）：agent 触碰文件时，桥按扩展名懒启动语言 server（typescript 经 `npx -y` 默认可用；pyright/gopls/rust-analyzer/clangd/jdtls 按 PATH 探测）拉取诊断——live 工具卡标题带 `⚠ N错 M警` 徽标，`/lsp` 面板按文件分组展示。诊断只进 TUI 本地展示缓存：不写会话事件、不注册任何模型面，dispose 时 kill 全部 server。装配了 `getDiagnostics` 形状的外部服务（`provide('lsp')`，如 dsh-lsp 伴生插件）时直接消费、与模型工具面共享 server 集；官方 `ctx.lsp` seam 经 `query(getDiagnostics)` 操作适配，官方操作落地前恒空。
 
-**会话恢复可见性**（session-resume）：冷启动在欢迎卡渲染可恢复会话编号列表（标题 · 年龄 · cwd）——欢迎阶段（任意输入字符即结束）内按数字键 1–9 直达对应会话，`ctrl+s` 恢复最近的其他可恢复会话，`/resume [id]` 无参恢复最近可恢复、带参切换指定会话。恢复挂载时输出横幅（标题 · 最后活动 · cwd）与回放末尾的「上次进行到此处」分隔；日志最后一个 turn/end 仍是崩溃修复闭合标记时追加「上次运行被中断」提示（其后又有正常完成的回合即不再提示）。`dsh tui --session <id>` 与 `dsh run --session <id> "task"` 从命令行恢复指定会话；未知或损坏 id fails loud 并给出指引。损坏的持久化工件保留在列表中并标注「不可恢复」而非消失——选中损坏行在任何切换状态提交之前失败。会话切换统一走 `/resume`、`ctrl+s` 与欢迎页列表（均带标题）；原 chrome 段会话 tab 栏已移除——它把全部持久化会话列成短 id 挤占界面。已挂载的 side conversation 仍在 live 区会话行显示。
+**会话恢复可见性**（session-resume）：冷启动在欢迎区渲染可恢复会话编号列表（标题 · 年龄 · cwd）——欢迎阶段（任意输入字符即结束）内按数字键 1–9 直达对应会话，`ctrl+s` 恢复最近的其他可恢复会话，`/resume [id]` 无参恢复最近可恢复、带参切换指定会话。恢复挂载时输出横幅（标题 · 最后活动 · cwd）与回放末尾的「上次进行到此处」分隔；日志最后一个 turn/end 仍是崩溃修复闭合标记时追加「上次运行被中断」提示（其后又有正常完成的回合即不再提示）。`dsh tui --session <id>` 与 `dsh run --session <id> "task"` 从命令行恢复指定会话；未知或损坏 id fails loud 并给出指引。损坏的持久化工件保留在列表中并标注「不可恢复」而非消失——选中损坏行在任何切换状态提交之前失败。会话切换统一走 `/resume`、`ctrl+s` 与欢迎页列表（均带标题）；原 chrome 段会话 tab 栏已移除——它把全部持久化会话列成短 id 挤占界面。已挂载的 side conversation 仍在 live 区会话行显示。
 
 **API Key 设置**（`/key`，别名 `/login`）：先开供应商选择（可配置供应商目录，默认供应商 ● 置首、密钥已解析的条目带 ` ✓`），再进掩码输入对话框——对所选供应商的端点探测 key（`401/403` 拒存，网络错误允许强存），经 `credentials` 服务落盘（`$DSH_HOME/.credentials.yaml`，0600）——解析按请求进行，保存即生效、无需重启。落盘引用取 profile 的 `apiKeyEnv`（出厂 `openrouter` 路由带 `OPENROUTER_API_KEY`），未声明则按路由派生（`anthropic → ANTHROPIC_API_KEY`）；pi-ai 路由尚无 profile 时保存后补写最小 profile，路由即时注册、`/model` 立即可选。llm 目录缺席时降级为 DeepSeek 直开。交互启动时默认供应商缺 key 会自动打开一次（Esc 跳过）；进程环境同名变量优先于文件层，对话框给出说明而不写入。
 
