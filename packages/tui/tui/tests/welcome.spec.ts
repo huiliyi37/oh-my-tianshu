@@ -1,29 +1,24 @@
 /**
- * 启动欢迎面（format/welcome.ts）— 纯渲染契约测试。
+ * Fox welcome composition contracts.
  *
- * - 品牌区 formatBrandWelcome：主标/副标；缺省居中，align=left 贴左
- * - Tips formatWelcomeTips：标题 + 快捷键列对齐；不可用项 muted
- * - 环境行 formatEnvCheckLine：单行主题名/API/Git；缺 key 段 warning 色
- * - Hero formatWelcomeHero：宽屏左品牌右 tips zip，窄屏垂直居中叠放
- * - 宽度守恒：任何输入下每行显示宽度 ≤ width
+ * The hero owns band selection, the one-line title, and capability fallback,
+ * while the final composer owns restore rows and the startup tip.
  */
 
 import { describe, expect, it } from 'vitest'
+import { ANSI } from '../src/engine/ansi.js'
 import type { RivetTheme } from '../src/theme.js'
 import { displayWidth } from '../src/width.js'
 import {
-  WELCOME_HERO_WIDE_MIN,
-  WELCOME_TIPS,
   CHROME_GUTTER,
   RESUME_TIP,
-  formatBrandWelcome,
-  formatEnvCheckLine,
-  formatWelcomeCard,
+  WELCOME_HERO_WIDE_MIN,
+  WELCOME_TIPS,
+  formatWelcome,
   formatWelcomeHero,
-  formatWelcomeTips,
   pickWelcomeTip,
-  type WelcomeEnvCheck,
-  type WelcomeTipItem,
+  resolveWelcomeArtWidth,
+  type FormatWelcomeHeroInput,
 } from '../src/format/welcome.js'
 
 function fakeTheme(): RivetTheme {
@@ -36,239 +31,264 @@ function fakeTheme(): RivetTheme {
   }
 }
 
+function plainLine(line: string): string {
+  return line.replace(/\x1B\[[0-9;?]*[ -/]*[@-~]/g, '')
+}
+
 function plain(lines: readonly string[]): string[] {
-  return lines.map(l => l.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''))
+  return lines.map(plainLine)
 }
 
-function tips(over: Partial<WelcomeTipItem>[] = []): WelcomeTipItem[] {
-  const base: WelcomeTipItem[] = [
-    { keyHint: 'ctrl+n', label: '新会话' },
-    { keyHint: 'ctrl+s', label: '恢复会话' },
-    { keyHint: 'ctrl+p', label: '命令面板' },
-  ]
-  return over.length === 0 ? base : over.map((o, i) => ({ ...base[i]!, ...o }))
+const ART = {
+  lines: Array.from({ length: 21 }, (_, index) => `fox-${index}`),
+  width: 56,
+} as const
+
+const WIDE_ART = {
+  lines: Array.from({ length: 27 }, (_, index) => `fox-${index}`),
+  width: 72,
+} as const
+
+function heroInput(over: Partial<FormatWelcomeHeroInput> = {}): FormatWelcomeHeroInput {
+  return {
+    width: 100,
+    rows: 30,
+    art: ART,
+    modelId: 'deepseek-chat',
+    reasoningEffort: 'high',
+    cwd: '/work/tianshu',
+    version: '0.4.0',
+    ...over,
+  }
 }
 
-describe('formatBrandWelcome（欢迎页品牌区）', () => {
-  it('version 提供时副标题行追加 · v<version>', () => {
-    const lines = formatBrandWelcome({ width: 80, version: '0.2.4' }, fakeTheme())
-    const [brand, sub] = plain(lines)
-    expect(brand!.trim()).toBe('Oh My Tianshu')
-    expect(sub!.trim()).toBe('Tianshu Harness · v0.2.4')
+describe('formatWelcomeHero', () => {
+  it('selects 56 at 80–104 columns and 72 at 105+ when rows fit', () => {
+    expect(WELCOME_HERO_WIDE_MIN).toBe(80)
+    expect(resolveWelcomeArtWidth(79, 40)).toBeNull()
+    expect(resolveWelcomeArtWidth(80, 26)).toBeNull()
+    expect(resolveWelcomeArtWidth(80, 27)).toBe(56)
+    expect(resolveWelcomeArtWidth(104, 33)).toBe(56)
+    expect(resolveWelcomeArtWidth(105, 32)).toBe(56)
+    expect(resolveWelcomeArtWidth(105, 33)).toBe(72)
   })
 
-  it('两行：主标 Oh My Tianshu 居中 BOLD + 副标居中 muted，宽度守恒', () => {
-    const lines = formatBrandWelcome({ width: 80 }, fakeTheme())
-    expect(lines.length).toBe(2)
-    const [brand, sub] = plain(lines)
-    expect(brand!.trim()).toBe('Oh My Tianshu')
-    expect(brand!.indexOf('Oh My Tianshu')).toBeGreaterThan(0) // 居中（前导空格）
-    expect(sub!.trim()).toBe('Tianshu Harness')
-    expect(lines[0]).toContain('\x1B[1m') // 主标 BOLD
-    expect(displayWidth(lines[0]!)).toBeLessThanOrEqual(80)
-    expect(displayWidth(lines[1]!)).toBeLessThanOrEqual(80)
+  it('places a one-line Oh My Tianshu title beside 56-column art', () => {
+    const lines = plain(formatWelcomeHero(heroInput({
+      width: 89,
+      rows: 30,
+      art: { lines: Array.from({ length: 21 }, (_, i) => `fox-${i}`), width: 56 },
+    }), fakeTheme()))
+    expect(lines.some(line => line.includes('Oh My Tianshu'))).toBe(true)
+    expect(lines.some(line => line.includes('█'))).toBe(false)
+    expect(lines.find(line => line.includes('DeepSeek ◆ Tianshu Harness'))).toBeDefined()
   })
 
-  it('align=left：主标贴左，无前导空格', () => {
-    const [brand] = plain(formatBrandWelcome({ width: 80, align: 'left' }, fakeTheme()))
-    expect(brand!.startsWith('Oh My Tianshu')).toBe(true)
+  it('wraps the peer line at 80 columns and keeps the 56-column fox', () => {
+    const lines = plain(formatWelcomeHero(heroInput({
+      width: 80,
+      rows: 30,
+      art: { lines: Array.from({ length: 21 }, (_, i) => `fox-${i}`), width: 56 },
+    }), fakeTheme()))
+    const joined = lines.join('\n')
+    expect(joined).toContain('fox-0')
+    expect(joined).toContain('DeepSeek ◆')
+    expect(joined).toContain('Tianshu Harness')
+    expect(lines.filter(line => line.includes('DeepSeek ◆ Tianshu Harness'))).toHaveLength(0)
+    for (const line of lines) expect(displayWidth(line)).toBeLessThanOrEqual(80)
   })
 
-  it('自定义 brand/subtitle 生效', () => {
-    const lines = formatBrandWelcome({ width: 40, brand: 'X', subtitle: 'Hello' }, fakeTheme())
-    const [brand, sub] = plain(lines)
-    expect(brand!.trim()).toBe('X')
-    expect(sub!.trim()).toBe('Hello')
+  it('places the 72-column fox once rows and columns allow the wide band', () => {
+    const lines = plain(formatWelcomeHero(heroInput({
+      width: 105,
+      rows: 33,
+      art: WIDE_ART,
+    }), fakeTheme()))
+    expect(lines.some(line => line.includes('fox-0'))).toBe(true)
+    expect(lines.some(line => line.includes('Oh My Tianshu'))).toBe(true)
+    expect(lines.some(line => line.includes('█'))).toBe(false)
   })
 
-  it('窄宽：主标/副标截断，宽度守恒', () => {
-    const lines = formatBrandWelcome({ width: 6, subtitle: 'Very Long Subtitle' }, fakeTheme())
-    for (const line of lines) {
-      expect(displayWidth(line)).toBeLessThanOrEqual(6)
-    }
-    expect(plain(lines)[1]).toBe('Very L') // 副标截断到 6 列
+  it('renders peer harness brands at equal weight with an accented diamond', () => {
+    const lines = formatWelcomeHero(heroInput(), fakeTheme())
+    const peer = lines.find(line => plainLine(line).includes('DeepSeek ◆ Tianshu Harness'))
+
+    expect(peer).toBeDefined()
+    expect(peer).toContain('\x1B[38;2;17;17;17m\x1B[1mDeepSeek')
+    expect(peer).toContain('\x1B[38;2;17;17;17m\x1B[1mTianshu Harness')
+    expect(peer).toContain('\x1B[38;2;238;238;238m\x1B[1m◆')
   })
 
-  it('width ≤ 0 → 空数组', () => {
-    expect(formatBrandWelcome({ width: 0 }, fakeTheme())).toEqual([])
-  })
-})
+  it('shows model, effort, cwd, and optional version in the balanced right column', () => {
+    const joined = plain(formatWelcomeHero(heroInput(), fakeTheme())).join('\n')
 
-describe('formatWelcomeTips（欢迎页右栏 tips）', () => {
-  it('标题 Tips + 快捷键列对齐、说明在右', () => {
-    const lines = plain(formatWelcomeTips({ width: 40, items: tips() }, fakeTheme()))
-    expect(lines[0]!.trim()).toBe('Tips')
-    expect(lines[1]).toContain('ctrl+n')
-    expect(lines[1]).toContain('新会话')
-    expect(lines[2]).toContain('ctrl+s')
-    expect(lines[3]).toContain('ctrl+p')
+    expect(joined).toContain('Model deepseek-chat · Effort high')
+    expect(joined).toContain('cwd /work/tianshu')
+    expect(joined).toContain('v0.4.0')
   })
 
-  it('available=false：整行 muted，keyHint 仍在', () => {
-    const items: WelcomeTipItem[] = [
-      { keyHint: 'ctrl+s', label: '恢复会话', available: false },
-    ]
-    const raw = formatWelcomeTips({ width: 40, items }, fakeTheme())
-    const row = plain(raw)[1]
-    expect(row).toContain('恢复会话')
-    expect(row).toContain('ctrl+s')
-    expect(raw[1]).toContain('\x1B[38;2;119;119;119m') // muted #777777
+  it('keeps an existing version prefix unchanged', () => {
+    const joined = plain(formatWelcomeHero(heroInput({
+      width: 60,
+      version: 'v0.4.0',
+    }), fakeTheme())).join('\n')
+
+    expect(joined).toContain('v0.4.0')
+    expect(joined).not.toContain('vv0.4.0')
   })
 
-  it('align=center：整块前导空格 > 0', () => {
-    const lines = plain(formatWelcomeTips({ width: 80, items: tips(), align: 'center' }, fakeTheme()))
-    expect(lines[0]!.indexOf('Tips')).toBeGreaterThan(0)
+  it('pads missing wide-art rows when the details column is longer', () => {
+    const lines = plain(formatWelcomeHero(heroInput({
+      art: { lines: ['fox-only'], width: 56 },
+    }), fakeTheme()))
+
+    expect(lines[0]).toContain('fox-only')
+    expect(lines[1]).not.toContain('fox-')
+    expect(lines.some(line => line.includes('Oh My Tianshu'))).toBe(true)
   })
 
-  it('宽度守恒：任意宽度下每行显示宽度 ≤ width', () => {
-    for (const width of [80, 40, 20, 8]) {
-      const lines = formatWelcomeTips({ width, items: tips() }, fakeTheme())
-      for (const line of lines) {
-        expect(displayWidth(line)).toBeLessThanOrEqual(width)
-      }
-    }
-  })
-
-  it('width ≤ 0 → 空数组', () => {
-    expect(formatWelcomeTips({ width: 0, items: tips() }, fakeTheme())).toEqual([])
-  })
-})
-
-describe('formatEnvCheckLine（环境检查紧凑行）', () => {
-  function env(over: Partial<WelcomeEnvCheck> = {}): WelcomeEnvCheck {
-    return { hasApiKey: true, isGitRepo: true, themeName: 'graphite', cols: 100, ...over }
-  }
-
-  it('单行：主题名 · API Key ✓ · Git ✓，居中且宽度守恒', () => {
-    const [line] = formatEnvCheckLine(env(), fakeTheme())
-    const text = plain([line!])[0]
-    expect(text!.trim()).toBe('graphite · API Key ✓ · Git ✓')
-    expect(text!.indexOf('graphite')).toBeGreaterThan(0) // 居中（前导空格）
-    expect(displayWidth(line!)).toBeLessThanOrEqual(100)
-  })
-
-  it('align=left：贴左', () => {
-    const [line] = plain(formatEnvCheckLine(env({ align: 'left' }), fakeTheme()))
-    expect(line!.startsWith('graphite')).toBe(true)
-  })
-
-  it('缺 API key：✗ + 可行动提示（/key 入口），该段 warning 色', () => {
-    const [line] = formatEnvCheckLine(env({ hasApiKey: false }), fakeTheme())
-    expect(plain([line!])[0]).toContain('API Key ✗（/key 设置）')
-    expect(line).toContain('\x1B[38;2;68;68;68m')
-  })
-
-  it('非 git → Git ✗ 信息性展示，无 warning 色', () => {
-    const [line] = formatEnvCheckLine(env({ isGitRepo: false }), fakeTheme())
-    expect(plain([line!])[0]).toContain('Git ✗')
-    expect(line).not.toContain('\x1B[38;2;68;68;68m')
-  })
-
-  it('窄宽截断：宽度守恒（ANSI 安全）', () => {
-    for (const cols of [24, 12, 5]) {
-      const [line] = formatEnvCheckLine(env({ cols }), fakeTheme())
-      expect(displayWidth(line!)).toBeLessThanOrEqual(cols)
-    }
-  })
-
-  it('cols ≤ 0 → 空数组', () => {
-    expect(formatEnvCheckLine(env({ cols: 0 }), fakeTheme())).toEqual([])
-  })
-})
-
-describe('formatWelcomeHero（左品牌 + 右 tips）', () => {
-  const env: WelcomeEnvCheck = {
-    hasApiKey: true, isGitRepo: true, themeName: 'graphite', cols: 100,
-  }
-  const whale = [
-    '        ████▄▄██',
-    '     ▄██████████',
-  ]
-
-  it('宽屏：Tips 与鲸鱼同行（zip），品牌在左栏', () => {
-    const lines = plain(formatWelcomeHero({
-      width: 100, whale, env, tips: tips(),
-    }, fakeTheme()))
-    expect(lines.some(l => l.includes('Tips'))).toBe(true)
-    expect(lines.some(l => l.includes('Oh My Tianshu'))).toBe(true)
-    expect(lines.some(l => l.includes('ctrl+n'))).toBe(true)
-    // zip：含块字符的行同时含 Tips 或后续 tips 行在右
-    const first = lines[0]!
-    expect(first).toMatch(/█/)
-    expect(first.indexOf('Tips')).toBeGreaterThan(first.indexOf('█'))
-    expect(first.indexOf('█')).toBe(CHROME_GUTTER)
-  })
-
-  it(`窄于 ${WELCOME_HERO_WIDE_MIN}：垂直叠放，Tips 在品牌下方`, () => {
-    const lines = plain(formatWelcomeHero({
-      width: 60, whale, env, tips: tips(),
-    }, fakeTheme()))
-    const dsh = lines.findIndex(l => l.includes('Oh My Tianshu'))
-    const tipsIdx = lines.findIndex(l => l.trim() === 'Tips' || l.includes('Tips'))
-    expect(dsh).toBeGreaterThanOrEqual(0)
-    expect(tipsIdx).toBeGreaterThan(dsh)
-    // 窄屏不 zip：鲸鱼行不含 Tips
-    expect(lines[0]!).not.toContain('Tips')
-  })
-
-  it('宽度守恒', () => {
-    for (const width of [100, 80, 72, 40, 20]) {
-      const lines = formatWelcomeHero({ width, whale, env, tips: tips() }, fakeTheme())
-      for (const line of lines) {
-        expect(displayWidth(line)).toBeLessThanOrEqual(width)
-      }
-    }
-  })
-
-  it('无鲸鱼时宽屏仍出品牌 + tips', () => {
-    const lines = plain(formatWelcomeHero({
-      width: 100, whale: [], env, tips: tips(),
-    }, fakeTheme()))
-    expect(lines.some(l => l.includes('Oh My Tianshu'))).toBe(true)
-    expect(lines.some(l => l.includes('Tips'))).toBe(true)
-    const dsh = lines.find(l => l.includes('Oh My Tianshu'))!
-    expect(dsh.indexOf('Oh My Tianshu')).toBe(CHROME_GUTTER)
-  })
-
-  it('width ≤ 0 → 空数组', () => {
-    expect(formatWelcomeHero({ width: 0, whale, env, tips: tips() }, fakeTheme())).toEqual([])
-  })
-})
-
-describe('formatWelcomeCard（omp 风格圆角卡盒）', () => {
-  it('顶边嵌品牌 + 圆角边框包裹内容行，宽度守恒', () => {
-    const lines = formatWelcomeCard({ width: 40, lines: ['第一行内容', '第二行'] }, fakeTheme())
+  it('keeps the mid-band layout wide while truncating long metadata', () => {
+    const cwd = `/工作区/${'很长目录/'.repeat(20)}最终目录`
+    const lines = formatWelcomeHero(heroInput({
+      width: 92,
+      rows: 30,
+      cwd,
+    }), fakeTheme())
     const flat = plain(lines)
-    expect(flat[0]).toMatch(/^╭─ Oh My Tianshu ─+╮$/)
-    expect(flat.at(-1)).toBe('╰' + '─'.repeat(38) + '╯')
-    expect(flat[1]).toMatch(/^│ 第一行内容/)
-    expect(flat[2]).toMatch(/ │$/)
-    for (const l of lines) expect(displayWidth(l)).toBeLessThanOrEqual(40)
+    const cwdLine = lines.find(line => plainLine(line).includes('cwd /工作区/'))
+
+    expect(flat.some(line => line.includes('fox-0'))).toBe(true)
+    expect(flat.some(line => line.includes('Oh My Tianshu'))).toBe(true)
+    expect(cwdLine).toBeDefined()
+    expect(plainLine(cwdLine!)).not.toContain('最终目录')
+    expect(cwdLine!.endsWith(ANSI.RESET)).toBe(true)
+    for (const line of lines) expect(displayWidth(line)).toBeLessThanOrEqual(92)
   })
 
-  it('窄宽守宽不破版；width < 8 盒体不成立原样返回；width ≤ 0 空数组', () => {
-    for (const l of formatWelcomeCard({ width: 12, lines: ['x'] }, fakeTheme())) {
-      expect(displayWidth(l)).toBeLessThanOrEqual(12)
+  it.each([
+    ['narrow terminal', { width: 79 }],
+    ['short terminal', { rows: 26 }],
+    ['empty art', { art: { lines: [], width: 56 } }],
+    ['mismatched band width', { art: { lines: ['fox-0'], width: 40 } }],
+    ['non-positive art allocation', { art: { lines: ['fox-0'], width: 0 } }],
+  ])('uses one compact text fallback for %s', (_name, over) => {
+    const lines = plain(formatWelcomeHero(heroInput(over), fakeTheme()))
+    const joined = lines.join('\n')
+
+    expect(joined).toContain('Oh My Tianshu')
+    expect(joined).toContain('DeepSeek ◆ Tianshu Harness')
+    expect(joined).toContain('Model deepseek-chat · Effort high')
+    expect(joined).toContain('cwd /work/tianshu')
+    expect(joined).toContain('v0.4.0')
+    expect(joined).not.toContain('fox-')
+    expect(joined).not.toContain('█')
+  })
+
+  it('uses auto when reasoning effort is omitted and omits an absent version', () => {
+    const lines = plain(formatWelcomeHero({
+      width: 60,
+      rows: 30,
+      art: ART,
+      modelId: 'deepseek-chat',
+      cwd: '/work/tianshu',
+    }, fakeTheme()))
+    const joined = lines.join('\n')
+
+    expect(joined).toContain('Model deepseek-chat · Effort auto')
+    expect(joined).not.toContain('v0.4.0')
+  })
+
+  it('keeps every ANSI line within the terminal width', () => {
+    for (const width of [1, 8, 24, 60, 91, 92, 100, 120]) {
+      const lines = formatWelcomeHero(heroInput({ width }), fakeTheme())
+      for (const line of lines) expect(displayWidth(line)).toBeLessThanOrEqual(width)
     }
-    expect(formatWelcomeCard({ width: 6, lines: ['abc'] }, fakeTheme())).toEqual(['abc'])
-    expect(formatWelcomeCard({ width: 0, lines: ['abc'] }, fakeTheme())).toEqual([])
+    // 零宽流回退到 80 列：够放 56 档狐狸，详情行换行。
+    const fallbackLines = plain(formatWelcomeHero(heroInput({ width: 0 }), fakeTheme()))
+    expect(fallbackLines.join('\n')).toContain('Oh My Tianshu')
+    for (const line of fallbackLines) expect(displayWidth(line)).toBeLessThanOrEqual(80)
+  })
+
+  it('does not mix restore rows or the startup tip into the preview hero', () => {
+    const joined = plain(formatWelcomeHero(heroInput(), fakeTheme())).join('\n')
+    expect(joined).not.toContain('恢复会话')
+    expect(joined).not.toContain('Tip:')
   })
 })
 
-describe('pickWelcomeTip（随机贴士）', () => {
-  it('带 Tip: 前缀返回池内条目；注入 rng 可复现', () => {
+describe('formatWelcome', () => {
+  it('owns the leading gap, hero, restore section, italic tip, and trailing gap', () => {
+    const lines = formatWelcome({
+      ...heroInput(),
+      restoreLines: ['[1] ○ 会话一', '[2] ● 会话二'],
+      tip: 'Tip: 保持专注',
+    }, fakeTheme())
+    const flat = plain(lines)
+    const restoreAt = flat.indexOf(`${' '.repeat(CHROME_GUTTER)}恢复会话`)
+
+    expect(lines[0]).toBe('')
+    expect(restoreAt).toBeGreaterThan(0)
+    expect(flat.slice(restoreAt, restoreAt + 4)).toEqual([
+      `${' '.repeat(CHROME_GUTTER)}恢复会话`,
+      `${' '.repeat(CHROME_GUTTER)}[1] ○ 会话一`,
+      `${' '.repeat(CHROME_GUTTER)}[2] ● 会话二`,
+      `${' '.repeat(CHROME_GUTTER)}[1-9] 恢复 · ctrl+n 新会话`,
+    ])
+    expect(flat.at(-2)).toBe(`${' '.repeat(CHROME_GUTTER)}Tip: 保持专注`)
+    expect(lines.at(-2)).toContain('\x1B[3m')
+    expect(lines.at(-2)).toContain('\x1B[38;2;119;119;119m')
+    expect(lines.at(-1)).toBe('')
+  })
+
+  it('omits the complete restore section when no restore rows are supplied', () => {
+    const lines = plain(formatWelcome({
+      ...heroInput({ width: 60 }),
+      restoreLines: [],
+      tip: 'Tip: hello',
+    }, fakeTheme()))
+
+    expect(lines[0]).toBe('')
+    expect(lines).not.toContain(`${' '.repeat(CHROME_GUTTER)}恢复会话`)
+    expect(lines.join('\n')).not.toContain('[1-9] 恢复')
+    expect(lines.at(-2)).toContain('Tip: hello')
+    expect(lines.at(-1)).toBe('')
+  })
+
+  it('ANSI-safely bounds hero, restore, and tip lines', () => {
+    for (const width of [1, 8, 24, 60, 100]) {
+      const lines = formatWelcome({
+        ...heroInput({ width }),
+        restoreLines: [`[1] ${'会话'.repeat(80)}`],
+        tip: `Tip: ${'x'.repeat(200)}`,
+      }, fakeTheme())
+      for (const line of lines) expect(displayWidth(line)).toBeLessThanOrEqual(width)
+    }
+    // 零宽流回退到 80 列：hero 按 56 档换行，恢复区仍按其自身宽度截断。
+    const fallbackLines = plain(formatWelcome({
+      ...heroInput({ width: 0 }),
+      restoreLines: ['[1] resize'],
+      tip: 'Tip: hidden',
+    }, fakeTheme()))
+    expect(fallbackLines.join('\n')).toContain('Oh My Tianshu')
+    expect(fallbackLines.join('\n')).toContain('Tip: hidden')
+    for (const line of fallbackLines) expect(displayWidth(line)).toBeLessThanOrEqual(80)
+  })
+})
+
+describe('pickWelcomeTip', () => {
+  it('returns deterministic entries with the Tip prefix', () => {
     expect(pickWelcomeTip(() => 0)).toBe(`Tip: ${WELCOME_TIPS[0]}`)
-    expect(pickWelcomeTip(() => 0.999)).toMatch(/^Tip: /)
     for (const tip of WELCOME_TIPS) {
       expect(pickWelcomeTip(() => WELCOME_TIPS.indexOf(tip) / WELCOME_TIPS.length)).toBe(`Tip: ${tip}`)
     }
   })
 
-  it('2.5：resumeVisible → 池内动态加入恢复条目（rng 指向末位）', () => {
+  it('adds the resume tip only when requested', () => {
     expect(pickWelcomeTip(() => 0.9999, { resumeVisible: true })).toBe(`Tip: ${RESUME_TIP}`)
+    expect(pickWelcomeTip(() => 0.9999)).not.toBe(`Tip: ${RESUME_TIP}`)
   })
 
-  it('2.5：未声明 resumeVisible → 不含恢复条目', () => {
-    expect(pickWelcomeTip(() => 0.9999)).not.toBe(`Tip: ${RESUME_TIP}`)
+  it('falls back to the first tip when rng yields no valid index', () => {
+    expect(pickWelcomeTip(() => Number.NaN)).toBe(`Tip: ${WELCOME_TIPS[0]}`)
   })
 })

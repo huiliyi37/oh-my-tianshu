@@ -1,296 +1,235 @@
 /**
- * 启动欢迎面（format/welcome.ts）— 纯渲染。
+ * Pure static composition for the fox welcome surface.
  *
- * 首屏骨架对齐 Claude Code LogoV2：左栏鲸鱼 + 品牌 + 环境行，右栏 Tips
- * （实用快捷键，不是可点菜单）。窄屏回落为垂直居中叠放。输入轨
- * 由 format/input-frame 承担，本模块只出欢迎块。
- * 宽度守恒：任何输入下每行显示宽度 ≤ width。
+ * The hero receives already-rendered mascot rows; the final composer places
+ * projected restore rows and a selected startup tip.
  */
+
 import { color } from '../engine/ansi.js'
 import type { RivetTheme } from '../theme.js'
-import { displayWidth, truncateToDisplayWidth } from '../width.js'
-import { WHALE_COLS } from './whale.js'
+import { displayWidth, truncateToDisplayWidth, wrapToDisplayWidth } from '../width.js'
 
-function truncateTo(text: string, columns: number): string {
-  let out = ''
-  for (const ch of text) {
-    if (displayWidth(out + ch) > columns) break
-    out += ch
-  }
-  return out
-}
-
-/** 在 width 内水平居中（左侧填充；右侧不补，宽度守恒即 ≤ width）。 */
-function center(text: string, width: number): string {
-  const left = Math.max(0, Math.floor((width - displayWidth(text)) / 2))
-  return `${' '.repeat(left)}${text}`
-}
-
-/** 右侧空格补到 width；超宽 ANSI 安全截断。 */
-function padTo(text: string, width: number): string {
-  const w = displayWidth(text)
-  if (w >= width) return truncateToDisplayWidth(text, width)
-  return `${text}${' '.repeat(width - w)}`
-}
-
-/** 鲸鱼行前导空格（居中 indent）在左栏 zip 前剥掉；ANSI 码在空格之后。 */
-function stripLeadingSpaces(line: string): string {
-  let i = 0
-  while (i < line.length && line[i] === ' ') i++
-  return line.slice(i)
-}
-
-/** formatBrandWelcome 的渲染输入。 */
-export interface FormatBrandWelcomeInput {
-  width: number
-  /** 品牌名（缺省 'Oh My Tianshu'）。 */
-  brand?: string
-  /** 副标题（缺省 'Tianshu Harness'）。 */
-  subtitle?: string
-  /** 发行版本号（提供时副标题行追加 ` · v<version>`；缺省不追加）。 */
-  version?: string
-  /** 水平对齐；hero 左栏用 left，窄屏叠放用 center（缺省）。 */
-  align?: 'center' | 'left'
-}
-
-/**
- * 欢迎页品牌区：主标 brand（BOLD brandColor）+ 副标题（muted），各一行。
- * @param input - 宽度、品牌名、副标题与对齐。
- * @param theme - 当前主题（主标 brandColor BOLD，副标题 muted）。
- * @returns 两行 ANSI；width ≤ 0 返回空数组。
- */
-export function formatBrandWelcome(input: FormatBrandWelcomeInput, theme: RivetTheme): string[] {
-  if (input.width <= 0) return []
-  const brand = truncateTo(input.brand ?? 'Oh My Tianshu', input.width)
-  const subtitle = truncateTo(
-    `${input.subtitle ?? 'Tianshu Harness'}${input.version === undefined ? '' : ` · v${input.version}`}`,
-    input.width,
-  )
-  const brandLine = color(brand, theme.brandColor, { bold: true })
-  const subLine = color(subtitle, theme.muted)
-  if (input.align === 'left') return [brandLine, subLine]
-  return [center(brandLine, input.width), center(subLine, input.width)]
-}
-
-/**
- * 首次启动环境检查结果，供欢迎页环境行使用。
- */
-export interface WelcomeEnvCheck {
-  /** API key 是否已配置（env / credentials 文件 / .env 分层，非仅环境变量）。 */
-  hasApiKey: boolean
-  /** 当前目录是否为 git 仓库（git status 可执行）。 */
-  isGitRepo: boolean
-  /** 当前主题引用名（如 'graphite'，环境行首段展示）。 */
-  themeName: string
-  /** 终端列数（宽度预算）。 */
-  cols: number
-  /** 水平对齐；hero 左栏用 left，窄屏叠放用 center（缺省）。 */
-  align?: 'center' | 'left'
-}
-
-/**
- * 环境检查紧凑行（欢迎页常驻）：`graphite · API Key ✓ · Git ✓`。
- * 缺 API key 时该段换 warning 色并携带可行动提示（/key 设置入口）；
- * git ✗ 仅信息性展示。用「API Key」措辞（非 footer 的「API ✗」）。
- * @param env - 环境检查结果（主题名/API key/git/对齐）。
- * @param theme - 当前主题（muted；缺 key 段 warning）。
- * @returns 单行 ANSI；cols ≤ 0 返回空数组。
- */
-export function formatEnvCheckLine(env: WelcomeEnvCheck, theme: RivetTheme): string[] {
-  if (env.cols <= 0) return []
-  const sep = color(' · ', theme.muted)
-  const api = env.hasApiKey
-    ? color('API Key ✓', theme.muted)
-    : color('API Key ✗（/key 设置）', theme.warning)
-  const git = color(`Git ${env.isGitRepo ? '✓' : '✗'}`, theme.muted)
-  const line = `${color(env.themeName, theme.muted)}${sep}${api}${sep}${git}`
-  const aligned = env.align === 'left' ? line : center(line, env.cols)
-  return [truncateToDisplayWidth(aligned, env.cols)]
-}
-
-/** 欢迎页 Tips 一项（快捷键 + 说明；不可用项整行 muted）。 */
-export interface WelcomeTipItem {
-  /** 快捷键（如 'ctrl+n'、'/'）。 */
-  keyHint: string
-  /** 说明（如 '新会话'）。 */
-  label: string
-  /** 可用性；false 时整行 muted（如无可恢复会话）。 */
-  available?: boolean
-}
-
-/** formatWelcomeTips 的渲染输入。 */
-export interface FormatWelcomeTipsInput {
-  width: number
-  items: readonly WelcomeTipItem[]
-  /** 水平对齐；宽屏右栏 left，窄屏叠放 center（缺省 left）。 */
-  align?: 'center' | 'left'
-}
-
-/**
- * 欢迎页右栏 Tips：标题 + 快捷键列对齐 + 说明。
- * 不可用项整行 muted 且仍显示 keyHint（与旧菜单不同：tips 要让用户知道键还在）。
- * 空 items 仍渲染标题（调用方恒有一组默认 tips）。
- * @param input - 宽度、tips 项与对齐。
- * @param theme - 当前主题（标题 brandColor，hint secondary，说明 muted）。
- * @returns ANSI 行数组。
- */
-export function formatWelcomeTips(input: FormatWelcomeTipsInput, theme: RivetTheme): string[] {
-  const { width, items } = input
-  if (width <= 0) return []
-  const budget = Math.max(0, width - 1)
-  let hintCol = 0
-  for (const item of items) {
-    hintCol = Math.max(hintCol, displayWidth(item.keyHint))
-  }
-  const rows: string[] = []
-  const title = color('Tips', theme.brandColor, { bold: true })
-  rows.push(title)
-  for (const item of items) {
-    const hintPad = Math.max(0, hintCol - displayWidth(item.keyHint))
-    const hintText = `${item.keyHint}${' '.repeat(hintPad)}`
-    const body = `${hintText}  ${item.label}`
-    const truncated = truncateTo(body, budget)
-    if (item.available === false) {
-      rows.push(color(truncated, theme.muted))
-      continue
-    }
-    const hintPart = color(hintText, theme.secondary)
-    const labelPart = color(`  ${truncateTo(item.label, Math.max(0, budget - hintCol - 2))}`, theme.muted)
-    rows.push(displayWidth(body) > budget ? color(truncated, theme.muted) : `${hintPart}${labelPart}`)
-  }
-  if (input.align === 'center') {
-    let blockW = 0
-    for (const row of rows) blockW = Math.max(blockW, displayWidth(row))
-    blockW = Math.min(blockW, budget)
-    const indent = ' '.repeat(Math.max(0, Math.floor((width - blockW) / 2)))
-    return rows.map(row => truncateToDisplayWidth(`${indent}${row}`, budget))
-  }
-  return rows.map(row => truncateToDisplayWidth(row, budget))
-}
-
-/** 宽屏左品牌 / 右 tips 的最小列数。 */
-export const WELCOME_HERO_WIDE_MIN = 72
-
-/** 欢迎区 / live chrome 左侧留白（列）。避免鲸鱼、品牌、输入轨贴边。 */
+/** Welcome and live-chrome left inset in terminal columns. */
 export const CHROME_GUTTER = 2
 
-/** 左右栏间隙列数。 */
+/**
+ * Terminal-column fallback when the attached stream reports no size.
+ *
+ * Live rendering already falls back to `columns || 80`; the heroic welcome
+ * must not silently drop the hero when a stream reports zero columns, so it
+ * composes against this width instead of dropping the hero.
+ */
+const WELCOME_FALLBACK_COLUMNS = 80
+
 const HERO_GAP = 3
+const WELCOME_FOX_NARROW_COLS = 56
+const WELCOME_FOX_WIDE_COLS = 72
+const WELCOME_FOX_NARROW_CELLS = 21
+const WELCOME_FOX_WIDE_CELLS = 27
+const WELCOME_BAND_NARROW_MIN_COLS = 80
+const WELCOME_BAND_WIDE_MIN_COLS = 105
+const WELCOME_UNWRAP_MIN_COLS = 89
 
-/** 右栏 tips 放不下时回落叠放的最小宽度。 */
-const TIPS_MIN_WIDTH = 18
+/** Terminal rows reserved for chrome when deriving the fox art height budget. */
+const WELCOME_ART_CHROME_ROWS = 6
 
-/** formatWelcomeHero 的渲染输入。 */
-export interface FormatWelcomeHeroInput {
+/** Minimum terminal width for the split 56-column fox hero. */
+export const WELCOME_HERO_WIDE_MIN = WELCOME_BAND_NARROW_MIN_COLS
+
+/** Resolves a non-positive terminal width to the fallback columns. */
+function effectiveColumns(width: number): number {
+  return width > 0 ? width : WELCOME_FALLBACK_COLUMNS
+}
+
+function leftInset(width: number): number {
+  return width > CHROME_GUTTER ? CHROME_GUTTER : 0
+}
+
+function fitLine(line: string, width: number, inset = leftInset(width)): string {
+  return truncateToDisplayWidth(`${' '.repeat(inset)}${line}`, width)
+}
+
+function padToWidth(line: string, width: number): string {
+  const fitted = truncateToDisplayWidth(line, width)
+  return `${fitted}${' '.repeat(Math.max(0, width - displayWidth(fitted)))}`
+}
+
+function peerBrandLine(theme: RivetTheme): string {
+  return `${color('DeepSeek', theme.primary, { bold: true })} ${color('◆', theme.brandColor, { bold: true })} ${color('Tianshu Harness', theme.primary, { bold: true })}`
+}
+
+function wrapPeerBrandLine(theme: RivetTheme, wrapWidth: number): string[] {
+  const full = 'DeepSeek ◆ Tianshu Harness'
+  if (displayWidth(full) <= wrapWidth) return [peerBrandLine(theme)]
+  const head = 'DeepSeek ◆'
+  const tail = 'Tianshu Harness'
+  if (displayWidth(head) <= wrapWidth && displayWidth(tail) <= wrapWidth) {
+    return [
+      `${color('DeepSeek', theme.primary, { bold: true })} ${color('◆', theme.brandColor, { bold: true })}`,
+      color(tail, theme.primary, { bold: true }),
+    ]
+  }
+  return wrapToDisplayWidth(peerBrandLine(theme), wrapWidth)
+}
+
+function modelLine(input: FormatWelcomeHeroInput, theme: RivetTheme): string {
+  return color(
+    `Model ${input.modelId} · Effort ${input.reasoningEffort ?? 'auto'}`,
+    theme.secondary,
+  )
+}
+
+function versionLine(version: string, theme: RivetTheme): string {
+  return color(version.startsWith('v') ? version : `v${version}`, theme.muted)
+}
+
+function heroDetails(
+  input: FormatWelcomeHeroInput,
+  theme: RivetTheme,
+  wrapWidth?: number,
+): string[] {
+  const lines = [
+    color('Oh My Tianshu', theme.brandColor, { bold: true }),
+    ...(wrapWidth === undefined ? [peerBrandLine(theme)] : wrapPeerBrandLine(theme, wrapWidth)),
+    modelLine(input, theme),
+    color(`cwd ${input.cwd}`, theme.muted),
+  ]
+  if (input.version !== undefined && input.version !== '') {
+    lines.push(versionLine(input.version, theme))
+  }
+  if (wrapWidth === undefined) return lines
+  return lines.flatMap(line => wrapToDisplayWidth(line, wrapWidth))
+}
+
+function compactHero(input: FormatWelcomeHeroInput, theme: RivetTheme): string[] {
+  return heroDetails(input, theme).map(line => fitLine(line, effectiveColumns(input.width)))
+}
+
+/** Pre-rendered mascot rows and their fixed layout width. */
+export interface RenderedWelcomeArt {
+  /** ANSI rows; an empty array requests the text-only fallback. */
+  lines: readonly string[]
+  /** Fixed column allocation, including transparent trailing pixels. */
   width: number
-  /** 已渲染的鲸鱼行（可能为空：窄屏/无色/legacy 降级）。 */
-  whale: readonly string[]
-  env: WelcomeEnvCheck
-  tips: readonly WelcomeTipItem[]
-  /** 发行版本号（透传 formatBrandWelcome 副标题行）。 */
+}
+
+/** Input for the static welcome hero preview. */
+export interface FormatWelcomeHeroInput {
+  /** Current terminal columns. */
+  width: number
+  /** Current terminal rows. */
+  rows: number
+  /** Pre-rendered mascot art with no mascot-specific dependency. */
+  art: RenderedWelcomeArt
+  /** Current model identifier. */
+  modelId: string
+  /** Current reasoning effort; omitted values display as `auto`. */
+  reasoningEffort?: string
+  /** Current session working directory. */
+  cwd: string
+  /** Optional distribution version. */
   version?: string
 }
 
 /**
- * 欢迎英雄区：宽屏左鲸鱼/品牌/环境 + 右 Tips zip；窄屏垂直居中叠放。
- * @param input - 终端宽、鲸鱼行、环境检查、tips 项。
- * @param theme - 当前主题。
- * @returns ANSI 行数组；width ≤ 0 返回空数组。
+ * Resolves the fox art width for a terminal of the given size.
+ *
+ * The split hero is one of two rest bands: 56 columns from 80×27, and 72
+ * columns from 105×33. Anything smaller uses the compact text form. A
+ * 105-column terminal that lacks the 72-band row budget stays on 56.
+ *
+ * @param width - Current terminal columns.
+ * @param rows - Current terminal rows.
+ * @returns Art columns for the split hero, or null for the text fallback.
  */
-export function formatWelcomeHero(input: FormatWelcomeHeroInput, theme: RivetTheme): string[] {
-  const { width, whale, tips } = input
-  if (width <= 0) return []
-  const env = { ...input.env, cols: width }
-
-  const stacked = (): string[] => {
-    const out: string[] = []
-    if (whale.length > 0) {
-      out.push(...whale)
-      out.push('')
-    }
-    out.push(...formatBrandWelcome({ width, align: 'center', ...(input.version === undefined ? {} : { version: input.version }) }, theme))
-    out.push('')
-    out.push(...formatEnvCheckLine({ ...env, cols: width, align: 'center' }, theme))
-    out.push('')
-    out.push(...formatWelcomeTips({ width, items: tips, align: 'center' }, theme))
-    return out
+export function resolveWelcomeArtWidth(width: number, rows: number): number | null {
+  const columns = effectiveColumns(width)
+  const foxRows = rows - WELCOME_ART_CHROME_ROWS
+  if (foxRows < WELCOME_FOX_NARROW_CELLS) return null
+  if (columns < WELCOME_BAND_NARROW_MIN_COLS) return null
+  if (columns >= WELCOME_BAND_WIDE_MIN_COLS && foxRows >= WELCOME_FOX_WIDE_CELLS) {
+    return WELCOME_FOX_WIDE_COLS
   }
-
-  if (width < WELCOME_HERO_WIDE_MIN) return stacked()
-
-  const gutter = width >= CHROME_GUTTER * 2 + TIPS_MIN_WIDTH ? CHROME_GUTTER : 0
-  const inner = width - gutter
-  const brand = formatBrandWelcome({ width: inner, align: 'left', ...(input.version === undefined ? {} : { version: input.version }) }, theme)
-  const envLeft = formatEnvCheckLine({ ...env, cols: inner, align: 'left' }, theme)
-  const whaleStripped = whale.map(stripLeadingSpaces)
-  let leftW = WHALE_COLS
-  for (const line of [...whaleStripped, ...brand, ...envLeft]) {
-    leftW = Math.max(leftW, displayWidth(line))
-  }
-  const rightW = inner - leftW - HERO_GAP
-  if (rightW < TIPS_MIN_WIDTH) return stacked()
-
-  const leftCol: string[] = []
-  if (whaleStripped.length > 0) {
-    leftCol.push(...whaleStripped)
-    leftCol.push('')
-  }
-  leftCol.push(...brand)
-  leftCol.push(...envLeft)
-
-  const rightCol = formatWelcomeTips({ width: rightW, items: tips, align: 'left' }, theme)
-  const rows = Math.max(leftCol.length, rightCol.length)
-  const gap = ' '.repeat(HERO_GAP)
-  const pad = ' '.repeat(gutter)
-  const out: string[] = []
-  for (let i = 0; i < rows; i++) {
-    const left = padTo(leftCol[i] ?? '', leftW)
-    const right = rightCol[i] ?? ''
-    out.push(truncateToDisplayWidth(`${pad}${left}${gap}${right}`, width))
-  }
-  return out
-}
-
-/** formatWelcomeCard 的渲染输入。 */
-export interface FormatWelcomeCardInput {
-  width: number
-  /** 卡内内容行（formatWelcomeHero 的输出，含 ANSI；显示宽度应 ≤ width - 4）。 */
-  lines: readonly string[]
-  /** 顶边嵌入的品牌文案（缺省 'Oh My Tianshu'）。 */
-  brand?: string
+  return WELCOME_FOX_NARROW_COLS
 }
 
 /**
- * 欢迎卡圆角边框盒（omp 风格）：顶边嵌品牌 `╭─ brand ───╮`（dim 边框 +
- * brandColor BOLD 品牌），内容行左右各留一列呼吸，底边 `╰───╯`。超宽
- * 内容 ANSI 安全截断；任何输出行 displayWidth ≤ width。width < 8 时盒体
- * 不成立，原样返回内容行。
- * @param input - 宽度、内容行与品牌文案。
- * @param theme - 当前主题。
- * @returns ANSI 行数组；width ≤ 0 返回空数组。
+ * Renders the split fox hero or its compact text-only fallback.
+ *
+ * The wide layout requires the terminal to pass {@link resolveWelcomeArtWidth}
+ * plus non-empty art sized to the resolved allocation.
+ *
+ * @param input - Terminal size, rendered art, model/effort, cwd, and version.
+ * @param theme - Active terminal theme.
+ * @returns ANSI-safe rows whose display width never exceeds `input.width`.
  */
-export function formatWelcomeCard(input: FormatWelcomeCardInput, theme: RivetTheme): string[] {
-  const { width } = input
-  if (width <= 0) return []
-  if (width < 8) return [...input.lines]
-  const brandText = ` ${input.brand ?? 'Oh My Tianshu'} `
-  const shownBrand = truncateToDisplayWidth(brandText, width - 4)
-  // omp 版式：品牌靠左（╭─ brand ───╮）；fill 随宽度补足（总宽恒 = width）。
-  const fillTop = Math.max(1, width - 3 - displayWidth(shownBrand))
-  const inner = width - 4
-  const border = (s: string): string => color(s, theme.dim)
-  const top = border('╭─') + color(shownBrand, theme.brandColor, { bold: true }) + border('─'.repeat(fillTop) + '╮')
-  const bottom = border('╰' + '─'.repeat(width - 2) + '╯')
-  const out: string[] = [top]
-  for (const line of input.lines) {
-    out.push(`${border('│')} ${padTo(line, inner)} ${border('│')}`)
+export function formatWelcomeHero(
+  input: FormatWelcomeHeroInput,
+  theme: RivetTheme,
+): string[] {
+  const width = effectiveColumns(input.width)
+  const inset = leftInset(width)
+  const artWidth = resolveWelcomeArtWidth(width, input.rows)
+  const compact = artWidth === null
+    || input.art.lines.length === 0
+    || input.art.width <= 0
+    || input.art.width !== artWidth
+  if (compact) return compactHero(input, theme)
+
+  const detailWidth = width - inset - input.art.width - HERO_GAP
+  const details = heroDetails(
+    input,
+    theme,
+    width < WELCOME_UNWRAP_MIN_COLS ? detailWidth : undefined,
+  )
+
+  const rowCount = Math.max(input.art.lines.length, details.length)
+  const detailsTop = Math.floor((rowCount - details.length) / 2)
+  const output: string[] = []
+  for (let row = 0; row < rowCount; row++) {
+    const art = padToWidth(input.art.lines[row] ?? '', input.art.width)
+    const detail = details[row - detailsTop] ?? ''
+    output.push(truncateToDisplayWidth(
+      `${' '.repeat(inset)}${art}${' '.repeat(HERO_GAP)}${detail}`,
+      width,
+    ))
   }
-  out.push(bottom)
-  return out
+  return output
 }
 
-/** 欢迎卡下方的随机贴士池（启动时取一条，斜体 dim 渲染）。 */
-export const WELCOME_TIPS: readonly string[] = [
+/** Input for the final static welcome composition. */
+export interface FormatWelcomeInput extends FormatWelcomeHeroInput {
+  /** Pre-rendered numbered restore rows. */
+  restoreLines: readonly string[]
+  /** Already-selected startup tip, including its `Tip:` prefix. */
+  tip: string
+}
+
+/**
+ * Composes the final welcome scrollback block.
+ *
+ * Restore rows are absent as one unit when the input list is empty. The tip is
+ * always the final content row, followed by one empty separator row.
+ *
+ * @param input - Hero fields plus pre-rendered restore rows and selected tip.
+ * @param theme - Active terminal theme.
+ * @returns The complete bounded welcome block.
+ */
+export function formatWelcome(input: FormatWelcomeInput, theme: RivetTheme): string[] {
+  const width = effectiveColumns(input.width)
+  const output = ['', ...formatWelcomeHero(input, theme)]
+  if (input.restoreLines.length > 0) {
+    output.push(fitLine(color('恢复会话', theme.brandColor, { bold: true }), width))
+    for (const line of input.restoreLines) output.push(fitLine(line, width))
+    output.push(fitLine(color('[1-9] 恢复 · ctrl+n 新会话', theme.muted), width))
+  }
+  output.push(fitLine(color(input.tip, theme.muted, { italic: true }), width))
+  output.push('')
+  return output
+}
+
+/** Stable startup-tip pool. */
+export const WELCOME_TIPS = [
   'Ctrl+. 随时调出完整键位表',
   'Shift+Tab 在 normal / plan / always-approve 间循环',
   'Ctrl+V 直接粘贴剪贴板里的截图',
@@ -301,20 +240,23 @@ export const WELCOME_TIPS: readonly string[] = [
   '/fork 给当前会话分叉一个探索分支',
   'Ctrl+E 用 $EDITOR 编辑长输入',
   '/export 把会话导出成 Markdown',
-]
+] as const satisfies readonly [string, ...string[]]
 
-/** 贴士池的恢复条目（2.5：存在可恢复会话且首屏列表未展示时动态加入）。 */
+/** Optional pool entry for a hidden but available restore action. */
 export const RESUME_TIP = 'Ctrl+S 恢复上次会话'
 
 /**
- * 从贴士池随机取一条。恢复条目按 2.5 动态化：有可恢复会话且首屏列表不可见
- * 时入池（恢复入口始终可见），首屏列表可见时不重复引导。
- * @param rng - 随机源（测试注入；缺省 Math.random）。
- * @param opts - resumeVisible = 应加入恢复条目（有可恢复会话且列表未展示）。
- * @returns 贴士文本（含 'Tip: ' 前缀）。
+ * Selects one startup tip, optionally including the restore action.
+ *
+ * @param rng - Random source, injectable for deterministic tests.
+ * @param opts - Whether the restore action joins the candidate pool.
+ * @returns Selected text with a `Tip: ` prefix.
  */
-export function pickWelcomeTip(rng: () => number = Math.random, opts: { resumeVisible?: boolean } = {}): string {
+export function pickWelcomeTip(
+  rng: () => number = Math.random,
+  opts: { resumeVisible?: boolean } = {},
+): string {
   const pool = opts.resumeVisible === true ? [...WELCOME_TIPS, RESUME_TIP] : WELCOME_TIPS
-  const tip = pool[Math.floor(rng() * pool.length) % pool.length] ?? WELCOME_TIPS[0] ?? ''
+  const tip = pool[Math.floor(rng() * pool.length) % pool.length] ?? WELCOME_TIPS[0]
   return `Tip: ${tip}`
 }
