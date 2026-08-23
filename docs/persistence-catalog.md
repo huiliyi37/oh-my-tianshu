@@ -180,6 +180,32 @@ Source: [`packages/interaction/user-approval/src/index.ts:55`](../packages/inter
 
 Source: [`packages/interaction/user-approval/src/index.ts:67`](../packages/interaction/user-approval/src/index.ts)
 
+#### `approval/rule` — log-only
+
+```ts persistence-catalog
+/**
+ * A persistent rule settled an `approval/request` — log-only audit (NOT a
+ * surface event, carries no `surfaceOp`, never enters the model
+ * transcript). Appended to the owning session between the matching
+ * `approval/asked` and `approval/decided`; `ruleIndex` is the zero-based
+ * position in the effective (user-then-project) rule list that matched.
+ */
+'approval/rule': {
+  /** The rule's exact tool name. */
+  tool: string
+  /** The rule's full-string-anchored glob pattern (the matched value). */
+  pattern: string
+  /** The decision the matched rule settled the request with. */
+  decision: PermissionDecision
+  /** Zero-based index of the matched rule in the effective list. */
+  ruleIndex: number
+  /** Which storage layer owned the matched rule. */
+  layer: PermissionLayer
+}
+```
+
+Source: [`packages/interaction/approval-rules/src/index.ts:64`](../packages/interaction/approval-rules/src/index.ts)
+
 ### `assistant/*`
 
 #### `assistant/chunk` — log-only
@@ -574,7 +600,7 @@ Source: [`packages/interaction/permission/src/index.ts:50`](../packages/interact
 'plan/file': { path: string; heading: string }
 ```
 
-Source: [`packages/plan/plan-mode/src/index.ts:73`](../packages/plan/plan-mode/src/index.ts)
+Source: [`packages/plan/plan-mode/src/index.ts:75`](../packages/plan/plan-mode/src/index.ts)
 
 #### `plan/mode` — log-only
 
@@ -587,7 +613,7 @@ Source: [`packages/plan/plan-mode/src/index.ts:73`](../packages/plan/plan-mode/s
 'plan/mode': { active: boolean }
 ```
 
-Source: [`packages/plan/plan-mode/src/index.ts:65`](../packages/plan/plan-mode/src/index.ts)
+Source: [`packages/plan/plan-mode/src/index.ts:67`](../packages/plan/plan-mode/src/index.ts)
 
 ### `request/*`
 
@@ -629,7 +655,7 @@ Source: [`packages/core/session/src/types.ts:290`](../packages/core/session/src/
 'router/adoption': { subagentSessionId: string; verdict: 'adopt' | 'reject'; reason: string }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:115`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:116`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/decision` — log-only
 
@@ -643,7 +669,7 @@ Source: [`packages/guard/agent-router/src/index.ts:115`](../packages/guard/agent
 'router/decision': RouterDecisionRecord
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:122`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:123`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/evaluation` — log-only
 
@@ -665,7 +691,7 @@ Source: [`packages/guard/agent-router/src/index.ts:122`](../packages/guard/agent
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:130`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:131`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/gate` — log-only
 
@@ -683,7 +709,7 @@ Source: [`packages/guard/agent-router/src/index.ts:130`](../packages/guard/agent
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:144`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:145`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/outcome` — log-only
 
@@ -700,7 +726,7 @@ Source: [`packages/guard/agent-router/src/index.ts:144`](../packages/guard/agent
 'router/outcome': { subagentSessionId: string; stopReason: string; finding?: RouterFinding }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:108`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:109`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/route` — log-only
 
@@ -722,7 +748,7 @@ Source: [`packages/guard/agent-router/src/index.ts:108`](../packages/guard/agent
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:82`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:83`](../packages/guard/agent-router/src/index.ts)
 
 ### `sandbox/*`
 
@@ -1032,4 +1058,4 @@ Source: [`packages/web/web-search-deepseek/src/provider.ts:83`](../packages/web/
 'zen/phase': { phase: ZenPhase; reason: ZenTransitionReason }
 ```
 
-Source: [`packages/guard/zen/src/index.ts:62`](../packages/guard/zen/src/index.ts)
+Source: [`packages/guard/zen/src/index.ts:68`](../packages/guard/zen/src/index.ts)

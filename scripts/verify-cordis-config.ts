@@ -171,8 +171,9 @@ function validateAppResolution(): string[] {
   const appReferences = pluginReferences.filter(reference => shipped.has(reference.file) || appOverlayFiles.has(reference.file))
   violations.push(...missingPluginDependencies(appReferences, appDependencies, 'apps/cli/package.json or a bundle manifest'))
   // Each bundle's patch rows must resolve from that bundle's own dependencies:
-  // per-layer resolution anchors on the bundle package directory.
-  for (const manifestPath of globSync('packages/bundle/*/package.json', { cwd: root })) {
+  // per-layer resolution anchors on the bundle package directory. The TUI is
+  // not a bundle package but anchors its own cordis.patch.yml the same way.
+  for (const manifestPath of globSync(['packages/bundle/*/package.json', 'packages/tui/tui/package.json'], { cwd: root })) {
     const bundleDir = manifestPath.replace(/\/package\.json$/, '')
     const manifest = readManifest(manifestPath)
     const references = pluginReferences.filter(reference => reference.file.startsWith(`${bundleDir}/`))

@@ -77,7 +77,9 @@ async function styleSections(ctx: Context): Promise<string[]> {
 async function runStyle(ctx: Context, agent: Agent, input: string): Promise<{ kind: string; text: string }> {
   const execution = await ctx.commands.execute(agent, `/style${input === '' ? '' : ` ${input}`}`, new AbortController().signal)
   if (execution === undefined) throw new Error('composition did not resolve /style')
-  return execution.result
+  const result = execution.result
+  if (result.text === undefined) throw new Error('/style result carries no text')
+  return { kind: result.kind, text: result.text }
 }
 
 describe('output-style section', () => {

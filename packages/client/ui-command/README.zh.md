@@ -16,7 +16,7 @@
 
 ## 模型体验
 
-间接影响，途径是本包的派发与 `claim.submit` 路径触发的 host `command.execute` RPC：匹配命中的命令，其 handler 会修改 host 领域状态，其他包再把该状态投影进下一个请求（`/plan` 的 handler 翻转 plan 模式，其归属包注入 `plan:policy` 系统提示词 section），而命令行本身、detached result 与所有菜单／notice 渲染都留在客户端，永不进入会话日志。
+间接影响，途径是本包的派发与 `claim.submit` 路径触发的 host `command.execute` RPC：匹配命中的命令，其 handler 会修改 host 领域状态，其他包再把该状态投影进下一个请求（`/plan` 的 handler 翻转 plan 模式，其归属包把指导注入下一个请求的尾部），而命令行本身、detached result 与所有菜单／notice 渲染都留在客户端，永不进入会话日志。
 
 #### KV Cache 影响
 

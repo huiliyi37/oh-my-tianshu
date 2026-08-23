@@ -19,13 +19,13 @@ function withHarness(harness: Harness): Harness {
 }
 
 /** The approval-audit slice of a session log, in order. */
-function auditTypes(session: { events: Array<{ type: string }> }): string[] {
+function auditTypes(session: { events: ReadonlyArray<{ type: string }> }): string[] {
   return session.events
     .filter(event => ['approval/asked', 'approval/rule', 'approval/decided'].includes(event.type))
     .map(event => event.type)
 }
 
-function ruleEvents(session: { events: Array<{ type: string; data: unknown }> }): Array<Record<string, unknown>> {
+function ruleEvents(session: { events: ReadonlyArray<{ type: string; data: unknown }> }): Array<Record<string, unknown>> {
   return session.events
     .filter(event => event.type === 'approval/rule')
     .map(event => event.data as Record<string, unknown>)

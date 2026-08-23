@@ -30,6 +30,7 @@ import type { Context } from '@huiliyi37/cordis'
 import type { Session, SessionEvent, SessionId } from '@huiliyi37/dsh-session'
 import { MAX_SUBAGENT_RUN_TIMEOUT_MS } from '@huiliyi37/dsh-subagent'
 import type {} from '@huiliyi37/dsh-agent' // 'agent/disposed' 事件声明合并
+import { defineTool } from '@huiliyi37/dsh-tools'
 import type {} from '@huiliyi37/dsh-tools' // ctx.tools 声明合并
 import type {} from '@huiliyi37/dsh-system-prompt' // ctx.systemPrompt 声明合并'
 import { foldZenPhase } from '@huiliyi37/dsh-zen'
@@ -521,7 +522,9 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
 
   // —— 采用声明工具：主代理对每条 child 结论逐条声明 adopt/reject ——
   if (canDispatch) {
-    ctx.effect(() => ctx.tools.register({
+    // defineTool 把速记 parameters 归一成 JSON Schema（裸对象注册会让模型面
+    // schema 缺 type: 'object' 外壳——gen-tool-catalog 的保证测试抓到过）。
+    ctx.effect(() => ctx.tools.register(defineTool({
       name: ADOPT_TOOL_NAME,
       description: 'Declare your adoption decision for one dispatched subagent finding: '
         + 'adopt (integrate it) or reject (state why). Call exactly once per finding listed in your synthesis prompt.',
@@ -555,7 +558,7 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
         })
         return { adopted: true as const }
       }),
-    }), 'agent-router.router-adopt')
+    })), 'agent-router.router-adopt')
 
     // —— 主代理综合提示：动态 finding 作为变量值在模板插值时单次注入，
     //    其中的 `{{...}}` 不会被二次解释为 prompt 变量。model-visible 内容

@@ -377,7 +377,7 @@ export interface AgentRouterConfig {
 }
 ```
 
-来源：[`packages/guard/agent-router/src/index.ts:211`](../packages/guard/agent-router/src/index.ts)
+来源：[`packages/guard/agent-router/src/index.ts:212`](../packages/guard/agent-router/src/index.ts)
 
 ## `@huiliyi37/dsh-agent-spine-demo`
 
@@ -490,11 +490,11 @@ export interface Config {
 需要：`approval`
 
 ```ts config-catalog
-/** 插件配置：两个规则层文件，部署可覆盖。 */
+/** Plugin config: the two rule-layer files, overridable by a deployment. */
 export interface Config {
-  /** 用户规则文件；默认 `<resolveDshHome()>/permissions.yaml`。 */
+  /** User-rule file; defaults to `<resolveDshHome()>/permissions.yaml`. */
   readonly userFile?: string
-  /** 项目规则文件；默认 `<cwd>/.dsh/permissions.yaml`。 */
+  /** Project-rule file; defaults to `<cwd>/.dsh/permissions.yaml`. */
   readonly projectFile?: string
 }
 ```
@@ -584,6 +584,18 @@ export type Config = LocalConfig
 
 来源：[`packages/bash/bash-sandbox/src/index.ts:35`](../packages/bash/bash-sandbox/src/index.ts)
 
+## `@huiliyi37/dsh-cache-diagnostic`
+
+```ts config-catalog
+/**
+ * No settings are supported; any key fails at load. Declared as a named type
+ * so the config catalog can render the (empty) shape.
+ */
+export interface CacheDiagnosticConfig extends Record<string, never> {}
+```
+
+来源：[`packages/llm/cache-diagnostic/src/index.ts:86`](../packages/llm/cache-diagnostic/src/index.ts)
+
 ## `@huiliyi37/dsh-client-connection`
 
 需要：`httpServer`
@@ -659,11 +671,11 @@ export interface Config {
 需要：`commands`
 
 ```ts config-catalog
-/** 插件配置：两个命令层目录。 */
+/** Plugin config: the two command-layer directories. */
 export interface Config {
-  /** 用户命令目录（绝对）；默认 `<resolveDshHome()>/commands`。 */
+  /** Absolute user-command directory; defaults to `<resolveDshHome()>/commands`. */
   readonly userDir?: string
-  /** 项目命令目录（绝对）；默认 `<cwd>/.dsh/commands`。 */
+  /** Absolute project-command directory; defaults to `<cwd>/.dsh/commands`. */
   readonly projectDir?: string
 }
 ```
@@ -1747,16 +1759,16 @@ export interface Config {
 需要：`systemPrompt` · `commands`
 
 ```ts config-catalog
-/** 插件配置：组合级默认值与无 provider 回退。 */
+/** Plugin config: composition-level default and no-provider fallback. */
 export interface Config {
   /**
-   * 在任何 settings 提交之前生效的风格；未装配 settings provider 时的永久
-   * 回退。缺省为 `default`。
+   * Style active until a settings commit switches it, and the permanent
+   * fallback when no settings provider is assembled. Defaults to `default`.
    */
   defaultStyle?: OutputStyle
 }
 
-/** 封闭的输出风格词汇表。 */
+/** The closed output-style vocabulary. */
 export type OutputStyle = 'default' | 'explanatory' | 'learning'
 ```
 
@@ -1823,12 +1835,16 @@ export interface Config {
 
 ## `@huiliyi37/dsh-plan-mode`
 
-需要：`tools` · `systemPrompt`
+需要：`tools`
 
 ```ts config-catalog
 /** Deployment-owned plan guidance. */
 export interface PlanModeConfig {
-  /** Guidance rendered as the `plan:policy` prompt section while plan mode is active. */
+  /**
+   * Guidance injected at the tail of each turn's first request while plan
+   * mode is active. It never enters the system prompt, so the cached prefix
+   * stays byte-constant across mode flips.
+   */
   section: string
   /**
    * Extra tool names the plan-mode guard denies on top of the built-in
@@ -1840,7 +1856,7 @@ export interface PlanModeConfig {
 }
 ```
 
-来源：[`packages/plan/plan-mode/src/index.ts:90`](../packages/plan/plan-mode/src/index.ts)
+来源：[`packages/plan/plan-mode/src/index.ts:92`](../packages/plan/plan-mode/src/index.ts)
 
 ## `@huiliyi37/dsh-pty-local`
 
@@ -2854,7 +2870,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/fs/tool-fs/src/index.ts:24`](../packages/fs/tool-fs/src/index.ts)
+来源：[`packages/fs/tool-fs/src/index.ts:25`](../packages/fs/tool-fs/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-fs-search`
 
@@ -3406,7 +3422,7 @@ export interface TuiRunnerConfig {
   editorKey?: KeyName
   /** 是否启用 Vim 键位（Phase 6.5）；缺省 false。 */
   vimEnabled?: boolean
-  /** 欢迎开场策略；auto 按终端能力播放一次，off 直接提交静态终态。 */
+  /** 欢迎策略；`auto` 与 `off` 都立即提交静态狐狸终态。 */
   welcomeAnimation?: WelcomeAnimationMode
   /** 主控模型的识图能力与视觉桥状态（图片附件气泡提示数据源）。 */
   vision?: {
@@ -3823,7 +3839,8 @@ export interface ZenConfig {
   /**
    * Global tool names visible during the zen phase (the anchored face);
    * `zen_anchor` is agent-scoped and always visible on top. Every name must
-   * be a registered global tool — an unknown name fails agent creation loud.
+   * be a registered global tool — a name nothing registers fails loud when
+   * the list is completed at the first per-agent seam.
    * Default: `['bash', 'str_replace_editor', 'todo_write']` (the official
    * DeepSeek evaluation recipe plus plan bookkeeping).
    */
@@ -3878,8 +3895,8 @@ export interface ZenConfig {
    * (the default) lifts the zen restriction and exposes every registered
    * global tool. Non-empty installs `restrict({ deny })` so overlapping
    * stacks stay registered for subagent roles but leave the parent catalog.
-   * Unknown names fail at agent creation; a name that also appears in `face`
-   * fails at plugin load. The TUI derives its list from {@link BASH_OVERLAP_TOOLS}.
+   * Unknown names fail when the list is installed; a name that also appears in
+   * `face` fails at plugin load. The TUI ships {@link BASH_OVERLAP_TOOLS}.
    * A denied tool's `tool:<name>` prompt section leaves the assembly with it.
    */
   promoteDeny?: readonly string[]
@@ -3888,7 +3905,7 @@ export interface ZenConfig {
 }
 ```
 
-来源：[`packages/guard/zen/src/index.ts:82`](../packages/guard/zen/src/index.ts)
+来源：[`packages/guard/zen/src/index.ts:88`](../packages/guard/zen/src/index.ts)
 
 ## Loadable plugins with no config
 

@@ -62,7 +62,9 @@ describe('file-backed command execution', () => {
     expect(execution!.result).toEqual({ kind: 'success', text: 'Hello world' })
 
     expect(steer).toHaveBeenCalledTimes(1)
-    const steered = steer.mock.calls[0][0] as UserMessage
+    const firstCall = steer.mock.calls[0]
+    if (firstCall === undefined) throw new Error('expected one steer call')
+    const steered = firstCall[0] as UserMessage
     expect(steered.role).toBe('user')
     expect(steered.source).toEqual({ kind: 'user' })
     expect(steered.content).toEqual([{ type: 'text', text: 'Hello world' }])
@@ -70,6 +72,7 @@ describe('file-backed command execution', () => {
     expect(agent.session.events.map(event => event.type)).toEqual(['command/run', 'command/done'])
     const run = agent.session.events[0]
     const done = agent.session.events[1]
+    if (run === undefined || done === undefined) throw new Error('expected command/run and command/done events')
     expect(run.type === 'command/run' && run.data).toMatchObject({ name: 'hello' })
     expect(done.type === 'command/done' && done.data).toMatchObject({ kind: 'success', text: 'Hello world' })
   })

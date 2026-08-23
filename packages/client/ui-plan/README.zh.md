@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-Plan mode 状态徽章，纯浏览器 surface 插件。浏览器侧占用会话声明的 `conversation.input.plan` 单实例 seat（位于 access 模式控件右侧）；node 侧是空 apply（roster 行）。plan 行为本身——`/plan` 命令、边界或空闲即时提交的 `plan/mode` 状态、`plan` 投影单元与 policy 段——归 [`@huiliyi37/dsh-plan-mode`](../../plan/plan-mode/README.md) 所有，由 host roster 独立组合。
+Plan mode 状态徽章，纯浏览器 surface 插件。浏览器侧占用会话声明的 `conversation.input.plan` 单实例 seat（位于 access 模式控件右侧）；node 侧是空 apply（roster 行）。plan 行为本身——`/plan` 命令、边界或空闲即时提交的 `plan/mode` 状态、`plan` 投影单元与 policy 指导——归 [`@huiliyi37/dsh-plan-mode`](../../plan/plan-mode/README.md) 所有，由 host roster 独立组合。
 
 plan mode 经 `/plan` 命令路径进入：用户可以从 composer 的 `+` Command 菜单选择 Plan，也可以输入 `/plan`，而本包不渲染未激活态 plan 控件。当 host 计算的 `plan` 投影有效目标为 plan mode 时（`pending ? !active : active`——折叠的 host 值而非客户端乐观态，帧到达即自动纠正），座位渲染 warn 色的 "Plan ×" 状态按钮，该按钮经 `command.execute` 执行 `/plan off`；否则座位保持为空——未组合 plan-mode 的 host（或尚无会话的 Draft）不显示任何内容。plan mode 为有效目标期间，composer 文本框的 placeholder 切换为 plan 任务提示——"describe your task to generate plan"（中文「描述你的任务以生成计划」），经 ui-conversation 的 `conversation` locale 命名空间（`placeholder.plan` / `hint.plan` 键）本地化，并与已认领 `/plan` 命令的提示逐字共用同一份文案（由 composer 从同一投影渲染；owner 提供的 placeholder 优先）。
 
@@ -12,11 +12,11 @@ chip 携带无障碍描述 "Plan mode on, press to turn off"。准入失败（`m
 
 ## 模型体验
 
-间接地，通过 chip 派发的 `/plan off` 命令行：`@huiliyi37/dsh-plan-mode` 拥有该命令行驱动的模型可见 policy 段、退出工具 schema 与已记录状态，本包只渲染投影并发送用户同样可以手敲的内容。
+间接地，通过 chip 派发的 `/plan off` 命令行：`@huiliyi37/dsh-plan-mode` 拥有该命令行驱动的模型可见 policy 指导、退出工具 schema 与已记录状态，本包只渲染投影并发送用户同样可以手敲的内容。
 
 #### KV Cache 影响
 
-进入或离开 plan mode 会改变活跃的 `plan:policy` 系统提示词段，因此改变请求前缀；chip 本身不添加任何提示词内容。
+进入或离开 plan mode 保持请求前缀逐字节恒定——归属包的指导随请求尾部注入，绝不进入系统提示词；chip 本身不添加任何提示词内容。
 
 ## 已知局限与延后工作
 

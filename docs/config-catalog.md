@@ -375,7 +375,7 @@ export interface AgentRouterConfig {
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:211`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:212`](../packages/guard/agent-router/src/index.ts)
 
 ## `@huiliyi37/dsh-agent-spine-demo`
 
@@ -581,6 +581,18 @@ export type Config = LocalConfig
 Depends on: [`LocalConfig`](#huiliyi37dsh-bash-local)
 
 Source: [`packages/bash/bash-sandbox/src/index.ts:35`](../packages/bash/bash-sandbox/src/index.ts)
+
+## `@huiliyi37/dsh-cache-diagnostic`
+
+```ts config-catalog
+/**
+ * No settings are supported; any key fails at load. Declared as a named type
+ * so the config catalog can render the (empty) shape.
+ */
+export interface CacheDiagnosticConfig extends Record<string, never> {}
+```
+
+Source: [`packages/llm/cache-diagnostic/src/index.ts:86`](../packages/llm/cache-diagnostic/src/index.ts)
 
 ## `@huiliyi37/dsh-client-connection`
 
@@ -1821,12 +1833,16 @@ Source: [`packages/preset/persona/src/index.ts:34`](../packages/preset/persona/s
 
 ## `@huiliyi37/dsh-plan-mode`
 
-Requires: `tools` · `systemPrompt`
+Requires: `tools`
 
 ```ts config-catalog
 /** Deployment-owned plan guidance. */
 export interface PlanModeConfig {
-  /** Guidance rendered as the `plan:policy` prompt section while plan mode is active. */
+  /**
+   * Guidance injected at the tail of each turn's first request while plan
+   * mode is active. It never enters the system prompt, so the cached prefix
+   * stays byte-constant across mode flips.
+   */
   section: string
   /**
    * Extra tool names the plan-mode guard denies on top of the built-in
@@ -1838,7 +1854,7 @@ export interface PlanModeConfig {
 }
 ```
 
-Source: [`packages/plan/plan-mode/src/index.ts:90`](../packages/plan/plan-mode/src/index.ts)
+Source: [`packages/plan/plan-mode/src/index.ts:92`](../packages/plan/plan-mode/src/index.ts)
 
 ## `@huiliyi37/dsh-pty-local`
 
@@ -2852,7 +2868,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/fs/tool-fs/src/index.ts:24`](../packages/fs/tool-fs/src/index.ts)
+Source: [`packages/fs/tool-fs/src/index.ts:25`](../packages/fs/tool-fs/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-fs-search`
 
@@ -3404,7 +3420,7 @@ export interface TuiRunnerConfig {
   editorKey?: KeyName
   /** 是否启用 Vim 键位（Phase 6.5）；缺省 false。 */
   vimEnabled?: boolean
-  /** 欢迎开场策略；auto 按终端能力播放一次，off 直接提交静态终态。 */
+  /** 欢迎策略；`auto` 与 `off` 都立即提交静态狐狸终态。 */
   welcomeAnimation?: WelcomeAnimationMode
   /** 主控模型的识图能力与视觉桥状态（图片附件气泡提示数据源）。 */
   vision?: {
@@ -3821,7 +3837,8 @@ export interface ZenConfig {
   /**
    * Global tool names visible during the zen phase (the anchored face);
    * `zen_anchor` is agent-scoped and always visible on top. Every name must
-   * be a registered global tool — an unknown name fails agent creation loud.
+   * be a registered global tool — a name nothing registers fails loud when
+   * the list is completed at the first per-agent seam.
    * Default: `['bash', 'str_replace_editor', 'todo_write']` (the official
    * DeepSeek evaluation recipe plus plan bookkeeping).
    */
@@ -3876,8 +3893,9 @@ export interface ZenConfig {
    * (the default) lifts the zen restriction and exposes every registered
    * global tool. Non-empty installs `restrict({ deny })` so overlapping
    * stacks stay registered for subagent roles but leave the parent catalog.
-   * Unknown names fail at agent creation; a name that also appears in `face`
-   * fails at plugin load. The TUI ships {@link BASH_OVERLAP_TOOLS}.
+   * Unknown names fail when the list is installed; a name that also appears in
+   * `face` fails at plugin load. The TUI ships {@link BASH_OVERLAP_TOOLS}.
+   * A denied tool's `tool:<name>` prompt section leaves the assembly with it.
    */
   promoteDeny?: readonly string[]
   /** Master switch; `false` mounts the service with no behavior. Default true. */
@@ -3885,7 +3903,7 @@ export interface ZenConfig {
 }
 ```
 
-Source: [`packages/guard/zen/src/index.ts:82`](../packages/guard/zen/src/index.ts)
+Source: [`packages/guard/zen/src/index.ts:88`](../packages/guard/zen/src/index.ts)
 
 ## Loadable plugins with no config
 

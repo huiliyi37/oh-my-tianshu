@@ -16,7 +16,7 @@ The `/client` export surface is the plugin body (`apply`/`inject`), `CommandServ
 
 ## Model Experience
 
-Indirectly, through the host `command.execute` RPC this package's dispatch and `claim.submit` paths trigger: a matched command's handler mutates host domain state that other packages project into the next request (the `/plan` handler flips plan mode, whose owning package injects its `plan:policy` system-prompt section), while the command line itself, the detached result, and every menu/notice rendering stay client-side and never enter the session log.
+Indirectly, through the host `command.execute` RPC this package's dispatch and `claim.submit` paths trigger: a matched command's handler mutates host domain state that other packages project into the next request (the `/plan` handler flips plan mode, whose owning package injects its guidance at the next request's tail), while the command line itself, the detached result, and every menu/notice rendering stay client-side and never enter the session log.
 
 #### KV Cache effect
 

@@ -182,6 +182,32 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 
 来源：[`packages/interaction/user-approval/src/index.ts:67`](../packages/interaction/user-approval/src/index.ts)
 
+#### `approval/rule` — log-only
+
+```ts persistence-catalog
+/**
+ * A persistent rule settled an `approval/request` — log-only audit (NOT a
+ * surface event, carries no `surfaceOp`, never enters the model
+ * transcript). Appended to the owning session between the matching
+ * `approval/asked` and `approval/decided`; `ruleIndex` is the zero-based
+ * position in the effective (user-then-project) rule list that matched.
+ */
+'approval/rule': {
+  /** The rule's exact tool name. */
+  tool: string
+  /** The rule's full-string-anchored glob pattern (the matched value). */
+  pattern: string
+  /** The decision the matched rule settled the request with. */
+  decision: PermissionDecision
+  /** Zero-based index of the matched rule in the effective list. */
+  ruleIndex: number
+  /** Which storage layer owned the matched rule. */
+  layer: PermissionLayer
+}
+```
+
+来源：[`packages/interaction/approval-rules/src/index.ts:64`](../packages/interaction/approval-rules/src/index.ts)
+
 ### `assistant/*`
 
 #### `assistant/chunk` — log-only
@@ -576,7 +602,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 'plan/file': { path: string; heading: string }
 ```
 
-来源：[`packages/plan/plan-mode/src/index.ts:73`](../packages/plan/plan-mode/src/index.ts)
+来源：[`packages/plan/plan-mode/src/index.ts:75`](../packages/plan/plan-mode/src/index.ts)
 
 #### `plan/mode` — log-only
 
@@ -589,7 +615,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 'plan/mode': { active: boolean }
 ```
 
-来源：[`packages/plan/plan-mode/src/index.ts:65`](../packages/plan/plan-mode/src/index.ts)
+来源：[`packages/plan/plan-mode/src/index.ts:67`](../packages/plan/plan-mode/src/index.ts)
 
 ### `request/*`
 
@@ -1033,4 +1059,4 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 'zen/phase': { phase: ZenPhase; reason: ZenTransitionReason }
 ```
 
-来源：[`packages/guard/zen/src/index.ts:62`](../packages/guard/zen/src/index.ts)
+来源：[`packages/guard/zen/src/index.ts:68`](../packages/guard/zen/src/index.ts)
