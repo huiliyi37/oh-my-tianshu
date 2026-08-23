@@ -40,7 +40,6 @@ import type { Agent, PreStepDecision } from '@huiliyi37/dsh-agent'
 import { createUserMessage } from '@huiliyi37/dsh-llm'
 import type { Session, SessionEvent, UserMessage } from '@huiliyi37/dsh-session'
 import { defineTool } from '@huiliyi37/dsh-tools'
-import type {} from '@huiliyi37/dsh-system-prompt'
 import { dshHomePath } from '@huiliyi37/dsh-paths'
 import { UserInteractionError } from '@huiliyi37/dsh-user-interaction'
 // Type-only edge: resolves `ctx.commands` for the optional command child.
@@ -271,11 +270,12 @@ function planModeAtLastHeader(events: readonly SessionEvent[]): boolean | undefi
 
 /**
  * `ctx.planMode`: owns logged plan state, boundary application and narration,
- * the `plan:policy` section, the `/plan` command, and the stable exit tool.
- * UIs observe committed flips through `session/event`; there is no live mirror.
+ * per-turn tail injection of the deployment guidance, the `/plan` command, and
+ * the stable exit tool. UIs observe committed flips through `session/event`;
+ * there is no live mirror.
  */
 export class PlanModeService extends Service {
-  static inject = ['tools', 'systemPrompt']
+  static inject = ['tools']
 
   /** Validated deployment-owned guidance. */
   private readonly section: string
@@ -289,6 +289,13 @@ export class PlanModeService extends Service {
    * result already narrates the transition.
    */
   private readonly pendingIntents = new WeakMap<Session, { active: boolean; narrate: boolean }>()
+  /**
+   * Last turn whose first step received the guidance injection. Plan-mode
+   * guidance rides the request tail (never the system prompt — the cached
+   * prefix stays byte-constant across mode flips), once per turn: a fresh
+   * turn after resume or compaction re-injects automatically.
+   */
+  private readonly injectedTurns = new WeakMap<Session, number>()
 
   constructor(ctx: Context, config: PlanModeConfig = { section: '' }) {
     super(ctx, 'planMode')
@@ -315,34 +322,40 @@ export class PlanModeService extends Service {
     // the session. A failed append remains pending for a later boundary, and
     // policy cannot block the step.
     ctx.on('agent/pre-step', async (
-      { agent, signal },
+      { agent, signal, turn },
       next,
     ): Promise<PreStepDecision> => {
       const decision = await next()
-      const pending = this.pendingIntents.get(agent.session)
-      if (decision.kind === 'reject' || signal.aborted || pending === undefined) return decision
-      const narration = this.narration(agent.session, pending.active)
+      if (decision.kind === 'reject' || signal.aborted) return decision
+      const session = agent.session
+      const pending = this.pendingIntents.get(session)
+      // 缓存契约：plan 指导注入请求尾部（每 turn 首步一次），不进 system
+      // prompt——plan mode 翻转不改变缓存前缀。硬约束仍由工具 guard 兜底。
+      const active = pending?.active ?? foldPlanMode(session.events)
+      const lastInjected = this.injectedTurns.get(session)
+      let messages = decision.messages
+      if (active && lastInjected !== turn) {
+        this.injectedTurns.set(session, turn)
+        messages = [...messages, this.guidanceNotice()]
+      } else if (!active && lastInjected !== undefined) {
+        this.injectedTurns.delete(session)
+      }
+      const guidanceChanged = messages !== decision.messages
+      if (pending === undefined) {
+        return guidanceChanged ? { ...decision, messages } : decision
+      }
+      const narration = this.narration(session, pending.active)
       try {
-        this.onBoundary(agent.session)
+        this.onBoundary(session)
       } catch (error) {
         ctx.logger.warn('dsh-plan-mode: boundary flush failed: %o', error)
-        return decision
+        return guidanceChanged ? { ...decision, messages } : decision
       }
       return !pending.narrate || narration === undefined
-        ? decision
-        : { ...decision, messages: [...decision.messages, narration] }
+        ? guidanceChanged ? { ...decision, messages } : decision
+        : { ...decision, messages: [...messages, narration] }
     })
     ctx.effect(() => () => { disposed = true }, 'dsh-plan-mode: close service lifetime')
-
-    ctx.systemPrompt.section({
-      name: 'plan:policy',
-      order: 50,
-      text: (context) => {
-        if (context.agent === undefined) return ''
-        const pending = this.pendingIntents.get(context.agent.session)
-        return (pending?.active ?? foldPlanMode(context.agent.session.events)) ? this.section : ''
-      },
-    })
 
     // The plan projection unit (session-projection RFC): a pure event fold
     // serving clients the whole {active, pending} value. `command/run`
@@ -617,6 +630,15 @@ export class PlanModeService extends Service {
       this.ctx.logger.warn('dsh-plan-mode: plan file persistence failed: %o', error)
       return undefined
     }
+  }
+
+  /** The deployment guidance as a request-scoped plugin notice (request tail). */
+  private guidanceNotice(): UserMessage {
+    return createUserMessage({
+      content: [{ type: 'text', text: this.section }],
+      // The guidance's first line is its own summary.
+      source: { kind: 'plugin', plugin: 'plan-mode', form: 'notice', summary: this.section.split('\n')[0]! },
+    })
   }
 
   /** Build a user-switch notice when the last logged header described the other mode. */

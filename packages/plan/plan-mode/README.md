@@ -14,7 +14,7 @@ Logged, per-agent plan collaboration state with deployment-owned guidance, direc
 
 ## Model and human surfaces
 
-While active, `plan:policy` renders the configured `section`. The plugin always registers `exit_plan_mode`, keeping tool schemas stable across the transition; its execute path accepts only active plan mode and leaves it only after an exact user approval through `ctx.userInteraction`.
+While active, the configured `section` is injected at the tail of each turn's first request (never into the system prompt), so entering or leaving plan mode leaves the cached prefix byte-constant. The plugin always registers `exit_plan_mode`, keeping tool schemas stable across the transition; its execute path accepts only active plan mode and leaves it only after an exact user approval through `ctx.userInteraction`.
 
 While plan mode is active, a monotonic `ctx.tools.guard` denies the mutation-tool families at execution time: `write`, `edit`, `str_replace_editor` (its `create`/`str_replace`/`insert` commands), `git_commit`, and `terminal_open/send/signal/close`. The denial is a model-facing tool error pointing at read-only exploration and `exit_plan_mode`; the tool catalog itself is untouched, so schemas stay stable across mode switches. `bash`/`pwsh` stay allowed for read-only shell exploration (Claude Code's plan-mode semantics); the residual shell-write hole rides on the orthogonal sandbox axis, and deployments close it or widen the list through `blockedTools`. The guard reads the committed log only — a pending mid-turn entry never breaks the running turn's writes — and subagent sessions fold their own logs, so the constraint never leaks into children.
 
@@ -48,11 +48,11 @@ Design: [plan-specific collaboration state](../../../.agents/notes/implemented/s
 
 ## Model Experience
 
-### Plan policy system prompt
+### Plan policy guidance (request tail)
 
 #### What the model sees
 
-While plan mode is active, the model sees the deployment's exact `section` text at prompt order 50; inactive mode contributes no text.
+While plan mode is active, the model sees the deployment's exact `section` text as the last message of each turn's first request; inactive mode contributes no text.
 
 ##### Configuration example
 
@@ -62,11 +62,11 @@ You are in plan mode. Explore and design before presenting the complete plan thr
 
 #### Token effect
 
-Inactive mode adds no tokens; active mode adds the configured section to every request.
+Inactive mode adds no tokens; active mode adds the configured section once per turn (first step), not per request.
 
 #### KV Cache effect
 
-The section is stable within plan mode, but entering or leaving changes the system prompt from order 50 onward.
+None by construction: the guidance rides the request tail, and entering or leaving plan mode never changes the system prompt or the request header — the cached prefix stays byte-constant across the transition.
 
 ### Human command
 
@@ -80,7 +80,7 @@ The optional message costs the same history tokens as submitting that content se
 
 #### KV Cache effect
 
-The user block is append-only conversation growth. Entering or leaving plan mode changes the earlier policy section; a narrated exit notice is appended after the reusable request prefix.
+The user block is append-only conversation growth. Entering or leaving plan mode changes nothing in the prefix; the guidance injection and a narrated switch notice are appended after the reusable request prefix.
 
 ### Exit tool schema and review exchange
 

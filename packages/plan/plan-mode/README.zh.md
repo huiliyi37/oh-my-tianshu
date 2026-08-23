@@ -14,7 +14,7 @@
 
 ## 模型与人类交互
 
-激活时，`plan:policy` 会渲染已配置的 `section`。插件始终注册 `exit_plan_mode`，使工具 schema 在转换期间保持稳定；其 execute 路径只接受已激活的 plan mode，且只有通过 `ctx.userInteraction` 获得用户明确批准后才退出。
+激活时，已配置的 `section` 在每轮首次请求的消息尾部注入（绝不进入 system prompt），因此进入或退出 plan mode 保持缓存前缀字节恒定。插件始终注册 `exit_plan_mode`，使工具 schema 在转换期间保持稳定；其 execute 路径只接受已激活的 plan mode，且只有通过 `ctx.userInteraction` 获得用户明确批准后才退出。
 
 plan mode 激活期间，一个单调的 `ctx.tools.guard` 守卫会在执行时拒绝变更工具族：`write`、`edit`、`str_replace_editor`（其 `create`/`str_replace`/`insert` 变异子命令）、`git_commit`、`terminal_open/send/signal/close`。拒绝是模型可见的工具错误，引导用只读工具探索并以 `exit_plan_mode` 提交；工具目录本身不变，schema 在模式切换间保持稳定。`bash`/`pwsh` 保持可用以支持只读 shell 探索（与 Claude Code 的 plan mode 语义一致）；残余的 shell 写洞由正交的沙箱轴兜底，部署方可经 `blockedTools` 扩大封禁名单。守卫只读已落账状态——轮内待生效的进入不会打断当前轮的合法写——子代理会话 fold 自己的日志，约束不泄漏进子会话。
 
@@ -48,11 +48,11 @@ Web 客户端使用该插件提供的 `/plan` 命令；其他入口可以直接�
 
 ## 模型体验
 
-### Plan 策略系统提示词
+### Plan 策略指导（请求尾部）
 
 #### 模型所见内容
 
-Plan mode 激活时，模型会在提示词顺序 50 处看到部署方提供的原样 `section` 文本；未激活 mode 不贡献文本。
+Plan mode 激活时，模型会在每轮首次请求的最后一条消息中看到部署方提供的原样 `section` 文本；未激活 mode 不贡献文本。
 
 ##### 配置示例
 
@@ -62,11 +62,11 @@ You are in plan mode. Explore and design before presenting the complete plan thr
 
 #### Token 影响
 
-未激活 mode 不增加 token；mode 激活时，每个请求都会加入已配置的段落。
+未激活 mode 不增加 token；mode 激活时，每轮（首个 step）只注入一次已配置的段落，而非每个请求。
 
 #### KV Cache 影响
 
-该段在 plan mode 内稳定，但进入或退出会从顺序 50 开始改变系统提示词。
+按构造为零：指导走请求尾部，进入或退出 plan mode 绝不改变 system prompt 或请求头——缓存前缀在转换期间保持字节恒定。
 
 ### 人类命令
 
@@ -80,7 +80,7 @@ You are in plan mode. Explore and design before presenting the complete plan thr
 
 #### KV Cache 影响
 
-用户块是仅追加的对话增长。进入或退出 plan mode 会改变更早的策略段；退出转换的记录通知会追加在可复用请求前缀之后。
+用户块是仅追加的对话增长。进入或退出 plan mode 不改变前缀中的任何内容；指导注入与切换通知都追加在可复用请求前缀之后。
 
 ### 退出工具 schema 与评审交互
 

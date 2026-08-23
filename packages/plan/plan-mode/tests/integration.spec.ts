@@ -51,6 +51,17 @@ function waitForIdle(ctx: Context, agent: Agent): Promise<void> {
   })
 }
 
+
+/** 缓存契约断言：plan 指导以 plugin notice 注入请求 messages（尾部区域），而非 system prompt。 */
+function expectGuidanceInjected(request: { messages?: unknown[] } | undefined, section: string): void {
+  const messages = request?.messages ?? []
+  const texts = messages.map(message => {
+    const content = (message as { content?: Array<{ type?: string; text?: string }> } | undefined)?.content ?? []
+    return content.map(block => block.text ?? '').join('')
+  })
+  expect(texts.some(text => text.includes(section))).toBe(true)
+}
+
 function findEvent<T extends SessionEvent['type']>(
   log: readonly SessionEvent[],
   type: T,
@@ -83,7 +94,9 @@ describe('plan mode through the agent loop', () => {
     expect(planMode.seq).toBeLessThan(header.seq)
     expect(header.data.reason).toBe('initial')
     expect(header.data.header.tools?.map(tool => tool.name)).toEqual(['exit_plan_mode', 'read', 'write'])
-    expect(header.data.header.system).toContain('plan mode')
+    // 缓存契约：plan mode 指导不再进入 system prompt（前缀恒定），改由请求尾部注入。
+    expect(header.data.header.system).not.toContain(PLAN_CONFIG.section)
+    expectGuidanceInjected(adapter.requests[0], PLAN_CONFIG.section)
 
     // The catalog stays full, but the monotonic guard denies the write: plan
     // mode restrains through the section's guidance AND the registry guard.
@@ -92,7 +105,13 @@ describe('plan mode through the agent loop', () => {
     expect(result.data.message.content[0].isError).toBe(true)
     expect(JSON.stringify(result.data.message.content[0])).toContain("'write' is blocked")
     expect(foldPlanMode(log)).toBe(true)
-    expect(log.some(event => event.type === 'user/message' && event.data.source.kind === 'plugin')).toBe(false)
+    // 首请求尾部注入 guidance（落日志为 plugin notice）；pre-turn set 无切换 narration。
+    const pluginTexts = log
+      .filter(event => event.type === 'user/message' && event.data.source.kind === 'plugin')
+      .map(event => (event.type === 'user/message' ? event.data.content : [])
+        .map(block => block.type === 'text' ? block.text : '').join(''))
+    expect(pluginTexts.some(text => text.includes(PLAN_CONFIG.section))).toBe(true)
+    expect(pluginTexts.some(text => text.includes('switched'))).toBe(false)
   })
 
   it('a user flip between turns lands at the boundary: one notice and a changed header with stable tool schemas', async () => {
@@ -116,16 +135,18 @@ describe('plan mode through the agent loop', () => {
     const log = agent.session.events
     expect(foldPlanMode(log)).toBe(true)
     const notices = log.filter(event => event.type === 'user/message' && event.data.source.kind === 'plugin')
-    expect(notices).toHaveLength(1)
-    expect(notices[0]?.type === 'user/message' && notices[0].data.content).toEqual([
-      { type: 'text', text: 'The user switched this session to plan mode.' },
-    ])
-    // The changed request is logged as a complete snapshot.
-    const second = findEvent(log, 'request/header', 'last')
-    expect(second.data.reason).toBe('change')
-    expect(second.data.header.tools?.map(tool => tool.name)).toEqual(['exit_plan_mode', 'read', 'write'])
-    expect(second.data.header.tools).toEqual(first.data.header.tools)
-    expect(second.data.header.system).toContain('plan mode')
+    // 切换通知（narration）+ 指导注入（guidance）各一条；两者都是消息尾部追加，不触碰缓存前缀。
+    expect(notices).toHaveLength(2)
+    const noticeTexts = notices.map(event =>
+      (event.type === 'user/message' ? event.data.content : []).map(block => block.type === 'text' ? block.text : '').join(''))
+    expect(noticeTexts.some(text => text === 'The user switched this session to plan mode.')).toBe(true)
+    expect(noticeTexts.some(text => text.includes(PLAN_CONFIG.section))).toBe(true)
+    // 缓存契约：切换 plan mode 不再改变 request/header（前缀字节恒定，零碎裂）。
+    const headers = log.filter(event => event.type === 'request/header')
+    expect(headers).toHaveLength(1)
+    expect(headers[0]?.data.header.tools).toEqual(first.data.header.tools)
+    expect(headers[0]?.data.header.system).not.toContain(PLAN_CONFIG.section)
+    expectGuidanceInjected(adapter.requests[1], PLAN_CONFIG.section)
   })
 
   it('a mode flip at error settlement waits until the step after a same-step retry', async () => {
@@ -162,8 +183,9 @@ describe('plan mode through the agent loop', () => {
     await nextIdle
 
     expect(adapter.requests).toHaveLength(3)
-    expect(adapter.requests[2]?.system).toContain(PLAN_CONFIG.section)
+    expect(adapter.requests[2]?.system).not.toContain(PLAN_CONFIG.section)
     expect(adapter.requests[2]?.tools).toEqual(adapter.requests[0]?.tools)
+    expectGuidanceInjected(adapter.requests[2], PLAN_CONFIG.section)
     const log = agent.session.events
     const planMode = findEvent(log, 'plan/mode')
     const firstEnd = log.find(event => event.type === 'step/end'
@@ -172,8 +194,9 @@ describe('plan mode through the agent loop', () => {
       && event.data.turn === 2 && event.data.step === 1)
     expect(firstEnd?.seq).toBeLessThan(planMode.seq)
     expect(planMode.seq).toBeLessThan(nextStart?.seq ?? 0)
-    expect(findEvent(log, 'request/header', 'last').data.header.system).toContain(PLAN_CONFIG.section)
-    const notice = log.find(event => event.type === 'user/message' && event.data.source.kind === 'plugin')
+    expect(findEvent(log, 'request/header', 'last').data.header.system).not.toContain(PLAN_CONFIG.section)
+    const notice = log.find(event => event.type === 'user/message' && event.data.source.kind === 'plugin'
+      && event.data.content.some(block => block.type === 'text' && block.text.includes('switched')))
     expect(notice?.type === 'user/message' && notice.data.content).toEqual([
       { type: 'text', text: 'The user switched this session to plan mode.' },
     ])

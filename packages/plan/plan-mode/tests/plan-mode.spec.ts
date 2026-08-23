@@ -276,7 +276,7 @@ describe('ctx.planMode: get/set', () => {
     const agent = await agentWithSession(ctx, 'agent-idle-narrate')
     header(agent.session)
     ctx.planMode.set(agent, true)
-    expect(noticeTexts(agent.session)).toEqual(['The user switched this session to plan mode.'])
+    expect(noticeTexts(agent.session).filter(text => !text.includes(TEST_PLAN_SECTION))).toEqual(['The user switched this session to plan mode.'])
   })
 })
 
@@ -330,7 +330,7 @@ describe('the boundary flush', () => {
     ctx.planMode.set(agent, false)
     await boundary(ctx, agent, 'pre-step')
     expect(agent.session.events.some(event => event.type === 'plan/mode')).toBe(false)
-    expect(noticeTexts(agent.session)).toEqual([])
+    expect(noticeTexts(agent.session).filter(text => !text.includes(TEST_PLAN_SECTION))).toEqual([])
   })
 
   it('narrates nothing before the first request header (the section is the state statement)', async () => {
@@ -338,7 +338,7 @@ describe('the boundary flush', () => {
     const agent = await agentWithSession(ctx)
     ctx.planMode.set(agent, true)
     await boundary(ctx, agent, 'pre-step')
-    expect(noticeTexts(agent.session)).toEqual([])
+    expect(noticeTexts(agent.session).filter(text => !text.includes(TEST_PLAN_SECTION))).toEqual([])
   })
 
   it('narrates once when the flushed mode differs from what the last header told the model', async () => {
@@ -347,9 +347,9 @@ describe('the boundary flush', () => {
     header(agent.session)
     ctx.planMode.set(agent, true)
     await boundary(ctx, agent, 'step-start')
-    expect(noticeTexts(agent.session)).toEqual(['The user switched this session to plan mode.'])
+    expect(noticeTexts(agent.session).filter(text => !text.includes(TEST_PLAN_SECTION))).toEqual(['The user switched this session to plan mode.'])
     await boundary(ctx, agent, 'step-start')
-    expect(noticeTexts(agent.session)).toEqual(['The user switched this session to plan mode.'])
+    expect(noticeTexts(agent.session).filter(text => !text.includes(TEST_PLAN_SECTION))).toEqual(['The user switched this session to plan mode.'])
   })
 
   it('narrates a switch back to the default mode with the default wording', async () => {
@@ -359,7 +359,7 @@ describe('the boundary flush', () => {
     header(agent.session)
     ctx.planMode.set(agent, false)
     await boundary(ctx, agent, 'step-start')
-    expect(noticeTexts(agent.session)).toEqual(['The user switched this session back to the default mode.'])
+    expect(noticeTexts(agent.session).filter(text => !text.includes(TEST_PLAN_SECTION))).toEqual(['The user switched this session back to the default mode.'])
   })
 
   it('stays silent when the header already reflects the flushed mode', async () => {
@@ -371,7 +371,7 @@ describe('the boundary flush', () => {
     ctx.planMode.set(agent, true)
     await boundary(ctx, agent, 'step-start')
     expect(foldPlanMode(agent.session.events)).toBe(true)
-    expect(noticeTexts(agent.session)).toEqual([])
+    expect(noticeTexts(agent.session).filter(text => !text.includes(TEST_PLAN_SECTION))).toEqual([])
   })
 
 
@@ -426,12 +426,13 @@ describe('the soft layer', () => {
     const agent = await agentWithSession(ctx)
     const defaultAssembly = await assembleFor(ctx, agent)
     expect(defaultAssembly.tools.map(tool => tool.name)).toEqual([EXIT_PLAN_MODE, 'read', 'write'])
-    expect(defaultAssembly.sections.find(section => section.name === 'plan:policy')?.text).toBe('')
+    // 缓存契约：plan:policy 段已从 system prompt 移除（前缀恒定），指导走请求尾部注入。
+    expect(defaultAssembly.sections.some(section => section.name === 'plan:policy')).toBe(false)
 
     agent.session.append('plan/mode', { active: true })
     const planAssembly = await assembleFor(ctx, agent)
     expect(planAssembly.tools).toEqual(defaultAssembly.tools)
-    expect(planAssembly.sections.find(section => section.name === 'plan:policy')?.text).toBe(TEST_PLAN_SECTION)
+    expect(planAssembly.sections.some(section => section.name === 'plan:policy')).toBe(false)
   })
 
   it('leaves an agent-less assembly untouched', async () => {
@@ -439,16 +440,16 @@ describe('the soft layer', () => {
     registerNamedTools(ctx, ['read'])
     const assembly = await ctx.systemPrompt.assemble()
     expect(assembly.tools.map(tool => tool.name)).toEqual([EXIT_PLAN_MODE, 'read'])
-    expect(assembly.sections.find(section => section.name === 'plan:policy')?.text).toBe('')
+    expect(assembly.sections.some(section => section.name === 'plan:policy')).toBe(false)
   })
 
-  it('keeps the full toolset in plan mode and renders the configured mode section', async () => {
+  it('keeps the full toolset in plan mode with the guidance out of the system prompt', async () => {
     const ctx = await setup()
     registerNamedTools(ctx, ['read', 'write', 'todo_write'])
     const agent = await agentWithSession(ctx, 'agent-1', { active: true })
     const assembly = await assembleFor(ctx, agent)
     expect(assembly.tools.map(tool => tool.name).sort()).toEqual([EXIT_PLAN_MODE, 'read', 'todo_write', 'write'])
-    expect(assembly.sections.find(section => section.name === 'plan:policy')?.text).toBe(TEST_PLAN_SECTION)
+    expect(assembly.sections.some(section => section.name === 'plan:policy')).toBe(false)
   })
 
   it('leaves foreign assemble additions alone (no assemble-layer filtering)', async () => {
@@ -922,12 +923,12 @@ describe('exit_plan_mode', () => {
     expect(foldPlanMode(agent.session.events)).toBe(true)
     const assembly = await ctx.systemPrompt.assemble({ agent })
     expect(assembly.tools.some(tool => tool.name === EXIT_PLAN_MODE)).toBe(true)
-    expect(assembly.sections.find(section => section.name === 'plan:policy')?.text).toBe('')
+    expect(assembly.sections.some(section => section.name === 'plan:policy')).toBe(false)
     await boundary(ctx, agent, 'step-start')
     expect(foldPlanMode(agent.session.events)).toBe(false)
     const afterExit = await ctx.systemPrompt.assemble({ agent })
     expect(afterExit.tools).toEqual(assembly.tools)
-    expect(afterExit.sections.find(section => section.name === 'plan:policy')?.text).toBe('')
+    expect(afterExit.sections.some(section => section.name === 'plan:policy')).toBe(false)
   })
 
   it('the exit flush narrates nothing — the tool result is the narration', async () => {
@@ -936,7 +937,7 @@ describe('exit_plan_mode', () => {
     await callExit(ctx, agent)
     await boundary(ctx, agent, 'step-start')
     expect(foldPlanMode(agent.session.events)).toBe(false)
-    expect(noticeTexts(agent.session)).toEqual([])
+    expect(noticeTexts(agent.session).filter(text => !text.includes(TEST_PLAN_SECTION))).toEqual([])
   })
 
   it('keep planning returns the corrective error carrying the feedback verbatim', async () => {
@@ -1122,7 +1123,7 @@ describe('HMR disposal', () => {
     ctx.planMode.set(agent, true)
     expect(ctx.get('planMode')).toBeInstanceOf(PlanModeService)
     expect(ctx.tools.get(EXIT_PLAN_MODE)).toBeDefined()
-    expect((await ctx.systemPrompt.assemble()).sections.map(section => section.name)).toContain('plan:policy')
+    expect((await ctx.systemPrompt.assemble()).sections.map(section => section.name)).not.toContain('plan:policy')
 
     await fiber.dispose()
     expect(ctx.get('planMode')).toBeUndefined()
