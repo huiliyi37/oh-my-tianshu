@@ -17,7 +17,11 @@ async function setup(): Promise<Context> {
 }
 
 const emit = (ctx: Context, event: string, ...args: unknown[]): void => {
-  ctx.emit(event as never, ...args)
+  // Foreign and malformed events ride an untyped view of the dispatcher:
+  // 'slots/changed' is declared on Events, but the audit must also observe
+  // names and payloads outside the typed map.
+  const untyped = ctx as { emit: (name: string, ...payload: unknown[]) => void }
+  untyped.emit(event, ...args)
 }
 
 describe('runtime slots/changed invariant', () => {

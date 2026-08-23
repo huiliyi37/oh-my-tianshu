@@ -113,6 +113,14 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Owns isolated per-session replay folds; pressure consumers share immutable revisioned measurements.',
   },
   {
+    key: 'cacheDiagnostic',
+    pkg: 'cache-diagnostic',
+    title: 'Prefix-cache health observation',
+    mode: 'core',
+    consumers: ['tui'],
+    note: 'Replays the durable log into per-session prefix fingerprints, turn cache snapshots, and miss diagnosis; the TUI reads the cacheHealth session projection the service registers when ctx.sessionProjections is provided.',
+  },
+  {
     key: 'toolResultPrune',
     pkg: 'compact-tool-result-prune',
     title: 'Model-free tool-result pruning',

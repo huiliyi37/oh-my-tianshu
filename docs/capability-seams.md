@@ -16,6 +16,9 @@ flowchart LR
   pkg_compact_basic["compact-basic"]
   pkg_token_meter["token-meter"]
   svc_tokenMeter["ctx.tokenMeter<br/>Replay token measurement"]
+  pkg_cache_diagnostic["cache-diagnostic"]
+  svc_cacheDiagnostic["ctx.cacheDiagnostic<br/>Prefix-cache health observation"]
+  pkg_tui["tui"]
   pkg_compact_tool_result_prune["compact-tool-result-prune"]
   svc_toolResultPrune["ctx.toolResultPrune<br/>Model-free tool-result pruning"]
   pkg_session["session"]
@@ -219,6 +222,7 @@ flowchart LR
   pkg_bash_env --> svc_bashEnv
   pkg_bash_local --> svc_bash
   pkg_bash_sandbox --> svc_bash
+  pkg_cache_diagnostic --> svc_cacheDiagnostic
   pkg_code_runtime --> svc_codeRuntime
   pkg_code_runtime_worker --> svc_codeRuntime
   pkg_commands --> svc_commands
@@ -327,6 +331,7 @@ flowchart LR
   svc_bash --> pkg_tool_pwsh
   svc_bashEnv --> pkg_tool_bash
   svc_bashEnv --> pkg_tool_pwsh
+  svc_cacheDiagnostic --> pkg_tui
   svc_clientModuleHost --> pkg_hmr
   svc_codeRuntime --> pkg_tools
   svc_compact --> pkg_compact_basic
@@ -430,6 +435,7 @@ flowchart LR
 | --- | --- | --- | --- | --- | --- | --- |
 | `ctx.llm` | `seam` | [`llm`](../packages/llm/llm) | [`llm-deepseek`](../packages/llm/llm-deepseek), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-replay`](../packages/support/llm-replay) | [`agent-loop`](../packages/core/agent-loop), [`compact-basic`](../packages/compact/compact-basic) | - | Adapters register provider implementations; the loop and compaction call the provider-neutral stream service. |
 | `ctx.tokenMeter` | `core` | [`token-meter`](../packages/llm/token-meter) | - | [`compact-basic`](../packages/compact/compact-basic) | - | Owns isolated per-session replay folds; pressure consumers share immutable revisioned measurements. |
+| `ctx.cacheDiagnostic` | `core` | [`cache-diagnostic`](../packages/llm/cache-diagnostic) | - | [`tui`](../packages/tui/tui) | - | Replays the durable log into per-session prefix fingerprints, turn cache snapshots, and miss diagnosis; the TUI reads the cacheHealth session projection the service registers when ctx.sessionProjections is provided. |
 | `ctx.toolResultPrune` | `core` | [`compact-tool-result-prune`](../packages/compact/compact-tool-result-prune) | - | [`compact-basic`](../packages/compact/compact-basic) | - | Rewrites oversized current tool results through replayable single-node surface replacements before summary compaction. |
 | `ctx.sessions` | `core` | [`session`](../packages/core/session) | - | [`agent-loop`](../packages/core/agent-loop), [`agent`](../packages/core/agent), [`session-persistence`](../packages/session/session-persistence), [`session-query`](../packages/session-query/session-query), [`session-query-sqlite`](../packages/session-query/session-query-sqlite), [`subagent-inprocess`](../packages/subagent/subagent-inprocess), [`invariants`](../packages/support/invariants) | - | Owns append-only Session instances and emits the durable session event feed. |
 | `ctx.invariants` | `core` | [`invariants`](../packages/support/invariants) | - | [`session`](../packages/core/session), [`agent`](../packages/core/agent), [`scope`](../packages/core/scope), [`agent-loop`](../packages/core/agent-loop) | - | Companion subpaths register owner-local checks; the service owns selection, uniqueness, child fibers, and package-attributed failures. |

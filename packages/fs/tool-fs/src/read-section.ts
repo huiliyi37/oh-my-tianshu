@@ -31,9 +31,10 @@ export const MAX_RAW_BYTES = 2 * 1024 * 1024
  */
 export function parseLineRange(sectionId: string): { start: number; end: number } | null {
   const match = /^L?(\d+)-L?(\d+)$/i.exec(sectionId)
-  if (!match) return null
-  const start = Number.parseInt(match[1]!, 10)
-  const end = Number.parseInt(match[2]!, 10)
+  // Both groups always capture digits when the pattern matches.
+  if (match?.[1] === undefined || match[2] === undefined) return null
+  const start = Number.parseInt(match[1], 10)
+  const end = Number.parseInt(match[2], 10)
   if (start < 1 || end < start) return null
   return { start, end }
 }
@@ -46,9 +47,10 @@ export function parseLineRange(sectionId: string): { start: number; end: number 
  */
 export function parseCharRange(sectionId: string): { start: number; end: number } | null {
   const match = /^c(\d+)-c(\d+)$/i.exec(sectionId)
-  if (!match) return null
-  const start = Number.parseInt(match[1]!, 10)
-  const end = Number.parseInt(match[2]!, 10)
+  // Both groups always capture digits when the pattern matches.
+  if (match?.[1] === undefined || match[2] === undefined) return null
+  const start = Number.parseInt(match[1], 10)
+  const end = Number.parseInt(match[2], 10)
   if (start < 0 || end < start) return null
   return { start, end }
 }

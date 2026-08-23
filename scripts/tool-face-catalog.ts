@@ -29,7 +29,7 @@ export interface CapabilityGroup {
 export const CAPABILITY_GROUPS: readonly CapabilityGroup[] = [
   { id: 'shell', tools: ['bash', 'pwsh'], substitutable: false },
   { id: 'bookkeeping', tools: ['todo_write'], substitutable: false },
-  { id: 'fs-read', tools: ['read'], substitutable: true },
+  { id: 'fs-read', tools: ['read', 'read_section'], substitutable: true },
   { id: 'fs-write', tools: ['write'], substitutable: true },
   { id: 'fs-edit', tools: ['edit', 'str_replace_editor'], substitutable: true },
   { id: 'fs-search', tools: ['grep', 'glob'], substitutable: true },
@@ -152,7 +152,7 @@ export interface FaceLayer {
 
 /** Product-face layers that can be mounted independently of the base face. */
 export const REAL_LAYERS: readonly FaceLayer[] = [
-  { id: 'fs', tools: ['read', 'write', 'edit'], capabilities: ['fs-read', 'fs-write', 'fs-edit'] },
+  { id: 'fs', tools: ['read', 'read_section', 'write', 'edit'], capabilities: ['fs-read', 'fs-write', 'fs-edit'] },
   { id: 'str-replace', tools: ['str_replace_editor'], capabilities: ['fs-edit'] },
   { id: 'fs-search', tools: ['glob', 'grep'], capabilities: ['fs-search'] },
   { id: 'file-info', tools: ['file_info'], capabilities: ['file-info'] },

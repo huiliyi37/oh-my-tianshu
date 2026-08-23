@@ -95,7 +95,7 @@ Use the edit tool for targeted changes to existing UTF-8 text files. It replaces
 
 #### 模型看到的内容
 
-模型会看到已生成的 [`read`、`write` 和 `edit` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-fs)，参数使用 snake_case。作用域工具限制可以为某个 agent 移除任一定义。
+模型会看到已生成的 [`read`、`read_section`、`write` 和 `edit` schema](../../../docs/tool-catalog.md#huiliyi37dsh-tool-fs)，参数使用 snake_case。作用域工具限制可以为某个 agent 移除任一定义。
 
 #### Token 影响
 
@@ -107,7 +107,9 @@ Use the edit tool for targeted changes to existing UTF-8 text files. It replaces
 
 ### read_section 结果
 
-`read_section(file_path, section)` 按行范围（`L100-L200`）或字符范围（`c0-c5000`）读取活动文件区段，不重读全文。它是 `[read-ref]` 引用指向的取数点：未变更重读返回引用后，模型只需请求所需区段。输出受 `readMaxBytes` 限制；超过 2MB 的文件被拒绝（改用 grep 或 shell head/tail）。自本会话上次读取后文件版本变化时，结果前置陈旧警告。
+#### 模型看到的内容
+
+`read_section(file_path, section)` 按行范围（`L100-L200`）或字符范围（`c0-c5000`）读取活动文件区段，不重读全文——它是 `[read-ref]` 引用指向的取数点：未变更重读返回引用后，模型只需请求所需区段。结果只有所请求区段的纯文本：`render` 仅投影 `content`，`path` 与 `section` 不进入请求。文件自本会话上次读取后变更时文本前置陈旧警告，`readMaxBytes` 截断时结尾为 `... [已截断至 N 字符]` 标记；起始越界返回 `[区段 … 超出范围 — 文件共 N 行]` 提示而非错误。超过 2MB 的文件被拒绝（改用 grep 或 shell head/tail）。
 
 #### Token 影响
 

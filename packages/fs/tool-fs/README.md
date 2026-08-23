@@ -95,7 +95,7 @@ Prefix-stable while the plugin scope and guidance text are unchanged. Tool restr
 
 #### What the model sees
 
-The model sees the generated [`read`, `write`, and `edit` schemas](../../../docs/tool-catalog.md#huiliyi37dsh-tool-fs), with snake_case arguments. Scoped tool restrictions can remove any definition for one agent.
+The model sees the generated [`read`, `read_section`, `write`, and `edit` schemas](../../../docs/tool-catalog.md#huiliyi37dsh-tool-fs), with snake_case arguments. Scoped tool restrictions can remove any definition for one agent.
 
 #### Token effect
 
@@ -107,7 +107,9 @@ Prefix-stable while the visible tool definitions and order are unchanged. Regist
 
 ### read_section result
 
-`read_section(file_path, section)` reads a line range (`L100-L200`) or character range (`c0-c5000`) from a live file without re-reading the whole content. It is the fetch point the `[read-ref]` reference points to: after an unchanged re-read returns a reference, the model requests only the part it needs. Output is capped by `readMaxBytes`; files above 2MB are rejected (use grep or shell head/tail). A version mismatch since the session's last read of the file prepends a staleness warning.
+#### What the model sees
+
+`read_section(file_path, section)` reads a line range (`L100-L200`) or character range (`c0-c5000`) from a live file without re-reading the whole content — the fetch point a `[read-ref]` reference points to: after an unchanged re-read returns a reference, the model requests only the part it needs. The result is exactly the requested range as plain text: `render` projects only `content`, so `path` and `section` never enter the request. The text carries the staleness warning first when the file changed since the session's last read, the `... [已截断至 N 字符]` marker last when `readMaxBytes` caps the section, and a start beyond the end of file yields the `[区段 … 超出范围 — 文件共 N 行]` notice instead of an error. Files above 2MB are rejected (use grep or shell head/tail).
 
 #### Token effect
 

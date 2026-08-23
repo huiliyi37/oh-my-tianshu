@@ -35,18 +35,6 @@ When the user personally asks to push, do not push until you have verified **bot
 
 **Never push before establishing the repository's nature.** If visibility cannot be confirmed, do not push — stop and ask the user. A push to a public repository is irreversible exposure; treat it as a critical incident.
 
-## High-risk reminders（高危提醒）
-
-Push permission is strictly controlled: **never push anything to any remote by default.** Local commits are the default end state; pushing requires an explicit, current request from the user in this session.
-
-When the user personally asks to push, do not push until you have verified **both sides of the push**:
-
-- **Local side** — confirm the working tree and branch state you intend to publish: no unintended commits, no stray or secret files staged.
-- **Remote side** — confirm the target remote's identity (`git remote -v`) and its **visibility: the repository must be private, never public.** Establish visibility from the remote host (e.g. GitHub repo page, API, or `gh repo view`), never from local assumptions.
-- Confirm the local repository and the target remote are the **same repository** (matching owner/name) so nothing is pushed to an unrelated or wrong remote.
-
-**Never push before establishing the repository's nature.** If visibility cannot be confirmed, do not push — stop and ask the user. A push to a public repository is irreversible exposure; treat it as a critical incident.
-
 ## Workspace discipline（工作区纪律）
 
 The working tree routinely carries uncommitted work from other sessions (cross-session WIP) that exists nowhere else. Treat tree-write operations as destructive until proven otherwise:

@@ -18,6 +18,9 @@ flowchart LR
   pkg_compact_basic["compact-basic"]
   pkg_token_meter["token-meter"]
   svc_tokenMeter["ctx.tokenMeter<br/>Replay token measurement"]
+  pkg_cache_diagnostic["cache-diagnostic"]
+  svc_cacheDiagnostic["ctx.cacheDiagnostic<br/>Prefix-cache health observation"]
+  pkg_tui["tui"]
   pkg_compact_tool_result_prune["compact-tool-result-prune"]
   svc_toolResultPrune["ctx.toolResultPrune<br/>Model-free tool-result pruning"]
   pkg_session["session"]
@@ -221,6 +224,7 @@ flowchart LR
   pkg_bash_env --> svc_bashEnv
   pkg_bash_local --> svc_bash
   pkg_bash_sandbox --> svc_bash
+  pkg_cache_diagnostic --> svc_cacheDiagnostic
   pkg_code_runtime --> svc_codeRuntime
   pkg_code_runtime_worker --> svc_codeRuntime
   pkg_commands --> svc_commands
@@ -329,6 +333,7 @@ flowchart LR
   svc_bash --> pkg_tool_pwsh
   svc_bashEnv --> pkg_tool_bash
   svc_bashEnv --> pkg_tool_pwsh
+  svc_cacheDiagnostic --> pkg_tui
   svc_clientModuleHost --> pkg_hmr
   svc_codeRuntime --> pkg_tools
   svc_compact --> pkg_compact_basic
@@ -432,6 +437,7 @@ flowchart LR
 | --- | --- | --- | --- | --- | --- | --- |
 | `ctx.llm` | `seam` | [`llm`](../packages/llm/llm) | [`llm-deepseek`](../packages/llm/llm-deepseek)、[`llm-pi-ai`](../packages/llm/llm-pi-ai)、[`llm-replay`](../packages/support/llm-replay) | [`agent-loop`](../packages/core/agent-loop)、[`compact-basic`](../packages/compact/compact-basic) | - | 适配器注册提供方实现；agent loop（智能体循环）与压缩功能调用提供方无关的流服务。 |
 | `ctx.tokenMeter` | `core` | [`token-meter`](../packages/llm/token-meter) | - | [`compact-basic`](../packages/compact/compact-basic) | - | 拥有按会话隔离的回放折叠区；压力消费方共享不可变且带修订版本的测量结果。 |
+| `ctx.cacheDiagnostic` | `core` | [`cache-diagnostic`](../packages/llm/cache-diagnostic) | - | [`tui`](../packages/tui/tui) | - | 将持久会话日志回放为按会话的前缀指纹、逐轮缓存快照与未命中诊断；TUI 读取该服务在提供 ctx.sessionProjections 时注册的 cacheHealth 会话投影。 |
 | `ctx.toolResultPrune` | `core` | [`compact-tool-result-prune`](../packages/compact/compact-tool-result-prune) | - | [`compact-basic`](../packages/compact/compact-basic) | - | 在摘要压缩前，通过可回放的单节点表层替换来改写过大的当前工具结果。 |
 | `ctx.sessions` | `core` | [`session`](../packages/core/session) | - | [`agent-loop`](../packages/core/agent-loop)、[`agent`](../packages/core/agent)、[`session-persistence`](../packages/session/session-persistence)、[`session-query`](../packages/session-query/session-query)、[`session-query-sqlite`](../packages/session-query/session-query-sqlite)、[`subagent-inprocess`](../packages/subagent/subagent-inprocess)、[`invariants`](../packages/support/invariants) | - | 拥有仅追加的 Session 实例，并发出持久的会话事件流。 |
 | `ctx.invariants` | `core` | [`invariants`](../packages/support/invariants) | - | [`session`](../packages/core/session)、[`agent`](../packages/core/agent)、[`scope`](../packages/core/scope)、[`agent-loop`](../packages/core/agent-loop) | - | 配套子路径注册所属包本地的检查；该服务负责选择、唯一性、子 fiber，以及标明所属包的失败。 |
