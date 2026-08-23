@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-23-zen-face-narrowing-reverted.md
-2026-08-23-zen-face-narrowing-reverted.md: 96442d48b08af567721bb77c7eac5e094cadeb79
-2026-08-23-zen-face-narrowing-reverted.zh.md: 20bde49a5f66c6a9711b9c62c6e9b92bf7f0f63d
+2026-08-23-zen-face-narrowing-reverted.md: a512f1a5b5880cf640fd01c4e9e20de7c12a8bd3
+2026-08-23-zen-face-narrowing-reverted.zh.md: 6758612b64a1d76888d2c109b75f6afe7dfe3ce8

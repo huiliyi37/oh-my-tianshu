@@ -14,8 +14,9 @@ const PLAN_CONFIG = { section: 'Test plan mode instructions.' }
 /**
  * Full-loop integration: a scripted mock model drives the REAL plan-mode plugin
  * through the agent loop — the pending-intent flush at the step boundary, the
- * assembly the soft layer shapes (the exit tool + mode section), and the
- * `request/header` snapshots every transition leaves.
+ * per-turn tail injection of the guidance (the exit tool stays registered; the
+ * guidance never enters the system prompt), and the `request/header` stability
+ * across transitions.
  * Only the model is mocked; the loop, the session log, and the plugin are
  * real.
  */
@@ -51,15 +52,27 @@ function waitForIdle(ctx: Context, agent: Agent): Promise<void> {
   })
 }
 
-
-/** 缓存契约断言：plan 指导以 plugin notice 注入请求 messages（尾部区域），而非 system prompt。 */
-function expectGuidanceInjected(request: { messages?: unknown[] } | undefined, section: string): void {
-  const messages = request?.messages ?? []
-  const texts = messages.map(message => {
+/** 请求各消息的拼接文本（历史重放与新鲜注入都计入）。 */
+function requestTexts(request: { messages?: unknown[] } | undefined): string[] {
+  return (request?.messages ?? []).map((message) => {
     const content = (message as { content?: Array<{ type?: string; text?: string }> } | undefined)?.content ?? []
     return content.map(block => block.text ?? '').join('')
   })
-  expect(texts.some(text => text.includes(section))).toBe(true)
+}
+
+/** 缓存契约断言：plan 指导以 plugin notice 注入请求 messages（尾部区域），而非 system prompt。 */
+function expectGuidanceInjected(request: { messages?: unknown[] } | undefined, section: string): void {
+  expect(requestTexts(request).some(text => text.includes(section))).toBe(true)
+}
+
+/** 位置断言：指导是请求的最后一条消息（无同边界 narration 时），不只是"存在"。 */
+function expectGuidanceAtTail(request: { messages?: unknown[] } | undefined, section: string): void {
+  expect(requestTexts(request).at(-1)?.includes(section)).toBe(true)
+}
+
+/** 频次断言：指导文本在请求中出现的次数（历史重放一次 + 本步新鲜注入一次）。 */
+function guidanceOccurrences(request: { messages?: unknown[] } | undefined, section: string): number {
+  return requestTexts(request).filter(text => text.includes(section)).length
 }
 
 function findEvent<T extends SessionEvent['type']>(
@@ -75,7 +88,7 @@ function findEvent<T extends SessionEvent['type']>(
 }
 
 describe('plan mode through the agent loop', () => {
-  it('a pre-turn set() makes the FIRST header plan-shaped, and a mutation call is guard-denied', async () => {
+  it('a pre-turn set() leaves the first header mode-neutral and tail-injects the guidance, and a mutation call is guard-denied', async () => {
     const adapter = new MockAdapter([
       toolCallResponse('call-1', 'write', {}, 'Writing during plan.'),
       textResponse('Noted in the plan.'),
@@ -97,9 +110,11 @@ describe('plan mode through the agent loop', () => {
     // 缓存契约：plan mode 指导不再进入 system prompt（前缀恒定），改由请求尾部注入。
     expect(header.data.header.system).not.toContain(PLAN_CONFIG.section)
     expectGuidanceInjected(adapter.requests[0], PLAN_CONFIG.section)
+    // 钉住注入位置：指导是首请求的最后一条消息，不只是"在其中"。
+    expectGuidanceAtTail(adapter.requests[0], PLAN_CONFIG.section)
 
     // The catalog stays full, but the monotonic guard denies the write: plan
-    // mode restrains through the section's guidance AND the registry guard.
+    // mode restrains through the injected guidance AND the registry guard.
     // The mode itself stays plan throughout.
     const result = findEvent(log, 'tool/result')
     expect(result.data.message.content[0].isError).toBe(true)
@@ -114,7 +129,7 @@ describe('plan mode through the agent loop', () => {
     expect(pluginTexts.some(text => text.includes('switched'))).toBe(false)
   })
 
-  it('a user flip between turns lands at the boundary: one notice and a changed header with stable tool schemas', async () => {
+  it('a user flip between turns lands at the boundary: switch notice and tail-injected guidance, header byte-constant', async () => {
     const adapter = new MockAdapter([
       textResponse('First turn, default mode.'),
       textResponse('Second turn, plan mode.'),
@@ -147,6 +162,8 @@ describe('plan mode through the agent loop', () => {
     expect(headers[0]?.data.header.tools).toEqual(first.data.header.tools)
     expect(headers[0]?.data.header.system).not.toContain(PLAN_CONFIG.section)
     expectGuidanceInjected(adapter.requests[1], PLAN_CONFIG.section)
+    // 钉住注入位置：narration 经 inbox 先入队，指导仍是新请求的最后一条消息。
+    expectGuidanceAtTail(adapter.requests[1], PLAN_CONFIG.section)
   })
 
   it('a mode flip at error settlement waits until the step after a same-step retry', async () => {
@@ -200,5 +217,40 @@ describe('plan mode through the agent loop', () => {
     expect(notice?.type === 'user/message' && notice.data.content).toEqual([
       { type: 'text', text: 'The user switched this session to plan mode.' },
     ])
+  })
+
+  it('injects the guidance once per turn: the second step reads it from history, the next turn re-injects at the tail', async () => {
+    const adapter = new MockAdapter([
+      toolCallResponse('call-1', 'read', {}, 'Reading during plan.'),
+      textResponse('First turn done.'),
+      textResponse('Second turn done.'),
+    ])
+    const ctx = await harness(adapter)
+    const agent = ctx.agentLoop.create(SessionId('it-plan-per-turn'), { provider: 'mock', model: 'mock' })
+    ctx.planMode.set(agent, true)
+
+    agent.followup(createUserMessage({ content: [{ type: 'text', text: 'explore' }], source: { kind: 'user' } }))
+    await waitForIdle(ctx, agent)
+
+    // 同一 turn 两步：step 1 尾部注入并落日志，step 2 只从历史重放——
+    // 日志里一条指导 notice，第二步请求里仅一份（历史那份），尾部是工具结果。
+    expect(adapter.requests).toHaveLength(2)
+    expectGuidanceAtTail(adapter.requests[0], PLAN_CONFIG.section)
+    expect(guidanceOccurrences(adapter.requests[1], PLAN_CONFIG.section)).toBe(1)
+    expect(requestTexts(adapter.requests[1]).at(-1)).not.toContain(PLAN_CONFIG.section)
+    const guidanceNotices = () => agent.session.events.filter(event => event.type === 'user/message'
+      && event.data.source.kind === 'plugin'
+      && event.data.content.some(block => block.type === 'text' && block.text.includes(PLAN_CONFIG.section)))
+    expect(guidanceNotices()).toHaveLength(1)
+
+    agent.followup(createUserMessage({ content: [{ type: 'text', text: 'continue' }], source: { kind: 'user' } }))
+    await waitForIdle(ctx, agent)
+
+    // 下一 turn 重新注入：日志 notice 数翻倍，新请求尾部是新鲜的那份，
+    // 历史里还重放着上一 turn 的那份。
+    expect(adapter.requests).toHaveLength(3)
+    expect(guidanceNotices()).toHaveLength(2)
+    expect(guidanceOccurrences(adapter.requests[2], PLAN_CONFIG.section)).toBe(2)
+    expectGuidanceAtTail(adapter.requests[2], PLAN_CONFIG.section)
   })
 })

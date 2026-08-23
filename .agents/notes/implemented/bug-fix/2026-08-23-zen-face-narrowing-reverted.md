@@ -28,7 +28,7 @@ The complaint that prompted the revert was that the change had broken prefix cac
 
 The logs live in `~/.omts/sessions`, not the `~/.dsh-tianshu/sessions` tree that a first pass examined; 114 session files there yield 88 usable and 85 DeepSeek sessions. Grouping main sessions by the system-prompt size that identifies the configuration in effect, the DeepSeek cohorts before the change hit 99.7% (5 repriced steps in 1239), 99.4% (7 in 1146), and 98.1% (1 in 142); the one DeepSeek main session after it hit 98.0% (1 in 84). The post-change session falls inside the pre-existing range, and its single repricing step is a plan-mode transition, not a face change.
 
-The finding that did survive the instrument is unrelated to this change and is recorded separately in [plan mode reprices the cached prefix](../../proposed/bug-fix/2026-08-23-plan-mode-reprices-the-cached-prefix.md).
+The finding that did survive the instrument is unrelated to this change and is recorded separately in [plan mode reprices the cached prefix](2026-08-23-plan-mode-reprices-the-cached-prefix.md).
 
 ## Alternatives considered
 

@@ -44,7 +44,7 @@ When the composition mounts `ctx.sessionProjections` ([`@huiliyi37/dsh-session-p
 
 `section` is required and non-empty. `blockedTools` is an optional list of extra tool names the guard denies on top of the built-in mutation families. Unknown keys fail at load. The package does not accept arbitrary named modes, tool filters, sandbox settings, or approval policy.
 
-Design: [plan-specific collaboration state](../../../.agents/notes/implemented/simplification/2026-07-22-plan-specific-collaboration-state.md) · [hard read-only guard and plan file](../../../.agents/notes/implemented/feature/2026-08-16-plan-mode-hard-readonly-and-plan-file.md).
+Design: [plan-specific collaboration state](../../../.agents/notes/implemented/simplification/2026-07-22-plan-specific-collaboration-state.md) · [hard read-only guard and plan file](../../../.agents/notes/implemented/feature/2026-08-16-plan-mode-hard-readonly-and-plan-file.md) · [plan mode reprices the cached prefix](../../../.agents/notes/implemented/bug-fix/2026-08-23-plan-mode-reprices-the-cached-prefix.md).
 
 ## Model Experience
 

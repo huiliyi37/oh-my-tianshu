@@ -16,7 +16,7 @@ Plan mode 还需要持久协作状态、可评审的计划产物、显式人工�
 
 Plan mode 拥有一个 plan 专用产品包：位于 `packages/plan/plan-mode/` 的 `@huiliyi37/dsh-plan-mode`。持久化事实为 `plan/mode: { active: boolean }`，由 `foldPlanMode(events)` 折叠，空日志值为 `false`。`ctx.planMode.get(agent)` 返回 `{ active, pending? }`，`set(agent, active)` 则记录在边界生效的选择。pre-step、重试、追加失败和 dispose（资源释放）栅栏保留相同的状态转换归属。
 
-配置严格为 `{ section: string }`。该包自行注册固定的 `plan:policy` 段、`/plan [message]`、精确匹配的 `/plan off` 主动退出形式，以及 `exit_plan_mode`。不带参数的 `/plan` 选择激活；其他非空参数则先选择激活，再通过 `agent.steer()` 发送去除首尾空白后的文本，使该文本在受影响的步骤中成为一条记录到日志的普通用户消息。`/plan off` 选择未激活，不产生模型输入，并可取消仍待在边界生效的进入选择。即使 plan mode 未激活，退出工具仍保持注册，以确保请求工具目录稳定。
+配置为 `{ section: string }`，另有可选的 `blockedTools` 守卫增补。该包在 plan mode 激活期间把配置的引导作为插件来源通知注入每轮第一个请求的尾部——绝不进入系统提示词——并注册 `/plan [message]`、精确匹配的 `/plan off` 主动退出形式，以及 `exit_plan_mode`。不带参数的 `/plan` 选择激活；其他非空参数则先选择激活，再通过 `agent.steer()` 发送去除首尾空白后的文本，使该文本在受影响的步骤中成为一条记录到日志的普通用户消息。`/plan off` 选择未激活，不产生模型输入，并可取消仍待在边界生效的进入选择。即使 plan mode 未激活，退出工具仍保持注册，以确保请求工具目录稳定。
 
 面向人类的组合拥有 plan 选择与评审。本笔记最初把 ACP 协议级的 `default`/`plan` 选择器保留为布尔服务之上的适配器；[ACP 作为仅面向自动化的协议](2026-07-23-acp-automation-only-protocol.md) 取代了那个协议投影，因此 ACP 组合现在既不挂载 plan mode，也不提供模式选择协议。
 
@@ -26,7 +26,7 @@ Plan mode 拥有一个 plan 专用产品包：位于 `packages/plan/plan-mode/` 
 
 `plan/mode` 仅记录到日志且不进入表层，因此恢复、fork 和压缩（compaction）都能恢复该状态，无需实时镜像。spawn 出的 agent（智能体）初始处于未激活状态，因为创建时没有 plan 选项。待生效的用户选择会在初始或续步 pre-step 时，或在请求恢复重试时，于受影响的请求组装前写入日志；持久追加失败会让意图保持待定，留到后续边界处理。
 
-激活状态在提示词顺序 50 处贡献部署提供的区段。未激活状态不贡献区段，但 `exit_plan_mode` 在两种状态下都保持注册，因此状态转换会改变已记录的请求头，却不改变原生工具 schema 或 Code Mode SDK。用户发起的转换只会在上一条请求头描述相反状态时追加一条来源为插件的通知；第一次请求前的选择或最终状态未变化的选择不会追加通知，经批准的工具退出则依赖其工具结果，不再追加第二条通知。
+激活状态在每轮第一个请求的尾部贡献部署提供的引导；未激活状态不贡献任何内容。引导绝不进入系统提示词，而 `exit_plan_mode` 在两种状态下都保持注册，因此状态转换既不改变已记录的请求头，也不改变原生工具 schema 或 Code Mode SDK——缓存的请求前缀在转换前后逐字节恒定。用户发起的转换只会在上一条请求头描述相反状态时追加一条来源为插件的通知；第一次请求前的选择或最终状态未变化的选择不会追加通知，经批准的工具退出则依赖其工具结果，不再追加第二条通知。
 
 ### 经评审的退出
 
@@ -39,7 +39,7 @@ Plan mode 拥有一个 plan 专用产品包：位于 `packages/plan/plan-mode/` 
 - 任意定义映射、模式名正则表达式、保留名称规则以及逐定义命令循环。
 - `ModeDefinition`、解析后的定义映射、`ctx.modes.list()`、字符串值的 get/set 状态，以及未知或已退役模式处理。
 - 仅用于测试的 `review` 模式用例，以及可通过配置添加其他模式的表述。
-- 通用的 `mode/set` 与 `mode:policy` 名称；plan 包拥有 `plan/mode` 与 `plan:policy`。
+- 通用的 `mode/set` 与 `mode:policy` 名称；plan 包拥有 plan 前缀的词汇（`plan/mode`、`plan/file`）。
 
 ## 考虑过的替代方案
 
@@ -61,11 +61,11 @@ Plan mode 拥有一个 plan 专用产品包：位于 `packages/plan/plan-mode/` 
 
 - 包测试通过布尔服务继续覆盖边界顺序、重试、追加失败、HMR（热模块替换）资源释放、提示词组装、稳定的原生 schema 与 Code Mode schema、评审结果和不变式。
 - 命令测试覆盖不带参数的 `/plan`、`/plan <message>`、激活状态下的 `/plan off`、取消待生效的进入选择、未激活状态下的幂等性、不存在 `/mode` 和 `/review`，以及随 effect 作用域移除。
-- 无密钥 TUI 场景通过 `/plan <message>` 进入、通过 `/plan off` 退出，并证明每个已提交的 `plan/mode` 都先于其所改变的请求头，进入消息在 plan 引导下记录到日志，且退出后的请求不含该引导。
-- 完整的 `exit_plan_mode` 评审流程有包测试，但交互式 ACP 场景退役后没有组装应用快照；当前无密钥 TUI 场景只覆盖命令进入和直接退出。
+- 无密钥 Web e2e 场景经真实的 `/plan` 命令进入：control-row 弧线经 chip 的 `/plan off` 走真实命令通道退出；评审弧线提交 `/plan <task>`，记录的轮次止于 `exit_plan_mode`，并经决策卡片批准。
+- 完整的 `exit_plan_mode` 评审流程既有包测试，也由无密钥的 `plan-review.e2e.ts` Web 快照端到端覆盖。
 
 ## 后果
 
 该实现只用一套词汇描述一项已交付功能。若要添加另一种协作方式，必须显式作出设计决策，而不能只增加配置项；自动化客户端不会通过 ACP 获得面向人类的模式控制。根据仓库的预发布格式策略，本次迁移有意拒绝旧的 `mode/set` 日志与 `modes.plan.section` 配置。
 
-Plan 状态仍可重建，工具 schema 仍保持稳定，但如果进程在下一边界前退出，空闲状态下待生效的选择会丢失。进入或离开 plan mode 会改变提示词顺序 50 处及其后的内容；如果模型忽略引导，仍可能执行修改，除非部署另行配置沙箱、审批或文件系统策略。
+Plan 状态仍可重建，工具 schema 仍保持稳定，但如果进程在下一边界前退出，空闲状态下待生效的选择会丢失。进入或离开 plan mode 保持缓存请求前缀逐字节恒定——引导随请求尾部注入，绝不进入系统提示词——且在模式激活期间，即使模型忽略引导，单调工具守卫也会拒绝变更工具族。

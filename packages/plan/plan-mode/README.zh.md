@@ -44,7 +44,7 @@ Web 客户端使用该插件提供的 `/plan` 命令；其他入口可以直接�
 
 `section` 必填且非空。`blockedTools` 可选，是在内置变更工具族之上追加封禁的工具名列表。出现未知键时，插件会加载失败。该包不接受任意命名的 mode、工具过滤器、沙箱设置或批准策略。
 
-设计：[plan 专用协作状态](../../../.agents/notes/implemented/simplification/2026-07-22-plan-specific-collaboration-state.md) · [硬只读守卫与计划文件](../../../.agents/notes/implemented/feature/2026-08-16-plan-mode-hard-readonly-and-plan-file.md)。
+设计：[plan 专用协作状态](../../../.agents/notes/implemented/simplification/2026-07-22-plan-specific-collaboration-state.md) · [硬只读守卫与计划文件](../../../.agents/notes/implemented/feature/2026-08-16-plan-mode-hard-readonly-and-plan-file.md) · [计划模式重定价缓存前缀](../../../.agents/notes/implemented/bug-fix/2026-08-23-plan-mode-reprices-the-cached-prefix.md)。
 
 ## 模型体验
 

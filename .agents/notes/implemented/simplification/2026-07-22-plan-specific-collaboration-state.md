@@ -16,7 +16,7 @@ Plan mode also needs a durable stance, a reviewable plan artifact, an explicit h
 
 Plan mode owns a plan-specific product package: `@huiliyi37/dsh-plan-mode` at `packages/plan/plan-mode/`. The durable fact is `plan/mode: { active: boolean }`, folded by `foldPlanMode(events)` with `false` as the empty-log value. `ctx.planMode.get(agent)` returns `{ active, pending? }`, and `set(agent, active)` records the boundary-applied selection. The pre-step, retry, append-failure, and disposal fences preserve the same state-transition ownership.
 
-Configuration is exactly `{ section: string }`. The package registers the fixed `plan:policy` section, `/plan [message]`, the exact `/plan off` direct-exit form, and `exit_plan_mode` itself. Bare `/plan` selects active; another non-empty argument selects it first and then sends the trimmed text through `agent.steer()`, making the text an ordinary logged user message in the affected step. `/plan off` selects inactive without model input and can cancel an entry that is still pending at the boundary. The exit tool remains registered while plan mode is inactive so the request tool catalog stays stable.
+Configuration is `{ section: string }` plus the optional `blockedTools` guard additions. The package injects the configured guidance as a plugin notice at the tail of each turn's first request while plan mode is active — never into the system prompt — and registers `/plan [message]`, the exact `/plan off` direct-exit form, and `exit_plan_mode` itself. Bare `/plan` selects active; another non-empty argument selects it first and then sends the trimmed text through `agent.steer()`, making the text an ordinary logged user message in the affected step. `/plan off` selects inactive without model input and can cancel an entry that is still pending at the boundary. The exit tool remains registered while plan mode is inactive so the request tool catalog stays stable.
 
 Human-facing compositions own plan selection and review. This note originally kept ACP's protocol-level `default`/`plan` picker as an adapter over the boolean service; [ACP as an automation-only protocol](2026-07-23-acp-automation-only-protocol.md) supersedes that wire projection, so the ACP composition now mounts neither plan mode nor a mode-selection protocol.
 
@@ -26,7 +26,7 @@ Sandbox mode and approval policy remain separate enforcement axes. Plan mode nei
 
 `plan/mode` is log-only and non-surface, so resume, fork, and compaction recover the state without a live mirror. A spawned agent begins inactive because there is no creation-time plan option. Pending user selections flush before the affected request assembly at initial or continuation pre-step, or on a request-recovery retry; a failed durable append leaves the intent pending for a later boundary.
 
-The active state contributes the deployment's section at prompt order 50. Inactive state contributes no section, while `exit_plan_mode` remains registered in both states, so a transition changes the logged request header but not native tool schemas or the Code Mode SDK. A user-driven transition appends one plugin-sourced notice only when the last request header described the opposite state; a pre-first-request or net-zero selection adds none, and an approved tool exit relies on its tool result instead of a second notice.
+The active state contributes the deployment's guidance at the tail of each turn's first request; inactive state contributes nothing. The guidance never enters the system prompt and `exit_plan_mode` remains registered in both states, so a transition changes neither the logged request header nor the native tool schemas or the Code Mode SDK — the cached request prefix stays byte-constant across it. A user-driven transition appends one plugin-sourced notice only when the last request header described the opposite state; a pre-first-request or net-zero selection adds none, and an approved tool exit relies on its tool result instead of a second notice.
 
 ### Reviewed exit
 
@@ -39,7 +39,7 @@ The tool renders the submitted plan as a generic card titled by its first headin
 - The arbitrary definition map, mode-name regular expression, reserved-name rules, and per-definition command loop.
 - `ModeDefinition`, the resolved definition map, `ctx.modes.list()`, string-valued get/set state, and unknown or retired mode handling.
 - Test-only `review` mode cases and claims that additional modes can be added through configuration.
-- Generic `mode/set` and `mode:policy` names; the plan package now owns `plan/mode` and `plan:policy`.
+- Generic `mode/set` and `mode:policy` names; the plan package owns the plan-prefixed vocabulary (`plan/mode`, `plan/file`).
 
 ## Alternatives considered
 
@@ -61,11 +61,11 @@ The tool renders the submitted plan as a generic card titled by its first headin
 
 - Package tests retain boundary ordering, retry, append-failure, HMR disposal, prompt assembly, stable native and Code Mode schemas, review outcomes, and invariant coverage through the boolean service.
 - Command tests cover bare `/plan`, `/plan <message>`, active `/plan off`, pending-entry cancellation, inactive idempotence, absence of `/mode` and `/review`, and effect-scoped removal.
-- The keyless TUI scenarios enter through `/plan <message>`, leave through `/plan off`, and prove that each committed `plan/mode` precedes the request header it changes, the entry message is logged under plan guidance, and the post-exit request omits that guidance.
-- The complete `exit_plan_mode` review arc is package-tested but has no assembled-application snapshot after the interactive ACP scenarios were retired; current keyless TUI scenarios cover command entry and direct exit only.
+- The keyless web e2e scenarios enter through the real `/plan` command: the control-row arc leaves through the chip's `/plan off` over the real command channel, and the review arc submits `/plan <task>`, ends the recorded turn on `exit_plan_mode`, and approves through the decision card.
+- The complete `exit_plan_mode` review arc is package-tested and covered end-to-end by the keyless `plan-review.e2e.ts` web snapshot.
 
 ## Consequences
 
 The implementation has one vocabulary for one shipped feature. Adding another collaboration stance is an explicit design decision instead of a config entry, and automation clients do not acquire human mode controls through ACP. The migration intentionally rejects old `mode/set` logs and old `modes.plan.section` configuration under the repository's pre-release format policy.
 
-Plan state remains reconstructable and tool schemas remain stable, but an idle pending selection is lost if the process exits before the next boundary. Entering or leaving plan mode changes the prompt from order 50 onward, and a model that ignores the guidance can still mutate unless the deployment independently configures sandbox, approval, or filesystem policy.
+Plan state remains reconstructable and tool schemas remain stable, but an idle pending selection is lost if the process exits before the next boundary. Entering or leaving plan mode leaves the cached request prefix byte-constant — the guidance rides the request tail, never the system prompt — and while the mode is active the monotonic tool guard denies the mutation-tool families even when a model ignores the guidance.

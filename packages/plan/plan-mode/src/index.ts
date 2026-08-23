@@ -1,32 +1,35 @@
 /**
  * Plan mode is logged per-agent collaboration state: while active, a
- * deployment-owned guidance section shapes each model request, and
- * `exit_plan_mode` presents the completed plan for user review, while the
- * `/plan off` command lets a user leave directly. Plan mode is independent of
- * sandbox mode and approval policy; those enforcement axes do not read or
- * write plan state.
+ * deployment-owned guidance text rides the tail of each turn's first
+ * request, and `exit_plan_mode` presents the completed plan for user review,
+ * while the `/plan off` command lets a user leave directly. Plan mode is
+ * independent of sandbox mode and approval policy; those enforcement axes do
+ * not read or write plan state.
  *
  * While plan mode is active, a monotonic tool guard denies the mutation-tool
  * families (fs writes, git commits, persistent-terminal control) at the
- * registry boundary — the prompt section advises, the guard enforces. Shell
- * exploration (bash/pwsh) stays available like Claude Code's plan mode; the
- * residual shell-write hole rides on the orthogonal sandbox axis and is
- * documented in the Agent Note. The presented plan is also persisted to a
- * plan file under the harness home and recorded as a log-only `plan/file`
- * event, so approved plans survive compaction and can be re-read later.
+ * registry boundary — the injected guidance advises, the guard enforces.
+ * Shell exploration (bash/pwsh) stays available like Claude Code's plan
+ * mode; the residual shell-write hole rides on the orthogonal sandbox axis
+ * and is documented in the Agent Note. The presented plan is also persisted
+ * to a plan file under the harness home and recorded as a log-only
+ * `plan/file` event, so approved plans survive compaction and can be
+ * re-read later.
  *
  * The state in force is folded from the session log (`plan/mode`, last one
  * wins), so resume and fork restore it without a live mirror. User selections
- * are held as pending intent until an in-turn step boundary. The service
- * projects pending intent into the proposed step assembly, then flushes it
- * from `agent/pre-step` only when the step is accepted. Same-step request
- * retries reuse their assembly.
+ * are held as pending intent until an in-turn step boundary: `agent/pre-step`
+ * reads the pending value for both the guidance injection and the switch
+ * narration, then flushes it to the log only when the step is accepted.
  *
- * The exit tool remains registered while plan mode is inactive so crossing a
- * boundary changes only the prompt section, not the request tool catalog.
+ * The exit tool remains registered while plan mode is inactive, so crossing
+ * a boundary changes nothing the cache keys on — the system prompt and the
+ * request tool catalog stay byte-constant, and only the request tail gains
+ * or loses the guidance.
  *
  * Agent Note:
  * - .agents/notes/implemented/simplification/2026-07-22-plan-specific-collaboration-state.md
+ * - .agents/notes/implemented/bug-fix/2026-08-23-plan-mode-reprices-the-cached-prefix.md
  *
  * @module @huiliyi37/dsh-plan-mode
  */
@@ -87,7 +90,11 @@ export const EXIT_PLAN_MODE = 'exit_plan_mode'
 
 /** Deployment-owned plan guidance. */
 export interface PlanModeConfig {
-  /** Guidance rendered as the `plan:policy` prompt section while plan mode is active. */
+  /**
+   * Guidance injected at the tail of each turn's first request while plan
+   * mode is active. It never enters the system prompt, so the cached prefix
+   * stays byte-constant across mode flips.
+   */
   section: string
   /**
    * Extra tool names the plan-mode guard denies on top of the built-in
@@ -523,7 +530,7 @@ export class PlanModeService extends Service {
             : `The user chose to keep planning; their feedback: ${feedback}`)
         }
         // Keep plan guidance for the rest of this assistant tool batch. The
-        // silent intent flushes after the step, before the next assembly.
+        // silent intent flushes after the step, before the next request.
         this.pendingIntents.set(agent.session, { active: false, narrate: false })
         return planPath === undefined ? { approved: true } : { approved: true, path: planPath }
       },
@@ -591,7 +598,7 @@ export class PlanModeService extends Service {
     return 'committed'
   }
 
-  /** Flush one pending selection before the next request assembly. */
+  /** Flush one pending selection before the next request. */
   private onBoundary(session: Session): void {
     const pending = this.pendingIntents.get(session)
     if (pending === undefined) return
@@ -637,7 +644,7 @@ export class PlanModeService extends Service {
     return createUserMessage({
       content: [{ type: 'text', text: this.section }],
       // The guidance's first line is its own summary.
-      source: { kind: 'plugin', plugin: 'plan-mode', form: 'notice', summary: this.section.split('\n')[0]! },
+      source: { kind: 'plugin', plugin: 'plan-mode', form: 'notice', summary: this.section.split('\n')[0] ?? '' },
     })
   }
 
