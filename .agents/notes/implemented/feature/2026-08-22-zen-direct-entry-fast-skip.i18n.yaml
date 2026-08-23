@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-zen-direct-entry-fast-skip.md
-2026-08-22-zen-direct-entry-fast-skip.md: 00911c2185cd698fb6122033fe8578daeea45394
-2026-08-22-zen-direct-entry-fast-skip.zh.md: 38ddf87694881d6097ab435a6db5f210c9b04223
+2026-08-22-zen-direct-entry-fast-skip.md: 4bedc49833a45df8812189f27c4b94534f6bdc3b
+2026-08-22-zen-direct-entry-fast-skip.zh.md: c073b966dfa6d4e3b659fa05081ad6fcd62421d1

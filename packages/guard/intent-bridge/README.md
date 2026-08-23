@@ -23,7 +23,7 @@ Decision record: [the intent-bridge Agent Note](../../../.agents/notes/implement
     # section: custom alignment contract text (optional; default = the built-in contract)
 ```
 
-`resolveConfig` fails loud at plugin load on unknown keys, a missing provider/model pair, or a non-positive `alignMaxRounds`. The shipped TUI bundle keeps this row present but commented out in `cordis.patch.yml` — new sessions go straight to the zen phase, with triage and `/fast` owning the skip — so enabling the bridge is uncommenting the row (the sample routes ride the out-of-box DeepSeek adapter, same `DEEPSEEK_API_KEY` as `/model`). A MiniMax alignment route is an overlay after the `llm-pi-ai` profile and its key are live — not a second required key on first run.
+`resolveConfig` fails loud at plugin load on unknown keys, a missing provider/model pair, or a non-positive `alignMaxRounds`. The shipped TUI bundle mounts this row by default in `cordis.patch.yml` (restored 2026-08-23): new sessions flow through the alignment first, and triage's short-message skip is structurally preempted by the task card. Deployments that prefer direct zen entry comment the row out — `/fast` stays the explicit user skip (the sample routes ride the out-of-box DeepSeek adapter, same `DEEPSEEK_API_KEY` as `/model`). A MiniMax alignment route is an overlay after the `llm-pi-ai` profile and its key are live — not a second required key on first run.
 
 Decision record for that default: [shipped TUI align route](../../../.agents/notes/implemented/architecture/2026-08-19-intent-bridge-shipped-align-flash.md).
 

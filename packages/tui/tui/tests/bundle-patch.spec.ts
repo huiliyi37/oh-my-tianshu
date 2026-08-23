@@ -29,9 +29,16 @@ describe('dsh-tui bundle', () => {
       'evidence-gate', 'zen', 'task-card', 'agent-router', 'agent-presets',
     ]))
     expect(ids).not.toContain('command-memory')
-    // 直连进禅：intent-bridge 行注释保留在 patch 里、默认不挂载——triage 负责
-    // 短消息跳过，/fast 是用户显式跳过；重新启用 = 取消注释该行。
-    expect(ids).not.toContain('intent-bridge')
+    // The intent-bridge row ships both routes on the out-of-box DeepSeek
+    // adapter (same key as /model); resolveConfig fails loud at load without
+    // them. MiniMax remains a deployment overlay, not the shipped default.
+    const intentBridge = rows.find(row => row.id === 'intent-bridge')?.config
+    expect(intentBridge).toMatchObject({
+      alignProvider: 'deepseek-official',
+      alignModel: 'deepseek-v4-flash',
+      execProvider: 'deepseek-official',
+      execModel: 'deepseek-v4-flash',
+    })
     // agent-router 以 turn-end 影子决策重挂：shadow 只记录不派发（标准起步），
     // provider/model 缺省时 execute 本就短路——闭环验证后产品定夺切 auto。
     expect(rows.find(row => row.id === 'agent-router')?.config).toEqual({

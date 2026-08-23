@@ -1,6 +1,8 @@
-# Agent Note：禅直连入场——出厂卸载意图桥，新增 /fast 用户跳过
+# Agent Note：禅直连入场——/fast 用户跳过；出厂桥接默认于 2026-08-23 恢复
 
 Status: implemented
+
+> **2026-08-23 更新：** 出厂默认已恢复为挂载桥（用户要求）——`packages/tui/tui/cordis.patch.yml` 的 `intent-bridge` 行重新生效，`bundle-patch.spec.ts` 断言其路由。本笔记其余内容不变：`/fast` 仍是显式跳过、`enabled` 回退仍在，注释掉该行即可回到直连进禅。
 
 [English](2026-08-22-zen-direct-entry-fast-skip.md) | 中文
 
@@ -10,15 +12,15 @@ Status: implemented
 
 ## 决策
 
-- **注释卸载而非删除**——`packages/tui/tui/cordis.patch.yml` 里的 `intent-bridge` 行连同路由原位保留为注释，重新启用即取消注释一个块。新会话直接武装禅，分诊恢复其短消息跳过；`bundle-patch.spec.ts` 现断言该行缺席。
+- **注释挂载而非删除**——`packages/tui/tui/cordis.patch.yml` 的 `intent-bridge` 行于 2026-08-23 恢复为出厂默认（此前注释卸载）：新会话先过对齐，分诊的短消息跳过被任务卡结构性接管。偏好直连进禅的部署注释掉该行即恢复；`bundle-patch.spec.ts` 现断言该行及其路由。
 - **`/fast [消息]` 作为用户显式跳过**——zen 给 `ZenTransitionReason` 增加 `'user'`，并经可选 `commands` 注入注册该命令（`/plan` 模式；TUI 经其 CommandService 回退可达）。在首条消息之前执行时晋升落在首次组装之前，模型从未见过禅 face（与分诊等价）；禅中途执行则解锁从下一次组装可见、不注入叙述。可选消息转向该轮；已晋升会话落为良性幂等成功；`faceSelection` 下命令拒绝，因为 face 已冻结。禅不变量接受这第四个晋升理由。
 - **关闭态的桥回退而非抛错**——`IntentBridgeService` 暴露 `enabled` 访问器，`newSession` 在调用 `createAlignedSession` 前先检查它，挂载但关闭的桥产出普通的直连进禅会话。
 
 ## 后果
 
-- 质量仍是默认（禅阶段本身未变）；速度是一条确定性的命令；短单行请求重新自动跳过。
+- 禅阶段本身未变。桥接默认下每个新会话付一次对齐往返、主会话经任务卡锚定；直连部署（注释该行）保留短消息分诊跳过，`/fast` 在两种模式下都是用户的显式出口。
 - 晋升理由词汇表现为 `arm | anchor | timeout | triage | user`；persistence、config、cordis 三个目录及 zen/intent-bridge 双语 README 已重录配对。
-- 仍要对齐流程的部署取消注释该 patch 行；经桥会话继续以禅已完成的种子日志入场，两种入场模式并存。
+- 要直连的部署注释掉该 patch 行；经桥会话继续以禅已完成的种子日志入场，两种入场模式并存。
 
 ## 备选方案
 

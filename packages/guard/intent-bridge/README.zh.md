@@ -23,7 +23,7 @@
     # section: custom alignment contract text (optional; default = the built-in contract)
 ```
 
-`resolveConfig` 在插件加载时对未知键、缺少 provider/model 对、或非正的 `alignMaxRounds` **响亮失败**。发货的 TUI bundle 在 `cordis.patch.yml` 中保留该行但注释掉——新会话直连进禅，跳过由分诊与 `/fast` 负责——启用桥即取消注释该行（示例路由用出厂 DeepSeek 适配器，与 `/model` 共用 `DEEPSEEK_API_KEY`）。MiniMax 对齐路由是 overlay：先把 `llm-pi-ai` profile 和密钥加活，不是首次运行的第二把必填 key。
+`resolveConfig` 在插件加载时对未知键、缺少 provider/model 对、或非正的 `alignMaxRounds` **响亮失败**。发货的 TUI bundle 在 `cordis.patch.yml` 中默认挂载该行（2026-08-23 恢复）：新会话先过对齐，分诊的短消息跳过被任务卡结构性接管；偏好直连进禅的部署注释掉该行即可，`/fast` 始终是用户的显式跳过（示例路由用出厂 DeepSeek 适配器，与 `/model` 共用 `DEEPSEEK_API_KEY`）。MiniMax 对齐路由是 overlay：先把 `llm-pi-ai` profile 和密钥加活，不是首次运行的第二把必填 key。
 
 该默认的决策记录：[发货 TUI 对齐路由](../../../.agents/notes/implemented/architecture/2026-08-19-intent-bridge-shipped-align-flash.md)。
 
