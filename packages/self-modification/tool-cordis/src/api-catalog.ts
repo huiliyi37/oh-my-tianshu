@@ -1011,8 +1011,8 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         jsDoc: '/**\n * Durably truncate a stored session to `atSeq` (rewind): delete persisted\n * events past the cut and reset the write-behind cursor so the next append\n * resumes at `atSeq + 1`. No-op for unmaterialized sessions.\n * @param id - persisted session to truncate.\n * @param atSeq - inclusive last kept seq (-1 clears all events).\n */',
       },
       {
-        signature: 'abstract list(signal?: AbortSignal): Promise<SessionHeader[]>',
-        jsDoc: '/**\n * Lightweight listing from metadata, without a full-log parse.\n * @param signal - optional cancellation for backend listing work.\n * @returns one header per materialized session.\n */',
+        signature: 'abstract list(signal?: AbortSignal): Promise<SessionListEntry[]>',
+        jsDoc: '/**\n * Lightweight listing from metadata, without a full-log parse.\n * @param signal - optional cancellation for backend listing work.\n * @returns one entry per materialized session.\n */',
       },
       {
         signature: 'abstract listSnapshots(signal?: AbortSignal): Promise<SessionPersistenceSnapshot[]>',
@@ -3548,6 +3548,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SessionLineageTrace',
     declaration: 'export type SessionLineageTrace = {\n    target: SessionRecord;\n    ancestors: SessionRecord[];\n    descendants: SessionLineageNode[];\n} & ({\n    complete: true;\n    root: SessionRecord;\n} | {\n    complete: false;\n    unresolvedParentId: SessionId;\n});',
+  },
+  {
+    name: 'SessionListEntry',
+    declaration: 'export interface SessionListEntry {\n    readonly header: SessionHeader;\n    readonly lastActivityAt?: number;\n}',
   },
   {
     name: 'SessionLocation',

@@ -87,8 +87,8 @@ export async function inspectApiRemoteSession(
   if (persistence === undefined) {
     throw new Error('session persistence is not configured (load a dsh-session-persistence backend)')
   }
-  const meta = (await persistence.list()).find(candidate => candidate.id === sessionId)
-  if (meta === undefined || meta.cwd === undefined) {
+  const meta = (await persistence.list()).find(candidate => candidate.header.id === sessionId)
+  if (meta === undefined || meta.header.cwd === undefined) {
     throw new ApiRemoteSessionNotFound(`session "${sessionId}" not found`)
   }
   const inspected = await persistence.inspect(sessionId)

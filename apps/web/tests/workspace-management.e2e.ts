@@ -200,9 +200,9 @@ describe('web e2e: workspace management (create / rename / flat view / hover aff
     if (workspace === undefined) throw new Error('GUI did not register the existing project directory')
     await workspace.attachSession(SessionId(SEED_ID))
     const header = (await scaffold.ctx.sessionPersistence.list())
-      .find(candidate => candidate.id === SEED_ID)
+      .find(candidate => candidate.header.id === SEED_ID)
     if (header === undefined) throw new Error('seeded Session log disappeared before deletion')
-    const logLocation = scaffold.ctx.sessionPersistence.locate(header)
+    const logLocation = scaffold.ctx.sessionPersistence.locate(header.header)
     if (logLocation === undefined) throw new Error('JSONL persistence did not expose the seeded log path')
     expect(await readFile(join(scaffold.workspaceCwd, 'workspace', 'a.txt'), 'utf8')).toBe('alpha\n')
     await stat(logLocation.path)
@@ -569,7 +569,7 @@ describe('web e2e: workspace management (create / rename / flat view / hover aff
     // Durable on the host: the registry-global set carries the id while the
     // session log itself stays in persistence untouched.
     expect([...scaffold.ctx.workspace.archivedSessionIds]).toEqual([SessionId(SEED_ID)])
-    expect((await scaffold.ctx.sessionPersistence.list()).map(header => header.id)).toContain(SessionId(SEED_ID))
+    expect((await scaffold.ctx.sessionPersistence.list()).map(header => header.header.id)).toContain(SessionId(SEED_ID))
     // Reload: the hidden state is rebuilt from the workspace.list baseline.
     const warningStart = tripwire.warnings.length
     await page.reload({ waitUntil: 'load' })

@@ -57,7 +57,7 @@ describe('sessions.list cold merge', () => {
     // (SQLite shape → createdAt), and a path whose file vanished (stat ENOENT
     // → createdAt).
     ctx.provide('sessionPersistence', {
-      list: () => Promise.resolve(metas),
+      list: () => Promise.resolve(metas.map(meta => ({ header: meta }))),
       locate: (meta: SessionHeader) => {
         if (meta.id === sid('session-a')) return { kind: 'jsonl', path: logPath }
         if (meta.id === sid('session-c')) { return { kind: 'jsonl', path: join(root, 'vanished.log') } }
@@ -143,7 +143,7 @@ describe('cold history recovery view', () => {
       appendBatch: () => Promise.resolve(),
       commitRepair: () => Promise.resolve(),
       deleteFrom: () => Promise.resolve(),
-      list: () => Promise.resolve([structuredClone(meta)]),
+      list: () => Promise.resolve([{ header: structuredClone(meta) }]),
     }
     const coordinator = new PersistenceCoordinator(ctx, backend)
     ctx.provide('sessionPersistence', {
@@ -194,7 +194,7 @@ describe('Remote Agent and Session lookup policy', () => {
     const meta = header(sessionId, 1000)
     const inspect = vi.fn(() => Promise.resolve({ meta, events: [] as SessionEvent[] }))
     ctx.provide('sessionPersistence', {
-      list: () => Promise.resolve([meta]),
+      list: () => Promise.resolve([{ header: meta }]),
       inspect,
       locate: () => undefined,
     } as never)
@@ -239,7 +239,7 @@ describe('Remote Agent and Session lookup policy', () => {
     })
     const inspect = vi.fn(() => Promise.resolve({ meta: coldMeta, events: [] as SessionEvent[] }))
     ctx.provide('sessionPersistence', {
-      list: () => Promise.resolve([coldMeta]),
+      list: () => Promise.resolve([{ header: coldMeta }]),
       inspect,
       locate: () => undefined,
     } as never)
@@ -308,7 +308,7 @@ describe('subagent ownership fence', () => {
     ] as SessionEvent[]
     const inspect = vi.fn(() => Promise.resolve({ meta, events }))
     ctx.provide('sessionPersistence', {
-      list: () => Promise.resolve([meta]),
+      list: () => Promise.resolve([{ header: meta }]),
       inspect,
       locate: () => undefined,
     } as never)
@@ -362,7 +362,7 @@ describe('subagent ownership fence', () => {
       },
     ] as SessionEvent[]
     ctx.provide('sessionPersistence', {
-      list: () => Promise.resolve([meta]),
+      list: () => Promise.resolve([{ header: meta }]),
       inspect: () => Promise.resolve({ meta, events }),
       locate: () => undefined,
     } as never)
@@ -553,7 +553,7 @@ describe('sessions.prompt synchronous rejection', () => {
     const sessionId = sid('race-resume')
     const meta: SessionHeader = header('race-resume', 1000)
     ctx.provide('sessionPersistence', {
-      list: () => Promise.resolve([meta]),
+      list: () => Promise.resolve([{ header: meta }]),
       inspect: () => Promise.resolve({ meta, events: [] as SessionEvent[] }),
       locate: () => undefined,
     } as never)

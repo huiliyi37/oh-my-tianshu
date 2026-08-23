@@ -17,7 +17,7 @@ import { randomBytes } from 'node:crypto'
 import {
   DEFAULT_PREPARED_SESSION_CACHE_SIZE, DEFAULT_WRITE_BATCH_MAX_DELAY_MS, MAX_WRITE_BATCH_DELAY_MS,
   SessionPersistence, SessionPersistenceRevision, PersistenceCoordinator,
-  type PersistenceBackend, type SessionLocation, type SessionPersistenceSnapshot,
+  type PersistenceBackend, type SessionLocation, type SessionPersistenceSnapshot, type SessionListEntry,
   type SessionInspection, type SessionPersistenceRevision as PersistenceRevision, type StoredPrefix,
 } from '@huiliyi37/dsh-session-persistence'
 import { SessionId, type SessionEvent, type SessionHeader, type SessionPreparation } from '@huiliyi37/dsh-session'
@@ -416,9 +416,17 @@ export class SessionPersistenceJsonl extends SessionPersistence implements Persi
    * List unique stored sessions' metadata (header line only — no full-log parse).
    * Corrupt/half-written artifacts stay listed as `version: -1` placeholders so
    * consumers can surface them as unrecoverable instead of silently losing them.
+   * Each entry carries the log's mtime as its activity proxy: the log is
+   * append-only, so the file mtime IS the last durable write (append or repair).
    */
-  async list(signal?: AbortSignal): Promise<SessionHeader[]> {
-    return (await this.listArtifacts(signal)).map(artifact => artifact.header)
+  async list(signal?: AbortSignal): Promise<SessionListEntry[]> {
+    return (await this.listArtifacts(signal)).map(artifact => ({
+      header: artifact.header,
+      // One stat per session keeps listing metadata-only: repair rewrites happen
+      // on cold open (coinciding with real use), and repair preserves the log's
+      // own mtime update. Filesystem-granularity proximity proxy, not an audit value.
+      lastActivityAt: artifact.activityAt,
+    }))
   }
 
   /** List metadata plus a stat-derived identity for each append-only log. */
@@ -442,11 +450,11 @@ export class SessionPersistenceJsonl extends SessionPersistence implements Persi
     return snapshots
   }
 
-  private async listArtifacts(signal?: AbortSignal): Promise<Array<{ header: SessionHeader; path: string }>> {
+  private async listArtifacts(signal?: AbortSignal): Promise<Array<{ header: SessionHeader; path: string; activityAt: number }>> {
     signal?.throwIfAborted()
     await this.ensureRootEncoding()
     signal?.throwIfAborted()
-    const artifacts: Array<{ header: SessionHeader; path: string }> = []
+    const artifacts: Array<{ header: SessionHeader; path: string; activityAt: number }> = []
     const ids = new Set<SessionId>()
     // 占位条目独立收集、遍历结束后合入：同 id 的有效工件无论遍历次序都胜出，
     // 占位绝不挤占 ids（否则后到的有效工件会误触 duplicate 抛错，整个 list 失败）。
@@ -478,21 +486,29 @@ export class SessionPersistenceJsonl extends SessionPersistence implements Persi
           if (!ids.has(id) && !corruptPaths.has(id)) corruptPaths.set(id, path)
           continue
         }
+        void 0
         await this.assertStoredIdentity(path, meta, undefined, signal)
         signal?.throwIfAborted()
         if (ids.has(meta.id)) {
           throw new Error(`duplicate JSONL session id "${meta.id}" appears in multiple project directories`)
         }
         ids.add(meta.id)
-        artifacts.push({ header: meta, path })
+        artifacts.push({ header: meta, path, activityAt: await this.activityAt(path, signal) })
       }
     }
     signal?.throwIfAborted()
     for (const [id, path] of corruptPaths) {
       if (ids.has(id)) continue
-      artifacts.push({ header: { id, version: -1, createdAt: 0 }, path })
+      artifacts.push({ header: { id, version: -1, createdAt: 0 }, path, activityAt: await this.activityAt(path, signal) })
     }
     return artifacts
+  }
+
+  /** One stat per session's log for its activity proxy (metadata-only listing). */
+  private async activityAt(path: string, signal?: AbortSignal): Promise<number> {
+    const stats = await stat(path, { bigint: true })
+    signal?.throwIfAborted()
+    return Number(stats.mtimeMs)
   }
 
   // --- materialization / append / repair (file mechanics) ---

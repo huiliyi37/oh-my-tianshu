@@ -189,7 +189,7 @@ export async function runBackfillSweep(deps: SweepDeps, workerId: string): Promi
     return report
   }
   try {
-    const headers = await deps.persistence.list(deps.signal)
+    const headers = (await deps.persistence.list(deps.signal)).map(entry => entry.header)
     report.listed = headers.length
     const extracted = await extractedSessionIds(deps.memory)
     const eligible = headers

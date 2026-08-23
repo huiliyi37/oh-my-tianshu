@@ -41,7 +41,7 @@ async function harness(options: HarnessOptions = {}) {
   ctx.provide('storageDomain', facility)
 
   let listed = options.sessions ?? []
-  const list = vi.fn(async () => listed)
+  const list = vi.fn(async () => listed.map(header => ({ header })))
   const load = vi.fn(() => { throw new Error('event bodies must not be loaded') })
   const inspect = vi.fn(() => { throw new Error('event bodies must not be inspected') })
   ctx.provide('sessionPersistence', { list, load, inspect } as never)

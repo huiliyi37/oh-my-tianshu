@@ -14,6 +14,7 @@ import SessionStore, {
 import SessionPersistence, {
   SessionPersistenceRevision,
   type SessionInspection,
+  type SessionListEntry,
   type SessionLocation,
   type SessionPersistenceSnapshot,
 } from '@huiliyi37/dsh-session-persistence'
@@ -154,8 +155,8 @@ class TestPersistence extends SessionPersistence {
       : { meta: stored.meta, events: stored.events.filter(event => event.seq >= fromSeq) }
   }
 
-  list(): Promise<SessionHeader[]> {
-    return Promise.resolve([...this.durable.values()].map(value => value.meta))
+  list(): Promise<SessionListEntry[]> {
+    return Promise.resolve([...this.durable.values()].map(value => ({ header: value.meta })))
   }
 
   truncateStored(id: SessionId, atSeq: number): Promise<void> {

@@ -17,7 +17,7 @@ import type { SessionEvent, SessionId, SessionHeader, SurfaceOp } from '@huiliyi
  * layout; orthogonal to a session's own `version` (which versions the EVENT
  * vocabulary, stored per session in the `sessions` row).
  */
-export const SCHEMA_VERSION = 13
+export const SCHEMA_VERSION = 14
 
 /** SQLite application id protecting unrelated databases from persistence writes. */
 export const SESSION_PERSISTENCE_SQLITE_APPLICATION_ID = 0x44534850
@@ -42,6 +42,8 @@ export interface SessionRow {
   /** Monotonic log-change token incremented in each mutating transaction. */
   revision: number
   delegation_depth: number | null
+  /** Epoch ms of the most recent durable append (event `time` of the batch tail). */
+  last_activity_at: number
 }
 
 /** An `events` table row: one `SessionEvent` mapped 1:1 (`data` is JSON text). */
@@ -126,7 +128,8 @@ function configureDatabase(db: DatabaseSync, path: string, journalMode: JournalM
         origin           TEXT,
         delegation_depth INTEGER,
         incarnation      TEXT NOT NULL,
-        revision         INTEGER NOT NULL
+        revision         INTEGER NOT NULL,
+        last_activity_at INTEGER NOT NULL
       ) STRICT;
 
       CREATE TABLE IF NOT EXISTS events (

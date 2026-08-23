@@ -64,6 +64,23 @@ export interface SessionLocation {
 }
 
 /**
+ * One materialized session's lightweight listing entry: the immutable storage
+ * header plus the cheap recency fact backends track alongside it.
+ */
+export interface SessionListEntry {
+  /** The session's validated storage header. */
+  readonly header: SessionHeader
+  /**
+   * Non-negative safe-integer Unix epoch milliseconds of the session's most
+   * recent durable append. Present whenever the backend can serve it from
+   * listing metadata (never a full-log read); a created-but-never-appended
+   * session is absent from listings entirely, so readers may fall back to
+   * `header.createdAt` only for backends that omit the field.
+   */
+  readonly lastActivityAt?: number
+}
+
+/**
  * Durable append-only session storage. Implementations preserve contiguous,
  * losslessly JSON-serializable events; {@link append} resolves only after
  * durability, and {@link load} balances a complete interrupted tail without
@@ -192,9 +209,9 @@ export abstract class SessionPersistence extends Service {
   /**
    * Lightweight listing from metadata, without a full-log parse.
    * @param signal - optional cancellation for backend listing work.
-   * @returns one header per materialized session.
+   * @returns one entry per materialized session.
    */
-  abstract list(signal?: AbortSignal): Promise<SessionHeader[]>
+  abstract list(signal?: AbortSignal): Promise<SessionListEntry[]>
 
   /**
    * List materialized sessions with cheap per-log change tokens.

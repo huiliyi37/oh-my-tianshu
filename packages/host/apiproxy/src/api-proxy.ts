@@ -1071,7 +1071,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         const persistence = checkPersistedIdentity ? ctx.get('sessionPersistence') : undefined
         const stored = persistence === undefined
           ? undefined
-          : (await persistence.list()).find(header => header.id === sessionId)
+          : (await persistence.list()).find(entry => entry.header.id === sessionId)
         if (persistence !== undefined && stored !== undefined) {
           const inspected = await persistence.inspect(sessionId)
           // Ownership first: explicit-id adoption of a session-backed
@@ -1176,18 +1176,18 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     const persistence = ctx.get('sessionPersistence')
     if (persistence !== undefined) {
       const cold = (await persistence.list(signal))
-        .filter(meta => !attached.has(meta.id) && meta.cwd !== undefined)
+        .filter(entry => !attached.has(entry.header.id) && entry.header.cwd !== undefined)
       signal?.throwIfAborted()
       for (let offset = 0; offset < cold.length; offset += COLD_SUMMARY_BATCH_SIZE) {
         signal?.throwIfAborted()
         const batch = cold.slice(offset, offset + COLD_SUMMARY_BATCH_SIZE)
         const settled = await Promise.allSettled(
-          batch.map(async (meta) => {
+          batch.map(async (entry) => {
             // Cold rows read the persisted projection cache only — never a
             // log load; a session without a cache row simply has no column.
-            const projections = listProjectionsFor(ctx, meta, undefined)
+            const projections = listProjectionsFor(ctx, entry.header, undefined)
             return {
-              ...await summarizeCold(persistence, meta, signal),
+              ...await summarizeCold(persistence, entry.header, signal),
               ...projections === undefined ? {} : { projections },
             }
           }),

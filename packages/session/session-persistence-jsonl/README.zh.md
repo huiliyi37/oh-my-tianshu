@@ -33,7 +33,7 @@ JSONL 持久会话存储后端：`SessionPersistence` 的一个具体实现（`d
 
 ## 物理编码
 
-默认产物是独立 [Zstandard frame](../../../.agents/notes/implemented/architecture/2026-07-19-zstandard-jsonl-session-logs.md) 的标准拼接：一个仅包含 header 行的带 checksum frame，后跟每个持久 append 批次一个带 checksum frame。后端使用 Node 内置 Zstandard API 和默认压缩级别，不提供级别开关。列表只读取并验证 header frame。`compression: 'none'` 在原始表示中保留相同逻辑行。
+默认产物是独立 [Zstandard frame](../../../.agents/notes/implemented/architecture/2026-07-19-zstandard-jsonl-session-logs.md) 的标准拼接：一个仅包含 header 行的带 checksum frame，后跟每个持久 append 批次一个带 checksum frame。后端使用 Node 内置 Zstandard API 和默认压缩级别，不提供级别开关。列表只读取并验证 header frame，外加每个日志一次 `stat`，其 mtime 作为 `list()` 的活动代理（任意最后一次写入；崩溃修复重写只在用户打开会话时发生）。`compression: 'none'` 在原始表示中保留相同逻辑行。
 
 一个根只属于一种编码。启动发现和定向查找会拒绝相反 suffix，错误会命名不兼容产物，并指示调用方选择匹配 mode 或独立根。平铺 `<project>/<id>.jsonl*` 产物也会被拒绝，而不是忽略。不提供迁移、混合根回退或双写。
 

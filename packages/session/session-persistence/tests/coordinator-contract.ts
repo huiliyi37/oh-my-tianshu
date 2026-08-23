@@ -1089,7 +1089,7 @@ export function runCoordinatorContract(name: string, makeFixture: () => Promise<
         // Disposal is an observe-only notification. Poll storage rather than
         // assuming the owning fiber awaits the coordinator's detached drain.
         await vi.waitFor(async () => {
-          expect((await ctx.sessionPersistence.list()).map(meta => meta.id)).toContain(SessionId('buffered'))
+          expect((await ctx.sessionPersistence.list()).map(meta => meta.header.id)).toContain(SessionId('buffered'))
         })
         expect((await ctx.sessionPersistence.load(SessionId('buffered'))).events.map(event => event.seq)).toEqual([0, 1])
 
@@ -1322,7 +1322,7 @@ export function runCoordinatorContract(name: string, makeFixture: () => Promise<
         const m = meta('empty-batch', WORK)
         await ctx.sessionPersistence.create(m)
         await ctx.sessionPersistence.append(m.id, [])
-        expect((await ctx.sessionPersistence.list()).map(h => h.id)).not.toContain(m.id)
+        expect((await ctx.sessionPersistence.list()).map(h => h.header.id)).not.toContain(m.id)
       } finally {
         await fiber.dispose()
         await fix.cleanup()

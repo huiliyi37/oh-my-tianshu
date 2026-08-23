@@ -774,9 +774,9 @@ describe('SubagentService.listChildren', () => {
     const childId = await startChild(ctx, parent, 'cached child')
     // The child's turn/end and disposal are the cache's mandatory checkpoint
     // points; both writes are fail-soft asynchronous, so wait for the row.
-    const header = (await ctx.sessionPersistence.list()).find(meta => meta.id === childId)
+    const header = (await ctx.sessionPersistence.list()).find(meta => meta.header.id === childId)
     await vi.waitFor(() => {
-      expect(ctx.sessionProjectionCache.cachedSnapshot(header!)?.values.subagent).toBeDefined()
+      expect(ctx.sessionProjectionCache.cachedSnapshot(header!.header)?.values.subagent).toBeDefined()
     }, { timeout: 5_000 })
     const inspect = vi.spyOn(ctx.sessionPersistence, 'inspect')
     await expect(ctx.subagents.listChildren(parent.id)).resolves.toEqual([{
