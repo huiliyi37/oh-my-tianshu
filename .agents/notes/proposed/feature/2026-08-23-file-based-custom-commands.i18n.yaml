@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-23-file-based-custom-commands.md
+2026-08-23-file-based-custom-commands.md: baa6364461f19d5576f37788bc598e468cc9411e
+2026-08-23-file-based-custom-commands.zh.md: 5224363248c8e0420dc1ec649a2829bf21e94deb
