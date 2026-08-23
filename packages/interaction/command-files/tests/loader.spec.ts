@@ -37,7 +37,7 @@ describe('loadCommandFiles', () => {
   it('loads every valid command file from both layers', async () => {
     const userDir = await tempDir('cf-user-')
     await writeCommand(userDir, 'hello.md', 'description: Say hello', 'Hello $1')
-    await writeCommand(userDir, 'git/log.md', "description: Show the log\nimages: true", 'LOG $ARGUMENTS')
+    await writeCommand(userDir, 'git/log.md', 'description: Show the log\nimages: true', 'LOG $ARGUMENTS')
 
     const commands = await loadCommandFiles(userDir, '/nonexistent-project')
     expect([...commands.keys()].sort()).toEqual(['git-log', 'hello'])

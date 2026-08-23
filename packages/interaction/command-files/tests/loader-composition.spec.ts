@@ -166,7 +166,7 @@ describe('command-files real Loader composition', () => {
     await registry.registered[0]!.run({
       text: 'world',
       sessionId: 'loader-tui',
-      echo: text => { echoes.push(text) },
+      echo: (text) => { echoes.push(text) },
       ctx: { agents: new Map([['loader-tui', agent]]) },
     })
     expect(echoes).toEqual(['Hello world'])

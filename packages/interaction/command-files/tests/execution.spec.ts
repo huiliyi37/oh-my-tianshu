@@ -31,34 +31,38 @@ afterEach(async () => {
 })
 
 /** Boot the command-files plugin against a single temp user layer. */
-async function boot(config: { userDir: string; projectDir: string }): Promise<{ ctx: Context; agent: Agent }> {
+async function boot(config: { userDir: string; projectDir: string }): Promise<{
+  ctx: Context
+  agent: Agent
+  steer: ReturnType<typeof vi.fn>
+}> {
   const ctx = new Context()
   await ctx.plugin(CommandService)
   await ctx.plugin(commandFiles, config)
   const session = Session.create(SessionId('cf-exec'))
+  const steer = vi.fn()
   const agent = {
     session,
     status: 'idle',
     options: {},
     reserveTurnAdmission: () => () => undefined,
-    steer: vi.fn(),
+    steer,
   } as unknown as Agent
-  return { ctx, agent }
+  return { ctx, agent, steer }
 }
 
 describe('file-backed command execution', () => {
   it('steers the rendered template and logs the lifecycle pair', async () => {
     const userDir = await tempDir('cf-user-')
     await writeCommand(userDir, 'hello.md', 'description: Say hello', 'Hello $1')
-    const { ctx, agent } = await boot({ userDir, projectDir: `${userDir}-project` })
+    const { ctx, agent, steer } = await boot({ userDir, projectDir: `${userDir}-project` })
 
     const execution = await ctx.commands.execute(agent, '/hello world', new AbortController().signal)
     expect(execution).toBeDefined()
     expect(execution!.result).toEqual({ kind: 'success', text: 'Hello world' })
 
-    const steerMock = agent.steer as ReturnType<typeof vi.fn>
-    expect(steerMock).toHaveBeenCalledTimes(1)
-    const steered = steerMock.mock.calls[0][0] as UserMessage
+    expect(steer).toHaveBeenCalledTimes(1)
+    const steered = steer.mock.calls[0][0] as UserMessage
     expect(steered.role).toBe('user')
     expect(steered.source).toEqual({ kind: 'user' })
     expect(steered.content).toEqual([{ type: 'text', text: 'Hello world' }])
@@ -82,11 +86,11 @@ describe('file-backed command execution', () => {
   it('settles an empty template body as an execution-time error without steering', async () => {
     const userDir = await tempDir('cf-user-')
     await writeCommand(userDir, 'blank.md', 'description: Blank', '   ')
-    const { ctx, agent } = await boot({ userDir, projectDir: `${userDir}-project` })
+    const { ctx, agent, steer } = await boot({ userDir, projectDir: `${userDir}-project` })
 
     const execution = await ctx.commands.execute(agent, '/blank', new AbortController().signal)
     expect(execution?.result.kind).toBe('error')
     expect(execution?.result.kind === 'error' ? execution.result.text : '').toContain('empty template body')
-    expect(agent.steer).not.toHaveBeenCalled()
+    expect(steer).not.toHaveBeenCalled()
   })
 })

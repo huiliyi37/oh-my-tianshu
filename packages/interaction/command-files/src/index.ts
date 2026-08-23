@@ -80,14 +80,14 @@ interface ResolvedConfig {
 
 /** Minimal shape of the TUI slash facet consumed through the optional seam. */
 interface TuiSlashFacet {
-  register(command: { name: string; description: string; argsHint?: string; run: (args: TuiSlashRun) => void }): void
+  register(command: { name: string; description: string; argsHint?: string; run: (args: TuiSlashRun) => void | Promise<void> }): void
 }
 
 /** Arguments the TUI slash registry hands each command invocation. */
 interface TuiSlashRun {
   text: string
   sessionId: string | null
-  echo(text: string): void
+  echo: (text: string) => void
   ctx: { agents?: { get(id: string): unknown } }
 }
 
@@ -114,9 +114,9 @@ function buildDefinition(command: LoadedCommand): CommandDefinition {
     description: command.description,
     input: {
       hint: ARGS_HINT,
-      ...command.images === true ? { images: true } : {},
+      ...command.images ? { images: true } : {},
     },
-    handler: (invocation) => execute(command, invocation),
+    handler: invocation => execute(command, invocation),
   }
 }
 
