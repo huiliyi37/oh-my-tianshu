@@ -21,7 +21,7 @@ import { scrubbedParentEnv } from '@huiliyi37/dsh-subprocess'
 
 /** Resolved spawn spec for an SDK runtime child process (no defaults — see Config). */
 export interface SdkRunSpec {
-  /** The executable to spawn (the child runtime — a `dsh-jsonrpc-agent` bin or packaged exe). */
+  /** The executable to spawn (the child runtime — a `dsh-sdk-server-agent` bin or packaged exe). */
   command: string
   /** Arguments passed to {@link command} (typically the child's `cordis.yml` path). */
   args: string[]

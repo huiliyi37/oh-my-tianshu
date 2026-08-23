@@ -17,8 +17,8 @@
                   args: ['./lsp-server.mjs']
                   extensionToLanguage:
                     '.ts': typescript
-          - id: timeout-policy
-            name: '@huiliyi37/dsh-timeout-policy'
+          - id: timeout-guard
+            name: '@huiliyi37/dsh-timeout-guard'
           - id: tool-lsp
             name: '@huiliyi37/dsh-tool-lsp'
             config:

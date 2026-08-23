@@ -1,5 +1,5 @@
 /**
- * Unit + real-load-path coverage for @huiliyi37/dsh-timeout-policy. The
+ * Unit + real-load-path coverage for @huiliyi37/dsh-timeout-guard. The
  * timeout-wins cases drive the deadline under fake timers (deterministic — no
  * wall-clock race) and use a COOPERATIVE tool that settles only when its
  * `exec.signal` aborts, mirroring how a real capability forwards the signal and
@@ -12,12 +12,12 @@ import Loader from '@huiliyi37/cordis-plugin-loader'
 import { CallId, HarnessError } from '@huiliyi37/dsh-llm'
 import SystemPrompt from '@huiliyi37/dsh-system-prompt'
 import ToolRegistry, { defineContentToolFixture, TOOL_ABORTED, type ToolExecutionInput, type PostToolDecision } from '@huiliyi37/dsh-tools'
-import * as timeoutPolicy from '@huiliyi37/dsh-timeout-policy'
-import { TOOL_TIMEOUT } from '@huiliyi37/dsh-timeout-policy'
+import * as timeoutPolicy from '@huiliyi37/dsh-timeout-guard'
+import { TOOL_TIMEOUT } from '@huiliyi37/dsh-timeout-guard'
 
 const testToolSignal = new AbortController().signal
 
-/** Mount the registry + the zero-config timeout-policy enforcer. */
+/** Mount the registry + the zero-config timeout-guard enforcer. */
 async function setup() {
   const ctx = new Context()
   await ctx.plugin(SystemPrompt)
@@ -45,7 +45,7 @@ const abortThrowingTool = defineContentToolFixture({
   },
 })
 
-describe('timeout-policy delegation (unconfigured / fast)', () => {
+describe('timeout-guard delegation (unconfigured / fast)', () => {
   it('delegates a tool with NO declared budget unchanged and does not touch exec.signal', async () => {
     const ctx = await setup()
     let seenSignal: AbortSignal | undefined
@@ -81,7 +81,7 @@ describe('timeout-policy delegation (unconfigured / fast)', () => {
   })
 })
 
-describe('timeout-policy signal restoration', () => {
+describe('timeout-guard signal restoration', () => {
   it('restores the caller signal for post-execute after wrapping', async () => {
     const ctx = await setup()
     ctx.tools.register(defineContentToolFixture({ name: 'fast', description: 'd', parameters: {}, timeoutMs: 10_000,
@@ -94,7 +94,7 @@ describe('timeout-policy signal restoration', () => {
   })
 })
 
-describe('timeout-policy TOOL_TIMEOUT replacement (deadline wins)', () => {
+describe('timeout-guard TOOL_TIMEOUT replacement (deadline wins)', () => {
   beforeEach(() => { vi.useFakeTimers() })
   afterEach(() => { vi.useRealTimers() })
 
@@ -193,13 +193,13 @@ describe('timeout-policy TOOL_TIMEOUT replacement (deadline wins)', () => {
   })
 })
 
-describe('timeout-policy contract', () => {
+describe('timeout-guard contract', () => {
   it('exposes the owned code constant', () => {
     expect(TOOL_TIMEOUT).toBe('TOOL_TIMEOUT')
   })
 })
 
-describe('timeout-policy disposal (HMR safety)', () => {
+describe('timeout-guard disposal (HMR safety)', () => {
   it('removes its tools/execute listener when the plugin fiber disposes', async () => {
     const ctx = new Context()
     await ctx.plugin(SystemPrompt)
@@ -217,13 +217,13 @@ describe('timeout-policy disposal (HMR safety)', () => {
   })
 })
 
-describe('dsh-timeout-policy real-load-path guard', () => {
+describe('dsh-timeout-guard real-load-path guard', () => {
   it('has no default export and keeps name/inject through unwrapExports', () => {
     expect('default' in timeoutPolicy).toBe(false)
     const loader = Object.create(Loader.prototype) as Loader
     const unwrapped = loader.unwrapExports(timeoutPolicy) as Record<string, unknown>
     expect(unwrapped).toBe(timeoutPolicy)
-    expect(unwrapped.name).toBe('timeout-policy')
+    expect(unwrapped.name).toBe('timeout-guard')
     expect(unwrapped.inject).toEqual(['tools'])
     expect(typeof unwrapped.apply).toBe('function')
   })

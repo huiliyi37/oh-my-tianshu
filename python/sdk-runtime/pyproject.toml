@@ -13,7 +13,7 @@ license = { text = "BSD-3-Clause" }
 # Include the injected executable and default config; exclude the dev-only node
 # closure from wheels and sdists.
 [tool.hatch.build]
-artifacts = ["src/deepseek_harness_runtime/runtime/dsh-jsonrpc-agent-*"]
+artifacts = ["src/deepseek_harness_runtime/runtime/dsh-sdk-server-agent-*"]
 exclude = ["src/deepseek_harness_runtime/runtime/node"]
 
 [tool.hatch.build.targets.wheel]

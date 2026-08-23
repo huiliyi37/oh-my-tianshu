@@ -4,7 +4,7 @@ Two runtime carriers coexist under ``runtime/``, both injected by the repo's
 ``scripts/build-exe-for-python-sdk.ts`` build (neither is checked into git):
 
 - **exe (production)**: single-file Node executables named
-  ``dsh-jsonrpc-agent-pkg-<platform>-<arch>`` (platform in {linux, macos}, arch in
+  ``dsh-sdk-server-agent-pkg-<platform>-<arch>`` (platform in {linux, macos}, arch in
   {x64, arm64}) with a sibling ``-rg`` executable; macOS also uses a sibling
   ``-spawn-helper``. The target machine needs no Node installation.
 - **node (dev-only)**: the full deploy closure under ``runtime/node/``
@@ -78,7 +78,7 @@ def bundled_runtime_path() -> Path:
     touching callers).
     """
     tag = _current_platform_tag()
-    path = bundled_package_dir() / "runtime" / f"dsh-jsonrpc-agent-pkg-{tag}"
+    path = bundled_package_dir() / "runtime" / f"dsh-sdk-server-agent-pkg-{tag}"
     if not path.is_file():
         raise FileNotFoundError(
             f"deepseek-harness-runtime-bin is missing the runtime executable at {path}. "
@@ -128,7 +128,7 @@ def _current_platform_tag() -> str:
     arch = _ARCH_TAGS.get(platform.machine().lower())
     if plat is None or arch is None:
         raise FileNotFoundError(
-            "no bundled dsh-jsonrpc-agent executable exists for this platform "
+            "no bundled dsh-sdk-server-agent executable exists for this platform "
             f"(sys.platform={sys.platform!r}, machine={platform.machine()!r}); supported: "
             "linux/macos on x64/arm64. " + _EXE_ACQUISITION_HINT
         )

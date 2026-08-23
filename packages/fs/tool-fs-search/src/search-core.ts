@@ -38,7 +38,7 @@ export const RAW_OUTPUT_MAX_BYTES = 20_000_000
 /**
  * Default cooperative tool-call timeout budget in milliseconds (the `timeoutMs`
  * config), attached to both tool definitions for
- * `@huiliyi37/dsh-timeout-policy` to enforce through `exec.signal`.
+ * `@huiliyi37/dsh-timeout-guard` to enforce through `exec.signal`.
  */
 export const SEARCH_TIMEOUT_MS = 30_000
 
@@ -182,7 +182,7 @@ export function resolveRgPath(): Promise<string> {
  * complete raw stdout. The working directory is the calling agent's session
  * cwd (`exec.agent.session.header.cwd`) when available, else
  * `process.cwd()`. `exec.signal` is forwarded so the cooperative tool timeout
- * (`@huiliyi37/dsh-timeout-policy`) and caller cancellation terminate the
+ * (`@huiliyi37/dsh-timeout-guard`) and caller cancellation terminate the
  * process tree.
  *
  * The spawn is unconfined (a plain `ctx.subprocess` call), so `--no-config`

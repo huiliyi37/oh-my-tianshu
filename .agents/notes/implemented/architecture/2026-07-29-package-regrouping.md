@@ -26,7 +26,7 @@ Six groups are recomposed; every other group keeps its prior boundary and conten
 | `interaction/` | user-interaction, user-approval, permission, tool-ask-user, commands, tui | `ui/` |
 | `boot/` | app-boot | `ui/` |
 | `scaffold/` | helper, scripts, create-sdk, protocol, client, server, telemetry | `sdk/` + `ui/jsonrpc` |
-| `guard/` | repeat-tool-guard, timeout-policy | `guard/` + `timeout/` |
+| `guard/` | repeat-tool-guard, timeout-guard | `guard/` + `timeout/` |
 | `self-modification/` | tool-cordis | `cordis/` |
 
 - **`session/`** is the durable session data plane: the persistence seam with its backends and checkpoint policy, the projection fold that serves whole values from that log, log-backed titles, and OTel reporting. The title fold is itself load-bearing for the read side (`session-query` peer-depends on `dsh-session-title`), so titles belong with the data plane, not in a derived-services annex. The plain name is deliberate (review: prefer names a human would say); the nearby `core/session` package remains the live in-memory service, while this group is the durable family around it. `session-query/` stays a standalone group — the read/tool surface has its own model tools and SQLite FTS backend and is consumed independently of persistence internals. Absorbing `telemetry/` ended the group-name collision with `dsh-telemetry`.
@@ -44,11 +44,11 @@ Five npm names should eventually change, but renaming inside the reorganization 
 
 | Current npm name | Intended name | Why |
 |---|---|---|
-| `@huiliyi37/dsh-jsonrpc` | `@huiliyi37/dsh-sdk-server` | Names the wire encoding, not the role; it is the server half of the SDK protocol |
+| `@huiliyi37/dsh-sdk-server` | `@huiliyi37/dsh-sdk-server` | Names the wire encoding, not the role; it is the server half of the SDK protocol |
 | `@huiliyi37/dsh-telemetry` | `@huiliyi37/dsh-sdk-telemetry` | Collides with the `dsh-session-telemetry` family; it is launcher-side SDK telemetry |
 | `@huiliyi37/dsh-helper` | `@huiliyi37/dsh-sdk-helper` | Indefensibly generic as a published name |
 | `@huiliyi37/dsh-scripts` | `@huiliyi37/dsh-sdk-scripts` | Same |
-| `@huiliyi37/dsh-timeout-policy` | `@huiliyi37/dsh-timeout-guard` | Suggestion, not settled: aligns the name with its `guard/` home; decide at resolution time |
+| `@huiliyi37/dsh-timeout-guard` | `@huiliyi37/dsh-timeout-guard` | Suggestion, not settled: aligns the name with its `guard/` home; decide at resolution time |
 
 The first four are settled intent; resolving them converges the SDK wire stack's npm names on `dsh-sdk-*` (the npm prefix names the product stack; the `scaffold/` folder names the role). `@huiliyi37/create-sdk` keeps its documented npm-initializer exception.
 

@@ -1,6 +1,6 @@
 /**
  * Keyless snapshot coverage for the TypeScript SDK path: each scenario spawns
- * the REAL `dsh-jsonrpc-agent` runtime (per `DSH_EXAMPLE_MODE`) through the
+ * the REAL `dsh-sdk-server-agent` runtime (per `DSH_EXAMPLE_MODE`) through the
  * REAL `@huiliyi37/dsh-sdk-client`, drives one turn over stdio JSON-RPC,
  * and pins three surfaces — the SDK `RunResult`, the complete notification
  * stream, and the persisted session logs. Replay serves recorded model

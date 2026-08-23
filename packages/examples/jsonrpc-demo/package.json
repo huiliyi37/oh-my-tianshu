@@ -14,7 +14,7 @@
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
   "bin": {
-    "dsh-jsonrpc-agent": "lib/bin.js"
+    "dsh-sdk-server-agent": "lib/bin.js"
   },
   "exports": {
     ".": {

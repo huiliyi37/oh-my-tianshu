@@ -445,7 +445,7 @@ importers:
       '@huiliyi37/dsh-invariants':
         specifier: workspace:*
         version: link:../packages/support/invariants
-      '@huiliyi37/dsh-jsonrpc':
+      '@huiliyi37/dsh-sdk-server':
         specifier: workspace:*
         version: link:../packages/scaffold/server
       '@huiliyi37/dsh-llm':
@@ -589,9 +589,9 @@ importers:
       '@huiliyi37/dsh-time-context':
         specifier: workspace:*
         version: link:../packages/context/time-context
-      '@huiliyi37/dsh-timeout-policy':
+      '@huiliyi37/dsh-timeout-guard':
         specifier: workspace:*
-        version: link:../packages/guard/timeout-policy
+        version: link:../packages/guard/timeout-guard
       '@huiliyi37/dsh-token-meter':
         specifier: workspace:*
         version: link:../packages/llm/token-meter
@@ -1336,9 +1336,9 @@ importers:
       '@huiliyi37/dsh-tasks-local':
         specifier: workspace:^
         version: link:../../tasks/tasks-local
-      '@huiliyi37/dsh-timeout-policy':
+      '@huiliyi37/dsh-timeout-guard':
         specifier: workspace:^
-        version: link:../../guard/timeout-policy
+        version: link:../../guard/timeout-guard
       '@huiliyi37/dsh-token-meter':
         specifier: workspace:^
         version: link:../../llm/token-meter
@@ -4495,7 +4495,7 @@ importers:
         specifier: workspace:^
         version: link:../../core/tools
 
-  packages/guard/timeout-policy:
+  packages/guard/timeout-guard:
     devDependencies:
       '@huiliyi37/cordis':
         specifier: ^4.0.0-rc.7
@@ -5507,9 +5507,9 @@ importers:
       '@huiliyi37/dsh-timeout':
         specifier: workspace:^
         version: link:../../util/timeout
-      '@huiliyi37/dsh-timeout-policy':
+      '@huiliyi37/dsh-timeout-guard':
         specifier: workspace:^
-        version: link:../../guard/timeout-policy
+        version: link:../../guard/timeout-guard
       '@huiliyi37/dsh-tools':
         specifier: workspace:^
         version: link:../../core/tools
@@ -6646,9 +6646,9 @@ importers:
       '@huiliyi37/dsh-timeout':
         specifier: workspace:^
         version: link:../../util/timeout
-      '@huiliyi37/dsh-timeout-policy':
+      '@huiliyi37/dsh-timeout-guard':
         specifier: workspace:^
-        version: link:../../guard/timeout-policy
+        version: link:../../guard/timeout-guard
       '@huiliyi37/dsh-tools':
         specifier: workspace:^
         version: link:../../core/tools
@@ -8485,9 +8485,9 @@ importers:
       '@huiliyi37/dsh-system-prompt':
         specifier: workspace:^
         version: link:../../core/system-prompt
-      '@huiliyi37/dsh-timeout-policy':
+      '@huiliyi37/dsh-timeout-guard':
         specifier: workspace:^
-        version: link:../../guard/timeout-policy
+        version: link:../../guard/timeout-guard
       '@huiliyi37/dsh-tools':
         specifier: workspace:^
         version: link:../../core/tools
@@ -8957,7 +8957,7 @@ importers:
       '@huiliyi37/dsh-invariants':
         specifier: workspace:^
         version: link:../../packages/support/invariants
-      '@huiliyi37/dsh-jsonrpc':
+      '@huiliyi37/dsh-sdk-server':
         specifier: workspace:^
         version: link:../../packages/scaffold/server
       '@huiliyi37/dsh-jsonrpc-demo':
@@ -9095,9 +9095,9 @@ importers:
       '@huiliyi37/dsh-timeout':
         specifier: workspace:^
         version: link:../../packages/util/timeout
-      '@huiliyi37/dsh-timeout-policy':
+      '@huiliyi37/dsh-timeout-guard':
         specifier: workspace:^
-        version: link:../../packages/guard/timeout-policy
+        version: link:../../packages/guard/timeout-guard
       '@huiliyi37/dsh-token-meter':
         specifier: workspace:^
         version: link:../../packages/llm/token-meter

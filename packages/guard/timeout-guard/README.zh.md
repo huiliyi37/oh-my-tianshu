@@ -1,16 +1,16 @@
-# dsh-timeout-policy
+# dsh-timeout-guard
 
 [English](README.md) | 中文
 
 工具调用超时强制执行器：单个 `tools/execute` 环绕分发监听器，会在 `exec.signal` 上设置单次调用的协作式截止时间；适用于声明了 `timeoutMs` 且声明位于其 `ToolDefinition` 上的工具。该截止时间先到时，它返回结构化 `TOOL_TIMEOUT` 结果。预算从工具自身的声明中读取（`ToolDefinition.timeoutMs`，由拥有该工具的插件设置），因此此插件是**零配置**的。它是 `tools/execute` 包装层的参考实现，也是面向模型工具调用预算的强制执行归属地（超时库 Agent Note 所预见的中间件）。
 
-## 插件（命名空间：`timeout-policy`）
+## 插件（命名空间：`timeout-guard`）
 
 它是函数／命名空间插件（`name`/`inject`/`apply`），而非服务。它不注册工具，也不接受配置；它消费 `ctx.tools` 的 `tools/execute` waterfall（瀑布式事件）（由 `dsh-tools` 注册表始终提供），并读取每个已分发工具声明的 `timeoutMs`；该声明来自注册表（`ctx.tools.get(exec.name)`）。
 
 ```yaml
-- id: timeout-policy
-  name: '@huiliyi37/dsh-timeout-policy'
+- id: timeout-guard
+  name: '@huiliyi37/dsh-timeout-guard'
 ```
 
 每工具预算由工具插件声明（例如 `dsh-tool-web` 的 `fetchTimeoutMs`/`searchTimeoutMs` 配置，会附加为 `ToolDefinition.timeoutMs`）；此插件只负责强制执行，因此不可能拼错工具名。

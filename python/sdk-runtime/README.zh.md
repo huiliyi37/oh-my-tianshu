@@ -8,7 +8,7 @@ Python SDK 的运行时载体包（分发名 `deepseek-harness-runtime-bin`，�
 
 两种载体并存于 `src/deepseek_harness_runtime/runtime/` 之下，均由仓库的 `scripts/build-exe-for-python-sdk.ts` 构建注入，且均被 git 忽略：
 
-- **exe（生产）**——单文件 Node 可执行程序 `dsh-jsonrpc-agent-pkg-<platform>-<arch>`（platform：`linux`/`macos`；arch：`x64`/`arm64`），以及匹配目标平台的 ripgrep `-rg` 伴随文件。macOS 构建还会随附 `node-pty` 在该平台使用的原生 `-spawn-helper` 伴随文件。目标机器无需安装 Node。这是唯一随 wheel 包分发的载体；本包不发布 sdist。
+- **exe（生产）**——单文件 Node 可执行程序 `dsh-sdk-server-agent-pkg-<platform>-<arch>`（platform：`linux`/`macos`；arch：`x64`/`arm64`），以及匹配目标平台的 ripgrep `-rg` 伴随文件。macOS 构建还会随附 `node-pty` 在该平台使用的原生 `-spawn-helper` 伴随文件。目标机器无需安装 Node。这是唯一随 wheel 包分发的载体；本包不发布 sdist。
 - **node（仅限开发）**——`runtime/node/` 下的完整部署闭包（`package.json` + `node_modules/`），在系统 Node >= 22.19 上以 `node runtime/node/node_modules/@huiliyi37/dsh-jsonrpc-demo/lib/bin.js` 执行。它是当前检出的源码构建，仅用于仓库本地的开发与验证；不会被自动选中，也不进入分发物。
 
 两种载体承载相同的内容，且只定义一次：本包根目录的 [package.json](package.json) 是 single-exe 流水线的部署根目录——一份零代码的纯依赖 manifest，其依赖闭包既是编译进 exe 的插件集，也是物化到 `runtime/node/` 的文件树。往分发物里加插件，就是在那里加一行依赖再重新构建。
@@ -28,4 +28,4 @@ exe 缺失时抛出 `FileNotFoundError`，并写明两种获取途径：在 deep
 
 ## 零配置设计
 
-运行时二进制始终要求显式配置（`$DSH_CORDIS_CONFIG`，或作为 argv 位置参数的配置路径），缺了就报错退出——这一强制语义是运行时设计的一部分，本包不会弱化它。bin（`dsh-jsonrpc-agent`）只启动配置里列出的插件；对外服务接口（stdio JSON-RPC 服务器）也是其中一个条目（`@huiliyi37/dsh-jsonrpc`），缺了它，启动出的 agent（智能体）就没有对外通道。本包检入的 `runtime/cordis.yml` 包含 JSON-RPC 服务条目、agent 核心、预载的 DeepSeek 适配器、JSONL 持久化、显式组合的语义检查点策略、本地 bash，以及用于有界加载工作区指令的本地文件系统提供方。持久化后端负责持久存储，独立的策略则选择请求、工具分发和已完成步骤的检查点。DeepSeek 适配器读取 `DEEPSEEK_API_KEY` 与 `DEEPSEEK_BASE_URL`，持久化、bash 和文件系统提供方则使用 `DSH_SESSION_ROOT` 和 `DSH_CWD`，并为手动运行提供回退值。调用方未使用任何显式配置通道时，`deepseek_harness` 客户端把该文件路径注入 `DSH_CORDIS_CONFIG`（注入条件见 [sdk README](../sdk/README.md)）。因此，零配置是包装层中一次显式、可见的参数传递，而不是运行时中的隐藏回退。
+运行时二进制始终要求显式配置（`$DSH_CORDIS_CONFIG`，或作为 argv 位置参数的配置路径），缺了就报错退出——这一强制语义是运行时设计的一部分，本包不会弱化它。bin（`dsh-sdk-server-agent`）只启动配置里列出的插件；对外服务接口（stdio JSON-RPC 服务器）也是其中一个条目（`@huiliyi37/dsh-sdk-server`），缺了它，启动出的 agent（智能体）就没有对外通道。本包检入的 `runtime/cordis.yml` 包含 JSON-RPC 服务条目、agent 核心、预载的 DeepSeek 适配器、JSONL 持久化、显式组合的语义检查点策略、本地 bash，以及用于有界加载工作区指令的本地文件系统提供方。持久化后端负责持久存储，独立的策略则选择请求、工具分发和已完成步骤的检查点。DeepSeek 适配器读取 `DEEPSEEK_API_KEY` 与 `DEEPSEEK_BASE_URL`，持久化、bash 和文件系统提供方则使用 `DSH_SESSION_ROOT` 和 `DSH_CWD`，并为手动运行提供回退值。调用方未使用任何显式配置通道时，`deepseek_harness` 客户端把该文件路径注入 `DSH_CORDIS_CONFIG`（注入条件见 [sdk README](../sdk/README.md)）。因此，零配置是包装层中一次显式、可见的参数传递，而不是运行时中的隐藏回退。

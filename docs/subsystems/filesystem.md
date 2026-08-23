@@ -269,7 +269,7 @@ type FsErrorCode =
 
 ## No timeouts on file IO
 
-`read`/`write`/`edit` take **no** `timeoutMs`, and the provider contract arms no deadline — unlike bash and web (which consume [`@huiliyi37/dsh-timeout`](../../packages/util/timeout/README.md)) and the bash-backed `glob`/`grep` (whose declared `timeoutMs` is enforced by `@huiliyi37/dsh-timeout-policy`): those are process-backed, where a deadline can really kill the work. A local syscall is best-effort-abortable at most — a timeout could not force an in-progress `fsync`/`rename` to stop, so a deadline here would be a knob that cannot deliver on its promise, and an implicit default in the exact place explicit-over-implicit forbids. Both reference agents (Claude Code, Codex) leave file IO untimed for the same reason; cancellation still propagates through the tool-execution signal for best-effort abort at syscall boundaries.
+`read`/`write`/`edit` take **no** `timeoutMs`, and the provider contract arms no deadline — unlike bash and web (which consume [`@huiliyi37/dsh-timeout`](../../packages/util/timeout/README.md)) and the bash-backed `glob`/`grep` (whose declared `timeoutMs` is enforced by `@huiliyi37/dsh-timeout-guard`): those are process-backed, where a deadline can really kill the work. A local syscall is best-effort-abortable at most — a timeout could not force an in-progress `fsync`/`rename` to stop, so a deadline here would be a knob that cannot deliver on its promise, and an implicit default in the exact place explicit-over-implicit forbids. Both reference agents (Claude Code, Codex) leave file IO untimed for the same reason; cancellation still propagates through the tool-execution signal for best-effort abort at syscall boundaries.
 
 ## The service and the plugin
 

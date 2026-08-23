@@ -43,7 +43,7 @@ def test_repository_version_rejects_non_stable_versions(tmp_path: Path) -> None:
 def test_stage_runtime_copies_platform_payload(
     tmp_path: Path, target: str, with_helper: bool
 ) -> None:
-    executable = tmp_path / f"dsh-jsonrpc-agent-pkg-{target}"
+    executable = tmp_path / f"dsh-sdk-server-agent-pkg-{target}"
     executable.write_bytes(b"runtime")
     executable.chmod(0o755)
     expected = {executable.name: b"runtime"}
@@ -61,4 +61,4 @@ def test_stage_runtime_copies_platform_payload(
     build_python_release.stage_runtime(destination, "1.2.3", executable, executable.name)
 
     runtime_dir = destination / "src" / "deepseek_harness_runtime" / "runtime"
-    assert {path.name: path.read_bytes() for path in runtime_dir.glob("dsh-jsonrpc-agent-pkg-*")} == expected
+    assert {path.name: path.read_bytes() for path in runtime_dir.glob("dsh-sdk-server-agent-pkg-*")} == expected

@@ -104,7 +104,7 @@ The transport-neutral presenter uses `{ card: 'generic', kind: 'search', title, 
 
 ## Timeout ownership
 
-`dsh-tool-lsp` attaches one configurable `timeoutMs` budget, default `60_000`, to the tool definition. `dsh-timeout-policy` enforces it and supplies `exec.signal`, which reaches `ctx.lsp.query`; the budget covers the complete queued open/query/close lifecycle and is not model-configurable.
+`dsh-tool-lsp` attaches one configurable `timeoutMs` budget, default `60_000`, to the tool definition. `dsh-timeout-guard` enforces it and supplies `exec.signal`, which reaches `ctx.lsp.query`; the budget covers the complete queued open/query/close lifecycle and is not model-configurable.
 
 The seam and provider add no startup or request deadline. Non-tool callers therefore receive no hidden timeout and must supply an `AbortSignal`, using `deadline()` when they need a budget.
 

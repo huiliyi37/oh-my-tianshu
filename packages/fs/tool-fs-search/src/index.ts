@@ -87,7 +87,7 @@ export interface Config {
   graceMs?: number
   /** Max bytes retained for one search's stderr tail; the excerpt is embedded in `SEARCH_*` error messages, never shown on success. */
   stderrMaxBytes?: number
-  /** Cooperative tool-call timeout budget (ms) on both tools, enforced by `@huiliyi37/dsh-timeout-policy` through `exec.signal`. */
+  /** Cooperative tool-call timeout budget (ms) on both tools, enforced by `@huiliyi37/dsh-timeout-guard` through `exec.signal`. */
   timeoutMs?: number
 }
 

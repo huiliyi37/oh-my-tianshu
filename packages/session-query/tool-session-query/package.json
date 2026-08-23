@@ -56,7 +56,7 @@
     "@huiliyi37/dsh-session-title": "workspace:^",
     "@huiliyi37/dsh-system-prompt": "workspace:^",
     "@huiliyi37/dsh-timeout": "workspace:^",
-    "@huiliyi37/dsh-timeout-policy": "workspace:^",
+    "@huiliyi37/dsh-timeout-guard": "workspace:^",
     "@huiliyi37/dsh-tools": "workspace:^",
     "@huiliyi37/cordis": "^4.0.0-rc.7"
   }

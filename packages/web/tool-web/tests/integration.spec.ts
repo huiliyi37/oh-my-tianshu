@@ -1,7 +1,7 @@
 /**
  * Integration: the real fetch backend (`dsh-web-fetch-local`) + a real search provider
  * (`dsh-web-search-exa`) + the real seam (`dsh-web`) + the model tool (`dsh-tool-web`) + the
- * tool-call timeout policy (`dsh-timeout-policy`), exercised through `ctx.tools.execute()` —
+ * tool-call timeout policy (`dsh-timeout-guard`), exercised through `ctx.tools.execute()` —
  * nothing bypasses the tool registry. Fetch verifies world effects against loopback HTTP; search
  * uses the real Exa provider with only its network boundary stubbed.
  */
@@ -17,7 +17,7 @@ import WebService from '@huiliyi37/dsh-web'
 import * as WebFetchLocal from '@huiliyi37/dsh-web-fetch-local'
 import * as WebSearchExa from '@huiliyi37/dsh-web-search-exa'
 import * as ToolWeb from '@huiliyi37/dsh-tool-web'
-import * as TimeoutPolicy from '@huiliyi37/dsh-timeout-policy'
+import * as TimeoutPolicy from '@huiliyi37/dsh-timeout-guard'
 
 const testToolSignal = new AbortController().signal
 
@@ -43,7 +43,7 @@ beforeEach(async () => {
   await ctx.plugin(WebSearchExa, { apiKey: 'exa-key', baseURL: 'https://api.exa.test' })
   // The shipped deployment shape: the tool-call budget is declared by tool-web
   // config (default 30s, attached as ToolDefinition.timeoutMs) and enforced by
-  // the zero-config timeout-policy plugin, set above the provider backstop so the
+  // the zero-config timeout-guard plugin, set above the provider backstop so the
   // policy normally wins.
   await ctx.plugin(TimeoutPolicy)
   fiber = await ctx.plugin(ToolWeb)
@@ -151,7 +151,7 @@ describe('tool-call timeout returns TOOL_TIMEOUT (deadline wins over a slow fetc
   it('returns a structured TOOL_TIMEOUT (not the provider WEB_FETCH_TIMEOUT) when the tool-call budget wins', async () => {
     const out = await tctx.tools.execute({ signal: testToolSignal, callId: CallId('slow-1'), name: 'web_fetch', arguments: { url: slowBase } })
     expect(out.isError).toBe(true)
-    // The outer tool-call deadline won: TOOL_TIMEOUT, owned by dsh-timeout-policy,
+    // The outer tool-call deadline won: TOOL_TIMEOUT, owned by dsh-timeout-guard,
     // NOT the provider's own WEB_FETCH_TIMEOUT (its 30s backstop never fired).
     expect(out.error?.info?.code).toBe('TOOL_TIMEOUT')
     const text = out.content.map(b => (b.type === 'text' ? b.text : '')).join('')

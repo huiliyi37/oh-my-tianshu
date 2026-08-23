@@ -39,7 +39,7 @@ Status: proposed
 - `dsh-fs-local`：`applyLiteralEdit`、`listDirectory`、`probe`、`readForEdit`、`readTextForDiff`、`readWholeText`、`resolveLocalTarget`、`restoreLineEndings`、`streamWholeText` 与 `writeFileAtomic`。
 - `dsh-web-fetch-local`：`classifyContentType`、`decoderForCharset`、`isSameOrigin`、`parseCharset` 与 `validateFetchUrl`；`dsh-web-search-exa`：`mapExaResponse` 与 `mapExaResult`；`dsh-web-search-deepseek`：`citationSnippets` 与 `mapAnthropicResponse`；`dsh-web-search-perplexity`：`mapPerplexityResponse` 与 `mapPerplexityResult`。
 - `dsh-tool-fs`：`READ_LIMIT`、`STREAM_MIN_SIZE`、`READ_MAX_BYTES`、`READ_MAX_LINE_LENGTH`、`DIFF_CONTEXT`、`applyReadTool`、`parseReadArgs`、`applyWriteTool`、`formatWriteOutput`、`parseWriteArgs`、`applyEditTool`、`formatEditOutput`、`parseEditArgs`、`buildWindow`、`formatReadOutput`、`computeHunkDiffs` 与 `diffsFromMeta`。
-- `dsh-tool-web`：`WEB_SEARCH_MAX_RESULTS`、`applyWebSearchTool`、`formatSearchOutput`、`parseSearchArgs`、`presentSearchCall`、`applyWebFetchTool`、`formatFetchOutput`、`parseFetchArgs`、`presentFetchCall`、`renderBody` 与 `htmlToMarkdown`；`dsh-timeout-policy`：`toolTimeoutResult`；`dsh-compact-basic`：`resolveConfig`；`dsh-tool-bash`：`renderResult`。
+- `dsh-tool-web`：`WEB_SEARCH_MAX_RESULTS`、`applyWebSearchTool`、`formatSearchOutput`、`parseSearchArgs`、`presentSearchCall`、`applyWebFetchTool`、`formatFetchOutput`、`parseFetchArgs`、`presentFetchCall`、`renderBody` 与 `htmlToMarkdown`；`dsh-timeout-guard`：`toolTimeoutResult`；`dsh-compact-basic`：`resolveConfig`；`dsh-tool-bash`：`renderResult`。
 
 ## 提案
 

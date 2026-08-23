@@ -56,7 +56,7 @@ export async function runWithDeadline(upstream: AbortSignal | undefined, timeout
 
 ## 模型体验
 
-通过 `dsh-timeout-policy` 等消费方间接影响模型；消费方可能会将提供方结果替换为已保留的超时错误，或抑制延迟结果。
+通过 `dsh-timeout-guard` 等消费方间接影响模型；消费方可能会将提供方结果替换为已保留的超时错误，或抑制延迟结果。
 
 #### KV Cache 影响
 

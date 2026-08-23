@@ -16,7 +16,7 @@ Status: rejected — 下列每一项替换在证据上都未达到净简化门�
 
 - **以 `vscode-jsonrpc` 承担 LSP 基础协议的分帧/关联**（`lsp-local`）：可替换的核心只占 src 约 1,800 行中的约 255 行；该包无法表达可配置的 `maxMessageBytes` 入站大小上限（要恢复它就得重建被删掉的分帧代码），反转了取消宽限期的拆除语义（`raceAbort` 立即 reject 再拆除；vscode-jsonrpc 让 promise 保持挂起），会在真实服务器输出的 header 前 stdout 横幅上报错，而且在这个 ESM 通行的仓库里它是 CJS。[LSP seam 决策](../../implemented/architecture/2026-07-15-lsp-capability-seam.md)把 JSON-RPC 的所有权划给 `dsh-lsp-local`；本次审计正是对该决策当时缺失的这项依赖权衡的明文记录。
 - **以 `vscode-languageserver-types` 承担 lsp-local 的协议类型子集**：约 80 行类型加约 45 行守卫，但上游守卫在两个方向上都与本仓库不一致（接受本仓库必须拒绝的 `uri: undefined`；强制要求本仓库容忍缺失的 `targetRange`），而且 initialize 结果的形状住在 `vscode-languageserver-protocol` 里，会把 `vscode-jsonrpc` 拖成运行时依赖——为 80 行严格贴合规范的代码付出约 1 MB。
-- **以 `json-rpc-2.0` 替换 `dsh-jsonrpc`**：可删除的关联/分发代码确实存在（约 100–130 行），但 NDJSON 协议格式（wire format）必须与手写的 Python SDK 客户端逐位一致，该包只有单一维护者，且 [GUI RPC 决策](../../implemented/architecture/2026-07-19-gui-layering-and-rpc-protocol.md)已把这个包当作冻结的窄接口面对待。`vscode-jsonrpc` 更不合适（Content-Length 分帧、该协议并不具备的取消词汇）。
+- **以 `json-rpc-2.0` 替换 `dsh-sdk-server`**：可删除的关联/分发代码确实存在（约 100–130 行），但 NDJSON 协议格式（wire format）必须与手写的 Python SDK 客户端逐位一致，该包只有单一维护者，且 [GUI RPC 决策](../../implemented/architecture/2026-07-19-gui-layering-and-rpc-protocol.md)已把这个包当作冻结的窄接口面对待。`vscode-jsonrpc` 更不合适（Content-Length 分帧、该协议并不具备的取消词汇）。
 - **以 `jsonrpcclient` 承担 Python SDK 客户端**：v4 只做消息的构造/解析——约 20 行——而真正要紧的 500 行（子进程生命周期、线程化读取器、id 关联、双向的服务端角色应答）全都保留；该库处于低维护模式。
 - **以 `eventsource-parser` 替换 apiproxy 的 `readSse`**：可删除的分帧只有约 15 行，线路两端都在仓库内，规范符合性无关紧要，而且这会给一个浏览器安全的包添加依赖。（对比[已归档的 llm-deepseek 依赖决策](../../archived/simplification/2026-07-26-eventsource-parser-for-deepseek-sse.md)：那里线路对面是真实的提供方。）
 

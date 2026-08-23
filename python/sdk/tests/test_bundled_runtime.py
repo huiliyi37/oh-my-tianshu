@@ -19,7 +19,7 @@ _MODES = ("exe", "node")
 # The config must include the JSON-RPC serving plugin.
 _CORDIS_YML = """\
 - id: jsonrpc
-  name: '@huiliyi37/dsh-jsonrpc'
+  name: '@huiliyi37/dsh-sdk-server'
 - id: agent-core
   name: '@huiliyi37/dsh-agent-spine-demo'
   config:

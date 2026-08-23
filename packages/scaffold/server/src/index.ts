@@ -10,7 +10,7 @@
  * the current name says the wire encoding, not the role; it is the server half of
  * the SDK protocol ([regrouping Agent Note](../../../../.agents/notes/implemented/architecture/2026-07-29-package-regrouping.md)).
  *
- * @module @huiliyi37/dsh-jsonrpc
+ * @module @huiliyi37/dsh-sdk-server
  */
 
 import type { Context } from '@huiliyi37/cordis'

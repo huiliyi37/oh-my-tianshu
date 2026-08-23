@@ -8,7 +8,7 @@
  * home; decide at resolution time
  * ([regrouping Agent Note](../../../../.agents/notes/implemented/architecture/2026-07-29-package-regrouping.md)).
  *
- * @module @huiliyi37/dsh-timeout-policy
+ * @module @huiliyi37/dsh-timeout-guard
  */
 
 import type { Context } from '@huiliyi37/cordis'
@@ -25,7 +25,7 @@ import type { ToolExecutionResult } from '@huiliyi37/dsh-tools'
 export const TOOL_TIMEOUT = 'TOOL_TIMEOUT'
 
 /** Cordis plugin name used by loader diagnostics. */
-export const name = 'timeout-policy'
+export const name = 'timeout-guard'
 
 /** The tool registry service this plugin wraps (`tools/execute`) and reads (`get`). */
 export const inject = ['tools']

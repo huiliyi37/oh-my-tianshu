@@ -9,9 +9,9 @@ from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 
 
 _PLATFORMS = {
-    "linux-x64": ("manylinux_2_28_x86_64", "dsh-jsonrpc-agent-pkg-linux-x64"),
-    "linux-arm64": ("manylinux_2_28_aarch64", "dsh-jsonrpc-agent-pkg-linux-arm64"),
-    "macos-arm64": ("macosx_11_0_arm64", "dsh-jsonrpc-agent-pkg-macos-arm64"),
+    "linux-x64": ("manylinux_2_28_x86_64", "dsh-sdk-server-agent-pkg-linux-x64"),
+    "linux-arm64": ("manylinux_2_28_aarch64", "dsh-sdk-server-agent-pkg-linux-arm64"),
+    "macos-arm64": ("macosx_11_0_arm64", "dsh-sdk-server-agent-pkg-macos-arm64"),
 }
 
 
@@ -46,7 +46,7 @@ class RuntimeBuildHook(BuildHookInterface):
             )
         expected_executable = matches[0][1]
         runtime_dir = Path(self.root) / "src" / "deepseek_harness_runtime" / "runtime"
-        runtime_files = sorted(runtime_dir.glob("dsh-jsonrpc-agent-pkg-*") if runtime_dir.is_dir() else [])
+        runtime_files = sorted(runtime_dir.glob("dsh-sdk-server-agent-pkg-*") if runtime_dir.is_dir() else [])
         expected_files = [expected_executable, f"{expected_executable}-rg"]
         if "-macos-" in expected_executable:
             expected_files.append(f"{expected_executable}-spawn-helper")

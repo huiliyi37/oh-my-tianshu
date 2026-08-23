@@ -3,7 +3,7 @@ import { Context, type Fiber } from '@huiliyi37/cordis'
 import type { Agent } from '@huiliyi37/dsh-agent'
 import { createUserMessage, CallId, HarnessError , createMessage } from '@huiliyi37/dsh-llm'
 import { MAX_TIMER_DELAY_MS, TimeoutReason } from '@huiliyi37/dsh-timeout'
-import * as TimeoutPolicy from '@huiliyi37/dsh-timeout-policy'
+import * as TimeoutPolicy from '@huiliyi37/dsh-timeout-guard'
 import SessionStore, {
   SESSION_FORMAT_VERSION,
   SessionId,

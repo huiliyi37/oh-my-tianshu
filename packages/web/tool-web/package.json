@@ -53,7 +53,7 @@
     "@huiliyi37/dsh-spill-local": "workspace:^",
     "@huiliyi37/dsh-spill-policy": "workspace:^",
     "@huiliyi37/dsh-system-prompt": "workspace:^",
-    "@huiliyi37/dsh-timeout-policy": "workspace:^",
+    "@huiliyi37/dsh-timeout-guard": "workspace:^",
     "@huiliyi37/dsh-tools": "workspace:^",
     "@huiliyi37/dsh-web": "workspace:^",
     "@huiliyi37/dsh-web-fetch-local": "workspace:^",

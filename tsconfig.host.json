@@ -237,7 +237,7 @@
     { "path": "./packages/spill/spill" },
     { "path": "./packages/spill/spill-local" },
     { "path": "./packages/spill/spill-policy" },
-    { "path": "./packages/guard/timeout-policy" },
+    { "path": "./packages/guard/timeout-guard" },
     { "path": "./packages/support/invariants" },
     { "path": "./packages/identity/anonymous-user-id" },
     { "path": "./packages/attachment/attachment" },

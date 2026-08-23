@@ -51,7 +51,7 @@ describe('jsonrpc-agent keyless smoke', () => {
     { label: 'reports max-token turns with mapping enabled through env', envValue: 'true' },
     { label: 'reports max-token turns with mapping disabled through env', envValue: 'false' },
   ])('$label', async ({ envValue }) => {
-    const root = await mkdtemp(join(tmpdir(), 'dsh-jsonrpc-agent-smoke-'))
+    const root = await mkdtemp(join(tmpdir(), 'dsh-sdk-server-agent-smoke-'))
     const modelRequests: Array<Record<string, unknown>> = []
     const modelServer = createServer((request, response) => {
       let body = ''
@@ -196,7 +196,7 @@ describe('jsonrpc-agent keyless smoke', () => {
     expect(exitCode, stderr).toBe(1)
     expect(stdout).toBe('')
     expect(stderr).toContain('plugin tree failed to load')
-    expect(stderr).toContain('failed to apply loader entry jsonrpc (@huiliyi37/dsh-jsonrpc)')
+    expect(stderr).toContain('failed to apply loader entry jsonrpc (@huiliyi37/dsh-sdk-server)')
     expect(stderr).toContain('sometimes')
   }, 30_000)
 })

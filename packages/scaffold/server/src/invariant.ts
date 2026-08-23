@@ -1,13 +1,13 @@
 /**
- * Package-owned invariant companion for `@huiliyi37/dsh-jsonrpc`.
- * @module @huiliyi37/dsh-jsonrpc/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-sdk-server`.
+ * @module @huiliyi37/dsh-sdk-server/invariant
  */
 
 /* jscpd:ignore-start */
 import type { Context } from '@huiliyi37/cordis'
 import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@huiliyi37/dsh-jsonrpc'
+const PACKAGE_NAME = '@huiliyi37/dsh-sdk-server'
 
 /** Cordis companion plugin name. */
 export const name = 'jsonrpc-invariant'

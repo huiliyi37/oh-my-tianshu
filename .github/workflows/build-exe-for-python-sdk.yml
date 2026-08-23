@@ -168,7 +168,7 @@ jobs:
         run: |
           set -euo pipefail
           platform="${TARGET#node24-}"
-          exe="$PWD/dist-exe/dsh-jsonrpc-agent-pkg-$platform"
+          exe="$PWD/dist-exe/dsh-sdk-server-agent-pkg-$platform"
           [ -x "$exe" ] || { echo "::error::$exe missing or not executable"; exit 1; }
           case "$platform" in
             linux-x64) wheel=deepseek_harness_runtime_bin-$VERSION-py3-none-manylinux_2_28_x86_64.whl ;;

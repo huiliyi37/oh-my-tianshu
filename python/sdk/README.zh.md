@@ -15,7 +15,7 @@ with DeepSeekHarness() as harness:
 
 `DeepSeekHarness` 会保留延迟启动的运行时子进程，以供多次调用复用。请像上例一样将其用作上下文管理器，或在用完后显式调用 `close()`。
 
-默认情况下，SDK 启动 `deepseek-harness-runtime-bin` 包内置的单文件 `dsh-jsonrpc-agent` 可执行程序，并通过 `DSH_CORDIS_CONFIG` 注入该包的默认配置（stdio JSON-RPC 服务器、`agent-core`、预载的 DeepSeek 适配器、配有显式组合语义检查点策略的 JSONL 会话持久化、本地 bash）。要运行自己的插件组合，请在配置里保留 `@huiliyi37/dsh-jsonrpc` 条目，并传入 Cordis 配置路径。
+默认情况下，SDK 启动 `deepseek-harness-runtime-bin` 包内置的单文件 `dsh-sdk-server-agent` 可执行程序，并通过 `DSH_CORDIS_CONFIG` 注入该包的默认配置（stdio JSON-RPC 服务器、`agent-core`、预载的 DeepSeek 适配器、配有显式组合语义检查点策略的 JSONL 会话持久化、本地 bash）。要运行自己的插件组合，请在配置里保留 `@huiliyi37/dsh-sdk-server` 条目，并传入 Cordis 配置路径。
 
 ```py
 from deepseek_harness import DeepSeekHarness

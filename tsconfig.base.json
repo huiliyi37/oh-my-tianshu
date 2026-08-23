@@ -216,7 +216,7 @@
       // renames that restore symmetry are FIXME-tracked in the regrouping note.
       "@huiliyi37/dsh-sdk-client": ["./packages/scaffold/client/src"],
       "@huiliyi37/dsh-sdk-protocol": ["./packages/scaffold/protocol/src"],
-      "@huiliyi37/dsh-jsonrpc": ["./packages/scaffold/server/src"],
+      "@huiliyi37/dsh-sdk-server": ["./packages/scaffold/server/src"],
       "@huiliyi37/dsh-*": [
         "./packages/core/*/src",
         "./packages/prompt/*/src",

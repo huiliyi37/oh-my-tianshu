@@ -20,7 +20,7 @@ The remaining application roles are explicit:
 
 - `@huiliyi37/dsh-tui` owns terminal-interactive execution. It rejects non-TTY streams before Loader boot; `apps/cli/config/base.cordis.yml` plus the `tui.cordis.yml` overlay own the complete coding composition, with PTY plus terminal-snapshot coverage in `apps/cli/tests/`.
 - [`dsh run`](../../../../apps/cli/README.md) owns non-interactive execution. Its `headless` profile is the product composition; `examples/headless-agent` owns replay snapshots, generic real-agent suites, and an unexported keyless Loader driver.
-- [`@huiliyi37/dsh-acp-demo`](../../../../packages/examples/acp-demo/README.md) and `@huiliyi37/dsh-jsonrpc` own their framed protocol integrations.
+- [`@huiliyi37/dsh-acp-demo`](../../../../packages/examples/acp-demo/README.md) and `@huiliyi37/dsh-sdk-server` own their framed protocol integrations.
 
 The SDK project model and create/config workflows replace the `stdio` run-interface option with `tui`; generated TUI projects compose `@huiliyi37/dsh-tui` and create or resume one exact session. Repository-facing demo documentation requires a DeepSeek API key and leads with the real Headless or TUI agents.
 
