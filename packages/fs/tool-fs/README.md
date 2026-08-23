@@ -105,6 +105,18 @@ Fixed schema cost on every request in that tool view.
 
 Prefix-stable while the visible tool definitions and order are unchanged. Registration lifecycle or scoped restrictions may invalidate reuse from the first changed schema token.
 
+### read_section result
+
+`read_section(file_path, section)` reads a line range (`L100-L200`) or character range (`c0-c5000`) from a live file without re-reading the whole content. It is the fetch point the `[read-ref]` reference points to: after an unchanged re-read returns a reference, the model requests only the part it needs. Output is capped by `readMaxBytes`; files above 2MB are rejected (use grep or shell head/tail). A version mismatch since the session's last read of the file prepends a staleness warning.
+
+#### Token effect
+
+The returned range only — no whole-file re-emission. `getReadRefStats()` reports cumulative bytes kept out of the request suffix and the shortcut count.
+
+#### KV Cache effect
+
+None beyond the small returned range.
+
 ### Read result
 
 #### What the model sees

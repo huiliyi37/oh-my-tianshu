@@ -25,7 +25,7 @@ import type {
 } from '@huiliyi37/dsh-fs'
 import * as FsPolicy from '@huiliyi37/dsh-fs-policy'
 import * as ToolFs from '@huiliyi37/dsh-tool-fs'
-import { STREAM_MIN_SIZE } from '../src/read.ts'
+import { STREAM_MIN_SIZE, getReadRefStats } from '../src/read.ts'
 import { formatReadOutput } from '../src/read-render.ts'
 import type { FileReadOutcome } from '../src/read-render.ts'
 import { sessionCwd } from '../src/session-cwd.ts'
@@ -947,6 +947,8 @@ describe('read-ref：未变更重读返回引用（token 效率）', () => {
       const second = await call(ctx, 'read', { file_path: path }, agent)
       expect(text(second)).toContain('[read-ref]')
       expect(text(second)).toContain('unchanged since its last read')
+      // 引用文本带 read_section 取数指引（read-ref 闭环：模型有区段取数落点）。
+      expect(text(second)).toContain('read_section(file_path=')
 
       // 引用后仍坚持重读：降级返回真内容。
       const third = await call(ctx, 'read', { file_path: path }, agent)
@@ -957,6 +959,21 @@ describe('read-ref：未变更重读返回引用（token 效率）', () => {
       writeFileSync(path, `${content}appended line\n`)
       const fourth = await call(ctx, 'read', { file_path: path }, agent)
       expect(text(fourth)).toContain('appended line')
+    } finally {
+      rmSync(path, { force: true })
+    }
+  })
+
+  it('getReadRefStats 累计引用省下的字节与次数', async () => {
+    const { ctx, agent } = await setupRealFs()
+    const path = bigFile(tmpdir(), 'line for read-ref stats\n'.repeat(150))
+    try {
+      const before = getReadRefStats()
+      await call(ctx, 'read', { file_path: path }, agent)
+      await call(ctx, 'read', { file_path: path }, agent)  // 第二次 → ref
+      const after = getReadRefStats()
+      expect(after.count).toBe(before.count + 1)
+      expect(after.savedBytes).toBeGreaterThan(before.savedBytes)
     } finally {
       rmSync(path, { force: true })
     }

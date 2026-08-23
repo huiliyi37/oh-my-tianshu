@@ -105,6 +105,18 @@ Use the edit tool for targeted changes to existing UTF-8 text files. It replaces
 
 只要可见工具定义和顺序不变，前缀就保持稳定。注册生命周期或作用域限制可能从首个变化的 schema token 开始使复用失效。
 
+### read_section 结果
+
+`read_section(file_path, section)` 按行范围（`L100-L200`）或字符范围（`c0-c5000`）读取活动文件区段，不重读全文。它是 `[read-ref]` 引用指向的取数点：未变更重读返回引用后，模型只需请求所需区段。输出受 `readMaxBytes` 限制；超过 2MB 的文件被拒绝（改用 grep 或 shell head/tail）。自本会话上次读取后文件版本变化时，结果前置陈旧警告。
+
+#### Token 影响
+
+仅返回区段——不重发全文。`getReadRefStats()` 报告累计省下的请求后缀字节与引用次数。
+
+#### KV Cache 影响
+
+除返回的小区段外无其它影响。
+
 ### 读取结果
 
 #### 模型看到的内容

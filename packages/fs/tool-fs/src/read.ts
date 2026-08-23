@@ -26,6 +26,22 @@ export const STREAM_MIN_SIZE = 10 * 1024 * 1024
 /** Default read-ref threshold (the `readRefThresholdBytes` config): unchanged re-reads of files this large return a reference. */
 export const READ_REF_THRESHOLD_BYTES = 2048
 
+/** Cumulative bytes saved by read-ref shortcuts (avoided uncached re-emission). */
+let readRefSavedBytes = 0
+/** Number of read-ref shortcuts served. */
+let readRefCount = 0
+
+/**
+ * Read-ref telemetry: how many unchanged re-reads were short-circuited to a
+ * reference and how many bytes of file content that kept out of the request
+ * suffix (the main driver of uncached growth — upstream measured most
+ * cacheCreate coming exactly from in-turn tool-result growth).
+ * @returns the cumulative saved-bytes and shortcut count.
+ */
+export function getReadRefStats(): { savedBytes: number; count: number } {
+  return { savedBytes: readRefSavedBytes, count: readRefCount }
+}
+
 /** Resolved read-tool caps — plugin config after defaulting (see `Config` in index.ts). */
 export interface ReadToolCaps {
   /** Default and maximum number of lines returned by one call. */
@@ -157,8 +173,8 @@ export function applyReadTool(ctx: Context, caps: ReadToolCaps): void {
           return [{
             type: 'text',
             text: `[read-ref] ${value.path} is unchanged since its last read in this conversation (same file version, same window). `
-              + 'Reuse the content from the earlier read above instead of requesting it again; '
-              + 'use a different offset/limit or a focus query if you need another part.',
+              + `Need a specific part? Use read_section(file_path="${args.file_path}", section="L100-L200") or section="c0-c5000" `
+              + 'to fetch just that range from disk. Do not re-read the whole file — it only grows the uncached request suffix.',
           }]
         }
         if (input.focus !== undefined) {
@@ -231,6 +247,8 @@ export function applyReadTool(ctx: Context, caps: ReadToolCaps): void {
           && state.offset === input.offset && state.limit === input.limit
           && !state.refServed) {
           state.refServed = true
+          readRefSavedBytes += info.size ?? 0
+          readRefCount += 1
           ctx.emit('fs/observed', target, { kind: 'present', version: info.version }, exec)
           return { path: target.displayPath, offset: input.offset, lines: [], totalLines: 0, readRef: true }
         }
