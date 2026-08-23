@@ -1,0 +1,3 @@
+name: 太一模式
+description: opt-in 实验人设：上游「太一」对抗性 prompt 词本体叠加在 standard 工具面之上，不设默认。
+order: 5
