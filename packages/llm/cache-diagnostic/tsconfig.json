@@ -24,6 +24,9 @@
       "path": "../../core/session"
     },
     {
+      "path": "../../compact/compact"
+    },
+    {
       "path": "../../session/session-projection"
     },
     {
