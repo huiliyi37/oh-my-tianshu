@@ -1,0 +1,52 @@
+{
+  "name": "@huiliyi37/dsh-output-style",
+  "description": "Switchable output-style presets (default / explanatory / learning) as an ordered system-prompt section, hot-switched through the settings seam and driven by the /style command",
+  "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huiliyi37/oh-my-tianshu.git",
+    "directory": "packages/interaction/output-style"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/types/**/*.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "Apache-2.0",
+  "peerDependencies": {
+    "@huiliyi37/dsh-commands": "^0.4.0",
+    "@huiliyi37/dsh-invariants": "^0.2.0",
+    "@huiliyi37/dsh-settings": "^0.4.0",
+    "@huiliyi37/dsh-system-prompt": "^0.4.0",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
+  },
+  "dependencies": {
+    "@huiliyi37/schemastery": "^3.18.0"
+  },
+  "devDependencies": {
+    "@huiliyi37/dsh-commands": "workspace:^",
+    "@huiliyi37/dsh-invariants": "workspace:^",
+    "@huiliyi37/dsh-settings": "workspace:^",
+    "@huiliyi37/dsh-system-prompt": "workspace:^",
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
+  }
+}
