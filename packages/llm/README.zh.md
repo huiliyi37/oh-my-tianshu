@@ -8,6 +8,7 @@ LLM（大语言模型）seam 及其提供方适配器。`llm` 包同时承担 Se
 |---|---|---|
 | [`llm/`](llm/README.md) | LLM 服务和共享流式词汇 | `ctx.llm` |
 | [`token-meter/`](token-meter/README.md) | 可感知回放的 token 测量 | `ctx.tokenMeter` |
+| [`cache-diagnostic/`](cache-diagnostic/README.md) | 前缀缓存健康观测与未命中诊断 | `ctx.cacheDiagnostic` |
 | [`llm-retry/`](llm-retry/README.md) | 提供方作用域的重试策略 | 监听 `agent/request-error` |
 | [`llm-deepseek/`](llm-deepseek/README.md) | 直接 DeepSeek 适配器 | 注册到 `ctx.llm` |
 | [`llm-pi-ai/`](llm-pi-ai/README.md) | 多提供方 pi-ai 适配器 | 注册到 `ctx.llm` |
