@@ -20,7 +20,7 @@ The reduction is reverted because it broke a delegation path no call count could
 
 A tool a parent agent never calls can still be load-bearing: a subagent role's allow list, a router profile, or a hardcoded verification name reaches tools through a path that leaves no call in the parent's log. Call counts measure the parent's behavior and are silent about every other consumer.
 
-The section filter and the deferred arming are reverted with it rather than on their own merits. They were reverted as one unit because the revert was requested against the shipped commit, and neither has a recorded defect. Both remain recoverable from `5e5804baec`.
+The section filter and the deferred arming are reverted with it rather than on their own merits. They were reverted as one unit because the revert was requested against the shipped commit, and neither has a recorded defect. Both were recovered on 2026-08-23 without the reduction — see [prompt sections follow the tool face, and arming tolerates a filling registry](2026-08-23-zen-section-pruning-deferred-arming.md).
 
 ## What the measurement actually showed
 
@@ -42,9 +42,9 @@ The finding that did survive the instrument is unrelated to this change and is r
 
 The `verify` role works again, and the model's promoted face is back to 32 tools, including `repo_graph`, `semantic_search`, the memory tools, and the session-query tools.
 
-The revert restores a known crash. `tools.restrict()` validates names against the tools registered at the moment it runs, and the TUI's front door reaches `agent/created` before the plugins that inject a service — `tool-bash` behind the bash executor, `tool-fs-search` behind `subprocess` — have registered theirs. A probe run observed `bash`, `glob`, and `grep` arriving roughly 350ms after `str_replace_editor` and `read`. With `glob` and `grep` back in `promoteDeny`, promotion can therefore fail with `tools.restrict() names unknown global tools "glob", "grep"`, which is the failure that prompted the deferred-arming work in the first place. Whether it fires depends on timing, so it is intermittent rather than reliable.
+The revert restored a known crash, since closed by [the recovery change](2026-08-23-zen-section-pruning-deferred-arming.md). `tools.restrict()` validates names against the tools registered at the moment it runs, and the TUI's front door reaches `agent/created` before the plugins that inject a service — `tool-bash` behind the bash executor, `tool-fs-search` behind `subprocess` — have registered theirs. A probe run observed `bash`, `glob`, and `grep` arriving roughly 350ms after `str_replace_editor` and `read`. With `glob` and `grep` back in `promoteDeny`, promotion could therefore fail with `tools.restrict() names unknown global tools "glob", "grep"`, which is the failure that prompted the deferred-arming work in the first place. The recovery arms the registered subset and completes the list at the first per-agent seam, so the race no longer vetoes a session.
 
-The dangling-guidance defect returns with it: the promoted face denies `edit`, `write`, `glob`, `grep`, and `git` while their `tool:<name>` sections stay in the assembly, so the prompt continues to instruct the model to prefer `read` over `cat`, `glob` over shell `find`, and `grep` over `rg` while none of those tools is callable. The observable symptom is a `ToolNotFoundError` on a tool the prompt named, followed by the same prose forbidding the shell fallback.
+The dangling-guidance defect returned with it and is closed by the same change: the promoted face denies `edit`, `write`, `glob`, `grep`, and `git` while their `tool:<name>` sections stayed in the assembly, so the prompt continued to instruct the model to prefer `read` over `cat`, `glob` over shell `find`, and `grep` over `rg` while none of those tools is callable. Every assembly now drops each `tool:<name>` section whose tool is off that assembly's face.
 
 `agent-router` keeps its `VERIFICATION_TOOLS` set of `run_tests` and `related_tests`; with `tool-run-tests` mounted again these are callable, so the verification-gap signal is meaningful rather than permanently true.
 

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-23-zen-section-pruning-deferred-arming.md
+2026-08-23-zen-section-pruning-deferred-arming.md: 56eb1aba2273e17cdb8fbbd0b15bd30975f6606d
+2026-08-23-zen-section-pruning-deferred-arming.zh.md: 919efbb0df53d97d8f4dc4cf88cf1f4128cc8782

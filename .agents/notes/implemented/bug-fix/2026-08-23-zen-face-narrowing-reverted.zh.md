@@ -20,7 +20,7 @@ Status: implemented
 
 父代理从不调用的工具照样可能承重：子代理角色的允许列表、路由档位、guard 包里硬编码的工具名，都经由不在父代理日志里留下任何调用的路径触达工具。调用统计度量的是父代理的行为，对其余每一个消费方都保持沉默。
 
-段落过滤器与延迟武装是被连带回退的，不是因为它们自身的是非。它们作为一个整体被退回，是因为回退是针对已发货的那次提交提出的，而两者都没有记录在案的缺陷。两者都可以从 `5e5804baec` 里取回。
+段落过滤器与延迟武装是被连带回退的，不是因为它们自身的是非。它们作为一个整体被退回，是因为回退是针对已发货的那次提交提出的，而两者都没有记录在案的缺陷。两者已于 2026-08-23 在不带缩减的前提下取回——见[提示词段落随工具面收窄，武装容忍未填满的注册表](2026-08-23-zen-section-pruning-deferred-arming.md)。
 
 ## 度量实际显示了什么
 
@@ -42,9 +42,9 @@ Status: implemented
 
 `verify` 角色恢复正常，模型晋升后的工具面回到 32 件，包括 `repo_graph`、`semantic_search`、记忆类工具与会话查询类工具。
 
-回退也把一个已知崩溃带了回来。`tools.restrict()` 按它运行那一刻已注册的工具校验名字，而 TUI 的前门在注入了服务的插件——bash 执行器背后的 `tool-bash`、`subprocess` 背后的 `tool-fs-search`——完成注册之前就抵达了 `agent/created`。一次探针运行观察到 `bash`、`glob`、`grep` 比 `str_replace_editor` 与 `read` 晚约 350 毫秒到达。`glob` 与 `grep` 回到 `promoteDeny` 之后，晋升因此可能以 `tools.restrict() names unknown global tools "glob", "grep"` 失败——这正是当初促成延迟武装那项工作的那次失败。是否触发取决于时序，所以它是间歇性的而非稳定复现。
+回退也把一个已知崩溃带了回来，该崩溃已由[取回改动](2026-08-23-zen-section-pruning-deferred-arming.md)关闭。`tools.restrict()` 按它运行那一刻已注册的工具校验名字，而 TUI 的前门在注入了服务的插件——bash 执行器背后的 `tool-bash`、`subprocess` 背后的 `tool-fs-search`——完成注册之前就抵达了 `agent/created`。一次探针运行观察到 `bash`、`glob`、`grep` 比 `str_replace_editor` 与 `read` 晚约 350 毫秒到达。`glob` 与 `grep` 回到 `promoteDeny` 之后，晋升因此可能以 `tools.restrict() names unknown global tools "glob", "grep"` 失败——这正是当初促成延迟武装那项工作的那次失败。取回后的武装只取注册表已有的子集，并在首个 per-agent seam 补齐整份列表，竞态因此不再能否决会话。
 
-悬空指引的缺陷也一并回来：晋升后的工具面拒绝 `edit`、`write`、`glob`、`grep`、`git`，而它们的 `tool:<name>` 段落仍留在组装里，于是提示词继续让模型优先用 `read` 而不是 `cat`、用 `glob` 而不是 shell `find`、用 `grep` 而不是 `rg`，而这些工具一个都调不到。可观察的症状是：对提示词点名的工具调用得到 `ToolNotFoundError`，紧接着同一段文字又禁掉 shell 退路。
+悬空指引的缺陷也一并回来，并由同一改动关闭：晋升后的工具面拒绝 `edit`、`write`、`glob`、`grep`、`git`，而它们的 `tool:<name>` 段落仍留在组装里，于是提示词继续让模型优先用 `read` 而不是 `cat`、用 `glob` 而不是 shell `find`、用 `grep` 而不是 `rg`，而这些工具一个都调不到。现在每次组装都会丢弃工具不在本次组装 face 上的 `tool:<name>` 段落。
 
 `agent-router` 保留它 `run_tests` 与 `related_tests` 的 `VERIFICATION_TOOLS` 集合；`tool-run-tests` 重新挂载后这两件可调用，因此验证缺口信号是有意义的，而不是恒为真。
 

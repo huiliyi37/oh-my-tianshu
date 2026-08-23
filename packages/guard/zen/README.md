@@ -6,6 +6,8 @@ The zen phase is a built-in agent-lifecycle phase, not a skill: a fresh top-leve
 
 The phase physically shrinks the first-request face instead of asking the model to ignore extra tools: guidance on a wide face does not substitute for a smaller catalog. After promotion the remaining overlap is with `bash`, which is why the TUI `promoteDeny` list hides the competing stacks rather than growing the catalog.
 
+Narrowing prunes the prompt with the face. Tool plugins register a `tool:<name>` section beside the tool, so an unreachable tool leaves prose arguing for a call that cannot run — `tool:read` prefers `read` over `cat`, which sends the model into a `ToolNotFoundError` and then forbids the shell fallback it would otherwise reach for. Every assembly therefore drops each `tool:<name>` section whose tool is off that assembly's face, which covers the zen allow-list, `promoteDeny`, and subagent tool filters alike. A suffix naming no registered tool documents a family (`tool:tasks` covers `task_output`/`task_kill`/`task_list`) and survives: only the owning plugin knows whether its remaining tools still back the prose.
+
 ## Config
 
 ```yaml
@@ -28,7 +30,9 @@ The phase physically shrinks the first-request face instead of asking the model 
     enabled: true                 # default; false mounts the service with no behavior
 ```
 
-`resolveConfig` fails loud at plugin load on a blank `section`, unknown keys, an empty/duplicated `face`, a `face` naming `zen_anchor`, a `promoteDeny` that repeats a `face` name, or non-positive budgets. A `face` or `promoteDeny` naming an unregistered global tool fails at `agent/created` — synchronous listener failure vetoes publication, so a misconfigured deployment cannot silently run unrestricted. The TUI patch sets `face: [bash, str_replace_editor, todo_write, subagent]`, `promoteDeny` to `BASH_OVERLAP_TOOLS` (`edit`, `file_info`, `git`, `glob`, `grep`, `read`, `write`), and `diet.maxDescriptionChars: 80`.
+`resolveConfig` fails loud at plugin load on a blank `section`, unknown keys, an empty/duplicated `face`, a `face` naming `zen_anchor`, a `promoteDeny` that repeats a `face` name, or non-positive budgets. A `face` or `promoteDeny` naming an unregistered global tool fails when the list is installed — the first per-agent seam at the latest — so a misspelled name costs the session loud rather than silently widening or starving it. The TUI patch sets `face: [bash, str_replace_editor, todo_write, subagent]`, `promoteDeny` to `BASH_OVERLAP_TOOLS` (`edit`, `file_info`, `git`, `glob`, `grep`, `read`, `write`), and `diet.maxDescriptionChars: 80`.
+
+Arming tolerates a registry that is still filling in. A plugin that injects a service registers its tools whenever that service lands — `tool-bash` waits for the bash executor, `tool-fs-search` for `subprocess` — and a front door that attaches on its own services reaches `agent/created` before either. `restrict()` rejects a name it cannot see, so arming the whole list there would veto a session for a race. Arming instead takes the subset the registry already carries, which is strictly narrower than configured, and the remainder lands at the first per-agent seam; a name nothing registers by then is misconfiguration and fails loud through the `agent/pre-step` waterfall.
 
 ## Phase mechanics
 
@@ -40,7 +44,7 @@ The phase physically shrinks the first-request face instead of asking the model 
   - `timeout` — the step budget ran out. Promotion fires on the budget's final step and the unlock is visible on the following assembly; a plugin-sourced notice tells the model.
   - `triage` — the first user message is trivially short (≤ `maxChars`, single-line, text-only), so the phase is skipped before the first request ever assembles.
   - `user` — the user ran `/fast [message]`: the phase ends on request and the optional message steers the turn on the full face. The command child registers only when a command registry is composed (the TUI reaches it through its CommandService fallback, like `/plan`); under `faceSelection` it refuses — the face is frozen.
-- **After promotion** the `zen:policy` section folds to empty and `zen_anchor` stays registered; calling it once the phase has ended (anchor, budget, triage, or `/fast`) resolves as a benign no-op success — the full toolset is already unlocked — mirroring plan mode's stable-catalog rule. Crossing the boundary changes only the restriction. Overlapping plugins remain registered so a subagent role can still allow `grep`/`read`/`glob`.
+- **After promotion** the `zen:policy` section folds to empty and `zen_anchor` stays registered; calling it once the phase has ended (anchor, budget, triage, or `/fast`) resolves as a benign no-op success — the full toolset is already unlocked — mirroring plan mode's stable-catalog rule. Crossing the boundary changes only the restriction, and the guidance sections follow the face across it. Overlapping plugins remain registered so a subagent role can still allow the tools `promoteDeny` hides.
 - **Defense in depth** — a registry guard denies non-face tool execution whenever the *logged* phase is still zen, independent of the live restriction bookkeeping.
 
 The `zen/phase` sequence is invariant-checked (`@huiliyi37/dsh-zen/invariant`): payloads are shape-validated at the durable boundary, a session arms at most once, and promotion never re-logs.
@@ -51,11 +55,11 @@ The `zen/phase` sequence is invariant-checked (`@huiliyi37/dsh-zen/invariant`): 
 
 #### What the model sees
 
-The first request's tool list is the anchored face plus `zen_anchor`, and the system prompt carries the deployment's `section` text followed by a `Zen-phase callable tools:` line naming the exact face (plus `zen_anchor`) so the model never reaches for tools the face removed. Nothing else changes.
+The first request's tool list is the anchored face plus `zen_anchor`, and the system prompt carries the deployment's `section` text followed by a `Zen-phase callable tools:` line naming the exact face (plus `zen_anchor`) so the model never reaches for tools the face removed. Guidance for those removed tools is gone from the prompt as well, so the inventory line has nothing to contradict. Nothing else changes.
 
 #### Token effect
 
-The wide face's schemas never enter the first requests. The `section` text plus the one-line callable-tools inventory are the only additions.
+The wide face's schemas never enter the first requests, and neither do their `tool:<name>` sections. The `section` text plus the one-line callable-tools inventory are the only additions.
 
 #### KV Cache effect
 
@@ -115,3 +119,4 @@ Mid-zen it is the promotion re-fill accounted above; before the first request th
 - **Triage is a host heuristic** — length/shape only; a sidecar classifier was rejected for the MVP (zero extra requests) and would slot in behind the same predicate.
 - **Face width is static per deployment** — the axis that matters is overlapping intent with `bash`, not catalog cardinality. Retrieval (`tool_search`) stays deferred.
 - **The anchor's content is not semantically validated** — the host checks structure and evidence, not whether the landmarks are the *right* landmarks; that stays with the model.
+- **Section pruning is keyed on names, not prose** — a section that names another plugin's tool in passing, or a family section covering both a live and a hidden tool, still ships its stale sentence. Removing those needs the owning plugin to split the section or condition its text on the face.

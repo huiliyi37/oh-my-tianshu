@@ -14,7 +14,7 @@ zen 阶段是内建的 agent（智能体）生命周期阶段，由 `packages/gu
 
 - **锚定初始 face。**在 `agent/created`（driver 与首次组装之前、具备否决能力的 seam）处，新建顶层会话获得 `ctx.tools.restrict({ allow: face })`——默认值为官方评测配方（`bash`、`str_replace_editor`、`todo_write`）加一个 agent 作用域的 `zen_anchor` 工具——并记录 `zen/phase {'zen', 'arm'}`。`request/header` 本就记录模型看到的每个 face，因此「模型可见 ⟺ 已记录」不花任何代价即成立。
 - **晋升（promotion）由宿主验证，绝不采信自我声明。**三个谓词晋升到完整 face：经校验的 `zen_anchor` 调用（非空目标、2–4 个地标、pass 级别，且默认要求日志中已有至少 1 条成功的非簿记类工具结果）、带注入叙述的步骤预算超时、或首条消息分诊（triage；足够短的单行提示词在首次请求之前直接跳过该阶段）。晋升先追加 `zen/phase {'full', reason}`，再解除 zen 允许列表（若设置了 `promoteDeny` 则安装该拒绝列表；TUI 发货 `BASH_OVERLAP_TOOLS`）；段落文本按日志折叠为空，因此恢复／fork 重建 face 时没有实时镜像。
-- **配置错误大声失败。**配置校验在插件加载时抛错；face 中列出未注册工具则在同步的 `agent/created` 监听器内抛错，从而否决 agent 发布——这里发现的约束是：`agent/session-start` 的监听器错误会被循环*包住*，在那里武装会把配置错误退化成无声跳过。
+- **配置错误大声失败。**配置校验在插件加载时抛错；`face` 或 `promoteDeny` 列出任何插件都不注册的名字，则经 `agent/pre-step` 瀑布大声失败——`agent/created` 处的武装只取注册表当下已有的名字子集，因为等待注入服务的插件注册更晚，前门可能先一步到达该 seam（见[延迟武装 note](../bug-fix/2026-08-23-zen-section-pruning-deferred-arming.md)）；`agent/session-start` 的监听器错误会被循环*包住*这一既有约束，依旧把那个 seam 排除在外。
 - **纵深防御。**只要*折叠后的日志*仍显示 zen，`ctx.tools.guard` 就拒绝 face 之外的执行，与实时 restrict 簿记相互独立；`zen/phase` 序列本身受不变量检查（持久边界的形状校验、至多武装一次、full 之后不再重复记录）。
 - **正交组合。**preset 选择会话的 roster（哪些工具存在），zen 把 roster 的暴露按时间分阶段，计划模式按权限门控变更操作，skill 仍是模型侧纪律。subagent 会话（设置了 `header.parentSession`）从不武装——它们的派发提示词就是锚点，其 profile 由路由方拥有。
 
@@ -45,7 +45,7 @@ zen 阶段是内建的 agent（智能体）生命周期阶段，由 `packages/gu
 ## 测试
 
 - `packages/guard/zen/tests/zen.spec.ts`——配置大声失败用例表、折叠语义、证据谓词。
-- `packages/guard/zen/tests/integration.spec.ts`——脚本化模型的完整循环运行：首个 header 的 face 快照，带 header 变更断言的锚定／超时／分诊晋升，裸锚定拒绝，zen 期间的执行拒绝，配置错误否决，subagent 排除，已武装／已晋升种子的折叠，`enabled: false`。
+- `packages/guard/zen/tests/integration.spec.ts`——脚本化模型的完整循环运行：首个 header 的 face 快照，带 header 变更断言的锚定／超时／分诊晋升，裸锚定拒绝，zen 期间的执行拒绝，配置错误在 pre-step 大声失败，subagent 排除，已武装／已晋升种子的折叠，`enabled: false`。
 - `packages/guard/zen/tests/invariant.spec.ts`——载荷形状与序列不变量，覆盖实时与迟注册两种情形。
 - `packages/tui/tui/tests/bundle-patch.spec.ts`——TUI patch 挂载 `zen` 行，带非空 section、含 `subagent` 的 `face`、等于 `BASH_OVERLAP_TOOLS` 的 `promoteDeny`，以及 diet。
 
