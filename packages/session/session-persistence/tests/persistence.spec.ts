@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { SessionListEntry } from '@huiliyi37/dsh-session-persistence'
 import { Context } from '@huiliyi37/cordis'
 import SessionStore, { Session, SessionId, isJsonValue } from '@huiliyi37/dsh-session'
 import type { SessionEvent, SessionHeader } from '@huiliyi37/dsh-session'
@@ -169,9 +170,9 @@ class MemoryPersistence extends SessionPersistence implements PersistenceBackend
     entry.events = entry.events.filter(e => e.seq <= atSeq)
   }
 
-  async list(signal?: AbortSignal): Promise<SessionHeader[]> {
+  async list(signal?: AbortSignal): Promise<SessionListEntry[]> {
     signal?.throwIfAborted()
-    return [...this.store.values()].map(e => structuredClone(e.meta))
+    return [...this.store.values()].map(e => ({ header: structuredClone(e.meta) }))
   }
 
   async listSnapshots(signal?: AbortSignal): Promise<SessionPersistenceSnapshot[]> {
@@ -241,8 +242,8 @@ class ControlledBackend implements PersistenceBackend<never> {
     if (entry !== undefined) entry.events = entry.events.filter(e => e.seq <= atSeq)
   }
 
-  async list(): Promise<SessionHeader[]> {
-    return [...this.store.values()].map(entry => structuredClone(entry.meta))
+  async list(): Promise<SessionListEntry[]> {
+    return [...this.store.values()].map(entry => ({ header: structuredClone(entry.meta) }))
   }
 
   async close(): Promise<void> {

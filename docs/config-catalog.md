@@ -2045,7 +2045,7 @@ export interface Config {
 export type JournalMode = 'wal' | 'delete' | 'truncate' | 'persist'
 ```
 
-Source: [`packages/session/session-persistence-sqlite/src/index.ts:67`](../packages/session/session-persistence-sqlite/src/index.ts)
+Source: [`packages/session/session-persistence-sqlite/src/index.ts:68`](../packages/session/session-persistence-sqlite/src/index.ts)
 
 ## `@huiliyi37/dsh-session-projection-cache`
 

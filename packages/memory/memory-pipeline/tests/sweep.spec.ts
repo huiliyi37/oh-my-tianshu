@@ -12,7 +12,7 @@ import { Context } from '@huiliyi37/cordis'
 import { createUserMessage, createAssistantMessage } from '@huiliyi37/dsh-llm'
 import { SessionId } from '@huiliyi37/dsh-session'
 import type { SessionEvent } from '@huiliyi37/dsh-session'
-import { SessionPersistence } from '@huiliyi37/dsh-session-persistence'
+import { SessionPersistence, type SessionListEntry } from '@huiliyi37/dsh-session-persistence'
 import type { SessionHeader, SessionInspection } from '@huiliyi37/dsh-session-persistence'
 import type { MemoryEntry, MemorySaveInput, MemorySearchResult, MemoryService } from '@huiliyi37/dsh-memory'
 import type { ExperienceExtractor, ExtractionCandidate } from '@huiliyi37/dsh-memory-consolidate'
@@ -65,7 +65,7 @@ class FakePersistence extends SessionPersistence {
   async create(): Promise<void> {}
   async append(): Promise<void> {}
   async truncateStored(): Promise<void> {}
-  async list(): Promise<SessionHeader[]> { return this.headers }
+  async list(): Promise<SessionListEntry[]> { return this.headers.map(h => ({ header: h })) }
   async listSnapshots(): Promise<[]> { return [] }
   async load(id: SessionHeader['id']): Promise<SessionInspection> {
     return { meta: this.headers.find(h => h.id === id) ?? header('unknown'), events: this.logs.get(id) ?? [] }

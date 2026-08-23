@@ -232,7 +232,7 @@ async function prepareListing(
   let persistedHeaders: readonly SessionHeader[] = []
   if (persistence !== undefined) {
     try {
-      persistedHeaders = await persistence.list(signal)
+      persistedHeaders = (await persistence.list(signal)).map(entry => entry.header)
     } catch (error: unknown) {
       // The backend may reject with its own abort failure after observing the
       // forwarded signal; cancellation stays a stable subagent failure.

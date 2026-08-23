@@ -172,6 +172,7 @@ describe('rowToMeta', () => {
       incarnation: 'with-origin',
       revision: 1,
       delegation_depth: null,
+      last_activity_at: 0,
     })).toMatchObject({ id: 'with-origin', origin: 'subagent' })
   })
 
@@ -187,6 +188,7 @@ describe('rowToMeta', () => {
       incarnation: 'fractional',
       revision: 1,
       delegation_depth: null,
+      last_activity_at: 0,
     })).toThrow('stored session createdAt must be a non-negative safe integer')
   })
 })
@@ -196,8 +198,8 @@ describe('SessionPersistenceSqlite: durability and crash semantics', () => {
     const path = await freshDbPath()
     const m = meta('legacy-header-delta', '/legacy')
     const db = openDatabase(path, 'wal')
-    db.prepare('INSERT INTO sessions (id, version, created_at, cwd, parent_session, seed_length, delegation_depth, incarnation, revision) VALUES (?, ?, ?, ?, NULL, NULL, NULL, ?, 1)')
-      .run(m.id, m.version, m.createdAt, m.cwd ?? null, 'legacy-header-delta')
+    db.prepare('INSERT INTO sessions (id, version, created_at, cwd, parent_session, seed_length, delegation_depth, incarnation, revision, last_activity_at) VALUES (?, ?, ?, ?, NULL, NULL, NULL, ?, 1, ?)')
+      .run(m.id, m.version, m.createdAt, m.cwd ?? null, 'legacy-header-delta', m.createdAt)
     const insert = db.prepare('INSERT INTO events (session_id, seq, type, time, data) VALUES (?, ?, ?, ?, ?)')
     insert.run(m.id, 0, 'turn/start', 1, JSON.stringify({ turn: 1 }))
     insert.run(m.id, 1, 'request/header-delta', 2, JSON.stringify({ config: { model: 'legacy' } }))
@@ -213,8 +215,8 @@ describe('SessionPersistenceSqlite: durability and crash semantics', () => {
     const path = await freshDbPath()
     const m = meta('legacy-header-fallback', '/legacy')
     const db = openDatabase(path, 'wal')
-    db.prepare('INSERT INTO sessions (id, version, created_at, cwd, parent_session, seed_length, delegation_depth, incarnation, revision) VALUES (?, ?, ?, ?, NULL, NULL, NULL, ?, 1)')
-      .run(m.id, m.version, m.createdAt, m.cwd ?? null, 'legacy-header-fallback')
+    db.prepare('INSERT INTO sessions (id, version, created_at, cwd, parent_session, seed_length, delegation_depth, incarnation, revision, last_activity_at) VALUES (?, ?, ?, ?, NULL, NULL, NULL, ?, 1, ?)')
+      .run(m.id, m.version, m.createdAt, m.cwd ?? null, 'legacy-header-fallback', m.createdAt)
     db.prepare('INSERT INTO events (session_id, seq, type, time, data) VALUES (?, ?, ?, ?, ?)')
       .run(m.id, 0, 'request/header', 1, JSON.stringify({
         header: { config: { model: 'legacy' } },
@@ -324,7 +326,7 @@ describe('SessionPersistenceSqlite: durability and crash semantics', () => {
     const loaded = await b2.ctx.sessionPersistence.load(m.id)
     expect(loaded.events.map(e => e.type)).toEqual(['turn/start', 'user/message', 'turn/end'])
     expect(loaded.events.at(-1)!.type === 'turn/end' && loaded.events.at(-1)!.data).toMatchObject({ reason: { kind: 'interrupted' } })
-    expect((await b2.ctx.sessionPersistence.list()).map(x => x.id)).toContain(m.id)
+    expect((await b2.ctx.sessionPersistence.list()).map(x => x.header.id)).toContain(m.id)
     await b2.dispose()
   })
 
@@ -531,7 +533,7 @@ describe('SessionPersistenceSqlite: durability and crash semantics', () => {
     const ctx2 = new Context()
     await ctx2.plugin(SessionStore)
     const fiber2 = await ctx2.plugin(SessionPersistenceSqlite, { path })
-    expect((await ctx2.sessionPersistence.list()).map(x => x.id)).toContain(m.id)
+    expect((await ctx2.sessionPersistence.list()).map(x => x.header.id)).toContain(m.id)
     const loaded = await ctx2.sessionPersistence.load(m.id)
     expect(loaded.meta).toMatchObject({ id: m.id, cwd: '/proj' })
     expect(loaded.events).toEqual(oneTurnLog())
@@ -638,7 +640,7 @@ describe('SessionPersistenceSqlite: durability and crash semantics', () => {
   })
 
   it('exposes the schema version constant', () => {
-    expect(SCHEMA_VERSION).toBe(13)
+    expect(SCHEMA_VERSION).toBe(14)
   })
 
   it('keeps the revision stable for an empty repair hook', async () => {
@@ -921,6 +923,61 @@ describe('surface field round-trip', () => {
     const loaded = await ctx.sessionPersistence.load(SessionId('surface-noseq'))
     expect((loaded.events[1]! as SurfaceEvent).surfaceOp).toBe('append')
     expect((loaded.events[1]! as SurfaceEvent).sourceEventSeqs).toBeUndefined()
+    await fiber.dispose()
+  })
+})
+
+describe('lastActivityAt listing', () => {
+  it('repair never counts a torn (never-committed) tail as activity', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'dsh-sqlite-repair-act-'))
+    const path = join(dir, 'sessions.db')
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    const fiber = await ctx.plugin(SessionPersistenceSqlite, { path })
+    const persistence = ctx.sessionPersistence
+    const m = meta('repair-activity')
+    await persistence.create(m)
+    await persistence.append(m.id, [
+      { type: 'turn/start', seq: 0, time: 1000, data: { turn: 1 } },
+      { type: 'turn/end', seq: 1, time: 2000, data: { turn: 1, reason: { kind: 'completed' } } },
+    ])
+    // A torn tail with a LATER time, written outside any append transaction (so it
+    // never raised last_activity_at). scanRows bounds the preserved prefix at it.
+    const db = openDatabase(path, 'wal')
+    db.prepare('INSERT INTO events (session_id, seq, type, time, data) VALUES (?, ?, ?, ?, ?)')
+      .run(m.id, 2, 'assistant/chunk', 9000, '{not valid json')
+    db.close()
+    // Cold load → coordinator durably repairs (torn tail deleted, turn closed).
+    const loaded = await persistence.load(m.id)
+    expect(loaded.meta.id).toBe(m.id)
+    const entry = (await persistence.list()).find(e => e.header.id === m.id)
+    expect(entry?.lastActivityAt).toBe(2000) // the torn 9000 never counts
+    await fiber.dispose()
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('raises on append (monotonic MAX), and rewind recomputes from surviving events', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    const fiber = await ctx.plugin(SessionPersistenceSqlite, { path: ':memory:' })
+    const persistence = ctx.sessionPersistence
+    const m = meta('activity-order')
+    await persistence.create(m)
+    await persistence.append(m.id, [
+      { type: 'turn/start', seq: 0, time: 1000, data: { turn: 1 } },
+      { type: 'turn/end', seq: 1, time: 2000, data: { turn: 1, reason: { kind: 'completed' } } },
+    ])
+    const activityOf = async () =>
+      (await persistence.list()).find(entry => entry.header.id === m.id)?.lastActivityAt
+    expect(await activityOf()).toBe(2000)
+    // A newer batch raises the watermark; an older-timestamped one never lowers it.
+    await persistence.append(m.id, [{ type: 'turn/start', seq: 2, time: 3000, data: { turn: 2 } }])
+    expect(await activityOf()).toBe(3000)
+    await persistence.append(m.id, [{ type: 'step/start', seq: 3, time: 1500, data: { turn: 2, step: 1 } }])
+    expect(await activityOf()).toBe(3000)
+    // Rewind to seq 1 (inclusive): the surviving prefix's latest time is listed.
+    await persistence.truncateStored(m.id, 1)
+    expect(await activityOf()).toBe(2000)
     await fiber.dispose()
   })
 })

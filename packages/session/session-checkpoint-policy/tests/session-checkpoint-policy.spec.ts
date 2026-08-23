@@ -5,7 +5,7 @@ import { agentEvents, type Agent } from '@huiliyi37/dsh-agent'
 import LlmService, { CallId, type GenerateOptions, LlmAdapter, type StreamChunk } from '@huiliyi37/dsh-llm'
 import SessionStore, { SessionId } from '@huiliyi37/dsh-session'
 import type { SessionEvent, SessionHeader } from '@huiliyi37/dsh-session'
-import SessionPersistence from '@huiliyi37/dsh-session-persistence'
+import SessionPersistence, { type SessionListEntry } from '@huiliyi37/dsh-session-persistence'
 import SystemPrompt from '@huiliyi37/dsh-system-prompt'
 import ToolRegistry, { TOOL_ABORTED_BEFORE_DISPATCH } from '@huiliyi37/dsh-tools'
 import * as checkpointPolicy from '../src/index.ts'
@@ -29,7 +29,7 @@ class TestPersistence extends SessionPersistence {
   readFrom(_id: SessionId, _fromSeq: number): Promise<{ meta: SessionHeader; events: SessionEvent[] }> {
     return Promise.reject(new Error('not used'))
   }
-  list(): Promise<SessionHeader[]> { return Promise.resolve([]) }
+  list(): Promise<SessionListEntry[]> { return Promise.resolve([]) }
   listSnapshots(): Promise<never[]> { return Promise.resolve([]) }
 }
 

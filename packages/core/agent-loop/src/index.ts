@@ -386,7 +386,7 @@ export class AgentLoop extends Service implements AgentFactory {
       // A load is the per-id serialization barrier for eager write-behind and
       // lifecycle retirement. Only a genuinely absent artifact falls back to
       // first creation; corruption and backend failures stay loud.
-      const exists = (await persistence.list()).some(header => header.id === sessionId)
+      const exists = (await persistence.list()).some(entry => entry.header.id === sessionId)
       if (exists) throw error
     }
     // 3.3：降级新建的可观察信号——配置驱动路径必须能区分「已恢复」（上方

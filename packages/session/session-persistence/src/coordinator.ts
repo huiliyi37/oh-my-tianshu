@@ -16,7 +16,7 @@ import {
 } from '@huiliyi37/dsh-session'
 import type { Session, SessionEvent, SessionId, SessionHeader } from '@huiliyi37/dsh-session'
 import { MAX_TIMER_DELAY_MS } from '@huiliyi37/dsh-timeout'
-import type { SessionInspection } from './index.ts'
+import type { SessionInspection, SessionListEntry } from './index.ts'
 import type { SessionPersistenceRevision } from './revision.ts'
 import { observeQueuedAbort, SessionPreparations } from './preparations.ts'
 import type { SessionPreparationReservation } from './preparations.ts'
@@ -162,10 +162,10 @@ export interface PersistenceBackend<TornMarker = unknown> {
   commitRepair(meta: SessionHeader, tornMarker: TornMarker | undefined, closers: readonly SessionEvent[]): Promise<void>
 
   /**
-   * List all stored (materialized) sessions' metadata.
+   * List all stored (materialized) sessions' metadata plus a per-row recency fact.
    * @param signal - optional cancellation for backend listing work.
    */
-  list(signal?: AbortSignal): Promise<SessionHeader[]>
+  list(signal?: AbortSignal): Promise<SessionListEntry[]>
 
   /**
    * Optional lifecycle teardown (e.g. close a database handle). Awaited by the

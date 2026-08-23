@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path'
 import SessionStore, { SESSION_FORMAT_VERSION, SessionId } from '@huiliyi37/dsh-session'
 import type { SessionEvent, SessionHeader, SessionId as SessionIdType } from '@huiliyi37/dsh-session'
 import SessionPersistence, { SessionPersistenceRevision } from '@huiliyi37/dsh-session-persistence'
-import type { SessionPersistenceSnapshot } from '@huiliyi37/dsh-session-persistence'
+import type { SessionPersistenceSnapshot, SessionListEntry } from '@huiliyi37/dsh-session-persistence'
 import SessionPersistenceSqlite from '@huiliyi37/dsh-session-persistence-sqlite'
 import SessionQuerySqlite, {
   SESSION_QUERY_SQLITE_SCHEMA_VERSION,
@@ -160,11 +160,11 @@ class TestPersistence extends SessionPersistence {
     return { meta: whole.meta, events: whole.events.filter(event => event.seq >= fromSeq) }
   }
 
-  async list(): Promise<SessionHeader[]> {
+  async list(): Promise<SessionListEntry[]> {
     TestPersistence.listStarted?.()
     await TestPersistence.listGate
     if (TestPersistence.failure !== undefined) throw TestPersistence.failure
-    return [...TestPersistence.entries.values()].map(entry => structuredClone(entry.meta))
+    return [...TestPersistence.entries.values()].map(entry => ({ header: structuredClone(entry.meta) }))
   }
 
 

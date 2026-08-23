@@ -254,7 +254,7 @@ async function listPersisted(
   signal?: AbortSignal,
 ): Promise<SessionHeader[]> {
   try {
-    return await persistence.list(signal)
+    return (await persistence.list(signal)).map(entry => entry.header)
   } catch (error: unknown) {
     if (signal?.aborted) signal.throwIfAborted()
     throw new SessionQueryError(

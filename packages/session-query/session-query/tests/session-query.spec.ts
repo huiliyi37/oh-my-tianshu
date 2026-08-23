@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { Context, type Fiber } from '@huiliyi37/cordis'
 import SessionStore, { SESSION_FORMAT_VERSION, SessionId } from '@huiliyi37/dsh-session'
 import type { SessionEvent, SessionHeader, SessionId as SessionIdType } from '@huiliyi37/dsh-session'
-import SessionPersistence, { SessionPersistenceCorruptionError, SessionPersistenceRevision } from '@huiliyi37/dsh-session-persistence'
+import SessionPersistence, { SessionPersistenceCorruptionError, SessionPersistenceRevision, type SessionListEntry } from '@huiliyi37/dsh-session-persistence'
 import SessionQueryService, {
   SESSION_QUERY_DEFAULT_PERSISTED_INSPECT_CONCURRENCY,
   type SessionEventSurface,
@@ -31,7 +31,7 @@ function eventLog(text = 'hello'): SessionEvent[] {
 class TestPersistence extends SessionPersistence {
   static entries = new Map<SessionIdType, { meta: SessionHeader; events: SessionEvent[] }>()
   static listFailure: unknown
-  static listOverride: ((signal?: AbortSignal) => Promise<SessionHeader[]>) | undefined
+  static listOverride: ((signal?: AbortSignal) => Promise<SessionListEntry[]>) | undefined
   static inspectFailure: unknown
   static inspectEffect: (() => void) | undefined
   static inspectOverride: ((
@@ -104,12 +104,12 @@ class TestPersistence extends SessionPersistence {
     return { meta: whole.meta, events: whole.events.filter(event => event.seq >= fromSeq) }
   }
 
-  list(signal?: AbortSignal): Promise<SessionHeader[]> {
+  list(signal?: AbortSignal): Promise<SessionListEntry[]> {
     TestPersistence.listCalls += 1
     TestPersistence.listSignals.push(signal)
     if (TestPersistence.listOverride !== undefined) return TestPersistence.listOverride(signal)
     if (TestPersistence.listFailure !== undefined) return rejectUnknown(TestPersistence.listFailure)
-    const headers = [...TestPersistence.entries.values()].map(entry => structuredClone(entry.meta))
+    const headers = [...TestPersistence.entries.values()].map(entry => ({ header: structuredClone(entry.meta) }))
     TestPersistence.afterList?.()
     return Promise.resolve(headers)
   }
@@ -246,7 +246,7 @@ describe.each(cancellableSessionListings)('$name cancellation', ({ run }) => {
     const controller = new AbortController()
     const reason = new Error('session listing cancelled before persistence returned')
     const started = Promise.withResolvers<undefined>()
-    const listing = Promise.withResolvers<SessionHeader[]>()
+    const listing = Promise.withResolvers<SessionListEntry[]>()
     TestPersistence.listOverride = (_signal) => {
       started.resolve(undefined)
       return listing.promise
@@ -348,7 +348,7 @@ describe.each(cancellableExactReads)('$name cancellation', ({ inspects, run }) =
         started.resolve(undefined)
         await release.promise
         active = false
-        return [structuredClone(persisted)]
+        return [{ header: structuredClone(persisted) }]
       }
     }
 

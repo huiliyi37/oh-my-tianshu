@@ -26,8 +26,8 @@ const NOW = 1_700_000_000_000
 
 function summary(id: string, createdAt: number, over: Partial<SessionSummary> = {}): SessionSummary {
   return {
-    id: id as SessionId, version: 0, createdAt, cwd: undefined, parentSession: undefined,
-    agentPreset: undefined, corrupt: false, ...over,
+    id: id as SessionId, version: 0, createdAt, lastActivityAt: undefined, cwd: undefined,
+    parentSession: undefined, agentPreset: undefined, corrupt: false, ...over,
   }
 }
 

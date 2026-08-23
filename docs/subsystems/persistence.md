@@ -330,9 +330,9 @@ abstract truncateStored(id: SessionId, atSeq: number): Promise<void>
 /**
  * Lightweight listing from metadata, without a full-log parse.
  * @param signal - optional cancellation for backend listing work.
- * @returns one header per materialized session.
+ * @returns one entry per materialized session.
  */
-abstract list(signal?: AbortSignal): Promise<SessionHeader[]>
+abstract list(signal?: AbortSignal): Promise<SessionListEntry[]>
 
 /**
  * List materialized sessions with cheap per-log change tokens.
@@ -349,5 +349,5 @@ abstract listSnapshots(signal?: AbortSignal): Promise<SessionPersistenceSnapshot
 
 Types: [SessionEvent](session.md) · [SessionId](core.md)
 
-Source: [`packages/session/session-persistence/src/index.ts:72`](../../packages/session/session-persistence/src/index.ts)
+Source: [`packages/session/session-persistence/src/index.ts:89`](../../packages/session/session-persistence/src/index.ts)
 <!-- END GENERATED cordis-surface -->

@@ -17,7 +17,8 @@ import {
   DEFAULT_PREPARED_SESSION_CACHE_SIZE, DEFAULT_WRITE_BATCH_MAX_DELAY_MS, MAX_WRITE_BATCH_DELAY_MS,
   SessionPersistence, SessionPersistenceRevision, PersistenceCoordinator,
   type PersistenceBackend, type SessionLocation, type SessionPersistenceSnapshot,
-  type SessionInspection, type SessionPersistenceRevision as PersistenceRevision,
+  type SessionInspection, type SessionListEntry,
+  type SessionPersistenceRevision as PersistenceRevision,
   type StoredPrefix, type StoredSuffix,
 } from '@huiliyi37/dsh-session-persistence'
 import type { SessionEvent, SurfaceEventType, SessionId, SessionHeader, SessionPreparation } from '@huiliyi37/dsh-session'
@@ -285,12 +286,18 @@ export class SessionPersistenceSqlite extends SessionPersistence implements Pers
     )
     this.db.exec('BEGIN')
     try {
-      if (!isMaterialized) this.writeRow(meta)
+      const tailTime = events.at(-1)?.time
+      if (!isMaterialized) this.writeRow(meta, tailTime)
       for (const event of events) {
         const [surfaceSeqs, surfaceOp] = surfaceBindings(event)
         insertEvent.run(meta.id, event.seq, event.type, event.time, JSON.stringify(event.data), surfaceSeqs, surfaceOp)
       }
-      this.db.prepare('UPDATE sessions SET revision = revision + 1 WHERE id = ?').run(meta.id)
+      if (tailTime !== undefined) {
+        this.db.prepare('UPDATE sessions SET revision = revision + 1, last_activity_at = MAX(last_activity_at, ?) WHERE id = ?')
+          .run(tailTime, meta.id)
+      } else {
+        this.db.prepare('UPDATE sessions SET revision = revision + 1 WHERE id = ?').run(meta.id)
+      }
       this.db.exec('COMMIT')
     } catch (error) {
       this.db.exec('ROLLBACK')
@@ -320,7 +327,11 @@ export class SessionPersistenceSqlite extends SessionPersistence implements Pers
         }
       }
       if (tornMarker !== undefined || closers.length > 0) {
-        this.db.prepare('UPDATE sessions SET revision = revision + 1 WHERE id = ?').run(meta.id)
+        // Recomputed exactly like a rewind: after DELETE+INSERT the surviving rows
+        // are the balanced log, so last_activity_at = their max committed time.
+        // (Append already raised it transactionally, so this only ever lowers it.)
+        this.db.prepare('UPDATE sessions SET revision = revision + 1, last_activity_at = COALESCE((SELECT MAX(time) FROM events WHERE session_id = ?), created_at) WHERE id = ?')
+          .run(meta.id, meta.id)
       }
       this.db.exec('COMMIT')
     } catch (error) {
@@ -343,7 +354,8 @@ export class SessionPersistenceSqlite extends SessionPersistence implements Pers
     this.db.exec('BEGIN')
     try {
       this.db.prepare('DELETE FROM events WHERE session_id = ? AND seq > ?').run(id, atSeq)
-      this.db.prepare('UPDATE sessions SET revision = revision + 1 WHERE id = ?').run(id)
+      this.db.prepare('UPDATE sessions SET revision = revision + 1, last_activity_at = COALESCE((SELECT MAX(time) FROM events WHERE session_id = ?), created_at) WHERE id = ?')
+        .run(id, id)
       this.db.exec('COMMIT')
     } catch (error) {
       /* v8 ignore start -- DB-level failure (disk full etc.), unreachable in test */
@@ -353,8 +365,12 @@ export class SessionPersistenceSqlite extends SessionPersistence implements Pers
     }
   }
 
-  /** List all materialized sessions' metadata (every row is a materialized session). */
-  async list(signal?: AbortSignal): Promise<SessionHeader[]> {
+  /**
+   * List all materialized sessions' metadata plus the durable last-append time.
+   * Every row is a materialized session, and `last_activity_at` is non-null for
+   * every row (the NOT NULL column falls back to creation time on first append).
+   */
+  async list(signal?: AbortSignal): Promise<SessionListEntry[]> {
     signal?.throwIfAborted()
     await this.ready
     signal?.throwIfAborted()
@@ -362,7 +378,7 @@ export class SessionPersistenceSqlite extends SessionPersistence implements Pers
       .prepare('SELECT * FROM sessions')
       .all() as unknown as SessionRow[]
     signal?.throwIfAborted()
-    return rows.map(rowToMeta)
+    return rows.map(row => ({ header: rowToMeta(row), lastActivityAt: row.last_activity_at }))
   }
 
   /** List metadata with a source-qualified monotonic revision per session. */
@@ -398,11 +414,11 @@ export class SessionPersistenceSqlite extends SessionPersistence implements Pers
    * materializing `appendBatch`, so writing the row IS the materialization (its
    * existence is the signal `list` reads).
    */
-  private writeRow(meta: SessionHeader): void {
+  private writeRow(meta: SessionHeader, lastActivityAt: number | undefined): void {
     this.db.prepare(`
       INSERT INTO sessions
-        (id, version, created_at, cwd, parent_session, seed_length, origin, delegation_depth, incarnation, revision)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        (id, version, created_at, cwd, parent_session, seed_length, origin, delegation_depth, incarnation, revision, last_activity_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
       ON CONFLICT(id) DO UPDATE SET
         version = excluded.version,
         created_at = excluded.created_at,
@@ -421,6 +437,9 @@ export class SessionPersistenceSqlite extends SessionPersistence implements Pers
       meta.origin ?? null,
       meta.delegationDepth ?? null,
       randomUUID(),
+      // An empty first batch cannot happen (materialization is the first append),
+      // but the column is NOT NULL — fall back to the header's creation time.
+      lastActivityAt ?? meta.createdAt,
     )
   }
 }

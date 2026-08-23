@@ -269,7 +269,7 @@ export function runPersistenceContract(name: string, make: () => Promise<Contrac
       const { persistence, dispose } = await make()
       try {
         await persistence.create(meta('empty'))
-        expect((await persistence.list()).map(m => m.id)).not.toContain(SessionId('empty'))
+        expect((await persistence.list()).map(m => m.header.id)).not.toContain(SessionId('empty'))
         expect((await persistence.listSnapshots()).map(snapshot => snapshot.header.id))
           .not.toContain(SessionId('empty'))
       } finally {
@@ -337,7 +337,7 @@ export function runPersistenceContract(name: string, make: () => Promise<Contrac
         const m = meta('s2')
         await persistence.create(m)
         await persistence.append(m.id, oneTurnLog())
-        expect((await persistence.list()).map(x => x.id)).toContain(m.id)
+        expect((await persistence.list()).map(x => x.header.id)).toContain(m.id)
         const first = (await persistence.listSnapshots()).find(snapshot => snapshot.header.id === m.id)
         const repeated = (await persistence.listSnapshots()).find(snapshot => snapshot.header.id === m.id)
         expect(first).toBeDefined()

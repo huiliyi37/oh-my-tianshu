@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
 import SessionStore, { SESSION_FORMAT_VERSION, SessionId } from '@huiliyi37/dsh-session'
 import type { Session, SessionEvent, SessionHeader, SessionId as SessionIdType } from '@huiliyi37/dsh-session'
-import SessionPersistence from '@huiliyi37/dsh-session-persistence'
+import SessionPersistence, { type SessionListEntry } from '@huiliyi37/dsh-session-persistence'
 import { type SessionQueryErrorCode } from '@huiliyi37/dsh-session-query'
 import { TestSessionQueryService } from './test-service.ts'
 
@@ -84,10 +84,10 @@ class TracePersistence extends SessionPersistence {
     return { meta: whole.meta, events: whole.events.filter(event => event.seq >= fromSeq) }
   }
 
-  list(): Promise<SessionHeader[]> {
+  list(): Promise<SessionListEntry[]> {
     TracePersistence.listCalls += 1
     if (TracePersistence.listFailure !== undefined) return Promise.reject(TracePersistence.listFailure)
-    const result = [...TracePersistence.entries.values()].map(entry => structuredClone(entry.meta))
+    const result = [...TracePersistence.entries.values()].map(entry => ({ header: structuredClone(entry.meta) }))
     TracePersistence.afterList?.()
     return Promise.resolve(result)
   }

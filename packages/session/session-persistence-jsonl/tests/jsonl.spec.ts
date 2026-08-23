@@ -1,7 +1,7 @@
 import { MessageId, createUserMessage, createMessage } from '@huiliyi37/dsh-llm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
-import { appendFile, mkdtemp, mkdir, rm, readFile, writeFile, readdir, stat, symlink } from 'node:fs/promises'
+import { appendFile, mkdtemp, mkdir, rm, readFile, writeFile, readdir, stat, symlink, utimes } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { isAbsolute, join, relative, resolve } from 'node:path'
 import SessionStore, { SessionId } from '@huiliyi37/dsh-session'
@@ -198,13 +198,13 @@ describe('SessionPersistenceJsonl: durability and crash semantics', () => {
     // materializes a file before the first append.
     const dir = sessionDir(root, '/work', m.id)
     await expect(stat(rawLogPath(root, '/work', m.id))).rejects.toThrow()
-    expect((await ctx.sessionPersistence.list()).map(h => h.id)).not.toContain(m.id)
+    expect((await ctx.sessionPersistence.list()).map(h => h.header.id)).not.toContain(m.id)
 
     await ctx.sessionPersistence.append(m.id, oneTurnLog())
     // now materialized
     expect((await stat(dir)).isDirectory()).toBe(true)
     expect((await stat(rawLogPath(root, '/work', m.id))).isFile()).toBe(true)
-    expect((await ctx.sessionPersistence.list()).map(h => h.id)).toContain(m.id)
+    expect((await ctx.sessionPersistence.list()).map(h => h.header.id)).toContain(m.id)
   })
 
   it('keeps the same location on resume and gives a fork its own location', async () => {
@@ -1060,7 +1060,7 @@ describe('SessionPersistenceJsonl: edge cases', () => {
     await ctx.sessionPersistence.create(meta('p3')) // no cwd → _no-cwd project directory
     await ctx.sessionPersistence.append(SessionId('p3'), oneTurnLog())
 
-    const ids = (await ctx.sessionPersistence.list()).map(x => x.id).sort()
+    const ids = (await ctx.sessionPersistence.list()).map(x => x.header.id).sort()
     expect(ids).toEqual(['p1', 'p2', 'p3'])
   })
 
@@ -1077,7 +1077,7 @@ describe('SessionPersistenceJsonl: edge cases', () => {
       encodeSegment(first.id),
       encodeSegment(second.id),
     ]))
-    expect((await ctx.sessionPersistence.list()).map(header => header.id).sort())
+    expect((await ctx.sessionPersistence.list()).map(header => header.header.id).sort())
       .toEqual([first.id, second.id].sort())
   })
 
@@ -1095,7 +1095,7 @@ describe('SessionPersistenceJsonl: edge cases', () => {
     await mkdir(join(projectDir(root, m.cwd), 'reserved-session'), { recursive: true })
 
     expect(await readdir(dir)).toEqual(expect.arrayContaining(['metadata.json', 'session.jsonl']))
-    expect((await ctx.sessionPersistence.list()).map(header => header.id)).toContain(m.id)
+    expect((await ctx.sessionPersistence.list()).map(header => header.header.id)).toContain(m.id)
     expect((await ctx.sessionPersistence.load(m.id)).events).toEqual(oneTurnLog())
   })
 
@@ -1141,7 +1141,7 @@ describe('SessionPersistenceJsonl: edge cases', () => {
       await writeFile(path, content)
     }
 
-    const headers = (await ctx.sessionPersistence.list())
+    const headers = (await ctx.sessionPersistence.list()).map(entry => entry.header)
       .sort((a, b) => a.id.localeCompare(b.id))
     expect(headers.map(h => h.id)).toEqual(['badjson', 'empty', 'notheader', 'real'])
     for (const corrupt of headers.slice(0, 3)) {
@@ -1160,9 +1160,9 @@ describe('SessionPersistenceJsonl: edge cases', () => {
     await mkdir(sessionDir(root, '/corrupt-cwd', SessionId('dup')), { recursive: true })
     await writeFile(rawLogPath(root, '/corrupt-cwd', SessionId('dup')), 'not json at all\n')
 
-    const dup = (await ctx.sessionPersistence.list()).filter(h => h.id === SessionId('dup'))
+    const dup = (await ctx.sessionPersistence.list()).filter(h => h.header.id === SessionId('dup'))
     expect(dup).toHaveLength(1)
-    expect(dup[0]?.version).toBe(0)
+    expect(dup[0]?.header.version).toBe(0)
   })
 
   it('duplicate corrupt artifacts across project dirs collapse to one placeholder', async () => {
@@ -1171,9 +1171,9 @@ describe('SessionPersistenceJsonl: edge cases', () => {
     await mkdir(sessionDir(root, '/corrupt-b', SessionId('dup-corrupt')), { recursive: true })
     await writeFile(rawLogPath(root, '/corrupt-b', SessionId('dup-corrupt')), '{bad\n')
 
-    const dup = (await ctx.sessionPersistence.list()).filter(h => h.id === SessionId('dup-corrupt'))
+    const dup = (await ctx.sessionPersistence.list()).filter(h => h.header.id === SessionId('dup-corrupt'))
     expect(dup).toHaveLength(1)
-    expect(dup[0]?.version).toBe(-1)
+    expect(dup[0]?.header.version).toBe(-1)
   })
 
   it('list reads a header line longer than the 8KB read chunk', async () => {
@@ -1183,7 +1183,7 @@ describe('SessionPersistenceJsonl: edge cases', () => {
     await mkdir(sessionDir(root, undefined, id), { recursive: true })
     const bigHeader = JSON.stringify({ type: 'session', version: 0, id: 'big', createdAt: 1, delegationDepth: 0, pad: 'x'.repeat(9000) })
     await writeFile(rawLogPath(root, undefined, id), bigHeader + '\n')
-    const ids = (await ctx.sessionPersistence.list()).map(x => x.id)
+    const ids = (await ctx.sessionPersistence.list()).map(x => x.header.id)
     expect(ids).toContain('big')
   })
 
@@ -1216,7 +1216,7 @@ describe('SessionPersistenceJsonl: edge cases', () => {
     await rewriteHeader(path, (header) => { header.cwd = aliasCwd })
 
     expect((await ctx.sessionPersistence.load(m.id)).meta.cwd).toBe(aliasCwd)
-    expect((await ctx.sessionPersistence.list()).map(header => header.id)).toContain(m.id)
+    expect((await ctx.sessionPersistence.list()).map(header => header.header.id)).toContain(m.id)
   })
 
   it('list rejects a session header whose id cannot name a storage path', async () => {
@@ -1484,7 +1484,7 @@ describe('SessionPersistenceJsonl: edge cases', () => {
     circ.self = circ
     await expect(ctx.sessionPersistence.append(m.id, bad(circ))).rejects.toThrow(/non-JSON-serializable/)
     // The session was never materialized by any of the rejected appends.
-    expect((await ctx.sessionPersistence.list()).map(h => h.id)).not.toContain(m.id)
+    expect((await ctx.sessionPersistence.list()).map(h => h.header.id)).not.toContain(m.id)
   })
 
   it('accepts well-formed JSON values (null, booleans, nested arrays/objects)', async () => {
@@ -1494,7 +1494,7 @@ describe('SessionPersistenceJsonl: edge cases', () => {
       content: [{ type: 'text', text: 'x' }], source: { kind: 'user' }, extra: { a: null, b: true, c: [1, 2, { d: 'nested' }] },
     }) }] as unknown as SessionEvent[]
     await ctx.sessionPersistence.append(m.id, ev)
-    expect((await ctx.sessionPersistence.list()).map(h => h.id)).toContain(m.id)
+    expect((await ctx.sessionPersistence.list()).map(h => h.header.id)).toContain(m.id)
   })
 
   it('Session.append rejects a non-serializable event at the source (never enters the log)', () => {
@@ -1509,4 +1509,36 @@ describe('SessionPersistenceJsonl: edge cases', () => {
     expect(session.events.length).toBe(0)
   })
 
+})
+
+describe('lastActivityAt listing', () => {
+  let ctx: Context
+  let root: string
+  beforeEach(async () => {
+    root = await freshRoot()
+    ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionPersistenceJsonl, { root, compression: 'none' })
+  })
+  afterEach(async () => { await ctx.fiber.dispose() })
+
+  it('list serves lastActivityAt from the log mtime (a durable-write proxy), not a log parse', async () => {
+    const m = meta('mtime-activity', '/work')
+    await ctx.sessionPersistence.create(m)
+    await ctx.sessionPersistence.append(m.id, oneTurnLog())
+    const location = ctx.sessionPersistence.locate(m)!
+    expect(location).toBeDefined()
+    // utimes has second precision, so the derived value lands on the second boundary.
+    const target = new Date('2026-01-02T03:04:05Z')
+    await utimes(location.path, target, target)
+    const listed = await ctx.sessionPersistence.list()
+    const entry = listed.find(e => e.header.id === m.id)
+    expect(entry?.lastActivityAt).toBe(Math.floor(target.getTime() / 1000) * 1000)
+    // A fresh mtime (a later durable write) moves the listing's activity forward.
+    const later = new Date('2026-01-02T03:05:00Z')
+    await utimes(location.path, later, later)
+    const relisted = await ctx.sessionPersistence.list()
+    expect(relisted.find(e => e.header.id === m.id)?.lastActivityAt)
+      .toBe(Math.floor(later.getTime() / 1000) * 1000)
+  })
 })

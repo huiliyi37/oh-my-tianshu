@@ -4346,7 +4346,7 @@ describe('TuiApp 会话交互 UX 对齐（显示层 = 实际能力）', () => {
     const fallback = ctx.reflect.get.getMockImplementation() as (name: string) => unknown
     ctx.reflect.get.mockImplementation((name: string) => {
       if (name === 'sessionPersistence') {
-        return { list: vi.fn(async () => [diskHeader]) }
+        return { list: vi.fn(async () => [{ header: diskHeader }]) }
       }
       return fallback(name)
     })

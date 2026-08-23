@@ -16,10 +16,18 @@ import { resolvePresetId } from '../preset-surface.js'
  * 完整服务类型。适配层 as 收窄是仓规允许模式（同 registry.ts CompactFacet）。
  */
 interface SessionPersistenceFacet {
-  /** 列出已持久化会话的 metadata（仅头部，不含事件日志）。 */
-  list(): Promise<readonly SessionHeader[]>
+  /** 列出已持久化会话的 metadata 及其跟踪的最后活动时间（不含事件日志）。 */
+  list(): Promise<readonly SessionListEntryFacet[]>
   /** 读取一个会话的完整事件日志。 */
   inspect(id: SessionId): Promise<{ readonly events: readonly SessionEvent[] }>
+}
+
+/** 持久化列表条目的最小结构（header + 后端可给出的最后活动时间）。 */
+interface SessionListEntryFacet {
+  /** 会话不可变存储头。 */
+  readonly header: SessionHeader
+  /** 最近一次持久追加的时间（epoch ms）；后端未跟踪时缺省。 */
+  readonly lastActivityAt?: number
 }
 
 /** One session row for the TUI session list. */
@@ -30,6 +38,11 @@ export interface SessionSummary {
   readonly version: number
   /** Non-negative safe-integer Unix epoch milliseconds of creation. */
   readonly createdAt: number
+  /**
+   * 最近一次会话活动时间（epoch ms）：live 会话取内存事件日志，冷会话取
+   * 持久化后端跟踪值；两者都缺省时回退 `createdAt`（排序键的语义）。
+   */
+  readonly lastActivityAt: number | undefined
   /** Working directory the session was bound to, when recorded. */
   readonly cwd: string | undefined
   /** The session this one was forked from, when known. */
@@ -54,6 +67,9 @@ function toSummary(header: Session['header']): SessionSummary {
     // 本地 session header 无 agentPreset 字段（dsh-tui 的上游 fork 扩展）；
     // preset 创建值不可得，展示值只来自事件 fold（见 listSessions）。
     agentPreset: undefined,
+    // header 不携带活动时间：live 会话由 listSessions 折叠事件日志，
+    // 冷会话由持久化列表条目补充（见 SessionSummary.lastActivityAt）。
+    lastActivityAt: undefined,
     // 损坏占位 header 以 version -1 标记（JSONL listArtifacts 保留损坏工件）。
     corrupt: header.version < 0,
   }
@@ -61,31 +77,36 @@ function toSummary(header: Session['header']): SessionSummary {
 }
 
 /**
- * List known sessions, newest first. Persisted sessions come from
+ * List known sessions, most recently active first. Persisted sessions come from
  * `ctx.sessionPersistence` (metadata-only listing) when that service is
- * configured; otherwise the live in-memory store's headers are used.
+ * configured; otherwise the live in-memory store's headers are used. The order
+ * key is the last activity time — the live event log for live sessions, the
+ * backend-tracked durable append time for cold ones — falling back to
+ * `createdAt` when neither is available.
  * @param ctx - any context exposing `ctx.sessions` and optionally
  *   `ctx.sessionPersistence`.
- * @returns one summary per known session, ordered by `createdAt` descending.
+ * @returns one summary per known session, ordered by last activity descending.
  */
 export async function listSessions(ctx: Context): Promise<SessionSummary[]> {
   const persistence = ctx.reflect.get('sessionPersistence', false) as SessionPersistenceFacet | undefined
-  const headers: readonly SessionHeader[] = persistence !== undefined
+  const entries: readonly SessionListEntryFacet[] = persistence !== undefined
     ? await persistence.list()
-    : ctx.sessions.list().map(session => session.header)
-  return headers
-    .map((header) => {
-      const summary = toSummary(header)
-      // live 会话的事件日志在内存，fold 切换值（blank 窗口 /preset 切换）；
-      // 持久化会话不 inspect（避免 N 次 IO），且本地 header 无创建值 → undefined。
-      const live = ctx.sessions.get(header.id)
+    : ctx.sessions.list().map(session => ({ header: session.header }))
+  return entries
+    .map((entry) => {
+      const summary: SessionSummary = { ...toSummary(entry.header), lastActivityAt: entry.lastActivityAt }
+      // live 会话的事件日志在内存，fold 切换值与最后活动时间（含未落盘事件）；
+      // 持久化会话不 inspect（避免 N 次 IO），活动时间用后端跟踪值。
+      const live = ctx.sessions.get(entry.header.id)
       if (live !== undefined) {
         const preset = resolvePresetId(summary.agentPreset, live.events)
-        if (preset !== undefined) return { ...summary, agentPreset: preset }
+        const activity = live.events.at(-1)?.time ?? summary.lastActivityAt
+        return { ...summary, agentPreset: preset ?? summary.agentPreset, lastActivityAt: activity }
       }
       return summary
     })
-    .sort((a: SessionSummary, b: SessionSummary) => b.createdAt - a.createdAt)
+    .sort((a: SessionSummary, b: SessionSummary) =>
+      (b.lastActivityAt ?? b.createdAt) - (a.lastActivityAt ?? a.createdAt))
 }
 
 /**
