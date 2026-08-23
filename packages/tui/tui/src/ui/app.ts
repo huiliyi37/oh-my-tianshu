@@ -127,8 +127,8 @@ import {
   renderLspPanel,
 } from '../render/live-panels.js'
 import type { LiveSnapshot } from '../render/live-snapshot.js'
-/** T1.1：5 域投影 key（与 sessionProjections 注册表的 wire key 对齐）。 */
-type ProjectionKey = 'todos' | 'plan' | 'goal' | 'subagent' | 'subagentTiming'
+/** T1.1：6 域投影 key（与 sessionProjections 注册表的 wire key 对齐）。 */
+type ProjectionKey = 'todos' | 'plan' | 'goal' | 'subagent' | 'subagentTiming' | 'cacheHealth'
 
 /** plan 投影的 wire 形状（与 plan-mode 的 PlanProjection 对齐；不引入依赖）。 */
 interface PlanProjectionWire {
@@ -325,6 +325,8 @@ import { formatSubagentRunning, formatSubagentDone } from '../format/subagent-li
 import { glanceBarSegments } from '../format/glance-bar.js'
 import { MemoryBrowserOverlay } from '../format/memory-overlay.js'
 import { zenPhaseLabel } from '../preset-surface.js'
+import { formatCacheMissReason, isReportableMiss } from '../cache-telemetry.js'
+import type { CacheHealthWire } from '../cache-telemetry.js'
 
 /**
  * A1：CommandService 的最小消费面（不引入 dsh-commands 依赖）。
@@ -748,8 +750,12 @@ export class TuiApp {
   /** 外部编辑器命令注入（测试用）；缺省走环境变量/平台缺省。 */
   private readonly editorCommand: string | undefined
   private readonly vimEnabled: boolean
-  /** T1.1：5 域投影缓存（snapshot 全量 + onChanged 按 key 分流；服务缺失时为 null → 整体降级）。 */
+  /** T1.1：6 域投影缓存（snapshot 全量 + onChanged 按 key 分流；服务缺失时为 null → 整体降级）。 */
   private projectionCache: Partial<Record<ProjectionKey, unknown>> | null = null
+  /** cacheHealth 投影最新快照（状态栏 miss 标记与诊断日志数据源；未装配时 null）。 */
+  private cacheHealth: CacheHealthWire | null = null
+  /** 已报告的缓存 miss 指纹（reason + turn），去重防同因重复刷屏。 */
+  private lastReportedMiss: { reason: string; turn: number } | null = null
   /** T4：任务窗格——sessionProjections 任务单元投影快照（服务缺失时为 null）。 */
   private taskItems: TaskItem[] | null = null
   /** T4：任务窗格显隐（/tasks 切换）。 */
@@ -2896,6 +2902,10 @@ export class TuiApp {
           this.planState = { active: plan?.active ?? false, pending: plan?.pending ?? false }
           this.statusLine?.setPlanState(this.planState)
           this.renderBatcher.schedule()
+        } else if (key === 'cacheHealth') {
+          this.cacheHealth = value as CacheHealthWire | null
+          this.reportCacheMiss()
+          this.renderBatcher.schedule()
         } else {
           // goal/subagent/subagentTiming：仅更新缓存（/status 面板渲染时读取）
           this.renderBatcher.schedule()
@@ -3470,6 +3480,23 @@ export class TuiApp {
   private echoWarn(text: string): void {
     this.commitToScrollback({ text: color(text, this.theme.warning), trailingNewline: true })
     this.flushLiveRender()
+  }
+
+  /**
+   * 缓存 miss 诊断日志观测点：cacheHealth 投影报出 warn/error 级 miss 时
+   * 在 scrollback 输出一行「⚠ 缓存异常」。同一 (reason, turn) 只报告一次，
+   * 防止同因重复刷屏；info 级判定（首轮/正常增长）与压缩不报告。
+   */
+  private reportCacheMiss(): void {
+    const reason = this.cacheHealth?.lastMissReason
+    if (reason === undefined || !isReportableMiss(reason)) return
+    const turn = this.transcript?.view.turn ?? 0
+    const reported = this.lastReportedMiss
+    if (reported !== null && reported.reason === reason && reported.turn === turn) return
+    const info = formatCacheMissReason(reason)
+    if (info === undefined) return
+    this.lastReportedMiss = { reason, turn }
+    this.echoWarn(`⚠ 缓存异常：${info.detail}`)
   }
 
   /** 当前主题（动态读取，切主题后立即生效）。 */
@@ -4525,6 +4552,9 @@ export class TuiApp {
       if (billed > 0) {
         if (usage.cacheReadTokens !== undefined || usage.cacheWriteTokens !== undefined) {
           input.cacheHitRate = (usage.cacheReadTokens ?? 0) / billed
+          // cacheHealth 投影报出 warn/error 级 miss 时附加短标记（截断/漂移/驱逐）。
+          const missLabel = formatCacheMissReason(this.cacheHealth?.lastMissReason ?? '')?.label
+          if (missLabel !== undefined) input.cacheMissLabel = missLabel
         }
         if (this.contextWindow !== null && this.contextWindow > 0) {
           input.contextRatio = Math.min(1, billed / this.contextWindow)

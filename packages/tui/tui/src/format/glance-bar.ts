@@ -31,6 +31,8 @@ export interface FormatGlanceBarInput {
   /** 推理努力度（request/header 的 config.reasoningEffort；渲染为 ◎max 形态，窄宽时随 model 后 drop）。 */
   effort?: string
   cacheHitRate?: number
+  /** 缓存 miss 短标记（如「截断」）；附加在缓存% 段后。缺省不附加。 */
+  cacheMissLabel?: string
   contextRatio?: number
   tokens?: { used: number; max: number }
   elapsedMs?: number
@@ -53,7 +55,10 @@ export function glanceBarSegments(input: FormatGlanceBarInput): string[] {
   const segs: string[] = []
   if (input.modelName !== undefined) segs.push(input.modelName)
   if (input.effort !== undefined) segs.push(`◎${input.effort}`)
-  if (input.cacheHitRate !== undefined) segs.push(`缓存 ${Math.round(input.cacheHitRate * 100)}%`)
+  if (input.cacheHitRate !== undefined) {
+    const miss = input.cacheMissLabel === undefined ? '' : ` ${input.cacheMissLabel}`
+    segs.push(`缓存 ${Math.round(input.cacheHitRate * 100)}%${miss}`)
+  }
   if (input.contextRatio !== undefined) {
     const warn = input.contextRatio >= CONTEXT_WARN_RATIO
     segs.push(`${warn ? '⚠' : ''}上下文 ${Math.round(input.contextRatio * 100)}%`)
