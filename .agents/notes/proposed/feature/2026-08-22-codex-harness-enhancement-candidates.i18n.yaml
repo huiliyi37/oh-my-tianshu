@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-22-codex-harness-enhancement-candidates.md
-2026-08-22-codex-harness-enhancement-candidates.md: bee709f2fe543a2dee2f90d6f6db2b3185ac6277
-2026-08-22-codex-harness-enhancement-candidates.zh.md: a5cba61613c34d491926635f8c46964071442dcb
+2026-08-22-codex-harness-enhancement-candidates.md: bf0bd741a24a84da2fcd7d50a85b867884244f95
+2026-08-22-codex-harness-enhancement-candidates.zh.md: fcc6936d3c4acc9c9a8bde48055593e22e304562
