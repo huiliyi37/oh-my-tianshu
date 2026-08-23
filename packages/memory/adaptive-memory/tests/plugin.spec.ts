@@ -179,7 +179,7 @@ describe('adaptive-memory plugin apply', { timeout: 20_000 }, () => {
   })
 
   it('new-entity：工具路径进入实体快照后刷新', async () => {
-    const { ctx, store } = await harness({ ...EXPLICIT, reviewIntervalTurns: 99 })
+    const { ctx, store } = await harness(Object.assign({}, EXPLICIT, { reviewIntervalTurns: 99 }))
     await store.save({ text: 'login retry policy', scope: 'global', tags: ['auth'], source: 'user' })
     const session = seed('new-entity')
     const agent = sessionAgent(session, ctx)
@@ -198,7 +198,7 @@ describe('adaptive-memory plugin apply', { timeout: 20_000 }, () => {
   })
 
   it('intent 切换清掉旧提醒预算', async () => {
-    const { ctx, store } = await harness({ ...EXPLICIT, reviewIntervalTurns: 99 })
+    const { ctx, store } = await harness(Object.assign({}, EXPLICIT, { reviewIntervalTurns: 99 }))
     await store.save({ text: 'login retry policy', scope: 'global', tags: ['auth'], source: 'user' })
     const session = seed('intent-clear')
     const agent = sessionAgent(session, ctx)
@@ -217,7 +217,7 @@ describe('adaptive-memory plugin apply', { timeout: 20_000 }, () => {
   })
 
   it('intentKey general：短词锚点不带 intent token', async () => {
-    const { ctx } = await harness({ ...EXPLICIT, reviewIntervalTurns: 99 })
+    const { ctx } = await harness(Object.assign({}, EXPLICIT, { reviewIntervalTurns: 99 }))
     const session = seed('general', 'ok')
     const agent = sessionAgent(session, ctx)
     await ctx.systemPrompt.assemble({ agent })

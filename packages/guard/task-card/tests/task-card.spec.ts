@@ -144,7 +144,7 @@ describe('task-card through the agent loop', () => {
         time: 1,
         surfaceOp: 'append',
         data: createUserMessage({ content: [{ type: 'text', text: 'earlier work' }], source: { kind: 'user' } }),
-      } as SessionEvent,
+      },
     ]
     const { agent } = await ctx.agents.create({
       sessionId: SessionId('tc-resume'),

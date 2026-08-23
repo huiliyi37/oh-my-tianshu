@@ -68,7 +68,7 @@ function makeParent(append?: (type: string, data: unknown) => void): {
   return { session: { append: append ?? (() => {}) } }
 }
 
-function makeCtx(seam: ReturnType<typeof makeSeam>, parent: unknown | undefined): Context {
+function makeCtx(seam: ReturnType<typeof makeSeam>, parent: unknown): Context {
   return {
     reflect: {
       get: (name: string, _strict: boolean) => {

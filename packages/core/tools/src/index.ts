@@ -951,7 +951,9 @@ export class ToolRegistry extends Service {
         yield ctx.systemPrompt.section(this.sdkSection())
       }
     }.bind(this), 'tools.presentAs()')
-    return dispose
+    // The declared contract is a fire-and-forget void disposer; the effect's
+    // own machinery owns the async cleanup promise.
+    return () => { void dispose() }
   }
 
   /**

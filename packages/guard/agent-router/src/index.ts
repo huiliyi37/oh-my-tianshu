@@ -322,6 +322,16 @@ export interface TriggerPolicy {
   onTurnEnd: boolean
 }
 
+/** Runtime trigger-mode predicate: cordis.yml config arrives untyped, so the validated literal union is narrowed here. */
+function isTriggerMode(value: string): value is 'off' | 'shadow' | 'auto' {
+  return value === 'off' || value === 'shadow' || value === 'auto'
+}
+
+/** Runtime escalation-cap predicate: cordis.yml config arrives untyped, so the validated literal union is narrowed here. */
+function isEscalationCap(value: string): value is 'off' | 'verifier' {
+  return value === 'off' || value === 'verifier'
+}
+
 /**
  * 校验并默认触发策略：mode ∈ {off, shadow, auto}、onTurnEnd 为布尔；
  * 形状错误在装配时 fail loud。缺省 mode 'off'、onTurnEnd false——挂载
@@ -330,8 +340,8 @@ export interface TriggerPolicy {
  * @returns 解析后的策略。
  */
 export function resolveTriggerPolicy(config: AgentRouterConfig): TriggerPolicy {
-  const mode = config.trigger?.mode ?? 'off'
-  if (mode !== 'off' && mode !== 'shadow' && mode !== 'auto') {
+  const mode: string = config.trigger?.mode ?? 'off'
+  if (!isTriggerMode(mode)) {
     throw new Error(`agent-router: trigger.mode must be 'off' | 'shadow' | 'auto', got ${JSON.stringify(mode)}`)
   }
   const onTurnEnd = config.trigger?.onTurnEnd ?? false
@@ -348,8 +358,8 @@ export function resolveTriggerPolicy(config: AgentRouterConfig): TriggerPolicy {
  * @returns 解析后的策略（缺省 cap 'verifier'、minConsecutiveFailures 2）。
  */
 export function resolveEscalationPolicy(config: AgentRouterConfig): EscalationPolicy {
-  const cap = config.escalation?.cap ?? 'verifier'
-  if (cap !== 'verifier' && cap !== 'off') {
+  const cap: string = config.escalation?.cap ?? 'verifier'
+  if (!isEscalationCap(cap)) {
     throw new Error(`agent-router: escalation.cap must be 'verifier' | 'off', got ${JSON.stringify(cap)}`)
   }
   const minConsecutiveFailures = config.escalation?.minConsecutiveFailures ?? 2
@@ -508,7 +518,7 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
         },
         render: () => [{ type: 'text', text: 'Finding adoption recorded.' }],
       },
-      execute: async (args, exec) => {
+      execute: (args, exec) => Promise.resolve().then(() => {
         const agent = exec.agent
         if (agent === undefined) throw new Error(`${ADOPT_TOOL_NAME} requires a calling agent`)
         const parsed = parseAdoptArgs(args)
@@ -524,7 +534,7 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
           reason: parsed.reason,
         })
         return { adopted: true as const }
-      },
+      }),
     })
 
     // —— 主代理综合提示：存在未综合 child 结论时渲染（model-visible 内容

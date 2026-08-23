@@ -184,7 +184,9 @@ export function apply(ctx: Context): void {
     },
     resolve: async (agentId, requestId, resolution) => {
       const answered = await ctx.remote.dynamicCordisRunner.resolveInspectQuery(agentId, requestId, resolution)
-      if (answered === null || !answered.accepted) throw new Error(`inspect query ${requestId} was not answered`)
+      // The generated codec types the raw result as CordisInspectResolveAck — no null —
+      // so an unanswered query is exactly `accepted: false`.
+      if (!answered.accepted) throw new Error(`inspect query ${requestId} was not answered`)
     },
   })
   provideClientCordisInspect(ctx, inspect)
@@ -205,10 +207,9 @@ export function apply(ctx: Context): void {
       // belonged to, so the teaching has to be added here.
       const answered = await ctx.remote.dynamicCordisRunner.invoke(pluginId, pluginRunId, method, args as JsonValue)
         .catch((error: unknown) => { throw new Error(wireFailure(pluginId, method, error)) })
-      // The local TypeRT carrier returns the raw result: null when the call
-      // never reached the host half, and the namespace's own `ok: false`
-      // envelope when that half answers with a refusal.
-      if (answered === null) throw new Error(wireFailure(pluginId, method, 'host half unavailable'))
+      // The generated codec types the raw result as DynamicCordisInvokeResult — no null:
+      // a call that never reached the host half surfaces as the rejection above, and the
+      // namespace's own `ok: false` envelope when that half answers with a refusal.
       if (!answered.ok) throw new Error(wireFailure(pluginId, method, invokeFailure(pluginId, method, answered)))
       return answered.value
     },
@@ -236,23 +237,26 @@ export function apply(ctx: Context): void {
         const answered = await ctx.remote.dynamicCordisRunner.runHostHalf(
           agentId, pluginId, packageId, mode, requestId, approveFutureVersions,
         )
-        return answered.ok ? answered : { ok: false, message: `${answered.message}` }
+        return answered.ok ? answered : { ok: false, message: answered.message }
       },
       getClientCode: async (agentId, pluginId, pluginRunId) => {
         const answered = await ctx.remote.dynamicCordisRunner.getClientCode(agentId, pluginId, pluginRunId)
-        if (answered === null) throw new Error(`host half refused getClientCode for ${pluginId}`)
+        // The generated codec types the raw result as DynamicCordisClientSource — no null.
         return answered
       },
       resolveRequestRun: async (requestId, resolution) => {
         const answered = await ctx.remote.dynamicCordisRunner.resolveRequestRun(requestId, resolution)
         // Thrown rather than returned: `answer` logs and drops a failed answer,
-        // and the host settles the request on its own either way.
-        if (answered === null || !answered.accepted) throw new Error(`host half refused resolveRequestRun for ${requestId}`)
+        // and the host settles the request on its own either way. The generated
+        // codec types the raw result as DynamicCordisResolveAck — no null.
+        if (!answered.accepted) throw new Error(`host half refused resolveRequestRun for ${requestId}`)
         return answered
       },
       settleUserRun: async (agentId, pluginId, resolution) => {
         const answered = await ctx.remote.dynamicCordisRunner.settleUserRun(agentId, pluginId, resolution)
-        if (answered === null || !answered.ok) throw new Error(`host half refused settleUserRun for ${pluginId}`)
+        // The generated codec types the raw result as DynamicCordisRunResponse — no null:
+        // no result at all is a carrier rejection, and "no" is `ok: false`.
+        if (!answered.ok) throw new Error(`host half refused settleUserRun for ${pluginId}`)
         return answered
       },
     },

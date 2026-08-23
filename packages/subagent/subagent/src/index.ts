@@ -429,7 +429,7 @@ export class SubagentService extends Service {
       ...request.label !== undefined ? { label: request.label } : {},
     })
     const resolved: ResolvedSubagentStartRequest = { ...request, descriptor }
-    const run = await observeRun(this.emitLifecycle, name, request.parent, await provider.start(resolved))
+    const run = observeRun(this.emitLifecycle, name, request.parent, await provider.start(resolved))
     // G3：无本地 Session 的外部 run 登记进等价状态面（session 枚举看不到它们）；
     // result 结算即移除（result 契约不 reject，但仍双分支兜底防泄漏）。
     if (run.localAgent === undefined) {

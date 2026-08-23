@@ -26,7 +26,7 @@ async function settle(): Promise<void> {
 }
 
 describe('InputHistoryStore', () => {
-  it('记录语义：最新在前、去重、截顶 ' + MAX_PERSISTED + ' 条', () => {
+  it(`记录语义：最新在前、去重、截顶 ${MAX_PERSISTED} 条`, () => {
     const store = new InputHistoryStore('/dev/null-spec-path')
     store.record('a')
     store.record('b')

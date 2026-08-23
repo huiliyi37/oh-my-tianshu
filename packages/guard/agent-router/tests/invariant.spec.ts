@@ -33,7 +33,7 @@ function routeEvent(overrides: Record<string, unknown> = {}): SessionEvent {
       subagentSessionId: 'child-1',
       ...overrides,
     },
-  } as SessionEvent
+  }
 }
 
 describe('agent-router route-record invariants', () => {
@@ -182,7 +182,7 @@ describe('agent-router route-record invariants', () => {
       seq: 0,
       time: 0,
       data: { subagentSessionId: 'child-1', stopReason: 'completed', ...over },
-    } as SessionEvent)
+    })
     expect(() => { ctx.emit('session/event', parent, outcome()) }).not.toThrow()
     expect(() => { ctx.emit('session/event', parent, outcome({ subagentSessionId: '' })) })
       .toThrow(/non-empty subagentSessionId/)
@@ -241,7 +241,7 @@ describe('agent-router route-record invariants', () => {
       seq: 1,
       time: 1,
       data: { subagentSessionId: 'child-1', verdict: 'adopt', reason: '整合进结论', ...over },
-    } as SessionEvent)
+    })
     ctx.emit('session/event', parent, outcome)
     expect(() => { ctx.emit('session/event', parent, adoption()) }).not.toThrow()
     // 每条 outcome 至多一条声明
@@ -256,7 +256,7 @@ describe('agent-router route-record invariants', () => {
       seq: 0,
       time: 0,
       data: { subagentSessionId: 'child-x', verdict: 'adopt', reason: 'r', ...over },
-    } as SessionEvent)
+    })
     expect(() => { ctx.emit('session/event', parent, adoption()) }).toThrow(/without a prior outcome/)
     const withOutcome = Session.create(SessionId('parent-2'))
     ctx.emit('session/event', withOutcome, {

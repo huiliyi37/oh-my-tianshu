@@ -49,7 +49,7 @@ Service dependencies: `sessions`/`agents`/`agentDefaultModel` are required; `goa
 - `src/engine/` — the terminal render engine (live region / scrollback commit / input line / images / performance monitor), the ported layer
 - `src/ui/app.ts` — TuiApp assembly and session mounting (pending approvals/questions, panel visibility, slash dispatch, rewind overlay)
 - `src/adapter/` — adapts dsh session/agent services to `TuiPort` (the engine only knows the port, never ctx)
-- Panel projections (`projectXxxPanel`) are pure functions; the pending-state state machines are extracted into controllers (`src/controllers/`, see docs/tui-controllers.md), and the [C4 split plan](../../../docs/dsh-tui-拆分方案-c4.md) keeps thinning app.ts
+- Panel projections (`projectXxxPanel`) are pure functions; the pending-state state machines are extracted into controllers (`src/controllers/`, see docs/tui-controllers.md), and the C4 split plan keeps thinning app.ts
 
 ## Verification
 

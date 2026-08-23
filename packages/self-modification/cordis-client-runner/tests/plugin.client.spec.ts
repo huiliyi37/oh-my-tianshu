@@ -29,13 +29,20 @@ const USER_RUN = {
   agentId: AGENT, pluginId: PLUGIN, packageId: PACKAGE, mode: 'run' as const, hasClientHalf: true,
 }
 
+/** Bridge-only fan-out the stub Remote adds to the typed Client surface. */
+interface BridgeDispatch {
+  $dispatch(event: string, args: readonly unknown[]): void
+}
+
 /**
  * Deliver one forwarded Host event the way the runtime's frame bridge does: the
  * bridge hands `host/remote-event` to the Remote service, which fans it out to
  * `$on` subscribers with the Host's own argument list.
  */
 function forward(ctx: Context, event: string, payload: object): void {
-  ctx.remote.$dispatch(event, [payload])
+  // The stub Remote carries the bridge-only `$dispatch`; the declared
+  // TypeRTClientRemote surface names just `$on`, so reach it structurally.
+  ;(ctx.remote as unknown as BridgeDispatch).$dispatch(event, [payload])
 }
 
 interface Bench {
@@ -55,7 +62,7 @@ interface Bench {
   /** Answer of the next invoke call. */
   invokeResult: { current: DynamicCordisInvokeResult }
   /** Rejection the namespace throws instead of answering (the codec refusing a payload). */
-  invokeThrow: { current: unknown }
+  invokeThrow: { current: Error | string | undefined }
   /** Render failures the namespace received, in order. */
   renderFailures: {
     agentId: string
@@ -105,7 +112,7 @@ async function boot(): Promise<Bench> {
   ctx.reflect.provide('modules', { invalidate: () => {} })
   const invoked: Bench['invoked'] = []
   const invokeResult: { current: DynamicCordisInvokeResult } = { current: { ok: true, value: 'pong' } }
-  const invokeThrow: { current: unknown } = { current: undefined }
+  const invokeThrow: { current: Error | string | undefined } = { current: undefined }
   const source: Bench['source'] = { current: {
     code: 'return { apply(ctx) {} }',
     name: 'demo',
@@ -150,7 +157,12 @@ async function boot(): Promise<Bench> {
     ) => {
       invoked.push({ pluginId, pluginRunId, method, args })
       const refusal = invokeThrow.current
-      if (refusal !== undefined) return Promise.reject(refusal)
+      if (refusal !== undefined) {
+        // Reject with an Error even for a raw string value: wireFailure reads
+        // `.message` for an Error and uses the raw text otherwise, so the teaching
+        // message the tests assert survives the wrap unchanged.
+        return Promise.reject(refusal instanceof Error ? refusal : new Error(refusal))
+      }
       return answered(invokeResult.current)
     },
   }

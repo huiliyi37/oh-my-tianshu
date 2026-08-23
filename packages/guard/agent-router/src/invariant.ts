@@ -239,10 +239,10 @@ function validateEvent(event: SessionEvent, fail: InvariantFailure): void {
     if (subagentSessionId !== undefined && (typeof subagentSessionId !== 'string' || subagentSessionId === '')) {
       fail('agent-router: a delegate decision record subagentSessionId must be a non-empty string when present')
     }
-    if (dispatched === true && subagentSessionId === undefined) {
+    if (dispatched && subagentSessionId === undefined) {
       fail('agent-router: a dispatched decision record must carry its subagentSessionId')
     }
-    if (dispatched === false && subagentSessionId !== undefined) {
+    if (!dispatched && subagentSessionId !== undefined) {
       fail('agent-router: a non-dispatched decision record must not carry a subagentSessionId')
     }
     return

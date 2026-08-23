@@ -54,9 +54,9 @@ export function apply(ctx: ClientContext): void {
       return { ok: true }
     },
     inventory: async () => {
-      // 本地 TypeRT 直接返回清单数组（null 表示命名空间不可用）
+      // 本地 TypeRT 直接返回清单数组；生成代码的类型即 DynamicCordisInventoryRow[]，
+      // 不含 null，判空分支不可达，故直接返回。
       const rows = await ctx.remote.dynamicCordisRunner.inventory()
-      if (rows === null) throw new Error('dynamicCordisRunner namespace unavailable')
       return rows
     },
   }

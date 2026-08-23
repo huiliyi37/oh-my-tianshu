@@ -26,7 +26,7 @@ function handoffEvent(alignSessionId = 'session-a', reason = 'anchor'): SessionE
     seq: 0,
     time: 0,
     data: { alignSessionId, reason },
-  } as SessionEvent
+  }
 }
 
 function cardedMessage(original: string): SessionEvent {
@@ -39,7 +39,7 @@ function cardedMessage(original: string): SessionEvent {
       content: [{ type: 'text', text: `# 标题\n\n—— 原始请求 ——\n${original}` }],
       source: { kind: 'user' },
     }),
-  } as SessionEvent
+  }
 }
 
 describe('intent-bridge stream invariants', () => {

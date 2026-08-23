@@ -2,7 +2,7 @@
   "packages/client/runtime/src/client/sessions/manager.ts": 1068,
   "packages/client/ui-trajectory/src/client/layout.ts": 1030,
   "packages/core/session/src/index.ts": 1205,
-  "packages/core/tools/src/index.ts": 1843,
+  "packages/core/tools/src/index.ts": 1845,
   "packages/host/apiproxy/src/api-proxy.ts": 2798,
   "packages/session-query/session-query-sqlite/src/index.ts": 1070,
   "packages/session/session-persistence/src/coordinator.ts": 1307,

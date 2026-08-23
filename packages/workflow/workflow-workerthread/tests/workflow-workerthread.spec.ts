@@ -538,6 +538,8 @@ describe('dsh-workflow-workerthread', () => {
     it('a child dispose() rejecting an UNRENDERABLE value still acks — the containment warn is total', async () => {
       const ctx = new Context()
       await ctx.plugin(SubagentService)
+      // A plain non-Error rejection whose own String() coercion throws.
+      const trapReason: object = { toString: () => { throw new Error('coercion trap') } }
       const provider: SubagentProvider = {
         name: 'coercion-trap-dispose',
         capabilities: { outputSchema: true, depthLimit: true, toolFilter: true, persona: false, sandboxMode: false, runBudget: false },
@@ -550,7 +552,9 @@ describe('dsh-workflow-workerthread', () => {
           // The rejection VALUE's own coercion throws: a warn built with bare
           // String(error) would itself throw, skipping the ChildDisposed ack
           // and wedging the script's finally until the grace/terminate path.
-          dispose: () => Promise.reject({ toString: () => { throw new Error('coercion trap') } }),
+          dispose: () =>
+            // oxlint-disable-next-line typescript/prefer-promise-reject-errors -- this case pins an unrenderable NON-Error rejection.
+            Promise.reject(trapReason),
         }),
       }
       ctx.subagents.registerProvider(provider)

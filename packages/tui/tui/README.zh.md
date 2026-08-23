@@ -49,7 +49,7 @@
 - `src/engine/` — 终端渲染引擎（live 区 / scrollback 提交 / 输入行 / 图片 / 性能监视），移植层
 - `src/ui/app.ts` — TuiApp 装配与会话挂载（挂起审批/提问、面板显隐、slash 分发、rewind overlay）
 - `src/adapter/` — dsh 会话/agent 服务到 `TuiPort` 的适配（引擎只认 port，不认 ctx）
-- 面板投影（`projectXxxPanel`）是纯函数；挂起态状态机已提取为 controller（`src/controllers/`，见 docs/tui-controllers.md），[C4 拆分方案](../../../docs/dsh-tui-拆分方案-c4.md) 持续把 app.ts 拆薄
+- 面板投影（`projectXxxPanel`）是纯函数；挂起态状态机已提取为 controller（`src/controllers/`，见 docs/tui-controllers.md），C4 拆分方案持续把 app.ts 拆薄
 
 ## 验证
 

@@ -99,7 +99,7 @@ export function resolveConfig(config: TaskCardConfig): ResolvedTaskCardConfig {
     throw new Error('TaskCardConfig `enabled` must be a boolean')
   }
   const mode = config.mode ?? 'llm'
-  if (mode !== 'llm' && mode !== 'template') {
+  if (!['llm', 'template'].includes(mode)) {
     throw new Error('TaskCardConfig `mode` must be "llm" or "template"')
   }
   const timeoutMs = config.timeoutMs ?? 5000

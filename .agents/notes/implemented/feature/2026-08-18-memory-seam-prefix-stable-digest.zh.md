@@ -6,7 +6,7 @@ Status: implemented
 
 ## Problem
 
-`MemoryService` 原先只有 Markdown 形态的 `save` / `search` / `list` / `delete`。后续若再加结构化 provider，就要另做一套消费方类型，而每次给 `save` 加字段都会变成破坏性变更。另一方面，`tool-memory` 把最近二十条记忆的摘要注入 order-130 的 system-prompt section，并在每次 `memory_save` 后刷新，从而重写请求前缀、让整段后续对话失去 provider 前缀缓存。那些刷新所威胁的参照是 [96.8% 无 digest 基线](../../../../docs/cache-hit-baseline-20260812.md)。发货 TUI bundle 已经挂上这一对插件（[能力 roster](2026-08-17-tui-bundle-tianshu-capability-roster.md)），因此 digest 缺省值是产品可见的前缀缓存选择，不是闲置的库开关。
+`MemoryService` 原先只有 Markdown 形态的 `save` / `search` / `list` / `delete`。后续若再加结构化 provider，就要另做一套消费方类型，而每次给 `save` 加字段都会变成破坏性变更。另一方面，`tool-memory` 把最近二十条记忆的摘要注入 order-130 的 system-prompt section，并在每次 `memory_save` 后刷新，从而重写请求前缀、让整段后续对话失去 provider 前缀缓存。那些刷新所威胁的参照是 96.8% 无 digest 基线。发货 TUI bundle 已经挂上这一对插件（[能力 roster](2026-08-17-tui-bundle-tianshu-capability-roster.md)），因此 digest 缺省值是产品可见的前缀缓存选择，不是闲置的库开关。
 
 ## Decision
 

@@ -378,12 +378,14 @@ describe('intent-bridge through the agent loop', () => {
     const align = await ctx.intentBridge.createAlignedSession()
     ask(align.handle.agent, '帮我重构 src/auth.ts 的登录逻辑')
     // The finalize tool call runs while the main-session create is held open.
-    await vi.waitFor(() => expect(mainCreates).toHaveLength(1))
+    await vi.waitFor(() => { expect(mainCreates).toHaveLength(1) })
 
     // The error fallback fires mid-handoff: the in-flight sentinel must skip it.
     const session = ctx.sessions.get(SessionId(align.sessionId))
     if (session === undefined) throw new Error('intent-bridge: alignment session missing')
-    const emit = ctx.emit as unknown as (name: string, ...args: unknown[]) => void
+    const emit = (name: string, ...args: unknown[]): void => {
+      ;(ctx.emit as unknown as (name: string, ...args: unknown[]) => void)(name, ...args)
+    }
     emit('internal/dispatch', 'emit', 'session/event', [session, {
       type: 'turn/end',
       data: { turn: 1, reason: { kind: 'error' } },

@@ -17,6 +17,9 @@ async function setup(): Promise<Context> {
 }
 
 const emit = (ctx: Context, event: string, ...args: unknown[]): void => {
+  // Runtime event names/payloads exceed the static Events union, so the cast is
+  // required for tsc; oxlint's generic-emit model resolves it as a type no-op.
+  // oxlint-disable-next-line typescript/no-unnecessary-type-assertion
   ;(ctx.emit as (event: string, ...args: unknown[]) => void)(event, ...args)
 }
 

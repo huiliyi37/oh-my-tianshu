@@ -244,13 +244,13 @@ export function resolveConfig(config: ZenConfig): ResolvedZenConfig {
   }
   return {
     section: raw.section,
-    face: [...face],
+    face: face.slice(),
     timeoutSteps,
     requireEvidence: raw.requireEvidence ?? true,
     triage: { enabled: triageRaw.enabled ?? true, maxChars },
     faceSelection: { enabled: faceSelectionRaw.enabled ?? false },
     diet,
-    promoteDeny: [...promoteDeny],
+    promoteDeny: promoteDeny.slice(),
     enabled: raw.enabled ?? true,
   }
 }
@@ -343,7 +343,9 @@ export function hasAnchorEvidence(events: readonly SessionEvent[]): boolean {
     }
     if (event.type !== 'tool/result') continue
     const block = event.data.message.content[0]
-    if (block?.type !== 'tool-result' || block.isError === true) continue
+    // 'tool/result' 的 message.content 是 [ToolResultBlock] 元组（dsh-llm ToolResultMessage），
+    // 首块 type 恒为 'tool-result'——该判别分支在类型面上不可达，故删除；仅 isError 需运行时判别。
+    if (block.isError === true) continue
     const name = callNames.get(String(event.data.message.source.callId))
     if (name !== undefined && !NON_EVIDENCE_TOOLS.has(name)) return true
   }

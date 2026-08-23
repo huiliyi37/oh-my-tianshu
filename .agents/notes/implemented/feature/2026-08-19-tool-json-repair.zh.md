@@ -38,5 +38,5 @@ DeepSeek 偶尔会把工具调用序列化成 `content` 里的 JSON 文本，而
 
 ## Related
 
-- [dsh-tui 融合演进迭代记录](../../../../docs/dsh-融合演进-迭代记录.md) — 早期从天枢吸收的能力（render core、meridian、pheromone、fs-snapshot）。
+- dsh-tui 融合演进迭代记录 — 早期从天枢吸收的能力（render core、meridian、pheromone、fs-snapshot）。
 - [run_tests 工具](2026-08-19-run-tests-tools.md) 与 [doom-loop guard](2026-08-19-doom-loop-guard.md) — 同一档位下的姊妹吸收。

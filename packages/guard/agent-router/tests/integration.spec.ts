@@ -99,6 +99,20 @@ function runTool(
 }
 
 /**
+ * Emit one qualified `turn/end` event for `session`, numbered after the
+ * records already appended (the router derives the turn from the append log).
+ */
+function endTurn(
+  emit: (name: string, ...args: unknown[]) => void,
+  session: { id: SessionId; header: object; events: readonly SessionEvent[]; append: (type: string, data: unknown) => void },
+  appended: Array<{ type: string; data: Record<string, unknown> }>,
+): void {
+  emit('session/event', session, {
+    type: 'turn/end', seq: appended.length, time: 1, data: { turn: appended.length, reason: { kind: 'completed' } },
+  })
+}
+
+/**
  * 归账测试替身：session.append 同步落 records + events（镜像真实 Session 的
  * 日志面），emitTool 双面落（emit 喂指标面、append 落日志面——真实装配中
  * 工具结果由 agent-loop 写入 Session.append）。
@@ -582,7 +596,7 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
     })
     const appended: Array<{ type: string; data: Record<string, unknown> }> = []
     let releaseFirst: (() => void) | undefined
-    const firstResult = new Promise<{ stopReason: string; output: [] }>((resolve) => { releaseFirst = () => resolve({ stopReason: 'completed', output: [] }) })
+    const firstResult = new Promise<{ stopReason: string; output: [] }>((resolve) => { releaseFirst = () => { resolve({ stopReason: 'completed', output: [] }) } })
     seam.start.mockImplementationOnce(async () => ({
       id: SessionId('session-child-1'),
       result: firstResult,
@@ -595,36 +609,31 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
       events: [] as SessionEvent[],
       append: (type: string, data: unknown) => { appended.push({ type, data: data as Record<string, unknown> }) },
     }
-    const endTurn = (): void => {
-      emit('session/event', session, {
-        type: 'turn/end', seq: appended.length, time: 1, data: { turn: appended.length, reason: { kind: 'completed' } },
-      })
-    }
     for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
     // 第 1 个合格 turn-end：真实派发（挂起不结算；其决策记录待结算后落盘）
-    endTurn()
+    endTurn(emit, session, appended)
     await vi.waitFor(() => { expect(seam.start).toHaveBeenCalledTimes(1) })
     // 第 2、3 个 turn-end：单飞锁 + 冷却拦下——先落 dispatched:false 决策
-    endTurn()
-    endTurn()
+    endTurn(emit, session, appended)
+    endTurn(emit, session, appended)
     await vi.waitFor(() => { expect(appended).toHaveLength(2) })
     expect(seam.start).toHaveBeenCalledTimes(1)
-    expect(appended.every(entry => (entry.data as { dispatched: boolean }).dispatched === false)).toBe(true)
+    expect(appended.every(entry => !(entry.data as { dispatched: boolean }).dispatched)).toBe(true)
     // 放行在飞 run：首条真实决策（dispatched true）此刻才落盘
     releaseFirst!()
     await vi.waitFor(() => { expect(appended.some(entry => (entry.data as { dispatched?: boolean }).dispatched === true)).toBe(true) })
     expect(seam.start).toHaveBeenCalledTimes(1)
     for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
     // 第 4 个合格 turn-end：距首次派发已过 3 个合格 turn 且无在飞 → 第二次派发
-    endTurn()
+    endTurn(emit, session, appended)
     await vi.waitFor(() => { expect(seam.start).toHaveBeenCalledTimes(2) })
     await vi.waitFor(() => {
       expect(appended.filter(entry => (entry.data as { dispatched?: boolean }).dispatched === true)).toHaveLength(2)
     })
     // 总帽（maxTotal 2）已到：后续 turn-end 只落决策不再派发
     for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
-    endTurn()
-    endTurn()
+    endTurn(emit, session, appended)
+    endTurn(emit, session, appended)
     await vi.waitFor(() => { expect(appended).toHaveLength(6) })
     expect(seam.start).toHaveBeenCalledTimes(2)
     const dispatches = appended.filter(entry => (entry.data as { dispatched?: boolean }).dispatched === true)
@@ -644,24 +653,19 @@ describe('agent-router 端到端（指标 → 路由 → 派发）', () => {
       events: [] as SessionEvent[],
       append: (type: string, data: unknown) => { appended.push({ type, data: data as Record<string, unknown> }) },
     }
-    const endTurn = (): void => {
-      emit('session/event', session, {
-        type: 'turn/end', seq: appended.length, time: 1, data: { turn: appended.length, reason: { kind: 'completed' } },
-      })
-    }
     // t1：连败 → 首次派发（冷却起点，qualifiedTurns=1）。
     for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
-    endTurn()
+    endTurn(emit, session, appended)
     await vi.waitFor(() => { expect(seam.start).toHaveBeenCalledTimes(1) })
     // t2：全成功 → self 决策（qualifiedTurns=2；self 轮也计入冷却分母）。
     for (let i = 0; i < 8; i++) runTool(emit, false, { id: A })
-    endTurn()
+    endTurn(emit, session, appended)
     await vi.waitFor(() => {
       expect(appended.some(entry => (entry.data as { action?: string }).action === 'self')).toBe(true)
     })
     // t3：再连败 → 距首派发已过 2 个合格 turn（3-1 ≥ cooldown 2）→ 第二次派发。
     for (let i = 0; i < 8; i++) runTool(emit, true, { id: A })
-    endTurn()
+    endTurn(emit, session, appended)
     await vi.waitFor(() => { expect(seam.start).toHaveBeenCalledTimes(2) }, { timeout: 5_000 })
   }, 10000)
 

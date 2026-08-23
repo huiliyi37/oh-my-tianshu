@@ -1089,7 +1089,7 @@ describe('SubagentService.listDescendants', () => {
       await expect(ctx.subagents.listDescendants(parent.id)).resolves.toEqual([{
         kind: 'child', id: leafId, label: 'deep leaf', mode: 'continuable',
         activity: 'running', hasChildren: false, parentId, depth,
-        timing: { settledMs: 0, active: expect.any(Object) },
+        timing: { settledMs: 0, active: expect.any(Object) as object },
       }])
     }, 30_000)
 

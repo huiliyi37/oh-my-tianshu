@@ -14,11 +14,11 @@ import {
 } from '../src/synthesis.js'
 
 function outcomeEvent(id: string, stopReason = 'completed'): SessionEvent {
-  return { type: 'router/outcome', seq: 0, time: 0, data: { subagentSessionId: id, stopReason } } as SessionEvent
+  return { type: 'router/outcome', seq: 0, time: 0, data: { subagentSessionId: id, stopReason } }
 }
 
 function adoptionEvent(id: string, verdict: 'adopt' | 'reject' = 'adopt'): SessionEvent {
-  return { type: 'router/adoption', seq: 0, time: 0, data: { subagentSessionId: id, verdict, reason: 'r' } } as SessionEvent
+  return { type: 'router/adoption', seq: 0, time: 0, data: { subagentSessionId: id, verdict, reason: 'r' } }
 }
 
 function toolCallEvent(name: string): SessionEvent {

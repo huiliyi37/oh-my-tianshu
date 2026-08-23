@@ -16,6 +16,9 @@ import type {
   SubagentTimingProjection,
 } from './projection-types.ts'
 
+/** turn/end reason kinds the progress projection records verbatim (see the fold below). */
+const TURN_END_KINDS = new Set(['completed', 'aborted', 'blocked', 'error', 'max-tokens', 'interrupted'])
+
 interface TimingState {
   /** Milliseconds accumulated across completed post-descriptor turns. */
   settledMs: number
@@ -257,8 +260,7 @@ ProjectionDefinition<'subagentProgress', ProgressState> = {
       }
       case 'turn/end': {
         const kind = event.data.reason.kind
-        if (kind === 'completed' || kind === 'aborted' || kind === 'blocked'
-          || kind === 'error' || kind === 'max-tokens' || kind === 'interrupted') {
+        if (TURN_END_KINDS.has(kind)) {
           return { ...state, inTurn: false, turns: state.turns + 1, lastTurnEnd: kind }
         }
         // An unknown merged reason kind is not our vocabulary: count the turn

@@ -242,8 +242,8 @@ describe('failure stages', () => {
       ok: false,
       cause: 'evaluate',
       message: expect.stringContaining('must `return` a plugin') as string,
-      stack: expect.any(String),
-      error: expect.any(Error),
+      stack: expect.any(String) as string,
+      error: expect.any(Error) as Error,
     })
     const leaked = [...document.querySelectorAll('style[data-dyn="dyn-1"]')]
       .filter(tag => tag.textContent === '.leak {}')
@@ -258,8 +258,8 @@ describe('failure stages', () => {
         ok: false,
         cause: 'activate',
         message: 'apply exploded',
-        stack: expect.any(String),
-        error: expect.any(Error),
+        stack: expect.any(String) as string,
+        error: expect.any(Error) as Error,
       })
     expect(bench.removed).toEqual(['entry-1'])
     expect(bench.runner.isLoaded(PLUGIN)).toBe(false)
