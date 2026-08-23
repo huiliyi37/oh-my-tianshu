@@ -391,7 +391,7 @@ export interface TuiAppOptions {
   initialSessionId?: SessionId
   /** 主题名；'auto' 走系统终端配色探测，缺省 'auto'。 */
   theme?: string
-  /** 欢迎开场策略；auto 按终端能力播放一次，off 直接提交静态终态。 */
+  /** 欢迎策略；`auto` 与 `off` 都立即提交所选档的静态狐狸。 */
   welcomeAnimation?: WelcomeAnimationMode
   /** Ctrl+C 连按窗口内第二次的退出回调（不要求空输入；raw-mode 下 Ctrl+C 是数据字节非 SIGINT）。 */
   onExit?: () => void
@@ -741,8 +741,6 @@ export class TuiApp {
   private ownedHandle: AgentHandle | null = null
   private readonly initialSessionId: SessionId | undefined
   private readonly themeName: string
-  /** 欢迎开场策略；时序与总时长固定，不暴露可调参数。 */
-  private readonly welcomeAnimation: WelcomeAnimationMode
   private readonly onExit: (() => void) | undefined
   private readonly onRestart: (() => void) | undefined
   /** 外部编辑器触发键（Phase 6.4）；缺省 ctrl_e（ctrl+o 已恢复为推理展开）。 */
@@ -905,7 +903,6 @@ export class TuiApp {
     this.historyStore = new InputHistoryStore(options.historyPath)
     this.initialSessionId = options.initialSessionId
     this.themeName = options.theme ?? 'auto'
-    this.welcomeAnimation = options.welcomeAnimation ?? 'auto'
     this.onExit = options.onExit
     this.onRestart = options.onRestart
     this.editorKey = options.editorKey ?? 'ctrl_e'
