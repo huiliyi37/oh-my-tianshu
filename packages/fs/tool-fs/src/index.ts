@@ -9,6 +9,7 @@ import type { Context } from '@huiliyi37/cordis'
 import z from '@huiliyi37/schemastery'
 import type {} from '@huiliyi37/dsh-user-approval'
 import { applyReadTool, READ_LIMIT, READ_REF_THRESHOLD_BYTES, STREAM_MIN_SIZE } from './read.ts'
+import { applyReadSectionTool } from './read-section.ts'
 import { applyWriteTool } from './write.ts'
 import { applyEditTool } from './edit.ts'
 import { READ_MAX_BYTES, READ_MAX_LINE_LENGTH } from './read-render.ts'
@@ -68,6 +69,13 @@ export function apply(ctx: Context, config: Config): void {
     throw new Error(`tool-fs: readRefThresholdBytes must be a non-negative integer (got ${resolved.readRefThresholdBytes})`)
   }
   applyReadTool(ctx, {
+    limit: resolved.readLimit,
+    maxLineLength: resolved.readMaxLineLength,
+    maxBytes: resolved.readMaxBytes,
+    streamMinSize: resolved.readStreamMinSize,
+    refThresholdBytes: resolved.readRefThresholdBytes,
+  })
+  applyReadSectionTool(ctx, {
     limit: resolved.readLimit,
     maxLineLength: resolved.readMaxLineLength,
     maxBytes: resolved.readMaxBytes,
