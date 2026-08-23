@@ -14,7 +14,7 @@ import type { ReadStream, WriteStream } from 'node:tty'
 import type { SessionId } from '@huiliyi37/dsh-session'
 import type { KeyName } from './engine/input-handler.ts'
 import { spawnSelfRestart } from './restart.ts'
-import { TuiApp } from './ui/app.ts'
+import { TuiApp, type WelcomeAnimationMode } from './ui/app.ts'
 
 /** Stable Cordis plugin name the bundle patch inserts. */
 export const name = 'tui-runner'
@@ -31,6 +31,8 @@ export interface TuiRunnerConfig {
   editorKey?: KeyName
   /** 是否启用 Vim 键位（Phase 6.5）；缺省 false。 */
   vimEnabled?: boolean
+  /** 欢迎策略；`auto` 与 `off` 都立即提交静态狐狸终态。 */
+  welcomeAnimation?: WelcomeAnimationMode
   /** 主控模型的识图能力与视觉桥状态（图片附件气泡提示数据源）。 */
   vision?: {
     /** 主控模型是否原生支持识图（图片直发）。 */
@@ -73,6 +75,15 @@ export function apply(ctx: Context, config: TuiRunnerConfig = {}): void {
   if (config.activityBandMaxRows !== undefined
     && (!Number.isInteger(config.activityBandMaxRows) || config.activityBandMaxRows <= 0)) {
     throw new Error(`[tui-runner] activityBandMaxRows must be a positive integer, got ${config.activityBandMaxRows}`)
+  }
+  const welcomeAnimation: unknown = config.welcomeAnimation
+  if (welcomeAnimation !== undefined
+    && welcomeAnimation !== 'auto'
+    && welcomeAnimation !== 'off') {
+    const received = typeof welcomeAnimation === 'string'
+      ? welcomeAnimation
+      : `<${welcomeAnimation === null ? 'null' : typeof welcomeAnimation}>`
+    throw new Error(`[tui-runner] welcomeAnimation must be "auto" or "off", got ${received}`)
   }
   const stdin = config.stdin ?? process.stdin
   const stdout = config.stdout ?? process.stdout
@@ -134,6 +145,7 @@ export function apply(ctx: Context, config: TuiRunnerConfig = {}): void {
       ...(config.initialSessionId === undefined ? {} : { initialSessionId: config.initialSessionId }),
       ...(config.editorKey === undefined ? {} : { editorKey: config.editorKey }),
       ...(config.vimEnabled === undefined ? {} : { vimEnabled: config.vimEnabled }),
+      welcomeAnimation: config.welcomeAnimation ?? 'auto',
       ...(config.vision === undefined ? {} : { vision: config.vision }),
       ...(config.workflowHistoryLimit === undefined ? {} : { workflowHistoryLimit: config.workflowHistoryLimit }),
       ...(config.lsp === undefined ? {} : { lsp: config.lsp }),

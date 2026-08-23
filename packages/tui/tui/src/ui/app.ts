@@ -115,9 +115,10 @@ import {
 } from '../question-panel.js'
 import { ConfigPanelController, type ConfigCategory, type ConfigField, type ConfigFieldAction, type ConfigPanelData } from '../config-panel.js'
 import type { SkillSummaryInput } from '../skill-panel.js'
-/** Wave 2：renderLive 7 面板纯函数 + 单帧快照类型（app.ts → render/ 单向依赖）。 */
+/** Wave 2：renderLive 面板纯函数 + 单帧快照类型（app.ts → render/ 单向依赖）。 */
 import {
   renderGlancePanel,
+  renderTodosPanel,
   renderTasksPanel,
   renderStatusPanel,
   renderDelegationPanel,
@@ -298,12 +299,21 @@ import {
   type PendingApprovalRequest,
   type ApprovalOutcome,
 } from '../controllers/approval-controller.js'
+import {
+  WelcomeIntroController,
+  type WelcomeIntroSettleReason,
+} from '../controllers/welcome-intro-controller.js'
 import { QuestionController } from '../controllers/question-controller.js'
 import { BtwController } from '../controllers/btw-controller.js'
 import { SessionManager } from '../controllers/session-manager.js'
 import { renderBtwPanel } from '../format/btw-panel.js'
-import { CHROME_GUTTER, formatWelcomeCard, formatWelcomeHero, pickWelcomeTip, type WelcomeEnvCheck, type WelcomeTipItem } from '../format/welcome.js'
-import { formatWhaleLogo, WHALE_MIN_ROWS } from '../format/whale.js'
+import { formatFoxFrame } from '../format/fox.js'
+import {
+  CHROME_GUTTER,
+  formatWelcome,
+  pickWelcomeTip,
+  resolveWelcomeArtWidth,
+} from '../format/welcome.js'
 import { formatTopBar } from '../format/top-bar.js'
 import { formatSeparator } from '../format/separator.js'
 import { formatTurnStatus } from '../format/turn-status.js'
@@ -362,10 +372,15 @@ interface KeyWizardSettingsFacet {
   mutate(ns: unknown, ops: readonly { op: 'set'; path: readonly string[]; value: unknown }[]): Promise<void>
 }
 
-/** llm.resolveModelInfo 最小面（识图能力取 supportsVision，不引入 dsh-llm peer）。 */
+/** llm.resolveModelInfo 识图最小面（可选服务仍经 reflect 降级读取）。 */
 interface LlmModelInfoFacet {
-  resolveModelInfo(provider: string, model: string): Promise<{ supportsVision?: boolean }>
+  resolveModelInfo(provider: string, model: string): Promise<{
+    supportsVision?: boolean
+  }>
 }
+
+/** Fixed welcome-opening policy selected at runner load. */
+export type WelcomeAnimationMode = 'auto' | 'off'
 
 /** TuiApp 构造选项。 */
 export interface TuiAppOptions {
@@ -376,6 +391,8 @@ export interface TuiAppOptions {
   initialSessionId?: SessionId
   /** 主题名；'auto' 走系统终端配色探测，缺省 'auto'。 */
   theme?: string
+  /** 欢迎开场策略；auto 按终端能力播放一次，off 直接提交静态终态。 */
+  welcomeAnimation?: WelcomeAnimationMode
   /** Ctrl+C 连按窗口内第二次的退出回调（不要求空输入；raw-mode 下 Ctrl+C 是数据字节非 SIGINT）。 */
   onExit?: () => void
   /** /restart：请求重启当前 dsh 进程（装配方负责 dispose + spawn 同 argv + 退出）。 */
@@ -420,6 +437,13 @@ export interface TuiAppOptions {
 
 /** live 区预留行（顶轨 + 输入 + 底轨 + footer）。 */
 const LIVE_RESERVED_ROWS = 4
+/** 低于该行数时 live 区沿用紧凑布局。 */
+const LIVE_COMPACT_MIN_ROWS = 22
+/**
+ * Welcome metadata is decorative and must never hold the interactive surface
+ * hostage. This fixed UX guard is deliberately not a deployment tuning knob.
+ */
+const WELCOME_MODEL_METADATA_TIMEOUT_MS = 1_000
 
 /** 双击 Esc 触发 rewind 的窗口（ms；对齐 Claude Code 的 Esc+Esc 时间回溯）。
  *  比 Ctrl+C 双击退出的 2s 短——rewind 是高频操作，双击节奏更跟手。 */
@@ -490,16 +514,6 @@ function looksLikeFilePath(
     return !isKnownCommand(firstToken)
   }
   return false
-}
-
-/** 检测当前目录是否为 git 仓库（静默，失败返回 false）。 */
-function isGitRepo(): boolean {
-  try {
-    execFileSync('git', ['rev-parse', '--is-inside-work-tree'], { stdio: 'pipe', encoding: 'utf-8', windowsHide: true })
-    return true
-  } catch {
-    return false
-  }
 }
 
 /**
@@ -673,6 +687,17 @@ export class TuiApp {
   private keyDialog: KeyDialogController | null = null
   /** 首启引导守护：本 run 已自动弹过一次 key 对话框（restore 等后续流程不再重复弹）。 */
   private keyPromptShown = false
+  /** 欢迎结算前挂起的缺 key 自动弹窗；input settlement 会取消该意图。 */
+  private autoKeyDialogPending = false
+  /** 当前进程 attach 的欢迎开场所有者；prepare 完成前为 null。 */
+  private welcomeIntro: WelcomeIntroController | null = null
+  /** attach 准备期始终缓冲输入；会话挂载后才同时缓冲后续 scrollback。 */
+  private welcomePreparing = false
+  /** 会话挂载完成后才拦截后续 scrollback；恢复历史必须先按权威顺序直接回放。 */
+  private welcomeScrollbackBarrier = false
+  private pendingWelcomeSettleReason: WelcomeIntroSettleReason | null = null
+  private pendingWelcomeActions: Array<() => void | Promise<void>> = []
+  private pendingWelcomeHadInput = false
   /** 双击 Esc 触发 rewind：第一次 Esc 的时间戳（0 = 无待定；窗口内第二次 Esc
    *  打开 rewind overlay，对齐 Claude Code 的 Esc+Esc 时间回溯）。 */
   private escRewindPendingSince = 0
@@ -716,6 +741,8 @@ export class TuiApp {
   private ownedHandle: AgentHandle | null = null
   private readonly initialSessionId: SessionId | undefined
   private readonly themeName: string
+  /** 欢迎开场策略；时序与总时长固定，不暴露可调参数。 */
+  private readonly welcomeAnimation: WelcomeAnimationMode
   private readonly onExit: (() => void) | undefined
   private readonly onRestart: (() => void) | undefined
   /** 外部编辑器触发键（Phase 6.4）；缺省 ctrl_e（ctrl+o 已恢复为推理展开）。 */
@@ -787,6 +814,17 @@ export class TuiApp {
   private searchOverlay: HistorySearchOverlay | null = null
   /** T1.2：/status 面板显隐（/status 切换；数据源为投影缓存）。 */
   private statusPanelVisible = false
+  /** /todos 紧凑待办面板显隐（/todos 切换；数据源为 todos 投影的保留快照）。 */
+  private todosPanelVisible = false
+  /** /todos 明细展开（false = 单行摘要卡）。 */
+  private todosExpanded = false
+  /**
+   * todos 保留快照：只吸收非空投影值。todos 投影在 turn/start 时被 fold 重置
+   * 为 null（tool-todo 的投影语义：清单随回合开始清空），若面板直接跟随投影，
+   * 每回合开始都会闪烁消失——保留快照让已显示的清单跨回合黏滞，null 只在
+   * 会话首次写入前出现（渲染「尚无待办」空态）。
+   */
+  private todosRetained: TaskItem[] | null = null
   /** LSP：/lsp 面板显隐（/lsp 切换）。 */
   private lspPanelVisible = false
   /** LSP：诊断桥（懒创建——首次工具触碰文件或 /lsp 打开时实例化；dispose 销毁）。 */
@@ -829,6 +867,8 @@ export class TuiApp {
   private tick = 0
   private ticker: ReturnType<typeof setInterval> | null = null
   private disposed = false
+  /** Cancels bounded startup lookups before teardown can return. */
+  private readonly lifetimeAbort = new AbortController()
   /** OSC52 不支持警告：每进程首次触发时提示一次（P1-1；newSession 不重置，避免重复打扰）。 */
   private osc52WarningShown = false
   /** bracketed paste 处理器 disposer（attach 注册，dispose 释放）。 */
@@ -865,6 +905,7 @@ export class TuiApp {
     this.historyStore = new InputHistoryStore(options.historyPath)
     this.initialSessionId = options.initialSessionId
     this.themeName = options.theme ?? 'auto'
+    this.welcomeAnimation = options.welcomeAnimation ?? 'auto'
     this.onExit = options.onExit
     this.onRestart = options.onRestart
     this.editorKey = options.editorKey ?? 'ctrl_e'
@@ -970,6 +1011,7 @@ export class TuiApp {
         this.lspPanelVisible = false
         this.taskPanelVisible = false
         this.statusPanelVisible = false
+        this.todosPanelVisible = false
         this.subagentsPanelVisible = false
         this.workflowPanelVisible = false
         this.commit.reset()
@@ -1053,6 +1095,33 @@ export class TuiApp {
         this.statusPanelVisible = !this.statusPanelVisible
         if (this.statusPanelVisible && this.ctx.reflect.get('sessionProjections', false) === undefined) {
           this.echoWarn('⚠ sessionProjections 服务不可用（未装配 session-projection 插件），目标/任务/计划投影段无数据（会话汇总段为本地投影，不受影响）')
+        }
+        this.renderBatcher.schedule()
+      },
+    })
+    // todos 紧凑待办面板显隐切换：无参切换显隐，all 展开/收起明细。数据源是
+    // todos 投影的保留快照（turn/start 清空不回退显示），与 /status 的完整
+    // checklist 任务段、/tasks 窗格同源不同呈现——摘要卡服务「一眼当前进度」，
+    // 明细行只封顶展示，完整清单仍在 /status。
+    this.slash.register({
+      name: 'todos',
+      description: '切换待办紧凑面板（无参显隐；all 展开明细）',
+      argsHint: '[all]',
+      run: ({ text }) => {
+        const sub = text.trim()
+        if (sub !== '' && sub !== 'all') {
+          this.echoWarn('用法: /todos [all]')
+          return
+        }
+        if (sub === 'all') {
+          this.todosExpanded = !this.todosExpanded
+          this.todosPanelVisible = this.todosPanelVisible || this.todosExpanded
+        } else {
+          this.todosPanelVisible = !this.todosPanelVisible
+          if (!this.todosPanelVisible) this.todosExpanded = false
+        }
+        if (this.todosPanelVisible && this.ctx.reflect.get('sessionProjections', false) === undefined) {
+          this.echoWarn('⚠ sessionProjections 服务不可用（未装配 session-projection 插件），待办面板无数据')
         }
         this.renderBatcher.schedule()
       },
@@ -1154,7 +1223,7 @@ export class TuiApp {
   get sessionId(): SessionId | null { return this.activeSessionId }
 
   /**
-   * 欢迎页数字键直达的编号行（renderRestorableSessions 落列表时填充；
+   * 欢迎页数字键直达的编号行（prepareWelcome 投影列表时填充；
    * 索引 = 行号 - 1）。仅在欢迎阶段（welcomeDigitsActive）路由数字键。
    */
   private welcomeSessionRows: RestorableSession[] = []
@@ -1212,8 +1281,41 @@ export class TuiApp {
     // Enter 提交）；onPaste 处理器把整段插入输入行（超阈值折叠为标记）。
     this.stdout.write(ANSI.BRACKETED_PASTE_ON)
     this.stdout.write(ANSI.KITTY_KEYBOARD_DISAMBIGUATE_ON)
+    this.welcomePreparing = true
+    this.welcomeScrollbackBarrier = false
     this.pasteDisposer?.()
-    this.pasteDisposer = this.input.onPaste((text) => { void this.handlePaste(text) })
+    this.pasteDisposer = this.input.onPaste((text) => {
+      if (this.welcomePreparing) {
+        this.pendingWelcomeSettleReason ??= 'input'
+        this.pendingWelcomeHadInput = true
+        this.pendingWelcomeActions.push(() => this.handlePaste(text))
+        return
+      }
+      void this.handlePaste(text)
+    })
+    this.input.onAnyKey((key) => {
+      if (this.welcomePreparing) {
+        this.pendingWelcomeSettleReason ??= 'input'
+        this.pendingWelcomeHadInput = true
+        this.pendingWelcomeActions.push(() => { this.handleKey(key) })
+        return
+      }
+      this.handleKey(key)
+    })
+    this.resize.onResize(() => {
+      this.live.setMaxRows(liveMaxRowsFor(this.stdout.rows))
+      if (this.welcomePreparing) {
+        this.pendingWelcomeSettleReason ??= 'resize'
+        return
+      }
+      if (this.settleWelcome('resize')) return
+      // overlay 激活时主屏 live 不写；resize 只重绘 alt screen 面板。
+      if (this.overlay !== null && this.overlay.activeId() !== null) {
+        this.overlay.rerender()
+        return
+      }
+      this.flushLiveRender()
+    })
     // 意图对齐桥：对齐完成时自动切到主会话（handoff 由 bridge 创建主会话并
     // 注入任务卡）。重复 attach 先解绑旧 disposer。
     this.intentBridgeDisposer?.()
@@ -1221,10 +1323,16 @@ export class TuiApp {
       this.switchSessionGuarded(SessionId(mainSessionId))
     })
     // 目标 6：'auto' 才走系统终端配色探测（OSC 11 → dark/light）；显式主题直接生效。
+    // 探测期间挂起按键流：探测响应走同一 stdin，若同挂会让响应字节泄漏进输入行。
     if (this.themeName === 'auto') {
-      const background = await detectTerminalBackground()
-      /* v8 ignore next -- autoThemeFor 恒返回有效主题名，setTheme 恒 true，graphite 兜底不可达 */
-      if (!setTheme(autoThemeFor(background))) setTheme('graphite')
+      this.input.suspend()
+      try {
+        const background = await detectTerminalBackground()
+        /* v8 ignore next -- autoThemeFor 恒返回有效主题名，setTheme 恒 true，graphite 兜底不可达 */
+        if (!setTheme(autoThemeFor(background))) setTheme('graphite')
+      } finally {
+        this.input.resume()
+      }
     } else {
       setTheme(this.themeName)
     }
@@ -1252,25 +1360,16 @@ export class TuiApp {
     }
     if (target !== undefined) await this.switchSession(target)
     else await this.newSession()
+    if (this.isDisposed()) return
+    this.welcomeScrollbackBarrier = true
 
-    // Phase 9b + 1.1：会话恢复面板——启动时把可恢复会话编号列表写进
-    // scrollback（当前会话除外；无其他可恢复会话时静默），数字键直达。
-    // live 标注取 live store（listSessions 的 header 无 live 字段，
-    // 经 ctx.sessions.list() 的 id 集合判定）。
-    await this.renderRestorableSessions()
+    // 欢迎准备只提交 top bar；restore/tip 与环境字段冻结进 controller，
+    // 最终欢迎统一由 settleWelcome 一次性落 scrollback。
+    await this.prepareWelcome()
+    if (this.isDisposed()) return
     // git 未提交计数快照（footer ●N 数据源）：attach 一次 + 每 turn/end 刷新。
     this.gitDirty = gitDirtyCount()
 
-    this.resize.onResize(() => {
-      this.live.setMaxRows(liveMaxRowsFor(this.stdout.rows))
-      // overlay 激活时主屏 live 不写；resize 只重绘 alt screen 面板。
-      if (this.overlay !== null && this.overlay.activeId() !== null) {
-        this.overlay.rerender()
-        return
-      }
-      this.flushLiveRender()
-    })
-    this.input.onAnyKey((key) => { this.handleKey(key) })
     // Phase 8：审批 answerer——waterfall 必须 next() 委托（非当前会话的
     // 请求交给链上其他 answerer；当前会话的请求挂起等用户 y/N。重复
     // attach 先解绑旧 disposer（与 interactionDisposer 对称）。
@@ -1347,14 +1446,50 @@ export class TuiApp {
         ask: request => this.handleQuestionRequest(request),
       })
     }
-    this.flushLiveRender()
+    const pendingWelcome = this.finishWelcomePreparation()
+    if (this.welcomeIntro?.active === true && !this.canAnimateWelcome()) {
+      this.settleWelcome('skipped')
+    }
     // A3：纯位置参数作为初始 prompt（`oh-my-tianshu tui "修复这个 bug"`）。
     if (initialPrompt !== '') {
       this.handleSubmit(initialPrompt)
-    } else {
-      // 首启引导：欢迎渲染与会话就绪之后，缺 key 自动打开一次设置对话框；
-      // 携带初始 prompt 的启动不打扰（用户已在提交任务）。
+    }
+    await this.replayPendingWelcomeActions(pendingWelcome.actions)
+    if (this.isDisposed()) return
+    if (initialPrompt === '' && !pendingWelcome.hadInput && this.welcomeIntro?.active === true) {
+      // 静态 welcome 已结算后再开自动 key overlay。
+      this.autoKeyDialogPending = true
+    } else if (initialPrompt === '' && !pendingWelcome.hadInput) {
+      // skipped/static 保持既有立即弹窗；携带 initial prompt 的启动不打扰。
       this.maybeAutoOpenKeyDialog()
+    }
+  }
+
+  /** 建立 controller 后原子结束准备期：先 settle，再按 append-only 顺序补写后台条目。 */
+  private finishWelcomePreparation(): {
+    actions: Array<() => void | Promise<void>>
+    hadInput: boolean
+  } {
+    const reason = this.pendingWelcomeSettleReason
+    const actions = this.pendingWelcomeActions
+    const hadInput = this.pendingWelcomeHadInput
+    this.pendingWelcomeSettleReason = null
+    this.pendingWelcomeActions = []
+    this.pendingWelcomeHadInput = false
+    this.welcomePreparing = false
+    this.welcomeScrollbackBarrier = false
+    if (reason !== null) this.settleWelcome(reason)
+    return { actions, hadInput }
+  }
+
+  /** 准备期动作在 canonical welcome 排序稳定后按跨来源到达顺序重放。 */
+  private async replayPendingWelcomeActions(
+    actions: Array<() => void | Promise<void>>,
+  ): Promise<void> {
+    for (const action of actions) {
+      if (this.isDisposed()) return
+      const pending = action()
+      if (pending !== undefined) await pending
     }
   }
 
@@ -1370,6 +1505,7 @@ export class TuiApp {
    * @param text - 终端传来的粘贴文本
    */
   private async handlePaste(text: string): Promise<void> {
+    this.settleWelcome('input')
     // /key 对话框激活：bracketed paste 整段进 Key 字段（对话框剥空白），
     // 不碰剪贴板读图/图片路径识别。
     if (this.overlay?.activeId() === 'key-dialog' && this.keyDialog !== null) {
@@ -1597,6 +1733,60 @@ export class TuiApp {
     })
   }
 
+  /**
+   * Resolve the effort users will actually send, preserving an explicit route
+   * override before consulting adapter metadata. Catalog failures leave the
+   * welcome label at its existing automatic fallback.
+   */
+  private async resolveWelcomeReasoningEffort(
+    selection: { provider: string; model: string; reasoningEffort?: string },
+  ): Promise<ReasoningEffortId | string | undefined> {
+    if (selection.reasoningEffort !== undefined) return selection.reasoningEffort
+    const llm = this.ctx.get('llm')
+    if (llm === undefined) return undefined
+    const lifetimeSignal = this.lifetimeAbort.signal
+    if (lifetimeSignal.aborted) return undefined
+
+    const lookupAbort = new AbortController()
+    const abortForLifetime = (): void => { lookupAbort.abort(lifetimeSignal.reason) }
+    lifetimeSignal.addEventListener('abort', abortForLifetime, { once: true })
+    const timer = setTimeout(() => {
+      lookupAbort.abort(new Error('welcome model metadata lookup exceeded its UX boundary'))
+    }, WELCOME_MODEL_METADATA_TIMEOUT_MS)
+    timer.unref()
+
+    let removeAbortRaceListener = (): void => {}
+    try {
+      const aborted = new Promise<undefined>((resolve) => {
+        const onAbort = (): void => { resolve(undefined) }
+        lookupAbort.signal.addEventListener('abort', onAbort, { once: true })
+        removeAbortRaceListener = () => {
+          lookupAbort.signal.removeEventListener('abort', onAbort)
+        }
+      })
+      const resolved = Promise.resolve()
+        .then(() => llm.resolveModelInfo(
+          selection.provider,
+          selection.model,
+          lookupAbort.signal,
+        ))
+        .then(
+          info => info.reasoning?.defaultEffort,
+          () => undefined,
+        )
+      return await Promise.race([resolved, aborted])
+    } finally {
+      clearTimeout(timer)
+      removeAbortRaceListener()
+      lifetimeSignal.removeEventListener('abort', abortForLifetime)
+    }
+  }
+
+  /** Reads lifecycle state across async boundaries without assuming no concurrent dispose. */
+  private isDisposed(): boolean {
+    return this.disposed
+  }
+
   /** 当前会话工作区：header.cwd 优先，缺省回退启动目录。 */
   private sessionCwd(): string {
     if (this.activeSessionId === null) return process.cwd()
@@ -1748,48 +1938,29 @@ export class TuiApp {
   }
 
   /**
-   * Phase 9b + 1.1：把可恢复会话编号列表写进 scrollback（启动时）。
-   * 排除当前活跃会话；无其他可恢复会话时静默（不占位）。列表行带 `[N]`
-   * 编号，欢迎阶段（welcomeDigitsActive）按数字键直达对应会话。
-   * live 标注取 live store（listSessions 的 header 无 live 字段，
-   * 经 ctx.sessions.list() 的 id 集合判定）。
+   * Prepares one immutable welcome snapshot and commits only the top bar.
+   *
+   * Restore projection, selected tip, route metadata, cwd, and version are
+   * queried once here. The final welcome remains pending until
+   * {@link settleWelcome} wins the lifecycle.
    */
-  private async renderRestorableSessions(): Promise<void> {
+  private async prepareWelcome(): Promise<void> {
     await this.refreshApiKeyReady()
-    const cols = this.stdout.columns
-    const gutter = cols >= CHROME_GUTTER * 2 + 8 ? CHROME_GUTTER : 0
-    const commitLine = (text: string): void => {
-      // 不加 trailingNewline：CommitEngine 会把 true 理解成「再垫一个空行」，
-      // 欢迎每行变成双倍高度，40 行屏上 tips 会被顶出视口。
-      this.commitToScrollback({ text })
-    }
-    // C4 概念稿 A：顶部栏（format/top-bar.ts 纯渲染）——cwd + 模型 + git 分支，
-    // 最顶一行（对齐 grok top_bar）；分支经 gitBranch() 一次读取（静默）。
-    const current = this.ctx.agentDefaultModel.currentSelection()
-    const branch = gitBranch()
-    for (const line of formatTopBar({
-      width: cols - gutter,
-      cwd: this.sessionCwd(),
-      modelName: `${current.provider}/${current.model}`,
-      // exactOptionalPropertyTypes：branch 不可显式传 undefined，条件展开
-      ...(branch === undefined ? {} : { branch }),
-    }, this.theme)) {
-      commitLine(gutter > 0 ? `${' '.repeat(gutter)}${line}` : line)
+    if (this.isDisposed()) return
+    const current = this.modelRef?.current ?? this.ctx.agentDefaultModel.currentSelection()
+    const reasoningEffort = await this.resolveWelcomeReasoningEffort(current)
+    if (this.isDisposed()) return
+    const cwd = this.sessionCwd()
+    const topBarLines = this.formatWelcomeTopBar(current, cwd)
+    if (topBarLines.length > 0) {
+      this.live.clearForCommit()
+      this.commit.writeBatch(topBarLines.map(text => ({ text })))
     }
 
     const active = this.activeSessionId
     const summaries = await listSessions(this.ctx)
+    if (this.isDisposed()) return
     const others = summaries.filter(s => s.id !== active)
-
-    // 环境检查结果：唯一来源（首启与有会话统一一行，不重复渲染）。
-    const env: WelcomeEnvCheck = {
-      hasApiKey: this.apiKeyReady,
-      isGitRepo: isGitRepo(),
-      themeName: getActiveThemeName(),
-      cols,
-    }
-    // 最近可恢复会话摘要（并入 tips「恢复」项，不单独占屏）。
-    const recent = others[0]
     const resumeAvailable = others.length > 0
 
     // 1.1：可恢复会话编号列表（数字键直达）。标题经 loadHistory + sessionTitleFor
@@ -1802,56 +1973,108 @@ export class TuiApp {
       const events = await loadHistory(this.ctx, s.id).catch(() => [])
       return { ...s, title: sessionTitleFor(events) }
     }))
+    if (this.isDisposed()) return
     this.welcomeSessionRows = restoreRowsWithTitles
     this.welcomeDigitsActive = restoreRowsWithTitles.length > 0
 
-    // 品牌鲸鱼像素画（omp 风格对角渐变——truecolor 轨；窄屏/矮屏/低色深/
-    // legacy conhost 时降级为纯文字品牌区）。卡盒内容宽 = cols - 4。
-    const whale = formatWhaleLogo({ width: Math.max(0, cols - 4), rows: this.stdout.rows, bodyGradient: true })
-
-    // 顶栏与欢迎之间留 1 行。live overlay 不再填剩余视口。
-    commitLine('')
-
-    // 2.5：首屏列表可见时 tip 只留快捷键语义（不重复引导），列表隐藏时带摘要。
     const listVisible = this.welcomeSessionRows.length > 0
-    const resumeLabel = recent === undefined
-      ? '恢复会话'
-      : listVisible ? '恢复最近' : `恢复 · ${formatSessionAge(recent.createdAt, Date.now())}`
-    const tips: WelcomeTipItem[] = [
-      { keyHint: 'ctrl+n', label: '新会话' },
-      { keyHint: 'ctrl+s', label: resumeLabel, available: resumeAvailable },
-      { keyHint: 'ctrl+p', label: '命令面板' },
-      { keyHint: '/', label: 'slash 命令' },
-      { keyHint: 'ctrl+o', label: '展开推理' },
-      { keyHint: 'shift+tab', label: '模式循环' },
-    ]
+    const restoreLines = formatRestorablePickerList(this.welcomeSessionRows, {
+      now: Date.now(),
+      maxRows: WELCOME_RESTORE_MAX_ROWS,
+    })
     const distVersion = readDistributionVersion()
-    const heroLines = formatWelcomeHero({
-      width: Math.max(0, cols - 4),
-      whale,
-      env,
-      tips,
+    const tip = pickWelcomeTip(undefined, {
+      resumeVisible: resumeAvailable && !listVisible,
+    })
+    this.welcomeIntro = new WelcomeIntroController({
+      modelId: current.model,
+      ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
+      cwd,
       ...(distVersion === undefined ? {} : { version: distVersion }),
+      restoreLines,
+      tip,
+    }, performance.now())
+  }
+
+  /** Formats the startup top bar against the terminal's current dimensions. */
+  private formatWelcomeTopBar(
+    current = this.modelRef?.current ?? this.ctx.agentDefaultModel.currentSelection(),
+    cwd = this.sessionCwd(),
+  ): string[] {
+    const cols = this.stdout.columns
+    const gutter = cols >= CHROME_GUTTER * 2 + 8 ? CHROME_GUTTER : 0
+    const branch = gitBranch()
+    const topBarLines = formatTopBar({
+      width: cols - gutter,
+      cwd,
+      modelName: `${current.provider}/${current.model}`,
+      ...(branch === undefined ? {} : { branch }),
+    }, this.theme).map(line => gutter > 0 ? `${' '.repeat(gutter)}${line}` : line)
+    return topBarLines
+  }
+
+  /** Maps the attached output's color depth to the fox renderer's 0–3 levels. */
+  private welcomeColorLevel(): number {
+    if (!this.stdout.isTTY) return 0
+    const getColorDepth = (this.stdout as WriteStream & {
+      getColorDepth?: () => number
+    }).getColorDepth
+    if (typeof getColorDepth !== 'function') return 0
+    const depth = getColorDepth.call(this.stdout)
+    if (depth >= 24) return 3
+    if (depth >= 8) return 2
+    if (depth >= 4) return 1
+    return 0
+  }
+
+  /** Whether this attach can play a live opening. Always false; `auto` and `off` share one static path. */
+  private canAnimateWelcome(): boolean {
+    return false
+  }
+
+  /**
+   * Sole final welcome commit point.
+   *
+   * The controller transition wins before terminal writes. Final composition
+   * always uses current dimensions/theme and the generated canonical frame,
+   * never the last preview frame.
+   *
+   * @param reason - Lifecycle event that requested final settlement.
+   * @returns True only when this call performed the final commit.
+   */
+  private settleWelcome(reason: WelcomeIntroSettleReason): boolean {
+    const intro = this.welcomeIntro
+    if (intro === null || !intro.settle(reason)) return false
+    const openDelayedKeyDialog = this.autoKeyDialogPending && reason !== 'input'
+    this.autoKeyDialogPending = false
+
+    this.live.clearForCommit()
+    const artWidth = resolveWelcomeArtWidth(this.stdout.columns, this.stdout.rows)
+    const artLines = artWidth === 56 || artWidth === 72
+      ? formatFoxFrame({
+        colorLevel: this.welcomeColorLevel(),
+        width: artWidth,
+      })
+      : []
+    const snapshot = intro.snapshot
+    const finalLines = formatWelcome({
+      width: this.stdout.columns,
+      rows: this.stdout.rows,
+      art: { lines: artLines, width: artWidth ?? 0 },
+      modelId: snapshot.modelId,
+      ...(snapshot.reasoningEffort === undefined
+        ? {}
+        : { reasoningEffort: snapshot.reasoningEffort }),
+      cwd: snapshot.cwd,
+      ...(snapshot.version === undefined ? {} : { version: snapshot.version }),
+      restoreLines: snapshot.restoreLines,
+      tip: snapshot.tip,
     }, this.theme)
-    // omp 风格欢迎卡：圆角盒 + 顶边嵌品牌；盒下斜体随机 Tip。
-    for (const line of formatWelcomeCard({ width: cols, lines: heroLines }, this.theme)) {
-      commitLine(line)
-    }
-    // 1.1：可恢复会话编号列表（卡与随机 Tip 之间；仅存在其他会话时出现）。
-    if (this.welcomeSessionRows.length > 0) {
-      commitLine(color('恢复会话', this.theme.brandColor, { bold: true }))
-      for (const line of formatRestorablePickerList(this.welcomeSessionRows, {
-        now: Date.now(),
-        maxRows: WELCOME_RESTORE_MAX_ROWS,
-      })) {
-        commitLine(line)
-      }
-      commitLine(color('[1-9] 恢复 · ctrl+n 新会话', this.theme.muted))
-    }
-    // 2.5：随机贴士池按需含恢复条目（有可恢复会话且首屏列表未展示时）。
-    commitLine(color(pickWelcomeTip(undefined, { resumeVisible: resumeAvailable && !listVisible }), this.theme.muted, { italic: true }))
-    // 空行收尾：命令回显（如「模型已切换」）与欢迎页在视觉上自然分离。
-    commitLine('')
+    this.commit.writeBatch(finalLines.map(text => ({ text })))
+    this.flushLiveRender()
+
+    if (openDelayedKeyDialog && !this.disposed) this.maybeAutoOpenKeyDialog()
+    return true
   }
 
   /**
@@ -2101,6 +2324,7 @@ export class TuiApp {
    * 直开。凭据服务经 reflect.get 现取（缺席时对话框给降级指引）。
    */
   private async openKeyDialog(): Promise<void> {
+    if (this.isDisposed()) return
     const overlay = this.overlay
     const dialog = this.keyDialog
     const picker = this.picker
@@ -2120,8 +2344,10 @@ export class TuiApp {
     for (const entry of directory) {
       const ref = resolveKeyRef(entry.provider, this.profileApiKeyEnv(sections, entry))
       if (credentials === undefined) break
-      configured.set(entry.provider, await credentials.describe(ref)
-        .then(info => info.configured, () => false))
+      const isConfigured = await credentials.describe(ref)
+        .then(info => info.configured, () => false)
+      if (this.isDisposed()) return
+      configured.set(entry.provider, isConfigured)
     }
     const defaultProvider = this.defaultModelProvider()
     picker.open('选择供应商（配置 API 密钥）', buildProviderItems(directory, configured, defaultProvider), (item) => {
@@ -2146,6 +2372,7 @@ export class TuiApp {
     entry: WizardProviderEntry | undefined,
     credentials: KeyDialogCredentials | undefined,
   ): Promise<void> {
+    if (this.isDisposed()) return
     const overlay = this.overlay
     const dialog = this.keyDialog
     if (overlay === null || dialog === null) return
@@ -2166,8 +2393,7 @@ export class TuiApp {
           : {},
       }
     await dialog.open(credentials, target)
-    /* v8 ignore next 1 -- open 的 describe 窗口内 dispose 的竞态无法在同步测试中构造 */
-    if (this.disposed) return
+    if (this.isDisposed()) return
     overlay.activate('key-dialog')
   }
 
@@ -2279,11 +2505,11 @@ export class TuiApp {
   /**
    * 首启引导：交互终端（TTY）缺 API key 时自动打开一次设置对话框（Esc 可跳过）。
    * 挂载点在欢迎渲染/会话就绪之后（attach 尾；apiKeyReady 已由
-   * renderRestorableSessions 刷新）；keyPromptShown 做 run 级守护，
+   * prepareWelcome 刷新）；keyPromptShown 做 run 级守护，
    * restore/重进等后续流程不再重复弹；非 TTY（测试/管道）不弹交互对话框。
    */
   private maybeAutoOpenKeyDialog(): void {
-    if (this.keyPromptShown || this.apiKeyReady) return
+    if (this.disposed || this.keyPromptShown || this.apiKeyReady) return
     if (!this.stdin.isTTY) return
     this.keyPromptShown = true
     void this.openKeyDialog()
@@ -2621,6 +2847,9 @@ export class TuiApp {
     // 整体降级：任务窗格/status 面板在切换时回显警告（fails loud），plan 徽标不显示。
     this.taskPanelVisible = false
     this.statusPanelVisible = false
+    this.todosPanelVisible = false
+    this.todosExpanded = false
+    this.todosRetained = null
     this.taskItems = null
     this.planState = { active: false, pending: false }
     this.projectionCache = null
@@ -2628,7 +2857,10 @@ export class TuiApp {
     if (projections !== undefined) {
       const snap = projections.snapshot(session)
       this.projectionCache = { ...snap.values }
-      this.taskItems = snap.values.todos as TaskItem[] | null | undefined ?? null
+      const snapTodos = snap.values.todos as TaskItem[] | null | undefined
+      this.taskItems = snapTodos ?? null
+      // 保留快照同源初始化（重放/重挂载时已写入的清单直接可见）。
+      this.todosRetained = snapTodos ?? null
       const plan = snap.values.plan as PlanProjectionWire | undefined
       this.planState = { active: plan?.active ?? false, pending: plan?.pending ?? false }
       const statusLine = this.statusLine as WorkflowStatusLine | null
@@ -2656,7 +2888,11 @@ export class TuiApp {
           this.projectionCache[key as ProjectionKey] = value
         }
         if (key === 'todos') {
-          this.taskItems = value as TaskItem[] | null
+          const todos = value as TaskItem[] | null
+          this.taskItems = todos
+          // 保留快照只吸收非空值：turn/start 把投影清成 null 时面板不回退
+          // （黏滞语义见 todosRetained 字段注释）。
+          if (todos !== null) this.todosRetained = todos
           this.renderBatcher.schedule()
         } else if (key === 'plan') {
           const plan = value as PlanProjectionWire | null
@@ -3243,12 +3479,16 @@ export class TuiApp {
   private get theme(): RivetTheme { return getTheme() }
 
   /**
-   * 统一 scrollback 写入：先清除 live 区（mid-stream commit 协议），再写条目。
-   * 不擦则文本写在光标处（live 区底部），随后 renderLive 重绘 live 区把刚写的
-   * 内容覆盖——用户消息丢失根因（assistant 流式 commit 已带 clearForCommit，
-   * 非流式路径缺失导致行为不对称）。
+   * 统一 scrollback 写入：先结算 canonical welcome，再按 overlay 所有权延迟
+   * 或执行 mid-stream commit，保证所有后续条目保持 append-only 顺序。
    */
   private commitToScrollback(entry: { text: string; trailingNewline?: boolean }): void {
+    if (this.welcomePreparing && this.welcomeScrollbackBarrier) {
+      this.pendingWelcomeSettleReason ??= 'commit'
+      this.pendingWelcomeActions.push(() => { this.commitToScrollback(entry) })
+      return
+    }
+    this.settleWelcome('commit')
     if (this.overlay !== null && this.overlay.activeId() !== null) {
       this.deferredScrollback.push(entry)
       return
@@ -3257,7 +3497,7 @@ export class TuiApp {
     this.commit.write(entry)
   }
 
-  /** overlay 退出后把暂存条目按 mid-stream 协议写入主屏 scrollback。 */
+  /** Flushes entries that already crossed the welcome-settlement gate before deferral. */
   private flushDeferredScrollback(): void {
     const pending = this.deferredScrollback
     if (pending.length === 0) return
@@ -3286,6 +3526,7 @@ export class TuiApp {
    * @param images - 输入框携带的图片附件 data URL 列表（可省略）
    */
   handleSubmit(text: string, images?: string[]): void {
+    this.settleWelcome('input')
     // 1.1：提交输入即结束欢迎阶段（数字键回归输入行语义由 handleKey 收尾兜底）。
     this.welcomeDigitsActive = false
     // 入口先规范化图片数组：只保留合法 data URL，上限 MAX_IMAGES。
@@ -3797,6 +4038,7 @@ export class TuiApp {
 
   /** 键路由：Enter 提交 / Ctrl-C 取消或退出 / 上下键历史 / 其余交给 InputLine。 */
   private handleKey(key: KeyPress): void {
+    this.settleWelcome('input')
     // 任何非 Ctrl+C 键都终止连按退出窗口（提示行随窗口一起复位）。
     if (key.name !== 'ctrl_c' && this.inputController.ctrlCPendingSince !== 0) {
       this.inputController.ctrlCPendingSince = 0
@@ -4576,15 +4818,15 @@ export class TuiApp {
     // alternate screen buffer——跳过主屏 live 写屏，避免流式帧逐帧盖住面板；
     // overlay 退出后 120ms ticker 下一帧自然重绘，内部状态由事件驱动照常更新。
     if (this.overlay !== null && this.overlay.activeId() !== null) return
+    const renderStart = performance.now()
     this.input.setEscapeImmediate(
       this.question.isPending || this.approval.isPending || this.isAgentBusy(),
     )
-    const renderStart = performance.now()
     const theme = this.theme
     const termCols = this.stdout.columns
     const gutter = termCols >= CHROME_GUTTER * 2 + 8 ? CHROME_GUTTER : 0
     const cols = Math.max(1, termCols - gutter * 2)
-    const tightViewport = this.stdout.rows < WHALE_MIN_ROWS
+    const tightViewport = this.stdout.rows < LIVE_COMPACT_MIN_ROWS
     const compactLive = this.compactMode || tightViewport
     const lines: LiveRegionLine[] = []
 
@@ -4632,6 +4874,10 @@ export class TuiApp {
       goal: (this.projectionCache?.goal as GoalProjectionInput | undefined) ?? null,
       todos: (this.projectionCache?.todos as TaskItem[] | null | undefined) ?? null,
       plan: (this.projectionCache?.plan as PlanProjectionInput | undefined) ?? null,
+      // todos 紧凑面板（/todos）：保留快照 + 显隐/明细状态。
+      todosPanelVisible: this.todosPanelVisible,
+      todosExpanded: this.todosExpanded,
+      todosItems: this.todosRetained,
       // 投影层：会话级汇总段（本地 fold，宿主投影总线缺失时仍有数据）。
       sessionTotals: {
         turns: this.sessionSummary.totalTurns,
@@ -4660,6 +4906,10 @@ export class TuiApp {
     // 双栏同屏（两行不同来源的 tab）且 label 数据源曾是空壳病灶。
     // glance 段：状态行 + 错误行（metrics 已并入输入轨下方 footer，避免双份）。
     for (const line of renderGlancePanel(snapshot)) lines.push({ text: line })
+    // todos 紧凑待办面板（/todos；保留快照跨 turn/start 黏滞，显隐门控在
+    // renderTodosPanel 内）——放在 glance 之后、任务窗格之前：摘要卡是
+    // 「一眼当前进度」的最高频消费面。
+    for (const line of renderTodosPanel(snapshot)) lines.push({ text: line })
     // T4 + T2.3：任务窗格 + 后台任务区（/tasks 面板内；taskPanelVisible 门控
     // 在 renderTasksPanel 内，窗格行在前、后台任务区行在后）。
     for (const line of renderTasksPanel(snapshot)) lines.push({ text: line })
@@ -5049,6 +5299,7 @@ export class TuiApp {
     this.contextWindow = null
     this.projectionCache = null
     this.taskItems = null
+    this.todosRetained = null
     this.planState = { active: false, pending: false }
     this.modelSelectionDisposer?.()
     this.modelSelectionDisposer = null
@@ -5065,6 +5316,8 @@ export class TuiApp {
     if (this.question.isPending) this.question.cancel()
     this.taskPanelVisible = false
     this.statusPanelVisible = false
+    this.todosPanelVisible = false
+    this.todosExpanded = false
     // 切会话/退出共用：旧会话的流式残文不得带进下一段输出
     this.blockWriter.discard()
     this.streamRenderer.reset()
@@ -5090,7 +5343,15 @@ export class TuiApp {
    * @returns 全部 flush 完成后 resolve。
    */
   async dispose(): Promise<void> {
+    this.lifetimeAbort.abort()
     if (this.disposed) return
+    this.welcomeIntro?.cancel()
+    this.autoKeyDialogPending = false
+    this.welcomePreparing = false
+    this.welcomeScrollbackBarrier = false
+    this.pendingWelcomeSettleReason = null
+    this.pendingWelcomeActions = []
+    this.pendingWelcomeHadInput = false
     this.disposed = true
     if (this.ctrlCExitHintTimer !== null) { clearTimeout(this.ctrlCExitHintTimer); this.ctrlCExitHintTimer = null }
     if (this.ticker !== null) { clearInterval(this.ticker); this.ticker = null }

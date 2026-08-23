@@ -4,13 +4,24 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { PassThrough } from 'node:stream'
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type MockInstance,
+  vi,
+} from 'vitest'
 import type { Context } from '@huiliyi37/cordis'
 import type { WriteStream } from 'node:tty'
+import { Terminal } from '@xterm/headless'
 import { ReasoningEffortId } from '@huiliyi37/dsh-llm'
 import { SessionId, type SessionEvent } from '@huiliyi37/dsh-session'
 import type { Agent, AgentHandle } from '@huiliyi37/dsh-agent'
 import { TuiApp, parseSlashCommand } from '../src/ui/app.js'
+import { CommitEngine } from '../src/engine/commit-engine.js'
 import { LiveEngine } from '../src/engine/live-engine.js'
 import { getActiveThemeName, setTheme } from '../src/theme.js'
 import { readImageFromClipboard, readTextFromClipboard } from '../src/engine/clipboard-image.js'
@@ -1964,6 +1975,18 @@ describe('TuiApp Phase 9b + 1.1 欢迎页会话恢复入口', () => {
   it('存在其他可恢复会话 → 编号列表可见（标题 · 年龄 · cwd 摘要）', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('restore-1')
+    ctx.agentDefaultModel.currentSelection.mockReturnValue({
+      provider: 'default-provider',
+      model: 'default-model',
+      reasoningEffort: 'low',
+    })
+    agent.session.requestHeader.mockReturnValue({
+      config: {
+        provider: 'restored-provider',
+        model: 'restored-model',
+        reasoningEffort: 'high',
+      },
+    })
     const handle = makeHandle(agent)
     ctx.agents.create.mockResolvedValue(handle)
     ctx.sessions.get.mockReturnValue(agent.session)
@@ -1988,8 +2011,13 @@ describe('TuiApp Phase 9b + 1.1 欢迎页会话恢复入口', () => {
     await app.attach()
 
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    // 2.5：首屏列表可见 → tip 只留快捷键语义（「恢复最近」，摘要进列表行）。
-    expect(written).toContain('恢复最近')
+    expect(written).toContain('DeepSeek')
+    expect(written).toContain('Tianshu Harness')
+    expect(written).toContain('restored-provider/restored-model')
+    expect(written).toContain('Model restored-model · Effort high')
+    expect(written).not.toContain('default-provider/default-model')
+    expect(written).not.toContain('Model default-model · Effort low')
+    expect(written).not.toContain('Tips')
     // 1.1：编号列表（[N] + 标题「新对话」占位 + 8 位短 id；裸 UUID 不出现）。
     expect(written).toContain('[1]')
     expect(written).toContain('新对话')
@@ -1999,7 +2027,7 @@ describe('TuiApp Phase 9b + 1.1 欢迎页会话恢复入口', () => {
     await app.dispose()
   })
 
-  it('无可恢复会话 → 不渲染编号列表（恢复入口仅 tips 降级行）', async () => {
+  it('无可恢复会话 → 不渲染恢复区', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('restore-2')
     const handle = makeHandle(agent)
@@ -2012,7 +2040,7 @@ describe('TuiApp Phase 9b + 1.1 欢迎页会话恢复入口', () => {
     await app.attach()
 
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('恢复会话')
+    expect(written).not.toContain('恢复会话')
     expect(written).not.toContain('小时前') // 无摘要
     expect(written).not.toContain('[1]') // 无编号列表
     expect(written).not.toContain('[1-9] 恢复')
@@ -2084,6 +2112,1030 @@ describe('TuiApp Phase 9b + 1.1 欢迎页会话恢复入口', () => {
   })
 })
 
+describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
+  const previousAmbiguousWidth = process.env.RIVET_AMBIGUOUS_WIDTH
+
+  type WelcomeStdout = ReturnType<typeof makeStdout> & {
+    emitResize(): void
+  }
+
+  beforeEach(() => {
+    process.env.RIVET_AMBIGUOUS_WIDTH = 'narrow'
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    if (previousAmbiguousWidth === undefined) delete process.env.RIVET_AMBIGUOUS_WIDTH
+    else process.env.RIVET_AMBIGUOUS_WIDTH = previousAmbiguousWidth
+  })
+
+  function makeColorTtyStdout(): WelcomeStdout {
+    const events = new EventEmitter()
+    const stdout = Object.assign(makeStdout(), {
+      emitResize: () => { events.emit('resize') },
+    })
+    Object.assign(stdout, {
+      isTTY: true,
+      getColorDepth: vi.fn(() => 24),
+      on: (...args: Parameters<EventEmitter['on']>) => {
+        events.on(...args)
+        return stdout
+      },
+      removeListener: (...args: Parameters<EventEmitter['removeListener']>) => {
+        events.removeListener(...args)
+        return stdout
+      },
+      listenerCount: (...args: Parameters<EventEmitter['listenerCount']>) => (
+        events.listenerCount(...args)
+      ),
+    })
+    return stdout
+  }
+
+  interface NormalBufferCellSnapshot {
+    chars: string
+    width: number
+    fg: { mode: number; color: number }
+    bg: { mode: number; color: number }
+    style: {
+      bold: number
+      italic: number
+      dim: number
+      underline: number
+      blink: number
+      inverse: number
+      invisible: number
+      strikethrough: number
+      overline: number
+    }
+  }
+
+  interface NormalBufferSnapshot {
+    type: 'normal'
+    cols: number
+    rows: number
+    modes: TerminalModesSnapshot
+    length: number
+    baseY: number
+    viewportY: number
+    cursorX: number
+    cursorY: number
+    lines: BufferLineSnapshot[]
+  }
+
+  interface BufferLineSnapshot {
+    isWrapped: boolean
+    text: string
+    cells: NormalBufferCellSnapshot[]
+  }
+
+  interface ViewportBufferSnapshot {
+    type: 'normal'
+    cols: number
+    rows: number
+    modes: TerminalModesSnapshot
+    cursorX: number
+    cursorY: number
+    lines: BufferLineSnapshot[]
+  }
+
+  interface TerminalModesSnapshot {
+    applicationCursorKeysMode: boolean
+    applicationKeypadMode: boolean
+    bracketedPasteMode: boolean
+    insertMode: boolean
+    mouseTrackingMode: 'none' | 'x10' | 'vt200' | 'drag' | 'any'
+    originMode: boolean
+    reverseWraparoundMode: boolean
+    sendFocusMode: boolean
+    synchronizedOutputMode: boolean
+    wraparoundMode: boolean
+  }
+
+  interface HeadlessTerminalHarness {
+    stdout: WelcomeStdout
+    drain(): Promise<void>
+    pendingWrites(): number
+    resize(columns: number, rows: number): void
+    visibleTextLines(): string[]
+    normalBufferSnapshot(): NormalBufferSnapshot
+    normalScrollbackPrefixSnapshot(): BufferLineSnapshot[]
+    normalViewportSnapshot(): ViewportBufferSnapshot
+    dispose(): void
+  }
+
+  /**
+   * Truecolor TTY whose writes are interpreted by xterm's production parser.
+   * drain() waits until every queued ANSI write has reached the terminal buffer.
+   */
+  function makeHeadlessTerminal(
+    columns = 100,
+    rows = 30,
+  ): HeadlessTerminalHarness {
+    const terminal = new Terminal({
+      allowProposedApi: true,
+      cols: columns,
+      convertEol: true,
+      rows,
+      scrollback: 1_000,
+    })
+    let pendingWrites = 0
+    const drainWaiters: Array<() => void> = []
+    const write = vi.fn((chunk: string | Uint8Array): boolean => {
+      pendingWrites++
+      terminal.write(chunk, () => {
+        pendingWrites--
+        if (pendingWrites !== 0) return
+        for (const resolve of drainWaiters.splice(0)) resolve()
+      })
+      return true
+    })
+    const stdout = makeColorTtyStdout()
+    stdout.columns = columns
+    stdout.rows = rows
+    stdout.write = write
+    const snapshotNormalLine = (y: number): BufferLineSnapshot => {
+      const line = terminal.buffer.normal.getLine(y)
+      if (line === undefined) throw new Error(`xterm normal buffer line ${y} is missing`)
+      return {
+        isWrapped: line.isWrapped,
+        text: line.translateToString(false),
+        cells: Array.from({ length: line.length }, (_, x) => {
+          const cell = line.getCell(x)
+          if (cell === undefined) {
+            throw new Error(`xterm normal buffer cell ${x},${y} is missing`)
+          }
+          return {
+            chars: cell.getChars(),
+            width: cell.getWidth(),
+            fg: {
+              mode: cell.getFgColorMode(),
+              color: cell.getFgColor(),
+            },
+            bg: {
+              mode: cell.getBgColorMode(),
+              color: cell.getBgColor(),
+            },
+            style: {
+              bold: cell.isBold(),
+              italic: cell.isItalic(),
+              dim: cell.isDim(),
+              underline: cell.isUnderline(),
+              blink: cell.isBlink(),
+              inverse: cell.isInverse(),
+              invisible: cell.isInvisible(),
+              strikethrough: cell.isStrikethrough(),
+              overline: cell.isOverline(),
+            },
+          }
+        }),
+      }
+    }
+    const snapshotModes = (): TerminalModesSnapshot => ({
+      applicationCursorKeysMode: terminal.modes.applicationCursorKeysMode,
+      applicationKeypadMode: terminal.modes.applicationKeypadMode,
+      bracketedPasteMode: terminal.modes.bracketedPasteMode,
+      insertMode: terminal.modes.insertMode,
+      mouseTrackingMode: terminal.modes.mouseTrackingMode,
+      originMode: terminal.modes.originMode,
+      reverseWraparoundMode: terminal.modes.reverseWraparoundMode,
+      sendFocusMode: terminal.modes.sendFocusMode,
+      synchronizedOutputMode: terminal.modes.synchronizedOutputMode,
+      wraparoundMode: terminal.modes.wraparoundMode,
+    })
+
+    return {
+      stdout,
+      drain: async () => {
+        if (pendingWrites > 0) {
+          await new Promise<void>(resolve => drainWaiters.push(resolve))
+        }
+        await Promise.resolve()
+      },
+      pendingWrites: () => pendingWrites,
+      resize: (nextColumns, nextRows) => {
+        stdout.columns = nextColumns
+        stdout.rows = nextRows
+        terminal.resize(nextColumns, nextRows)
+        stdout.emitResize()
+      },
+      visibleTextLines: () => {
+        const buffer = terminal.buffer.active
+        return Array.from({ length: terminal.rows }, (_, offset) => (
+          buffer.getLine(buffer.viewportY + offset)?.translateToString(true) ?? ''
+        ))
+      },
+      normalBufferSnapshot: () => {
+        const buffer = terminal.buffer.normal
+        if (buffer.type !== 'normal') throw new Error(`expected normal buffer, got ${buffer.type}`)
+        return {
+          type: buffer.type,
+          cols: terminal.cols,
+          rows: terminal.rows,
+          modes: snapshotModes(),
+          length: buffer.length,
+          baseY: buffer.baseY,
+          viewportY: buffer.viewportY,
+          cursorX: buffer.cursorX,
+          cursorY: buffer.cursorY,
+          lines: Array.from({ length: buffer.length }, (_, y) => snapshotNormalLine(y)),
+        }
+      },
+      normalScrollbackPrefixSnapshot: () => {
+        const buffer = terminal.buffer.normal
+        return Array.from({ length: buffer.baseY }, (_, y) => snapshotNormalLine(y))
+      },
+      normalViewportSnapshot: () => {
+        const buffer = terminal.buffer.normal
+        if (buffer.type !== 'normal') throw new Error(`expected normal buffer, got ${buffer.type}`)
+        return {
+          type: buffer.type,
+          cols: terminal.cols,
+          rows: terminal.rows,
+          modes: snapshotModes(),
+          cursorX: buffer.cursorX,
+          cursorY: buffer.cursorY,
+          lines: Array.from(
+            { length: terminal.rows },
+            (_, offset) => snapshotNormalLine(buffer.viewportY + offset),
+          ),
+        }
+      },
+      dispose: () => { terminal.dispose() },
+    }
+  }
+
+  /**
+   * Flushes xterm's zero-delay parser task without reaching the 120ms app tick.
+   * Sinon schedules zero-delay timers created inside another timer at +1ms.
+   */
+  async function flushHeadlessTerminal(harness: HeadlessTerminalHarness): Promise<void> {
+    await vi.advanceTimersByTimeAsync(1)
+    if (harness.pendingWrites() > 0) {
+      throw new Error(`xterm parser left ${harness.pendingWrites()} writes pending`)
+    }
+    await harness.drain()
+  }
+
+  async function cleanupHeadlessTerminal(
+    app: TuiApp | undefined,
+    harness: HeadlessTerminalHarness,
+  ): Promise<void> {
+    try {
+      if (app !== undefined) await app.dispose()
+    } finally {
+      try {
+        await flushHeadlessTerminal(harness)
+      } finally {
+        harness.dispose()
+      }
+    }
+  }
+
+  async function cleanupHeadlessPair(
+    first: { app: TuiApp | undefined; terminal: HeadlessTerminalHarness },
+    second: { app: TuiApp | undefined; terminal: HeadlessTerminalHarness },
+  ): Promise<void> {
+    try {
+      await cleanupHeadlessTerminal(first.app, first.terminal)
+    } finally {
+      await cleanupHeadlessTerminal(second.app, second.terminal)
+    }
+  }
+
+  async function bootWelcome(options: {
+    welcomeAnimation?: 'auto' | 'off'
+    inputTty?: boolean
+    cmdline?: string[]
+    restorable?: boolean
+    stdout?: WelcomeStdout
+    columns?: number
+    rows?: number
+  } = {}) {
+    const ctx = makeCtx()
+    const agent = makeAgent('welcome-current')
+    // Keep committed top-bar geometry stable so buffer comparisons isolate the welcome surface.
+    Object.assign(agent.session, {
+      header: { ...agent.session.header, cwd: '/workspace' },
+    })
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    if (options.restorable === true) {
+      const current = {
+        id: SessionId('session-welcome-current'),
+        header: {
+          id: SessionId('session-welcome-current'),
+          version: 0,
+          createdAt: 2,
+        },
+        events: [],
+      }
+      const other = {
+        id: SessionId('session-welcome-other'),
+        header: {
+          id: SessionId('session-welcome-other'),
+          version: 0,
+          createdAt: 1,
+        },
+        events: [],
+      }
+      ctx.sessions.list.mockReturnValue([current, other])
+      ctx.agents.get.mockReturnValue(agent)
+    }
+    const credentials = {
+      describe: vi.fn(async () => ({ configured: false, writable: true })),
+    }
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'credentials') return credentials
+      if (name === 'cmdlineArgs' && options.cmdline !== undefined) {
+        return { get: () => options.cmdline }
+      }
+      return undefined
+    })
+    const stdin = makeStdin()
+    stdin.isTTY = options.inputTty ?? false
+    const stdout = options.stdout ?? makeColorTtyStdout()
+    if (options.columns !== undefined) stdout.columns = options.columns
+    if (options.rows !== undefined) stdout.rows = options.rows
+    const app = new TuiApp({
+      ctx,
+      stdout,
+      stdin,
+      theme: 'graphite',
+      welcomeAnimation: options.welcomeAnimation ?? 'auto',
+    })
+    try {
+      await app.attach()
+    } catch (attachError) {
+      try {
+        await app.dispose()
+      } catch {
+        // Preserve the attach failure; partial-attach teardown is best-effort.
+      }
+      throw attachError
+    }
+    return { app, ctx, agent, stdin, stdout }
+  }
+
+  function batchText(
+    spy: MockInstance<CommitEngine['writeBatch']>,
+    index = -1,
+  ): string {
+    const call = spy.mock.calls.at(index)
+    const entries = call?.[0]
+    return entries?.map(entry => entry.text).join('\n') ?? ''
+  }
+
+  async function commitPreparedWelcome(options: {
+    selection: { provider: string; model: string; reasoningEffort?: string }
+    resolveModelInfo: (provider: string, model: string, signal?: AbortSignal) => Promise<{
+      reasoning?: { defaultEffort?: string }
+    }>
+  }): Promise<{ app: TuiApp; writeBatch: MockInstance<CommitEngine['writeBatch']> }> {
+    const ctx = makeCtx()
+    ctx.agentDefaultModel.currentSelection.mockReturnValue(options.selection)
+    ctx.get.mockImplementation((name: string) => (
+      name === 'llm' ? { resolveModelInfo: options.resolveModelInfo } : undefined
+    ))
+    const writeBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
+    const app = new TuiApp({
+      ctx,
+      stdout: makeColorTtyStdout(),
+      stdin: makeStdin(),
+      theme: 'graphite',
+      welcomeAnimation: 'off',
+    })
+    const welcome = app as unknown as {
+      prepareWelcome(): Promise<void>
+      settleWelcome(reason: 'skipped'): boolean
+    }
+    await welcome.prepareWelcome()
+    expect(welcome.settleWelcome('skipped')).toBe(true)
+    return { app, writeBatch }
+  }
+
+  function createPendingWelcomeAttach(options: {
+    selection: { provider: string; model: string; reasoningEffort?: string }
+    resolveModelInfo: (provider: string, model: string, signal?: AbortSignal) => Promise<{
+      reasoning?: { defaultEffort?: string }
+    }>
+    welcomeAnimation?: 'auto' | 'off'
+  }): {
+    app: TuiApp
+    agent: ReturnType<typeof makeAgent>
+    stdin: ReturnType<typeof makeStdin>
+    stdout: WelcomeStdout
+    writeBatch: MockInstance<CommitEngine['writeBatch']>
+  } {
+    const ctx = makeCtx()
+    const agent = makeAgent('welcome-pending')
+    ctx.agentDefaultModel.currentSelection.mockReturnValue(options.selection)
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.get.mockImplementation((name: string) => (
+      name === 'llm' ? { resolveModelInfo: options.resolveModelInfo } : undefined
+    ))
+    const writeBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
+    const stdout = makeColorTtyStdout()
+    const stdin = makeStdin()
+    const app = new TuiApp({
+      ctx,
+      stdout,
+      stdin,
+      theme: 'graphite',
+      welcomeAnimation: options.welcomeAnimation ?? 'off',
+    })
+    return { app, agent, stdin, stdout, writeBatch }
+  }
+
+  it('bootWelcome attach 失败时清理 app 且保留原始错误', async () => {
+    const attachError = new Error('attach failed')
+    vi.spyOn(TuiApp.prototype, 'attach').mockRejectedValueOnce(attachError)
+    // oxlint-disable-next-line typescript/unbound-method -- captured before the spy; rebound to the intercepted instance below
+    const originalDispose = TuiApp.prototype.dispose
+    const dispose = vi.spyOn(TuiApp.prototype, 'dispose')
+      .mockImplementationOnce(async function (this: TuiApp) {
+        const boundDispose = originalDispose.bind(this)
+        await boundDispose()
+        throw new Error('dispose failed')
+      })
+
+    await expect(bootWelcome()).rejects.toBe(attachError)
+    expect(dispose).toHaveBeenCalledTimes(1)
+  })
+
+  it('off 立即用一个 final batch 提交静态欢迎且不发布动画 hero', async () => {
+    const writeBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
+    const render = vi.spyOn(LiveEngine.prototype, 'render')
+    const { app } = await bootWelcome({ welcomeAnimation: 'off' })
+
+    expect(writeBatch).toHaveBeenCalledTimes(2)
+    expect(batchText(writeBatch)).toContain('Tianshu Harness')
+    expect(batchText(writeBatch)).toContain('Tip:')
+    expect(render.mock.calls.some(call => (
+      (call[0] as readonly { text: string }[]).some(line => line.text.includes('Tianshu Harness'))
+    ))).toBe(false)
+
+    await app.dispose()
+  })
+
+  it('欢迎终态显示目录解析出的默认推理档位', async () => {
+    const resolveModelInfo = vi.fn(async () => ({
+      reasoning: { defaultEffort: 'max' },
+    }))
+    const { app, writeBatch } = await commitPreparedWelcome({
+      selection: { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
+      resolveModelInfo,
+    })
+
+    expect(resolveModelInfo).toHaveBeenCalledOnce()
+    expect(resolveModelInfo).toHaveBeenCalledWith(
+      'deepseek-official',
+      'deepseek-v4-flash',
+      expect.any(AbortSignal),
+    )
+    expect(batchText(writeBatch)).toContain('Model deepseek-v4-flash · Effort max')
+    await app.dispose()
+  })
+
+  it('欢迎终态优先显示显式推理档位且不查询目录', async () => {
+    const resolveModelInfo = vi.fn(async () => ({
+      reasoning: { defaultEffort: 'max' },
+    }))
+    const { app, writeBatch } = await commitPreparedWelcome({
+      selection: {
+        provider: 'deepseek-official',
+        model: 'deepseek-v4-flash',
+        reasoningEffort: 'high',
+      },
+      resolveModelInfo,
+    })
+
+    expect(resolveModelInfo).not.toHaveBeenCalled()
+    expect(batchText(writeBatch)).toContain('Model deepseek-v4-flash · Effort high')
+    await app.dispose()
+  })
+
+  it('欢迎目录查询忽略 signal 且永不 settle 时在 UX 边界降级继续 attach', async () => {
+    vi.useFakeTimers()
+    let lookupSignal: AbortSignal | undefined
+    const resolveModelInfo = vi.fn((
+      _provider: string,
+      _model: string,
+      signal?: AbortSignal,
+    ) => {
+      lookupSignal = signal
+      return new Promise<never>(() => {})
+    })
+    const { app, writeBatch } = createPendingWelcomeAttach({
+      selection: { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
+      resolveModelInfo,
+    })
+
+    const attaching = app.attach()
+    await vi.waitFor(() => { expect(resolveModelInfo).toHaveBeenCalledOnce() })
+    await vi.advanceTimersByTimeAsync(1_001)
+    await attaching
+
+    expect(lookupSignal?.aborted).toBe(true)
+    expect(batchText(writeBatch)).toContain('Model deepseek-v4-flash · Effort auto')
+    await app.dispose()
+  })
+
+  it('欢迎目录查询 pending 期间 dispose 会 abort 并阻止迟到 welcome 写屏', async () => {
+    vi.useFakeTimers()
+    let lookupSignal: AbortSignal | undefined
+    let completeLookup: ((info: {
+      reasoning?: { defaultEffort?: string }
+    }) => void) | undefined
+    const resolveModelInfo = vi.fn((
+      _provider: string,
+      _model: string,
+      signal?: AbortSignal,
+    ) => {
+      lookupSignal = signal
+      return new Promise<{ reasoning?: { defaultEffort?: string } }>((resolve) => {
+        completeLookup = resolve
+      })
+    })
+    const render = vi.spyOn(LiveEngine.prototype, 'render')
+    const { app, stdout, writeBatch } = createPendingWelcomeAttach({
+      selection: { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
+      resolveModelInfo,
+    })
+
+    const attaching = app.attach()
+    await vi.waitFor(() => { expect(resolveModelInfo).toHaveBeenCalledOnce() })
+    await app.dispose()
+    await attaching
+
+    expect(lookupSignal?.aborted).toBe(true)
+    const committedAfterDispose = writeBatch.mock.calls.length
+    const stdoutWritesAfterDispose = stdout.write.mock.calls.length
+    const liveRendersAfterDispose = render.mock.calls.length
+    if (completeLookup === undefined) throw new Error('model-info lookup did not expose completion')
+    completeLookup({ reasoning: { defaultEffort: 'max' } })
+    await Promise.resolve()
+    await vi.runAllTimersAsync()
+
+    expect(writeBatch).toHaveBeenCalledTimes(committedAfterDispose)
+    expect(stdout.write).toHaveBeenCalledTimes(stdoutWritesAfterDispose)
+    expect(render).toHaveBeenCalledTimes(liveRendersAfterDispose)
+  })
+
+  it('欢迎准备期间的首个按键会先结算 final，再原样进入输入路由', async () => {
+    let completeLookup: ((info: { reasoning?: { defaultEffort?: string } }) => void) | undefined
+    const resolveModelInfo = vi.fn(() => (
+      new Promise<{ reasoning?: { defaultEffort?: string } }>((resolve) => {
+        completeLookup = resolve
+      })
+    ))
+    const { app, agent, stdin, writeBatch } = createPendingWelcomeAttach({
+      selection: { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
+      resolveModelInfo,
+      welcomeAnimation: 'auto',
+    })
+
+    const attaching = app.attach()
+    await vi.waitFor(() => { expect(resolveModelInfo).toHaveBeenCalledOnce() })
+    stdin.emit('data', 'x')
+    if (completeLookup === undefined) throw new Error('model-info lookup did not expose completion')
+    completeLookup({ reasoning: { defaultEffort: 'max' } })
+    await attaching
+
+    expect(writeBatch).toHaveBeenCalledTimes(2)
+    expect(batchText(writeBatch)).toContain('Tip:')
+    stdin.emit('data', '\r')
+    await vi.waitFor(() => { expect(agent.followup).toHaveBeenCalledOnce() })
+    expect(firstCallText(agent.followup)).toBe('x')
+    await app.dispose()
+  })
+
+  it('欢迎准备期间的 bracketed paste 会在 final 后原样重放', async () => {
+    let completeLookup: ((info: { reasoning?: { defaultEffort?: string } }) => void) | undefined
+    const resolveModelInfo = vi.fn(() => (
+      new Promise<{ reasoning?: { defaultEffort?: string } }>((resolve) => {
+        completeLookup = resolve
+      })
+    ))
+    const { app, agent, stdin, writeBatch } = createPendingWelcomeAttach({
+      selection: { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
+      resolveModelInfo,
+      welcomeAnimation: 'auto',
+    })
+
+    const attaching = app.attach()
+    await vi.waitFor(() => { expect(resolveModelInfo).toHaveBeenCalledOnce() })
+    stdin.emit('data', '\x1B[200~pasted while preparing\x1B[201~')
+    if (completeLookup === undefined) throw new Error('model-info lookup did not expose completion')
+    completeLookup({})
+    await attaching
+
+    expect(writeBatch).toHaveBeenCalledTimes(2)
+    stdin.emit('data', '\r')
+    await vi.waitFor(() => { expect(agent.followup).toHaveBeenCalledOnce() })
+    expect(firstCallText(agent.followup)).toBe('pasted while preparing')
+    await app.dispose()
+  })
+
+  it('欢迎准备期间的 resize 会按最新尺寸直接结算 compact final', async () => {
+    vi.useFakeTimers()
+    let completeLookup: ((info: { reasoning?: { defaultEffort?: string } }) => void) | undefined
+    const resolveModelInfo = vi.fn(() => (
+      new Promise<{ reasoning?: { defaultEffort?: string } }>((resolve) => {
+        completeLookup = resolve
+      })
+    ))
+    const { app, stdout, writeBatch } = createPendingWelcomeAttach({
+      selection: { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
+      resolveModelInfo,
+      welcomeAnimation: 'auto',
+    })
+
+    const attaching = app.attach()
+    await vi.waitFor(() => { expect(resolveModelInfo).toHaveBeenCalledOnce() })
+    stdout.columns = 72
+    stdout.rows = 17
+    stdout.emitResize()
+    await vi.advanceTimersByTimeAsync(150)
+    if (completeLookup === undefined) throw new Error('model-info lookup did not expose completion')
+    completeLookup({})
+    await attaching
+
+    expect(writeBatch).toHaveBeenCalledTimes(2)
+    expect(batchText(writeBatch)).toContain('Oh My Tianshu')
+    expect(batchText(writeBatch)).not.toContain('███')
+    expect((app as unknown as {
+      welcomeIntro: { settleReason: string | null }
+    }).welcomeIntro.settleReason).toBe('resize')
+    await app.dispose()
+  })
+
+  it('欢迎准备期间的后台 scrollback 会延迟到 canonical final 之后', async () => {
+    let completeLookup: ((info: { reasoning?: { defaultEffort?: string } }) => void) | undefined
+    const resolveModelInfo = vi.fn(() => (
+      new Promise<{ reasoning?: { defaultEffort?: string } }>((resolve) => {
+        completeLookup = resolve
+      })
+    ))
+    const write = vi.spyOn(CommitEngine.prototype, 'write')
+    const { app, writeBatch } = createPendingWelcomeAttach({
+      selection: { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
+      resolveModelInfo,
+      welcomeAnimation: 'auto',
+    })
+    const inspect = app as unknown as {
+      commitToScrollback(entry: { text: string; trailingNewline?: boolean }): void
+    }
+
+    const attaching = app.attach()
+    await vi.waitFor(() => { expect(resolveModelInfo).toHaveBeenCalledOnce() })
+    inspect.commitToScrollback({ text: 'early background entry', trailingNewline: true })
+    expect(write).not.toHaveBeenCalled()
+    if (completeLookup === undefined) throw new Error('model-info lookup did not expose completion')
+    completeLookup({})
+    await attaching
+
+    const finalIndex = writeBatch.mock.calls.findIndex(([entries]) =>
+      entries.some(entry => entry.text.includes('Tip:')))
+    const messageIndex = write.mock.calls.findIndex(([entry]) =>
+      entry.text === 'early background entry')
+    expect(finalIndex).toBeGreaterThanOrEqual(0)
+    expect(messageIndex).toBeGreaterThanOrEqual(0)
+    expect(writeBatch.mock.invocationCallOrder[finalIndex]).toBeLessThan(
+      write.mock.invocationCallOrder[messageIndex] ?? Number.POSITIVE_INFINITY,
+    )
+    await app.dispose()
+  })
+
+  it('欢迎准备期间的输入与 scrollback 按实际到达顺序重放', async () => {
+    let completeLookup: ((info: { reasoning?: { defaultEffort?: string } }) => void) | undefined
+    const resolveModelInfo = vi.fn(() => (
+      new Promise<{ reasoning?: { defaultEffort?: string } }>((resolve) => {
+        completeLookup = resolve
+      })
+    ))
+    const write = vi.spyOn(CommitEngine.prototype, 'write')
+    const { app, agent, stdin } = createPendingWelcomeAttach({
+      selection: { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
+      resolveModelInfo,
+      welcomeAnimation: 'auto',
+    })
+    const inspect = app as unknown as {
+      commitToScrollback(entry: { text: string; trailingNewline?: boolean }): void
+    }
+
+    const attaching = app.attach()
+    await vi.waitFor(() => { expect(resolveModelInfo).toHaveBeenCalledOnce() })
+    stdin.emit('data', 'first action')
+    stdin.emit('data', '\r')
+    inspect.commitToScrollback({ text: 'second action', trailingNewline: true })
+    if (completeLookup === undefined) throw new Error('model-info lookup did not expose completion')
+    completeLookup({})
+    await attaching
+
+    expect(agent.followup).toHaveBeenCalledOnce()
+    const backgroundIndex = write.mock.calls.findIndex(([entry]) => entry.text === 'second action')
+    expect(backgroundIndex).toBeGreaterThanOrEqual(0)
+    expect(agent.followup.mock.invocationCallOrder[0]).toBeLessThan(
+      write.mock.invocationCallOrder[backgroundIndex] ?? Number.POSITIVE_INFINITY,
+    )
+    await app.dispose()
+  })
+
+  it('auto 与 off 立即提交同一静态半块 hero，不含盲文', async () => {
+    const writeBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
+    const render = vi.spyOn(LiveEngine.prototype, 'render')
+    const { app } = await bootWelcome({ welcomeAnimation: 'auto' })
+    const committed = batchText(writeBatch)
+
+    expect(writeBatch).toHaveBeenCalledTimes(2)
+    expect(committed).toContain('Oh My Tianshu')
+    expect(committed).toMatch(/[▀▄]/)
+    expect(committed).not.toMatch(/[\u2800-\u28FF]/)
+    expect(committed).toContain('Tip:')
+    expect(render.mock.calls.some(call => (
+      (call[0] as readonly { text: string }[]).some(line => line.text.includes('Tianshu Harness'))
+    ))).toBe(false)
+    await app.dispose()
+  })
+
+  it('uses the 72-column fox once the terminal is at least 105×33', async () => {
+    const writeBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
+    const { app } = await bootWelcome({
+      welcomeAnimation: 'auto',
+      columns: 105,
+      rows: 33,
+    })
+    const committed = batchText(writeBatch)
+    expect(committed).toContain('Oh My Tianshu')
+    expect(committed.split('\n').filter(line => /[▀▄]/.test(line)).length).toBeGreaterThan(21)
+    expect(committed.match(/[▀▄]/g)?.length).toBeGreaterThan(21)
+    await app.dispose()
+  })
+
+  it('后台 scrollback commit 先结算 canonical welcome 再追加外部消息', async () => {
+    vi.useFakeTimers()
+    const writeBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
+    const write = vi.spyOn(CommitEngine.prototype, 'write')
+    const { app } = await bootWelcome()
+    const inspect = app as unknown as {
+      commitToScrollback(entry: { text: string; trailingNewline?: boolean }): void
+      welcomeIntro: {
+        active: boolean
+        settleReason: string | null
+      } | null
+    }
+
+    inspect.commitToScrollback({
+      text: 'background scrollback message',
+      trailingNewline: true,
+    })
+
+    const finalIndex = writeBatch.mock.calls.findIndex(([entries]) => (
+      entries.some(entry => entry.text.includes('Tianshu Harness'))
+      && entries.some(entry => entry.text.includes('Tip:'))
+    ))
+    const messageIndex = write.mock.calls.findIndex(([entry]) => (
+      entry.text === 'background scrollback message'
+    ))
+    expect(finalIndex).toBeGreaterThanOrEqual(0)
+    expect(messageIndex).toBeGreaterThanOrEqual(0)
+    expect(writeBatch.mock.invocationCallOrder[finalIndex]).toBeLessThan(
+      write.mock.invocationCallOrder[messageIndex] ?? Number.POSITIVE_INFINITY,
+    )
+    expect(batchText(writeBatch, finalIndex)).toContain('Tianshu Harness')
+    expect(batchText(writeBatch, finalIndex)).toContain('Tip:')
+    expect(write.mock.calls[messageIndex]?.[0]).toEqual({
+      text: 'background scrollback message',
+      trailingNewline: true,
+    })
+    expect(inspect.welcomeIntro?.active).toBe(false)
+    expect(inspect.welcomeIntro?.settleReason).toBe('skipped')
+
+    const canonicalFinals = (): number => writeBatch.mock.calls.filter(([entries]) => (
+      entries.some(entry => entry.text.includes('Tip:'))
+    )).length
+    expect(canonicalFinals()).toBe(1)
+    await vi.advanceTimersByTimeAsync(3_241)
+    expect(canonicalFinals()).toBe(1)
+    await app.dispose()
+  }, 15_000)
+
+  it('xterm buffer：auto 终态等价于 off，且保留输入轨', async () => {
+    vi.useFakeTimers()
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0)
+    const render = vi.spyOn(LiveEngine.prototype, 'render')
+    const animatedTerminal = makeHeadlessTerminal()
+    const staticTerminal = makeHeadlessTerminal()
+    let animatedApp: TuiApp | undefined
+    let staticApp: TuiApp | undefined
+
+    try {
+      const animated = await bootWelcome({
+        welcomeAnimation: 'auto',
+        stdout: animatedTerminal.stdout,
+      })
+      animatedApp = animated.app
+      await flushHeadlessTerminal(animatedTerminal)
+
+      const introRenders = render.mock.calls.filter(([lines]) => (
+        lines.some(line => line.text.includes('Tianshu Harness'))
+      ))
+      expect(introRenders).toHaveLength(0)
+
+      const animatedSnapshot = animatedTerminal.normalBufferSnapshot()
+      const animatedText = animatedTerminal.visibleTextLines().join('\n')
+      expect(animatedText).toContain('Oh My Tianshu')
+      expect(animatedText).toContain('Tianshu Harness')
+      expect(animatedText).toContain('Tip:')
+      expect(animatedText).toMatch(/[▀▄]/)
+      expect(animatedText).not.toMatch(/[\u2800-\u28FF]/)
+      expect(animatedText).toContain('╭')
+      expect(animatedText).toContain('❯')
+
+      await animatedApp.dispose()
+      animatedApp = undefined
+      await flushHeadlessTerminal(animatedTerminal)
+
+      const staticWelcome = await bootWelcome({
+        welcomeAnimation: 'off',
+        stdout: staticTerminal.stdout,
+      })
+      staticApp = staticWelcome.app
+      await flushHeadlessTerminal(staticTerminal)
+
+      expect(random).toHaveBeenCalledTimes(2)
+      expect(animatedSnapshot).toEqual(staticTerminal.normalBufferSnapshot())
+    } finally {
+      await cleanupHeadlessPair(
+        { app: animatedApp, terminal: animatedTerminal },
+        { app: staticApp, terminal: staticTerminal },
+      )
+    }
+  }, 15_000)
+
+  it('xterm buffer：auto 在 72×17 上与 off compact 终态等价', async () => {
+    vi.useFakeTimers()
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0)
+    const autoTerminal = makeHeadlessTerminal(72, 17)
+    const offTerminal = makeHeadlessTerminal(72, 17)
+    let autoApp: TuiApp | undefined
+    let offApp: TuiApp | undefined
+
+    try {
+      const auto = await bootWelcome({
+        welcomeAnimation: 'auto',
+        stdout: autoTerminal.stdout,
+      })
+      autoApp = auto.app
+      await flushHeadlessTerminal(autoTerminal)
+      const autoText = autoTerminal.visibleTextLines().join('\n')
+      expect(autoText).toContain('Oh My Tianshu')
+      expect(autoText).not.toContain('███')
+      expect(autoText).not.toMatch(/[\u2800-\u28FF]/)
+
+      const off = await bootWelcome({
+        welcomeAnimation: 'off',
+        stdout: offTerminal.stdout,
+      })
+      offApp = off.app
+      await flushHeadlessTerminal(offTerminal)
+
+      expect(random).toHaveBeenCalledTimes(2)
+      expect(autoTerminal.normalBufferSnapshot()).toEqual(offTerminal.normalBufferSnapshot())
+    } finally {
+      await cleanupHeadlessPair(
+        { app: autoApp, terminal: autoTerminal },
+        { app: offApp, terminal: offTerminal },
+      )
+    }
+  }, 15_000)
+
+  it('已结算的静态 welcome 不再因 resize 二次提交', async () => {
+    vi.useFakeTimers()
+    const writeBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
+    const { app, stdout } = await bootWelcome({ welcomeAnimation: 'auto' })
+
+    expect(writeBatch).toHaveBeenCalledTimes(2)
+    stdout.columns = 72
+    stdout.rows = 17
+    stdout.emitResize()
+    await vi.advanceTimersByTimeAsync(150)
+    expect(writeBatch).toHaveBeenCalledTimes(2)
+    await app.dispose()
+  })
+
+  it('headless stdout 在 app dispose 后不再触发已卸载的 resize 回调', async () => {
+    vi.useFakeTimers()
+    const terminal = makeHeadlessTerminal()
+    const setMaxRows = vi.spyOn(LiveEngine.prototype, 'setMaxRows')
+    const { app } = await bootWelcome({
+      welcomeAnimation: 'off',
+      stdout: terminal.stdout,
+    })
+
+    try {
+      await flushHeadlessTerminal(terminal)
+      expect(terminal.stdout.listenerCount('resize')).toBe(1)
+      await app.dispose()
+      expect(terminal.stdout.listenerCount('resize')).toBe(0)
+      const settledCalls = setMaxRows.mock.calls.length
+
+      terminal.resize(72, 17)
+      await vi.advanceTimersByTimeAsync(150)
+
+      expect(setMaxRows).toHaveBeenCalledTimes(settledCalls)
+    } finally {
+      await cleanupHeadlessTerminal(app, terminal)
+    }
+  })
+
+  it('静态挂载后首个字符进入输入路由', async () => {
+    const writeBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
+    const { app, agent, stdin } = await bootWelcome({ welcomeAnimation: 'auto' })
+
+    expect(writeBatch).toHaveBeenCalledTimes(2)
+    stdin.emit('data', 'x')
+    stdin.emit('data', '\r')
+    await vi.waitFor(() => { expect(agent.followup).toHaveBeenCalledTimes(1) })
+    expect(firstCallText(agent.followup)).toBe('x')
+    await app.dispose()
+  })
+
+  it('欢迎数字键先 settle final，再继续路由既有 restore row', async () => {
+    const writeBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
+    const { app, stdin } = await bootWelcome({ restorable: true })
+
+    stdin.emit('data', '1')
+    await vi.waitFor(() => {
+      expect(writeBatch).toHaveBeenCalledTimes(2)
+      expect(app.sessionId).toBe(SessionId('session-welcome-other'))
+    })
+    await app.dispose()
+  })
+
+  it('resize 先采用新尺寸，再 settle 为 compact final 且不重播', async () => {
+    vi.useFakeTimers()
+    const writeBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
+    const render = vi.spyOn(LiveEngine.prototype, 'render')
+    const { app, stdout } = await bootWelcome()
+
+    stdout.columns = 72
+    stdout.rows = 17
+    stdout.emitResize()
+    await vi.advanceTimersByTimeAsync(150)
+
+    expect(writeBatch).toHaveBeenCalledTimes(2)
+    expect(batchText(writeBatch)).toContain('Oh My Tianshu')
+    expect(batchText(writeBatch)).not.toContain('███')
+    await vi.advanceTimersByTimeAsync(4_000)
+    expect(writeBatch).toHaveBeenCalledTimes(2)
+    expect(render.mock.calls.at(-1)?.[0].some(line => line.text.includes('Tianshu Harness'))).toBe(false)
+    await app.dispose()
+  })
+
+  it('dispose 后不再追加 welcome final', async () => {
+    const writeBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
+    const { app } = await bootWelcome()
+
+    expect(writeBatch).toHaveBeenCalledTimes(2)
+    await app.dispose()
+    expect(writeBatch).toHaveBeenCalledTimes(2)
+  })
+
+  it('静态 welcome 结算后立即打开缺 key dialog', async () => {
+    const { app } = await bootWelcome({ inputTty: true })
+    const overlay = (app as unknown as {
+      overlay: { activeId(): string | null }
+    }).overlay
+
+    expect(overlay.activeId()).toBe('key-dialog')
+    await app.dispose()
+  })
+
+  it('bracketed paste 入口先 settle，粘贴文本仍可正常提交', async () => {
+    const writeBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
+    const { app, agent, stdin } = await bootWelcome()
+
+    stdin.emit('data', '\x1B[200~pasted task\x1B[201~')
+    await vi.waitFor(() => { expect(writeBatch).toHaveBeenCalledTimes(2) })
+    stdin.emit('data', '\r')
+    await vi.waitFor(() => { expect(agent.followup).toHaveBeenCalledTimes(1) })
+    expect(firstCallText(agent.followup)).toBe('pasted task')
+    await app.dispose()
+  })
+
+  it('command-line initial prompt 经 handleSubmit settle 且不丢任务文本', async () => {
+    const writeBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
+    const { app, agent } = await bootWelcome({ cmdline: ['initial task'] })
+
+    expect(writeBatch).toHaveBeenCalledTimes(2)
+    expect(firstCallText(agent.followup)).toBe('initial task')
+    await app.dispose()
+  })
+})
+
 describe('TuiApp 1.2/1.3 恢复横幅、历史结束标记与崩溃修复告知', () => {
   /** 构造带事件历史的 live session 替身（attach 目标 = list()[0]）。 */
   async function attachToHistory(events: SessionEvent[], cwd?: string): Promise<{ app: TuiApp; stdout: ReturnType<typeof makeStdout> }> {
@@ -2123,6 +3175,8 @@ describe('TuiApp 1.2/1.3 恢复横幅、历史结束标记与崩溃修复告知'
     expect(written).toContain('1 分钟前')
     expect(written).toContain('/app/x')
     expect(written).toContain('上次进行到此处')
+    expect(written.indexOf('已恢复会话 hello resume')).toBeLessThan(written.indexOf('Tip:'))
+    expect(written.indexOf('上次进行到此处')).toBeLessThan(written.indexOf('Tip:'))
     await app.dispose()
   })
 
@@ -4014,41 +5068,37 @@ describe('TuiApp API key 就绪（credentials 分层，非仅 env）', () => {
     return { app, stdout, describe }
   }
 
-  it('credentials 报 file 已配置、env 未设 → 欢迎页 API Key ✓、footer API ✓', async () => {
+  it('credentials 报 file 已配置、env 未设 → footer 最终为 API ✓', async () => {
     const { app, stdout, describe } = boot({ credentials: { configured: true, source: 'file' } })
     await app.attach()
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('API Key ✓')
-    expect(written).not.toContain('API Key ✗')
-    expect(written).toMatch(/API ✓/)
+    expect(written.lastIndexOf('API ✓')).toBeGreaterThan(written.lastIndexOf('API ✗'))
     expect(describe).toHaveBeenCalledWith('DEEPSEEK_API_KEY')
     await app.dispose()
   })
 
-  it('credentials 未配置且 env 未设 → 欢迎页 API Key ✗', async () => {
+  it('credentials 未配置且 env 未设 → footer 最终为 API ✗', async () => {
     const { app, stdout } = boot({ credentials: { configured: false } })
     await app.attach()
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('API Key ✗（/key 设置）')
+    expect(written.lastIndexOf('API ✗')).toBeGreaterThan(written.lastIndexOf('API ✓'))
     await app.dispose()
   })
 
-  it('无 credentials 服务、env 已设 → 欢迎页 API Key ✓（env 兜底）', async () => {
+  it('无 credentials 服务、env 已设 → footer 最终为 API ✓（env 兜底）', async () => {
     const { app, stdout, describe } = boot({ envKey: 'sk-test' })
     await app.attach()
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('API Key ✓')
-    expect(written).not.toContain('API Key ✗')
+    expect(written.lastIndexOf('API ✓')).toBeGreaterThan(written.lastIndexOf('API ✗'))
     expect(describe).not.toHaveBeenCalled()
     await app.dispose()
   })
 
-  it('credentials.describe 抛错、env 已设 → 回退 env，欢迎页 API Key ✓', async () => {
+  it('credentials.describe 抛错、env 已设 → 回退 env，footer 最终为 API ✓', async () => {
     const { app, stdout, describe } = boot({ credentialsError: true, envKey: 'sk-test' })
     await app.attach()
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('API Key ✓')
-    expect(written).not.toContain('API Key ✗')
+    expect(written.lastIndexOf('API ✓')).toBeGreaterThan(written.lastIndexOf('API ✗'))
     expect(describe).toHaveBeenCalledWith('DEEPSEEK_API_KEY')
     await app.dispose()
   })
@@ -4136,7 +5186,7 @@ describe('TuiApp /key 设置对话框与首启引导', () => {
     await app.attach()
     await sleep(30)
     expect(written()).not.toContain(ALT_ON)
-    expect(written()).toContain('API Key ✗（/key 设置）')
+    expect(written()).toContain('API ✗')
     await app.dispose()
   })
 
@@ -6759,7 +7809,9 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     const idx = written.lastIndexOf('╭')
     expect(idx).toBeGreaterThan(0)
-    expect(written).toContain('Tips')
+    expect(written).toContain('DeepSeek')
+    expect(written).toContain('Tianshu Harness')
+    expect(written).not.toContain('Tips')
     expect(written.slice(idx)).toMatch(/╰─+/)
     expect(blankLinesBeforeRail(written)).toBeLessThanOrEqual(2)
     await app.dispose()
@@ -8024,7 +9076,7 @@ describe('LSP 诊断桥（黑盒：假 server 注入）', () => {
   })
 })
 describe('TuiApp 首帧渲染等待 settings/credentials 服务（A1/A2）', () => {
-  it('服务已注册但未激活时，attach 等待激活后再创建会话/渲染（API Key ✓ + settings 模型生效）', async () => {
+  it('服务已注册但未激活时，attach 等待激活后再创建会话/渲染（API ✓ + settings 模型生效）', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('svc-1')
     const handle = makeHandle(agent)
@@ -8055,9 +9107,8 @@ describe('TuiApp 首帧渲染等待 settings/credentials 服务（A1/A2）', () 
     await attachPromise
 
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    // 等待生效 → refreshApiKeyReady 经 credentials.describe 读到 configured → 欢迎页 ✓
-    expect(written).toContain('API Key ✓')
-    expect(written).not.toContain('API Key ✗')
+    // 等待生效 → refreshApiKeyReady 经 credentials.describe 读到 configured → footer 最终 ✓
+    expect(written.lastIndexOf('API ✓')).toBeGreaterThan(written.lastIndexOf('API ✗'))
     // A2：会话创建时快照的是 settings 的模型（deepseek），而非 config 默认
     // （deepseek-v4-flash）——等待发生在 newSession 之前。
     const createArg = ctx.agents.create.mock.calls[0]?.[0] as { agentOptions?: { provider: string; model: string } } | undefined
@@ -8065,7 +9116,7 @@ describe('TuiApp 首帧渲染等待 settings/credentials 服务（A1/A2）', () 
     await app.dispose()
   })
 
-  it('服务未注册（mock 缺省）时 attach 不被等待阻塞，走 env 回退（API Key ✗）', async () => {
+  it('服务未注册（mock 缺省）时 attach 不被等待阻塞，走 env 回退（API ✗）', async () => {
     // 显式清掉 DEEPSEEK_API_KEY：该用例断言 env 回退路径，宿主环境可能已设
     // 该变量（setx 持久化等），避免测试环境相关的不稳定。
     const prevKey = process.env.DEEPSEEK_API_KEY
@@ -8085,7 +9136,7 @@ describe('TuiApp 首帧渲染等待 settings/credentials 服务（A1/A2）', () 
 
       const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
       // 无 credentials 服务 → process.env 回退（已清空）→ ✗
-      expect(written).toContain('API Key ✗')
+      expect(written.lastIndexOf('API ✗')).toBeGreaterThan(written.lastIndexOf('API ✓'))
       await app.dispose()
     } finally {
       if (prevKey !== undefined) process.env.DEEPSEEK_API_KEY = prevKey
@@ -8228,4 +9279,175 @@ describe('会话切换稳健性（switchSession 竞态 / restore 失败 / 委派
     expect(stdout.write.mock.calls.length).toBeGreaterThan(writesAfterOk)
     await app.dispose()
   })
+})
+
+describe('TuiApp todos 紧凑面板（/todos + sessionProjections）', () => {
+  const joinedWrites = (stdout: { write: ReturnType<typeof vi.fn> }): string =>
+    stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+  /**
+   * 渲染走增量 diff + WriteBatcher 16ms 尾沿批处理：帧写入相对事件触发有
+   * 至少一拍的延迟，固定 sleep 与批处理时序存在竞态——用 waitFor 轮询断言。
+   */
+  async function waitForPanel(
+    stdout: { write: ReturnType<typeof vi.fn> },
+    assert: (written: string) => void,
+  ): Promise<void> {
+    await vi.waitFor(() => assert(joinedWrites(stdout)), { timeout: 2000, interval: 20 })
+  }
+
+  it('/todos 打开渲染保留快照摘要；onChanged 实时更新；turn/start 清空（null）不回退', async () => {
+    const ctx = makeCtx()
+    let changeListener: ((s: { id: string }, key: string, value: unknown) => void) | null = null
+    let mountedAgent: { session: { id: string } } | null = null
+    ctx.agents.create.mockImplementation(({ sessionId }: { sessionId: string }) => {
+      const agent = makeAgent(sessionId)
+      mountedAgent = agent
+      ctx.sessions.get.mockReturnValue(agent.session)
+      return makeHandle(agent)
+    })
+    const onChanged = vi.fn((l: (s: { id: string }, key: string, value: unknown) => void) => {
+      changeListener = l
+      return () => { }
+    })
+    // attach 快照已有一份清单（重放/重挂载场景）。
+    const snapshot = vi.fn(() => ({ values: { todos: [{ content: '理解问题', status: 'completed' }] } }))
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'sessionProjections') return { snapshot, onChanged }
+      return undefined
+    })
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+
+    // 初始：面板未打开 → 无待办卡行
+    expect(joinedWrites(stdout)).not.toContain('📋 待办')
+
+    // /todos 打开 → 摘要卡渲染计数，不渲染明细行
+    for (const ch of '/todos') stdin.emit('data', ch)
+    stdin.emit('data', '\r')
+    await waitForPanel(stdout, (w) => {
+      expect(w).toContain('📋 待办 ✓1 ⏳0 □0')
+      expect(w).not.toContain('[x] 理解问题')
+    })
+
+    // onChanged 推送新快照 → 摘要实时更新（含当前进行项）
+    expect(changeListener).not.toBeNull()
+    const listener = changeListener as unknown as (s: { id: string }, key: string, value: unknown) => void
+    const mounted = mountedAgent as unknown as { session: { id: string } }
+    listener({ id: mounted.session.id }, 'todos', [
+      { content: '理解问题', status: 'completed' },
+      { content: '写测试', status: 'in_progress' },
+      { content: '跑门禁', status: 'pending' },
+    ])
+    await waitForPanel(stdout, w => expect(w).toContain('· 写测试'))
+
+    // turn/start 把投影清成 null → 面板黏滞在上一份清单：若保留快照被 null
+    // 回退，随后的重绘会渲染「尚无待办」空态行落入缓冲，此处即失败。
+    listener({ id: mounted.session.id }, 'todos', null)
+    await new Promise(resolve => setTimeout(resolve, 300))
+    const writtenAfterReset = joinedWrites(stdout)
+    expect(writtenAfterReset).toContain('· 写测试')
+    expect(writtenAfterReset).not.toContain('尚无待办')
+    // 状态直查：保留快照吸收了最后一次非空投影值。
+    expect((app as unknown as { todosRetained: unknown }).todosRetained).toEqual([
+      { content: '理解问题', status: 'completed' },
+      { content: '写测试', status: 'in_progress' },
+      { content: '跑门禁', status: 'pending' },
+    ])
+
+    // /todos all 展开 → 明细行渲染（封顶内全量）
+    for (const ch of '/todos all') stdin.emit('data', ch)
+    stdin.emit('data', '\r')
+    await waitForPanel(stdout, w => expect(w).toContain('[ ] 跑门禁'))
+    await app.dispose()
+  }, 15_000)
+
+  it('/todos 再次执行隐藏面板；隐藏态下 all 直接展开显示；非法参数回显用法', async () => {
+    const ctx = makeCtx()
+    ctx.agents.create.mockImplementation(({ sessionId }: { sessionId: string }) => {
+      const agent = makeAgent(sessionId)
+      ctx.sessions.get.mockReturnValue(agent.session)
+      return makeHandle(agent)
+    })
+    const snapshot = vi.fn(() => ({ values: { todos: [{ content: '任务一', status: 'pending' }] } }))
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'sessionProjections') {
+        return { snapshot, onChanged: () => () => { } }
+      }
+      return undefined
+    })
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+
+    const typeAndEnter = async (cmd: string): Promise<void> => {
+      for (const ch of cmd) stdin.emit('data', ch)
+      await new Promise(resolve => setImmediate(resolve))
+      // 只保留 Enter 之后的写入：输入过程中的中间帧（斜杠菜单开着、显隐未变）
+      // 会把旧面板行带进缓冲，不能作为切换后的断言依据。
+      stdout.write.mockClear()
+      stdin.emit('data', '\r')
+      await new Promise(resolve => setImmediate(resolve))
+    }
+
+    // 非法参数：回显用法且不打开面板
+    await typeAndEnter('/todos foo')
+    let written = joinedWrites(stdout)
+    expect(written).toContain('用法: /todos [all]')
+    expect(written).not.toContain('📋 待办 ✓')
+
+    // 隐藏态 all：直接显示并展开明细
+    await typeAndEnter('/todos all')
+    await waitForPanel(stdout, w => expect(w).toContain(' [ ] 任务一'))
+
+    // 再 /todos：隐藏面板——Enter 后的最后一帧不含面板行
+    await typeAndEnter('/todos')
+    await waitForPanel(stdout, (w) => {
+      expect(w.length).toBeGreaterThan(0)
+      expect(w).not.toContain('📋 待办 ✓')
+    })
+
+    // all 两连按：先展开显示，再收起明细。摘要行与展开态同文（同一份清单），
+    // diff 渲染不会重写标题行——可观察信号是明细行从 Enter 后的帧里消失。
+    await typeAndEnter('/todos all')
+    await waitForPanel(stdout, w => expect(w).toContain(' [ ] 任务一'))
+    await typeAndEnter('/todos all')
+    await new Promise(resolve => setTimeout(resolve, 200))
+    expect(joinedWrites(stdout)).not.toContain('[ ] 任务一')
+    await app.dispose()
+  }, 15_000)
+
+  it('/clear 收起待办面板（live 区命令面板随清屏一并收起）', async () => {
+    const ctx = makeCtx()
+    ctx.agents.create.mockImplementation(({ sessionId }: { sessionId: string }) => {
+      const agent = makeAgent(sessionId)
+      ctx.sessions.get.mockReturnValue(agent.session)
+      return makeHandle(agent)
+    })
+    const snapshot = vi.fn(() => ({ values: { todos: [{ content: '任务一', status: 'pending' }] } }))
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'sessionProjections') {
+        return { snapshot, onChanged: () => () => { } }
+      }
+      return undefined
+    })
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+
+    for (const ch of '/todos') stdin.emit('data', ch)
+    stdin.emit('data', '\r')
+    await waitForPanel(stdout, w => expect(w).toContain('📋 待办 ✓'))
+
+    for (const ch of '/clear') stdin.emit('data', ch)
+    stdin.emit('data', '\r')
+    await new Promise(resolve => setTimeout(resolve, 200))
+    // 清屏后的全量重绘不再含面板行（检查最新一帧；缓冲里清屏前的旧行不算）。
+    const lastFrame = stdout.write.mock.calls.at(-1)?.map(c => `${c[0]}`).join('') ?? ''
+    expect(lastFrame).not.toContain('📋 待办 ✓')
+    await app.dispose()
+  }, 15_000)
 })
