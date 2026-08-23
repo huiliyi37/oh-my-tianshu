@@ -27,8 +27,8 @@ exe 使用 [@yao-pkg/pkg](https://github.com/yao-pkg/pkg)（vercel/pkg 归档后
 
 确定性协议实现（`server.ts` / `transport.ts`）按 `acp/acp` + `examples/acp-demo` 的既有模式落为两包——对外服务接口本身也是插件：
 
-- [`packages/scaffold/server`](../../../../packages/scaffold/server/README.md)（`@huiliyi37/dsh-jsonrpc`）：纯协议插件；执行 `apply` 时，在进程 stdio 上挂载 `HarnessSdkServer` 与按行传输的 JSON-RPC 层，资源释放走 `ctx.effect()`。是否提供服务由 `cordis.yml` 决定；未挂载该插件的配置会启动一个不提供此服务的合法进程。协议级退出归插件所有（应答并确保 `shutdown` 响应发送完毕后，对根运行时执行 dispose（资源释放），让待处理的持久化操作完成，再调用 `exit(0)`；HMR 式卸载只停止服务，不退出进程）。
-- [`packages/examples/jsonrpc-demo`](../../../../packages/examples/jsonrpc-demo/README.md)（`@huiliyi37/dsh-jsonrpc-demo`）：轻量应用入口——`installFailLoud` + `loadEnv` + 配置发现 + [`dsh-app-boot`](../../../../packages/boot/app-boot/src/index.ts) 的 `boot()`；`boot()` 完成后入口即完成，服务器由 `cordis.yml` 中的 `dsh-jsonrpc` 条目启动。它只依赖 `app-boot`。进程级退出归 `bin` 所有（stdin EOF/SIGTERM → dispose 后返回 0，SIGINT → 130）。
+- [`packages/scaffold/server`](../../../../packages/scaffold/server/README.md)（`@huiliyi37/dsh-sdk-server`）：纯协议插件；执行 `apply` 时，在进程 stdio 上挂载 `HarnessSdkServer` 与按行传输的 JSON-RPC 层，资源释放走 `ctx.effect()`。是否提供服务由 `cordis.yml` 决定；未挂载该插件的配置会启动一个不提供此服务的合法进程。协议级退出归插件所有（应答并确保 `shutdown` 响应发送完毕后，对根运行时执行 dispose（资源释放），让待处理的持久化操作完成，再调用 `exit(0)`；HMR 式卸载只停止服务，不退出进程）。
+- [`packages/examples/jsonrpc-demo`](../../../../packages/examples/jsonrpc-demo/README.md)（`@huiliyi37/dsh-jsonrpc-demo`）：轻量应用入口——`installFailLoud` + `loadEnv` + 配置发现 + [`dsh-app-boot`](../../../../packages/boot/app-boot/src/index.ts) 的 `boot()`；`boot()` 完成后入口即完成，服务器由 `cordis.yml` 中的 `dsh-sdk-server` 条目启动。它只依赖 `app-boot`。进程级退出归 `bin` 所有（stdin EOF/SIGTERM → dispose 后返回 0，SIGINT → 130）。
 
 配置发现有两个通道，均缺失时立即报错：优先使用 `DSH_CORDIS_CONFIG` 环境变量（SDK 客户端约定），其次使用 argv 位置参数；没有默认路径或内置回退——「实际启动的插件由外部 `cordis.yml` 决定」是硬语义。
 
@@ -36,13 +36,13 @@ exe 使用 [@yao-pkg/pkg](https://github.com/yao-pkg/pkg)（vercel/pkg 归档后
 
 exe 的 VFS 内是**构建产物形态的真实包树**（各包的 `lib/` + 真实 `node_modules`）。loader 通过标准动态 `import()` 解析插件名：裸包名从 VFS 内 loader 所在位置沿 `node_modules` 向上解析，自然落在 VFS 内。封闭集不需要白名单代码——VFS 中安装了什么，集合中就有什么；`import()` 集合外的名称会失败。
 
-部署根目录是 [`python/sdk-runtime/package.json`](../../../../python/sdk-runtime/package.json)（`dsh-jsonrpc-agent-pkg`，pnpm 工作区成员、零代码纯依赖 manifest），也是「exe 安装哪些插件」与「Python 运行时分发什么」的统一真源。向 exe 添加插件，就是在 manifest 中增加一行依赖后重新打包。[`scripts/verify-runtime-closure.ts`](../../../../scripts/verify-runtime-closure.ts) 遍历该 manifest 覆盖的全部工作区包，要求每个非可选的工作区对等依赖（peer dependency）都显式列在运行时根目录，并报告“引用包 → 缺失对等依赖”的完整链路；`pnpm run hygiene`、CI 静态检查与 single-exe 构建都会在打包前运行该门禁。部署还会依据各包的 `files` 字段打包，因此 tsdown 拆出的共享分片必须被 `files` 覆盖。
+部署根目录是 [`python/sdk-runtime/package.json`](../../../../python/sdk-runtime/package.json)（`dsh-sdk-server-agent-pkg`，pnpm 工作区成员、零代码纯依赖 manifest），也是「exe 安装哪些插件」与「Python 运行时分发什么」的统一真源。向 exe 添加插件，就是在 manifest 中增加一行依赖后重新打包。[`scripts/verify-runtime-closure.ts`](../../../../scripts/verify-runtime-closure.ts) 遍历该 manifest 覆盖的全部工作区包，要求每个非可选的工作区对等依赖（peer dependency）都显式列在运行时根目录，并报告“引用包 → 缺失对等依赖”的完整链路；`pnpm run hygiene`、CI 静态检查与 single-exe 构建都会在打包前运行该门禁。部署还会依据各包的 `files` 字段打包，因此 tsdown 拆出的共享分片必须被 `files` 覆盖。
 
 部署根目录显式包含 `@huiliyi37/dsh-mcp-client`，将其作为自定义配置可用的插件，即使随附 preset 均未挂载该插件。外部配置因此可以连接由用户提供的 stdio 与 Streamable HTTP MCP server 并注册其工具；分发物不包含这些 server，也不将桥接范围扩展到 MCP Resources 和 Prompts。
 
 ### 构建管线与产物
 
-[`scripts/build-exe-for-python-sdk.ts`](../../../../scripts/build-exe-for-python-sdk.ts)：运行时闭包校验 → `pnpm run build` →（清空后）`pnpm --filter dsh-jsonrpc-agent-pkg deploy --legacy --prod --config.node-linker=hoisted --config.auto-install-peers=false --config.link-workspace-packages=true` **直接写入** `python/sdk-runtime/src/deepseek_harness_runtime/runtime/node/` → 注入 pkg 配置（`bin` 指向闭包内的 `node_modules/@huiliyi37/dsh-jsonrpc-demo/lib/bin.js`；`assets` 使用全量 glob，因为动态 `import()` 对 pkg 静态分析不可见，必须显式打入全部内容）→ 暂存目标平台的 `node-pty` addon → 每个构建目标调用一次 `pkg --sea` → 可执行文件 `dsh-jsonrpc-agent-pkg-<platform>-<arch>` 写入 `dist-exe/`，并拷回运行时目录。Linux 安装会从源码构建 `pty.node`，而 `--legacy` 部署会省略该副作用目录，因此构建器会把它从根安装目录复制到暂存闭包。每个目标都会把对应的原生 `@vscode/ripgrep` 二进制复制到可执行文件旁，作为必需的 `-rg` 伴随文件；pkg 运行时通过 `process.pkg` 选择该伴随文件，普通 Node 执行则直接使用 `@vscode/ripgrep`。macOS 使用对应目标的预构建产物，并在可执行文件旁生成所需的 `-spawn-helper`。CI 将这些产物作为测试中间输入，只保留对应平台的 wheel 包。四个部署标志都有实测依据：未启用 `inject-workspace-packages` 时必须使用 `--legacy`；`hoisted` 产出无符号链接的文件树（对 pkg VFS 最稳定，并从物理上保证只有一个 Cordis 实例）；关闭对等依赖自动安装可避免未发布包名触发注册表解析；`link-workspace-packages` 让闭包指向工作区/vendor 源码。
+[`scripts/build-exe-for-python-sdk.ts`](../../../../scripts/build-exe-for-python-sdk.ts)：运行时闭包校验 → `pnpm run build` →（清空后）`pnpm --filter dsh-sdk-server-agent-pkg deploy --legacy --prod --config.node-linker=hoisted --config.auto-install-peers=false --config.link-workspace-packages=true` **直接写入** `python/sdk-runtime/src/deepseek_harness_runtime/runtime/node/` → 注入 pkg 配置（`bin` 指向闭包内的 `node_modules/@huiliyi37/dsh-jsonrpc-demo/lib/bin.js`；`assets` 使用全量 glob，因为动态 `import()` 对 pkg 静态分析不可见，必须显式打入全部内容）→ 暂存目标平台的 `node-pty` addon → 每个构建目标调用一次 `pkg --sea` → 可执行文件 `dsh-sdk-server-agent-pkg-<platform>-<arch>` 写入 `dist-exe/`，并拷回运行时目录。Linux 安装会从源码构建 `pty.node`，而 `--legacy` 部署会省略该副作用目录，因此构建器会把它从根安装目录复制到暂存闭包。每个目标都会把对应的原生 `@vscode/ripgrep` 二进制复制到可执行文件旁，作为必需的 `-rg` 伴随文件；pkg 运行时通过 `process.pkg` 选择该伴随文件，普通 Node 执行则直接使用 `@vscode/ripgrep`。macOS 使用对应目标的预构建产物，并在可执行文件旁生成所需的 `-spawn-helper`。CI 将这些产物作为测试中间输入，只保留对应平台的 wheel 包。四个部署标志都有实测依据：未启用 `inject-workspace-packages` 时必须使用 `--legacy`；`hoisted` 产出无符号链接的文件树（对 pkg VFS 最稳定，并从物理上保证只有一个 Cordis 实例）；关闭对等依赖自动安装可避免未发布包名触发注册表解析；`link-workspace-packages` 让闭包指向工作区/vendor 源码。
 
 CI 使用 [`.github/workflows/build-exe-for-python-sdk.yml`](../../../../.github/workflows/build-exe-for-python-sdk.yml)，且只允许显式触发：手动派发 `workflow_dispatch`，或给 PR（Pull Request）添加 `build-exe` 标签。linux-x64、linux-arm64（`ubuntu-24.04-arm`）和 macos-arm64 三个平台分别进行原生构建，并缓存 `~/.pkg-cache`；macOS 的 ad-hoc 签名由 pkg 处理。每个平台都使用 mock SSE（Server-Sent Events）模型，分别通过默认配置和自定义 `cordis.yml` 驱动 SDK，再通过 NDJSON JSON-RPC 直接驱动 exe，校验 JSONL 与最终响应；最后把发布形态的 wheel 包安装到干净的 venv 中，并在不传 `runtime_bin` 的情况下运行。Linux 还会检查 GLIBC 依赖，并在 manylinux 2.28 容器中运行。完整构建三个目标时保留 4 个产物，每个产物只含一个发布文件：平台无关的 SDK wheel 包与 3 个原生运行时 wheel 包；手动选择部分目标时保留 SDK wheel 与所选运行时 wheel。裸 exe 与源码包只作为测试中间输入。`.gitlab-ci.yml` (private GitLab mirror only) 只接受版本与根目录 `package.json` 匹配的 `python-vX.Y.Z` 标签流水线，构建一个 SDK wheel 包和 3 个原生运行时 wheel 包，再由单个串行任务校验并将这 4 个文件发布到项目的 PyPI 注册表。Windows 不在目标范围内。
 
@@ -52,11 +52,11 @@ Python SDK 位于 [`python/`](../../../../python/README.md)：`python/sdk` 是�
 
 [`scripts/build-python-release.py`](../../../../scripts/build-python-release.py) 从仓库根目录的 `package.json` 读取权威的稳定版本 `X.Y.Z`，以该版本暂存两个包，并让 SDK 精确依赖 `deepseek-harness-runtime-bin==X.Y.Z`。可选的 `python-vX.Y.Z` 发布标签只是一项一致性断言，与仓库版本不同时会被拒绝；源码 `pyproject.toml` 中的开发占位版本从不决定发布版本。SDK 是 `py3-none-any` wheel 包；每个只提供 wheel 包的运行时包都包含一个 exe 及其架构匹配的 `-rg` 伴随文件，macOS wheel 包还包含与其架构匹配的 spawn helper。运行时 wheel 包使用 `py3-none-manylinux_2_28_x86_64`、`py3-none-manylinux_2_28_aarch64` 或 `py3-none-macosx_11_0_arm64` 三种标签之一；Hatch 钩子拒绝 sdist、通用标签、混合平台载荷、伴随文件缺失或多余，以及不支持的平台。
 
-exe「必须显式配置」的硬语义不变；零配置体验由包装层恢复：调用方没有提供 `cordis`、没有显式指定运行时，且环境中没有 `DSH_CORDIS_CONFIG` 时，客户端将检入的默认 `cordis.yml`（`agent-core` + 预载的 `llm-deepseek` + JSONL 持久化 + `bash-local` + `dsh-jsonrpc` 对外服务条目，并通过 `!!js` 使用环境变量兜底）显式注入 `DSH_CORDIS_CONFIG`。
+exe「必须显式配置」的硬语义不变；零配置体验由包装层恢复：调用方没有提供 `cordis`、没有显式指定运行时，且环境中没有 `DSH_CORDIS_CONFIG` 时，客户端将检入的默认 `cordis.yml`（`agent-core` + 预载的 `llm-deepseek` + JSONL 持久化 + `bash-local` + `dsh-sdk-server` 对外服务条目，并通过 `!!js` 使用环境变量兜底）显式注入 `DSH_CORDIS_CONFIG`。
 
 ### 命名血统
 
-`@huiliyi37/dsh-jsonrpc-demo`（包）→ `dsh-jsonrpc-agent`（`bin`）→ `dsh-jsonrpc-agent-pkg`（闭包 manifest；没有作用域前缀，刻意避开 `constraints` 对 `@huiliyi37/dsh-*` 的包形状规则）→ `dsh-jsonrpc-agent-pkg-<platform>-<arch>`（exe 产物）。协议字段 `serverInfo.name` 保持为 `deepseek-harness-sdk-runtime`（协议稳定值）；Python 分发名为 `deepseek-harness` / `deepseek-harness-runtime-bin`。
+`@huiliyi37/dsh-jsonrpc-demo`（包）→ `dsh-sdk-server-agent`（`bin`）→ `dsh-sdk-server-agent-pkg`（闭包 manifest；没有作用域前缀，刻意避开 `constraints` 对 `@huiliyi37/dsh-*` 的包形状规则）→ `dsh-sdk-server-agent-pkg-<platform>-<arch>`（exe 产物）。协议字段 `serverInfo.name` 保持为 `deepseek-harness-sdk-runtime`（协议稳定值）；Python 分发名为 `deepseek-harness` / `deepseek-harness-runtime-bin`。
 
 ## 工作线程插件
 

@@ -3,7 +3,7 @@
 # keeps the model-facing surface to exactly these two tools.
 
 - id: jsonrpc
-  name: '@huiliyi37/dsh-jsonrpc'
+  name: '@huiliyi37/dsh-sdk-server'
 
 - id: llm-deepseek
   name: '@huiliyi37/dsh-llm-deepseek'

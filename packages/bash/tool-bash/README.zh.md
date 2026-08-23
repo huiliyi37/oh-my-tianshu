@@ -149,5 +149,5 @@ renderer 先输出依数据而定的 stdout 尾部，再输出可选的 `[stderr
 ## 已知限制与延期工作
 
 - **回放退出状态 pill 从结果文本解析**：如果输出最后一行恰好精确为 `[exit code: N]` / `[killed by signal: …]`，会话回放将显示错误的 pill，并且该行会从卡片正文中丢失，因为解析会把它当作自己消耗的标记；这是仅影响展示的已知残留问题。
-- **`bash` 工具不采用 `timeout-policy` 预算**：根据[工具调用 timeout-policy Agent Note](../../../.agents/notes/implemented/architecture/2026-07-07-tool-call-timeout-policy.md)，它保留由执行器持有的 `BASH_TIMEOUT` 路径。
+- **`bash` 工具不采用 `timeout-guard` 预算**：根据[工具调用 timeout-guard Agent Note](../../../.agents/notes/implemented/architecture/2026-07-07-tool-call-timeout-policy.md)，它保留由执行器持有的 `BASH_TIMEOUT` 路径。
 - **后台进程没有执行器超时**：工作不再需要时，调用方必须使用 `task_kill`，或依赖持有者／服务的 dispose。

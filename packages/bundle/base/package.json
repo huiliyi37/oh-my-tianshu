@@ -96,7 +96,7 @@
     "@huiliyi37/dsh-subprocess-local": "workspace:^",
     "@huiliyi37/dsh-system-prompt": "workspace:^",
     "@huiliyi37/dsh-tasks-local": "workspace:^",
-    "@huiliyi37/dsh-timeout-policy": "workspace:^",
+    "@huiliyi37/dsh-timeout-guard": "workspace:^",
     "@huiliyi37/dsh-token-meter": "workspace:^",
     "@huiliyi37/dsh-tool-bash": "workspace:^",
     "@huiliyi37/dsh-tool-file-info": "workspace:^",

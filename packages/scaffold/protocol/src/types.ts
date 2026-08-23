@@ -2,7 +2,7 @@
  * Named wire types for the Tianshu Harness SDK runtime protocol: the three
  * request/result pairs and the four server-to-client notification payloads
  * exchanged over the newline-delimited JSON-RPC stdio transport. The server
- * plugin (`@huiliyi37/dsh-jsonrpc`) and SDK clients share these shapes;
+ * plugin (`@huiliyi37/dsh-sdk-server`) and SDK clients share these shapes;
  * `serverInfo.name` stays the wire-stable `tianshu-harness-sdk-runtime`.
  *
  * @module @huiliyi37/dsh-sdk-protocol/types

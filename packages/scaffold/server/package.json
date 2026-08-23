@@ -1,5 +1,5 @@
 {
-  "name": "@huiliyi37/dsh-jsonrpc",
+  "name": "@huiliyi37/dsh-sdk-server",
   "description": "Stdio JSON-RPC server plugin for out-of-process Tianshu Harness SDK clients",
   "version": "0.4.0",
   "publishConfig": {

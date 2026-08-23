@@ -391,8 +391,8 @@
     - id: tool-workflow
       name: '@huiliyi37/dsh-tool-workflow'
 
-    - id: timeout-policy
-      name: '@huiliyi37/dsh-timeout-policy'
+    - id: timeout-guard
+      name: '@huiliyi37/dsh-timeout-guard'
 
     - id: spill-local
       name: '@huiliyi37/dsh-spill-local'

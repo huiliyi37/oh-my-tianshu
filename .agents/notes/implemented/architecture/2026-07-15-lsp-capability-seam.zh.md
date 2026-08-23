@@ -104,7 +104,7 @@ interface LspToolInput {
 
 ## 超时归属
 
-`dsh-tool-lsp` 将一个可配置的 `timeoutMs` 预算附加到工具定义，默认值为 `60_000`。`dsh-timeout-policy` 执行预算并提供传入 `ctx.lsp.query` 的 `exec.signal`；该预算覆盖排队、打开、查询和关闭的完整生命周期，模型不可配置。
+`dsh-tool-lsp` 将一个可配置的 `timeoutMs` 预算附加到工具定义，默认值为 `60_000`。`dsh-timeout-guard` 执行预算并提供传入 `ctx.lsp.query` 的 `exec.signal`；该预算覆盖排队、打开、查询和关闭的完整生命周期，模型不可配置。
 
 服务边界和提供方不增加启动或请求截止时间。非工具调用方不会获得隐藏超时，必须自行提供 `AbortSignal`，并在需要预算时使用 `deadline()`。
 

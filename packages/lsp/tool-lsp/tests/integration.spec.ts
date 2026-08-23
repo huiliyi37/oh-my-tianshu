@@ -10,7 +10,7 @@ import LocalFileSystem from '@huiliyi37/dsh-fs-local'
 import LocalSubprocessService from '@huiliyi37/dsh-subprocess-local'
 import Lsp from '@huiliyi37/dsh-lsp'
 import * as LspLocal from '@huiliyi37/dsh-lsp-local'
-import * as TimeoutPolicy from '@huiliyi37/dsh-timeout-policy'
+import * as TimeoutPolicy from '@huiliyi37/dsh-timeout-guard'
 import * as ToolLsp from '@huiliyi37/dsh-tool-lsp'
 
 /**

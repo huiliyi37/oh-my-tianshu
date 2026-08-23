@@ -46,8 +46,8 @@ const CORDIS_YML = `
     workspaceContext: false
 - id: tool-session-query
   name: '@huiliyi37/dsh-tool-session-query'
-- id: timeout-policy
-  name: '@huiliyi37/dsh-timeout-policy'
+- id: timeout-guard
+  name: '@huiliyi37/dsh-timeout-guard'
 - id: spill-local
   name: '@huiliyi37/dsh-spill-local'
 - id: spill-policy

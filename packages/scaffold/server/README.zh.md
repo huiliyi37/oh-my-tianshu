@@ -1,4 +1,4 @@
-# @huiliyi37/dsh-jsonrpc
+# @huiliyi37/dsh-sdk-server
 
 [English](README.md) | 中文
 

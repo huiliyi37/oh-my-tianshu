@@ -151,4 +151,4 @@ Use the edit tool for targeted changes to existing UTF-8 text files. It replaces
 
 - **未交付面向模型的目录列表工具**：`ctx.fs.listDir` 服务于 skill（技能）发现等提供方代码，同级 [`dsh-tool-fs-search`](../tool-fs-search/) 包则提供基于 bash 的 `glob` 与 `grep`，而不是扩展文件系统 seam。
 - **`read` 只处理 UTF-8 文本文件**：二进制安全读取和 PDF/图像/多模态内容均延期处理；目录目标为 `FS_NOT_REGULAR_FILE`。
-- **没有超时接口**：`read`/`write`/`edit` 不接受超时参数，也不声明 `timeout-policy` 预算；取消只通过 `exec.signal` 传递（见[提供方理由](../README.md#no-timeouts-on-file-io)）。
+- **没有超时接口**：`read`/`write`/`edit` 不接受超时参数，也不声明 `timeout-guard` 预算；取消只通过 `exec.signal` 传递（见[提供方理由](../README.md#no-timeouts-on-file-io)）。

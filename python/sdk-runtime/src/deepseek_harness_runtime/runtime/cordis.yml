@@ -4,7 +4,7 @@
 
 # Stdio JSON-RPC serving surface; without it the agent has no SDK client.
 - id: jsonrpc
-  name: '@huiliyi37/dsh-jsonrpc'
+  name: '@huiliyi37/dsh-sdk-server'
 
 # Agent spine; the SDK server creates agents per sessionId.
 - id: agent-core

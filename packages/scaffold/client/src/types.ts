@@ -21,7 +21,7 @@ export type NotificationFilter = (notification: HarnessNotification) => boolean
 
 /** Launch and timeout options for {@link HarnessClient}. */
 export interface HarnessClientOptions {
-  /** The runtime executable (the `dsh-jsonrpc-agent` bin, a packaged exe, or `node`). */
+  /** The runtime executable (the `dsh-sdk-server-agent` bin, a packaged exe, or `node`). */
   command: string
   /** Arguments passed to {@link command}. */
   args?: string[]

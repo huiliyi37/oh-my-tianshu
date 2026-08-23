@@ -1,6 +1,6 @@
 /**
  * Built-artifact guard for the scope carrier shared by `dsh-subagent` and
- * `dsh-jsonrpc`. The carrier registry is module-local, so both bundles must
+ * `dsh-sdk-server`. The carrier registry is module-local, so both bundles must
  * externalize `dsh-scope`; source-mode tests cannot expose an accidentally
  * inlined second registry. This test runs the real `lib/index.js` bundles in a
  * plain Node subprocess, disposes the child before settlement, and requires the
@@ -98,7 +98,7 @@ try {
 }
 `
 
-describe.skipIf(!existsSync(jsonrpcBundle))('dsh-jsonrpc BUILT scope carrier', () => {
+describe.skipIf(!existsSync(jsonrpcBundle))('dsh-sdk-server BUILT scope carrier', () => {
   it('preserves parent-scoped completion after child disposal', async () => {
     const { stdout, stderr } = await execFileAsync(process.execPath, ['--input-type=module', '-e', builtRuntimeProbe], {
       cwd: repoRoot,

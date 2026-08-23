@@ -3,7 +3,7 @@
 # parent's subagent-sdk backend spawns this composition per run; stdout is
 # reserved for JSON-RPC frames.
 - id: jsonrpc
-  name: '@huiliyi37/dsh-jsonrpc'
+  name: '@huiliyi37/dsh-sdk-server'
 
 - id: child-mock-llm
   name: './child-mock-llm.ts'

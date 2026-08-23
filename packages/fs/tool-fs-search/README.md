@@ -29,7 +29,7 @@ Node deployments receive the `@vscode/ripgrep` platform package on supported mac
 | `grepMaxMatches` | `250` | Max flat matches one `grep` call retains inline (matches Claude Code's `GrepTool` `head_limit`); later matches go to the formatted spill artifact. |
 | `grepMaxLineBytes` | `2000` | Byte cap per matched-line preview; the cut preserves UTF-8 boundaries and is marked `(line truncated)`. |
 | `rawOutputMaxBytes` | `20000000` | Max complete raw `rg` stdout a search will parse (matches Claude Code's ripgrep raw buffer); larger raw output fails with `SEARCH_RAW_OUTPUT_OVERFLOW`. |
-| `timeoutMs` | `30000` | Cooperative tool-call budget attached to both tool definitions, enforced by `@huiliyi37/dsh-timeout-policy` through `exec.signal`; the subprocess seam's terminate escalation is the hard kill. |
+| `timeoutMs` | `30000` | Cooperative tool-call budget attached to both tool definitions, enforced by `@huiliyi37/dsh-timeout-guard` through `exec.signal`; the subprocess seam's terminate escalation is the hard kill. |
 | `graceMs` | `3000` | Positive terminate-escalation grace the subprocess seam grants past `timeoutMs` before the search fails as `SEARCH_ABORTED`; it cannot exceed [`MAX_TIMER_DELAY_MS`](../../util/timeout/README.md). |
 | `stderrMaxBytes` | `65536` | Diagnostic-tail budget for `rg` stderr, captured through the subprocess seam's collect disposition; a lossy read keeps only the tail (marked `[stderr truncated]`). |
 

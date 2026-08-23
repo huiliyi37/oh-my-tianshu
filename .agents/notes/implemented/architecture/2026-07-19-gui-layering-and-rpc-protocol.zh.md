@@ -243,7 +243,7 @@ export type ResponseValue<K> =
 | 消费型 client 直连 ctx（省 apiproxy 一层） | client 形态需要 wire 校验、观测与多 client 一致性。直接 headless 是没有 client 边界的本地前门，使用公开的 Agent／Session seam，而不是 client 命令面 |
 | webserver 依赖 runtime（省 handler 注入） | 结构 typing 注入让 webserver 可被 sidecar/测试复用且零 workspace 依赖；包依赖会把装配知识拖进承载层 |
 | 包名不带组前缀（沿用 dsh-<尾段>） | `dsh-runtime`/`dsh-web-ui` 在扁平 npm 命名空间里失去归属信息；代价只是每包一条显式 paths |
-| 复用仓内 JSON-RPC 2.0（dsh-jsonrpc） | 数字错误码退化成单码兜底、约定双份人肉对齐、命名无 convention 自然漂移 |
+| 复用仓内 JSON-RPC 2.0（dsh-sdk-server） | 数字错误码退化成单码兜底、约定双份人肉对齐、命名无 convention 自然漂移 |
 | 三信封模型（Request/Response/Frame 各一信封，签名不感知方向） | rpcId 是逻辑层关联，帧与应答的方向语义靠通道推断在换载体时即失效 |
 | 具名 Request/Response 类型对为事实源（map 登记类型对） | 平铺具名类型是同一事实的第二个名字；签名 infer 反推让加方法只改一处 |
 | REST 风格路径 | 消费者是自家 client，无第三方 REST 体验诉求；RPC 直映方法表更机械 |

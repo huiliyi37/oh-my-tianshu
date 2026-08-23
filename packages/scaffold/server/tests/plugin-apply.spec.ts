@@ -149,9 +149,9 @@ async function mockCompletionServer(): Promise<{ url: string; requests: unknown[
   return { url: `http://127.0.0.1:${address.port}`, requests }
 }
 
-describe('dsh-jsonrpc plugin apply', () => {
+describe('dsh-sdk-server plugin apply', () => {
   it('serves initialize over the injected stdio pair', async () => {
-    const storageDir = await mkdtemp(join(tmpdir(), 'dsh-jsonrpc-apply-init-'))
+    const storageDir = await mkdtemp(join(tmpdir(), 'dsh-sdk-server-apply-init-'))
     vi.stubEnv('DEEPSEEK_API_KEY', 'test-key')
     const harness = await mountPlugin(storageDir)
     try {
@@ -171,7 +171,7 @@ describe('dsh-jsonrpc plugin apply', () => {
   })
 
   it('drives a session/prompt turn end-to-end and forwards session notifications as output frames', async () => {
-    const storageDir = await mkdtemp(join(tmpdir(), 'dsh-jsonrpc-apply-prompt-'))
+    const storageDir = await mkdtemp(join(tmpdir(), 'dsh-sdk-server-apply-prompt-'))
     const llmServer = await mockCompletionServer()
     vi.stubEnv('DEEPSEEK_API_KEY', 'test-key')
     vi.stubEnv('DEEPSEEK_BASE_URL', llmServer.url)
@@ -213,7 +213,7 @@ describe('dsh-jsonrpc plugin apply', () => {
   })
 
   it('answers shutdown before exiting 0 exactly once, even against a racing second shutdown', async () => {
-    const storageDir = await mkdtemp(join(tmpdir(), 'dsh-jsonrpc-apply-shutdown-'))
+    const storageDir = await mkdtemp(join(tmpdir(), 'dsh-sdk-server-apply-shutdown-'))
     const harness = await mountPlugin(storageDir, { writeDelayMs: 10 })
     try {
       // One chunk makes the two deferred exit callbacks race.
@@ -256,7 +256,7 @@ describe('dsh-jsonrpc plugin apply', () => {
   })
 
   it('still disposes and exits once when the flush callback fails', async () => {
-    const storageDir = await mkdtemp(join(tmpdir(), 'dsh-jsonrpc-apply-flush-failure-'))
+    const storageDir = await mkdtemp(join(tmpdir(), 'dsh-sdk-server-apply-flush-failure-'))
     const harness = await mountPlugin(storageDir, { failFlush: true })
     try {
       harness.send({ jsonrpc: '2.0', id: 'sd-fail', method: 'shutdown' })
@@ -278,7 +278,7 @@ describe('dsh-jsonrpc plugin apply', () => {
   })
 
   it('stops serving on a bare fiber dispose (HMR-style unload) without calling exit', async () => {
-    const storageDir = await mkdtemp(join(tmpdir(), 'dsh-jsonrpc-apply-dispose-'))
+    const storageDir = await mkdtemp(join(tmpdir(), 'dsh-sdk-server-apply-dispose-'))
     const harness = await mountPlugin(storageDir)
     try {
       // Prove the handler-rejection path is live before disposal.

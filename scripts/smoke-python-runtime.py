@@ -67,7 +67,7 @@ SNAPSHOT_DIRECTORY = (
 SNAPSHOT_FILENAMES = ("result.json", "session.jsonl", "session.1.jsonl", "session.2.jsonl")
 CUSTOM_CORDIS = """\
 - id: jsonrpc
-  name: '@huiliyi37/dsh-jsonrpc'
+  name: '@huiliyi37/dsh-sdk-server'
 - id: agent-core
   name: '@huiliyi37/dsh-agent-spine-demo'
   config:
@@ -105,7 +105,7 @@ CUSTOM_CORDIS = """\
 """
 PERSISTENT_TOOLS_CORDIS = """\
 - id: jsonrpc
-  name: '@huiliyi37/dsh-jsonrpc'
+  name: '@huiliyi37/dsh-sdk-server'
 - id: llm
   name: '@huiliyi37/dsh-llm-deepseek'
   config:

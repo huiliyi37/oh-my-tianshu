@@ -2,7 +2,7 @@
  * JSON-RPC method and notification surface for out-of-process harness SDKs.
  * The surrounding context owns plugins, persistence, and configured adapters.
  *
- * @module @huiliyi37/dsh-jsonrpc/server
+ * @module @huiliyi37/dsh-sdk-server/server
  */
 
 import type { Context } from '@huiliyi37/cordis'

@@ -20,7 +20,7 @@ DeepSeek Harness 在 TUI 和 Headless coding agent 之外，还提供了两个�
 
 - `@huiliyi37/dsh-tui` 负责终端交互式执行。它会在 Loader 启动前拒绝非 TTY 流；`apps/cli/config/base.cordis.yml` 与 `tui.cordis.yml` overlay 拥有完整 coding 组装，PTY 与终端快照覆盖则位于 `apps/cli/tests/`。
 - [`dsh run`](../../../../apps/cli/README.md) 负责非交互式执行。其 `headless` profile 是产品组装；`examples/headless-agent` 负责回放快照、通用真实 agent 测试套件和未导出的无密钥 Loader driver。
-- [`@huiliyi37/dsh-acp-demo`](../../../../packages/examples/acp-demo/README.md) 和 `@huiliyi37/dsh-jsonrpc` 负责各自的分帧协议集成。
+- [`@huiliyi37/dsh-acp-demo`](../../../../packages/examples/acp-demo/README.md) 和 `@huiliyi37/dsh-sdk-server` 负责各自的分帧协议集成。
 
 SDK 工程模型与 create/config 工作流将 `stdio` 运行接口选项替换为 `tui`；生成的 TUI 工程组合 `@huiliyi37/dsh-tui`，并创建或恢复一个确切会话。仓库中的演示文档要求 DeepSeek API key，并优先引导到真实的 Headless 或 TUI agent。
 

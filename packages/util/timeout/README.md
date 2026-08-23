@@ -56,7 +56,7 @@ Local file `read`/`write`/`edit` take no `timeoutMs`: a syscall is best-effort-a
 
 ## Model Experience
 
-Indirectly, through consumers such as `dsh-timeout-policy`, which may replace a provider result with a retained timeout error or suppress a late result.
+Indirectly, through consumers such as `dsh-timeout-guard`, which may replace a provider result with a retained timeout error or suppress a late result.
 
 #### KV Cache effect
 

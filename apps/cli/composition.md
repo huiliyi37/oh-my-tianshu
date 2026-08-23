@@ -146,7 +146,7 @@ flowchart LR
   cfg --> plugin_dsh_base_workflow_workerthread
   plugin_dsh_base_tool_workflow["tool-workflow<br/>@huiliyi37/dsh-tool-workflow"]
   cfg --> plugin_dsh_base_tool_workflow
-  plugin_dsh_base_timeout_policy["timeout-policy<br/>@huiliyi37/dsh-timeout-policy"]
+  plugin_dsh_base_timeout_policy["timeout-guard<br/>@huiliyi37/dsh-timeout-guard"]
   cfg --> plugin_dsh_base_timeout_policy
   plugin_dsh_base_spill_local["spill-local<br/>@huiliyi37/dsh-spill-local"]
   cfg --> plugin_dsh_base_spill_local
@@ -257,7 +257,7 @@ flowchart LR
 | `tool-subagent-report` | `@huiliyi37/dsh-tool-subagent-report` |
 | `workflow-workerthread` | `@huiliyi37/dsh-workflow-workerthread` |
 | `tool-workflow` | `@huiliyi37/dsh-tool-workflow` |
-| `timeout-policy` | `@huiliyi37/dsh-timeout-policy` |
+| `timeout-guard` | `@huiliyi37/dsh-timeout-guard` |
 | `spill-local` | `@huiliyi37/dsh-spill-local` |
 | `spill-policy` | `@huiliyi37/dsh-spill-policy` |
 | `session-checkpoint-policy` | `@huiliyi37/dsh-session-checkpoint-policy` |

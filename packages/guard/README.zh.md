@@ -9,7 +9,7 @@
 guard 把原本只能靠提示词传达的规则，变成 agent loop 上被强制执行、且经事件归账的机制。它们复用其它 dsh 能力相同的扩展点——`ctx.tools.guard`、`tools/execute`、`tools/post-execute`、`agent/pre-step` 与 `session/event`——要么丰富模型的下一次请求，要么否决一次调用。两档：
 
 - **建议档**——`repeat-tool-guard` 与 `doom-loop-guard` 把提醒折叠进下一次请求，但从不否决。
-- **强制档**——`evidence-gate`、`agent-router`、`timeout-policy` 与 `zen` 否决、改派或门控工作。
+- **强制档**——`evidence-gate`、`agent-router`、`timeout-guard` 与 `zen` 否决、改派或门控工作。
 
 ## 验证与路由闭环
 
@@ -32,7 +32,7 @@ tool outcomes → failure prediction (agent-router)
 | [`agent-router/`](agent-router/README.md) | 失败预测路由 + 原生子代理派发 | `ctx.router` |
 | [`repeat-tool-guard/`](repeat-tool-guard/README.md) | 针对重复工具调用的建议性提醒 | 监听工具/agent 事件 |
 | [`doom-loop-guard/`](doom-loop-guard/README.md) | 针对振荡、编辑螺旋与测试空转的建议性提醒 | 监听工具/agent 事件 |
-| [`timeout-policy/`](timeout-policy/README.md) | 以部署策略形式设置单次工具调用截止时间 | 注册 `tools/execute` 监听器 |
+| [`timeout-guard/`](timeout-guard/README.md) | 以部署策略形式设置单次工具调用截止时间 | 注册 `tools/execute` 监听器 |
 | [`zen/`](zen/README.md) | 锚定的最小初始 face + 宿主验证的晋升 | `ctx.zen` |
 | [`task-card/`](task-card/README.md) | 首条消息任务卡改写，提升模型语义清晰度 | `ctx.taskCard` |
 | [`intent-bridge/`](intent-bridge/README.md) | 主会话前的对齐模型澄清，任务卡交接 | `ctx.intentBridge` |
@@ -62,9 +62,9 @@ tool outcomes → failure prediction (agent-router)
 
 每个 agent 的相同调用链（参数深键排序后序列化，属性顺序无关）在可配置阈值（默认 3、5、8）触发提醒。它观察并丰富——从不否决——用户插话会重置链。细节见 [repeat-tool-guard README](repeat-tool-guard/README.md)。
 
-### timeout-policy — 单次调用截止时间
+### timeout-guard — 单次调用截止时间
 
-一个 `tools/execute` 包装器，把工具声明的截止时间（`timeoutMs`）武装到 `exec.signal`，并在自己的定时器触发时把结果替换为结构化的 `TOOL_TIMEOUT`——不竞争、不放弃工具 promise。细节见 [timeout-policy README](timeout-policy/README.md)。
+一个 `tools/execute` 包装器，把工具声明的截止时间（`timeoutMs`）武装到 `exec.signal`，并在自己的定时器触发时把结果替换为结构化的 `TOOL_TIMEOUT`——不竞争、不放弃工具 promise。细节见 [timeout-guard README](timeout-guard/README.md)。
 
 ### zen — 锚定初始 face
 

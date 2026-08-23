@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Boots an external `cordis.yml`; its `@huiliyi37/dsh-jsonrpc` entry serves
+ * Boots an external `cordis.yml`; its `@huiliyi37/dsh-sdk-server` entry serves
  * newline-delimited JSON-RPC on stdio. `$DSH_CORDIS_CONFIG` wins over `argv[2]`;
  * empty or missing paths exit 1, with no default config or `DSH_SNAPSHOT` mode.
  * App-boot owns env loading, Loader guards, and settled-tree startup.
@@ -13,7 +13,7 @@
 import { existsSync } from 'node:fs'
 import { boot, installFailLoud, loadEnv, resolveConfigPath } from '@huiliyi37/dsh-app-boot'
 
-const NAME = 'dsh-jsonrpc-agent'
+const NAME = 'dsh-sdk-server-agent'
 
 /* v8 ignore start -- composition over tested app-boot/jsonrpc and executable acceptance paths */
 installFailLoud(NAME)

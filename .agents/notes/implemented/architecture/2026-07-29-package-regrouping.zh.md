@@ -26,7 +26,7 @@ Status: implemented
 | `interaction/` | user-interaction、user-approval、permission、tool-ask-user、commands、tui | `ui/` |
 | `boot/` | app-boot | `ui/` |
 | `scaffold/` | helper、scripts、create-sdk、protocol、client、server、telemetry | `sdk/` + `ui/jsonrpc` |
-| `guard/` | repeat-tool-guard、timeout-policy | `guard/` + `timeout/` |
+| `guard/` | repeat-tool-guard、timeout-guard | `guard/` + `timeout/` |
 | `self-modification/` | tool-cordis | `cordis/` |
 
 - **`session/`** 是持久会话数据平面：持久化 seam 连同其各后端与检查点策略、从该日志折叠（fold）出全量值对外供值的投影、日志兜底的标题，以及 OTel 上报。标题折叠本身就是读取侧的承重构件（`session-query` 对 `dsh-session-title` 声明对等依赖），所以标题属于数据平面，而非某个「派生服务」附属区。用这个朴素的名字是有意为之（评审意见：名字要像人起的）；旁边的 `core/session` 包仍是常驻内存的实时服务，本组则是围绕它的持久家族。`session-query/` 保持独立成组：这个读取／工具面自带模型工具和 SQLite FTS 后端，其消费不依赖持久化内部实现。吸收 `telemetry/` 之后，与 `dsh-telemetry` 的组名冲突就此终结。
@@ -44,11 +44,11 @@ Status: implemented
 
 | 当前 npm 名 | 目标名 | 原因 |
 |---|---|---|
-| `@huiliyi37/dsh-jsonrpc` | `@huiliyi37/dsh-sdk-server` | 名字说的是协议编码而非角色；它是 SDK 协议的服务端一半 |
+| `@huiliyi37/dsh-sdk-server` | `@huiliyi37/dsh-sdk-server` | 名字说的是协议编码而非角色；它是 SDK 协议的服务端一半 |
 | `@huiliyi37/dsh-telemetry` | `@huiliyi37/dsh-sdk-telemetry` | 与 `dsh-session-telemetry` 家族撞名；它是启动器侧 SDK telemetry |
 | `@huiliyi37/dsh-helper` | `@huiliyi37/dsh-sdk-helper` | 作为公开发布名空泛得站不住脚 |
 | `@huiliyi37/dsh-scripts` | `@huiliyi37/dsh-sdk-scripts` | 同上 |
-| `@huiliyi37/dsh-timeout-policy` | `@huiliyi37/dsh-timeout-guard` | 仅为建议、尚未定案：使名字与其 `guard/` 归属对齐；到解决时再定 |
+| `@huiliyi37/dsh-timeout-guard` | `@huiliyi37/dsh-timeout-guard` | 仅为建议、尚未定案：使名字与其 `guard/` 归属对齐；到解决时再定 |
 
 前四个是已定的意图；兑现之后，SDK 通信栈的 npm 名随之收敛为 `dsh-sdk-*`（npm 前缀指产品栈，`scaffold/` 目录名指角色）。`@huiliyi37/create-sdk` 保留其文档记载的 npm 初始化器特例。
 

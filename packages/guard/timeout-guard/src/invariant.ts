@@ -1,16 +1,16 @@
 /**
- * Package-owned invariant companion for `@huiliyi37/dsh-timeout-policy`.
- * @module @huiliyi37/dsh-timeout-policy/invariant
+ * Package-owned invariant companion for `@huiliyi37/dsh-timeout-guard`.
+ * @module @huiliyi37/dsh-timeout-guard/invariant
  */
 
 /* jscpd:ignore-start */
 import type { Context } from '@huiliyi37/cordis'
 import type { InvariantInstaller } from '@huiliyi37/dsh-invariants'
 
-const PACKAGE_NAME = '@huiliyi37/dsh-timeout-policy'
+const PACKAGE_NAME = '@huiliyi37/dsh-timeout-guard'
 
 /** Cordis companion plugin name. */
-export const name = 'timeout-policy-invariant'
+export const name = 'timeout-guard-invariant'
 /** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 

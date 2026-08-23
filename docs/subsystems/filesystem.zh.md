@@ -269,7 +269,7 @@ type FsErrorCode =
 
 ## 文件 IO 不设超时
 
-`read`/`write`/`edit` **不**接受 `timeoutMs`，提供方约定也不设置截止时间——不同于 bash 与 web（它们消费 [`@huiliyi37/dsh-timeout`](../../packages/util/timeout/README.md)）以及 bash 支撑的 `glob`/`grep`（其声明的 `timeoutMs` 由 `@huiliyi37/dsh-timeout-policy` 强制执行）：那些是进程支撑的，截止时间可以真正终止工作。本地系统调用至多是尽力中止——超时无法迫使进行中的 `fsync`/`rename` 停下，因此这里的截止时间会成为无法兑现承诺的旋钮，而且恰好落在"显式优于隐式"禁止隐式默认值的位置。两个参照 agent（Claude Code、Codex）出于同样原因不给文件 IO 计时；取消仍通过工具执行 signal 传播，在系统调用边界尽力中止。
+`read`/`write`/`edit` **不**接受 `timeoutMs`，提供方约定也不设置截止时间——不同于 bash 与 web（它们消费 [`@huiliyi37/dsh-timeout`](../../packages/util/timeout/README.md)）以及 bash 支撑的 `glob`/`grep`（其声明的 `timeoutMs` 由 `@huiliyi37/dsh-timeout-guard` 强制执行）：那些是进程支撑的，截止时间可以真正终止工作。本地系统调用至多是尽力中止——超时无法迫使进行中的 `fsync`/`rename` 停下，因此这里的截止时间会成为无法兑现承诺的旋钮，而且恰好落在"显式优于隐式"禁止隐式默认值的位置。两个参照 agent（Claude Code、Codex）出于同样原因不给文件 IO 计时；取消仍通过工具执行 signal 传播，在系统调用边界尽力中止。
 
 ## 服务与插件
 

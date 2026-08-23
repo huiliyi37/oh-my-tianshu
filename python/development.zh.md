@@ -54,7 +54,7 @@ with DeepSeekHarness() as harness:
 ```sh
 version="$(node -p "require('./package.json').version")"
 python scripts/build-python-release.py --package sdk --output-dir dist-python
-python scripts/build-python-release.py --package runtime --platform macos-arm64 --runtime-exe dist-exe/dsh-jsonrpc-agent-pkg-macos-arm64 --output-dir dist-python
+python scripts/build-python-release.py --package runtime --platform macos-arm64 --runtime-exe dist-exe/dsh-sdk-server-agent-pkg-macos-arm64 --output-dir dist-python
 pip install --find-links dist-python deepseek-harness=="$version"
 ```
 

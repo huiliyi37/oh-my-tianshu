@@ -1021,28 +1021,6 @@ export interface Config {
 
 Source: [`packages/support/invariants/src/index.ts:15`](../packages/support/invariants/src/index.ts)
 
-## `@huiliyi37/dsh-jsonrpc`
-
-Requires: `agents`
-
-```ts config-catalog
-/** JSON-RPC deployment config plus runtime-only test hooks. */
-export interface JsonRpcConfig {
-  /** Report max-token turn/subagent termination as a successful SDK result. */
-  maxTokensAsSuccess?: boolean
-  /** Transport input override; production uses `process.stdin`. */
-  input?: Readable
-  /** Transport output override; production uses `process.stdout`. */
-  output?: Writable
-  /** Process-exit override; production uses `process.exit`. */
-  exit?: (code: number) => void
-}
-```
-
-Depends on: `Readable` (`node:stream`) · `Writable` (`node:stream`)
-
-Source: [`packages/scaffold/server/src/index.ts:29`](../packages/scaffold/server/src/index.ts)
-
 ## `@huiliyi37/dsh-llm-deepseek`
 
 Requires: `llm`
@@ -1967,6 +1945,28 @@ Depends on: [`SandboxMode`](subsystems/sandbox.md)
 
 Source: [`packages/sandbox/sandbox-policy/src/index.ts:67`](../packages/sandbox/sandbox-policy/src/index.ts)
 
+## `@huiliyi37/dsh-sdk-server`
+
+Requires: `agents`
+
+```ts config-catalog
+/** JSON-RPC deployment config plus runtime-only test hooks. */
+export interface JsonRpcConfig {
+  /** Report max-token turn/subagent termination as a successful SDK result. */
+  maxTokensAsSuccess?: boolean
+  /** Transport input override; production uses `process.stdin`. */
+  input?: Readable
+  /** Transport output override; production uses `process.stdout`. */
+  output?: Writable
+  /** Process-exit override; production uses `process.exit`. */
+  exit?: (code: number) => void
+}
+```
+
+Depends on: `Readable` (`node:stream`) · `Writable` (`node:stream`)
+
+Source: [`packages/scaffold/server/src/index.ts:29`](../packages/scaffold/server/src/index.ts)
+
 ## `@huiliyi37/dsh-session-persistence-jsonl`
 
 Requires: `sessions`
@@ -2818,7 +2818,7 @@ export interface Config {
   graceMs?: number
   /** Max bytes retained for one search's stderr tail; the excerpt is embedded in `SEARCH_*` error messages, never shown on success. */
   stderrMaxBytes?: number
-  /** Cooperative tool-call timeout budget (ms) on both tools, enforced by `@huiliyi37/dsh-timeout-policy` through `exec.signal`. */
+  /** Cooperative tool-call timeout budget (ms) on both tools, enforced by `@huiliyi37/dsh-timeout-guard` through `exec.signal`. */
   timeoutMs?: number
 }
 ```
@@ -3869,7 +3869,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@huiliyi37/dsh-subagent` ([`packages/subagent/subagent/src/index.ts`](../packages/subagent/subagent/src/index.ts))
 - `@huiliyi37/dsh-subprocess-local` ([`packages/subprocess/subprocess-local/src/index.ts`](../packages/subprocess/subprocess-local/src/index.ts))
 - `@huiliyi37/dsh-tasks-local` ([`packages/tasks/tasks-local/src/index.ts`](../packages/tasks/tasks-local/src/index.ts))
-- `@huiliyi37/dsh-timeout-policy` — requires `tools` ([`packages/guard/timeout-policy/src/index.ts`](../packages/guard/timeout-policy/src/index.ts))
+- `@huiliyi37/dsh-timeout-guard` — requires `tools` ([`packages/guard/timeout-guard/src/index.ts`](../packages/guard/timeout-guard/src/index.ts))
 - `@huiliyi37/dsh-tool-ask-user` — requires `tools` · `userInteraction` ([`packages/interaction/tool-ask-user/src/index.ts`](../packages/interaction/tool-ask-user/src/index.ts))
 - `@huiliyi37/dsh-tool-subagent-control` — requires `tools` · `subagents` ([`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.ts))
 - `@huiliyi37/dsh-ui-cordis` ([`packages/self-modification/ui-cordis/src/index.ts`](../packages/self-modification/ui-cordis/src/index.ts))

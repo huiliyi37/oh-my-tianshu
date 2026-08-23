@@ -49,10 +49,10 @@ def test_runtime_requires_spawn_helper_only_on_macos(
 ) -> None:
     runtime_dir = tmp_path / "runtime"
     runtime_dir.mkdir()
-    linux = runtime_dir / "dsh-jsonrpc-agent-pkg-linux-x64"
+    linux = runtime_dir / "dsh-sdk-server-agent-pkg-linux-x64"
     linux.touch()
     Path(f"{linux}-rg").touch()
-    macos = runtime_dir / "dsh-jsonrpc-agent-pkg-macos-arm64"
+    macos = runtime_dir / "dsh-sdk-server-agent-pkg-macos-arm64"
     macos.touch()
     Path(f"{macos}-rg").touch()
     monkeypatch.setattr(runtime, "bundled_package_dir", lambda: tmp_path)
@@ -69,7 +69,7 @@ def test_runtime_requires_ripgrep_sidecar(
 ) -> None:
     runtime_dir = tmp_path / "runtime"
     runtime_dir.mkdir()
-    (runtime_dir / "dsh-jsonrpc-agent-pkg-linux-x64").touch()
+    (runtime_dir / "dsh-sdk-server-agent-pkg-linux-x64").touch()
     monkeypatch.setattr(runtime, "bundled_package_dir", lambda: tmp_path)
     monkeypatch.setattr(runtime, "_current_platform_tag", lambda: "linux-x64")
 

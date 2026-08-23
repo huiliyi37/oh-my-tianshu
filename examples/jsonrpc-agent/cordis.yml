@@ -1,8 +1,8 @@
-# Unattended coding-agent deployment for the bundled dsh-jsonrpc-agent runtime.
+# Unattended coding-agent deployment for the bundled dsh-sdk-server-agent runtime.
 # stdout is reserved for JSON-RPC; do not add a console logger or terminal UI.
 
 - id: jsonrpc
-  name: '@huiliyi37/dsh-jsonrpc'
+  name: '@huiliyi37/dsh-sdk-server'
   config:
     maxTokensAsSuccess: !!js "process.env.DSH_MAX_TOKENS_AS_SUCCESS === undefined ? true : JSON.parse(process.env.DSH_MAX_TOKENS_AS_SUCCESS)"
 

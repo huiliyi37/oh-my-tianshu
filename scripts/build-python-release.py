@@ -18,9 +18,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PLATFORMS = {
-    "linux-x64": ("manylinux_2_28_x86_64", "dsh-jsonrpc-agent-pkg-linux-x64"),
-    "linux-arm64": ("manylinux_2_28_aarch64", "dsh-jsonrpc-agent-pkg-linux-arm64"),
-    "macos-arm64": ("macosx_11_0_arm64", "dsh-jsonrpc-agent-pkg-macos-arm64"),
+    "linux-x64": ("manylinux_2_28_x86_64", "dsh-sdk-server-agent-pkg-linux-x64"),
+    "linux-arm64": ("manylinux_2_28_aarch64", "dsh-sdk-server-agent-pkg-linux-arm64"),
+    "macos-arm64": ("macosx_11_0_arm64", "dsh-sdk-server-agent-pkg-macos-arm64"),
 }
 
 
@@ -103,7 +103,7 @@ def copy_package(source: Path, destination: Path) -> None:
             "*.pyc",
             "dist",
             "node_modules",
-            "dsh-jsonrpc-agent-pkg-*",
+            "dsh-sdk-server-agent-pkg-*",
         ),
     )
 
@@ -162,7 +162,7 @@ def verify_wheel(
         if metadata.get("Version") != version:
             raise RuntimeError(f"{wheel} has version {metadata.get('Version')}, expected {version}")
         runtime_files = [
-            name for name in archive.namelist() if "/runtime/dsh-jsonrpc-agent-pkg-" in name
+            name for name in archive.namelist() if "/runtime/dsh-sdk-server-agent-pkg-" in name
         ]
         if package == "runtime":
             assert platform is not None
