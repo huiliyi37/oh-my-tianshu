@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-scope",
   "description": "Scoped-context registration primitive (scope tags, scope-filtered event dispatch) for the Tianshu Harness",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publishConfig": {
     "access": "public"
   },

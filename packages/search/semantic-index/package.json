@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-semantic-index",
   "description": "Semantic index — file-level BM25 incremental index with hash staleness detection and JSON persistence (Tianshu semantic-index.ts port)",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publishConfig": {
     "access": "public"
   },

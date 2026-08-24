@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-fs-snapshot",
   "description": "File snapshot/rewind — ported from opencode-tui FileHistory (Apache-2.0)",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publishConfig": {
     "access": "public"
   },

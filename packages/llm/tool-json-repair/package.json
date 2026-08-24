@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tool-json-repair",
   "description": "Repair plugin for the DeepSeek tool-JSON-in-content shape: converts a text block that is exactly one tool-call JSON object into a real tool-call block on the llm/stream waterfall",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publishConfig": {
     "access": "public"
   },

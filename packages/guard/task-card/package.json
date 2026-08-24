@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-task-card",
   "description": "Task card — rewrites a session's first user message into a structured task card (title/goal/constraints/acceptance, original kept verbatim) before it reaches the model, for clearer semantics and task framing",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publishConfig": {
     "access": "public"
   },

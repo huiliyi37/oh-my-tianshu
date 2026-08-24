@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-subagent-inprocess",
   "description": "Shared in-process subagent run driver: drives a child agent on ctx.agents (used by the spawn and fork backends)",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publishConfig": {
     "access": "public"
   },

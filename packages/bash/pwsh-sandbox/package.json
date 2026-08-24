@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-pwsh-sandbox",
   "description": "Sandbox-consuming implementation of the Tianshu Harness PowerShell executor seam (confines every command via ctx.sandbox, reports denial/enforcement result facts)",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publishConfig": {
     "access": "public"
   },

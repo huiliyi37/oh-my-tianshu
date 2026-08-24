@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-model-roles",
   "description": "Settings-backed model pins for the vision, secondary, and subagent roles",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publishConfig": {
     "access": "public"
   },

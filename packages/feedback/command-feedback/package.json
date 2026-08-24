@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-command-feedback",
   "description": "Log-only session feedback producer and human-facing slash command",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publishConfig": {
     "access": "public"
   },

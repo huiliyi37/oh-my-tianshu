@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tools",
   "description": "Tool registry and execution pipeline for the Tianshu Harness",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publishConfig": {
     "access": "public"
   },

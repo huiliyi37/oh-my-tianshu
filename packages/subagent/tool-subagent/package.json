@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tool-subagent",
   "description": "Model-facing subagent delegation tool over the ctx.subagents seam",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publishConfig": {
     "access": "public"
   },

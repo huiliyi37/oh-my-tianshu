@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-storage-json",
   "description": "JSON file KV storage backend for the Tianshu Harness storage hub",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publishConfig": {
     "access": "public"
   },

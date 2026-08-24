@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tool-goal",
   "description": "Model-facing same-session goal tools with execution-time authority checks",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publishConfig": {
     "access": "public"
   },

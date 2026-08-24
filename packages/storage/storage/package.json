@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-storage",
   "description": "Storage hub (ctx.storage): named backend registry plus mounted data-form facilities for the Tianshu Harness",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publishConfig": {
     "access": "public"
   },
