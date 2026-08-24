@@ -283,7 +283,7 @@ async snapshot(options: SkillLookupOptions = {}): Promise<SkillCatalogSnapshot>
 async get(name: string, options: SkillLookupOptions = {}): Promise<SkillDefinition | undefined>
 ```
 
-Source: [`packages/skill/skill/src/index.ts:305`](../../packages/skill/skill/src/index.ts)
+Source: [`packages/skill/skill/src/index.ts:321`](../../packages/skill/skill/src/index.ts)
 
 <a id="skills-events"></a>
 
@@ -306,5 +306,5 @@ A skill provider, runtime contribution, or provider-backed catalog may have chan
 'skills/change'(): void
 ```
 
-Source: [`packages/skill/skill/src/index.ts:284`](../../packages/skill/skill/src/index.ts)
+Source: [`packages/skill/skill/src/index.ts:285`](../../packages/skill/skill/src/index.ts)
 <!-- END GENERATED cordis-surface -->
