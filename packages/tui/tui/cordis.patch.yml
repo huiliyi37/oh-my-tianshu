@@ -85,10 +85,11 @@
     # 意图对齐桥：新会话先走对齐路由多轮澄清，产出任务卡后移交主会话
     # 自然进禅。出厂两条路由都落在 deepseek-official（同一把 DEEPSEEK_API_KEY）；
     # MiniMax 等辅模型由部署 overlay 覆写，并自行把 llm-pi-ai profile 加活。
-    # 2026-08-23 由直连默认改回桥接默认；无需对齐的部署注释掉整块即恢复
-    # 直连进禅（triage 短消息跳过与 /fast 显式跳过仍可用）。
+    # 2026-08-24 出厂默认关回直连进禅（行保留 disabled，overlay 去掉 disabled
+    # 即恢复桥接；triage 短消息跳过与 /fast 显式跳过仍可用）。
     - id: intent-bridge
       name: '@huiliyi37/dsh-intent-bridge'
+      disabled: true
       config:
         alignProvider: deepseek-official
         alignModel: deepseek-v4-flash

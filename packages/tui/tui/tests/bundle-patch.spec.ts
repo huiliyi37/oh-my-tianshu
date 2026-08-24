@@ -30,11 +30,14 @@ describe('dsh-tui bundle', () => {
       'cache-diagnostic',
     ]))
     expect(ids).not.toContain('command-memory')
-    // The intent-bridge row ships both routes on the out-of-box DeepSeek
-    // adapter (same key as /model); resolveConfig fails loud at load without
-    // them. MiniMax remains a deployment overlay, not the shipped default.
-    const intentBridge = rows.find(row => row.id === 'intent-bridge')?.config
-    expect(intentBridge).toMatchObject({
+    // The intent-bridge row stays present but ships DISABLED (direct-into-zen
+    // default since 2026-08-24): an overlay removing `disabled` restores the
+    // bridge with both routes already on the out-of-box DeepSeek adapter.
+    // resolveConfig of a disabled row never runs, but the config must stay
+    // complete so a one-line overlay re-enable cannot boot half-configured.
+    const intentBridge = rows.find(row => row.id === 'intent-bridge')
+    expect(intentBridge?.disabled).toBe(true)
+    expect(intentBridge?.config).toMatchObject({
       alignProvider: 'deepseek-official',
       alignModel: 'deepseek-v4-flash',
       execProvider: 'deepseek-official',
