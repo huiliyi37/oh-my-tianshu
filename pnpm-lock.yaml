@@ -7088,6 +7088,9 @@ importers:
       '@huiliyi37/dsh-llm':
         specifier: workspace:^
         version: link:../../llm/llm
+      '@huiliyi37/dsh-scope':
+        specifier: workspace:^
+        version: link:../../core/scope
 
   packages/skill/skill-badge:
     devDependencies:

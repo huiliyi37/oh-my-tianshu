@@ -12,6 +12,7 @@
 
 import { Context, Service } from '@huiliyi37/cordis'
 import { assertNever } from '@huiliyi37/dsh-llm'
+import { ScopedLayers, scopeOf, type ScopeLayer } from '@huiliyi37/dsh-scope'
 import z from '@huiliyi37/schemastery'
 import type Schema from '@huiliyi37/schemastery'
 
@@ -302,13 +303,36 @@ interface CollectResult {
  * first-wins duplicate handling, exposes sorted invocation-neutral summaries, and
  * loads full skill bodies on demand.
  */
+/**
+ * One scope's slice of skill providers. Host-plane registrations file into the
+ * global layer; a preset standing composition files into its own scope layer,
+ * so two live presets may each run a provider of the same name — the catalog
+ * view resolves the nearest scope's entry, exactly like scoped tool
+ * registrations.
+ */
+class ProviderLayer implements ScopeLayer {
+  readonly providers = new Map<string, { provider: SkillProvider; order: number }>()
+
+  isEmpty(): boolean {
+    return this.providers.size === 0
+  }
+}
+
 export class SkillService extends Service {
   static Config: Schema<Config> = z.object({
     collectCacheMaxEntries: z.number().default(DEFAULT_COLLECT_CACHE_ENTRIES),
   })
 
   private readonly collectCacheMaxEntries: number
-  private readonly providers = new Map<string, { provider: SkillProvider; order: number }>()
+  private readonly providerLayers = new ScopedLayers<ProviderLayer>(
+    () => new ProviderLayer(),
+    () => { this.invalidateCache() },
+  )
+  /** Registration layer of each live provider, for instance-precise invalidation. */
+  private readonly providerHomes = new WeakMap<SkillProvider, ProviderLayer>()
+  /** Stable cache-key identity per scope key; scope objects are not JSON-serializable. */
+  private readonly scopeIds = new WeakMap<object, number>()
+  private nextScopeId = 0
   private readonly runtime = new Map<string, SkillDefinition>()
   private readonly collectCache = new Map<string, IndexedCandidate[]>()
   private providerRevision = 0
@@ -345,26 +369,34 @@ export class SkillService extends Service {
       if (name === RUNTIME_PROVIDER) {
         throw new Error(`"${RUNTIME_PROVIDER}" is reserved for runtime skill registrations`)
       }
-      if (this.providers.has(name)) {
+      // Uniqueness is per registration layer, not process-global: the calling
+      // scope decides the layer (a preset standing composition owns its own),
+      // so two live presets may each run a same-named provider and shadow the
+      // global one per view — while a duplicate inside ONE layer is still the
+      // double-mount bug it always was.
+      const scope = scopeOf(this.ctx)
+      const layer = scope === undefined ? this.providerLayers.global : this.providerLayers.peek(scope)
+      if (layer?.providers.has(name)) {
         throw new Error(`a skill provider named "${name}" is already registered`)
       }
-      const providers = this.providers
       const order = this.nextProviderOrder
-      const invalidateCache = (): void => { this.invalidateCache() }
       this.nextProviderOrder += 1
-      const dispose = this.ctx.effect(function* () {
+      const providerHomes = this.providerHomes
+      const register = (layer: ProviderLayer): () => void => {
         active = true
-        providers.set(name, { provider, order })
-        invalidateCache()
-        yield () => {
+        providerHomes.set(provider, layer)
+        layer.providers.set(name, { provider, order })
+        return () => {
           active = false
-          providers.delete(name)
+          providerHomes.delete(provider)
+          layer.providers.delete(name)
           lifecycle.abort(new Error(`skill provider "${name}" disposed`))
-          invalidateCache()
         }
-      }, 'skills.registerProvider()')
-      // oxlint-disable-next-line typescript/no-misused-promises -- synchronous cleanup; preserve exact disposer identity
-      return dispose
+      }
+      // The traced receiver routes this effect onto the CALLING fiber, so the
+      // layer is derived from the same scope as the duplicate check above;
+      // ScopedLayers notifies the catalog cache on both ends.
+      return this.providerLayers.effect(this.ctx, register, { label: 'skills.registerProvider()' })
     } catch (error) {
       lifecycle.abort(error)
       throw error
@@ -470,7 +502,7 @@ export class SkillService extends Service {
     while (true) {
       const providerRevision = this.providerRevision
       const runtimeRevision = this.runtimeRevision
-      const key = collectCacheKey(options, providerRevision, runtimeRevision)
+      const key = collectCacheKey(options, providerRevision, runtimeRevision, this.scopeKey())
       const cached = this.collectCache.get(key)
       if (cached !== undefined) return { entries: cached, cacheable: true }
 
@@ -525,7 +557,16 @@ export class SkillService extends Service {
       })
       runtimeOrder += 1
     }
-    for (const { provider, order } of [...this.providers.values()]) {
+    // The calling scope decides which providers exist for this fold: the
+    // global layer first, then each scope-chain layer shadowing by name —
+    // the same nearest-wins view as scoped tool registration.
+    const view = new Map<string, { provider: SkillProvider; order: number }>(
+      this.providerLayers.global.providers,
+    )
+    for (const layer of this.providerLayers.chainLayers(scopeOf(this.ctx))) {
+      for (const [name, entry] of layer.providers) view.set(name, entry)
+    }
+    for (const { provider, order } of [...view.values()].sort((a, b) => a.order - b.order)) {
       let localOrder = 0
       let output: unknown
       try {
@@ -547,6 +588,19 @@ export class SkillService extends Service {
     return { entries: candidates, cacheable }
   }
 
+  /** Stable cache identity of the calling scope; different scopes see different provider views. */
+  private scopeKey(): number {
+    const scope = scopeOf(this.ctx)
+    if (scope === undefined) return 0
+    let id = this.scopeIds.get(scope)
+    if (id === undefined) {
+      id = this.nextScopeId + 1
+      this.nextScopeId = id
+      this.scopeIds.set(scope, id)
+    }
+    return id
+  }
+
   private invalidateCache(): void {
     this.providerRevision += 1
     this.collectCache.clear()
@@ -555,7 +609,8 @@ export class SkillService extends Service {
 
   private invalidateProvider(provider: SkillProvider): void {
     /* v8 ignore else -- A definition load can outlive the exact provider registration it selected. */
-    if (this.providers.get(provider.name)?.provider === provider) this.invalidateCache()
+    const layer = this.providerHomes.get(provider)
+    if (layer !== undefined && layer.providers.get(provider.name)?.provider === provider) this.invalidateCache()
   }
 
   /** Notify catalog observers without making their refresh work load-bearing. */
@@ -729,8 +784,13 @@ function assertPositiveInteger(name: string, value: number, minimum = 1): void {
   }
 }
 
-function collectCacheKey(options: SkillLookupOptions, providerRevision: number, runtimeRevision: number): string {
-  return JSON.stringify({ cwd: options.cwd, providerRevision, runtimeRevision })
+function collectCacheKey(
+  options: SkillLookupOptions,
+  providerRevision: number,
+  runtimeRevision: number,
+  scope: number,
+): string {
+  return JSON.stringify({ cwd: options.cwd, providerRevision, runtimeRevision, scope })
 }
 
 function waitWithAbort<T>(promise: Promise<T>, signal: AbortSignal | undefined): Promise<T> {

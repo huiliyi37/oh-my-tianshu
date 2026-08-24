@@ -10,7 +10,7 @@
 
 ### 公开 API
 
-- `ctx.skills.registerProvider(create): () => void` 调用同步提供方工厂并向其传入 `{ signal, invalidate }`，随后使用唯一 `provider.name` 注册其只读结果。重复提供方名称会抛错，`runtime` 为保留名称；注册失败会中止信号。精确的 Cordis disposer 会注销提供方、中止信号，并保持有序组合拆卸。
+- `ctx.skills.registerProvider(create): () => void` 调用同步提供方工厂并向其传入 `{ signal, invalidate }`，随后按 `provider.name` 注册其只读结果——名称在注册层内唯一：调用方作用域决定注册层，因此两个并存的活动预设 standing 组装可以各自运行同名提供方（目录视图按最近作用域解析同名条目，全局层最后），而同一层内的重复仍然抛错。`runtime` 为保留名称；注册失败会中止信号。精确的 Cordis disposer 会注销提供方、中止信号，并保持有序组合拆卸。
 - `ctx.skills.snapshot({ cwd?, signal? })` 返回与调用策略无关的 `{ skills, complete }` 观测。任一提供方调用被拒绝或显式报告发现不完整，或有界重试期间又发生目录修订时，`complete` 为 false；该次观测提供的候选项仍保留在此结果中，但该结果绝不缓存。
 - `ctx.skills.list({ cwd?, signal? })` 借用只读查找选项，然后返回当前工作区中的全部胜出摘要；这些摘要跨提供方合并，并按名称排序。消费方在自身边界调用 `isModelInvocable(skill)` 或 `isUserInvocable(skill)`。
 - `ctx.skills.get(name, { cwd?, signal? })` 在发现和加载中使用同一组只读选项和胜出候选项；在发现或缓存命中后重新检查取消，让提供方加载与信号竞速，验证已加载定义，然后无论调用策略如何都将其返回。

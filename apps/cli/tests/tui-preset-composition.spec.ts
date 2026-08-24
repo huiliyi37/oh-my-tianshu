@@ -120,4 +120,30 @@ describe('the shipped TUI composition with default-preset mounting', () => {
       await handle.dispose()
     }
   })
+
+  it('switches a blank session to taiyi while standard stays mounted — same-named providers coexist', async () => {
+    // /preset taiyi 的路径：先有会话挂在 standard 上,再显式挂载 taiyi——两个
+    // standing 组装并存,各自携带同名 skill-filesystem(dsh-skill-local)提供方。
+    // 修复前第二个挂载即抛 "a skill provider named \"local\" is already registered"。
+    const standardHandle = await ctx.agents.create({
+      sessionId: SessionId('tui-preset-coexist-standard'),
+      setup: async agentCtx => void await ctx.agentPresets.mount(agentCtx),
+    })
+    const taiyiHandle = await ctx.agents.create({
+      sessionId: SessionId('tui-preset-coexist-taiyi'),
+      setup: async agentCtx => void await ctx.agentPresets.mount(agentCtx, 'taiyi'),
+    })
+    try {
+      const taiyiNames = toolNames(ctx, taiyiHandle.agent)
+      const duplicates = taiyiNames.filter((name, index) => taiyiNames.indexOf(name) !== index)
+      expect(duplicates, 'no tool may be registered by two layers').toEqual([])
+      // taiyi = standard 工具面 + persona,禅锚定面与 standard 相同。
+      expect(taiyiNames).toEqual(['bash', 'str_replace_editor', 'subagent', 'todo_write', 'zen_anchor'])
+      // standard 会话的面不受 taiyi 挂载影响。
+      expect(toolNames(ctx, standardHandle.agent)).toEqual(['bash', 'str_replace_editor', 'subagent', 'todo_write', 'zen_anchor'])
+    } finally {
+      await taiyiHandle.dispose()
+      await standardHandle.dispose()
+    }
+  })
 })

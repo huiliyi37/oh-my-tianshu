@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
+import { createScope } from '@huiliyi37/dsh-scope'
 import SkillService, {
   isModelInvocable,
   isUserInvocable,
@@ -1074,5 +1075,86 @@ describe('renderSkillContent', () => {
     })
     expect(text).toContain('<skill_content name="x&quot;&amp;&lt;y">')
     expect(text).toContain('Keep </skill_content> and <tags> as-is.')
+  })
+})
+
+describe('SkillService scoped providers', () => {
+  /** Mounted under a scope so its traced ctx.skills calls carry the scope key. */
+  function scopedRegistrar(tag: string, providerName: string) {
+    return {
+      name: `reg-${tag}`,
+      inject: ['skills'],
+      apply(c: Context) {
+        c.skills.registerProvider(() => ({
+          name: providerName,
+          async list() {
+            return [{
+              name: `sk-${tag.toLowerCase()}`,
+              description: tag,
+              invocation: { modelInvocable: true, userInvocable: true },
+              provider: providerName,
+              source: providerName,
+              rank: 10,
+              locator: { content: tag },
+            }]
+          },
+          async get(candidate: SkillCandidate) {
+            return { ...candidate, content: (candidate.locator as { content: string }).content }
+          },
+        }))
+      },
+    }
+  }
+
+  async function viewThrough(c: Context): Promise<string[]> {
+    let names: string[] = []
+    await c.plugin({
+      name: `view-${Math.random().toString(36).slice(2, 8)}`,
+      inject: ['skills'],
+      async apply(pc: Context) {
+        names = (await pc.skills.list()).map(skill => skill.name)
+      },
+    })
+    return names
+  }
+
+  it('two live presets may each run a same-named provider; views stay per scope', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SkillService)
+    const scopeA = createScope(ctx, { preset: 'a' } as never)
+    const scopeB = createScope(ctx, { preset: 'b' } as never)
+
+    // 同名提供方分别进入各自 standing 作用域——修复前第二个注册即抛
+    // "a skill provider named \"local\" is already registered"。
+    await scopeA.ctx.plugin(scopedRegistrar('A', 'local') as never)
+    await scopeB.ctx.plugin(scopedRegistrar('B', 'local') as never)
+
+    expect(await viewThrough(scopeA.ctx)).toEqual(['sk-a'])
+    expect(await viewThrough(scopeB.ctx)).toEqual(['sk-b'])
+    expect(await viewThrough(ctx)).toEqual([])
+    await scopeA.dispose()
+    await scopeB.dispose()
+  })
+
+  it('a scoped provider shadows the global same name for its scope only', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SkillService)
+    await ctx.plugin(scopedRegistrar('Global', 'local') as never)
+    const scope = createScope(ctx, { preset: 'scoped' } as never)
+    await scope.ctx.plugin(scopedRegistrar('Scoped', 'local') as never)
+
+    expect(await viewThrough(scope.ctx)).toEqual(['sk-scoped'])
+    expect(await viewThrough(ctx)).toEqual(['sk-global'])
+    await scope.dispose()
+  })
+
+  it('a same-name duplicate inside ONE scope still fails loud', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SkillService)
+    const scope = createScope(ctx, { preset: 'dup' } as never)
+    await scope.ctx.plugin(scopedRegistrar('First', 'local') as never)
+    await expect(scope.ctx.plugin(scopedRegistrar('Second', 'local') as never))
+      .rejects.toThrow('a skill provider named "local" is already registered')
+    await scope.dispose()
   })
 })
