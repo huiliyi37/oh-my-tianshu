@@ -78,7 +78,7 @@ describe('session.search', () => {
     const cold = header('cold', '/cold')
     const legacy = header('legacy', null)
     ctx.provide('sessionPersistence', {
-      list: () => Promise.resolve([cold, legacy]),
+      list: () => Promise.resolve([{ header: cold }, { header: legacy }]),
       locate: () => undefined,
     } as never)
 
@@ -726,7 +726,7 @@ describe('session.search', () => {
       (_, index) => header(`cold-${index}`, `/cold-${index}`),
     )
     ctx.provide('sessionPersistence', {
-      list: () => Promise.resolve(cold),
+      list: () => Promise.resolve(cold.map(header => ({ header }))),
       locate: () => undefined,
     } as never)
     const searchSessions = vi.fn((_request: SessionSearchRequest) => Promise.resolve({
@@ -756,7 +756,7 @@ describe('session.search', () => {
     const cold = Array.from({ length: 32 }, (_, index) => header(`cold-${index}`, `/cold-${index}`))
     const list = vi.fn((signal?: AbortSignal) => {
       expect(signal).toBe(controller.signal)
-      return Promise.resolve(cold)
+      return Promise.resolve(cold.map(header => ({ header })))
     })
     let locateCalls = 0
     ctx.provide('sessionPersistence', {
@@ -795,7 +795,7 @@ describe('session.search', () => {
       statMock.mockImplementationOnce((() => gate.promise) as never)
     }
     ctx.provide('sessionPersistence', {
-      list: () => Promise.resolve(cold),
+      list: () => Promise.resolve(cold.map(header => ({ header }))),
       locate: (meta: SessionHeader) => ({ kind: 'jsonl', path: `/logs/${meta.id}.jsonl` }),
     } as never)
     const searchSessions = vi.fn()

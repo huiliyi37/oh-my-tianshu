@@ -28,7 +28,7 @@ function provideSession(
   inspect: () => Promise<{ meta: SessionHeader; events: SessionEvent[] }>,
 ): void {
   ctx.provide('sessionPersistence', {
-    list: () => Promise.resolve([meta]),
+    list: () => Promise.resolve([{ header: meta }]),
     inspect,
     locate: () => undefined,
   } as never)

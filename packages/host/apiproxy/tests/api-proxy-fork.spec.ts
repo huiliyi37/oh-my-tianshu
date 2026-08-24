@@ -172,7 +172,7 @@ describe('sessions.fork', () => {
       { type: 'turn/end', seq: 2, time: 3, data: { turn: 1, reason: { kind: 'completed' } } },
     ] as SessionEvent[]
     ctx.provide('sessionPersistence', {
-      list: () => Promise.resolve([header]),
+      list: () => Promise.resolve([{ header }]),
       inspect: () => Promise.resolve({ meta: header, events }),
     } as never)
     ctx.provide('sessionQuery', {
