@@ -14,6 +14,18 @@ It is a friendly fork of [DeepSeek Harness](https://github.com/deepseek-ai) (`ds
 
 Requirements: Node `^22.19 || >=24`, and a DeepSeek API key (`DEEPSEEK_API_KEY`).
 
+One-line installer (recommended — it auto-recovers the npm-mirror sync window, where a mirror already has the new entry package but not all of its dependencies and a plain install dies with `ETARGET`):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/huiliyi37/oh-my-tianshu/main/scripts/install.sh | sh
+```
+
+Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/huiliyi37/oh-my-tianshu/main/scripts/install.ps1 | iex
+```
+
 Run it straight from npm:
 
 ```sh

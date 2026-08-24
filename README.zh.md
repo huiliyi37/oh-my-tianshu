@@ -14,6 +14,18 @@
 
 要求:Node `^22.19 || >=24`,以及一个 DeepSeek API key(`DEEPSEEK_API_KEY`)。
 
+一行安装器(推荐——自动修复 npm 镜像同步窗口:镜像已有新版入口包但依赖未跟齐时,直接安装会以 `ETARGET` 失败,安装器会自动换官方源重试):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/huiliyi37/oh-my-tianshu/main/scripts/install.sh | sh
+```
+
+Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/huiliyi37/oh-my-tianshu/main/scripts/install.ps1 | iex
+```
+
 已发布到 npm,一条命令直接运行:
 
 ```sh
