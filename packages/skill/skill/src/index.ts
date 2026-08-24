@@ -299,11 +299,6 @@ interface CollectResult {
 }
 
 /**
- * Registry of skill providers. It merges provider catalogs with stable
- * first-wins duplicate handling, exposes sorted invocation-neutral summaries, and
- * loads full skill bodies on demand.
- */
-/**
  * One scope's slice of skill providers. Host-plane registrations file into the
  * global layer; a preset standing composition files into its own scope layer,
  * so two live presets may each run a provider of the same name — the catalog
@@ -318,6 +313,11 @@ class ProviderLayer implements ScopeLayer {
   }
 }
 
+/**
+ * Registry of skill providers. It merges provider catalogs with stable
+ * first-wins duplicate handling, exposes sorted invocation-neutral summaries, and
+ * loads full skill bodies on demand.
+ */
 export class SkillService extends Service {
   static Config: Schema<Config> = z.object({
     collectCacheMaxEntries: z.number().default(DEFAULT_COLLECT_CACHE_ENTRIES),
