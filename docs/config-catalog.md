@@ -2315,7 +2315,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/skill/skill/src/index.ts:266`](../packages/skill/skill/src/index.ts)
+Source: [`packages/skill/skill/src/index.ts:267`](../packages/skill/skill/src/index.ts)
 
 ## `@huiliyi37/dsh-skill-local`
 
