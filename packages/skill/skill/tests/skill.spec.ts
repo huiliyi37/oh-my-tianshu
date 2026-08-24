@@ -1126,8 +1126,8 @@ describe('SkillService scoped providers', () => {
 
     // 同名提供方分别进入各自 standing 作用域——修复前第二个注册即抛
     // "a skill provider named \"local\" is already registered"。
-    await scopeA.ctx.plugin(scopedRegistrar('A', 'local') as never)
-    await scopeB.ctx.plugin(scopedRegistrar('B', 'local') as never)
+    await scopeA.ctx.plugin(scopedRegistrar('A', 'local') as never, {} as never)
+    await scopeB.ctx.plugin(scopedRegistrar('B', 'local') as never, {} as never)
 
     expect(await viewThrough(scopeA.ctx)).toEqual(['sk-a'])
     expect(await viewThrough(scopeB.ctx)).toEqual(['sk-b'])
@@ -1139,9 +1139,9 @@ describe('SkillService scoped providers', () => {
   it('a scoped provider shadows the global same name for its scope only', async () => {
     const ctx = new Context()
     await ctx.plugin(SkillService)
-    await ctx.plugin(scopedRegistrar('Global', 'local') as never)
+    await ctx.plugin(scopedRegistrar('Global', 'local') as never, {} as never)
     const scope = createScope(ctx, { preset: 'scoped' } as never)
-    await scope.ctx.plugin(scopedRegistrar('Scoped', 'local') as never)
+    await scope.ctx.plugin(scopedRegistrar('Scoped', 'local') as never, {} as never)
 
     expect(await viewThrough(scope.ctx)).toEqual(['sk-scoped'])
     expect(await viewThrough(ctx)).toEqual(['sk-global'])
@@ -1152,8 +1152,8 @@ describe('SkillService scoped providers', () => {
     const ctx = new Context()
     await ctx.plugin(SkillService)
     const scope = createScope(ctx, { preset: 'dup' } as never)
-    await scope.ctx.plugin(scopedRegistrar('First', 'local') as never)
-    await expect(scope.ctx.plugin(scopedRegistrar('Second', 'local') as never))
+    await scope.ctx.plugin(scopedRegistrar('First', 'local') as never, {} as never)
+    await expect(scope.ctx.plugin(scopedRegistrar('Second', 'local') as never, {} as never))
       .rejects.toThrow('a skill provider named "local" is already registered')
     await scope.dispose()
   })
