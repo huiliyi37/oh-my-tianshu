@@ -1121,13 +1121,13 @@ describe('SkillService scoped providers', () => {
   it('two live presets may each run a same-named provider; views stay per scope', async () => {
     const ctx = new Context()
     await ctx.plugin(SkillService)
-    const scopeA = createScope(ctx, { preset: 'a' } as never)
-    const scopeB = createScope(ctx, { preset: 'b' } as never)
+    const scopeA = createScope(ctx, { preset: 'a' })
+    const scopeB = createScope(ctx, { preset: 'b' })
 
     // 同名提供方分别进入各自 standing 作用域——修复前第二个注册即抛
     // "a skill provider named \"local\" is already registered"。
-    await scopeA.ctx.plugin(scopedRegistrar('A', 'local') as never, {} as never)
-    await scopeB.ctx.plugin(scopedRegistrar('B', 'local') as never, {} as never)
+    await scopeA.ctx.plugin(scopedRegistrar('A', 'local'), {})
+    await scopeB.ctx.plugin(scopedRegistrar('B', 'local'), {})
 
     expect(await viewThrough(scopeA.ctx)).toEqual(['sk-a'])
     expect(await viewThrough(scopeB.ctx)).toEqual(['sk-b'])
@@ -1139,9 +1139,9 @@ describe('SkillService scoped providers', () => {
   it('a scoped provider shadows the global same name for its scope only', async () => {
     const ctx = new Context()
     await ctx.plugin(SkillService)
-    await ctx.plugin(scopedRegistrar('Global', 'local') as never, {} as never)
-    const scope = createScope(ctx, { preset: 'scoped' } as never)
-    await scope.ctx.plugin(scopedRegistrar('Scoped', 'local') as never, {} as never)
+    await ctx.plugin(scopedRegistrar('Global', 'local'), {})
+    const scope = createScope(ctx, { preset: 'scoped' })
+    await scope.ctx.plugin(scopedRegistrar('Scoped', 'local'), {})
 
     expect(await viewThrough(scope.ctx)).toEqual(['sk-scoped'])
     expect(await viewThrough(ctx)).toEqual(['sk-global'])
@@ -1151,9 +1151,9 @@ describe('SkillService scoped providers', () => {
   it('a same-name duplicate inside ONE scope still fails loud', async () => {
     const ctx = new Context()
     await ctx.plugin(SkillService)
-    const scope = createScope(ctx, { preset: 'dup' } as never)
-    await scope.ctx.plugin(scopedRegistrar('First', 'local') as never, {} as never)
-    await expect(scope.ctx.plugin(scopedRegistrar('Second', 'local') as never, {} as never))
+    const scope = createScope(ctx, { preset: 'dup' })
+    await scope.ctx.plugin(scopedRegistrar('First', 'local'), {})
+    await expect(scope.ctx.plugin(scopedRegistrar('Second', 'local'), {}))
       .rejects.toThrow('a skill provider named "local" is already registered')
     await scope.dispose()
   })
