@@ -61,7 +61,7 @@ function parseArgs(argv: readonly string[]): AuditOptions {
   for (let index = 0; index < argv.length; index += 2) {
     const flag = argv[index]
     const value = argv[index + 1]
-    if (value === undefined || !flag.startsWith('--')) throw new Error(`audit-mirror-sync: expected --flag <value> pairs, got ${JSON.stringify(argv)}`)
+    if (flag === undefined || value === undefined || !flag.startsWith('--')) throw new Error(`audit-mirror-sync: expected --flag <value> pairs, got ${JSON.stringify(argv)}`)
     if (flag === '--manifest') parsed.manifest = value
     else if (flag === '--mirror') parsed.mirror = value
     else throw new Error(`audit-mirror-sync: unknown flag ${flag}`)
