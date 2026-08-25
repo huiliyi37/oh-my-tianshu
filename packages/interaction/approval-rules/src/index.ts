@@ -5,12 +5,12 @@
  * The package registers an `approval/request` waterfall answerer that consults
  * a merged list of rules loaded from two YAML layers (user home first, then
  * project) and, on the first hit, settles the request deterministically
- * (`allow` → `allowed-once`, `deny` → `rejected`) without consulting any
+ * (`allow` → `allowed-always`, `deny` → `rejected`) without consulting any
  * interactive answerer. When no rule matches, the answerer delegates via
  * `next()` so the rest of the chain (including a later interactive answerer)
  * still decides. The whole thing is a strategy layer on the seam: it never
- * changes the `ApprovalOutcome` vocabulary, never touches sandbox/mode, and
- * the `'never'` policy still rejects before any answerer is consulted.
+ * touches sandbox/mode, and the `'never'` policy still rejects before any
+ * answerer is consulted.
  *
  * **Mount order contract.** A Cordis waterfall has no priority mechanism;
  * listeners run in registration order. The rule answerer only precedes an
@@ -137,9 +137,9 @@ interface TuiSlashRun {
  */
 export interface PersistAllowFacet {
   /**
-   * Derive the rule for a pending approval request (tool + the request's
-   * normalized argument string as a full-string pattern) and append it to the
-   * project layer.
+   * Derive the exact-match allow rule for a pending approval request (tool +
+   * the request's normalized argument string, `match: 'exact'`) and append it
+   * to the project layer.
    * @param req - the pending request the user chose to allow permanently.
    * @returns the persisted rule (layer-stamped).
    */
@@ -357,11 +357,14 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
         tool: req.toolName,
         pattern,
         decision: 'allow',
+        match: 'exact',
       }
       await addRule(rule)
       const merged = mergeRules(userRules, projectRules)
       const stamped = merged.find(candidate =>
-        candidate.tool === rule.tool && candidate.pattern === rule.pattern)
+        candidate.tool === rule.tool
+        && candidate.pattern === rule.pattern
+        && (candidate.match ?? 'glob') === (rule.match ?? 'glob'))
       if (stamped === undefined) {
         throw new Error(`approval-rules: persisted rule not visible after append: ${rule.tool} ${rule.pattern}`)
       }

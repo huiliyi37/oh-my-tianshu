@@ -318,9 +318,10 @@ describe('persistAllowRule facet (approvalRules.persistAllow)', () => {
       const { agent, callId } = requestAgent('bash', '{ "command": "echo hi",  "description": "d" }')
       const rule = await facet?.persistAllowRule({ agent, toolName: 'bash', callId })
 
-      expect(rule).toMatchObject({ tool: 'bash', decision: 'allow', layer: 'project' })
+      expect(rule).toMatchObject({ tool: 'bash', decision: 'allow', layer: 'project', match: 'exact' })
       // Normalization collapses the double space in the raw arguments JSON.
       expect(rule?.pattern).toBe('{ "command": "echo hi", "description": "d" }')
+      expect(await readFile(harness.projectFile, 'utf8')).toContain('match: exact')
 
       // The identical future request now settles from the rule answerer with
       // the standing grant — no interactive stub consulted.
@@ -333,6 +334,39 @@ describe('persistAllowRule facet (approvalRules.persistAllow)', () => {
       const outcome = await harness.ctx.approval.request({ agent: again.agent, toolName: 'bash', callId: again.callId })
       expect(outcome).toBe('allowed-always')
       expect(stubCalled).toBe(false)
+    } finally {
+      await teardown(harness)
+    }
+  })
+
+  it('does not glob-widen a persisted [p] grant when the command itself contains *', async () => {
+    const harness = withHarness(await bootRules({}))
+    try {
+      const facet = harness.ctx.get(PERSIST_ALLOW_KEY, false) as
+        | { persistAllowRule(req: unknown): Promise<{ tool: string; pattern: string; match?: string }> }
+        | undefined
+      const { agent, callId } = requestAgent('bash', '{ "command": "ls *", "description": "d" }')
+      const rule = await facet?.persistAllowRule({ agent, toolName: 'bash', callId })
+      expect(rule?.match).toBe('exact')
+      expect(rule?.pattern).toBe('{ "command": "ls *", "description": "d" }')
+
+      const same = requestAgent('bash', '{ "command": "ls *", "description": "d" }')
+      expect(await harness.ctx.approval.request({ agent: same.agent, toolName: 'bash', callId: same.callId }))
+        .toBe('allowed-always')
+
+      let stubCalled = false
+      harness.ctx.on('approval/request', (_req, next) => {
+        stubCalled = true
+        return next()
+      })
+      const wider = requestAgent('bash', '{ "command": "ls foo", "description": "d" }')
+      const outcome = await harness.ctx.approval.request({
+        agent: wider.agent,
+        toolName: 'bash',
+        callId: wider.callId,
+      })
+      expect(outcome).not.toBe('allowed-always')
+      expect(stubCalled).toBe(true)
     } finally {
       await teardown(harness)
     }

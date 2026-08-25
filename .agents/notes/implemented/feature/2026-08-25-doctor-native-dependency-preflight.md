@@ -4,7 +4,7 @@ Status: implemented
 
 English | [中文](2026-08-25-doctor-native-dependency-preflight.zh.md)
 
-Scope: `packages/tui/tui/src/format/doctor-report.ts`, `packages/tui/tui/src/commands/registry.ts` (`/doctor`)
+Scope: `packages/tui/tui/src/format/doctor-report.ts`, `packages/tui/tui/src/commands/registry.ts` (`/doctor`), `packages/tui/tui/package.json` (declares `@huiliyi37/dsh-subprocess-local`)
 
 ## Problem
 
@@ -12,7 +12,7 @@ An install whose lifecycle scripts were blocked (npm 11+ defaults) loses the nat
 
 ## Design
 
-`collectNativeDependencyChecks(probe?)` joins the `/doctor` report: two rows (koffi / node-pty), `warn` + `fixId 3` when the probe cannot load a module. The default probe resolves each module through `createRequire` from `@huiliyi37/dsh-subprocess-local` (the owning dependency tree under pnpm) and falls back to the bare specifier (the top-level layout of an npm -g install); the require cache keeps repeat probes free. The probe is injectable, keeping doctor-report's pure-function surface; `DOCTOR_FIXES[3]` carries the README's exact `--allow-scripts` reinstall command. The value line names what breaks (`bash 终端执行器` / `Windows 进程表/信号`), so the row reads as a diagnosis, not just a boolean.
+`collectNativeDependencyChecks(probe?)` joins the `/doctor` report: two rows (koffi / node-pty), `warn` + `fixId 3` when the probe cannot load a module. The TUI package declares `@huiliyi37/dsh-subprocess-local` so plain Node can resolve that owner from `import.meta.url` (vitest's path mapping is not a substitute). The default probe resolves each module through `createRequire` from that owner, then `process.argv[1]`, then the bare specifier (the top-level layout of an npm -g install); the require cache keeps repeat probes free. The probe is injectable, keeping doctor-report's pure-function surface; `DOCTOR_FIXES[3]` carries the README's exact `--allow-scripts` reinstall command. The value line names what breaks (`bash 终端执行器` / `Windows 进程表/信号`), so the row reads as a diagnosis, not just a boolean.
 
 ## Boundary
 
@@ -20,4 +20,4 @@ The check reports loadability, not health of the build (a broken binary that sti
 
 ## Proof
 
-`doctor-report.spec.ts` pins both-present, each-missing (fixId + guidance text includes the command), and the default probe's ok path on this repo's dev install; the `/doctor` command spec pins that both native rows appear in the echoed report.
+`doctor-report.spec.ts` pins both-present, each-missing (fixId + guidance text includes the command), the default probe's ok path on this repo's dev install, and the same probe under plain `node --import tsx/esm` (not vite path mapping); the `/doctor` command spec pins that both native rows appear in the echoed report.

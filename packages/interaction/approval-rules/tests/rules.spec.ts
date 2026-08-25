@@ -47,6 +47,18 @@ describe('parseRules', () => {
     expect(() => parseRules('- tool: echo\n  pattern: ""\n  decision: allow\n', 'user.yaml'))
       .toThrow(/empty or missing "pattern"/)
   })
+
+  it('keeps match: exact and treats omitted or glob as the glob default', () => {
+    expect(parseRules('- tool: bash\n  pattern: "ls *"\n  decision: allow\n  match: exact\n', 'user.yaml'))
+      .toEqual([{ tool: 'bash', pattern: 'ls *', decision: 'allow', match: 'exact' }])
+    expect(parseRules('- tool: bash\n  pattern: "ls *"\n  decision: allow\n  match: glob\n', 'user.yaml'))
+      .toEqual([{ tool: 'bash', pattern: 'ls *', decision: 'allow' }])
+  })
+
+  it('fails loud on an illegal match', () => {
+    expect(() => parseRules('- tool: echo\n  pattern: "*"\n  decision: allow\n  match: regex\n', 'user.yaml'))
+      .toThrow(/illegal match "regex"/)
+  })
 })
 
 describe('loadRules', () => {
@@ -61,9 +73,11 @@ describe('loadRules', () => {
     const rules: FileRule[] = [
       { tool: 'echo', pattern: '*', decision: 'allow' },
       { tool: 'bash', pattern: 'git*', decision: 'deny' },
+      { tool: 'bash', pattern: 'ls *', decision: 'allow', match: 'exact' },
     ]
     await writeRules(file, rules)
     expect(await loadRules(file)).toEqual(rules)
+    expect(await readFile(file, 'utf8')).toContain('match: exact')
   })
 
   it('propagates a load failure from a malformed file', async () => {
@@ -105,6 +119,14 @@ describe('mergeRules and matchRule', () => {
   it('returns undefined when no rule matches the arguments', () => {
     const rules = mergeRules([{ tool: 'echo', pattern: 'other', decision: 'allow' }], [])
     expect(matchRule(rules, 'echo', 'this')).toBeUndefined()
+  })
+
+  it('exact match treats * as a literal; omitted match still globs', () => {
+    const exact = mergeRules([{ tool: 'bash', pattern: 'ls *', decision: 'allow', match: 'exact' }], [])
+    expect(matchRule(exact, 'bash', 'ls *')?.rule.match).toBe('exact')
+    expect(matchRule(exact, 'bash', 'ls foo')).toBeUndefined()
+    const glob = mergeRules([{ tool: 'bash', pattern: 'ls *', decision: 'allow' }], [])
+    expect(matchRule(glob, 'bash', 'ls foo')?.rule.decision).toBe('allow')
   })
 })
 

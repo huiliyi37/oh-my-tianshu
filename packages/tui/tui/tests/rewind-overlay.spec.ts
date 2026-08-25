@@ -133,6 +133,17 @@ describe('RewindOverlay 状态机', () => {
     expect(ov2.render(80, 20).some(r => r.includes('回退失败：boom'))).toBe(true)
   })
 
+  it('onSettled 抛错不打回已提交的 rewind 结果', async () => {
+    const ov = new RewindOverlay(undefined, {
+      onSettled: () => { throw new Error('paint failed') },
+    })
+    ov.setMessages(MESSAGES, vi.fn(async () => ({ filesChanged: 1 })))
+    ov.handleKey('return', '')
+    ov.handleKey('', '1')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(ov.render(80, 20).some(r => r.includes('回退完成：1 个文件'))).toBe(true)
+  })
+
   it('list/mode 阶段 Esc 返回 true（装配方负责 deactivate）', () => {
     const ov = new RewindOverlay()
     ov.setMessages(MESSAGES, vi.fn())

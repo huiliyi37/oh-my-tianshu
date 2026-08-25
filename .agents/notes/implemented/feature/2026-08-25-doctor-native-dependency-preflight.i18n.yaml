@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-25-doctor-native-dependency-preflight.md
-2026-08-25-doctor-native-dependency-preflight.md: 542ddfb57b9151310f1b442d55a0f910bcba17f1
-2026-08-25-doctor-native-dependency-preflight.zh.md: 303dd6dc0d88b4dc198a11dce778982d187612fa
+2026-08-25-doctor-native-dependency-preflight.md: 407a53d7f2d6c93fde8de969430282889e5302fc
+2026-08-25-doctor-native-dependency-preflight.zh.md: 99534c5ba5c47234fa8ddeba9e3bc7b8038979e7

@@ -133,6 +133,7 @@
         "@huiliyi37/dsh-evidence-gate",
         "@huiliyi37/dsh-fs-snapshot",
         "@huiliyi37/dsh-memory",
+        "@huiliyi37/dsh-subprocess-local",
         "@huiliyi37/dsh-tool-memory",
         "@huiliyi37/dsh-tool-memory-recall",
         "@huiliyi37/dsh-tool-session-query"
@@ -805,6 +806,7 @@
         "@huiliyi37/dsh-evidence-gate",
         "@huiliyi37/dsh-fs-snapshot",
         "@huiliyi37/dsh-memory",
+        "@huiliyi37/dsh-subprocess-local",
         "@huiliyi37/dsh-tool-memory",
         "@huiliyi37/dsh-tool-memory-recall",
         "@huiliyi37/dsh-tool-session-query"

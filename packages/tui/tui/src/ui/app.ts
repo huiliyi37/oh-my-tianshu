@@ -1222,6 +1222,11 @@ export class TuiApp {
   /** Phase 8：审批 answerer 订阅的 disposer（dispose 时解绑）。 */
   private approvalDisposer: (() => void) | null = null
 
+  /**
+   * `[p]` 落盘进行中：忽略审批键，且 `await` 后只结算仍是同一 `req` 的挂起卡。
+   */
+  private persistInFlight: { req: PendingApprovalRequest } | null = null
+
   /** 当前会话 id（null = 尚未 attach）。 */
   get sessionId(): SessionId | null { return this.activeSessionId }
 
@@ -3899,11 +3904,13 @@ export class TuiApp {
    * P1①「永久允许」：把挂起审批的精确匹配 allow 规则写入 approval-rules
    * （项目层 YAML，经 `approvalRules.persistAllow` 同进程 facet），成功后以
    * `'allowed-always'` 结算——后续同参请求由规则 answerer 直接放行。
-   * facet 未装配或写入失败时卡片不动，告警进 scrollback 由用户改选。
+   * 落盘期间忽略 y/n/a/esc，避免规则已写、本次却被拒；`await` 后只结算
+   * 仍是同一 `req` 的挂起卡。facet 未装配或写入失败时卡片不动，告警进
+   * scrollback 由用户改选。
    */
   private async persistPendingApprovalRule(): Promise<void> {
     const pending = this.approval.peek()
-    if (pending === null) return
+    if (pending === null || this.persistInFlight !== null) return
     const facet = this.ctx.reflect.get('approvalRules.persistAllow', false) as
       | { persistAllowRule(req: unknown): Promise<unknown> }
       | undefined
@@ -3911,11 +3918,17 @@ export class TuiApp {
       this.echoWarn('⚠ approval-rules 未装配，无法永久允许（可先 y/n/a）')
       return
     }
+    const req = pending.req
+    this.persistInFlight = { req }
     try {
-      await facet.persistAllowRule(pending.req)
-      this.settleApproval('allowed-always')
+      await facet.persistAllowRule(req)
+      if (this.approval.peek()?.req === req) {
+        this.settleApproval('allowed-always')
+      }
     } catch (error: unknown) {
       this.echoWarn(`⚠ 永久允许写入失败：${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      this.persistInFlight = null
     }
   }
 
@@ -4374,6 +4387,7 @@ export class TuiApp {
     }
     // Phase 8：审批挂起中——y/N 决定，Ctrl+C/Esc 取消，其余键忽略（不干扰输入行）
     if (this.approval.isPending) {
+      if (this.persistInFlight !== null) return
       if (key.char === 'y' || key.char === 'Y') {
         this.settleApproval('allowed-once')
       } else if (key.char === 'n' || key.char === 'N') {

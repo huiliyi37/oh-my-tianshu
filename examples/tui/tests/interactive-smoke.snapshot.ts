@@ -46,8 +46,8 @@ const APPROVAL_MARKERS = ['审批 · bash', '允许执行 bash', '[y] 允许'] a
 const REWIND_LIST_MARKERS = ['⟲ rewind 回退', '选检查点'] as const
 const REWIND_MODE_MARKERS = ['选择粒度'] as const
 const REWIND_DONE_MARKERS = ['回退完成', '会话截断到 seq'] as const
-/** /permissions bare list marker (approval-rules echo, scenario 3). */
-const PERMISSIONS_RULE_MARKER = 'bash' as const
+/** /permissions bare list marker (`index  layer  tool …` from formatRuleLine). */
+const PERMISSIONS_RULE_MARKER = 'project  bash' as const
 
 /** Theme switch echo marker. */
 const THEME_SWITCH_MARKER = '主题已切换: '
@@ -216,19 +216,22 @@ describe.skipIf(process.platform === 'win32')('examples/tui interactive smoke', 
       // already sits in scrollback); if the card reappears instead, the rule
       // failed to capture the request and the turn would stall on a keypress.
       submitMessage(session, SMOKE_MESSAGE)
-      let sawCardAgain = false
       const settleDeadline = Date.now() + 30_000
+      let sawSecondReply = false
       while (Date.now() < settleDeadline) {
         const screen = session.activeLines().join('\n')
         if (screen.includes('允许执行 bash')) {
-          sawCardAgain = true
+          throw new Error('approval card reappeared after persistAllow — rule did not settle the identical call')
+        }
+        if (screen.split(SMOKE_ASSISTANT_REPLY).length >= 3) {
+          sawSecondReply = true
           break
         }
-        if (screen.split(SMOKE_ASSISTANT_REPLY).length >= 3) break
         await new Promise(resolve => setTimeout(resolve, 50))
       }
-      expect(sawCardAgain).toBe(false)
-      await session.waitForMarkers(['TUI_SMOKE_ESCALATION_OK'], 'rule-settled tool result')
+      expect(sawSecondReply, 'second assistant reply must land without a new approval card').toBe(true)
+      expect(session.activeLines().join('\n').split('TUI_SMOKE_ESCALATION_OK').length)
+        .toBeGreaterThanOrEqual(3)
 
       // Clean exit after the rule-driven flow.
       session.send('\x11')

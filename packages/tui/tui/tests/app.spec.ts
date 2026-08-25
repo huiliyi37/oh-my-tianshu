@@ -3480,6 +3480,48 @@ describe('TuiApp Phase 8 审批 answerer', () => {
     await app.dispose()
   })
 
+  it('p 落盘期间忽略 n，成功后仍以 allowed-always 结算同一张卡', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('approval-p-race')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    const handler = ctx.on.mock.calls.find(call => call[0] === 'approval/request')?.[1] as
+      | ((req: unknown, next: () => Promise<string>) => Promise<string>)
+      | undefined
+    if (handler === undefined) throw new Error('approval/request handler not registered')
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    const persisted: unknown[] = []
+    ctx.reflect.get.mockImplementation((name: string) => (
+      name === 'approvalRules.persistAllow'
+        ? {
+          persistAllowRule: async (req: unknown) => {
+            persisted.push(req)
+            await gate
+            return { tool: 'bash', pattern: 'echo', decision: 'allow', match: 'exact', layer: 'project' }
+          },
+        }
+        : undefined
+    ))
+    const owner = { id: app.sessionId ?? SessionId('approval-p-race') }
+    const outcome = handler(
+      { agent: { session: { id: owner.id } }, toolName: 'bash' },
+      () => Promise.resolve('unavailable'),
+    )
+    stdin.emit('data', 'p')
+    await new Promise(resolve => setImmediate(resolve))
+    stdin.emit('data', 'n')
+    release()
+    await expect(outcome).resolves.toBe('allowed-always')
+    expect(persisted).toHaveLength(1)
+    await app.dispose()
+  })
+
   it('p 无 approvalRules facet：告警进 scrollback，卡片保持挂起（可改选 y/n）', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('approval-p2')

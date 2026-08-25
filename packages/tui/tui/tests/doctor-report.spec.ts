@@ -1,5 +1,8 @@
 /** /doctor 原生依赖预检与审批卡键位折行的行为规格。 */
 
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { displayWidth } from '../src/width.js'
 import {
@@ -49,6 +52,23 @@ describe('collectNativeDependencyChecks（P1② 原生依赖预检）', () => {
     expect(defaultNativeModuleProbe('node-pty')).toBe('ok')
     expect(defaultNativeModuleProbe('koffi')).toBe('ok')
   })
+
+  it('默认探针在 plain Node（tsx ESM，非 vite 路径映射）下可加载 koffi / node-pty', async () => {
+    const execFileAsync = promisify(execFile)
+    const probeHref = pathToFileURL(fileURLToPath(new URL('../src/format/doctor-report.ts', import.meta.url))).href
+    const { stdout } = await execFileAsync(process.execPath, [
+      '--import',
+      'tsx/esm',
+      '--input-type=module',
+      '--eval',
+      `import { defaultNativeModuleProbe } from ${JSON.stringify(probeHref)};
+       console.log(JSON.stringify({
+         koffi: defaultNativeModuleProbe('koffi'),
+         pty: defaultNativeModuleProbe('node-pty'),
+       }));`,
+    ], { cwd: fileURLToPath(new URL('../../../..', import.meta.url)) })
+    expect(JSON.parse(stdout)).toEqual({ koffi: 'ok', pty: 'ok' })
+  }, 20_000)
 })
 
 describe('wrapApprovalHintRows（审批卡键位折行）', () => {

@@ -4,7 +4,7 @@
  * 持有 pendingApproval 挂起态（req + resolve 句柄）与 alwaysApprove 短路标志。
  * handle() 是 approval/request 订阅的 answerer 入口，语义与 user-approval
  * waterfall 对齐：
- * - alwaysApprove 且当前会话 → 短路放行 allowed-once（不挂起、不消费）。
+ * - alwaysApprove 且当前会话 → 短路放行 allowed-always（不挂起、不消费）。
  * - 非当前会话或已有挂起 → 委托 next()（fail-closed：TUI 一次只呈现一个确认，
  *   apiproxy 等链上 answerer 处理远端转发）。
  * - 当前会话无挂起 → 挂起，返回等用户 y/N 的 promise。
@@ -109,7 +109,7 @@ export class ApprovalController {
    * 审批 answerer 入口：短路放行 / 委托 next() / 挂起，三选一。
    * @param req - 待决审批请求（approval/request 事件 payload）。
    * @param next - waterfall 委托（不处理时调用；链上其他 answerer 兜底）。
-   * @returns 用户决定（allowed-once/rejected/cancelled）或 next() 结果。
+   * @returns 用户决定（allowed-once/allowed-always/rejected/cancelled）或 next() 结果。
    */
   handle(req: PendingApprovalRequest, next: () => Promise<ApprovalOutcome>): Promise<ApprovalOutcome> {
     const current = this.getCurrentSessionId()

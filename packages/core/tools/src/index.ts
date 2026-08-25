@@ -561,9 +561,9 @@ export type ToolExecutionResult = ToolExecutionSuccess | ToolExecutionFailure
 
 /**
  * Pre-dispatch decision. `allow` runs the call; `deny` materializes an error;
- * `ask` runs only after an approval service returns `allowed-once` and otherwise
- * denies. Input rewriting is excluded because arguments are already logged and
- * presented.
+ * `ask` runs only after an approval service returns `allowed-once` or
+ * `allowed-always` and otherwise denies. Input rewriting is excluded because
+ * arguments are already logged and presented.
  */
 export type PreToolDecision =
   | { kind: 'allow' }
@@ -1593,9 +1593,9 @@ export class ToolRegistry extends Service {
    * to deny, and an unmount mid-session degrades the same way on the next ask.
    * An agent-less execution also degrades: without an agent there is no
    * session to audit to and no UI to route to. Otherwise the outcome maps
-   * one-to-one — `allowed-once` proceeds; the three non-grants deny with
-   * distinct reasons so the model can tell a human "no" from an absent
-   * approval channel.
+   * one-to-one — `allowed-once` and `allowed-always` proceed; the three
+   * non-grants deny with distinct reasons so the model can tell a human "no"
+   * from an absent approval channel.
    */
   private async serviceAsk(
     exec: ToolExecution,

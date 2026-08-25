@@ -169,7 +169,11 @@ export class RewindOverlay implements OverlayRenderer {
     this.phase = 'done'
     // 执行是异步的：按键驱动的同步重绘只画得出 executing 帧；落到 done 时
     // 通知装配方补一帧，否则完成/失败页永不出现（渲染停在静止的执行帧）。
-    this.onSettled?.()
+    try {
+      this.onSettled?.()
+    } catch {
+      // 重绘回调是尽力而为：抛错不得打回已提交的 rewind 结果，也不得卡住 phase。
+    }
   }
 
   render(width: number, height: number): string[] {

@@ -163,7 +163,11 @@ export type NativeModuleProbe = (specifier: string) => NativeProbeResult
  */
 export function defaultNativeModuleProbe(specifier: string): NativeProbeResult {
   const fromHere = createRequire(import.meta.url)
-  for (const base of ['@huiliyi37/dsh-subprocess-local', '.']) {
+  const bases: string[] = ['@huiliyi37/dsh-subprocess-local']
+  const argv1 = process.argv[1]
+  if (typeof argv1 === 'string' && argv1.length > 0) bases.push(argv1)
+  bases.push('.')
+  for (const base of bases) {
     try {
       createRequire(fromHere.resolve(base))(specifier)
       return 'ok'

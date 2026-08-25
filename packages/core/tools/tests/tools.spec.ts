@@ -736,6 +736,17 @@ describe('ToolRegistry', () => {
       return ctx
     }
 
+    it('dispatches the tool when the answerer grants allowed-always', async () => {
+      const ctx = await approvalSetup()
+      ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-always'))
+      ctx.on('tools/pre-execute', async (_exec, _next): Promise<PreToolDecision> => ({ kind: 'ask' }))
+
+      const result = await ctx.tools.execute({
+        callId: CallId('c1'), name: 'echo', arguments: { text: 'hi' }, agent: fakeAgent(), signal: testToolSignal,
+      })
+      expect(result).toMatchObject({ isError: false, content: [{ type: 'text', text: 'hi' }] })
+    })
+
     it('dispatches the tool when the answerer grants allowed-once, forwarding the ask fields', async () => {
       const ctx = await approvalSetup()
       const agent = fakeAgent()

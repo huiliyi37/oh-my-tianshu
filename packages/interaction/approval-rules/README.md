@@ -12,7 +12,7 @@ The approval seam grants exactly one-shot decisions: an answerer returns `allowe
 
 ## Rule syntax
 
-Rules live as a YAML list with three fields per entry. Two layers are merged, **user layer first**, and matching walks the merged list in order returning the first hit.
+Rules live as a YAML list. Two layers are merged, **user layer first**, and matching walks the merged list in order returning the first hit.
 
 ```yaml
 # <resolveDshHome()>/permissions.yaml
@@ -27,8 +27,9 @@ Rules live as a YAML list with three fields per entry. Two layers are merged, **
 - `tool` — the exact tool name this rule governs (matched with strict equality).
 - `pattern` — a full-string-anchored glob matched against the tool call's **normalized argument string**: the raw `arguments` value of the `tool/call` event the request references (via its `callId`), with whitespace runs collapsed to single spaces. Most tools receive JSON-encoded arguments from the model — a bash-style call normalizes to something like `{"command":"git push","timeout":5000}` — so anchor on the stable inner substring with `*` on both sides (`'*git push*'`); a plain `'git push*'` never matches a JSON-encoded call. `*` crosses any characters; every other character is literal (this is a glob, not a regex). Anchoring is implicit, so `git push` never matches `safe-git push`. A request without a resolvable call matches against `""`.
 - `decision` — `allow` (settles `allowed-always`) or `deny` (settles `rejected`).
+- `match` — optional. Omitted or `glob` treats `*` as a wildcard (hand-authored `/permissions add` rules). `exact` compares the normalized argument string with `===`. `persistAllowRule` writes `match: exact` so a `[p]` grant cannot widen when the call itself contains `*`.
 
-A malformed YAML file, a non-list top level, an empty `tool` / `pattern`, or a `decision` outside `allow` / `deny` fails loud at load with the offending file path. Unknown tool names are **not** validated at load (a tool surface may be assembled later); such rules simply never match while that tool is absent.
+A malformed YAML file, a non-list top level, an empty `tool` / `pattern`, a `decision` outside `allow` / `deny`, or a `match` outside `glob` / `exact` fails loud at load with the offending file path. Unknown tool names are **not** validated at load (a tool surface may be assembled later); such rules simply never match while that tool is absent.
 
 ### Layer paths
 
@@ -52,7 +53,7 @@ A Cordis waterfall has no priority mechanism: `approval/request` listeners run i
 
 ## Same-process facet
 
-Interactive answerers settle the TUI approval card's `永久允许` through the `approvalRules.persistAllow` facet (`ctx.get('approvalRules.persistAllow')`): `persistAllowRule(req)` derives the exact-match allow rule for one pending request — the request's tool plus its normalized argument string as a full-string pattern — appends it to the project layer, and returns the layer-stamped rule. Requests without resolvable call arguments fail loud (an unrestricted wildcard is not something a single keypress should grant). After persisting, the caller settles the request with `allowed-always`; identical future requests then settle from the rule answerer without re-asking.
+Interactive answerers settle the TUI approval card's `永久允许` through the `approvalRules.persistAllow` facet (`ctx.get('approvalRules.persistAllow')`): `persistAllowRule(req)` derives the exact-match allow rule for one pending request — the request's tool plus its normalized argument string, with `match: exact` — appends it to the project layer, and returns the layer-stamped rule. Requests without resolvable call arguments fail loud (an unrestricted wildcard is not something a single keypress should grant). After persisting, the caller settles the request with `allowed-always`; identical future requests then settle from the rule answerer without re-asking.
 
 ## Config
 

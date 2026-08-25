@@ -5,8 +5,15 @@
  * @module @huiliyi37/dsh-approval-rules/types
  */
 
-/** A rule's decision: `allow` grants one-shot approval, `deny` rejects it. */
+/** A rule's decision: `allow` grants a standing approval, `deny` rejects it. */
 export type PermissionDecision = 'allow' | 'deny'
+
+/**
+ * How {@link FileRule.pattern} is compared to the normalized argument string.
+ * Omitted/`glob` treats `*` as a wildcard; `exact` is a literal full-string
+ * match so a persisted `[p]` grant cannot widen when the call itself contains `*`.
+ */
+export type RuleMatchMode = 'glob' | 'exact'
 
 /** Which storage layer owns a rule: the user home file or the project file. */
 export type PermissionLayer = 'user' | 'project'
@@ -21,10 +28,16 @@ export interface FileRule {
   /**
    * Full-string-anchored glob matched against the tool call's normalized
    * argument string; `*` crosses any characters. The exact value in the file.
+   * When {@link FileRule.match} is `exact`, this string is compared with `===`.
    */
   readonly pattern: string
   /** The decision returned when this rule matches. */
   readonly decision: PermissionDecision
+  /**
+   * Comparison mode. Omitted means `glob` (hand-authored `/permissions add`
+   * rules). `persistAllowRule` writes `exact`.
+   */
+  readonly match?: RuleMatchMode
 }
 
 /**

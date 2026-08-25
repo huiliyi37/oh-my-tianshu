@@ -9,15 +9,15 @@
  * Merging is simple list concatenation (user layer first), and matching walks
  * the merged list in order returning the first hit — the earlier a rule sits,
  * the earlier it wins. A missing file is an empty layer. A malformed file or an
- * illegal rule (empty `tool`/`pattern`, a `decision` outside `allow`/`deny`)
- * fails loud with the offending file path.
+ * illegal rule (empty `tool`/`pattern`, a `decision` outside `allow`/`deny`,
+ * or a `match` outside `glob`/`exact`) fails loud with the offending file path.
  * @module @huiliyi37/dsh-approval-rules/rules
  */
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { dump, load } from 'js-yaml'
-import type { FileRule, PermissionDecision, Rule } from './types.ts'
+import type { FileRule, PermissionDecision, Rule, RuleMatchMode } from './types.ts'
 import { matchesPattern } from './glob.ts'
 
 /** The closed decision vocabulary stored in a rule file. */
@@ -62,7 +62,16 @@ function normalizeRule(entry: unknown, filePath: string, index: number): FileRul
   if (typeof decision !== 'string' || !DECISIONS.includes(decision)) {
     throw new Error(`approval-rules: rule at index ${index} in "${filePath}" has an illegal decision "${String(decision)}" (must be "allow" or "deny")`)
   }
-  return { tool: tool.trim(), pattern: pattern.trim(), decision: decision as PermissionDecision }
+  const match = record['match']
+  if (match !== undefined && match !== 'glob' && match !== 'exact') {
+    throw new Error(`approval-rules: rule at index ${index} in "${filePath}" has an illegal match "${String(match)}" (must be "glob" or "exact")`)
+  }
+  return {
+    tool: tool.trim(),
+    pattern: pattern.trim(),
+    decision: decision as PermissionDecision,
+    ...match === 'exact' ? { match: 'exact' as RuleMatchMode } : {},
+  }
 }
 
 /**
@@ -110,7 +119,7 @@ export interface RuleMatch {
  * Find the first rule governing a tool call.
  * @param rules - the effective rules, in priority order.
  * @param tool - the tool name to match (exact).
- * @param normalizedArgs - the normalized argument string to glob against.
+ * @param normalizedArgs - the normalized argument string to compare.
  * @returns the first matching rule and its effective index, or `undefined`.
  */
 export function matchRule(rules: readonly Rule[], tool: string, normalizedArgs: string): RuleMatch | undefined {
@@ -118,9 +127,12 @@ export function matchRule(rules: readonly Rule[], tool: string, normalizedArgs: 
     const rule = rules[index]
     /* v8 ignore next -- the loop index is always in range */
     if (rule === undefined) continue
-    if (rule.tool === tool && matchesPattern(normalizedArgs, rule.pattern)) {
-      return { rule, index }
-    }
+    const hit = rule.tool === tool && (
+      rule.match === 'exact'
+        ? normalizedArgs === rule.pattern
+        : matchesPattern(normalizedArgs, rule.pattern)
+    )
+    if (hit) return { rule, index }
   }
   return undefined
 }
@@ -133,7 +145,12 @@ export function matchRule(rules: readonly Rule[], tool: string, normalizedArgs: 
  */
 export async function writeRules(filePath: string, rules: readonly FileRule[]): Promise<void> {
   await mkdir(dirname(filePath), { recursive: true })
-  const source = dump(rules.map(rule => ({ tool: rule.tool, pattern: rule.pattern, decision: rule.decision })), { lineWidth: -1 })
+  const source = dump(rules.map(rule => ({
+    tool: rule.tool,
+    pattern: rule.pattern,
+    decision: rule.decision,
+    ...rule.match === 'exact' ? { match: 'exact' } : {},
+  })), { lineWidth: -1 })
   await writeFile(filePath, source, { mode: 0o600 })
 }
 

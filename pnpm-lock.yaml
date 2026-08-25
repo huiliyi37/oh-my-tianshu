@@ -8225,6 +8225,9 @@ importers:
       '@huiliyi37/dsh-spark-anchors':
         specifier: workspace:^
         version: link:../../context/spark-anchors
+      '@huiliyi37/dsh-subprocess-local':
+        specifier: workspace:^
+        version: link:../../subprocess/subprocess-local
       '@huiliyi37/dsh-task-card':
         specifier: workspace:^
         version: link:../../guard/task-card

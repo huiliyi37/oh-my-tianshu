@@ -81,6 +81,7 @@
     "@huiliyi37/dsh-paths": "workspace:^",
     "@huiliyi37/dsh-permission": "workspace:^",
     "@huiliyi37/dsh-spark-anchors": "workspace:^",
+    "@huiliyi37/dsh-subprocess-local": "workspace:^",
     "@huiliyi37/dsh-task-card": "workspace:^",
     "@huiliyi37/dsh-tool-memory": "workspace:^",
     "@huiliyi37/dsh-tool-memory-recall": "workspace:^",
