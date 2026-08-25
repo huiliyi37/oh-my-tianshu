@@ -141,16 +141,14 @@ export function renderLspPanel(snapshot: LiveSnapshot): string[] {
 export function renderDelegationPanel(snapshot: LiveSnapshot): string[] {
   if (!snapshot.subagentsPanelVisible) return []
   if (snapshot.delegationEntries === null) return []
-  const rows = projectDelegationTree(snapshot.delegationEntries, {
+  const opts = {
     width: snapshot.cols,
+    ...(snapshot.now === undefined ? {} : { now: snapshot.now }),
     theme: snapshot.theme,
-  })
+  }
+  const rows = projectDelegationTree(snapshot.delegationEntries, opts)
   // G3：活跃外部 run 段（无本地 Session；session 枚举看不到，走等价状态面）。
-  rows.push(...projectExternalRunSection(snapshot.externalRuns, {
-    width: snapshot.cols,
-    now: snapshot.now,
-    theme: snapshot.theme,
-  }))
+  rows.push(...projectExternalRunSection(snapshot.externalRuns, opts))
   return rows
 }
 

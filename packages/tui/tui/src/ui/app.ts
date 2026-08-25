@@ -108,7 +108,7 @@ import type {
   ExternalRunEntry,
 } from '../delegation-panel.js'
 import type { WorkflowRunView, WorkflowResultInfoInput } from '../workflow-panel.js'
-import { foldActivityItems, formatActivityBand, type ActivityItem } from '../format/activity-band.js'
+import { foldActivityItems, formatActivityBand, type ActiveTaskInput, type ActivityItem, type SubagentRunInput, type WorkflowRunInput } from '../format/activity-band.js'
 import { formatElapsedHuman } from '../format/spinner-status.js'
 import {
   projectQuestionPanel,
@@ -2894,13 +2894,16 @@ export class TuiApp {
       this.cacheHealth = (snap.values.cacheHealth as CacheHealthWire | null | undefined) ?? null
       this.projectionDisposer = projections.onChanged((s, key, value) => {
         if (s.id !== id) {
+          // 无关 key 早退：不扫运行中 child、不扫委派树。
+          if (key !== 'subagentProgress' && key !== 'subagentTiming') return
           // T2.1：子会话运行态变化 → 重拉当前根的 listDescendants（同一 cut）。
           // 仅面板可见且 id 已在树上时才拉；冷子代仍可能走持久化 inspect。
-          // 父会话自身的投影走下方原分流路径。
-          if (this.subagentsPanelVisible
-            && (key === 'subagentProgress' || key === 'subagentTiming')
-            && this.delegationEntries?.some(e => e.kind === 'child' && e.id === s.id) === true) {
-            this.refreshDelegationTree(id)
+          if (this.subagentsPanelVisible && this.delegationEntries !== null) {
+            let treeHasChild = false
+            for (const e of this.delegationEntries) {
+              if (e.kind === 'child' && e.id === s.id) { treeHasChild = true; break }
+            }
+            if (treeHasChild) this.refreshDelegationTree(id)
           }
           // 活动带：运行中 subagent 的子会话 progress 恒缓存（带行统计段与
           // 完成行统计数据源；out-of-process 无 Session 投影，天然不命中）。
@@ -3136,34 +3139,40 @@ export class TuiApp {
 
   /** 活动带：三类活跃活动 fold 为统一活动项（新 startedAt 在前，纯函数承担）。 */
   private foldActivity(): ActivityItem[] {
-    return foldActivityItems({
-      subagentRuns: [...this.subagentRuns.entries()].map(([runId, run]) => {
-        const progress = this.childProgress.get(run.childId)
-        return {
-          runId,
-          label: run.label,
-          startedAt: run.startedAt,
-          ...(progress === undefined ? {} : {
-            progress: {
-              toolCalls: progress.toolCalls,
-              tokensUsed: progress.tokensUsed,
-              ...(progress.lastTool === undefined ? {} : { lastTool: progress.lastTool }),
-            },
-          }),
-        }
-      }),
-      workflowRuns: [...this.workflowRuns.values()].map(state => ({
+    const subagentRuns: SubagentRunInput[] = []
+    for (const [runId, run] of this.subagentRuns) {
+      const progress = this.childProgress.get(run.childId)
+      subagentRuns.push({
+        runId,
+        label: run.label,
+        startedAt: run.startedAt,
+        ...(progress === undefined ? {} : {
+          progress: {
+            toolCalls: progress.toolCalls,
+            tokensUsed: progress.tokensUsed,
+            ...(progress.lastTool === undefined ? {} : { lastTool: progress.lastTool }),
+          },
+        }),
+      })
+    }
+    const workflowRuns: WorkflowRunInput[] = []
+    for (const state of this.workflowRuns.values()) {
+      workflowRuns.push({
         id: state.id,
         name: state.meta.name,
         description: state.meta.description,
         phase: state.phase,
         agentCount: state.agents.length,
         startedAt: state.startedAt,
-      })),
-      tasks: this.taskSnapshots
-        .filter(t => t.status === 'running' || t.status === 'stopping')
-        .map(t => ({ id: t.id, kind: t.kind, label: t.label, startedAt: t.startedAt })),
-    })
+      })
+    }
+    const tasks: ActiveTaskInput[] = []
+    for (const t of this.taskSnapshots) {
+      if (t.status === 'running' || t.status === 'stopping') {
+        tasks.push({ id: t.id, kind: t.kind, label: t.label, startedAt: t.startedAt })
+      }
+    }
+    return foldActivityItems({ subagentRuns, workflowRuns, tasks })
   }
 
   /** workflow 结束摘要：塌一行 commit 进 scrollback（CC 对标单行格式）。 */
@@ -3193,6 +3202,7 @@ export class TuiApp {
     }
     // G3：活跃外部 run 快照（同步内存面；服务在场即有此面，直接读取）。
     this.externalRuns = subagents.activeExternalRuns()
+    this.renderBatcher.schedule()
     void subagents.listDescendants(sessionId).then((entries) => {
       if (this.disposed) return
       this.delegationEntries = entries
@@ -4896,6 +4906,7 @@ export class TuiApp {
       width: cols,
     }, theme)
     // T2.2：运行中 + 已结算 workflow run 折叠为视图数组（列表行 + 终态汇总）。
+    const now = Date.now()
     const workflowRuns: WorkflowRunView[] = []
     for (const state of this.workflowRuns.values()) {
       workflowRuns.push({
@@ -4906,7 +4917,7 @@ export class TuiApp {
           childId: a.childId ?? '',
           outcome: a.outcome ?? 'completed',
         })),
-        elapsedMs: Date.now() - state.startedAt,
+        elapsedMs: now - state.startedAt,
         ...(state.logs.length === 0 ? {} : { logs: [...state.logs] }),
       })
     }
@@ -4914,7 +4925,7 @@ export class TuiApp {
     const snapshot: LiveSnapshot = {
       cols,
       theme,
-      now: Date.now(),
+      now,
       glanceStatus: turnStatusLines[0] ?? null,
       glanceError: glance.error,
       taskPanelVisible: this.taskPanelVisible,
@@ -5100,7 +5111,7 @@ export class TuiApp {
       for (const line of formatActivityBand(this.foldActivity(), {
         width: cols,
         maxRows: this.activityBandMaxRows,
-        now: Date.now(),
+        now,
         tick: this.tick,
         theme,
       })) {

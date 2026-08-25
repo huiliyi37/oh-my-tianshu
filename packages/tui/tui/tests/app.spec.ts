@@ -8220,6 +8220,9 @@ describe('活动带 child 投影缓存与 workflow/task 折叠接线', () => {
     ctx.agents.create.mockResolvedValue(handle)
     ctx.sessions.get.mockReturnValue(agent.session)
     let projectionListener: ((s: { id: string }, key: string, value: unknown, seq: number) => void) | null = null
+    const listDescendants = vi.fn(async () => ([
+      { kind: 'child', id: 'child-1', parentId: 'root', depth: 1, activity: 'running', hasChildren: false, mode: 'one-shot', label: '探索鉴权' },
+    ]))
     ctx.reflect.get.mockImplementation((name: string) => {
       if (name === 'sessionProjections') return {
         snapshot: vi.fn(() => ({ values: {} })),
@@ -8230,9 +8233,7 @@ describe('活动带 child 投影缓存与 workflow/task 折叠接线', () => {
       }
       if (name === 'subagents') return {
         activeExternalRuns: () => [],
-        listDescendants: vi.fn(async () => ([
-          { kind: 'child', id: 'child-1', parentId: 'root', depth: 1, activity: 'running', hasChildren: false, mode: 'one-shot', label: '探索鉴权' },
-        ])),
+        listDescendants,
       }
       if (name === 'tasks') return {
         list: vi.fn(() => [
@@ -8247,7 +8248,7 @@ describe('活动带 child 投影缓存与 workflow/task 折叠接线', () => {
     const stdin = makeStdin()
     const stdout = makeStdout()
     const app = new TuiApp({ ctx, stdout, stdin })
-    return { ctx, agent, handle, stdin, stdout, app, projection: () => projectionListener }
+    return { ctx, agent, handle, stdin, stdout, app, projection: () => projectionListener, listDescendants }
   }
 
   function handlerOf(ctx: ReturnType<typeof makeCtx>, name: string): ((info: unknown) => void) | undefined {
@@ -8308,6 +8309,20 @@ describe('活动带 child 投影缓存与 workflow/task 折叠接线', () => {
     await settle()
     const written = writtenOf(stdout)
     expect(written).not.toContain('9 工具')
+    await app.dispose()
+  })
+
+  it('外会话无关 key 不重拉委派树', async () => {
+    const { stdin, app, projection, listDescendants } = boot()
+    await app.attach()
+    await settle()
+    for (const ch of '/subagents') stdin.emit('data', ch)
+    stdin.emit('data', '\r')
+    await settle()
+    const calls = listDescendants.mock.calls.length
+    projection()?.({ id: 'other-session' }, 'plan', { active: true, pending: false }, 1)
+    await settle()
+    expect(listDescendants.mock.calls.length).toBe(calls)
     await app.dispose()
   })
 
