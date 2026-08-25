@@ -104,6 +104,35 @@ describe('RewindOverlay 状态机', () => {
     expect(rows.some(r => r.includes('回退完成：1 个文件（2 个文件因快照缺失未回退）'))).toBe(true)
   })
 
+  it('onSettled：异步执行落到 done 时回调一次（成功与失败都触发）', async () => {
+    const settled = vi.fn()
+    let releaseExecutor: (() => void) | undefined
+    const executor = vi.fn(() => new Promise<{ filesChanged: number }>((resolve) => {
+      releaseExecutor = () => { resolve({ filesChanged: 0 }) }
+    }))
+    const ov = new RewindOverlay(undefined, { onSettled: settled })
+    ov.setMessages(MESSAGES, executor)
+    ov.handleKey('return', '')
+    ov.handleKey('', '1')
+    // 执行未决期间不触发（此时同步重绘只能画出 executing 帧）。
+    await new Promise(resolve => setImmediate(resolve))
+    expect(settled).not.toHaveBeenCalled()
+    releaseExecutor?.()
+    await new Promise(resolve => setImmediate(resolve))
+    expect(settled).toHaveBeenCalledTimes(1)
+    expect(ov.render(80, 20).some(r => r.includes('回退完成'))).toBe(true)
+
+    // 失败路径同样触发一次——失败页也依赖这一帧才可见。
+    const failing = vi.fn(async () => { throw new Error('boom') })
+    const ov2 = new RewindOverlay(undefined, { onSettled: settled })
+    ov2.setMessages(MESSAGES, failing)
+    ov2.handleKey('return', '')
+    ov2.handleKey('', '1')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(settled).toHaveBeenCalledTimes(2)
+    expect(ov2.render(80, 20).some(r => r.includes('回退失败：boom'))).toBe(true)
+  })
+
   it('list/mode 阶段 Esc 返回 true（装配方负责 deactivate）', () => {
     const ov = new RewindOverlay()
     ov.setMessages(MESSAGES, vi.fn())

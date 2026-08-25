@@ -125,6 +125,7 @@
     "@huiliyi37/dsh-zen": "workspace:*"
   },
   "devDependencies": {
+    "@huiliyi37/dsh-llm-mock-server": "workspace:^",
     "@xterm/headless": "^6.0.0",
     "node-pty": "1.2.0-beta.15"
   }

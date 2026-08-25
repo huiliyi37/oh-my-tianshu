@@ -445,9 +445,6 @@ importers:
       '@huiliyi37/dsh-invariants':
         specifier: workspace:*
         version: link:../packages/support/invariants
-      '@huiliyi37/dsh-sdk-server':
-        specifier: workspace:*
-        version: link:../packages/scaffold/server
       '@huiliyi37/dsh-llm':
         specifier: workspace:*
         version: link:../packages/llm/llm
@@ -502,6 +499,9 @@ importers:
       '@huiliyi37/dsh-scope':
         specifier: workspace:*
         version: link:../packages/core/scope
+      '@huiliyi37/dsh-sdk-server':
+        specifier: workspace:*
+        version: link:../packages/scaffold/server
       '@huiliyi37/dsh-session':
         specifier: workspace:*
         version: link:../packages/core/session
@@ -689,6 +689,9 @@ importers:
         specifier: workspace:*
         version: link:../packages/guard/zen
     devDependencies:
+      '@huiliyi37/dsh-llm-mock-server':
+        specifier: workspace:^
+        version: link:../packages/support/llm-mock-server
       '@xterm/headless':
         specifier: ^6.0.0
         version: 6.0.0
@@ -8957,9 +8960,6 @@ importers:
       '@huiliyi37/dsh-invariants':
         specifier: workspace:^
         version: link:../../packages/support/invariants
-      '@huiliyi37/dsh-sdk-server':
-        specifier: workspace:^
-        version: link:../../packages/scaffold/server
       '@huiliyi37/dsh-jsonrpc-demo':
         specifier: workspace:^
         version: link:../../packages/examples/jsonrpc-demo
@@ -9020,6 +9020,9 @@ importers:
       '@huiliyi37/dsh-sdk-protocol':
         specifier: workspace:^
         version: link:../../packages/scaffold/protocol
+      '@huiliyi37/dsh-sdk-server':
+        specifier: workspace:^
+        version: link:../../packages/scaffold/server
       '@huiliyi37/dsh-session':
         specifier: workspace:^
         version: link:../../packages/core/session

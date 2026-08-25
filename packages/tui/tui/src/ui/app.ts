@@ -1410,7 +1410,10 @@ export class TuiApp {
     this.searchOverlay = new HistorySearchOverlay()
     this.overlay.register('search', this.searchOverlay)
     // C3 项 3：rewind overlay（/rewind）——消息快照 + 执行回调在激活时提供。
-    this.rewindOverlay = new RewindOverlay()
+    this.rewindOverlay = new RewindOverlay(undefined, {
+      // onSettled：异步执行落到 done 时补一帧完成/失败页（按键重绘只画得出执行帧）。
+      onSettled: () => { this.overlay?.rerender() },
+    })
     this.overlay.register('rewind', this.rewindOverlay)
     // #31：交互式选择器 overlay（/model /theme /session 无参打开；上下键选择）。
     this.picker = new PickerController({ getTheme: () => this.theme })

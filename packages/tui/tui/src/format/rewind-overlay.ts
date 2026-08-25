@@ -66,9 +66,11 @@ export class RewindOverlay implements OverlayRenderer {
   private result: RewindResult | null = null
   private readonly theme: RivetTheme
   private executor: RewindExecutor | null = null
+  private readonly onSettled: (() => void) | null
 
-  constructor(theme?: RivetTheme) {
+  constructor(theme?: RivetTheme, options?: { onSettled?: () => void }) {
     this.theme = theme ?? getTheme()
+    this.onSettled = options?.onSettled ?? null
   }
 
   /**
@@ -165,6 +167,9 @@ export class RewindOverlay implements OverlayRenderer {
       }
     }
     this.phase = 'done'
+    // 执行是异步的：按键驱动的同步重绘只画得出 executing 帧；落到 done 时
+    // 通知装配方补一帧，否则完成/失败页永不出现（渲染停在静止的执行帧）。
+    this.onSettled?.()
   }
 
   render(width: number, height: number): string[] {

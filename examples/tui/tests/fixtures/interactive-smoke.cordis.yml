@@ -1,0 +1,85 @@
+# Keyless interactive TUI smoke composition: the examples/tui spine plus the
+# confining bash stack (subprocess → sandbox → sandbox-policy → bash-sandbox)
+# and the approval seam, so a mock-driven bash escalation raises the real
+# approval card inside the PTY. Point DEEPSEEK_BASE_URL at the loopback mock
+# server; no key or network is ever contacted.
+
+# User-settings document (`$DSH_HOME/settings.yaml`, hot-reloaded).
+- id: settings
+  name: '@huiliyi37/dsh-settings-local'
+
+# Transport-independent route used whenever the TUI creates a fresh Agent.
+- id: agent-default-model
+  name: '@huiliyi37/dsh-agent-default-model'
+  config:
+    provider: deepseek-official
+    model: deepseek-v4-flash
+
+# Credential store: resolves DEEPSEEK_API_KEY from the process environment
+# (the smoke passes a placeholder; the mock server accepts any auth header).
+- id: credentials
+  name: '@huiliyi37/dsh-credentials-local'
+
+# The real DeepSeek adapter; DEEPSEEK_BASE_URL redirects it to the mock.
+- id: llm-deepseek
+  name: '@huiliyi37/dsh-llm-deepseek'
+  config:
+    models:
+      - id: deepseek-v4-pro
+        contextWindow: 128000
+      - id: deepseek-v4-flash
+        contextWindow: 128000
+
+# The same agent spine as cordis.yml: one pre-created `main` agent with the
+# model-facing bash tool.
+- id: agent-spine
+  name: '@huiliyi37/dsh-agent-spine-demo'
+  config:
+    agents:
+      - id: main
+        provider: deepseek-official
+        model: deepseek-v4-flash
+        cwd: !!js process.cwd()
+    workspaceContext:
+      maxBytes: 65536
+    persona: |
+      You are the tui smoke agent, powered by the {{model}} model.
+
+      Keep answers brief and factual.
+
+# Managed child-process groups for the bash executor (spawn/kill/output plumbing).
+- id: subprocess
+  name: '@huiliyi37/dsh-subprocess-local'
+
+# Confining bash stack: sandbox-exec profiles over the subprocess service,
+# with the standing workspace-write policy the escalation widens.
+- id: sandbox
+  name: '@huiliyi37/dsh-sandbox-local'
+
+- id: sandbox-policy
+  name: '@huiliyi37/dsh-sandbox-policy'
+  config:
+    mode: workspace-write
+    workspaceRoot: !!js process.cwd()
+
+- id: bash-sandbox
+  name: '@huiliyi37/dsh-bash-sandbox'
+  config:
+    timeoutMs: 60000
+
+# The approval seam: policy `ask` routes escalation requests to the composed
+# answerers — the TUI's approval card inside the PTY.
+- id: approval
+  name: '@huiliyi37/dsh-user-approval'
+  config:
+    policy: ask
+
+# Pre-write file snapshots backing `/rewind` file rollback.
+- id: fs-snapshot
+  name: '@huiliyi37/dsh-fs-snapshot'
+
+# The interactive terminal UI runner under test.
+- id: tui-runner
+  name: '@huiliyi37/dsh-tui'
+  config:
+    welcomeAnimation: auto
