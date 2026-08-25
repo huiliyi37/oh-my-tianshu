@@ -370,6 +370,9 @@ importers:
       '@huiliyi37/dsh-app-boot':
         specifier: workspace:*
         version: link:../packages/boot/app-boot
+      '@huiliyi37/dsh-approval-rules':
+        specifier: workspace:*
+        version: link:../packages/interaction/approval-rules
       '@huiliyi37/dsh-bash':
         specifier: workspace:*
         version: link:../packages/bash/bash

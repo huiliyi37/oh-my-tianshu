@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest'
 import type { RivetTheme } from '../src/theme.js'
 import { displayWidth } from '../src/width.js'
 import {
-  APPROVAL_KEY_HINTS,
   formatApprovalCard,
   formatRailsBlock,
 } from '../src/format/approval-card.js'
@@ -24,12 +23,15 @@ function plain(lines: readonly string[]): string[] {
   return lines.map(l => l.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''))
 }
 
+/** 键位段全集：断言提示（含折行）覆盖每个按键段。 */
+const HINT_SEGMENTS = ['[y] 允许', '[n] 拒绝', '[a] 本会话总是允许', '[p] 永久允许', '[esc] 取消']
+
 describe('formatApprovalCard', () => {
   it('圆角轨 + 允许执行 + 键位；无 diff 标盲批', () => {
     const rows = plain(formatApprovalCard({ columns: 60, toolName: 'bash', reason: 'sandbox' }, fakeTheme()))
     expect(rows[0]).toMatch(/^╭─ 审批 · bash ─+╮$/)
     expect(rows.join('\n')).toContain('允许执行 bash？（sandbox）（diff 不可见）')
-    expect(rows.join('\n')).toContain(APPROVAL_KEY_HINTS)
+    for (const segment of HINT_SEGMENTS) expect(rows.join('\n')).toContain(segment)
     expect(rows.at(-1)).toMatch(/^╰─+╯$/)
   })
 
@@ -43,7 +45,7 @@ describe('formatApprovalCard', () => {
     expect(text).toContain('+ hello')
     expect(text).not.toContain('diff 不可见')
     expect(text.indexOf('+ hello')).toBeGreaterThan(text.indexOf('允许执行'))
-    expect(text.indexOf(APPROVAL_KEY_HINTS)).toBeGreaterThan(text.indexOf('+ hello'))
+    expect(text.indexOf('[p] 永久允许')).toBeGreaterThan(text.indexOf('+ hello'))
   })
 
   it('compact：省略 diff 体，仍保留键位', () => {
@@ -54,7 +56,7 @@ describe('formatApprovalCard', () => {
       compact: true,
     }, fakeTheme()))
     expect(rows.join('\n')).not.toContain('+ hello')
-    expect(rows.join('\n')).toContain(APPROVAL_KEY_HINTS)
+    for (const segment of HINT_SEGMENTS) expect(rows.join('\n')).toContain(segment)
   })
 
   it('columns < 4：不画轨', () => {

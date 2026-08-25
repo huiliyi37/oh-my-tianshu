@@ -3896,6 +3896,30 @@ export class TuiApp {
   }
 
   /**
+   * P1①「永久允许」：把挂起审批的精确匹配 allow 规则写入 approval-rules
+   * （项目层 YAML，经 `approvalRules.persistAllow` 同进程 facet），成功后以
+   * `'allowed-always'` 结算——后续同参请求由规则 answerer 直接放行。
+   * facet 未装配或写入失败时卡片不动，告警进 scrollback 由用户改选。
+   */
+  private async persistPendingApprovalRule(): Promise<void> {
+    const pending = this.approval.peek()
+    if (pending === null) return
+    const facet = this.ctx.reflect.get('approvalRules.persistAllow', false) as
+      | { persistAllowRule(req: unknown): Promise<unknown> }
+      | undefined
+    if (facet === undefined) {
+      this.echoWarn('⚠ approval-rules 未装配，无法永久允许（可先 y/n/a）')
+      return
+    }
+    try {
+      await facet.persistAllowRule(pending.req)
+      this.settleApproval('allowed-always')
+    } catch (error: unknown) {
+      this.echoWarn(`⚠ 永久允许写入失败：${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  /**
    * 当前会话是否在跑（含工具执行中 / inbox 排队）：Esc 与 Ctrl+C 都应打断。
    * 只看 status==='running' 会漏掉 tool/call 已发出、status 尚未翻成 running 的缝。
    */
@@ -4355,11 +4379,15 @@ export class TuiApp {
       } else if (key.char === 'n' || key.char === 'N') {
         this.settleApproval('rejected')
       } else if (key.char === 'a' || key.char === 'A') {
-        // 本会话放行：先开 always-approve，再结算当前请求（与 Shift+Tab 进 auto 不同——
-        // 挂起中的这一张也立刻通过，而不是只影响后续请求）。
+        // 本会话总是允许：先开 always-approve，再以持续授权结算当前请求（与
+        // Shift+Tab 进 auto 不同——挂起中的这一张也立刻通过，而不只影响后续）。
         this.approval.setAlwaysApprove(true)
         this.statusLine?.setAlwaysApprove(true)
-        this.settleApproval('allowed-once')
+        this.settleApproval('allowed-always')
+      } else if (key.char === 'p' || key.char === 'P') {
+        // 永久允许：先把精确匹配规则落进 approval-rules（项目层 YAML），落盘
+        // 成功才结算——规则在、结算在；规则写失败则卡片留在原地等用户改选。
+        void this.persistPendingApprovalRule()
       } else if (key.name === 'ctrl_c' || key.name === 'escape') {
         this.settleApproval('cancelled')
       }

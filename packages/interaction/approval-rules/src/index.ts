@@ -130,6 +130,25 @@ interface TuiSlashRun {
   ctx: { agents?: { get(id: string): unknown } }
 }
 
+/**
+ * Same-process facet for interactive answerers (the TUI approval card's
+ * "永久允许"): persists the exact-match allow rule for one pending request.
+ * Exposed under {@link PERSIST_ALLOW_KEY} via `ctx.provide`.
+ */
+export interface PersistAllowFacet {
+  /**
+   * Derive the rule for a pending approval request (tool + the request's
+   * normalized argument string as a full-string pattern) and append it to the
+   * project layer.
+   * @param req - the pending request the user chose to allow permanently.
+   * @returns the persisted rule (layer-stamped).
+   */
+  persistAllowRule(req: ApprovalRequest): Promise<Rule>
+}
+
+/** Context key for the {@link PersistAllowFacet} same-process facet. */
+export const PERSIST_ALLOW_KEY = 'approvalRules.persistAllow'
+
 /** The command's mutation surface, shared by the host handler and the answerer. */
 interface PermissionsControls {
   readonly effective: () => readonly Rule[]
@@ -180,7 +199,10 @@ async function answer(
     ruleIndex: found.index,
     layer: found.rule.layer,
   })
-  return found.rule.decision === 'allow' ? 'allowed-once' : 'rejected'
+  // A matching allow rule is a standing grant, not a one-shot: the same rule
+  // settles every future matching request without re-asking. The distinct
+  // outcome keeps the audit trail honest ('allowed-always' in approval/decided).
+  return found.rule.decision === 'allow' ? 'allowed-always' : 'rejected'
 }
 
 /** Execute the `/permissions` host command against the shared mutation surface. */
@@ -317,6 +339,35 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
     projectRules = await loadRules(projectFile)
   }
   const controls: PermissionsControls = { effective, addRule, removeRuleAt }
+
+  // Same-process facet: the TUI approval card settles "永久允许" by persisting
+  // the exact-match rule first, then settling the request — so the grant a
+  // later identical request receives comes from the rule answerer, not from
+  // any in-memory always-flag.
+  ctx.provide(PERSIST_ALLOW_KEY, {
+    persistAllowRule: async (req: ApprovalRequest): Promise<Rule> => {
+      const pattern = normalizeArguments(toolCallArguments(req))
+      if (pattern === '') {
+        // The rules schema forbids an empty pattern, and an unrestricted
+        // wildcard is not something a single keypress should grant — the
+        // user can still write the rule deliberately via /permissions add.
+        throw new Error('approval-rules: this request carries no call arguments to match; use /permissions add for a tool-wide rule')
+      }
+      const rule: FileRule = {
+        tool: req.toolName,
+        pattern,
+        decision: 'allow',
+      }
+      await addRule(rule)
+      const merged = mergeRules(userRules, projectRules)
+      const stamped = merged.find(candidate =>
+        candidate.tool === rule.tool && candidate.pattern === rule.pattern)
+      if (stamped === undefined) {
+        throw new Error(`approval-rules: persisted rule not visible after append: ${rule.tool} ${rule.pattern}`)
+      }
+      return stamped
+    },
+  } satisfies PersistAllowFacet)
 
   // Host command plane (optional): register /permissions when commands exists.
   let hostCommands: CommandService | undefined

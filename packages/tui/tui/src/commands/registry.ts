@@ -22,7 +22,7 @@ import { getActiveThemeName, setTheme, THEME_NAMES } from '../theme.js'
 import { formatWireSurface, wirePhaseLabel, wireToolNames } from '../preset-surface.js'
 import { listSessions, loadHistory } from '../adapter/sessions.js'
 import { sessionTitleFor } from '../adapter/session-title.js'
-import { collectDoctorReport, getDoctorFixGuidance } from '../format/doctor-report.js'
+import { collectDoctorReport, collectNativeDependencyChecks, getDoctorFixGuidance } from '../format/doctor-report.js'
 
 // agent-preset/selected 会话事件由 dsh-agent-presets 声明扩展（persistence
 // catalog 门禁要求全仓单一声明）；此处仅以 type-only 引用把该合并引入本包
@@ -1082,7 +1082,10 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
         const cols = process.stdout.columns
         const rows = process.stdout.rows
         const background = process.env.COLORFGBG !== undefined ? '已检测' : '未检测'
-        const checks = collectDoctorReport(cols, rows, background)
+        const checks = [
+          ...collectDoctorReport(cols, rows, background),
+          ...collectNativeDependencyChecks(),
+        ]
         echo('终端诊断报告:')
         for (const c of checks) {
           const icon = c.status === 'ok' ? '✓' : c.status === 'warn' ? '⚠' : 'ℹ'

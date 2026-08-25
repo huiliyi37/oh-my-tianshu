@@ -2,9 +2,9 @@
 
 [English](README.md) | 中文
 
-作为 `ctx.approval` 缝之上的策略层，提供持久化的 per-tool allow/deny 审批规则。本包注册一个 `approval/request` waterfall 应答者，读取两个 YAML 层合并后的规则列表，在首条命中时确定性地结算请求——`allow` 解析为 `allowed-once`，`deny` 解析为 `rejected`——不咨询任何交互应答者。未命中时通过 `next()` 委托，因此后装的交互应答者仍可裁决。`/permissions` 命令（见下）管理规则文件；它与既有的单数 `/permission` 预设切换器刻意区分。
+作为 `ctx.approval` 缝之上的策略层，提供持久化的 per-tool allow/deny 审批规则。本包注册一个 `approval/request` waterfall 应答者，读取两个 YAML 层合并后的规则列表，在首条命中时确定性地结算请求——`allow` 解析为持续授权 `allowed-always`，`deny` 解析为 `rejected`——不咨询任何交互应答者。未命中时通过 `next()` 委托，因此后装的交互应答者仍可裁决。`/permissions` 命令（见下）管理规则文件；它与既有的单数 `/permission` 预设切换器刻意区分。
 
-实现从不改变 `ApprovalOutcome` 词汇（`allowed-once` / `rejected` / `cancelled` / `unavailable`），不触碰 sandbox/mode，`'never'` 审批策略仍在任何应答者被咨询之前拒绝。每次自动决策都会向所属会话 append 一个 log-only 的 `approval/rule` 事件，使 asked → rule → decided 审计保持完整、可重放，且不进入模型转录。
+实现从不触碰 sandbox/mode，`'never'` 审批策略仍在任何应答者被咨询之前拒绝。每次自动决策都会向所属会话 append 一个 log-only 的 `approval/rule` 事件，使 asked → rule → decided 审计保持完整、可重放，且不进入模型转录。
 
 ## 问题
 
@@ -26,7 +26,7 @@
 
 - `tool` — 本规则管辖的精确工具名（严格相等匹配）。
 - `pattern` — 对工具调用的**规范化参数串**做全串锚定的 glob：即请求（经其 `callId`）所指向的 `tool/call` 事件的原样 `arguments` 值，其中空白串折叠为单个空格。多数工具从模型收到的是 JSON 编码的参数——一次 bash 风格调用规范化后形如 `{"command":"git push","timeout":5000}`——因此应以两侧 `*` 锚定稳定的内侧子串（`'*git push*'`）；裸的 `'git push*'` 永不匹配 JSON 编码的调用。`*` 跨任意字符；其余字面匹配（这是 glob，不是 regex）。锚定是隐式的，故 `git push` 永不匹配 `safe-git push`。无法解析出调用时按 `""` 匹配。
-- `decision` — `allow`（结算为 `allowed-once`）或 `deny`（结算为 `rejected`）。
+- `decision` — `allow`（结算为 `allowed-always`）或 `deny`（结算为 `rejected`）。
 
 YAML 格式损坏、顶层非列表、`tool`/`pattern` 为空、或 `decision` 非 `allow`/`deny`，都会在加载期 fail loud 并报出文件路径。未知工具名**不在**加载期校验（工具面可能晚装配）；此类规则在该工具缺席时自然永不命中。
 
@@ -49,6 +49,10 @@ Cordis waterfall 没有优先级机制：`approval/request` 监听者按**注册
 - `/permissions add <tool> <pattern> <allow|deny>` 追加到项目层文件（缺席则创建）。
 - `/permissions remove <index>` 按**生效**索引删除对应层的条目。
 - 当可选的 `tui.commands` 缝存在时，命令镜像进 TUI 斜杠菜单，并委托给宿主命令注册表执行。
+
+## 同进程 facet
+
+交互应答者经 `approvalRules.persistAllow` facet（`ctx.get('approvalRules.persistAllow')`）结算 TUI 审批卡的「永久允许」：`persistAllowRule(req)` 从一条挂起请求推导精确匹配的 allow 规则——请求的工具名 + 其规范化参数串作为全串 pattern——追加到项目层并返回带层标记的规则。无可解析调用参数的请求显式报错（无限制通配不应由一次按键授予）。落盘后调用方以 `allowed-always` 结算本次请求；后续相同请求由规则应答者直接结算、不再询问。
 
 ## 配置
 

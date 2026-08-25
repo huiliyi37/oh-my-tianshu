@@ -186,6 +186,16 @@ describe('ApprovalService.request', () => {
     expect(secondRan).toBe(false)
   })
 
+  it('passes the standing grant allowed-always through to callers and audits it', async () => {
+    const ctx = await mounted()
+    const { agent, appended } = fakeAgent()
+    ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-always'))
+
+    await expect(ctx.approval.request(requestOf(agent))).resolves.toBe('allowed-always')
+    const decided = appended.find(event => event.type === 'approval/decided')
+    expect(decided?.data).toMatchObject({ outcome: 'allowed-always' })
+  })
+
   it('lets a non-owning listener delegate via next() down to the fail-closed default', async () => {
     const ctx = await mounted()
     const { agent } = fakeAgent()

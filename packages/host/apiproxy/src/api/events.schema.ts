@@ -43,7 +43,7 @@ export const muxFrameSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('session/event'), sessionId: sessionIdSchema, event: sessionEventSchema, view: toolEventViewSchema.optional() }),
   z.object({ type: z.literal('session/subscribed'), sessionId: sessionIdSchema, lastSeq: z.number().int() }),
   z.object({ type: z.literal('approval/requested'), sessionId: sessionIdSchema, approvalId: approvalRequestIdSchema, toolName: z.string(), callId: z.string().optional(), reason: z.string().optional() }),
-  z.object({ type: z.literal('approval/resolved'), sessionId: sessionIdSchema, approvalId: approvalRequestIdSchema, outcome: z.union([z.literal('allowed-once'), z.literal('rejected'), z.literal('cancelled'), z.literal('unavailable')]) }),
+  z.object({ type: z.literal('approval/resolved'), sessionId: sessionIdSchema, approvalId: approvalRequestIdSchema, outcome: z.union([z.literal('allowed-once'), z.literal('allowed-always'), z.literal('rejected'), z.literal('cancelled'), z.literal('unavailable')]) }),
   // Non-empty by wire contract: the user-interaction service rejects empty
   // batches at ask() (EMPTY_QUESTIONS), so an empty frame is host breakage
   // and must fail loud here, not reach the composer.

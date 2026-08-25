@@ -1622,7 +1622,8 @@ export class ToolRegistry extends Service {
       signal: exec.signal,
     })
     switch (outcome) {
-      case 'allowed-once': return { decision: { kind: 'allow' }, approvalCancelled: false }
+      case 'allowed-once':
+      case 'allowed-always': return { decision: { kind: 'allow' }, approvalCancelled: false }
       case 'rejected': return {
         decision: { kind: 'deny', reason: `the user rejected tool "${exec.name}"` },
         approvalCancelled: false,

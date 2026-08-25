@@ -1,7 +1,7 @@
 import { mkdir, readFile, rm } from 'node:fs/promises'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ApprovalOutcome } from '@huiliyi37/dsh-user-approval'
-import { writeRules } from '@huiliyi37/dsh-approval-rules'
+import { PERSIST_ALLOW_KEY, writeRules } from '@huiliyi37/dsh-approval-rules'
 import { bootRules, makeAgent, requestAgent, teardown, type Harness } from './harness.ts'
 
 const active: Harness[] = []
@@ -54,7 +54,7 @@ describe('answerer semantics over the approval seam', () => {
     ])
   })
 
-  it('an allow rule settles allowed-once without consulting the interactive stub', async () => {
+  it('an allow rule settles allowed-always (standing grant) without consulting the interactive stub', async () => {
     const harness = withHarness(await bootRules({
       user: [{ tool: 'echo', pattern: '*', decision: 'allow' }],
       project: [],
@@ -68,7 +68,7 @@ describe('answerer semantics over the approval seam', () => {
     const { agent, session, callId } = requestAgent('echo', 'say hi')
     const outcome = await harness.ctx.approval.request({ agent, toolName: 'echo', callId })
 
-    expect(outcome).toBe('allowed-once')
+    expect(outcome).toBe('allowed-always')
     expect(stubCalled).toBe(false)
     expect(ruleEvents(session)).toEqual([
       { tool: 'echo', pattern: '*', decision: 'allow', ruleIndex: 0, layer: 'user' },
@@ -304,5 +304,51 @@ describe('HMR disposal', () => {
     const second = requestAgent('echo', 'twice')
     expect(await harness.ctx.approval.request({ agent: second.agent, toolName: 'echo', callId: second.callId })).toBe('allowed-once')
     expect(stubCalled).toBe(true)
+  })
+})
+
+describe('persistAllowRule facet (approvalRules.persistAllow)', () => {
+  it('persists the exact-match allow rule for the pending request and settles future identical requests', async () => {
+    const harness = withHarness(await bootRules({}))
+    try {
+      const facet = harness.ctx.get(PERSIST_ALLOW_KEY, false) as
+        | { persistAllowRule(req: unknown): Promise<{ tool: string; pattern: string; decision: string; layer: string }> }
+        | undefined
+      expect(facet).toBeDefined()
+      const { agent, callId } = requestAgent('bash', '{ "command": "echo hi",  "description": "d" }')
+      const rule = await facet?.persistAllowRule({ agent, toolName: 'bash', callId })
+
+      expect(rule).toMatchObject({ tool: 'bash', decision: 'allow', layer: 'project' })
+      // Normalization collapses the double space in the raw arguments JSON.
+      expect(rule?.pattern).toBe('{ "command": "echo hi", "description": "d" }')
+
+      // The identical future request now settles from the rule answerer with
+      // the standing grant — no interactive stub consulted.
+      let stubCalled = false
+      harness.ctx.on('approval/request', (_req, next) => {
+        stubCalled = true
+        return next()
+      })
+      const again = requestAgent('bash', '{ "command": "echo hi", "description": "d" }')
+      const outcome = await harness.ctx.approval.request({ agent: again.agent, toolName: 'bash', callId: again.callId })
+      expect(outcome).toBe('allowed-always')
+      expect(stubCalled).toBe(false)
+    } finally {
+      await teardown(harness)
+    }
+  })
+
+  it('rejects a request without resolvable call arguments instead of writing a tool-wide rule', async () => {
+    const harness = withHarness(await bootRules({}))
+    try {
+      const facet = harness.ctx.get(PERSIST_ALLOW_KEY, false) as
+        | { persistAllowRule(req: unknown): Promise<unknown> }
+        | undefined
+      const agent = makeAgent('no-call')
+      await expect(facet?.persistAllowRule({ agent, toolName: 'bash' }))
+        .rejects.toThrow('no call arguments')
+    } finally {
+      await teardown(harness)
+    }
   })
 })

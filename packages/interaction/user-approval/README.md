@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Channel-neutral one-shot approval seam. `ctx.approval.request(req)` returns `allowed-once`, `rejected`, `cancelled`, or `unavailable`; missing or failing answerers fail closed, and a grant applies only to the requested action. Exact event signatures live in the generated region of [approval.md](../../../docs/subsystems/approval.md#cordis-surface).
+Channel-neutral approval seam. `ctx.approval.request(req)` returns `allowed-once`, `allowed-always`, `rejected`, `cancelled`, or `unavailable`; missing or failing answerers fail closed, and either grant applies to the requested action — `allowed-always` additionally records that a standing grant (a persistent rule or session-level always-approve) settled the request, keeping the audit trail honest. Exact event signatures live in the generated region of [approval.md](../../../docs/subsystems/approval.md#cordis-surface).
 
 Each request must belong to an open agent turn. The service appends a paired `approval/asked` and `approval/decided` audit record, while the model sees only the resulting logged tool outcome. An aborted request resolves `cancelled`; an audit append that fails before commit rejects rather than returning an unlogged decision.
 
@@ -57,6 +57,6 @@ Append-only; newly visible content follows the reusable request prefix and does 
 ## Known Limitations and Deferred Work
 
 - **Requests are valid only inside an open turn** — an idle or between-turn caller throws before auditing; a durable out-of-turn approval workflow is deferred.
-- **Only one-shot grants exist** — the outcome vocabulary has `allowed-once` but no `allow-always`, remembered rule, revocation, or grant store; session policy is only `ask` / `never`.
+- **Grants carry no grant store here** — `allowed-always` is an audit-provenance marker, not a revocable grant: the standing behavior lives in the settling answerer (approval-rules' persistent files or the TUI's session flag); session policy is only `ask` / `never`.
 - **The request carries no tool arguments** — an answerer sees the tool name, reason, and optional call id; the ACP machine channel requires a call id and delegates requests without one.
 - **No built-in answerer** — headless or incompletely composed deployments resolve `unavailable` and fail closed; the service itself never prompts a human.

@@ -7,7 +7,7 @@ import type { ApprovalRequestId } from './index.ts'
 import { APPROVAL_POLICIES } from './index.ts'
 
 const PACKAGE_NAME = '@huiliyi37/dsh-user-approval'
-const APPROVAL_OUTCOMES = ['allowed-once', 'rejected', 'cancelled', 'unavailable'] as const
+const APPROVAL_OUTCOMES = ['allowed-once', 'allowed-always', 'rejected', 'cancelled', 'unavailable'] as const
 
 /** Cordis companion plugin name. */
 export const name = 'user-approval-invariant'

@@ -74,6 +74,17 @@
   config:
     policy: ask
 
+# Host command service: /permissions (and other host commands) register here;
+# the approval-rules TUI slash mirror delegates execution to it.
+- id: commands
+  name: '@huiliyi37/dsh-commands'
+
+# Persistent approval rules (user/project YAML layers). The rule answerer
+# runs before the TUI card, so a persisted "永久允许" rule settles identical
+# future requests without re-asking — mounted before tui-runner on purpose.
+- id: approval-rules
+  name: '@huiliyi37/dsh-approval-rules'
+
 # Pre-write file snapshots backing `/rewind` file rollback.
 - id: fs-snapshot
   name: '@huiliyi37/dsh-fs-snapshot'

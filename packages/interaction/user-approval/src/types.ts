@@ -23,7 +23,16 @@ export function ApprovalRequestId(id: string): ApprovalRequestId {
 }
 
 /**
- * Closed approval outcomes: a one-shot grant, explicit rejection, withdrawn
+ * Closed approval outcomes: a one-shot grant, a standing grant (a persistent
+ * rule or session-level always-approve matched — the current call is allowed
+ * and future matching requests will not re-ask), explicit rejection, withdrawn
  * request, or unavailable answerer. Callers fail closed on `unavailable`.
+ * Both grants authorize the current call identically; the split is provenance
+ * for the audit trail (`approval/decided`), not a wider per-call permission.
  */
-export type ApprovalOutcome = 'allowed-once' | 'rejected' | 'cancelled' | 'unavailable'
+export type ApprovalOutcome =
+  | 'allowed-once'
+  | 'allowed-always'
+  | 'rejected'
+  | 'cancelled'
+  | 'unavailable'

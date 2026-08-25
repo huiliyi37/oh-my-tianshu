@@ -16,6 +16,7 @@
     "@huiliyi37/dsh-agent-loop": "workspace:*",
     "@huiliyi37/dsh-agent-router": "workspace:*",
     "@huiliyi37/dsh-agent-spine-demo": "workspace:*",
+    "@huiliyi37/dsh-approval-rules": "workspace:*",
     "@huiliyi37/dsh-app-boot": "workspace:*",
     "@huiliyi37/dsh-bash": "workspace:*",
     "@huiliyi37/dsh-bash-env": "workspace:*",

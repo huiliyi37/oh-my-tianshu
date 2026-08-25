@@ -1888,6 +1888,15 @@ describe('/doctor 终端诊断命令', () => {
     expect(lines.some(l => l.includes('终端背景: 已检测'))).toBe(true)
     vi.unstubAllEnvs()
   })
+
+  it('原生依赖预检两行出现在报告中（koffi / node-pty，状态随安装环境）', async () => {
+    const { cmd } = commandByName('doctor')
+    const { args, echo } = makeArgs()
+    await cmd.run(args)
+    const lines = echo.mock.calls.map(c => String(c[0]))
+    expect(lines.some(l => l.includes('koffi（进程枚举）'))).toBe(true)
+    expect(lines.some(l => l.includes('node-pty（PTY 后端）'))).toBe(true)
+  })
 })
 
 describe('/mcp MCP 状态命令', () => {

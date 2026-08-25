@@ -2,8 +2,10 @@
  * 终端诊断报告（format/doctor-report.ts）— 纯函数。
  *
  * /doctor 命令的数据聚合层：收集终端环境检测结果，输出可读报告行。
- * 所有检测函数引用既有导出（theme-detect / ansi / term-caps），不新增检测逻辑。
+ * 所有检测函数引用既有导出（theme-detect / ansi / term-caps），不新增检测逻辑；
+ * 原生依赖检测（koffi/node-pty）经注入的探针函数隔离环境副作用，保持纯函数面。
  */
+import { createRequire } from 'node:module'
 import { color } from '../engine/ansi.js'
 import { detectHyperlinkSupport, detectImageProtocol } from '../engine/ansi.js'
 import { isLegacyWindowsConsole } from '../term-caps.js'
@@ -81,6 +83,10 @@ export function collectDoctorReport(
   return checks
 }
 
+/** README 记录的原生依赖补救命令（npm 11+ 默认拦截 lifecycle scripts）。 */
+export const NATIVE_DEPENDS_FIX_COMMAND =
+  'npm i -g --allow-scripts=koffi,node-pty,@huiliyi37/dsh-subprocess-local,@google/genai,protobufjs @huiliyi37/oh-my-tianshu'
+
 /** 可修复项清单（与 DoctorCheck.fixId 对应）。 */
 export const DOCTOR_FIXES: DoctorFix[] = [
   {
@@ -92,6 +98,11 @@ export const DOCTOR_FIXES: DoctorFix[] = [
     id: 2,
     title: 'kitty dcs-passthrough',
     guidance: "echo 'term_features all' >> ~/.config/kitty/kitty.conf  # 启用 DCS 透传（图片协议需要）",
+  },
+  {
+    id: 3,
+    title: '原生依赖缺失（koffi / node-pty）',
+    guidance: `npm 11+ 默认拦截未允许的 lifecycle scripts，原生依赖需要显式放行后重装：\n  ${NATIVE_DEPENDS_FIX_COMMAND}`,
   },
 ]
 
@@ -130,6 +141,61 @@ export function renderDoctorReport(checks: DoctorCheck[], theme: RivetTheme): st
   }
 
   return lines
+}
+
+/** 原生依赖探针结果：模块可加载 / 加载失败。 */
+export type NativeProbeResult = 'ok' | 'missing'
+
+/**
+ * 探针函数：尝试从 owning 包（缺省 `@huiliyi37/dsh-subprocess-local`，回退
+ * 裸 specifier——npm 全局安装的顶层布局）加载一个原生依赖模块。
+ * @param specifier - 要探测的模块名（koffi / node-pty）。
+ * @returns 模块可加载 'ok'；加载抛错 'missing'。
+ */
+export type NativeModuleProbe = (specifier: string) => NativeProbeResult
+
+/**
+ * 默认探针：经 createRequire 双路径加载——先从属主包解析（pnpm 工作区里
+ * koffi/node-pty 只在它的依赖树内），失败再试裸 specifier（npm -g 顶层）。
+ * 模块加载成功即有构建产物；require 缓存保证重复探测零开销。
+ * @param specifier - 要探测的模块名。
+ * @returns 加载结果。
+ */
+export function defaultNativeModuleProbe(specifier: string): NativeProbeResult {
+  const fromHere = createRequire(import.meta.url)
+  for (const base of ['@huiliyi37/dsh-subprocess-local', '.']) {
+    try {
+      createRequire(fromHere.resolve(base))(specifier)
+      return 'ok'
+    } catch {
+      // 该路径下不可解析/不可加载——试下一条路径。
+    }
+  }
+  return 'missing'
+}
+
+/**
+ * 收集原生依赖检测（P1②）：koffi（进程枚举 FFI）与 node-pty（PTY 后端）。
+ * 任一缺失 = bash 执行器在该安装上不可用；修复指引给出 README 的
+ * --allow-scripts 重装命令（fixId 与 DOCTOR_FIXES 对应）。
+ * @param probe - 模块探针（缺省 defaultNativeModuleProbe）。
+ * @returns 检查结果列表（缺失项带 fixId）。
+ */
+export function collectNativeDependencyChecks(
+  probe: NativeModuleProbe = defaultNativeModuleProbe,
+): DoctorCheck[] {
+  const koffi = probe('koffi')
+  const nodePty = probe('node-pty')
+  const check = (name: string, result: NativeProbeResult, what: string): DoctorCheck => ({
+    name,
+    status: result === 'ok' ? 'ok' : 'warn',
+    value: result === 'ok' ? '✓ 可加载' : `缺失（${what}不可用）`,
+    ...(result === 'ok' ? {} : { fixId: 3 }),
+  })
+  return [
+    check('koffi（进程枚举）', koffi, 'Windows 进程表/信号'),
+    check('node-pty（PTY 后端）', nodePty, 'bash 终端执行器'),
+  ]
 }
 
 /**

@@ -46,6 +46,9 @@ const APPROVAL_MARKERS = ['审批 · bash', '允许执行 bash', '[y] 允许'] a
 const REWIND_LIST_MARKERS = ['⟲ rewind 回退', '选检查点'] as const
 const REWIND_MODE_MARKERS = ['选择粒度'] as const
 const REWIND_DONE_MARKERS = ['回退完成', '会话截断到 seq'] as const
+/** /permissions bare list marker (approval-rules echo, scenario 3). */
+const PERMISSIONS_RULE_MARKER = 'bash' as const
+
 /** Theme switch echo marker. */
 const THEME_SWITCH_MARKER = '主题已切换: '
 /** Theme picker markers: overlay title + key-hint row (never the slash-suggest menu). */
@@ -188,4 +191,54 @@ describe.skipIf(process.platform === 'win32')('examples/tui interactive smoke', 
       await session.stop()
     }
   }, 120_000)
+
+  it('settling with p persists an exact-match rule; the identical next call skips the card', async () => {
+    const session = await bootSmoke({
+      sequence: ['tool_call_success', 'success', 'tool_call_success', 'success'],
+    })
+    try {
+      await session.waitForMarkers(WELCOME_MARKERS, 'settled welcome')
+
+      // Turn 1: the card appears; `p` persists the exact-match rule and
+      // settles with the standing grant — the tool runs to completion.
+      submitMessage(session, SMOKE_MESSAGE)
+      await session.waitForMarkers(APPROVAL_MARKERS, 'approval card')
+      session.send('p')
+      await session.waitForMarkers([SMOKE_TOOL_COMMAND, 'TUI_SMOKE_ESCALATION_OK'], 'persisted-allow tool result')
+      await session.waitForMarkers([SMOKE_ASSISTANT_REPLY], 'assistant reply')
+
+      // The persisted rule is visible through /permissions (project layer).
+      submitMessage(session, '/permissions')
+      await session.waitForMarkers([PERMISSIONS_RULE_MARKER], 'permissions listing')
+
+      // Turn 2: the identical call must be settled by the rule answerer before
+      // the TUI card. Poll until the SECOND assistant reply lands (the first
+      // already sits in scrollback); if the card reappears instead, the rule
+      // failed to capture the request and the turn would stall on a keypress.
+      submitMessage(session, SMOKE_MESSAGE)
+      let sawCardAgain = false
+      const settleDeadline = Date.now() + 30_000
+      while (Date.now() < settleDeadline) {
+        const screen = session.activeLines().join('\n')
+        if (screen.includes('允许执行 bash')) {
+          sawCardAgain = true
+          break
+        }
+        if (screen.split(SMOKE_ASSISTANT_REPLY).length >= 3) break
+        await new Promise(resolve => setTimeout(resolve, 50))
+      }
+      expect(sawCardAgain).toBe(false)
+      await session.waitForMarkers(['TUI_SMOKE_ESCALATION_OK'], 'rule-settled tool result')
+
+      // Clean exit after the rule-driven flow.
+      session.send('\x11')
+      const exit = await session.waitForExit(10_000)
+      expect(exit.exitCode).toBe(0)
+      expect(exit.signal ?? 0).toBe(0)
+    } catch (error: unknown) {
+      throw formatPtyFailure(error, session.rawOutput(), session.exit())
+    } finally {
+      await session.stop()
+    }
+  }, 180_000)
 })

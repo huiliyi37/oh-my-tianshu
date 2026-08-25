@@ -38,7 +38,7 @@ export interface PendingApprovalRequest {
 }
 
 /** 用户决定（与 user-approval ApprovalOutcome 对齐）。 */
-export type ApprovalOutcome = 'allowed-once' | 'rejected' | 'cancelled' | 'unavailable'
+export type ApprovalOutcome = 'allowed-once' | 'allowed-always' | 'rejected' | 'cancelled' | 'unavailable'
 
 /** 挂起态快照（renderLive 消费；无挂起时 peek() 返回 null）。 */
 export interface ApprovalPeek {
@@ -117,7 +117,8 @@ export class ApprovalController {
     // 仅限当前会话：非当前会话的请求必须 next() 委托（apiproxy 等链上 answerer），
     // 否则 TUI 会截胡远端转发的审批。
     if (this.alwaysApproveFlag && req.agent.session.id === current) {
-      return Promise.resolve('allowed-once')
+      // 会话级 always-approve 是持续授权：本次放行且后续同会话不再问。
+      return Promise.resolve('allowed-always')
     }
     if (req.agent.session.id !== current || this.pending !== null) {
       return next()

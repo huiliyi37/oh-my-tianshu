@@ -2,7 +2,7 @@
  * ApprovalController — 待审批状态机契约测试（Wave 1 TDD：RED → GREEN）。
  *
  * 从 ui/app.ts 提取的 pendingApproval + alwaysApprove：
- * - handle()：alwaysApprove 且当前会话 → 短路 allowed-once（不挂起不消费）；
+ * - handle()：alwaysApprove 且当前会话 → 短路 allowed-always（不挂起不消费）；
  *   非当前会话或已在挂起 → 委托 next()（waterfall 语义）；当前会话无挂起 →
  *   挂起存 resolve，返回用户决定 promise。
  * - settle()：resolve outcome + 清挂起；无挂起 no-op。
@@ -67,7 +67,7 @@ describe('ApprovalController', () => {
     expect(ctl.peek()).toBeNull()
   })
 
-  it('alwaysApprove 且当前会话：短路 allowed-once，不挂起不消费、不触发 onChanged', async () => {
+  it('alwaysApprove 且当前会话：短路 allowed-always（持续授权），不挂起不消费、不触发 onChanged', async () => {
     const sid = 'approval-3' as SessionId
     const { ctl, onChanged } = boot(sid)
     ctl.setAlwaysApprove(true)
@@ -76,7 +76,7 @@ describe('ApprovalController', () => {
     const next = vi.fn<() => Promise<ApprovalOutcome>>(async () => 'unavailable')
     const result = await ctl.handle(approvalReq(sid), next)
 
-    expect(result).toBe('allowed-once')
+    expect(result).toBe('allowed-always')
     expect(next).not.toHaveBeenCalled()
     expect(ctl.isPending).toBe(false)
     expect(onChanged).not.toHaveBeenCalled()

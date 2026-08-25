@@ -11,7 +11,7 @@ import type { RivetTheme } from '../theme.js'
 import { displayWidth, truncateToDisplayWidth } from '../width.js'
 
 /** 审批卡键位行（与 handleKey 的 y/n/a/esc 对齐）。 */
-export const APPROVAL_KEY_HINTS = '[y] 允许  [n] 拒绝  [a] 本会话放行  [esc] 取消'
+export const APPROVAL_KEY_HINTS = '[y] 允许  [n] 拒绝  [a] 本会话总是允许  [p] 永久允许  [esc] 取消'
 
 /** formatApprovalCard 的渲染输入。 */
 export interface FormatApprovalCardInput {
@@ -62,6 +62,40 @@ export function formatRailsBlock(
  * @param theme - 当前主题（轨线与提示用 warning）。
  * @returns ANSI 行数组；columns ≤ 0 返回空数组。
  */
+/**
+ * 键位提示按轨线内宽折行：段间（双空格）断行，段本身放不下才原样保留
+ * （由轨线截断兜底）。窄轨（如 60 列）下提示不被截断——`[esc] 取消`
+ * 必须始终可见。输入为纯文本；着色由调用方按行进行。
+ * @param hints - 纯文本键位提示。
+ * @param columns - 轨线外宽。
+ * @returns 折行后的提示行（宽轨时即原单行）。
+ */
+export function wrapApprovalHintRows(hints: string, columns: number): string[] {
+  const budget = columns - 4
+  if (budget <= 0) return [hints]
+  if (displayWidth(hints) <= budget) return [hints]
+  const segments = hints.split('  ').filter(segment => segment !== '')
+  const rows: string[] = []
+  let current = ''
+  for (const segment of segments) {
+    const candidate = current === '' ? segment : `${current}  ${segment}`
+    if (current !== '' && displayWidth(candidate) > budget) {
+      rows.push(current)
+      current = segment
+    } else {
+      current = candidate
+    }
+  }
+  if (current !== '') rows.push(current)
+  return rows
+}
+
+/**
+ * 渲染审批卡（轨线块）：提示行 + 可选 diff 体 + 键位提示（窄轨折行）。
+ * @param input - 渲染输入（列宽/工具名/原因/diff/紧凑）。
+ * @param theme - 当前主题（警示行与键位分色）。
+ * @returns ANSI 行数组（columns ≤ 0 时为空）。
+ */
 export function formatApprovalCard(input: FormatApprovalCardInput, theme: RivetTheme): string[] {
   if (input.columns <= 0) return []
   const why = input.reason === undefined || input.reason === '' ? '' : `（${input.reason}）`
@@ -69,12 +103,13 @@ export function formatApprovalCard(input: FormatApprovalCardInput, theme: RivetT
   const hasDiff = diff !== undefined && diff !== null && diff.length > 0
   const blind = hasDiff ? '' : '（diff 不可见）'
   const prompt = color(`⚠ 允许执行 ${input.toolName}？${why}${blind}`, theme.warning)
-  const hints = color(APPROVAL_KEY_HINTS, theme.muted)
   const body: string[] = [prompt]
   if (hasDiff && input.compact !== true) {
     for (const line of diff) body.push(line)
   }
-  body.push(hints)
+  for (const row of wrapApprovalHintRows(APPROVAL_KEY_HINTS, input.columns)) {
+    body.push(color(row, theme.muted))
+  }
   return formatRailsBlock(
     input.columns,
     `审批 · ${input.toolName}`,
