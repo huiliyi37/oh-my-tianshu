@@ -11,10 +11,11 @@
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import type { SlashCommand } from '../src/commands/registry.js'
+import { BUILTIN_COMMAND_NAMES, type SlashCommand } from '../src/commands/registry.js'
 import type { RivetTheme } from '../src/theme.js'
 import {
   CommandPalette,
+  PALETTE_COMMAND_GROUPS,
   applyPaletteEvent,
   emptyPaletteState,
   filterPalette,
@@ -53,11 +54,20 @@ const SAMPLE: readonly SlashCommand[] = [
 const THEME = fakeTheme()
 
 describe('toPaletteEntries — 数据源投影', () => {
-  it('SlashCommand → PaletteEntry（argsHint 可选）', () => {
+  it('SlashCommand → PaletteEntry（argsHint 可选，自动分组）', () => {
     const entries = toPaletteEntries(SAMPLE)
     expect(entries).toHaveLength(4)
-    expect(entries[0]).toEqual({ name: 'theme', description: '切换主题', argsHint: '<name>' })
+    expect(entries[0]).toEqual({ name: 'theme', description: '切换主题', argsHint: '<name>', group: '配置' })
     expect(entries[1]?.argsHint).toBeUndefined()
+    expect(entries[1]?.group).toBe('会话') // clear 归会话组
+    expect(entries[2]?.group).toBe('会话') // compact 归会话组
+    expect(entries[3]?.group).toBe('会话') // steer 归会话组
+  })
+
+  it('内置命令分组表覆盖全部 BUILTIN_COMMAND_NAMES（新增命令必须补分组）', () => {
+    for (const name of BUILTIN_COMMAND_NAMES) {
+      expect(PALETTE_COMMAND_GROUPS[name], `/命令 ${name} 未登记分组`).toBeDefined()
+    }
   })
 })
 
@@ -205,6 +215,52 @@ describe('renderCommandPalette — overlay 渲染', () => {
     for (const l of lines) {
       expect(l.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '').length).toBeLessThanOrEqual(20)
     }
+  })
+
+  it('按组渲染：组标题行（── 组 ──）+ 组内条目；未分组归「其他」', () => {
+    const grouped: readonly PaletteEntry[] = [
+      { name: 'theme', description: 'd', group: '配置' },
+      { name: 'session', description: 'd', group: '会话' },
+      { name: 'plugin-x', description: 'd' },
+      { name: 'clear', description: 'd', group: '会话' },
+    ]
+    const lines = plain(renderCommandPalette(emptyPaletteState(), grouped, 80, 24, THEME))
+    const body = lines.join('\n')
+    // 组序：会话（先出现）→ 配置 → 其他；组标题不可选中
+    expect(body.indexOf('── 会话 ──')).toBeLessThan(body.indexOf('── 配置 ──'))
+    expect(body.indexOf('── 配置 ──')).toBeLessThan(body.indexOf('── 其他 ──'))
+    expect(body.indexOf('/session')).toBeLessThan(body.indexOf('/theme'))
+    expect(body.indexOf('/theme')).toBeLessThan(body.indexOf('/plugin-x'))
+    expect(body).not.toContain('▶ ──') // 标题行不带选中标记
+  })
+
+  it('过滤后组标题随组内条目出现（空组不显示标题）', () => {
+    const grouped: readonly PaletteEntry[] = [
+      { name: 'theme', description: '切换主题', group: '配置' },
+      { name: 'session', description: '切换会话', group: '会话' },
+      { name: 'clear', description: '清空会话', group: '会话' },
+    ]
+    const s = applyPaletteEvent(emptyPaletteState(), { type: 'type', char: 'cle' })
+    const lines = plain(renderCommandPalette(s, grouped, 80, 24, THEME))
+    const body = lines.join('\n')
+    expect(body).toContain('── 会话 ──')
+    expect(body).toContain('/clear')
+    expect(body).not.toContain('── 配置 ──') // theme 被过滤 → 空组无标题
+    expect(body).not.toContain('/theme')
+  })
+
+  it('滚动窗口按展开后行序跟随选中项（选中条目可见，标题随滚）', () => {
+    // 5 组 × 10 条 = 50 条目 + 5 标题 = 55 行；bodyHeight=6 时末项应可见
+    const many: PaletteEntry[] = []
+    for (let g = 0; g < 5; g++) {
+      for (let i = 0; i < 10; i++) {
+        many.push({ name: `g${g}c${i}`, description: 'd', group: `组${g}` })
+      }
+    }
+    const lastIdx = many.length - 1
+    const s = applyPaletteEvent(emptyPaletteState(), { type: 'move', delta: lastIdx, count: many.length })
+    const lines = plain(renderCommandPalette(s, many, 80, 8, THEME))
+    expect(lines.some(l => l.includes(`▶ /g4c9`))).toBe(true)
   })
 
   it('宽度守恒：任何行显示宽度 ≤ width', () => {

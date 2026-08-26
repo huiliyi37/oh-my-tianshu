@@ -2,19 +2,49 @@
  * command-palette — Ctrl+P 命令面板（纯状态机 + 渲染）。
  *
  * 数据源 = SlashCommandRegistry（getCommands 现取，插件扩展后可见）；
- * 过滤 = 名称/描述子串 + 名称子序列，前缀优先；状态机 open/type/backspace/move/close。
+ * 过滤 = 名称/描述子串 + 名称子序列，前缀优先；渲染按域分组稳定排序
+ * （组标题不可选中，表外命令归「其他」）；状态机 open/type/backspace/move/close。
  */
 import type { SlashCommand } from './commands/registry.js'
 import { color } from './engine/ansi.js'
 import type { RivetTheme } from './theme.js'
 import { displayWidth } from './width.js'
 
-/** 面板条目：命令名（不含 `/` 前缀）+ 描述 + 可选参数提示。 */
+/** 面板条目：命令名（不含 `/` 前缀）+ 描述 + 可选参数提示 + 分组名。 */
 export interface PaletteEntry {
   name: string
   description: string
   argsHint?: string
+  /** 分组名（浏览可发现性）；缺省归「其他」。 */
+  group?: string
 }
+
+/**
+ * 内置命令分组表（name → 组名）。外部插件命令不在表内 → 归「其他」。
+ * 新增内置命令时在此补一条，命令面板即自动分组。
+ */
+export const PALETTE_COMMAND_GROUPS: Readonly<Record<string, string>> = {
+  // 会话
+  session: '会话', resume: '会话', fork: '会话', branch: '会话', clear: '会话', steer: '会话',
+  exit: '会话', restart: '会话', btw: '会话', memory: '会话', remember: '会话', export: '会话',
+  compact: '会话',
+  // 配置
+  theme: '配置', model: '配置', effort: '配置', preset: '配置', density: '配置',
+  info: '配置', config: '配置', yolo: '配置',
+  // 认证
+  key: '认证', login: '认证',
+  // 面板
+  status: '面板', todos: '面板', tasks: '面板', subagents: '面板', workflow: '面板',
+  goal: '面板', skills: '面板', rewind: '面板',
+  // 系统
+  mcp: '系统', doctor: '系统', cost: '系统', help: '系统',
+}
+
+/** 分组渲染顺序（稳定排序；表外组名追加到尾部）。 */
+export const PALETTE_GROUP_ORDER: readonly string[] = ['会话', '配置', '认证', '面板', '技能', '其他']
+
+/** 未分组条目（外部插件命令等）的兜底组名。 */
+export const PALETTE_FALLBACK_GROUP = '其他'
 
 /** 面板状态：开合 + 查询串 + 选中下标（指向过滤后列表）。 */
 export interface PaletteState {
@@ -40,12 +70,17 @@ export function emptyPaletteState(): PaletteState {
 }
 
 /**
- * SlashCommand → 面板条目。
+ * SlashCommand → 面板条目（自动填分组；表外命令归「其他」）。
  * @param commands - 注册表命令列表。
- * @returns 面板条目（argsHint 缺省时不带该字段）。
+ * @returns 面板条目（argsHint 缺省时不带该字段；group 恒有值）。
  */
 export function toPaletteEntries(commands: readonly SlashCommand[]): PaletteEntry[] {
-  return commands.map(c => ({ name: c.name, description: c.description, ...(c.argsHint === undefined ? {} : { argsHint: c.argsHint }) }))
+  return commands.map(c => ({
+    name: c.name,
+    description: c.description,
+    group: PALETTE_COMMAND_GROUPS[c.name] ?? PALETTE_FALLBACK_GROUP,
+    ...(c.argsHint === undefined ? {} : { argsHint: c.argsHint }),
+  }))
 }
 
 function isSubsequence(query: string, name: string): boolean {
@@ -145,17 +180,42 @@ export function renderCommandPalette(
   } else {
     const bodyHeight = Math.max(1, height - 2)
     const sel = Math.max(0, Math.min(state.selected, visible.length - 1))
-    const start = Math.max(0, sel - bodyHeight + 1)
-    const window = visible.slice(start, start + bodyHeight)
-    for (let i = 0; i < window.length; i++) {
-      const e = window[i]
-      /* v8 ignore next 1 -- unreachable: window 来自 visible.slice()，元素恒非 undefined */
-      if (e === undefined) continue
-      const isSel = start + i === sel
-      const label = `/${e.name}${e.argsHint !== undefined ? ` ${e.argsHint}` : ''}`
+    // 稳定组序展开为行（组标题 + 条目行）；条目行携带其在 visible 中的下标。
+    const rows: Array<{ kind: 'header'; text: string } | { kind: 'entry'; index: number; entry: PaletteEntry }> = []
+    const byGroup = new Map<string, number[]>()
+    for (let i = 0; i < visible.length; i++) {
+      const g = visible[i]!.group ?? PALETTE_FALLBACK_GROUP
+      const list = byGroup.get(g)
+      if (list === undefined) byGroup.set(g, [i])
+      else list.push(i)
+    }
+    const groups: string[] = []
+    for (const g of PALETTE_GROUP_ORDER) {
+      if (byGroup.has(g)) groups.push(g)
+    }
+    for (const g of byGroup.keys()) {
+      if (!groups.includes(g)) groups.push(g)
+    }
+    for (const g of groups) {
+      rows.push({ kind: 'header', text: g })
+      for (const i of byGroup.get(g)!) {
+        rows.push({ kind: 'entry', index: i, entry: visible[i]! })
+      }
+    }
+    // 滚动窗口：选中条目所在行保持可见（组标题随行滚动，不单独计数）。
+    const selRow = rows.findIndex(r => r.kind === 'entry' && r.index === sel)
+    const start = Math.max(0, selRow - bodyHeight + 1)
+    for (const row of rows.slice(start, start + bodyHeight)) {
+      if (row.kind === 'header') {
+        lines.push(color(truncate(`── ${row.text} ──`, width), theme.muted))
+        continue
+      }
+      const isSel = row.index === sel
+      const label = `/${row.entry.name}${row.entry.argsHint !== undefined ? ` ${row.entry.argsHint}` : ''}`
       const text = isSel ? `▶ ${label}` : `  ${label}`
-      const clipped = truncate(text, width)
-      lines.push(isSel ? color(clipped, theme.primary, { bold: true }) : color(clipped, theme.dim))
+      lines.push(isSel
+        ? color(truncate(text, width), theme.primary, { bold: true })
+        : color(truncate(text, width), theme.dim))
     }
   }
   lines.push(color('Enter 执行 · Esc 关闭', theme.muted))
