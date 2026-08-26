@@ -472,8 +472,8 @@ export interface FormatFoxFrameInput {
   /** Terminal color level; defaults to detected chalk capability. */
   colorLevel?: number
   /**
-   * Runtime band width in columns. Only `56` and `72` are accepted; omitted
-   * width selects the 56-column band.
+   * Runtime band width in columns. Only `28` and `36` are accepted; omitted
+   * width selects the 28-column band.
    */
   width?: number
 }
@@ -483,12 +483,12 @@ export interface FormatFoxFrameInput {
  *
  * @param input - Optional color level and band width.
  * @returns Half-block ANSI rows, or no rows when art is unsupported.
- * @throws {TypeError} When `width` is present and is not `56` or `72`.
+ * @throws {TypeError} When `width` is present and is not `28` or `36`.
  */
 export function formatFoxFrame(input: FormatFoxFrameInput = {}): string[] {
-  const width = input.width ?? 56
-  if (width !== 56 && width !== 72) {
-    throw new TypeError(`welcome fox band width must be 56 or 72, got ${String(input.width)}`)
+  const width = input.width ?? 28
+  if (width !== 28 && width !== 36) {
+    throw new TypeError(`welcome fox band width must be 28 or 36, got ${String(input.width)}`)
   }
   const band = WELCOME_FOX_BANDS[width]
   return renderIndexedHalfBlocks({

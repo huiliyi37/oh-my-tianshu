@@ -2,8 +2,9 @@
  * Generate the runtime welcome-fox band module from the authored cutout.
  *
  * The sprite sheet is still validated for provenance. Runtime data is two
- * Lanczos rest bands snapped to a shared plane palette with no error diffusion.
- * `--check` validates in memory and never writes to the repository.
+ * nearest-neighbor rest bands snapped to a shared plane palette with no
+ * error diffusion. `--check` validates in memory and never writes to the
+ * repository.
  */
 
 import { readFile, writeFile } from 'node:fs/promises'
@@ -33,7 +34,7 @@ const PALETTE_COLOR_COUNT = 15
 const RGB_WEIGHTS: readonly [number, number, number] = [2, 4, 3]
 
 const packageRoot = resolve(import.meta.dirname, '..')
-const sourcePath = resolve(packageRoot, 'assets/welcome-fox-source.jpg')
+const sourcePath = resolve(packageRoot, 'assets/welcome-fox-source.png')
 const cutoutPath = resolve(packageRoot, 'assets/welcome-fox-cutout.png')
 const defaultSheetPath = resolve(packageRoot, 'assets/welcome-fox-sprite-sheet.png')
 const outputPath = resolve(packageRoot, 'src/format/fox-frames.ts')
@@ -74,7 +75,8 @@ export interface WelcomeFoxGeneration {
 /**
  * Validate the provenance sprite sheet, then project the cutout into the two
  * runtime rest bands. The shared 15-color palette is median-cut from the
- * 96×72 Lanczos of the cutout. The input sheet must retain an alpha channel
+ * 96×72 nearest-neighbor of the cutout. The input sheet must retain an
+ * alpha channel
  * and every 96×72 source frame must have a fully transparent one-pixel
  * boundary.
  * @param sheetPath - Path to the eight-frame horizontal PNG sprite sheet.
@@ -94,7 +96,7 @@ export async function generateWelcomeFoxModule(
       width: WELCOME_FOX_FRAME_WIDTH,
       height: WELCOME_FOX_FRAME_HEIGHT,
       fit: 'contain',
-      kernel: sharp.kernel.lanczos3,
+      kernel: sharp.kernel.nearest,
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     })
     .raw()
@@ -113,7 +115,7 @@ export async function generateWelcomeFoxModule(
         width: band.width,
         height: band.height,
         fit: 'contain',
-        kernel: sharp.kernel.lanczos3,
+        kernel: sharp.kernel.nearest,
         background: { r: 0, g: 0, b: 0, alpha: 0 },
       })
       .raw()
@@ -457,8 +459,8 @@ function renderModule(asset: WelcomeFoxAsset): string {
   if (source.includes('WELCOME_FOX_TIMELINE') || source.includes('WELCOME_FOX_TOTAL_DURATION_MS')) {
     throw new Error('welcome fox generated module must not emit a timeline.')
   }
-  if (widths.length !== 2 || widths.some(width => width !== 56 && width !== 72)) {
-    throw new Error('welcome fox generated module must emit only the 56 and 72 rest bands.')
+  if (widths.length !== 2 || widths.some(width => width !== 28 && width !== 36)) {
+    throw new Error('welcome fox generated module must emit only the 28 and 36 rest bands.')
   }
   return source
 }
@@ -492,7 +494,7 @@ async function checkGeneratedSource(): Promise<void> {
   const source = await readCheckFile(
     sourcePath,
     'source image',
-    'restore assets/welcome-fox-source.jpg',
+    'restore assets/welcome-fox-source.png',
   )
   const authored = await authorWelcomeFoxAssetBuffers(source)
   const committedCutout = await readCheckFile(cutoutPath, 'cutout', authorCommand)

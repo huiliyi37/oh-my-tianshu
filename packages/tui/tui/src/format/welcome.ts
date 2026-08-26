@@ -21,19 +21,20 @@ export const CHROME_GUTTER = 2
  */
 const WELCOME_FALLBACK_COLUMNS = 80
 
-const HERO_GAP = 3
-const WELCOME_FOX_NARROW_COLS = 56
-const WELCOME_FOX_WIDE_COLS = 72
-const WELCOME_FOX_NARROW_CELLS = 21
-const WELCOME_FOX_WIDE_CELLS = 27
+const HERO_GAP = 6
+const WELCOME_FOX_NARROW_COLS = 28
+const WELCOME_FOX_WIDE_COLS = 36
+const WELCOME_FOX_NARROW_CELLS = 15
+const WELCOME_FOX_WIDE_CELLS = 19
 const WELCOME_BAND_NARROW_MIN_COLS = 80
 const WELCOME_BAND_WIDE_MIN_COLS = 105
 const WELCOME_UNWRAP_MIN_COLS = 89
+const WELCOME_MARK = '#b48cff'
 
 /** Terminal rows reserved for chrome when deriving the fox art height budget. */
 const WELCOME_ART_CHROME_ROWS = 6
 
-/** Minimum terminal width for the split 56-column fox hero. */
+/** Minimum terminal width for the split 28-column fox hero. */
 export const WELCOME_HERO_WIDE_MIN = WELCOME_BAND_NARROW_MIN_COLS
 
 /** Resolves a non-positive terminal width to the fallback columns. */
@@ -54,22 +55,24 @@ function padToWidth(line: string, width: number): string {
   return `${fitted}${' '.repeat(Math.max(0, width - displayWidth(fitted)))}`
 }
 
-function peerBrandLine(theme: RivetTheme): string {
-  return `${color('DeepSeek', theme.primary, { bold: true })} ${color('◆', theme.brandColor, { bold: true })} ${color('Tianshu Harness', theme.primary, { bold: true })}`
+function titleLine(theme: RivetTheme): string {
+  return `${color('Oh My Tianshu', theme.brandColor, { bold: true })}${color(' >', WELCOME_MARK, { bold: true })}`
 }
 
-function wrapPeerBrandLine(theme: RivetTheme, wrapWidth: number): string[] {
-  const full = 'DeepSeek ◆ Tianshu Harness'
-  if (displayWidth(full) <= wrapWidth) return [peerBrandLine(theme)]
-  const head = 'DeepSeek ◆'
-  const tail = 'Tianshu Harness'
-  if (displayWidth(head) <= wrapWidth && displayWidth(tail) <= wrapWidth) {
-    return [
-      `${color('DeepSeek', theme.primary, { bold: true })} ${color('◆', theme.brandColor, { bold: true })}`,
-      color(tail, theme.primary, { bold: true }),
-    ]
+function harnessLine(): string {
+  return color('< Harness >', WELCOME_MARK, { bold: true })
+}
+
+function wrapIdentityLines(theme: RivetTheme, wrapWidth: number): string[] {
+  const title = titleLine(theme)
+  const harness = harnessLine()
+  if (displayWidth('Oh My Tianshu >') <= wrapWidth) {
+    return [title, harness]
   }
-  return wrapToDisplayWidth(peerBrandLine(theme), wrapWidth)
+  return [
+    ...wrapToDisplayWidth(title, wrapWidth),
+    ...wrapToDisplayWidth(harness, wrapWidth),
+  ]
 }
 
 function modelLine(input: FormatWelcomeHeroInput, theme: RivetTheme): string {
@@ -89,8 +92,7 @@ function heroDetails(
   wrapWidth?: number,
 ): string[] {
   const lines = [
-    color('Oh My Tianshu', theme.brandColor, { bold: true }),
-    ...(wrapWidth === undefined ? [peerBrandLine(theme)] : wrapPeerBrandLine(theme, wrapWidth)),
+    ...(wrapWidth === undefined ? [titleLine(theme), harnessLine()] : wrapIdentityLines(theme, wrapWidth)),
     modelLine(input, theme),
     color(`cwd ${input.cwd}`, theme.muted),
   ]
@@ -134,10 +136,10 @@ export interface FormatWelcomeHeroInput {
 /**
  * Resolves the fox art width for a terminal of the given size.
  *
- * The split hero is one of two rest bands: 56 columns from 80×27, and 72
- * columns from 105×33. Anything smaller uses the compact text form. A
- * 105-column terminal that lacks the 72-band row budget stays on 56.
- * The one-line title stays beside the fox; it is never stacked above it.
+ * The split hero is one of two rest bands: 28 columns from 80×21, and 36
+ * columns from 105×25. Anything smaller uses the compact text form. A
+ * 105-column terminal that lacks the 36-band row budget stays on 28.
+ * The title stays beside the fox; it is never stacked above it.
  *
  * @param width - Current terminal columns.
  * @param rows - Current terminal rows.

@@ -125,29 +125,29 @@ describe('renderIndexedHalfBlocks', () => {
 })
 
 describe('formatFoxFrame', () => {
-  it('renders the 56×42 rest band as 21 half-block rows', () => {
-    const lines = formatFoxFrame({ colorLevel: 3, width: 56 })
-    expect(lines).toHaveLength(21)
+  it('renders the 28×30 rest band as 15 half-block rows', () => {
+    const lines = formatFoxFrame({ colorLevel: 3, width: 28 })
+    expect(lines).toHaveLength(15)
     for (const line of lines) {
       expect(plain(line)).toMatch(/^[ ▀▄]*$/u)
       expect(plain(line)).not.toContain('█')
       expect(line.endsWith('\x1B[0m')).toBe(true)
-      expect(displayWidth(line)).toBeLessThanOrEqual(56)
+      expect(displayWidth(line)).toBeLessThanOrEqual(28)
     }
   })
 
-  it('renders the 72×54 rest band as 27 half-block rows', () => {
-    const lines = formatFoxFrame({ colorLevel: 3, width: 72 })
-    expect(lines).toHaveLength(27)
-    for (const line of lines) expect(displayWidth(line)).toBeLessThanOrEqual(72)
+  it('renders the 36×38 rest band as 19 half-block rows', () => {
+    const lines = formatFoxFrame({ colorLevel: 3, width: 36 })
+    expect(lines).toHaveLength(19)
+    for (const line of lines) expect(displayWidth(line)).toBeLessThanOrEqual(36)
   })
 
-  it('defaults to the 56 band and rejects any other width', () => {
+  it('defaults to the 28 band and rejects any other width', () => {
     expect(formatFoxFrame({ colorLevel: 3 })).toEqual(
-      formatFoxFrame({ colorLevel: 3, width: 56 }),
+      formatFoxFrame({ colorLevel: 3, width: 28 }),
     )
     expect(() => formatFoxFrame({ colorLevel: 3, width: 40 })).toThrow(
-      /welcome fox band width must be 56 or 72/,
+      /welcome fox band width must be 28 or 36/,
     )
   })
 })

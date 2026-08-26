@@ -10,11 +10,11 @@ Status: implemented
 
 ## Decision
 
-TUI 拥有一套仅展示的启动欢迎。在能承载狐狸档、且支持彩色与窄半块字形的终端上，`formatWelcomeHero` 把所选休息档狐狸放在一行 `Oh My Tianshu` 标题左侧。档位尺寸、折行与紧凑文本回退由[两档静态狐狸欢迎](./2026-08-23-tui-fox-welcome-clarity.md)拥有。DeepSeek Harness 与 Tianshu Harness 是视觉权重相等的平级 harness，为避免重复「Harness」而紧凑渲染为 `DeepSeek ◆ Tianshu Harness`。详情列显示所选模型、其有效 effort、cwd 与发行版本。
+TUI 拥有一套仅展示的启动欢迎。在能承载狐狸档、且支持彩色与窄半块字形的终端上，`formatWelcomeHero` 把所选休息档狐狸放在 splash 身份左侧。档位尺寸、折行与紧凑文本回退由[两档静态狐狸欢迎](./2026-08-23-tui-fox-welcome-clarity.md)拥有。splash 文案与坐姿抠图由[坐姿狐狸欢迎](./2026-08-25-tui-sitting-fox-welcome.md)拥有。详情列显示所选模型、其有效 effort、cwd 与发行版本。
 
 `prepareWelcome` 向 `formatWelcome` 提供至多三行编号恢复行与一条已选 `Tip:`，由后者拥有最终有界块。没有 live hero 预览，因此恢复选项与贴士只在结算结果中出现一次。窄、矮、无色与全宽块字形终端通过紧凑文本形式保留同一身份与元数据。
 
-仅限仓库的资产链从 `assets/welcome-fox-source.jpg` 确定性写出 `assets/welcome-fox-cutout.png` 与八帧 768×72 的 `assets/welcome-fox-sprite-sheet.png`（八个 96×72 帧）。运行时渲染只导入生成的索引与固定调色板；不读 PNG 或 JPEG 资产，不触碰文件系统，也不加载 `sharp`。图集是后续动效的溯源；生成模块的休息档内容由[两档静态狐狸欢迎](./2026-08-23-tui-fox-welcome-clarity.md)拥有。
+仅限仓库的资产链从 `assets/welcome-fox-source.png` 确定性写出 `assets/welcome-fox-cutout.png` 与八帧 768×72 的 `assets/welcome-fox-sprite-sheet.png`（八个相同的 96×72 休息帧）。运行时渲染只导入生成的索引与固定调色板；不读 PNG 资产，不触碰文件系统，也不加载 `sharp`。图集是后续动效的溯源；生成模块的休息档内容由[两档静态狐狸欢迎](./2026-08-23-tui-fox-welcome-clarity.md)拥有。
 
 `welcomeAnimation` 是唯一公开控制项。它接受 `auto` 或 `off`，缺省为 `auto`，其他值 fails loud。只要画面受支持，两个值都提交同一只静态狐狸。[两档静态狐狸欢迎](./2026-08-23-tui-fox-welcome-clarity.md)拥有静态挂载与闲置的帧时序。回退到紧凑文本的能力门槛仍是产品常量，而非部署可调项。
 
@@ -42,11 +42,12 @@ TUI 拥有一套仅展示的启动欢迎。在能承载狐狸档、且支持彩�
 
 - 生成器覆盖重建抠图、768×72 溯源图集、两档休息网格、无依赖生成模块，以及畸形资产拒绝路径。
 - formatter、controller、runner 与 app 覆盖钉住响应式回退、平级品牌文案、元数据回退、配置校验、结算顺序、取消、延迟密钥设置，以及 `auto`/`off` 缓冲等价。
-- 真实 [`examples/tui`](../../../../examples/tui/README.md#keyless-snapshot) Loader + PTY 快照覆盖 source 与 built 启动平面，只记录结算后的 100×30 中档面，并断言零次模型网络请求。
+- 真实 [`examples/tui`](../../../../examples/tui/README.md#keyless-snapshot) Loader + PTY 快照覆盖 source 与 built 启动平面，只记录结算后的 100×40 中档面，并断言零次模型网络请求。
 
 ## Related
 
 - [两档静态狐狸欢迎](./2026-08-23-tui-fox-welcome-clarity.md)
+- [坐姿狐狸欢迎](./2026-08-25-tui-sitting-fox-welcome.md)
 - [Oh My Tianshu 改版](./2026-08-15-oh-my-tianshu-rebrand.md)
 - [TUI 欢迎页打磨](./2026-08-13-tui-welcome-page-polish.md)
 - [TUI C4 概念稿 Wave 1+2](./2026-08-12-tui-c4-concepts-w12.md)

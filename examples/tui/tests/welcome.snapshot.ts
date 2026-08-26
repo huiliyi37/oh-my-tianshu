@@ -13,7 +13,7 @@ import {
 } from '@huiliyi37/dsh-loader-smoke'
 
 const COLUMNS = 100
-const ROWS = 30
+const ROWS = 40
 const CAPTURE_TIMEOUT_MS = 60_000
 const GRACEFUL_EXIT_TIMEOUT_MS = 2_000
 const CLEANUP_CTRL_Q_TIMEOUT_MS = 500
@@ -224,7 +224,7 @@ function hasSettledSurface(terminal: Terminal): boolean {
   if (terminal.buffer.active.type !== 'normal') return false
   const lines = normalBufferLines(terminal)
   return lines.some(line => line.includes('Tip:'))
-    && lines.some(line => line.includes('Tianshu Harness'))
+    && lines.some(line => line.includes('< Harness >'))
     && lines.some(line => line.includes('❯'))
 }
 
@@ -446,7 +446,7 @@ async function captureWelcome(
     const tempRoot = await realpath(createdRoot)
     tempRoots = createdRoot === tempRoot ? [tempRoot] : [createdRoot, tempRoot]
     const home = join(tempRoot, 'home')
-    // 100×30 mid-band details are 39 columns; a `workspace` leaf truncates.
+    // 100×40 mid-band details are 36 columns; a `workspace` leaf truncates.
     const workspace = join(home, 'w')
     const dshHome = join(tempRoot, 'd')
     const agentsHome = join(tempRoot, 'a')
@@ -720,7 +720,7 @@ describe.skipIf(process.platform === 'win32')('examples/tui settled welcome', ()
     expect(String(thrown)).toContain('<redacted')
   })
 
-  it('snapshots the real Loader composition through a 100×30 PTY', async () => {
+  it('snapshots the real Loader composition through a 100×40 PTY', async () => {
     const capture = await captureWelcome(resolveExampleMode())
     expect(capture.mode).toBe(process.env.DSH_EXAMPLE_MODE || 'src')
     expect(capture.networkRequestsAfterQuiet).toBe(0)
@@ -734,7 +734,7 @@ describe.skipIf(process.platform === 'win32')('examples/tui settled welcome', ()
     expect(capture.snapshot).not.toMatch(/[\u2800-\u28FF]/)
     expect(capture.snapshot.match(/Oh My Tianshu/g)).toEqual(['Oh My Tianshu'])
     expect(capture.snapshot).not.toContain('███ █ █  █ █ █ █')
-    expect(capture.snapshot).toContain('DeepSeek ◆ Tianshu Harness')
+    expect(capture.snapshot).toContain('< Harness >')
     expect(capture.snapshot).toContain('Model deepseek-v4-flash · Effort max')
     expect(capture.snapshot).toContain('cwd ~/workspace')
     expect(capture.snapshot).toMatch(/\bv\d+\.\d+\.\d+\b/)

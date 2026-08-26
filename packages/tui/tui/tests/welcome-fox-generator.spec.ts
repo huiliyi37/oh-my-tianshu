@@ -21,7 +21,7 @@ import {
 } from '../scripts/welcome-fox-contract.ts'
 
 const packageRoot = resolve(import.meta.dirname, '..')
-const sourcePath = join(packageRoot, 'assets/welcome-fox-source.jpg')
+const sourcePath = join(packageRoot, 'assets/welcome-fox-source.png')
 const cutoutPath = join(packageRoot, 'assets/welcome-fox-cutout.png')
 const sheetPath = join(packageRoot, 'assets/welcome-fox-sprite-sheet.png')
 const outputPath = join(packageRoot, 'src/format/fox-frames.ts')
@@ -89,7 +89,7 @@ function expectTransparentBoundary(frameId: string, frame: Buffer): void {
 }
 
 describe('welcome fox generator', () => {
-  it('rebuilds the committed editable assets with distinct transparent frames', async () => {
+  it('rebuilds the committed editable assets as eight identical rest frames', async () => {
     const authored = await authorWelcomeFoxAssetBuffers(await readFile(sourcePath))
     expect(authored.cutout).toEqual(await readFile(cutoutPath))
     expect(authored.sheet).toEqual(await readFile(sheetPath))
@@ -107,22 +107,20 @@ describe('welcome fox generator', () => {
     for (const frameId of frameIds) {
       const frame = frames.get(frameId)!
       expectTransparentBoundary(frameId, frame)
-      if (frameId !== 'rest') {
-        expect(frame.equals(rest), `${frameId} must differ from rest`).toBe(false)
-      }
+      expect(frame.equals(rest), `${frameId} must match the static rest frame`).toBe(true)
     }
-    expect(new Set([...frames.values()].map(frame => frame.toString('base64'))).size).toBe(8)
+    expect(new Set([...frames.values()].map(frame => frame.toString('base64'))).size).toBe(1)
   }, 60_000)
 
-  it('emits only the 56×42 and 72×54 rest bands from the cutout', async () => {
+  it('emits only the 28×30 and 36×38 rest bands from the cutout', async () => {
     const generated = await generateWelcomeFoxModule(sheetPath)
     const committed = await readFile(outputPath, 'utf8')
     expect(generated.source).toBe(committed)
     expect(findRuntimeDependencies(generated.source)).toEqual([])
     expect(generated.source).not.toContain('/assets/')
     expect(generated.asset.bands.map(band => [band.width, band.height])).toEqual([
-      [56, 42],
-      [72, 54],
+      [28, 30],
+      [36, 38],
     ])
     expect(generated.asset.finalFrame).toBe('rest')
     expect(generated.source).not.toContain('WELCOME_FOX_TIMELINE')

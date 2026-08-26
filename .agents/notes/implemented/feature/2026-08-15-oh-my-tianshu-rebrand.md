@@ -30,7 +30,7 @@ The theme system exposes an optional truecolor `SurfaceSet` — `userMsgBg` plus
 
 ## Consequences
 
-The first screen reads as Oh My Tianshu through the responsive fox wordmark and peer `DeepSeek ◆ Tianshu Harness` line, while every registered theme remains selectable. The GitHub rename leaves the old URL as a redirect, and the sweep keeps local, CI, and documentation references on the new identity. The `omp` palette, top-border status bar, and message/chrome surface tones remain this note's current contract; startup rendering and history ownership belong to the [fox welcome decision](./2026-08-22-tui-fox-welcome.md).
+The first screen reads as Oh My Tianshu through the sitting-fox splash and `Oh My Tianshu >` / `< Harness >` lines, while every registered theme remains selectable. The GitHub rename leaves the old URL as a redirect, and the sweep keeps local, CI, and documentation references on the new identity. The `omp` palette, top-border status bar, and message/chrome surface tones remain this note's current contract; startup rendering and history ownership belong to the [fox welcome decision](./2026-08-22-tui-fox-welcome.md).
 
 ## Testing
 

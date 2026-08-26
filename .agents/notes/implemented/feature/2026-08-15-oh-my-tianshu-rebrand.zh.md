@@ -30,7 +30,7 @@ TUI 的视觉身份滞后于产品的公开定位：欢迎页还挂着内部 `DS
 
 ## Consequences
 
-首屏经响应式狐狸 wordmark 与平级 `DeepSeek ◆ Tianshu Harness` 行读作 Oh My Tianshu，全部已注册主题仍可切换。GitHub 改名后旧 URL 自动重定向，清扫保证本地、CI 与文档引用指向新身份。`omp` 调色板、顶边状态栏与消息/chrome 表面色调仍是本 note 的当前约定；启动渲染与历史所有权属于 [狐狸欢迎决策](./2026-08-22-tui-fox-welcome.md)。
+首屏经坐姿狐狸 splash 与 `Oh My Tianshu >` / `< Harness >` 行读作 Oh My Tianshu，全部已注册主题仍可切换。GitHub 改名后旧 URL 自动重定向，清扫保证本地、CI 与文档引用指向新身份。`omp` 调色板、顶边状态栏与消息/chrome 表面色调仍是本 note 的当前约定；启动渲染与历史所有权属于 [狐狸欢迎决策](./2026-08-22-tui-fox-welcome.md)。
 
 ## Testing
 

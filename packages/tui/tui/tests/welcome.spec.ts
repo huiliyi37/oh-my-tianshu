@@ -40,19 +40,19 @@ function plain(lines: readonly string[]): string[] {
 }
 
 const ART = {
-  lines: Array.from({ length: 21 }, (_, index) => `fox-${index}`),
-  width: 56,
+  lines: Array.from({ length: 15 }, (_, index) => `fox-${index}`),
+  width: 28,
 } as const
 
 const WIDE_ART = {
-  lines: Array.from({ length: 27 }, (_, index) => `fox-${index}`),
-  width: 72,
+  lines: Array.from({ length: 19 }, (_, index) => `fox-${index}`),
+  width: 36,
 } as const
 
 function heroInput(over: Partial<FormatWelcomeHeroInput> = {}): FormatWelcomeHeroInput {
   return {
     width: 100,
-    rows: 30,
+    rows: 40,
     art: ART,
     modelId: 'deepseek-chat',
     reasoningEffort: 'high',
@@ -63,47 +63,47 @@ function heroInput(over: Partial<FormatWelcomeHeroInput> = {}): FormatWelcomeHer
 }
 
 describe('formatWelcomeHero', () => {
-  it('selects 56 at 80–104 columns and 72 at 105+ when rows fit', () => {
+  it('selects 28 at 80–104 columns and 36 at 105+ when rows fit', () => {
     expect(WELCOME_HERO_WIDE_MIN).toBe(80)
     expect(resolveWelcomeArtWidth(79, 40)).toBeNull()
-    expect(resolveWelcomeArtWidth(80, 26)).toBeNull()
-    expect(resolveWelcomeArtWidth(80, 27)).toBe(56)
-    expect(resolveWelcomeArtWidth(104, 33)).toBe(56)
-    expect(resolveWelcomeArtWidth(105, 32)).toBe(56)
-    expect(resolveWelcomeArtWidth(105, 33)).toBe(72)
+    expect(resolveWelcomeArtWidth(80, 20)).toBeNull()
+    expect(resolveWelcomeArtWidth(80, 21)).toBe(28)
+    expect(resolveWelcomeArtWidth(104, 25)).toBe(28)
+    expect(resolveWelcomeArtWidth(105, 24)).toBe(28)
+    expect(resolveWelcomeArtWidth(105, 25)).toBe(36)
   })
 
-  it('places a one-line Oh My Tianshu title beside 56-column art', () => {
+  it('places a one-line Oh My Tianshu title beside 28-column art', () => {
     const lines = plain(formatWelcomeHero(heroInput({
       width: 89,
-      rows: 30,
+      rows: 40,
     }), fakeTheme()))
     expect(lines.some(line => line.includes('Oh My Tianshu'))).toBe(true)
     expect(lines.some(line => line.includes('█'))).toBe(false)
-    expect(lines.find(line => line.includes('DeepSeek ◆ Tianshu Harness'))).toBeDefined()
+    expect(lines.find(line => line.includes('< Harness >'))).toBeDefined()
     const titleLine = lines.find(line => line.includes('Oh My Tianshu'))
     expect(titleLine).toMatch(/fox-\d/)
     expect(lines.findIndex(line => line.includes('Oh My Tianshu')))
       .toBeGreaterThanOrEqual(lines.findIndex(line => /fox-\d/.test(line)))
   })
 
-  it('keeps the peer copy beside the 56-column fox at 80 columns', () => {
+  it('keeps the peer copy beside the 28-column fox at 80 columns', () => {
     const lines = plain(formatWelcomeHero(heroInput({
       width: 80,
-      rows: 30,
+      rows: 40,
     }), fakeTheme()))
     const joined = lines.join('\n')
     expect(joined).toContain('fox-0')
-    expect(joined).toContain('DeepSeek')
-    expect(joined).toContain('Tianshu Harness')
+    expect(joined).toContain('Oh My Tianshu')
+    expect(joined).toContain('< Harness >')
     expect(lines.some(line => line.includes('fox-') && line.includes('Oh My Tianshu'))).toBe(true)
     for (const line of lines) expect(displayWidth(line)).toBeLessThanOrEqual(80)
   })
 
-  it('places the 72-column fox once rows and columns allow the wide band', () => {
+  it('places the 36-column fox once rows and columns allow the wide band', () => {
     const lines = plain(formatWelcomeHero(heroInput({
       width: 105,
-      rows: 33,
+      rows: 25,
       art: WIDE_ART,
     }), fakeTheme()))
     expect(lines.some(line => line.includes('fox-0'))).toBe(true)
@@ -111,14 +111,16 @@ describe('formatWelcomeHero', () => {
     expect(lines.some(line => line.includes('█'))).toBe(false)
   })
 
-  it('renders peer harness brands at equal weight with an accented diamond', () => {
+  it('renders the splash title with a mark caret and Harness line', () => {
     const lines = formatWelcomeHero(heroInput(), fakeTheme())
-    const peer = lines.find(line => plainLine(line).includes('DeepSeek ◆ Tianshu Harness'))
+    const title = lines.find(line => plainLine(line).includes('Oh My Tianshu'))
+    const harness = lines.find(line => plainLine(line).includes('< Harness >'))
 
-    expect(peer).toBeDefined()
-    expect(peer).toContain('\x1B[38;2;17;17;17m\x1B[1mDeepSeek')
-    expect(peer).toContain('\x1B[38;2;17;17;17m\x1B[1mTianshu Harness')
-    expect(peer).toContain('\x1B[38;2;238;238;238m\x1B[1m◆')
+    expect(title).toBeDefined()
+    expect(title).toContain('\x1B[38;2;238;238;238m\x1B[1mOh My Tianshu')
+    expect(title).toContain('\x1B[38;2;180;140;255m\x1B[1m >')
+    expect(harness).toBeDefined()
+    expect(harness).toContain('\x1B[38;2;180;140;255m\x1B[1m< Harness >')
   })
 
   it('shows model, effort, cwd, and optional version in the balanced right column', () => {
@@ -141,7 +143,7 @@ describe('formatWelcomeHero', () => {
 
   it('pads missing wide-art rows when the details column is longer', () => {
     const lines = plain(formatWelcomeHero(heroInput({
-      art: { lines: ['fox-only'], width: 56 },
+      art: { lines: ['fox-only'], width: 28 },
     }), fakeTheme()))
 
     expect(lines[0]).toContain('fox-only')
@@ -153,7 +155,7 @@ describe('formatWelcomeHero', () => {
     const cwd = `/工作区/${'很长目录/'.repeat(20)}最终目录`
     const lines = formatWelcomeHero(heroInput({
       width: 92,
-      rows: 30,
+      rows: 40,
       cwd,
     }), fakeTheme())
     const flat = plain(lines)
@@ -170,7 +172,7 @@ describe('formatWelcomeHero', () => {
   it.each([
     ['narrow terminal', { width: 79 }],
     ['short terminal', { rows: 20 }],
-    ['empty art', { art: { lines: [], width: 56 } }],
+    ['empty art', { art: { lines: [], width: 28 } }],
     ['mismatched band width', { art: { lines: ['fox-0'], width: 40 } }],
     ['non-positive art allocation', { art: { lines: ['fox-0'], width: 0 } }],
   ])('uses one compact text fallback for %s', (_name, over) => {
@@ -178,7 +180,7 @@ describe('formatWelcomeHero', () => {
     const joined = lines.join('\n')
 
     expect(joined).toContain('Oh My Tianshu')
-    expect(joined).toContain('DeepSeek ◆ Tianshu Harness')
+    expect(joined).toContain('< Harness >')
     expect(joined).toContain('Model deepseek-chat · Effort high')
     expect(joined).toContain('cwd /work/tianshu')
     expect(joined).toContain('v0.4.0')
@@ -189,7 +191,7 @@ describe('formatWelcomeHero', () => {
   it('uses auto when reasoning effort is omitted and omits an absent version', () => {
     const lines = plain(formatWelcomeHero({
       width: 60,
-      rows: 30,
+      rows: 40,
       art: ART,
       modelId: 'deepseek-chat',
       cwd: '/work/tianshu',
@@ -205,7 +207,7 @@ describe('formatWelcomeHero', () => {
       const lines = formatWelcomeHero(heroInput({ width }), fakeTheme())
       for (const line of lines) expect(displayWidth(line)).toBeLessThanOrEqual(width)
     }
-    // 零宽流回退到 80 列：够放 56 档狐狸，标题留在右侧。
+    // 零宽流回退到 80 列：够放 28 档狐狸，标题留在右侧。
     const fallbackLines = plain(formatWelcomeHero(heroInput({ width: 0 }), fakeTheme()))
     expect(fallbackLines.join('\n')).toContain('Oh My Tianshu')
     for (const line of fallbackLines) expect(displayWidth(line)).toBeLessThanOrEqual(80)
@@ -265,7 +267,7 @@ describe('formatWelcome', () => {
       }, fakeTheme())
       for (const line of lines) expect(displayWidth(line)).toBeLessThanOrEqual(width)
     }
-    // 零宽流回退到 80 列：hero 按 56 档并排，恢复区仍按其自身宽度截断。
+    // 零宽流回退到 80 列：hero 按 28 档并排，恢复区仍按其自身宽度截断。
     const fallbackLines = plain(formatWelcome({
       ...heroInput({ width: 0 }),
       restoreLines: ['[1] resize'],

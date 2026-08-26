@@ -10,11 +10,11 @@ The startup surface needs to establish Oh My Tianshu's identity without making d
 
 ## Decision
 
-The TUI owns one display-only startup welcome. On terminals that can host a fox band, with color and narrow half-block glyph support, `formatWelcomeHero` places the selected rest-band fox to the left of a one-line `Oh My Tianshu` title. Band sizes, wrap, and the compact-text fallback live in [two-band static fox welcome](./2026-08-23-tui-fox-welcome-clarity.md). DeepSeek Harness and Tianshu Harness are peers with equal visual weight, rendered compactly as `DeepSeek ◆ Tianshu Harness` to avoid repeating “Harness.” The details column shows the selected model, its effective reasoning effort, cwd, and distribution version.
+The TUI owns one display-only startup welcome. On terminals that can host a fox band, with color and narrow half-block glyph support, `formatWelcomeHero` places the selected rest-band fox to the left of the splash identity. Band sizes, wrap, and the compact-text fallback live in [two-band static fox welcome](./2026-08-23-tui-fox-welcome-clarity.md). Splash copy and the sitting cutout live in [sitting-fox welcome](./2026-08-25-tui-sitting-fox-welcome.md). The details column shows the selected model, its effective reasoning effort, cwd, and distribution version.
 
 `prepareWelcome` supplies at most three numbered restore rows and one already-selected `Tip:` to `formatWelcome`, which owns the final bounded block. There is no live hero preview, so restore choices and the tip appear once in the settled result. Narrow, short, no-color, and full-width block-glyph terminals preserve the same identity and metadata through the compact text form.
 
-The repository-only asset chain deterministically authors `assets/welcome-fox-cutout.png` and the eight-frame 768×72 `assets/welcome-fox-sprite-sheet.png` (eight 96×72 frames) from `assets/welcome-fox-source.jpg`. Runtime rendering imports only the generated indexes and fixed palette; it does not read PNG or JPEG assets, touch the filesystem, or load `sharp`. The sheet is provenance for a later motion pass; the generated module's rest-band contents are owned by [two-band static fox welcome](./2026-08-23-tui-fox-welcome-clarity.md).
+The repository-only asset chain deterministically authors `assets/welcome-fox-cutout.png` and the eight-frame 768×72 `assets/welcome-fox-sprite-sheet.png` (eight identical 96×72 rest frames) from `assets/welcome-fox-source.png`. Runtime rendering imports only the generated indexes and fixed palette; it does not read PNG assets, touch the filesystem, or load `sharp`. The sheet is provenance for a later motion pass; the generated module's rest-band contents are owned by [two-band static fox welcome](./2026-08-23-tui-fox-welcome-clarity.md).
 
 `welcomeAnimation` is the only public control. It accepts `auto` or `off`, defaults to `auto`, and fails loud for any other value. Both values commit the same static fox wherever art is supported. [Two-band static fox welcome](./2026-08-23-tui-fox-welcome-clarity.md) owns static attach and unused frame timing. Capability thresholds that fall back to compact text remain product constants rather than deployment tunables.
 
@@ -42,11 +42,12 @@ The asset authoring dependency remains outside runtime, and the fixed generated 
 
 - Generator coverage rebuilds the cutout, the 768×72 provenance sheet, the two rest bands, the dependency-free generated module, and malformed-asset rejection paths.
 - Formatter, controller, runner, and app coverage pins responsive fallback, peer-brand copy, metadata fallback, configuration validation, settlement ordering, cancellation, delayed key setup, and `auto`/`off` buffer equivalence.
-- The real [`examples/tui`](../../../../examples/tui/README.md#keyless-snapshot) Loader + PTY snapshot covers source and built launch planes, records only the settled 100×30 mid-band surface, and asserts zero model-network requests.
+- The real [`examples/tui`](../../../../examples/tui/README.md#keyless-snapshot) Loader + PTY snapshot covers source and built launch planes, records only the settled 100×40 mid-band surface, and asserts zero model-network requests.
 
 ## Related
 
 - [Two-band static fox welcome](./2026-08-23-tui-fox-welcome-clarity.md)
+- [Sitting-fox welcome splash](./2026-08-25-tui-sitting-fox-welcome.md)
 - [Oh My Tianshu rebrand](./2026-08-15-oh-my-tianshu-rebrand.md)
 - [TUI welcome page polish](./2026-08-13-tui-welcome-page-polish.md)
 - [TUI C4 concept draft Wave 1+2](./2026-08-12-tui-c4-concepts-w12.md)

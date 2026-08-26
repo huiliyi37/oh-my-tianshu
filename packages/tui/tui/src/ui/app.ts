@@ -2089,7 +2089,7 @@ export class TuiApp {
 
     this.live.clearForCommit()
     const artWidth = resolveWelcomeArtWidth(this.stdout.columns, this.stdout.rows)
-    const artLines = artWidth === 56 || artWidth === 72
+    const artLines = artWidth === 28 || artWidth === 36
       ? formatFoxFrame({
         colorLevel: this.welcomeColorLevel(),
         width: artWidth,

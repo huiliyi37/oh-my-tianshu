@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-23-tui-fox-welcome-clarity.md
-2026-08-23-tui-fox-welcome-clarity.md: e4257c648a066e30aa9f215a8e36d0524163eef3
-2026-08-23-tui-fox-welcome-clarity.zh.md: bd51ada1c869ff9081a123fa819d48fa5b14356d
+2026-08-23-tui-fox-welcome-clarity.md: 3bf9c1e160893fd65757bebe5494c5f862250c32
+2026-08-23-tui-fox-welcome-clarity.zh.md: 5bcb0bdc6887c6d7ed83885c7bc737e049fcaf81

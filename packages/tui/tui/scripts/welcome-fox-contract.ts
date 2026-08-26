@@ -12,8 +12,8 @@ export const WELCOME_FOX_FRAME_HEIGHT = 72
 
 /** Runtime rest-pose grids projected from the cutout. Authoring stays 96×72. */
 export const WELCOME_FOX_RUNTIME_BANDS = [
-  { width: 56, height: 42 },
-  { width: 72, height: 54 },
+  { width: 28, height: 30 },
+  { width: 36, height: 38 },
 ] as const
 
 /** Stable frame ids in horizontal sprite-sheet order. */

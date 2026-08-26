@@ -2011,8 +2011,8 @@ describe('TuiApp Phase 9b + 1.1 欢迎页会话恢复入口', () => {
     await app.attach()
 
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('DeepSeek')
-    expect(written).toContain('Tianshu Harness')
+    expect(written).toContain('Oh My Tianshu')
+    expect(written).toContain('< Harness >')
     expect(written).toContain('restored-provider/restored-model')
     expect(written).toContain('Model restored-model · Effort high')
     expect(written).not.toContain('default-provider/default-model')
@@ -2230,7 +2230,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
    */
   function makeHeadlessTerminal(
     columns = 100,
-    rows = 30,
+    rows = 40,
   ): HeadlessTerminalHarness {
     const terminal = new Terminal({
       allowProposedApi: true,
@@ -2456,7 +2456,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     stdin.isTTY = options.inputTty ?? false
     const stdout = options.stdout ?? makeColorTtyStdout()
     if (options.columns !== undefined) stdout.columns = options.columns
-    if (options.rows !== undefined) stdout.rows = options.rows
+    stdout.rows = options.rows ?? 40
     const app = new TuiApp({
       ctx,
       stdout,
@@ -2570,10 +2570,10 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     const { app } = await bootWelcome({ welcomeAnimation: 'off' })
 
     expect(writeBatch).toHaveBeenCalledTimes(2)
-    expect(batchText(writeBatch)).toContain('Tianshu Harness')
+    expect(batchText(writeBatch)).toContain('< Harness >')
     expect(batchText(writeBatch)).toContain('Tip:')
     expect(render.mock.calls.some(call => (
-      (call[0] as readonly { text: string }[]).some(line => line.text.includes('Tianshu Harness'))
+      (call[0] as readonly { text: string }[]).some(line => line.text.includes('< Harness >'))
     ))).toBe(false)
 
     await app.dispose()
@@ -2855,22 +2855,22 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     expect(committed).not.toMatch(/[\u2800-\u28FF]/)
     expect(committed).toContain('Tip:')
     expect(render.mock.calls.some(call => (
-      (call[0] as readonly { text: string }[]).some(line => line.text.includes('Tianshu Harness'))
+      (call[0] as readonly { text: string }[]).some(line => line.text.includes('< Harness >'))
     ))).toBe(false)
     await app.dispose()
   })
 
-  it('uses the 72-column fox once the terminal is at least 105×33', async () => {
+  it('uses the 36-column fox once the terminal is at least 105×25', async () => {
     const writeBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
     const { app } = await bootWelcome({
       welcomeAnimation: 'auto',
       columns: 105,
-      rows: 33,
+      rows: 25,
     })
     const committed = batchText(writeBatch)
     expect(committed).toContain('Oh My Tianshu')
-    expect(committed.split('\n').filter(line => /[▀▄]/.test(line)).length).toBeGreaterThan(21)
-    expect(committed.match(/[▀▄]/g)?.length).toBeGreaterThan(21)
+    expect(committed.split('\n').filter(line => /[▀▄]/.test(line)).length).toBeGreaterThan(15)
+    expect(committed.match(/[▀▄]/g)?.length).toBeGreaterThan(15)
     await app.dispose()
   })
 
@@ -2893,7 +2893,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     })
 
     const finalIndex = writeBatch.mock.calls.findIndex(([entries]) => (
-      entries.some(entry => entry.text.includes('Tianshu Harness'))
+      entries.some(entry => entry.text.includes('< Harness >'))
       && entries.some(entry => entry.text.includes('Tip:'))
     ))
     const messageIndex = write.mock.calls.findIndex(([entry]) => (
@@ -2904,7 +2904,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     expect(writeBatch.mock.invocationCallOrder[finalIndex]).toBeLessThan(
       write.mock.invocationCallOrder[messageIndex] ?? Number.POSITIVE_INFINITY,
     )
-    expect(batchText(writeBatch, finalIndex)).toContain('Tianshu Harness')
+    expect(batchText(writeBatch, finalIndex)).toContain('< Harness >')
     expect(batchText(writeBatch, finalIndex)).toContain('Tip:')
     expect(write.mock.calls[messageIndex]?.[0]).toEqual({
       text: 'background scrollback message',
@@ -2940,14 +2940,14 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
       await flushHeadlessTerminal(animatedTerminal)
 
       const introRenders = render.mock.calls.filter(([lines]) => (
-        lines.some(line => line.text.includes('Tianshu Harness'))
+        lines.some(line => line.text.includes('< Harness >'))
       ))
       expect(introRenders).toHaveLength(0)
 
       const animatedSnapshot = animatedTerminal.normalBufferSnapshot()
       const animatedText = animatedTerminal.visibleTextLines().join('\n')
       expect(animatedText).toContain('Oh My Tianshu')
-      expect(animatedText).toContain('Tianshu Harness')
+      expect(animatedText).toContain('< Harness >')
       expect(animatedText).toContain('Tip:')
       expect(animatedText).toMatch(/[▀▄]/)
       expect(animatedText).not.toMatch(/[\u2800-\u28FF]/)
@@ -3091,7 +3091,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     expect(batchText(writeBatch)).not.toContain('███')
     await vi.advanceTimersByTimeAsync(4_000)
     expect(writeBatch).toHaveBeenCalledTimes(2)
-    expect(render.mock.calls.at(-1)?.[0].some(line => line.text.includes('Tianshu Harness'))).toBe(false)
+    expect(render.mock.calls.at(-1)?.[0].some(line => line.text.includes('< Harness >'))).toBe(false)
     await app.dispose()
   })
 
@@ -8029,8 +8029,8 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     const idx = written.lastIndexOf('╭')
     expect(idx).toBeGreaterThan(0)
-    expect(written).toContain('DeepSeek')
-    expect(written).toContain('Tianshu Harness')
+    expect(written).toContain('Oh My Tianshu')
+    expect(written).toContain('< Harness >')
     expect(written).not.toContain('Tips')
     expect(written.slice(idx)).toMatch(/╰─+/)
     expect(blankLinesBeforeRail(written)).toBeLessThanOrEqual(2)
