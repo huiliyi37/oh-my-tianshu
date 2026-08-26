@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-26-tui-chrome-closed-loops.md
-2026-08-26-tui-chrome-closed-loops.md: c481bad1b671c7893131ae6f18b13796a7efb803
-2026-08-26-tui-chrome-closed-loops.zh.md: 88ae5f88274d260c4dccd181e3d0f317c458827c
+2026-08-26-tui-chrome-closed-loops.md: bd96c63462f3392d83c59f584d978590fd50eba0
+2026-08-26-tui-chrome-closed-loops.zh.md: 22b8e5a72278c474a780208ee55a7474b7a52d77

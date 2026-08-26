@@ -35,7 +35,18 @@ import { installModelSelection, type Agent, type AgentHandle, type ModelSelectio
 import type {} from '@huiliyi37/dsh-agent-default-model'
 import { CommitEngine } from '../engine/commit-engine.js'
 import { ANSI, color, imageProtocol, osc52Clipboard } from '../engine/ansi.js'
-import { LiveEngine, LIVE_TOOL_CARD_MAX, liveMaxRowsFor, nextDynamicBudget, padDynamicRegion, type LiveRegionLine } from '../engine/live-engine.js'
+import {
+  LiveEngine,
+  LIVE_TOOL_CARD_MAX,
+  liveHasSpinner,
+  liveIdleKey,
+  liveMaxRowsFor,
+  nextDynamicBudget,
+  padDynamicRegion,
+  shouldSkipIdleAssemble,
+  workingRowsCap,
+  type LiveRegionLine,
+} from '../engine/live-engine.js'
 import { WriteBatcher } from '../engine/write-batcher.js'
 import { InputHandler, type KeyPress, type KeyName } from '../engine/input-handler.js'
 import { InputLine, inputViewportMaxLines } from '../engine/input-line.js'
@@ -871,6 +882,10 @@ export class TuiApp {
   private attachmentPreviewEpoch = 0
   private tick = 0
   private ticker: ReturnType<typeof setInterval> | null = null
+  /** 上一帧空闲键；overlay A6 停写时置 null，避免退出后误跳过重绘。 */
+  private lastIdleKey: string | null = null
+  /** ticker 回调里为真：只在这条路径上允许空闲跳过；按键/事件 flush 必须组装。 */
+  private renderLiveFromTicker = false
   private disposed = false
   /** Cancels bounded startup lookups before teardown can return. */
   private readonly lifetimeAbort = new AbortController()
@@ -1450,7 +1465,15 @@ export class TuiApp {
     })
     this.overlay.register('config-panel', this.configPanel)
     this.input.setMode('input')
-    this.ticker = setInterval(() => { this.tick++ ; this.renderLive() }, 120)
+    this.ticker = setInterval(() => {
+      if (this.hasVisibleSpinner()) this.tick++
+      this.renderLiveFromTicker = true
+      try {
+        this.renderLive()
+      } finally {
+        this.renderLiveFromTicker = false
+      }
+    }, 120)
     this.ticker.unref()
     // T3.1：userInteraction provider 注册（升级结构化提问；唯一 provider——
     // 若已存在注册则替换而非叠加）。
@@ -4922,13 +4945,90 @@ export class TuiApp {
     this.renderBatcher.flushNow()
   }
 
+  /**
+   * 本帧是否有转圈行。ticker 只在此时推进 `tick`；空闲帧不改 shimmer，
+   * 以便 snapshot+chrome key 保持稳定并跳过组装。
+   */
+  private hasVisibleSpinner(): boolean {
+    return liveHasSpinner({
+      agentRunning: this.liveAgent?.state.status === 'running',
+      activityRunning: this.foldActivity().some(item => item.status === 'running'),
+      pendingTools: (this.transcript?.view.tools.some(tool => tool.result === undefined) ?? false),
+      reasoningLive: this.reasoningText !== '' || this.reasoningExpanded,
+    })
+  }
+
+  /**
+   * snapshot 面 + chrome 面空闲键（不含 tick/now）。任一面变化都必须组装。
+   * @returns 可与 {@link lastIdleKey} 比较的稳定串。
+   */
+  private currentIdleKey(): string {
+    const activity = this.foldActivity()
+    const pending = this.transcript?.view.tools.filter(tool => tool.result === undefined) ?? []
+    return liveIdleKey({
+      snapshotKey: [
+        this.liveAgent?.state.status ?? '',
+        activity.map(item => `${item.id}:${item.status}:${item.lastTool ?? ''}:${item.toolCalls ?? 0}:${item.tokensUsed ?? 0}`).join('|'),
+        pending.map(tool => tool.callId).join(','),
+        this.activityBandEnabled ? '1' : '0',
+        this.compactMode ? '1' : '0',
+        `${this.stdout.rows}x${this.stdout.columns}`,
+        [
+          this.todosPanelVisible,
+          this.taskPanelVisible,
+          this.statusPanelVisible,
+          this.subagentsPanelVisible,
+          this.workflowPanelVisible,
+          this.skillsPanelVisible,
+          this.lspPanelVisible,
+        ].map(flag => (flag ? '1' : '0')).join(''),
+        this.btw.peek() === null ? '' : 'btw',
+        this.taskNotice ?? '',
+        this.gitDirty,
+        this.apiKeyReady ? '1' : '0',
+        this.reasoningText.length,
+        this.reasoningExpanded ? '1' : '0',
+        this.blockWriter.peek().length,
+      ].join('\n'),
+      chromeKey: [
+        this.inputLine.value,
+        this.question.isPending ? '1' : '0',
+        this.approval.isPending ? '1' : '0',
+        this.approval.peek()?.req.toolName ?? '',
+        this.approval.alwaysApprove ? '1' : '0',
+        this.inputLine.newlineMode ? '1' : '0',
+        this.inputController.slashMenu.open
+          ? `slash:${this.inputController.slashMenu.selected}:${this.inputController.slashMenu.matches.length}`
+          : '',
+      ].join('\n'),
+    })
+  }
+
   /** 渲染一帧 live 区：状态行 + 流式尾巴 + 进行中工具卡 + 输入行。 */
   private renderLive(): void {
     if (this.disposed) return
     // A6：全屏 overlay（命令面板/快捷键/搜索/rewind/memory）激活时处于
     // alternate screen buffer——跳过主屏 live 写屏，避免流式帧逐帧盖住面板；
-    // overlay 退出后 120ms ticker 下一帧自然重绘，内部状态由事件驱动照常更新。
-    if (this.overlay !== null && this.overlay.activeId() !== null) return
+    // overlay 退出后 flushLiveRender / ticker 下一帧自然重绘。作废空闲键，
+    // 避免退出后 key 未变而跳过主屏重铺。
+    if (this.overlay !== null && this.overlay.activeId() !== null) {
+      this.lastIdleKey = null
+      return
+    }
+    const idleKey = this.currentIdleKey()
+    // 空闲跳过只作用于 120ms ticker。按键 / 审批 / 流式事件走 flush 或
+    // batcher，必须组装——否则 slash 开合与高水位垫高会被误跳过。
+    if (
+      this.renderLiveFromTicker
+      && shouldSkipIdleAssemble({
+        prevKey: this.lastIdleKey,
+        nextKey: idleKey,
+        hasSpinner: this.hasVisibleSpinner(),
+      })
+    ) {
+      return
+    }
+    this.lastIdleKey = idleKey
     const renderStart = performance.now()
     this.input.setEscapeImmediate(
       this.question.isPending || this.approval.isPending || this.isAgentBusy(),
@@ -5345,14 +5445,16 @@ export class TuiApp {
     for (const line of slashLines) slashRows += rowsForLine(line)
     // 定高视口：动态段按高水位垫到恰好 budget，live region 只涨不缩 →
     // 输入框钉住、回缩黑洞与旧轨线重影一并消除。欢迎首帧（无消息且非运行、
-    // 未开过 slash 菜单）不垫，避免凭空空白。
+    // 未开过 slash 菜单）不垫，但仍按 Working 封顶从顶裁，避免活动带把
+    // 审批卡/输入轨挤出 24 行视口。
     // slash 菜单/hint 虽在 chrome 段（小窗不被裁剪），其行数计入被跟踪总量：
     // ceiling 已含 chromeRows（含 slashRows），传 ceiling + slashRows 使上限与
     // 菜单高度无关 → 菜单开合/过滤只改垫高行数，输入框行位恒定。首次打开时
     // 高水位尚无余量，输入框向下落定一次；此后（含关闭）由垫高吸收，不再漂移。
     const terminalRows = this.stdout.rows || 24
+    this.live.setMaxRows(liveMaxRowsFor(terminalRows))
     const raw = terminalRows - chromeRows - 2
-    const ceiling = Math.max(0, Math.min(raw, liveMaxRowsFor(terminalRows) - chromeRows))
+    const ceiling = Math.max(0, Math.min(raw, workingRowsCap(terminalRows, chromeRows)))
     const skipPad = (this.transcript?.view.messages ?? []).length === 0
       && this.liveAgent?.state.status !== 'running'
       && slashRows === 0
@@ -5365,7 +5467,13 @@ export class TuiApp {
       this.reasoningExpanded,
     )
     this.dynamicRowsHighWater = next.highWater
-    const padded = padDynamicRegion(lines, chromeStart, Math.max(0, next.budget - slashRows), rowsForLine)
+    const padded = padDynamicRegion(
+      lines,
+      chromeStart,
+      Math.max(0, next.budget - slashRows),
+      rowsForLine,
+      { pad: !skipPad },
+    )
     const chromeTail = padded.lines.length - padded.chromeStart
     this.live.render(padded.lines, chromeTail > 0 ? { reservedTail: chromeTail } : undefined)
     this.perfMonitor.record('renderLive', performance.now() - renderStart)

@@ -8432,6 +8432,96 @@ describe('subagent 活动带接线（CC 对标统一固定带）', () => {
   })
 })
 
+describe('TuiApp Phase 2 行预算与空闲跳过', () => {
+  const settle = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 40))
+
+  function handlerOf(ctx: ReturnType<typeof makeCtx>, name: string): ((info: unknown) => void) | undefined {
+    const calls = ctx.on.mock.calls.filter(call => call[0] === name)
+    return calls[calls.length - 1]?.[1] as ((info: unknown) => void) | undefined
+  }
+
+  it('24 行视口：满活动带 + 审批卡仍保留输入轨与审批卡', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('p2-24')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const children = Array.from({ length: 8 }, (_, i) => ({
+      kind: 'child' as const,
+      id: `child-${i}`,
+      parentId: 'root',
+      depth: 1,
+      activity: 'running' as const,
+      hasChildren: false,
+      mode: 'one-shot' as const,
+      label: `探索${i}`,
+    }))
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'subagents') return {
+        activeExternalRuns: () => [],
+        listDescendants: vi.fn(async () => children),
+      }
+      return undefined
+    })
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    stdout.rows = 24
+    stdout.columns = 80
+    const render = vi.spyOn(LiveEngine.prototype, 'render')
+    const app = new TuiApp({ ctx, stdout, stdin, activityBandMaxRows: 8 })
+    await app.attach()
+    await settle()
+    const onStart = handlerOf(ctx, 'subagent/start')
+    if (onStart === undefined) throw new Error('subagent/start handler not registered')
+    for (const child of children) {
+      onStart({ runId: `run-${child.id}`, id: child.id })
+    }
+    await settle()
+    const approval = ctx.on.mock.calls.find(call => call[0] === 'approval/request')?.[1] as
+      | ((req: unknown, next: () => Promise<string>) => Promise<string>)
+      | undefined
+    if (approval === undefined) throw new Error('approval/request handler not registered')
+    const owner = { id: app.sessionId ?? SessionId('p2-24') }
+    void approval(
+      { agent: { session: { id: owner.id } }, toolName: 'bash', reason: 'sandbox' },
+      () => Promise.resolve('unavailable'),
+    )
+    await settle()
+    const last = render.mock.calls.at(-1)?.[0] as Array<{ text: string }> | undefined
+    expect(last).toBeDefined()
+    const live = last!.map(line => line.text).join('\n')
+    expect(live).toContain('允许执行 bash')
+    expect(live).toContain('[y] 允许')
+    expect(live).toContain('╭─ 审批 · bash')
+    expect(live).toMatch(/❯/)
+    expect(last!.length).toBeLessThanOrEqual(23)
+    await app.dispose()
+  })
+
+  it('空闲 ticker 不组装 live 帧（H2 之前就跳过）', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval'] })
+    const render = vi.spyOn(LiveEngine.prototype, 'render')
+    const ctx = makeCtx()
+    const agent = makeAgent('p2-idle')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    try {
+      await app.attach()
+      await settle()
+      render.mockClear()
+      await vi.advanceTimersByTimeAsync(360)
+      expect(render).not.toHaveBeenCalled()
+    } finally {
+      await app.dispose()
+      vi.useRealTimers()
+    }
+  })
+})
+
 describe('活动带 child 投影缓存与 workflow/task 折叠接线', () => {
   function boot() {
     const ctx = makeCtx()

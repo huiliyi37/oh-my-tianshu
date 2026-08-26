@@ -1,20 +1,27 @@
 /**
- * padDynamicRegion / nextDynamicBudget / liveMaxRowsFor — 定高视口契约。
+ * padDynamicRegion / nextDynamicBudget / liveMaxRowsFor / Working 封顶 —
+ * 定高视口契约。
  *
  * 动态段垫高或截断到恰好 budget display rows：
  * - 不足 → 内容与 chrome 之间垫空行（内容贴上、输入框贴下）
  * - 超出 → 从顶部丢掉最旧行
- * - budget ≤ 0 → 原样返回（欢迎首帧不垫）
+ * - budget ≤ 0 且 pad（默认）→ 原样返回（欢迎首帧不垫）
+ * - skipPad / pad:false → 按 Working 封顶裁动态段、不垫空行，chrome 不被挤出
  * 高水位只涨不缩，避免 live region 回缩留下输入框重影与屏底黑洞。
+ * 空闲帧：snapshot+chrome key 未变且无 spinner 时跳过组装；overlay 停写仍是 A6。
  */
 
 import { describe, expect, it } from 'vitest'
 import type { WriteStream } from 'node:tty'
 import {
   LiveEngine,
+  liveHasSpinner,
+  liveIdleKey,
   liveMaxRowsFor,
   nextDynamicBudget,
   padDynamicRegion,
+  shouldSkipIdleAssemble,
+  workingRowsCap,
   LIVE_TOOL_CARD_MAX,
   type LiveRegionLine,
 } from '../src/engine/live-engine.js'
@@ -99,11 +106,57 @@ describe('padDynamicRegion', () => {
     expect(lines.map(l => l.text)).toEqual(['keep', '', '❯'])
     expect(chromeStart).toBe(2)
   })
+
+  it('pad:false：超 Working 封顶从顶裁，不垫空行，chrome 原样', () => {
+    const working = Array.from({ length: 20 }, (_, i) => `w${i}`)
+    const chrome = ['审批', '╭', '❯', '╰', 'foot']
+    const { lines, chromeStart } = padDynamicRegion(
+      L(...working, ...chrome),
+      working.length,
+      8,
+      undefined,
+      { pad: false },
+    )
+    expect(lines.slice(chromeStart).map(l => l.text)).toEqual(chrome)
+    expect(chromeStart).toBe(8)
+    expect(lines.map(l => l.text)).toEqual([...working.slice(-8), ...chrome])
+  })
+
+  it('pad:false 且 budget 0：丢掉全部动态段，只留 chrome', () => {
+    const { lines, chromeStart } = padDynamicRegion(
+      L('band', 'old', '╭', '❯'),
+      2,
+      0,
+      undefined,
+      { pad: false },
+    )
+    expect(lines.map(l => l.text)).toEqual(['╭', '❯'])
+    expect(chromeStart).toBe(0)
+  })
+
+  it('24 行视口：满活动带不得把审批卡和输入轨裁掉', () => {
+    const chrome = ['审批卡顶', '允许执行', '[y] 允许', '╭', '❯', '╰', 'footer']
+    const working = Array.from({ length: 18 }, (_, i) => `activity-${i}`)
+    const cap = workingRowsCap(24, chrome.length)
+    expect(cap).toBe(liveMaxRowsFor(24) - chrome.length)
+    const { lines, chromeStart } = padDynamicRegion(
+      L(...working, ...chrome),
+      working.length,
+      cap,
+      undefined,
+      { pad: false },
+    )
+    expect(lines.slice(chromeStart).map(l => l.text)).toEqual(chrome)
+    expect(chromeStart).toBe(cap)
+    expect(lines.length).toBe(cap + chrome.length)
+    expect(lines.length).toBeLessThanOrEqual(liveMaxRowsFor(24))
+  })
 })
 
 describe('nextDynamicBudget', () => {
-  it('skipPad：预算 0，高水位保持', () => {
-    expect(nextDynamicBudget(4, 2, 10, true)).toEqual({ budget: 0, highWater: 4 })
+  it('skipPad：按 Working 封顶裁、不改高水位', () => {
+    expect(nextDynamicBudget(4, 2, 10, true)).toEqual({ budget: 2, highWater: 4 })
+    expect(nextDynamicBudget(4, 20, 8, true)).toEqual({ budget: 8, highWater: 4 })
   })
 
   it('ceiling ≤ 0：预算与高水位归零', () => {
@@ -186,6 +239,57 @@ describe('LiveEngine suppressProbe 期间不写 stdout（overlay 引擎层闸）
 describe('LIVE_TOOL_CARD_MAX', () => {
   it('live 区最多同时展开 3 张进行中工具卡', () => {
     expect(LIVE_TOOL_CARD_MAX).toBe(3)
+  })
+})
+
+describe('workingRowsCap', () => {
+  it('动态段上限 = liveMax − chrome，且不为负', () => {
+    expect(workingRowsCap(24, 8)).toBe(15)
+    expect(workingRowsCap(24, 30)).toBe(0)
+    expect(workingRowsCap(50, 4)).toBe(24)
+  })
+})
+
+describe('idle assemble skip', () => {
+  it('snapshot+chrome key 未变且无 spinner → 跳过组装', () => {
+    const key = liveIdleKey({ snapshotKey: 'snap-a', chromeKey: 'input' })
+    expect(shouldSkipIdleAssemble({ prevKey: key, nextKey: key, hasSpinner: false })).toBe(true)
+  })
+
+  it('有 spinner 时即使 key 相同也不跳过（ticker 只给转圈行）', () => {
+    const key = liveIdleKey({ snapshotKey: 'snap-a', chromeKey: 'input' })
+    expect(shouldSkipIdleAssemble({ prevKey: key, nextKey: key, hasSpinner: true })).toBe(false)
+  })
+
+  it('key 变化必须组装', () => {
+    expect(shouldSkipIdleAssemble({
+      prevKey: liveIdleKey({ snapshotKey: 'a', chromeKey: 'x' }),
+      nextKey: liveIdleKey({ snapshotKey: 'b', chromeKey: 'x' }),
+      hasSpinner: false,
+    })).toBe(false)
+  })
+
+  it('首帧 prevKey 为空不跳过', () => {
+    expect(shouldSkipIdleAssemble({
+      prevKey: null,
+      nextKey: liveIdleKey({ snapshotKey: 'a', chromeKey: 'x' }),
+      hasSpinner: false,
+    })).toBe(false)
+  })
+
+  it('liveHasSpinner：任一转圈源为真即要 tick', () => {
+    expect(liveHasSpinner({
+      agentRunning: false,
+      activityRunning: false,
+      pendingTools: false,
+      reasoningLive: false,
+    })).toBe(false)
+    expect(liveHasSpinner({
+      agentRunning: false,
+      activityRunning: true,
+      pendingTools: false,
+      reasoningLive: false,
+    })).toBe(true)
   })
 })
 

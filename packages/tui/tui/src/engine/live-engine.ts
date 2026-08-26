@@ -53,22 +53,34 @@ export interface LiveEngineOptions {
   onPolluted?: () => void
 }
 
+/** `padDynamicRegion` 的垫/裁开关。缺省垫到 budget；skipPad 只裁不垫。 */
+export interface PadDynamicRegionOptions {
+  /**
+   * 动态段短于 budget 时是否垫空行。`false`：只按 budget 从顶裁，欢迎首帧
+   * 不凭空空白，但仍把 Working 行限制在封顶内，以免审批卡/输入轨被挤出视口。
+   */
+  pad?: boolean
+}
+
 /**
  * 溢出裁剪 + 定高垫高：把 `[0, chromeStart)` 的动态段（spinner / thinking /
  * streaming tail / 工具卡片）限制在恰好 `budget` display rows。
  *
  * 规则：
- * - `budget <= 0`：原样返回（欢迎首帧不垫，避免凭空空白）。
+ * - `budget <= 0` 且 `pad !== false`：原样返回（欢迎首帧不垫，避免凭空空白）。
+ * - `pad: false`：按 `max(0, budget)` 从顶裁动态段，永不垫行；budget 0 丢掉
+ *   全部动态段，chrome 原样保留。
  * - 动态段 > budget：从**顶部**截掉最旧行（approval / 提问等关键内容位于动态段
  *   尾部，天然优先保留）。
- * - 动态段 < budget：在动态内容与 chrome 之间垫空行，使动态段恰好占 budget。
- *   内容贴上、输入框贴下；live overlay 高度稳定，避免回缩留下输入框重影与
- *   屏底黑洞。
+ * - 动态段 < budget 且允许垫：在动态内容与 chrome 之间垫空行，使动态段恰好占
+ *   budget。内容贴上、输入框贴下；live overlay 高度稳定，避免回缩留下输入框
+ *   重影与屏底黑洞。
  *
  * @param lines - live region 全部行（动态段在前，chrome 在后）
  * @param chromeStart - chrome 段起始下标（`[0, chromeStart)` 为动态段）
- * @param budget - 动态段目标高度（display rows）；≤0 时原样返回
+ * @param budget - 动态段目标高度（display rows）；≤0 且垫行时原样返回
  * @param rowsForLine - 单行 display rows 度量（wrapping-aware）；默认每行 1 row
+ * @param options - `pad: false` 时只裁不垫（skipPad / 欢迎首帧）
  * @returns 裁剪/垫高后的行数组与新的 chromeStart
  */
 export function padDynamicRegion(
@@ -76,23 +88,26 @@ export function padDynamicRegion(
   chromeStart: number,
   budget: number,
   rowsForLine: (text: string) => number = () => 1,
+  options?: PadDynamicRegionOptions,
 ): { lines: LiveRegionLine[]; chromeStart: number } {
-  if (budget <= 0) return { lines: lines.slice(), chromeStart }
+  const pad = options?.pad !== false
+  if (budget <= 0 && pad) return { lines: lines.slice(), chromeStart }
   const dynamic = lines.slice(0, chromeStart)
   const chrome = lines.slice(chromeStart)
+  const cap = Math.max(0, budget)
 
   let rows = 0
   for (const line of dynamic) rows += rowsForLine(line.text)
 
   let dropUntil = 0
-  while (rows > budget && dropUntil < dynamic.length) {
+  while (rows > cap && dropUntil < dynamic.length) {
     const dropped = dynamic[dropUntil]
     if (dropped === undefined) break // unreachable: dropUntil < dynamic.length
     rows -= rowsForLine(dropped.text)
     dropUntil++
   }
   const kept = dynamic.slice(dropUntil)
-  const padCount = Math.max(0, budget - rows)
+  const padCount = pad ? Math.max(0, cap - rows) : 0
   const padding: LiveRegionLine[] = Array.from({ length: padCount }, () => ({ text: '' }))
 
   return {
@@ -112,13 +127,72 @@ export function liveMaxRowsFor(rows: number): number {
 }
 
 /**
+ * Working（动态）行封顶：给 chrome（审批卡 / 提问 / 输入轨 / footer）留位。
+ * 等于 `liveMaxRowsFor(terminalRows) - chromeRows`，下限 0。
+ * @param terminalRows - 终端高度（行）；0/缺省按 24 计。
+ * @param chromeRows - 本帧 chrome 段 display rows。
+ * @returns 动态段可占用的最大 display rows。
+ */
+export function workingRowsCap(terminalRows: number, chromeRows: number): number {
+  return Math.max(0, liveMaxRowsFor(terminalRows) - Math.max(0, chromeRows))
+}
+
+/** 空闲组装键：snapshot 面与 chrome 面各自一条稳定串，tick/now 不得进入。 */
+export interface LiveIdleKeyParts {
+  /** LiveSnapshot 中会改 Working 行的字段（不含 `tick` / `now`）。 */
+  snapshotKey: string
+  /** 输入轨 / 审批 / 提问等 chrome 字段。 */
+  chromeKey: string
+}
+
+/**
+ * 拼一帧空闲键。两面都未变且无 spinner 时 {@link shouldSkipIdleAssemble} 为真。
+ * @param parts - snapshot 键与 chrome 键。
+ * @returns 可与上一帧比较的稳定串。
+ */
+export function liveIdleKey(parts: LiveIdleKeyParts): string {
+  return `${parts.snapshotKey}\n${parts.chromeKey}`
+}
+
+/**
+ * 空闲帧是否跳过 `renderLive` 组装。有 spinner 时必须组装（ticker 只推进转圈行）。
+ * overlay 激活时调用方应先按 A6 整帧停写，并作废上一帧 key，避免退出后误跳过。
+ * @param opts.prevKey - 上一帧键；首帧 `null`。
+ * @param opts.nextKey - 本帧 {@link liveIdleKey}。
+ * @param opts.hasSpinner - 本帧是否有转圈行（活动带 / 工具卡 / 推理 / agent running）。
+ * @returns 为真时调用方不得组装、不得写屏。
+ */
+export function shouldSkipIdleAssemble(opts: {
+  prevKey: string | null
+  nextKey: string
+  hasSpinner: boolean
+}): boolean {
+  return !opts.hasSpinner && opts.prevKey === opts.nextKey
+}
+
+/**
+ * 本帧是否需要 120ms ticker 推进 shimmer。任一转圈源为真即要 tick。
+ * @param flags - agent / 活动带 / 进行中工具 / 推理 live 四源。
+ * @returns 为真时 ticker 递增 `tick` 并组装；为假时只靠 key 变化组装。
+ */
+export function liveHasSpinner(flags: {
+  agentRunning: boolean
+  activityRunning: boolean
+  pendingTools: boolean
+  reasoningLive: boolean
+}): boolean {
+  return flags.agentRunning || flags.activityRunning || flags.pendingTools || flags.reasoningLive
+}
+
+/**
  * 动态段预算：高水位只涨不缩（回缩 = 输入框上跳 + 旧轨线残留）。
- * skipPad（欢迎首帧）时预算 0 且不改高水位；ceiling 随终端缩小。
+ * skipPad（欢迎首帧）按 ceiling 裁 Working 行且不改高水位，由调用方以
+ * `pad: false` 交给 {@link padDynamicRegion}（不垫空行）。
  * freezeHighWater（Ctrl+O 展开推理）本帧可加高 overlay，但不把峰值写入高水位。
  * @param highWater - 上一帧高水位（display rows）。
  * @param dynamicRows - 本帧动态段 display rows。
  * @param ceiling - 动态段上限。
- * @param skipPad - 欢迎首帧：预算 0 且不改高水位。
+ * @param skipPad - 欢迎首帧：按 min(动态行, ceiling) 裁、不改高水位。
  * @param freezeHighWater - 本帧加高不写入高水位；缺省 false。
  * @returns 本帧预算与更新后的高水位。
  */
@@ -129,7 +203,9 @@ export function nextDynamicBudget(
   skipPad: boolean,
   freezeHighWater = false,
 ): { budget: number; highWater: number } {
-  if (skipPad) return { budget: 0, highWater }
+  if (skipPad) {
+    return { budget: Math.min(Math.max(0, dynamicRows), Math.max(0, ceiling)), highWater }
+  }
   if (ceiling <= 0) return { budget: 0, highWater: 0 }
   const budget = Math.min(ceiling, Math.max(highWater, dynamicRows))
   if (freezeHighWater) return { budget, highWater: Math.min(ceiling, highWater) }
