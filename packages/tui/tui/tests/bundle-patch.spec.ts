@@ -20,7 +20,7 @@ describe('dsh-tui bundle', () => {
     expect(manifest.dsh?.bundle?.patch).toBe('./cordis.patch.yml')
     const parsed = yaml.load(readFileSync(resolve(root, manifest.dsh!.bundle!.patch!), 'utf8'), { schema: entryListSchema })
     expect(Array.isArray(parsed)).toBe(true)
-    const rows = (parsed as Array<{ insert?: { id?: string; config?: Record<string, unknown> }[] }>)
+    const rows = (parsed as Array<{ insert?: { id?: string; config?: Record<string, unknown>; disabled?: boolean }[] }>)
       .flatMap(patch => patch.insert ?? [])
     const ids = rows.map(row => row.id)
     expect(ids).toEqual(expect.arrayContaining([
