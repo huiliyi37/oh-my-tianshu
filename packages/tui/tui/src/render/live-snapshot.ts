@@ -6,9 +6,10 @@
  * renderLive 每帧组装一次（与现状逐字段读取等价）；面板只消费快照，不反向
  * import app.ts——依赖方向保持 `app.ts → render/` 单向。
  *
- * 快照字段按面板分组：glance（状态行/错误行/metrics 行）、tasks（任务窗格
+ * 快照字段按面板分组：glance（状态行/错误行）、tasks（任务窗格
  * + 后台任务区 + 完成通知）、status（goal/todos/plan）、todos（紧凑待办卡）、
- * delegation（委派树）、workflow（运行中 + 已结算 run 视图）、config、skills。
+ * delegation（委派树）、workflow（运行中 + 已结算 run 视图）、skills、lsp、
+ * 活动带（已 fold 的 activityItems）。
  *
  * @module @huiliyi37/dsh-tui/render/live-snapshot
  */
@@ -23,6 +24,7 @@ import type {
 import type { WorkflowRunView } from '../workflow-panel.js'
 import type { SkillSummaryInput } from '../skill-panel.js'
 import type { LspDiagnosticView } from '../lsp/lsp-bridge.js'
+import type { ActivityItem } from '../format/activity-band.js'
 
 /** T2.3：tasks.list() 返回项的最小 wire 形状（status/detail/startedAt 渲染所需）。 */
 export interface TaskSnapshotView {
@@ -120,4 +122,13 @@ export interface LiveSnapshot {
   activeSessionId: string | null
   /** 全部 live 会话的 tab 投影（id + agent 状态）。 */
   sessionTabs: Array<{ id: string; status: 'idle' | 'running' }>
+
+  /** 活动带开关（构造 `activityBand`；false 时组合器走散行逃生门）。 */
+  activityBandEnabled: boolean
+  /** 已 fold 的活动项；面板只读，不再自己 fold。 */
+  activityItems: ActivityItem[]
+  /** 活动带 item 行封顶。 */
+  activityBandMaxRows: number
+  /** shimmer 帧（活动带 spinner）。 */
+  tick: number
 }

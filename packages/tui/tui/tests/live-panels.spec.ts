@@ -23,6 +23,7 @@ import {
   renderStatusPanel,
   renderGlancePanel,
   renderSessionTabs,
+  renderActivityBand,
 } from '../src/render/live-panels.js'
 
 /** 假主题（与既有 spec 同构：每个 token 一个独特 hex）。 */
@@ -77,6 +78,10 @@ function baseSnapshot(): LiveSnapshot {
     glanceError: null,
     activeSessionId: null,
     sessionTabs: [],
+    activityBandEnabled: true,
+    activityItems: [],
+    activityBandMaxRows: 5,
+    tick: 0,
   }
 }
 
@@ -290,5 +295,30 @@ describe('renderSessionTabs（chrome 瘦身：单会话不占行）', () => {
     expect(rows).toHaveLength(1)
     expect(rows[0]).toContain('▸ aaaabbbbcccc')
     expect(rows[0]).toContain('· ddddeeeeffff ⏳')
+  })
+})
+
+describe('renderActivityBand', () => {
+  it('无 running 项 → 零行（不占 live）', () => {
+    expect(renderActivityBand(baseSnapshot())).toEqual([])
+  })
+
+  it('关闭活动带 → 零行，即使有 running 项', () => {
+    const rows = renderActivityBand({
+      ...baseSnapshot(),
+      activityBandEnabled: false,
+      activityItems: [{ id: 'r1', kind: 'subagent', label: 'explorer', status: 'running' }],
+    })
+    expect(rows).toEqual([])
+  })
+
+  it('snapshot.activityItems 驱动带行，不再在面板内 fold', () => {
+    const rows = renderActivityBand({
+      ...baseSnapshot(),
+      activityItems: [{ id: 'r1', kind: 'subagent', label: 'explorer', status: 'running' }],
+    })
+    expect(rows.length).toBeGreaterThan(0)
+    expect(rows.join('\n')).toContain('explorer')
+    expect(rows.join('\n')).toContain('/workflow')
   })
 })

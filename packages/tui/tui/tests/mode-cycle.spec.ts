@@ -176,7 +176,7 @@ describe('Shift+Tab 三态循环（C3 项 4）', () => {
     await app.dispose()
   })
 
-  it('always-approve 激活时当前会话审批请求直接 allowed-once（不挂起）', async () => {
+  it('always-approve 激活时当前会话审批请求直接 allowed-always（不挂起）', async () => {
     const { ctx, app, stdin, castId, applyPlan } = await bootApp()
     // 循环两次进入 always-approve
     stdin.emit('data', '\x1b[Z')
@@ -190,7 +190,7 @@ describe('Shift+Tab 三态循环（C3 项 4）', () => {
       { agent: { session: { id: castId } }, toolName: 'bash' },
       () => Promise.resolve('unavailable'),
     )
-    await expect(outcome).resolves.toBe('allowed-once')
+    await expect(outcome).resolves.toBe('allowed-always')
     await app.dispose()
   })
 
@@ -227,7 +227,7 @@ describe('Shift+Tab 三态循环（C3 项 4）', () => {
     ctx.agents.get.mockReturnValue(other)
     ctx.sessions.get.mockReturnValue(other.session)
     await app.switchSession(other.session.id)
-    // 新会话的审批请求：若 always-approve 未复位会短路 allowed-once；
+    // 新会话的审批请求：若 always-approve 未复位会短路 allowed-always；
     // 复位后应挂起等待按键 → n → rejected。
     const handler = ctx.on.mock.calls.find(call => call[0] === 'approval/request')?.[1] as
       (req: unknown, next: () => Promise<string>) => Promise<string>
@@ -275,7 +275,7 @@ describe('Shift+Tab 三态循环（C3 项 4）', () => {
 })
 
 describe('/yolo 全放行命令（C3 项 4 快捷入口）', () => {
-  it('/yolo 提交后当前会话审批请求短路 allowed-once（不挂起）', async () => {
+  it('/yolo 提交后当前会话审批请求短路 allowed-always（不挂起）', async () => {
     const { ctx, app, castId } = await bootApp()
     app.handleSubmit('/yolo')
     await new Promise(resolve => setImmediate(resolve))
@@ -285,7 +285,7 @@ describe('/yolo 全放行命令（C3 项 4 快捷入口）', () => {
       { agent: { session: { id: castId } }, toolName: 'bash' },
       () => Promise.resolve('unavailable'),
     )
-    await expect(outcome).resolves.toBe('allowed-once')
+    await expect(outcome).resolves.toBe('allowed-always')
     await app.dispose()
   })
 

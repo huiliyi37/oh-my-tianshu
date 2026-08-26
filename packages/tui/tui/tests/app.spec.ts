@@ -3551,6 +3551,124 @@ describe('TuiApp Phase 8 审批 answerer', () => {
     await app.dispose()
   })
 
+  it('[p] 落盘成功但 await 中 abort：规则已写、本卡 cancelled、peek 为空', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('approval-p-abort')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    const handler = ctx.on.mock.calls.find(call => call[0] === 'approval/request')?.[1] as
+      | ((req: unknown, next: () => Promise<string>) => Promise<string>)
+      | undefined
+    if (handler === undefined) throw new Error('approval/request handler not registered')
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    const persisted: unknown[] = []
+    ctx.reflect.get.mockImplementation((name: string) => (
+      name === 'approvalRules.persistAllow'
+        ? {
+          persistAllowRule: async (req: unknown) => {
+            persisted.push(req)
+            await gate
+            return { tool: 'bash', pattern: 'echo', decision: 'allow', match: 'exact', layer: 'project' }
+          },
+        }
+        : undefined
+    ))
+    const abort = new AbortController()
+    const owner = { id: app.sessionId ?? SessionId('approval-p-abort') }
+    const outcome = handler(
+      { agent: { session: { id: owner.id } }, toolName: 'bash', signal: abort.signal },
+      () => Promise.resolve('unavailable'),
+    )
+    stdin.emit('data', 'p')
+    await new Promise(resolve => setImmediate(resolve))
+    abort.abort()
+    release()
+    await expect(outcome).resolves.toBe('cancelled')
+    expect(persisted).toHaveLength(1)
+    const next = handler(
+      { agent: { session: { id: owner.id } }, toolName: 'bash' },
+      () => Promise.resolve('unavailable'),
+    )
+    stdin.emit('data', 'y')
+    await expect(next).resolves.toBe('allowed-once')
+    await app.dispose()
+  })
+
+  it('[a] 只在本进程本会话：dispose 后再 attach 仍挂起', async () => {
+    const first = makeCtx()
+    const agent = makeAgent('approval-a-restart')
+    first.agents.create.mockResolvedValue(makeHandle(agent))
+    first.sessions.get.mockReturnValue(agent.session)
+    const firstStdin = makeStdin()
+    const firstApp = new TuiApp({ ctx: first, stdout: makeStdout(), stdin: firstStdin })
+    await firstApp.attach()
+    const firstHandler = first.on.mock.calls.find(call => call[0] === 'approval/request')?.[1] as
+      | ((req: unknown, next: () => Promise<string>) => Promise<string>)
+      | undefined
+    if (firstHandler === undefined) throw new Error('approval/request handler not registered')
+    const firstOwner = { id: firstApp.sessionId ?? SessionId('approval-a-restart') }
+    const firstOutcome = firstHandler(
+      { agent: { session: { id: firstOwner.id } }, toolName: 'bash' },
+      () => Promise.resolve('unavailable'),
+    )
+    firstStdin.emit('data', 'a')
+    await expect(firstOutcome).resolves.toBe('allowed-always')
+    await firstApp.dispose()
+
+    const ctx = makeCtx()
+    const nextAgent = makeAgent('approval-a-restart-2')
+    ctx.agents.create.mockResolvedValue(makeHandle(nextAgent))
+    ctx.sessions.get.mockReturnValue(nextAgent.session)
+    const stdin = makeStdin()
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin })
+    await app.attach()
+    const handler = ctx.on.mock.calls.find(call => call[0] === 'approval/request')?.[1] as
+      | ((req: unknown, next: () => Promise<string>) => Promise<string>)
+      | undefined
+    if (handler === undefined) throw new Error('approval/request handler not registered')
+    const owner = { id: app.sessionId ?? SessionId('approval-a-restart-2') }
+    const outcome = handler(
+      { agent: { session: { id: owner.id } }, toolName: 'bash' },
+      () => Promise.resolve('unavailable'),
+    )
+    stdin.emit('data', 'n')
+    await expect(outcome).resolves.toBe('rejected')
+    await app.dispose()
+  })
+
+  it('intent-bridge 未装配时 attach 不订阅 handoff', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('bridge-off')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+    await app.attach()
+    const handoff = ctx.on.mock.calls.filter(call => call[0] === 'intent-bridge/handoff')
+    expect(handoff).toHaveLength(0)
+    await app.dispose()
+  })
+
+  it('intent-bridge.enabled 为 false 时 attach 不订阅 handoff', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('bridge-disabled')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.reflect.get.mockImplementation((name: string) => (
+      name === 'intentBridge' ? { enabled: false } : undefined
+    ))
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+    await app.attach()
+    const handoff = ctx.on.mock.calls.filter(call => call[0] === 'intent-bridge/handoff')
+    expect(handoff).toHaveLength(0)
+    await app.dispose()
+  })
+
   it('str_replace 审批带 callId → 内联 diff 预览（C2 项 1）', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('approval-diff-1')

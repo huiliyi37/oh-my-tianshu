@@ -2,11 +2,12 @@
  * live-panels — renderLive 的 8 面板段纯函数（Wave 2 提取）。
  *
  * renderLive 每帧把 TuiApp 读取的字段子集组装为 LiveSnapshot（render/
- * live-snapshot.ts），交给本模块的 8 个纯函数（(snapshot) => string[]）
- * 渲染面板行；组合器负责 { text } 包装与 theme 着色、非面板段（提问/审批/
- * 流利度/流式尾巴/工具卡/输入行）直渲染。面板是纯函数：同一 snapshot 恒返回
- * 同一行序列，无 I/O、无时钟、无副作用——taskNotice 的「渲染后清空」副作用
- * 由组合器承担。
+ * live-snapshot.ts），交给本模块的门控面板纯函数与 `renderActivityBand`
+ * （(snapshot) => string[]）渲染行；组合器负责 { text } 包装与 theme 着色、
+ * 非面板段（提问/审批/流利度/流式尾巴/工具卡/输入行）直渲染。面板是纯函数：
+ * 同一 snapshot 恒返回同一行序列，无 I/O、无时钟、无副作用——taskNotice 的
+ * 「渲染后清空」副作用由组合器承担。活动带的 fold 发生在组装快照时，不在
+ * 面板函数内。
  *
  * 每个面板复用既有 project* 纯函数（format/task-panel、format/todos-panel、
  * status-panel、delegation-panel、workflow-panel、config-panel、skill-panel、
@@ -25,6 +26,7 @@ import { projectWorkflow, type WorkflowChildState, type WorkflowRunView } from '
 import { projectSkillPanel } from '../skill-panel.js'
 import { projectLspPanel, groupLspDiagnostics } from '../format/lsp-diagnostics.js'
 import { formatLiveCard, liveCardGlyph, type LiveCardStatus } from '../format/live-card.js'
+import { formatActivityBand } from '../format/activity-band.js'
 import { shortSessionLabel } from '../session-label.js'
 
 /** 后台任务快照 → 活区卡状态形（running ⠋ / completed › / 其余 ✗）。 */
@@ -212,4 +214,21 @@ export function renderStatusPanel(snapshot: LiveSnapshot): string[] {
   if (!snapshot.statusPanelVisible) return []
   return projectStatusPanel(snapshot.goal, snapshot.todos ?? [], snapshot.plan,
     { width: snapshot.cols, sessionTotals: snapshot.sessionTotals })
+}
+
+/**
+ * 渲染活动带：只消费 snapshot 已 fold 的 `activityItems`。
+ * 关闭或无 running 项 → 空数组。组合器不再在快照旁二次 fold。
+ * @param snapshot - 当前帧快照。
+ * @returns 活动带行（计数头 / item / 子行 / 入口）。
+ */
+export function renderActivityBand(snapshot: LiveSnapshot): string[] {
+  if (!snapshot.activityBandEnabled) return []
+  return formatActivityBand(snapshot.activityItems, {
+    width: snapshot.cols,
+    maxRows: snapshot.activityBandMaxRows,
+    now: snapshot.now,
+    tick: snapshot.tick,
+    theme: snapshot.theme,
+  })
 }

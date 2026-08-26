@@ -108,7 +108,7 @@ import type {
   ExternalRunEntry,
 } from '../delegation-panel.js'
 import type { WorkflowRunView, WorkflowResultInfoInput } from '../workflow-panel.js'
-import { foldActivityItems, formatActivityBand, type ActiveTaskInput, type ActivityItem, type SubagentRunInput, type WorkflowRunInput } from '../format/activity-band.js'
+import { foldActivityItems, type ActiveTaskInput, type ActivityItem, type SubagentRunInput, type WorkflowRunInput } from '../format/activity-band.js'
 import { formatElapsedHuman } from '../format/spinner-status.js'
 import {
   projectQuestionPanel,
@@ -125,6 +125,7 @@ import {
   renderWorkflowPanel,
   renderSkillsPanel,
   renderLspPanel,
+  renderActivityBand,
 } from '../render/live-panels.js'
 import type { LiveSnapshot } from '../render/live-snapshot.js'
 /** T1.1：6 域投影 key（与 sessionProjections 注册表的 wire key 对齐）。 */
@@ -1324,12 +1325,16 @@ export class TuiApp {
       }
       this.flushLiveRender()
     })
-    // 意图对齐桥：对齐完成时自动切到主会话（handoff 由 bridge 创建主会话并
-    // 注入任务卡）。重复 attach 先解绑旧 disposer。
+    // 意图对齐桥：仅在服务装配且 enabled 时订阅 handoff。disabled / 未装配
+    // 时订了也收不到事件，却让 attach 留下一条死监听。
     this.intentBridgeDisposer?.()
-    this.intentBridgeDisposer = this.ctx.on('intent-bridge/handoff', ({ mainSessionId }) => {
-      this.switchSessionGuarded(SessionId(mainSessionId))
-    })
+    this.intentBridgeDisposer = null
+    const intentBridge = this.ctx.reflect.get('intentBridge', false) as IntentBridgeService | undefined
+    if (intentBridge !== undefined && intentBridge.enabled) {
+      this.intentBridgeDisposer = this.ctx.on('intent-bridge/handoff', ({ mainSessionId }) => {
+        this.switchSessionGuarded(SessionId(mainSessionId))
+      })
+    }
     // 目标 6：'auto' 才走系统终端配色探测（OSC 11 → dark/light）；显式主题直接生效。
     // 探测期间挂起按键流：探测响应走同一 stdin，若同挂会让响应字节泄漏进输入行。
     if (this.themeName === 'auto') {
@@ -3886,7 +3891,7 @@ export class TuiApp {
    * 由控制器内聚，会话归属经 getCurrentSessionId 注入）。
    * @param req - 待决审批请求。
    * @param next - waterfall 委托（不处理时调用）。
-   * @returns 用户决定（allowed-once/rejected/cancelled）或 next() 结果。
+   * @returns 用户决定（allowed-once/allowed-always/rejected/cancelled）或 next() 结果。
    */
   private handleApprovalRequest(
     req: PendingApprovalRequest,
@@ -5005,6 +5010,10 @@ export class TuiApp {
       // P3：会话 tab 栏（多会话 side conversation；快照从 live store 派生）
       activeSessionId: this.activeSessionId === null ? null : String(this.activeSessionId),
       sessionTabs: this.sessionManager.list().map(s => ({ id: String(s.id), status: s.status })),
+      activityBandEnabled: this.activityBandEnabled,
+      activityItems: this.foldActivity(),
+      activityBandMaxRows: this.activityBandMaxRows,
+      tick: this.tick,
     }
 
     // ── 面板段（7 面板纯函数；组合器负责 { text } 包装与 theme 着色）。──
@@ -5152,14 +5161,8 @@ export class TuiApp {
     // 固定带（计数头 + 每 item 1 行 + 最新 subagent ⎿ 子行 + 常驻入口尾行）；
     // 完成项已在 end 事件塌一行 commit 进 scrollback。逃生门 activityBand=false
     // 回退旧散行渲染（每 run 一行 spinner）。
-    if (this.activityBandEnabled) {
-      for (const line of formatActivityBand(this.foldActivity(), {
-        width: cols,
-        maxRows: this.activityBandMaxRows,
-        now,
-        tick: this.tick,
-        theme,
-      })) {
+    if (snapshot.activityBandEnabled) {
+      for (const line of renderActivityBand(snapshot)) {
         lines.push({ text: line })
       }
     } else {
