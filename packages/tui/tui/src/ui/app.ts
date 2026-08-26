@@ -1002,9 +1002,9 @@ export class TuiApp {
     this.streamRenderer = new StreamRenderer({
       commit: (ansi) => {
         // mid-stream 协议已由 commitToScrollback 统一执行（先清 live 区再写
-        // scrollback），随后重绘 live 区。
+        // scrollback），重绘在原子编舞内同步完成——不可走 schedule 延迟帧：
+        // 擦除即时而重绘延后会让输入框落底后缺席若干帧（闪烁根因）。
         this.commitToScrollback({ text: ansi, trailingNewline: true })
-        this.renderBatcher.schedule()
       },
       getColumns: () => this.stdout.columns,
       getTheme: () => getTheme(),
@@ -3574,6 +3574,30 @@ export class TuiApp {
   private get theme(): RivetTheme { return getTheme() }
 
   /**
+   * 原子提交编舞（输入框闪烁根修，回流 dsh-tui 2026-08-27）：BEGIN_SYNC 包裹
+   * 「清 live 区 → 写 scrollback → 同步重绘」，END_SYNC 收口。
+   *
+   * 旧序里 clearForCommit 同步直写擦掉整个 live 区（含待办卡/输入轨/footer），
+   * 重绘却交给 WriteBatcher 的 16ms 尾沿——每个段落/思考块落底后屏幕上真实缺席
+   * 一帧 chrome，推理期段边界密集即呈现为「输入框消失几帧又出现」。三步收敛进
+   * 同一轮事件循环后间隙只剩写入耗时；再包 CSI 2026 同步窗把它对终端合成器也
+   * 隐藏。窗内 LiveEngine.render 自带的嵌套 begin 按 CSI 2026 语义忽略、其 end
+   * 的释放点恰是整幅新帧写完之时，擦除中间态不再有任何显示窗口。
+   */
+  private atomicScrollbackWrite(writeScrollback: () => void): void {
+    const stdout = this.stdout
+    stdout.write(ANSI.BEGIN_SYNC)
+    try {
+      this.live.clearForCommit()
+      writeScrollback()
+      this.flushLiveRender()
+    } finally {
+      // 写屏/渲染抛错也必须收口：支持 2026 的终端会持续缓冲到 end 才刷新。
+      stdout.write(ANSI.END_SYNC)
+    }
+  }
+
+  /**
    * 统一 scrollback 写入：先结算 canonical welcome，再按 overlay 所有权延迟
    * 或执行 mid-stream commit，保证所有后续条目保持 append-only 顺序。
    */
@@ -3588,8 +3612,7 @@ export class TuiApp {
       this.deferredScrollback.push(entry)
       return
     }
-    this.live.clearForCommit()
-    this.commit.write(entry)
+    this.atomicScrollbackWrite(() => { this.commit.write(entry) })
   }
 
   /** Flushes entries that already crossed the welcome-settlement gate before deferral. */
@@ -3597,10 +3620,12 @@ export class TuiApp {
     const pending = this.deferredScrollback
     if (pending.length === 0) return
     this.deferredScrollback = []
-    for (const entry of pending) {
-      this.live.clearForCommit()
-      this.commit.write(entry)
-    }
+    this.atomicScrollbackWrite(() => {
+      for (const entry of pending) {
+        this.live.clearForCommit()
+        this.commit.write(entry)
+      }
+    })
   }
 
   /**
@@ -3714,10 +3739,8 @@ export class TuiApp {
         if (s) seq += s + (protocol === 'kitty' ? '\r' : '\r\n')
       }
       if (!seq) return
-      // 与 commitToScrollback 同协议：先清 live 区再写，写完立即重绘。
-      this.live.clearForCommit()
-      this.commit.writeRaw(seq)
-      this.flushLiveRender()
+      // 与 commitToScrollback 同协议：原子编舞内先清 live 区再写，同步重绘。
+      this.atomicScrollbackWrite(() => { this.commit.writeRaw(seq) })
     })()
   }
 
@@ -3758,9 +3781,8 @@ export class TuiApp {
       if (preview) blocks.push(preview.lines.join('\r\n'))
     }
     if (blocks.length === 0) return
-    this.live.clearForCommit()
-    this.commit.writeRaw(blocks.join('\r\n') + '\r\n')
-    this.flushLiveRender()
+    // 与气泡正文同编舞（原子提交）：先清 live 区再 writeRaw，同步重绘。
+    this.atomicScrollbackWrite(() => { this.commit.writeRaw(blocks.join('\r\n') + '\r\n') })
   }
 
   /**
@@ -3985,11 +4007,14 @@ export class TuiApp {
     this.palette?.close()
     this.picker?.close()
     this.controls?.cancel({ kind: 'user' })
-    this.commitToScrollback({ text: '⏹ 已取消', trailingNewline: true })
+    // 先丢弃流式残文再提交中止提示：提交编舞会同步重绘一帧，残尾若还留在
+    // peek/pending 里就会把上一个 run 的残留画进那一帧（提交与丢弃的次序
+    // 曾被延迟重绘掩盖，同步化后必须理顺）。
     this.blockWriter.discard()
     this.streamRenderer.reset()
     this.discardReasoning()
     this.pendingCallTitles.clear()
+    this.commitToScrollback({ text: '⏹ 已取消', trailingNewline: true })
     this.flushLiveRender()
   }
 
@@ -4896,8 +4921,9 @@ export class TuiApp {
     this.lastReasoningBlock = { text: this.reasoningText, ...(elapsedMs === undefined ? {} : { elapsedMs }) }
     this.reasoningExpanded = false
     this.discardReasoning()
+    // commitToScrollback 原子编舞内同步重绘（旧 schedule 尾沿是推理段落底时
+    // 输入框缺席数帧的闪烁根因之一）。
     this.commitToScrollback({ text: lines.join('\n'), trailingNewline: true })
-    this.renderBatcher.schedule()
   }
 
   /** 丢弃推理缓冲（abort / 会话切换；aborted turn 的推理不落底）。 */
