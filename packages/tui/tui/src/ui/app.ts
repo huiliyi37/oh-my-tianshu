@@ -262,6 +262,7 @@ import {
   SlashCommandRegistry,
   createBuiltinCommands,
   resolveSlashCommand,
+  suggestCommands,
   type ModelFacet,
 } from '../commands/registry.js'
 import { renderTranscript, parseToolArguments, toolResultText, type RenderedRow } from './render.js'
@@ -3825,8 +3826,13 @@ export class TuiApp {
         this.flushLiveRender()
         return
       }
-      const available = this.slash.list().map(c => `/${c.name}`).join(' ')
-      echo(`未知命令: ${input}。可用: ${available}`)
+      // 闭环引导：未知命令不刷 40+ 命令列表，给相近建议（编辑距离/公共前缀）；
+      // 无相近命令时引导 /help，避免信息过载。
+      const suggestions = suggestCommands(input, this.slash.list())
+      const hint = suggestions.length > 0
+        ? `你是要找: ${suggestions.map(c => `/${c.name}`).join(' ')}?`
+        : '试试 /help 查看全部命令'
+      echo(`未知命令: ${input}。${hint}`)
       this.flushLiveRender()
       return
     }

@@ -1224,6 +1224,7 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
           echo(`  /${command.name}${command.argsHint === undefined ? '' : ` ${command.argsHint}`} — ${command.description}`)
         }
         echo('快捷键见 Ctrl+. 键位表')
+        echo('分组浏览/过滤: Ctrl+P 命令面板（会话/配置/认证/面板/系统）')
       },
     },
   ]
@@ -1232,6 +1233,63 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
 /** 渲染一行当前目标（/goal 无参视图）。 */
 function formatGoalView(view: GoalViewFacet): string {
   return `目标: ${view.objective}（phase: ${view.phase}，rounds: ${view.roundsStarted}/${view.maxGoalRounds}）`
+}
+
+/**
+ * 未知命令的相近建议（闭环引导）：编辑距离命中（≤ 2 且 ≤ 输入长度一半——
+ * 短输入只信前缀，防 /st 误建议 btw/cost），其次公共前缀 ≥ 2。
+ * 歧义前缀（如 /st → steer/status）与笔误（如 /glans → glance）都能命中；
+ * 无相近命令返回空数组（调用方回退「/help 查看全部」引导）。
+ * @param input - 完整 slash 输入（含 / 前缀；大小写不敏感）。
+ * @param commands - 命令列表。
+ * @param limit - 建议条数上限（缺省 3）。
+ * @returns 建议命令（匹配度升序；距离相同时短名优先）。
+ */
+export function suggestCommands(
+  input: string,
+  commands: readonly SlashCommand[],
+  limit = 3,
+): SlashCommand[] {
+  const name = input.replace(/^\//, '').trim().toLowerCase()
+  if (name === '') return []
+  const scored: Array<{ cmd: SlashCommand; score: number }> = []
+  for (const cmd of commands) {
+    const d = levenshteinDistance(name, cmd.name)
+    const prefix = commonPrefixLength(name, cmd.name)
+    if (d <= 2 && d <= Math.floor(name.length / 2)) scored.push({ cmd, score: d })
+    else if (prefix >= 2) scored.push({ cmd, score: 3 })
+  }
+  scored.sort((a, b) => {
+    if (a.score !== b.score) return a.score - b.score
+    if (a.cmd.name.length !== b.cmd.name.length) return a.cmd.name.length - b.cmd.name.length
+    return a.cmd.name.localeCompare(b.cmd.name)
+  })
+  return scored.slice(0, limit).map(s => s.cmd)
+}
+
+/** 编辑距离（经典 DP；len 乘积空间，命令名短小足够）。 */
+function levenshteinDistance(a: string, b: string): number {
+  const m = a.length
+  const n = b.length
+  if (m === 0) return n
+  if (n === 0) return m
+  let prev = Array.from({ length: n + 1 }, (_, j) => j)
+  for (let i = 1; i <= m; i++) {
+    const curr = [i, ...Array(n)]
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      curr[j] = Math.min(prev[j]! + 1, curr[j - 1]! + 1, prev[j - 1]! + cost)
+    }
+    prev = curr
+  }
+  return prev[n]!
+}
+
+/** 最长公共前缀长度。 */
+function commonPrefixLength(a: string, b: string): number {
+  let i = 0
+  while (i < a.length && i < b.length && a[i] === b[i]) i++
+  return i
 }
 
 export { getActiveThemeName }

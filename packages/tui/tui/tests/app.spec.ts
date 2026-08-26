@@ -4427,7 +4427,7 @@ describe('TuiApp Phase 6.1 slash 命令系统', () => {
     await app.dispose()
   })
 
-  it('未知 / 命令回显未知命令提示，不触发 followup', async () => {
+  it('未知 / 命令回显相近建议（/st → /status /steer），不触发 followup', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('slash-unknown')
     const handle = makeHandle(agent)
@@ -4441,7 +4441,35 @@ describe('TuiApp Phase 6.1 slash 命令系统', () => {
     await new Promise(resolve => setImmediate(resolve))
 
     expect(agent.followup).not.toHaveBeenCalled()
-    expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('未知命令: /st')
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('未知命令: /st')
+    // 闭环引导：相近建议替代 40+ 命令刷屏（不再列出「可用:」全表）
+    expect(written).toContain('你是要找:')
+    expect(written).toContain('/status')
+    expect(written).toContain('/steer')
+    expect(written).not.toContain('可用:')
+    await app.dispose()
+  })
+
+  it('未知 / 命令无相近建议时引导 /help（不刷命令列表）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('slash-unknown2')
+    const handle = makeHandle(agent)
+    ctx.agents.create.mockResolvedValue(handle)
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    await app.newSession()
+    // /s 是多个 s 开头命令的歧义前缀：进命令通道 → 歧义拒绝 → 未知命令；
+    // 单字符输入无相近建议（编辑距离阈值=0）→ 引导 /help
+    app.handleSubmit('/s')
+    await new Promise(resolve => setImmediate(resolve))
+
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('未知命令: /s')
+    expect(written).toContain('试试 /help 查看全部命令')
+    expect(written).not.toContain('可用:')
     await app.dispose()
   })
 
@@ -5906,7 +5934,7 @@ describe('runSlash fallback 到 CommandService（A1）', () => {
     await app.dispose()
   })
 
-  it('execute 返回 undefined（未知名）→ 回显未知命令与可用列表', async () => {
+  it('execute 返回 undefined（未知名）→ 回显未知命令与相近建议', async () => {
     const execute = vi.fn().mockResolvedValue(undefined)
     const { app, stdout } = await setupApp({ execute })
     app.handleSubmit('/st')

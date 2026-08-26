@@ -17,6 +17,7 @@ import {
   SlashCommandRegistry,
   createBuiltinCommands,
   resolveSlashCommand,
+  suggestCommands,
   type SlashCommand,
 } from '../src/commands/registry.js'
 import { getActiveThemeName, setTheme } from '../src/theme.js'
@@ -2099,5 +2100,43 @@ describe('内置命令 — /effort', () => {
   it('内置命令集含 /effort', () => {
     const { cmd } = effortByName()
     expect(cmd.name).toBe('effort')
+  })
+})
+
+describe('suggestCommands — 未知命令相近建议', () => {
+  const commands: readonly SlashCommand[] = [
+    { name: 'status', description: '', run: vi.fn() },
+    { name: 'steer', description: '', run: vi.fn() },
+    { name: 'glance', description: '', run: vi.fn() },
+    { name: 'btw', description: '', run: vi.fn() },
+  ]
+
+  it('公共前缀 ≥ 2 兜底：歧义缩写 /st 命中 status 与 steer', () => {
+    const names = suggestCommands('/st', commands).map(c => c.name)
+    expect(names).toEqual(['steer', 'status']) // 距离同为前缀档 → 短名优先
+  })
+
+  it('编辑距离命中：笔误 /glancs（距离 1）→ glance', () => {
+    expect(suggestCommands('/glancs', commands).map(c => c.name)).toEqual(['glance'])
+  })
+
+  it('短输入只信前缀：/s 不因编辑距离误建议 btw/cost 类短名', () => {
+    // 's' 到 'btw' 距离 3 > 阈值 0，且公共前缀 < 2 → 无建议
+    expect(suggestCommands('/s', commands)).toEqual([])
+  })
+
+  it('大小写不敏感：/ST 与 /st 同结果', () => {
+    expect(suggestCommands('/ST', commands).map(c => c.name)).toEqual(['steer', 'status'])
+  })
+
+  it('limit 截断建议条数（距离同档短名优先）', () => {
+    // /sta 与 steer/status 同为前缀档 score 3 → 短名 steer 排首
+    expect(suggestCommands('/sta', commands, 1).map(c => c.name)).toEqual(['steer'])
+    const both = suggestCommands('/sta', commands, 2).map(c => c.name)
+    expect(both).toEqual(['steer', 'status'])
+  })
+
+  it('空输入返回空数组', () => {
+    expect(suggestCommands('/', commands)).toEqual([])
   })
 })
