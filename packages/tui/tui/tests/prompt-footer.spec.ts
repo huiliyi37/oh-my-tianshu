@@ -2,14 +2,23 @@
  * 底部 footer（format/prompt-footer.ts）— 纯渲染契约测试（C4 概念稿 C 三行底部区）。
  *
  * - 模式 badge 段（normal / [plan] / [plan…] / [auto]）在前，快捷键提示在后。
- * - 窄宽从后往前丢段（ctrl+p → / 命令），mode 恒保留（Enter 发送不提示）。
+ * - 空闲态提示按 FOOTER_TIPS 权重表 10s 轮播（tipIndex 注入保证确定性）；
+ *   审批/忙碌/换行模式等上下文态固定操作提示不轮播。
+ * - 窄宽从后往前丢段（轮播 tip 整条丢弃），mode 恒保留（Enter 发送不提示）。
  * - 宽度守恒：任何输入下每行显示宽度 ≤ width。
  */
 
 import { describe, expect, it } from 'vitest'
 import type { RivetTheme } from '../src/theme.js'
 import { displayWidth } from '../src/width.js'
-import { formatPromptFooter, type FormatPromptFooterInput } from '../src/format/prompt-footer.js'
+import {
+  FOOTER_TIP_ROTATE_MS,
+  FOOTER_TIPS,
+  footerTipForIndex,
+  footerTipIndex,
+  formatPromptFooter,
+  type FormatPromptFooterInput,
+} from '../src/format/prompt-footer.js'
 
 function fakeTheme(): RivetTheme {
   return {
@@ -21,22 +30,47 @@ function fakeTheme(): RivetTheme {
   }
 }
 
+/** 权重展开序列长度（= 轮播周期；与实现内 TIP_SEQUENCE 一致）。 */
+const TIP_LENGTH = FOOTER_TIPS.reduce((n, t) => n + t.weight, 0)
+
 function plain(lines: readonly string[]): string[] {
   return lines.map(l => l.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''))
 }
 
 function base(over: Partial<FormatPromptFooterInput> = {}): FormatPromptFooterInput {
-  return { width: 100, ...over }
+  // tipIndex 0 固定为第一条轮播提示——测试确定性。
+  return { width: 100, tipIndex: 0, ...over }
 }
 
 describe('formatPromptFooter', () => {
-  it('默认：normal + 快捷键提示（/ 命令 ctrl+p；Enter 发送不提示）', () => {
+  it('默认：normal + 轮播首位提示（基础操作集，Enter 发送不提示）', () => {
     const [line = ''] = plain(formatPromptFooter(base(), fakeTheme()))
     expect(line).toContain('normal')
     expect(line).not.toContain('Enter 发送')
     expect(line).toContain('/ 命令')
     expect(line).toContain('ctrl+j')
     expect(line).toContain('ctrl+p')
+  })
+
+  it('空闲提示随 tipIndex 轮播（权重展开序列取模）', () => {
+    // 序号扫过整个展开序列：所有表内 tip 都会出现
+    const seen = new Set<string>()
+    for (let i = 0; i < TIP_LENGTH; i++) seen.add(footerTipForIndex(i))
+    for (const t of FOOTER_TIPS) expect(seen.has(t.text), t.text).toBe(true)
+    // 负序号按模归一；权重展开长度即周期
+    expect(footerTipForIndex(-1)).toBe(footerTipForIndex(TIP_LENGTH - 1))
+    // 高权重 tip 在展开序列中出现更多次
+    const heavy = FOOTER_TIPS[0]
+    if (heavy === undefined) throw new Error('FOOTER_TIPS empty')
+    const occurrences = Array.from({ length: TIP_LENGTH }, (_, i) => footerTipForIndex(i))
+      .filter(t => t === heavy.text).length
+    expect(occurrences).toBe(heavy.weight)
+  })
+
+  it('footerTipIndex：按 FOOTER_TIP_ROTATE_MS 分片', () => {
+    expect(footerTipIndex(0)).toBe(0)
+    expect(footerTipIndex(FOOTER_TIP_ROTATE_MS)).toBe(1)
+    expect(footerTipIndex(FOOTER_TIP_ROTATE_MS * 7 + 123)).toBe(7)
   })
 
   it('planActive：mode 段含 [plan]', () => {
@@ -67,16 +101,22 @@ describe('formatPromptFooter', () => {
     }
   })
 
-  it('窄宽丢段：mode 恒保留，快捷键段从后往前丢', () => {
-    // width 12：mode 段（normal=6）放得下，快捷键全部丢弃
+  it('窄宽丢段：mode 恒保留，轮播提示整条丢弃', () => {
+    // width 12：mode 段（normal=6）放得下，轮播 tip 整条丢弃
     const [line = ''] = plain(formatPromptFooter(base({ width: 12 }), fakeTheme()))
     expect(line).toContain('normal')
     expect(line).not.toContain('ctrl+p')
-    // width 20：mode + / 命令，ctrl+p 丢弃（新 hint 集无 Enter 发送）
+    // width 20：锚位 tip（30 列）放不下 → 整条丢弃，只留 mode
     const [mid = ''] = plain(formatPromptFooter(base({ width: 20 }), fakeTheme()))
-    expect(mid).toContain('/ 命令')
-    expect(mid).not.toContain('ctrl+p')
+    expect(mid).toContain('normal')
+    expect(mid).not.toContain('/ 命令')
     expect(mid).not.toContain('Enter 发送')
+    // 短 tip（'ctrl+o 展开推理'）放得下：6+3+13=22 ≥ 22 → 可见
+    const shortIdx = Array.from({ length: TIP_LENGTH }, (_, i) => i)
+      .find(i => footerTipForIndex(i).startsWith('ctrl+o'))
+    if (shortIdx === undefined) throw new Error('no ctrl+o tip in table')
+    const [short = ''] = plain(formatPromptFooter(base({ width: 24, tipIndex: shortIdx }), fakeTheme()))
+    expect(short).toContain('ctrl+o')
   })
 
   it('极窄（mode 段也放不下）：退化为 mode 单段（mode 恒保留）', () => {
@@ -120,14 +160,21 @@ describe('formatPromptFooter', () => {
     expect(displayWidth(lines[0] ?? '')).toBe(79)
   })
 
-  it('窄宽仍从右丢段，左侧与右侧同处一行', () => {
+  it('窄宽仍从右丢段，左侧与右侧同处一行（轮播 tip 整条不截断）', () => {
+    // 短 tip（'ctrl+o 展开推理' 13 列）注入：左段 = normal · tip = 22 列；
+    // width 33 → 右段 'AA · BB · CC'(12) 放不下，从后丢 CC 保 AA·BB。
+    const shortIdx = Array.from({ length: TIP_LENGTH }, (_, i) => i)
+      .find(i => footerTipForIndex(i).startsWith('ctrl+o'))
+    if (shortIdx === undefined) throw new Error('no ctrl+o tip in table')
     const lines = formatPromptFooter(base({
-      width: 39,
+      width: 33,
+      tipIndex: shortIdx,
       rightSegments: ['AA', 'BB', 'CC'],
     }), fakeTheme())
     expect(lines).toHaveLength(1)
     const [line = ''] = plain(lines)
     expect(line).toContain('normal')
+    expect(line).toContain('ctrl+o')
     expect(line).toContain('AA')
     expect(line).not.toContain('CC')
   })

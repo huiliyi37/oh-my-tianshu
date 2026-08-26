@@ -7993,11 +7993,11 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
     await app.attach()
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     // footer 恒渲染（formatPromptFooter 单行）；metrics 需 glance 数据（此处无，
-    // 不占位——纯函数 spec 已覆盖渲染，此处断言装配不抛且 footer 在输出中）
-    // 新 hint 集：/ 命令 + ctrl+p 面板（Enter 发送不再提示）
-    expect(written).toContain('/ 命令')
-    expect(written).not.toContain('Enter 发送')
+    // 不占位——纯函数 spec 已覆盖渲染，此处断言装配不抛且 footer 在输出中）。
+    // 提示段走 10s 轮播不固定文本——mode 段 normal 恒在，作为 footer 标记；
+    // Enter 发送不再提示。
     expect(written).toContain('normal')
+    expect(written).not.toContain('Enter 发送')
     await app.dispose()
   })
 
