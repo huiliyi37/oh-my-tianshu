@@ -62,6 +62,7 @@
 | src/external-editor.ts | external-editor.ts | modified |
 | src/fluency-hook.ts | fluency-hook.ts | modified |
 | src/picker.ts | — | new（#31 交互式选择器：纯状态机 + 渲染 + 控制器，overlay 契约） |
+| src/prefs.ts | — | new（本地偏好持久化层 ~/.dsh-tui/prefs.json：与官方宿主插件 dsh-tianshu-tui 同文件同 key 语义共享；合并写保留本包未建模 key；回流自 dsh-tianshu-tui 2026-08-27） |
 | src/preset-surface.ts | — | new（preset 展示面纯投影：resolvePresetId/wireToolNames/阶段标签，日志事实） |
 | src/format/activity-labels.ts | format/activity-labels.ts | modified |
 | src/format/approval-card.ts | — | new（审批卡：圆角轨 + diff 体 + y/n/a/esc 键位，纯渲染） |

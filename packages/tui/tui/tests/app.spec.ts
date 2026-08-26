@@ -6255,6 +6255,48 @@ describe('TuiApp /config /skills /density 面板命令', () => {
     expect(written).toContain('ok')
     await app.dispose()
   })
+
+  it('/info 循环三档：回显档位、落盘 prefs，off 档 footer 整行不渲染', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('info-1')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+    const prefsPath = join(tmpdir(), `dsh-tui-info-${Date.now()}-${process.pid}.json`)
+    try {
+      const app = new TuiApp({ ctx, stdout, stdin: makeStdin(), prefsPath })
+      await app.attach()
+
+      // full（缺省）→ compact：回显 + 落盘；compact 档 footer 仍在（mode 段恒在）
+      stdout.write.mockClear()
+      app.handleSubmit('/info')
+      await new Promise(resolve => setImmediate(resolve))
+      let written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('输入区信息密度：compact')
+      expect(JSON.parse(readFileSync(prefsPath, 'utf-8'))).toEqual({ footerInfo: 'compact' })
+      expect(written).toContain('normal')
+
+      // compact → off：footer 与顶栏整行不渲染（mode 段只在 footer 出现）
+      stdout.write.mockClear()
+      app.handleSubmit('/info')
+      await new Promise(resolve => setImmediate(resolve))
+      written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('输入区信息密度：off')
+      expect(written).not.toContain('normal')
+      expect(JSON.parse(readFileSync(prefsPath, 'utf-8'))).toEqual({ footerInfo: 'off' })
+
+      // off → full：恢复渲染
+      stdout.write.mockClear()
+      app.handleSubmit('/info')
+      await new Promise(resolve => setImmediate(resolve))
+      written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('输入区信息密度：full')
+      expect(written).toContain('normal')
+      await app.dispose()
+    } finally {
+      rmSync(prefsPath, { force: true })
+    }
+  })
 })
 
 describe('TuiApp 生命周期边界', () => {

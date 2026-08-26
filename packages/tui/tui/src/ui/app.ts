@@ -265,6 +265,7 @@ import {
   suggestCommands,
   type ModelFacet,
 } from '../commands/registry.js'
+import { FOOTER_INFO_LEVELS, prefsEnabled, readPrefs, writePrefs, type TuiPrefs } from '../prefs.js'
 import { renderTranscript, parseToolArguments, toolResultText, type RenderedRow } from './render.js'
 import { CommandPalette } from '../command-palette.js'
 import { OverlayController } from '../engine/overlay-controller.js'
@@ -418,6 +419,8 @@ export interface TuiAppOptions {
   editorCommand?: string
   /** 输入历史文件路径；缺省 $DSH_HOME/input-history.json（测试注入点）。 */
   historyPath?: string
+  /** 本地偏好文件路径（~/.dsh-tui/prefs.json）；缺省按 VITEST 密封规则解析（测试注入点）。 */
+  prefsPath?: string | null
   /** 是否启用 Vim 键位（Phase 6.5）；缺省 false。 */
   vimEnabled?: boolean
   /**
@@ -861,6 +864,10 @@ export class TuiApp {
   private projectionDisposer: (() => void) | null = null
   /** T5：紧凑渲染模式（/density 切换）——工具卡仅标题行。 */
   private compactMode = false
+  /** 本地偏好文件路径；null = 持久化禁用（VITEST 密封），/info 仅会话内生效。 */
+  private readonly prefsPath: string | null
+  /** 已加载偏好（footerInfo 等）；persistPrefs 时合并写回 prefsPath。 */
+  private prefs: TuiPrefs = {}
   /** reasoning 流缓冲（reasoning-delta 累积）；段结束 commitReasoningBlock 落底清空。 */
   private reasoningText = ''
   /** 当前推理段起点（首个 reasoning-delta 的事件时间，Unix epoch ms）；live/落底耗时数据源。 */
@@ -923,6 +930,9 @@ export class TuiApp {
     this.ctx = options.ctx
     this.stdout = options.stdout
     this.stdin = options.stdin
+    // 本地偏好：构造期同步读取（小 JSON，阻塞可忽略）；禁用（VITEST 密封）时空偏好。
+    this.prefsPath = prefsEnabled(options.prefsPath)
+    if (this.prefsPath !== null) this.prefs = readPrefs(this.prefsPath)
     this.historyStore = new InputHistoryStore(options.historyPath)
     this.initialSessionId = options.initialSessionId
     this.themeName = options.theme ?? 'auto'
@@ -1180,6 +1190,24 @@ export class TuiApp {
           this.refreshSkillItems()
         }
         this.renderBatcher.schedule()
+      },
+    })
+    // /info 注册在 /density 前——菜单环绕末项契约测试锚定 /density。
+    // 输入区信息密度档位：full 全部 chrome（顶栏身份+metrics、footer 提示行）/
+    // compact 保留顶栏身份段与 API/git，隐 metrics / off 顶栏与 footer 全关。
+    // 对齐 kimi-code 输入区分层；持久化到 ~/.dsh-tui/prefs.json（与官方宿主
+    // 插件同文件同 key 语义）。
+    this.slash.register({
+      name: 'info',
+      description: '切换输入区信息密度（full 全部 / compact 精简 / off 关闭）',
+      run: ({ echo }) => {
+        const current = this.prefs.footerInfo ?? 'full'
+        // current 恒在档位表内（parse 校验 + 本档位循环），取模结果必非空。
+        const next = FOOTER_INFO_LEVELS[(FOOTER_INFO_LEVELS.indexOf(current) + 1) % FOOTER_INFO_LEVELS.length] ?? 'full'
+        this.prefs.footerInfo = next
+        this.persistPrefs()
+        this.renderBatcher.schedule()
+        echo(`输入区信息密度：${next}（${FOOTER_INFO_LEVELS.join(' / ')}）`)
       },
     })
     // T5：/density 紧凑渲染开关（grok-build /compact-mode 语义；命令名避开
@@ -3573,6 +3601,12 @@ export class TuiApp {
   /** 当前主题（动态读取，切主题后立即生效）。 */
   private get theme(): RivetTheme { return getTheme() }
 
+  /** 偏好落盘（合并写，保留文件里其他工具的 key）；持久化禁用时静默跳过。 */
+  private persistPrefs(): void {
+    if (this.prefsPath === null) return
+    writePrefs(this.prefsPath, this.prefs)
+  }
+
   /**
    * 原子提交编舞（输入框闪烁根修，回流 dsh-tui 2026-08-27）：BEGIN_SYNC 包裹
    * 「清 live 区 → 写 scrollback → 同步重绘」，END_SYNC 收口。
@@ -5413,6 +5447,9 @@ export class TuiApp {
     ))
     // 状态栏段：左身份（model/effort）、右 metrics（缓存/上下文/token/API）——
     // 复用 glanceBarSegments 的顺序（model、effort 在前），按段数切分。
+    // 输入区信息密度（/info）：compact 保留身份段与 API/git、隐 metrics；
+    // off 整条顶栏与 footer 都不渲染，动态区多让出两行。
+    const infoLevel = this.prefs.footerInfo ?? 'full'
     const bottomMetrics = this.glanceMetrics()
     const allSegs = bottomMetrics === null ? [] : glanceBarSegments({ ...bottomMetrics, width: cols })
     const leftCount = Math.min(
@@ -5423,19 +5460,27 @@ export class TuiApp {
     const zenBadge = this.activeSessionId === null
       ? undefined
       : zenPhaseLabel(getSession(this.ctx, this.activeSessionId)?.events)
-    const topLine = formatTopStatusBar({
-      width: cols,
-      left: [...allSegs.slice(0, leftCount), ...(zenBadge === undefined ? [] : [zenBadge])],
-      // A3：git 未提交 ●N 段置于右段末尾（丢段从右丢 → ●N 最次要先丢，不挤 metrics）。
-      right: [...allSegs.slice(leftCount), `API ${this.apiKeyReady ? '✓' : '✗'}`, ...(this.gitDirty > 0 ? [`●${this.gitDirty}`] : [])],
-      borderColor: promptBorderColor(modeFlags, theme),
-    }, theme)
+    const topLine = infoLevel === 'off'
+      ? undefined
+      : formatTopStatusBar({
+        width: cols,
+        left: [...allSegs.slice(0, leftCount), ...(zenBadge === undefined ? [] : [zenBadge])],
+        // A3：git 未提交 ●N 段置于右段末尾（丢段从右丢 → ●N 最次要先丢，不挤 metrics）。
+        // compact 档 metrics 段整体摘除，右段只剩 API/git 身份信息。
+        right: [
+          ...(infoLevel === 'compact' ? [] : allSegs.slice(leftCount)),
+          `API ${this.apiKeyReady ? '✓' : '✗'}`,
+          ...(this.gitDirty > 0 ? [`●${this.gitDirty}`] : []),
+        ],
+        borderColor: promptBorderColor(modeFlags, theme),
+      }, theme)
     const frame = formatInputFrame({
       columns: cols,
       lines: framedLines,
       caretLine: inputView.caret.line,
       caretCol: inputView.caret.col,
-      topLine,
+      // off 档不传 topLine（exactOptionalPropertyTypes 下显式 undefined 不合法）。
+      ...(topLine === undefined ? {} : { topLine }),
       ...modeFlags,
     }, theme)
     for (const [i, line] of frame.lines.entries()) {
@@ -5443,14 +5488,17 @@ export class TuiApp {
     }
 
     // C4：footer 一行——左模式/快捷键（metrics 已上移输入框顶边状态栏，不再右挂）。
-    const footerLines = formatPromptFooter({
-      width: cols,
-      ...modeFlags,
-      approvalPending: this.approval.isPending,
-      agentBusy: this.isAgentBusy(),
-      newlineMode: this.inputLine.newlineMode,
-    }, theme)
-    for (const line of footerLines) lines.push({ text: line })
+    // info off 档整行不渲染（与顶栏一起关，动态区让行数）。
+    if (infoLevel !== 'off') {
+      const footerLines = formatPromptFooter({
+        width: cols,
+        ...modeFlags,
+        approvalPending: this.approval.isPending,
+        agentBusy: this.isAgentBusy(),
+        newlineMode: this.inputLine.newlineMode,
+      }, theme)
+      for (const line of footerLines) lines.push({ text: line })
+    }
 
     if (gutter > 0) {
       const pad = ' '.repeat(gutter)
