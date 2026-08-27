@@ -28,7 +28,7 @@ The TUI's aliases live in the `/model` command surface; the Web's command surfac
 
 ### Why not the role-pin settings section in this stage?
 
-Role pins are already reachable on the Web: `model-roles` is mounted in the base bundle and its settings namespace rides the existing `settings.describe`/`settings.update` seam, so a generic settings client can read and write the pins today. What is missing is a *dedicated* section contribution (three role rows with provider/model pickers) — a new UI surface, not a capability gap. Recorded as the remaining tail; the TUI's `/model vision|secondary|subagent` picker remains its shortcut.
+Role pins were already reachable on the Web when this stage landed (`model-roles` mounted, its settings namespace riding the existing seam) — only the dedicated section contribution was missing. That row has since landed as the [Web role-pin settings row](2026-08-27-web-role-pins.md); the TUI's `/model vision|secondary|subagent` picker and the Web row now converge on the same namespace.
 
 ## Consequences
 

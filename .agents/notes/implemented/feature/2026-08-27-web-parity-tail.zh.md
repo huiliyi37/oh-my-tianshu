@@ -28,7 +28,7 @@ TUI 的别名在 `/model` 命令面；Web 的命令面是弹层，composer 座�
 
 ### 为什么本阶段不做角色 pin 的 settings section？
 
-角色 pin 在 Web 已可达：`model-roles` 挂在 base bundle，其 settings namespace 走既有的 `settings.describe`/`settings.update` 接缝，通用 settings 客户端今天就能读写 pin。缺的是一个**专门的** section 贡献（三行 provider/model 选择器）——新 UI 面，不是能力缺口。记为余留尾巴；TUI 的 `/model vision|secondary|subagent` 选择器仍是其捷径。
+本阶段落地时角色 pin 在 Web 已可达（`model-roles` 已挂载、settings namespace 走既有接缝）——缺的只是专门 section 贡献。该行此后已落地为 [Web 角色 pin 设置行](2026-08-27-web-role-pins.md)；TUI 的 `/model vision|secondary|subagent` 选择器与 Web 行现收敛到同一 namespace。
 
 ## 后果
 

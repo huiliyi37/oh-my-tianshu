@@ -2146,6 +2146,9 @@ importers:
       '@huiliyi37/dsh-invariants':
         specifier: workspace:^
         version: link:../../support/invariants
+      '@huiliyi37/dsh-model-roles':
+        specifier: workspace:^
+        version: link:../../core/model-roles
       '@types/react':
         specifier: ~18.3.1
         version: 18.3.31

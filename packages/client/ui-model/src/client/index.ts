@@ -13,6 +13,7 @@
  */
 import type { ModelSelection, SessionModels } from '@huiliyi37/dsh-client-connection/client'
 import type { ClientContext } from '@huiliyi37/dsh-client-runtime/client'
+import type { ConnectionHandle } from '@huiliyi37/dsh-client-connection/client'
 import type { CommandServiceContract, SelectOption } from '@huiliyi37/dsh-client-ui-command/client'
 // Type-only: pulls the ui-conversation SlotMap merge (the input.model seat).
 import type {} from '@huiliyi37/dsh-client-ui-conversation/client'
@@ -21,6 +22,8 @@ import type {} from '@huiliyi37/dsh-client-locale/client'
 import type { TranslateNS } from '@huiliyi37/dsh-client-ui-slots'
 import type { ModelDirectoryState } from './directory.ts'
 import { ModelService } from './service.ts'
+import { RolePinsController } from './role-pins.ts'
+import { RoleModelsRow, type RoleModelsRowInjected } from './RoleModelsRow.tsx'
 import type { ModelSelectInjected } from './slots.ts'
 import { ModelSelect } from './ModelSelect.tsx'
 import { en, zh, type ModelKey } from './locales.ts'
@@ -196,5 +199,38 @@ export function apply(ctx: ClientContext): void {
         }
       },
     }, ModelSelect))
+  })
+
+  // Entry 3 (P2④ final tail): the role-models General-settings row — the Web
+  // mirror of the TUI's /model vision|secondary|subagent picker over the
+  // host's model-roles settings namespace. Root-scoped: the global catalog
+  // (llm.models) backs the picker, not the per-session directory.
+  ctx.inject(['slots', 'connection'], (scope: ClientContext) => {
+    const connection = scope.get('connection') as ConnectionHandle
+    const controller = new RolePinsController(connection.api)
+    scope.slots.inject('settings.general.item', () => scope.slots.register({
+      name: 'settings.general.item',
+      id: 'model-roles',
+      order: -10,
+      locale: NS,
+      inject: (): RoleModelsRowInjected => {
+        return {
+          hooks: { rolePins: controller.store },
+          load: () => controller.load(),
+          selectRole: (role, selection) => controller.selectRole(role, selection),
+        }
+      },
+    }, RoleModelsRow))
+    scope.effect(() => {
+      const refresh = (): void => { void controller.load() }
+      const disposers = [
+        scope.on('settings/changed', refresh),
+        scope.on('connection/reset', () => { refresh() }),
+      ]
+      return () => {
+        controller.dispose()
+        for (const dispose of disposers) dispose()
+      }
+    }, 'ui-model: role-pins settings invalidations')
   })
 }

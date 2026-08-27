@@ -1,0 +1,92 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg, #24292f);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.header:hover {
+  background: var(--hover, #f6f8fa);
+}
+
+.title {
+  flex: none;
+  font-weight: 500;
+}
+
+.summary {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted, #59636e);
+}
+
+.chevron {
+  flex: none;
+  color: var(--muted, #59636e);
+}
+
+.error {
+  padding: 0 8px;
+  color: var(--danger, #cf222e);
+  font-size: 12px;
+}
+
+.roles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 0 2px 16px;
+}
+
+.roleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 26px;
+}
+
+.roleLabel {
+  flex: none;
+  color: var(--fg, #24292f);
+  font-size: 12px;
+}
+
+.selector {
+  display: inline-flex;
+  align-items: center;
+  max-width: 200px;
+  padding: 2px 8px;
+  border: 1px solid var(--border, #d0d7de);
+  border-radius: 6px;
+  background: var(--bg, #ffffff);
+  color: var(--fg, #24292f);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.selector:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.selectorValue {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

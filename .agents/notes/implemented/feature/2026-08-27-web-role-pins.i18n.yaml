@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-27-web-role-pins.md
+2026-08-27-web-role-pins.md: a40580cb8a09a1679b67383e51d7081b2038a8f4
+2026-08-27-web-role-pins.zh.md: 9c292ed5776ea96b376ddb73494092dc2a40ee06
