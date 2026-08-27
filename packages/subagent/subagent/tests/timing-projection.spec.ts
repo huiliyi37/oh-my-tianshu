@@ -11,9 +11,11 @@ function event(type: SessionEvent['type'], seq: number, time: number): SessionEv
 }
 
 function fold(events: SessionEvent[]) {
-  let state = subagentTimingProjectionDefinition.init()
-  for (const item of events) { state = subagentTimingProjectionDefinition.apply(state, item) }
-  return subagentTimingProjectionDefinition.view(state)
+  const state = events.reduce<Parameters<typeof subagentTimingProjectionDefinition.apply>[0]>(
+    (folded, item) => subagentTimingProjectionDefinition.apply(folded, item),
+    subagentTimingProjectionDefinition.init(),
+  )
+  return subagentTimingProjectionDefinition.wire.view(state)
 }
 
 describe('subagent timing projection', () => {

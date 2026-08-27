@@ -14,7 +14,7 @@ import { Context } from '@huiliyi37/cordis'
 import SessionStore, { SessionId } from '@huiliyi37/dsh-session'
 import type { Session } from '@huiliyi37/dsh-session'
 import SessionProjectionRegistry from '@huiliyi37/dsh-session-projection'
-import SessionTitleService from '@huiliyi37/dsh-session-title'
+import SessionTitleService from '../src/index.ts'
 
 const CONFIG = { fallbackMaxWords: 8, fallbackMaxBytes: 64, maxTitleBytes: 256 }
 

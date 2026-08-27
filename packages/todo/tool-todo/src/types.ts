@@ -13,6 +13,9 @@ import type { TodoItem } from '@huiliyi37/dsh-session/types'
 export type { TodoItem } from '@huiliyi37/dsh-session/types'
 
 declare module '@huiliyi37/dsh-session-projection/types' {
+  interface SessionProjectionStateMap {
+    todos: TodoItem[] | null
+  }
   interface SessionProjectionMap {
     /**
      * The agent's current whole todo list (the latest `todo/write` snapshot),

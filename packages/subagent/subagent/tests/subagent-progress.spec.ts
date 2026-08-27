@@ -16,9 +16,11 @@ function event(
 }
 
 function fold(events: SessionEvent[]) {
-  let state = subagentProgressProjectionDefinition.init()
-  for (const item of events) { state = subagentProgressProjectionDefinition.apply(state, item) }
-  return subagentProgressProjectionDefinition.view(state)
+  const state = events.reduce<Parameters<typeof subagentProgressProjectionDefinition.apply>[0]>(
+    (folded, item) => subagentProgressProjectionDefinition.apply(folded, item),
+    subagentProgressProjectionDefinition.init(),
+  )
+  return subagentProgressProjectionDefinition.wire.view(state)
 }
 
 /** Empty-log view: every counter zero, no open turn, nothing in flight. */

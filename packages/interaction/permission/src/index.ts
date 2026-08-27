@@ -100,6 +100,19 @@ export interface KnobState {
   approval: ApprovalPolicy | null
 }
 
+declare module '@huiliyi37/dsh-session-projection/types' {
+  interface SessionProjectionStateMap {
+    permissions: KnobState
+  }
+}
+
+/** The knob fold's persisted-state shape — the three last-wins slots verbatim. */
+const knobStateSchema = zod.object({
+  preset: zod.string().min(1).nullable(),
+  sandbox: zod.string() as unknown as zod.ZodType<SandboxMode | null>,
+  approval: zod.string() as unknown as zod.ZodType<ApprovalPolicy | null>,
+}).strict()
+
 /** State for the empty log: every knob at its composition default. */
 const EMPTY_KNOBS: KnobState = { preset: null, sandbox: null, approval: null }
 
@@ -243,10 +256,10 @@ export class PermissionService extends Service {
     ctx.inject(['sessionProjections'], (projectionCtx) => {
       projectionCtx.sessionProjections.register<'permissions', KnobState>({
         key: 'permissions',
-        schema: selectSchema,
+        stateSchema: knobStateSchema,
         init: () => EMPTY_KNOBS,
         apply: applyKnobEvent,
-        view: state => this.selectFor(state),
+        wire: { viewSchema: selectSchema, view: state => this.selectFor(state) },
         stateVersion: 1,
       })
     })

@@ -35,16 +35,21 @@ function request<P>(payload: P): RpcRequest<P> {
 
 /** Whole-value unit folding the latest user/message text; null before the first. */
 type LastUserState = { text: string } | null
-const lastUserUnit = (): ProjectionDefinition<'test/last-user', LastUserState> => ({
+declare module '@huiliyi37/dsh-session-projection/types' {
+  interface SessionProjectionStateMap {
+    'test/last-user': LastUserState
+  }
+}
+const lastUserUnit = () => ({
   key: 'test/last-user',
-  schema: z.union([z.object({ text: z.string() }), z.null()]),
+  stateSchema: z.union([z.object({ text: z.string() }), z.null()]),
   init: () => null,
   apply: (state, event) => (event.type === 'user/message'
     ? { text: (event.data.content[0] as { text?: string }).text ?? '' }
     : state),
-  view: state => state,
+  wire: { viewSchema: z.union([z.object({ text: z.string() }), z.null()]), view: (state: LastUserState) => state },
   stateVersion: 1,
-})
+} satisfies ProjectionDefinition<'test/last-user', LastUserState>)
 
 async function harness(withRegistry: boolean): Promise<{ ctx: Context; session: Session }> {
   const ctx = new Context()
@@ -189,7 +194,10 @@ describe('session.list projections column', () => {
     const { ctx, session } = await harness(true)
     ctx.sessionProjections.register({
       ...lastUserUnit(),
-      view: () => { throw new Error('unit exploded') },
+      wire: {
+        ...lastUserUnit().wire,
+        view: () => { throw new Error('unit exploded') },
+      },
     })
     seedMessages(session, 1)
     const response = await api(ctx).sessions.list(request({}))

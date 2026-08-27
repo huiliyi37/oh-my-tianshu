@@ -42,10 +42,44 @@ interface CacheHealthState {
   lastUsageTurn: number
   /** Seq of the header event that produced `drift`; diagnosis attributes it only inside its window. */
   driftSeq: number
-  lastHeaderFingerprint: PrefixFingerprint | undefined
+  lastHeaderFingerprint?: PrefixFingerprint | undefined
   drift: DriftEvent | null
   lastCompactSeq: number
 }
+
+declare module '@huiliyi37/dsh-session-projection/types' {
+  interface SessionProjectionStateMap {
+    cacheHealth: CacheHealthState
+  }
+}
+
+/** The fold's persisted-state shape: per-turn snapshots plus fold bookkeeping (superset of the view). */
+const cacheHealthStateSchema: z.ZodType<CacheHealthState> = z.object({
+  snapshots: z.array(z.object({
+    turn: z.number().int().nonnegative(),
+    cacheRead: z.number().nonnegative(),
+    cacheWrite: z.number().nonnegative(),
+    inputTokens: z.number().nonnegative(),
+    outputTokens: z.number().nonnegative(),
+  }).strict()),
+  snapshotSeq: z.number().int().nonnegative(),
+  prevSnapshotSeq: z.number().int().nonnegative(),
+  lastUsageTurn: z.number().int(),
+  driftSeq: z.number().int().nonnegative(),
+  lastHeaderFingerprint: z.object({
+    systemSha256: z.string(),
+    toolsSha256: z.string(),
+    configSha256: z.string(),
+    combinedSha256: z.string(),
+  }).strict().optional(),
+  drift: z.object({
+    systemChanged: z.boolean(),
+    toolsChanged: z.boolean(),
+    configChanged: z.boolean(),
+    message: z.string(),
+  }).strict().nullable(),
+  lastCompactSeq: z.number().int().nonnegative(),
+}).strict()
 
 function configText(header: { config: unknown; adapterDefaults?: unknown }): string {
   return JSON.stringify({
@@ -143,10 +177,9 @@ function applyEvent(state: CacheHealthState, event: SessionEvent): CacheHealthSt
  * `TokenUsage` counters being disjoint — so a provider that omits write
  * tokens (DeepSeek) stays exact instead of degenerating to 100%.
  */
-export const cacheHealthProjectionDefinition:
-ProjectionDefinition<'cacheHealth', CacheHealthState> = {
+export const cacheHealthProjectionDefinition = {
   key: 'cacheHealth',
-  schema: projectionSchema,
+  stateSchema: cacheHealthStateSchema,
   init: () => ({
     snapshots: [],
     snapshotSeq: 0,
@@ -158,54 +191,59 @@ ProjectionDefinition<'cacheHealth', CacheHealthState> = {
     lastCompactSeq: 0,
   }),
   apply: applyEvent,
-  view: (state) => {
-    let totalRead = 0
-    let totalInput = 0
-    for (const snapshot of state.snapshots) {
-      totalRead += snapshot.cacheRead
-      totalInput += snapshot.inputTokens + snapshot.cacheRead + snapshot.cacheWrite
-    }
-    const hitRate = totalInput > 0 ? Math.min(1, totalRead / totalInput) : undefined
+  wire: {
+    viewSchema: projectionSchema,
+    view: (state) => {
+      let totalRead = 0
+      let totalInput = 0
+      for (const snapshot of state.snapshots) {
+        totalRead += snapshot.cacheRead
+        totalInput += snapshot.inputTokens + snapshot.cacheRead + snapshot.cacheWrite
+      }
+      const hitRate = totalInput > 0 ? Math.min(1, totalRead / totalInput) : undefined
 
-    const latest = state.snapshots[state.snapshots.length - 1]
-    const latestTotal = latest === undefined
-      ? 0
-      : latest.inputTokens + latest.cacheRead + latest.cacheWrite
-    const recentTurnHitRate = latest !== undefined && latestTotal > 0
-      ? Math.min(1, latest.cacheRead / latestTotal)
-      : undefined
+      const latest = state.snapshots[state.snapshots.length - 1]
+      const latestTotal = latest === undefined
+        ? 0
+        : latest.inputTokens + latest.cacheRead + latest.cacheWrite
+      const recentTurnHitRate = latest !== undefined && latestTotal > 0
+        ? Math.min(1, latest.cacheRead / latestTotal)
+        : undefined
 
-    // Drift and compaction attribute only inside the current turn's
-    // measurement window — a stale signal must not mislabel later turns.
-    const inWindow = (seq: number): boolean => seq > state.prevSnapshotSeq && seq <= state.snapshotSeq
-    const diagnosis = totalInput === 0
-      ? null
-      : diagnoseCacheMiss(
-        state.snapshots,
-        state.drift !== null && inWindow(state.driftSeq) ? state.drift : null,
-        inWindow(state.lastCompactSeq),
-      )
-    // Only warn/error verdicts are health signals; info verdicts (first turn,
-    // ordinary growth) are normal operation and stay out of the summary.
-    const lastMissReason = diagnosis !== null && diagnosis.severity !== 'info'
-      ? diagnosis.reason
-      : undefined
+      // Drift and compaction attribute only inside the current turn's
+      // measurement window — a stale signal must not mislabel later turns.
+      const inWindow = (seq: number): boolean => seq > state.prevSnapshotSeq && seq <= state.snapshotSeq
+      const diagnosis = totalInput === 0
+        ? null
+        : diagnoseCacheMiss(
+          state.snapshots,
+          state.drift !== null && inWindow(state.driftSeq) ? state.drift : null,
+          inWindow(state.lastCompactSeq),
+        )
+      // Only warn/error verdicts are health signals; info verdicts (first turn,
+      // ordinary growth) are normal operation and stay out of the summary.
+      const lastMissReason = diagnosis !== null && diagnosis.severity !== 'info'
+        ? diagnosis.reason
+        : undefined
 
-    return {
-      ...hitRate === undefined ? {} : { hitRate },
-      ...recentTurnHitRate === undefined ? {} : { recentTurnHitRate },
-      ...lastMissReason === undefined ? {} : { lastMissReason },
-      ...state.drift === null ? {} : {
-        drift: {
-          systemChanged: state.drift.systemChanged,
-          toolsChanged: state.drift.toolsChanged,
-          configChanged: state.drift.configChanged,
+      return {
+        ...hitRate === undefined ? {} : { hitRate },
+        ...recentTurnHitRate === undefined ? {} : { recentTurnHitRate },
+        ...lastMissReason === undefined ? {} : { lastMissReason },
+        ...state.drift === null ? {} : {
+          drift: {
+            systemChanged: state.drift.systemChanged,
+            toolsChanged: state.drift.toolsChanged,
+            configChanged: state.drift.configChanged,
+          },
         },
-      },
-    }
+      }
+    },
   },
-  stateVersion: 1,
-}
+  // Bumped for the state/wire split: older rows hold a wire-shaped value that
+  // the state schema rejects, so they must refold instead.
+  stateVersion: 2,
+} satisfies ProjectionDefinition<'cacheHealth', CacheHealthState>
 
 declare module '@huiliyi37/dsh-session-projection/types' {
   interface SessionProjectionMap {

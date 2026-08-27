@@ -1785,7 +1785,7 @@ export interface PresetSpec {
 
 Depends on: [`ApprovalPolicy`](subsystems/approval.md) · [`SandboxMode`](subsystems/sandbox.md)
 
-Source: [`packages/interaction/permission/src/index.ts:140`](../packages/interaction/permission/src/index.ts)
+Source: [`packages/interaction/permission/src/index.ts:153`](../packages/interaction/permission/src/index.ts)
 
 ## `@huiliyi37/dsh-persona`
 

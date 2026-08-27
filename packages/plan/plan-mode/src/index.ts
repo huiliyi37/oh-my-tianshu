@@ -247,6 +247,21 @@ interface PlanUnitState {
   running: { commandId: CommandId; wanted: boolean } | null
 }
 
+declare module '@huiliyi37/dsh-session-projection/types' {
+  interface SessionProjectionStateMap {
+    plan: PlanUnitState
+  }
+}
+
+const planUnitStateSchema: ZodType<PlanUnitState> = zod.object({
+  active: zod.boolean(),
+  wanted: zod.boolean().nullable(),
+  running: zod.object({
+    commandId: zod.string() as unknown as ZodType<CommandId>,
+    wanted: zod.boolean(),
+  }).strict().nullable(),
+}).strict()
+
 /** Wire payload schema of the `plan` projection. */
 const planProjectionSchema: ZodType<PlanProjection> = zod.object({
   active: zod.boolean(),
@@ -375,7 +390,7 @@ export class PlanModeService extends Service {
     ctx.inject(['sessionProjections'], (projectionCtx) => {
       projectionCtx.sessionProjections.register<'plan', PlanUnitState>({
         key: 'plan',
-        schema: planProjectionSchema,
+        stateSchema: planUnitStateSchema,
         init: () => ({ active: false, wanted: null, running: null }),
         apply: (state, event) => {
           if (event.type === 'command/run' && event.data.name === 'plan') {
@@ -394,9 +409,12 @@ export class PlanModeService extends Service {
           }
           return state
         },
-        view: (state) => {
-          const wanted = state.running?.wanted ?? state.wanted
-          return { active: state.active, pending: wanted !== null && wanted !== state.active }
+        wire: {
+          viewSchema: planProjectionSchema,
+          view: (state) => {
+            const wanted = state.running?.wanted ?? state.wanted
+            return { active: state.active, pending: wanted !== null && wanted !== state.active }
+          },
         },
         stateVersion: 2,
       })

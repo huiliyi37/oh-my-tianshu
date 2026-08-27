@@ -13,12 +13,16 @@ import Storage from '@huiliyi37/dsh-storage'
 import { DomainFacility } from '@huiliyi37/dsh-storage-domain'
 import SessionStore, { SessionId } from '@huiliyi37/dsh-session'
 import type { Session, SessionEvent } from '@huiliyi37/dsh-session'
-import SessionProjectionRegistry from '@huiliyi37/dsh-session-projection'
+import SessionProjectionRegistry from '@huiliyi37/dsh-session-projection/src/index.ts'
 import type { ProjectionDefinition } from '@huiliyi37/dsh-session-projection'
 import { MemoryMediaPool, MemoryStorageBackend } from '../../../storage/storage-domain/tests/helpers/memory-backend.ts'
 import SessionProjectionCache from '../src/index.ts'
 
 declare module '@huiliyi37/dsh-session-projection/types' {
+  interface SessionProjectionStateMap {
+    'cache-test/marks': MarksState
+    'cache-test/marks2': Map<string, string>
+  }
   interface SessionProjectionMap {
     'cache-test/marks': { marks: string[] }
   }
@@ -35,14 +39,17 @@ declare module '@huiliyi37/dsh-session/types' {
 }
 
 type MarksState = { marks: string[] } | null
-const marksUnit = (stateVersion = 1): ProjectionDefinition<'cache-test/marks', MarksState> => ({
+const marksUnit = (stateVersion = 1) => ({
   key: 'cache-test/marks',
-  schema: z.object({ marks: z.array(z.string()) }),
+  stateSchema: z.object({ marks: z.array(z.string()) }).nullable(),
   init: () => null,
   apply: (state, event) => (event.type === 'cache-test/mark' ? (event).data : state),
-  view: state => state ?? { marks: [] },
+  wire: {
+    viewSchema: z.object({ marks: z.array(z.string()) }),
+    view: state => state ?? { marks: [] },
+  },
   stateVersion,
-})
+}) satisfies ProjectionDefinition<'cache-test/marks', MarksState>
 
 /** A persistence double serving readFrom over a fixed per-id stored log (headers stamp createdAt 0). */
 function fakePersistence(logs: Map<string, SessionEvent[]>) {
@@ -175,11 +182,10 @@ describe('SessionProjectionCache write policy', () => {
     expect(storedRows(pool, clean.id)?.['cache-test/marks']).toEqual({ ver: 1, seq: -1, val: null })
     // A unit whose state violates the plain-JSON contract fails the write loud.
     ctx.sessionProjections.register({
-      key: 'cache-test/marks2' as never,
-      schema: { parse: (value: unknown) => value } as never,
+      key: 'cache-test/marks2',
+      stateSchema: z.custom<Map<string, string>>(() => true),
       init: () => new Map<string, string>(),
-      apply: (state: unknown) => state,
-      view: () => null as never,
+      apply: state => state,
       stateVersion: 1,
     })
     await expect(ctx.sessionProjectionCache.write(clean)).rejects.toThrow('not losslessly JSON-serializable')
@@ -286,6 +292,19 @@ describe('SessionProjectionCache cold read', () => {
     expect(persistence.readFrom).toHaveBeenNthCalledWith(2, SessionId('shrunk'), 0, undefined)
   })
 
+  it('discards malformed persisted state and degrades to one full re-read', async () => {
+    const pool = new MemoryMediaPool()
+    const logs = new Map([['malformed', storedLog([['real']])]])
+    seedRow(pool, 'malformed', { ver: 1, seq: 1, val: { marks: 'not-an-array' } })
+    const { cache, persistence } = await harness({ pool, logs })
+
+    const snapshot = await cache.coldSnapshot(SessionId('malformed'))
+
+    expect(snapshot.values['cache-test/marks']).toEqual({ marks: ['real'] })
+    expect(persistence.readFrom).toHaveBeenNthCalledWith(1, SessionId('malformed'), 1, undefined)
+    expect(persistence.readFrom).toHaveBeenNthCalledWith(2, SessionId('malformed'), 0, undefined)
+  })
+
   it('write-back failure is contained: the snapshot is still served', async () => {
     const pool = new MemoryMediaPool()
     const logs = new Map([['soft', storedLog([['a']])]])
@@ -334,7 +353,7 @@ describe('SessionProjectionCache cold read', () => {
 
   it('dates an empty stored log at -1 in the zero-units topology', async () => {
     const pool = new MemoryMediaPool()
-    const logs = new Map([['empty', [] as Array<SessionEvent>]])
+    const logs = new Map([['empty', [] as SessionEvent[]]])
     const ctx = new Context()
     contexts.push(ctx)
     await ctx.plugin(Storage)

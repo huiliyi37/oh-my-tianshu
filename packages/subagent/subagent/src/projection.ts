@@ -16,15 +16,24 @@ import type {
   SubagentTimingProjection,
 } from './projection-types.ts'
 
-interface TimingState {
+/** Fold state for a subagent's latest timing snapshot. */
+export interface TimingState {
   /** Milliseconds accumulated across completed post-descriptor turns. */
   settledMs: number
   /** Current open interval kept paired inside the fold. */
-  active?: { since: number; through: number }
+  active?: { since: number; through: number } | undefined
   /** Latest pre-descriptor turn start, promoted when the child's own descriptor arrives. */
-  pendingTurnStart?: number
+  pendingTurnStart?: number | undefined
   /** Whether the fold has crossed a descriptor in this logical log. */
   descriptorSeen: boolean
+}
+
+declare module '@huiliyi37/dsh-session-projection/types' {
+  interface SessionProjectionStateMap {
+    subagentTiming: TimingState
+    subagent: IdentityState
+    subagentProgress: ProgressState
+  }
 }
 
 const activeIntervalSchema = z.object({
@@ -40,6 +49,14 @@ const projectionSchema: z.ZodType<SubagentTimingProjection> = z.object({
   ...active === undefined ? {} : { active },
 }))
 
+/** The timing fold's persisted-state shape: the wire fields plus fold bookkeeping. */
+const timingStateSchema: z.ZodType<TimingState> = z.object({
+  settledMs: z.number().int().nonnegative(),
+  active: activeIntervalSchema.optional(),
+  pendingTurnStart: z.number().int().nonnegative().optional(),
+  descriptorSeen: z.boolean(),
+}).strict()
+
 /**
  * Fold turn boundaries around the child's own durable descriptor.
  *
@@ -48,10 +65,9 @@ const projectionSchema: z.ZodType<SubagentTimingProjection> = z.object({
  * admits only a child with exactly one descriptor in its own suffix, making
  * the final reset the child's authoritative timing origin.
  */
-export const subagentTimingProjectionDefinition:
-ProjectionDefinition<'subagentTiming', TimingState> = {
+export const subagentTimingProjectionDefinition = {
   key: 'subagentTiming',
-  schema: projectionSchema,
+  stateSchema: timingStateSchema,
   init: () => ({ descriptorSeen: false, settledMs: 0 }),
   apply: (state, event) => {
     if (event.type === 'turn/start') {
@@ -85,16 +101,19 @@ ProjectionDefinition<'subagentTiming', TimingState> = {
     if (state.active === undefined) return state
     return { ...state, active: { ...state.active, through: event.time } }
   },
-  view: state => ({
-    settledMs: state.settledMs,
-    ...(state.active === undefined ? {} : { active: state.active }),
-  }),
+  wire: {
+    viewSchema: projectionSchema,
+    view: state => ({
+      settledMs: state.settledMs,
+      ...(state.active === undefined ? {} : { active: state.active }),
+    }),
+  },
   stateVersion: 2,
-}
+} satisfies ProjectionDefinition<'subagentTiming', TimingState>
 
 interface IdentityState {
   /** Identity from the last valid descriptor; absent before one, and after an invalid one. */
-  identity?: SubagentIdentityProjection
+  identity?: SubagentIdentityProjection | undefined
 }
 
 // The cast bridges only the optional-label arm: Zod's optional output
@@ -102,7 +121,7 @@ interface IdentityState {
 // from the public interface. The no-value state itself is the serializable
 // `null` arm — never `undefined` — so every registry read and push frame
 // survives JSON.stringify losslessly.
-const identitySchema = z.discriminatedUnion('mode', [
+const identityValueSchema = z.discriminatedUnion('mode', [
   z.object({
     mode: z.literal('one-shot'),
     label: z.string().optional(),
@@ -113,7 +132,14 @@ const identitySchema = z.discriminatedUnion('mode', [
     label: z.string(),
     seq: z.number().int().nonnegative(),
   }).strict(),
-]).nullable() as unknown as z.ZodType<SubagentIdentityProjection | null>
+]) as unknown as z.ZodType<SubagentIdentityProjection>
+
+const identitySchema = identityValueSchema.nullable()
+
+/** The identity fold's persisted-state shape: the last valid descriptor's payload. */
+const identityStateSchema: z.ZodType<IdentityState> = z.object({
+  identity: identityValueSchema.optional(),
+}).strict()
 
 /** Interpret one `subagent/descriptor` event's identity; no value when the payload cannot be trusted. */
 function descriptorIdentity(event: SessionEvent): SubagentIdentityProjection | undefined {
@@ -146,23 +172,22 @@ function descriptorIdentity(event: SessionEvent): SubagentIdentityProjection | u
  * holding the earlier identity replaces it instead of keeping it stale;
  * `null` ⟺ no valid descriptor, with the causes deliberately undistinguished.
  */
-export const subagentIdentityProjectionDefinition:
-ProjectionDefinition<'subagent', IdentityState> = {
+export const subagentIdentityProjectionDefinition = {
   key: 'subagent',
-  schema: identitySchema,
+  stateSchema: identityStateSchema,
   init: () => ({}),
   apply: (state, event) => {
     if (event.type !== 'subagent/descriptor') return state
     const identity = descriptorIdentity(event)
     return identity === undefined ? {} : { identity }
   },
-  view: state => state.identity ?? null,
+  wire: { viewSchema: identitySchema, view: state => state.identity ?? null },
   // Bumped when the identity gained its `seq` field: an older checkpoint row
   // would replay into a value the schema rejects, so it must refold instead.
   stateVersion: 2,
-}
+} satisfies ProjectionDefinition<'subagent', IdentityState>
 
-interface ProgressState {
+export interface ProgressState {
   /** Whether the fold has crossed a descriptor in this logical log. */
   descriptorSeen: boolean
   /** Whether a turn is currently open after the descriptor (execution-state bit). */
@@ -174,15 +199,15 @@ interface ProgressState {
   /** Billed total of the latest `assistant/message` usage (last-wins). */
   tokensUsed: number
   /** `reasoningTokens` of the latest usage (last-wins). */
-  reasoningTokens?: number
+  reasoningTokens?: number | undefined
   /** Name of the latest `tool/call`. */
-  lastTool?: string
+  lastTool?: string | undefined
   /** Kind of the latest post-descriptor `turn/end` reason. */
-  lastTurnEnd?: string
+  lastTurnEnd?: string | undefined
   /** callId → tool name for calls that have not reached `tool/result`. Plain JSON (persisted-cache precondition). */
   pending: Record<string, string>
   /** callId of the latest `tool/call`. */
-  lastCallId?: string
+  lastCallId?: string | undefined
 }
 
 const progressSchema = z.object({
@@ -198,6 +223,20 @@ const progressSchema = z.object({
   running: z.boolean(),
 }).strict() as unknown as z.ZodType<SubagentProgressProjection>
 
+/** The progress fold's persisted-state shape: accumulation fields behind the computed view. */
+const progressStateSchema: z.ZodType<ProgressState> = z.object({
+  descriptorSeen: z.boolean(),
+  inTurn: z.boolean(),
+  turns: z.number().int().nonnegative(),
+  toolCalls: z.number().int().nonnegative(),
+  tokensUsed: z.number().int().nonnegative(),
+  reasoningTokens: z.number().int().nonnegative().optional(),
+  lastTool: z.string().min(1).optional(),
+  lastTurnEnd: z.string().optional(),
+  pending: z.record(z.string(), z.string()),
+  lastCallId: z.string().optional(),
+}).strict()
+
 /**
  * Fold running activity facts from the child's own log: turn/tool counts,
  * latest token accounting, the current tool activity, and the `running`
@@ -209,10 +248,9 @@ const progressSchema = z.object({
  * throws: it folds to no value, mirroring the identity unit's damage
  * discipline.
  */
-export const subagentProgressProjectionDefinition:
-ProjectionDefinition<'subagentProgress', ProgressState> = {
+export const subagentProgressProjectionDefinition = {
   key: 'subagentProgress',
-  schema: progressSchema,
+  stateSchema: progressStateSchema,
   init: () => ({ descriptorSeen: false, inTurn: false, turns: 0, toolCalls: 0, tokensUsed: 0, pending: {} }),
   apply: (state, event) => {
     if (event.type === 'subagent/descriptor') {
@@ -271,23 +309,26 @@ ProjectionDefinition<'subagentProgress', ProgressState> = {
         return state
     }
   },
-  view: (state) => {
-    const toolInFlight = state.lastCallId !== undefined
-      && Object.hasOwn(state.pending, state.lastCallId)
-    return {
-      turns: state.turns,
-      toolCalls: state.toolCalls,
-      tokensUsed: state.tokensUsed,
-      ...state.reasoningTokens !== undefined ? { reasoningTokens: state.reasoningTokens } : {},
-      ...state.lastTool !== undefined ? { lastTool: state.lastTool } : {},
-      toolInFlight,
-      ...state.lastTurnEnd !== undefined
-        ? { lastTurnEnd: state.lastTurnEnd as NonNullable<SubagentProgressProjection['lastTurnEnd']> }
-        : {},
-      running: state.inTurn,
-    }
+  wire: {
+    viewSchema: progressSchema,
+    view: (state) => {
+      const toolInFlight = state.lastCallId !== undefined
+        && Object.hasOwn(state.pending, state.lastCallId)
+      return {
+        turns: state.turns,
+        toolCalls: state.toolCalls,
+        tokensUsed: state.tokensUsed,
+        ...state.reasoningTokens !== undefined ? { reasoningTokens: state.reasoningTokens } : {},
+        ...state.lastTool !== undefined ? { lastTool: state.lastTool } : {},
+        toolInFlight,
+        ...state.lastTurnEnd !== undefined
+          ? { lastTurnEnd: state.lastTurnEnd as NonNullable<SubagentProgressProjection['lastTurnEnd']> }
+          : {},
+        running: state.inTurn,
+      }
+    },
   },
   // Bumped for the `running` execution-state bit: older checkpoint rows replay
   // into a value the schema rejects, so they must refold instead.
   stateVersion: 2,
-}
+} satisfies ProjectionDefinition<'subagentProgress', ProgressState>

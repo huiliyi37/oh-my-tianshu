@@ -60,6 +60,7 @@
       "@huiliyi37/dsh-typert-generator": ["./packages/typert/generator/src/index.ts"],
       "@huiliyi37/dsh-session/types": ["./packages/core/session/src/types.ts"],
       "@huiliyi37/dsh-session/surface": ["./packages/core/session/src/surface.ts"],
+      "@huiliyi37/dsh-session-projection": ["./packages/session/session-projection/src/index.ts"],
       "@huiliyi37/dsh-session-projection/types": ["./packages/session/session-projection/src/types.ts"],
       "@huiliyi37/dsh-tool-todo/types": ["./packages/todo/tool-todo/src/types.ts"],
       "@huiliyi37/dsh-tool-todo/client": ["./packages/todo/tool-todo/src/client.ts"],
