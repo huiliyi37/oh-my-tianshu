@@ -25,7 +25,7 @@ export const inject = ['invariants']
  */
 const install: InvariantInstaller = (ctx, fail) => {
   ctx.on('internal/plugin', () => {
-    const server = ctx.get('httpServer') as
+    const server = ctx.get('webServer') as
       | {
         register(route: { kind: 'exact'; path: string; handler: () => void }): () => void
         registerUpgrade(route: { path: string; handler: () => void }): () => void
@@ -44,7 +44,7 @@ const install: InvariantInstaller = (ctx, fail) => {
       server.registerUpgrade(upgradeProbe)()
       server.registerUpgrade(upgradeProbe)()
     } catch {
-      fail('httpServer route disposer left a route registered — route tables and fiber lifecycles diverged')
+      fail('webServer route disposer left a route registered — route tables and fiber lifecycles diverged')
     }
   }, { global: true })
 }

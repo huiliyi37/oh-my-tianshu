@@ -90,7 +90,7 @@ describe('real Loader composition', () => {
       .filter(entry => entry.fiber === undefined && !entry.disabled)
       .map(entry => entry.options.name)
     expect(unloaded).toEqual([])
-    const server = loaded.httpServer
+    const server = loaded.webServer
     const port = server.port
 
     // Real assets with their MIME types; a live rebuild is served on the next read.

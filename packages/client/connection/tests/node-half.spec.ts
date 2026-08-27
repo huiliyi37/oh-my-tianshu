@@ -11,7 +11,7 @@ import { RpcId, type ClientRequest } from '@huiliyi37/dsh-host-apiproxy/api'
 import type { HttpServerService, WebRoute, WebUpgradeRoute } from '@huiliyi37/dsh-host-webserver'
 import { API_PATH, apply, HOST_EVENTS_PATH, inject, MUX_EVENTS_PATH, type HostConnectionHandle } from '../src/index.ts'
 
-/** Structural httpServer fake recording both route registries. */
+/** Structural webServer fake recording both route registries. */
 function fakeHttpServer(
   routes: WebRoute[],
   upgrades: WebUpgradeRoute[],
@@ -81,7 +81,7 @@ async function mounted(config?: { trustedHosts?: string[] }): Promise<{
   const ctx = new Context()
   const routes: WebRoute[] = []
   const upgrades: WebUpgradeRoute[] = []
-  ctx.provide('httpServer', fakeHttpServer(routes, upgrades) as HttpServerService)
+  ctx.provide('webServer', fakeHttpServer(routes, upgrades) as HttpServerService)
   ctx.provide('apiProxy', {} as unknown as ApiProxy)
   const fiber = ctx.plugin({ inject: [...inject], apply }, config)
   await fiber.await()
@@ -93,7 +93,7 @@ describe('connection node half', () => {
     const routes: Array<WebRoute> = []
     const upgrades: WebUpgradeRoute[] = []
     const ctx = new Context()
-    ctx.provide('httpServer', fakeHttpServer(routes, upgrades) as HttpServerService)
+    ctx.provide('webServer', fakeHttpServer(routes, upgrades) as HttpServerService)
     ctx.provide('apiProxy', {} as unknown as ApiProxy)
     const fiber = ctx.plugin({ inject: [...inject], apply }, { trustedHosts: ['harness.internal/path'] })
     await expect(fiber).rejects.toThrow(/not a bare host\[:port\] authority/)
@@ -198,7 +198,7 @@ describe('connection node half', () => {
   it('provides a disposable dedicated RPC channel without requiring apiProxy', async () => {
     const ctx = new Context()
     const routes: WebRoute[] = []
-    ctx.provide('httpServer', fakeHttpServer(routes, []) as HttpServerService)
+    ctx.provide('webServer', fakeHttpServer(routes, []) as HttpServerService)
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     expect(routes).toHaveLength(1)
@@ -244,7 +244,7 @@ describe('connection node half', () => {
   it('dispatches claimed /api endpoints before the API Proxy fallback and withdraws the claim', async () => {
     const ctx = new Context()
     const routes: WebRoute[] = []
-    ctx.provide('httpServer', fakeHttpServer(routes, []) as HttpServerService)
+    ctx.provide('webServer', fakeHttpServer(routes, []) as HttpServerService)
     ctx.provide('apiProxy', {} as unknown as ApiProxy)
     const fiber = ctx.plugin({ inject: [...inject], apply }, { trustedHosts: ['harness.example'] })
     await fiber.await()
@@ -322,7 +322,7 @@ describe('connection node half', () => {
   it('applies the configured trust fence and JSON envelope checks to generic channels', async () => {
     const ctx = new Context()
     const routes: WebRoute[] = []
-    ctx.provide('httpServer', fakeHttpServer(routes, []) as HttpServerService)
+    ctx.provide('webServer', fakeHttpServer(routes, []) as HttpServerService)
     const fiber = ctx.plugin({ inject: [...inject], apply }, { trustedHosts: ['harness.example'] })
     await fiber.await()
     const connection = ctx.get('connection') as HostConnectionHandle

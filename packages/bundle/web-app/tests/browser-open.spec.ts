@@ -46,7 +46,7 @@ describe('web app browser startup', () => {
     writeFileSync(webserverModule, 'export default globalThis.__dshWebServer\n')
     writeFileSync(webAppModule, [
       "export const name = 'fixture-web-app'",
-      "export const inject = ['httpServer']",
+      "export const inject = ['webServer']",
       'export const apply = (ctx, config) => globalThis.__dshWebAppApply(ctx, config)',
       '',
     ].join('\n'))
@@ -96,7 +96,7 @@ describe('web app browser startup', () => {
     await ctx.loader.await()
     await opened
 
-    expect(openedUrl).toBe(`http://127.0.0.1:${String(ctx.get('httpServer')?.port)}`)
+    expect(openedUrl).toBe(`http://127.0.0.1:${String(ctx.get('webServer')?.port)}`)
     expect(openedStatus).toBe(200)
   })
 })

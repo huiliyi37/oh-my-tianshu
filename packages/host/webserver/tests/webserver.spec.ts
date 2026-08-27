@@ -96,10 +96,10 @@ describe('real Loader composition', () => {
       .map(entry => entry.options.name)
     expect(unloaded).toEqual([])
 
-    const server = loaded.httpServer
+    const server = loaded.webServer
     expect(server).toBeInstanceOf(HttpServer)
     // Upstream dsh compatibility: the legacy `webServer` service name must
-    // serve the same route table as the fork's `httpServer` (third-party
+    // serve the same route table as the fork's `webServer` (third-party
     // plugins written against DeepSeek Harness inject `webServer`).
     expect(loaded.webServer).toBeDefined()
     loaded.webServer.register({ kind: 'exact', path: '/via-legacy', handler: (_req, res) => { res.writeHead(200); res.end('LEGACY') } })
@@ -208,7 +208,7 @@ describe('real Loader composition', () => {
 
   it('fails the fiber when the port is already taken (fail-loud at activation)', { timeout: 60_000 }, async () => {
     const first = await loadComposition()
-    const takenPort = first.httpServer.port
+    const takenPort = first.webServer.port
     const firstRoot = root
     root = undefined // keep the first composition's files until the end
 

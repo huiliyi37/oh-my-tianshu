@@ -46,7 +46,7 @@ function constructWithRoute(packageNames: string[]): { service: ClientModuleHost
     },
   })
   let route: WebRoute | undefined
-  const httpServer: Pick<HttpServerService, 'port' | 'register' | 'tapIndex'> = {
+  const webServer: Pick<HttpServerService, 'port' | 'register' | 'tapIndex'> = {
     port: 0,
     register: (candidate) => {
       if (candidate.path === '/plugins') route = candidate
@@ -54,7 +54,7 @@ function constructWithRoute(packageNames: string[]): { service: ClientModuleHost
     },
     tapIndex: () => () => {},
   }
-  ctx.provide('httpServer', httpServer as HttpServerService)
+  ctx.provide('webServer', webServer as HttpServerService)
   const service = new ClientModuleHostService(ctx)
   if (route === undefined) throw new Error('client bundle route was not registered')
   return { service, route }

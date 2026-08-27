@@ -60,7 +60,7 @@ function stageDist(): string {
   return index
 }
 
-/** A fake httpServer capturing the fallback seat and index taps. */
+/** A fake webServer capturing the fallback seat and index taps. */
 function fakeHttpServer(): { server: HttpServerService; seat: () => unknown } {
   let fallback: unknown
   const server = {
@@ -94,7 +94,7 @@ describe('web-app runtime glue', () => {
       { source: 'project-env', path: '/work/.env', values: { SSH_CONNECTION: 'stale-project-value' } },
     ]))
     const { server, seat } = fakeHttpServer()
-    ctx.provide('httpServer', server)
+    ctx.provide('webServer', server)
     const contributions: BashContribution[] = []
     ctx.provide('bashEnv', {
       register: (contribution: BashContribution) => {
@@ -133,7 +133,7 @@ describe('web-app runtime glue', () => {
   it('publishes no readiness side effect in production mode when printing and browser opening are disabled', async () => {
     stageDist()
     const ctx = new Context()
-    ctx.provide('httpServer', fakeHttpServer().server)
+    ctx.provide('webServer', fakeHttpServer().server)
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     const openBrowser = vi.fn(async () => {})
     internals.openBrowser = openBrowser
@@ -151,7 +151,7 @@ describe('web-app runtime glue', () => {
   it('skips the surface context when disabled (the one-shot layer): no prompt section, no bash variables', async () => {
     stageDist()
     const ctx = new Context()
-    ctx.provide('httpServer', fakeHttpServer().server)
+    ctx.provide('webServer', fakeHttpServer().server)
     const contributions: BashContribution[] = []
     ctx.provide('bashEnv', {
       register: (contribution: BashContribution) => {
@@ -171,7 +171,7 @@ describe('web-app runtime glue', () => {
   it('prints the loopback-only URL line when no LAN snapshot exists', async () => {
     stageDist()
     const ctx = new Context()
-    ctx.provide('httpServer', fakeHttpServer().server)
+    ctx.provide('webServer', fakeHttpServer().server)
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     apply(ctx, new Config({ mode: 'production', openBrowser: false, printUrl: true, surfaceContext: true, lanAddresses: [] }))
     await new Promise(resolve => setTimeout(resolve, 0))
@@ -186,7 +186,7 @@ describe('web-app runtime glue', () => {
     vi.stubEnv(name, value)
     stageDist()
     const ctx = new Context()
-    ctx.provide('httpServer', fakeHttpServer().server)
+    ctx.provide('webServer', fakeHttpServer().server)
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     const openBrowser = vi.fn(async () => {})
     internals.openBrowser = openBrowser
@@ -204,7 +204,7 @@ describe('web-app runtime glue', () => {
     // Settlement path: both actions wait for loader.await() so their consumers
     // can request the complete app immediately.
     const settled = new Context()
-    settled.provide('httpServer', fakeHttpServer().server)
+    settled.provide('webServer', fakeHttpServer().server)
     let release: () => void
     const settlement = new Promise<void>((resolve) => { release = resolve })
     provideLoader(settled, () => settlement)
@@ -224,7 +224,7 @@ describe('web-app runtime glue', () => {
     log.mockClear()
     openBrowser.mockClear()
     const failed = new Context()
-    failed.provide('httpServer', fakeHttpServer().server)
+    failed.provide('webServer', fakeHttpServer().server)
     provideLoader(failed, async () => { throw new Error('boot failed') })
     apply(failed, new Config({ mode: 'production', openBrowser: true, printUrl: true, surfaceContext: true, lanAddresses: [] }))
     await new Promise(resolve => setTimeout(resolve, 0))
@@ -238,14 +238,14 @@ describe('web-app runtime glue', () => {
     openBrowser.mockClear()
     const torn = new Context()
     const child = torn.plugin((childCtx: Context) => {
-      childCtx.provide('httpServer', fakeHttpServer().server)
+      childCtx.provide('webServer', fakeHttpServer().server)
     })
     await child
     let releaseTorn: () => void
     const tornSettlement = new Promise<void>((resolve) => { releaseTorn = resolve })
     provideLoader(torn, () => tornSettlement)
     apply(torn, new Config({ mode: 'production', openBrowser: true, printUrl: true, surfaceContext: true, lanAddresses: [] }))
-    await child.dispose() // the httpServer service goes away
+    await child.dispose() // the webServer service goes away
     releaseTorn!()
     await new Promise(resolve => setTimeout(resolve, 0))
     expect(log).not.toHaveBeenCalled()
@@ -260,11 +260,11 @@ describe('web-app runtime glue', () => {
     // section must throw, never render a URL with an undefined port.
     const { server } = fakeHttpServer()
     Object.defineProperty(server, 'port', { get: () => undefined })
-    ctx.provide('httpServer', server)
+    ctx.provide('webServer', server)
     apply(ctx, new Config({ mode: 'production', openBrowser: false, printUrl: false, surfaceContext: true, lanAddresses: [] }))
     await ctx.plugin(SystemPrompt, { persona: '' })
     await new Promise(resolve => setTimeout(resolve, 0))
-    await expect(ctx.systemPrompt.assemble()).rejects.toThrow('httpServer service missing')
+    await expect(ctx.systemPrompt.assemble()).rejects.toThrow('webServer service missing')
     await ctx.fiber.dispose()
   })
 
@@ -286,7 +286,7 @@ describe('web-app runtime glue', () => {
   ] as const)('keeps the server running and reports the manual URL when a browser failure is %s', async (_kind, failure, reason) => {
     stageDist()
     const ctx = new Context()
-    ctx.provide('httpServer', fakeHttpServer().server)
+    ctx.provide('webServer', fakeHttpServer().server)
     internals.openBrowser = vi.fn(async () => { throw failure })
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     const diagnostic = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -296,7 +296,7 @@ describe('web-app runtime glue', () => {
     expect(diagnostic).toHaveBeenCalledWith(
       `web-app: could not open the default browser because ${reason}; visit http://127.0.0.1:4567 manually`,
     )
-    expect(ctx.get('httpServer')).toBeDefined()
+    expect(ctx.get('webServer')).toBeDefined()
     await ctx.fiber.dispose()
   })
 

@@ -1,7 +1,7 @@
 /** Host HTTP bridge for browser-client RPC. */
 import type { Context } from '@huiliyi37/cordis'
 import z from '@huiliyi37/schemastery'
-// Activates the httpServer Context merge used below.
+// Activates the webServer Context merge used below.
 import type { WebRoute, WebUpgradeRoute } from '@huiliyi37/dsh-host-webserver'
 import { toFetchHandler } from '@huiliyi37/dsh-host-apiproxy'
 import { API_PATH, HOST_EVENTS_PATH, MUX_EVENTS_PATH } from './api-path.ts'
@@ -26,7 +26,7 @@ export { API_PATH, HOST_EVENTS_PATH, MUX_EVENTS_PATH } from './api-path.ts'
 export const name = 'client-connection'
 
 /** Services required before providing Connection; API Proxy is an optional `/api` fallback. */
-export const inject = ['httpServer']
+export const inject = ['webServer']
 
 /** Plugin config: the deployment's non-loopback serving authorities. */
 export interface ConnectionConfig {
@@ -129,14 +129,14 @@ export function apply(ctx: Context, config?: ConnectionConfig): void {
       await bridge(req, res, fetchHandler)
     },
   }
-  ctx.effect(() => { return ctx.httpServer.register(route) }, 'client-connection: /api route')
+  ctx.effect(() => { return ctx.webServer.register(route) }, 'client-connection: /api route')
   ctx.inject(['apiProxy'], (apiCtx) => {
     const downlinks = new WebSocketDownlinks(apiCtx.apiProxy)
     const registerDownlink = (
       path: string,
       handle: WebUpgradeRoute['handler'],
     ): void => {
-      apiCtx.effect(() => apiCtx.httpServer.registerUpgrade({
+      apiCtx.effect(() => apiCtx.webServer.registerUpgrade({
         path,
         handler: (req, socket, head) => {
           if (!isTrustedApiRequest(req, trustedHosts)) {

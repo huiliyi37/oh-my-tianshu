@@ -10,7 +10,7 @@ import { statSync } from 'node:fs'
 import type { ServerResponse } from 'node:http'
 import type { Context } from '@huiliyi37/cordis'
 import z from '@huiliyi37/schemastery'
-// Empty type imports carry the clientModuleHost/httpServer Context merges.
+// Empty type imports carry the clientModuleHost/webServer Context merges.
 import type {} from '@huiliyi37/dsh-client-modules'
 import type {} from '@huiliyi37/dsh-host-webserver'
 import type { PluginsEventFrame } from './events.ts'
@@ -23,7 +23,7 @@ export { EVENTS_ENDPOINT } from './events.ts'
 export const name = 'client-hmr'
 
 /** Required services: the web plugin table and the route registry. */
-export const inject = ['clientModuleHost', 'httpServer']
+export const inject = ['clientModuleHost', 'webServer']
 
 /** Plugin config, validated by the same-named schemastery schema. */
 export interface Config {
@@ -49,7 +49,7 @@ interface WatchedBundle {
 
 /**
  * Mount the dev chain: bundle watches, rebuilt reporting, and the SSE channel.
- * @param ctx - host plugin context carrying clientModuleHost and httpServer.
+ * @param ctx - host plugin context carrying clientModuleHost and webServer.
  * @param config - validated {@link Config}.
  */
 export function apply(ctx: Context, config: Config): void {
@@ -161,7 +161,7 @@ export function apply(ctx: Context, config: Config): void {
   }
 
   ctx.effect(() => {
-    const disposeRoute = ctx.httpServer.register({
+    const disposeRoute = ctx.webServer.register({
       kind: 'exact',
       path: EVENTS_ENDPOINT,
       handler: (req, res) => {

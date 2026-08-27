@@ -27,7 +27,7 @@ import type {} from '@huiliyi37/dsh-bash-env'
 export const name = 'web-app'
 
 /** Services required before the web runtime can mount. */
-export const inject = ['httpServer']
+export const inject = ['webServer']
 
 /** Web runtime mode: production, or development when the client-plugin HMR receiver is active. */
 export type WebMode = 'production' | 'development'
@@ -132,8 +132,8 @@ function webSurfacePrompt(webUrl: string, mode: WebMode): string {
 
 /** Resolve the canonical loopback URL from the active Web server. */
 function localWebUrl(ctx: Context): string {
-  const port = ctx.get('httpServer')?.port
-  if (port === undefined) throw new Error('web-app: httpServer service missing while resolving Web runtime')
+  const port = ctx.get('webServer')?.port
+  if (port === undefined) throw new Error('web-app: webServer service missing while resolving Web runtime')
   return `http://${LOOPBACK_HOST}:${String(port)}`
 }
 
@@ -198,7 +198,7 @@ export const internals: {
 /**
  * Mount the Web runtime: dist serving, surface prompt, bash runtime
  * variables, the URL line, and the default-browser handoff.
- * @param ctx - plugin context carrying the httpServer service.
+ * @param ctx - plugin context carrying the webServer service.
  * @param config - validated {@link Config}.
  */
 export function apply(ctx: Context, config: Config): void {
@@ -236,7 +236,7 @@ export function apply(ctx: Context, config: Config): void {
       // The launcher's boot-time LAN snapshot, not a fresh sample: the printed
       // LAN URL must name an address the /api trust fence was configured with.
       const lanCandidate = config.lanAddresses[0]
-      const port = ctx.httpServer.port
+      const port = ctx.webServer.port
       if (config.printUrl) {
         console.log(`tianshu web: ${webUrl}${lanCandidate === undefined ? '' : ` (LAN: http://${lanCandidate}:${String(port)})`}`)
       }
@@ -259,7 +259,7 @@ export function apply(ctx: Context, config: Config): void {
         // SIGTERM); a URL line or browser tab for a dead server would only
         // mislead, and reading the torn-down port would turn a clean shutdown
         // into a crash.
-        if (ctx.get('httpServer') !== undefined) announceReady()
+        if (ctx.get('webServer') !== undefined) announceReady()
       // Loader reports a failed boot; this row only stays quiet.
       }, () => {})
     }

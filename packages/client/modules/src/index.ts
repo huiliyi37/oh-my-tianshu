@@ -182,7 +182,7 @@ export function injectBootManifest(html: string, graph: WebBootGraph): string {
  * boot activation audit reports it).
  */
 export class ClientModuleHostService extends Service {
-  static inject = ['httpServer', 'loader']
+  static inject = ['webServer', 'loader']
 
   private readonly table = new Map<string, WebPluginRecord>()
   // Negative verdicts (unresolvable specifier — builtins like cordis:include,
@@ -198,7 +198,7 @@ export class ClientModuleHostService extends Service {
 
   /**
    * Build the service: subscribe, seed, and run the activation flush.
-   * @param ctx - plugin context carrying httpServer and loader.
+   * @param ctx - plugin context carrying webServer and loader.
    */
   constructor(ctx: Context) {
     super(ctx, 'clientModuleHost')
@@ -239,11 +239,11 @@ export class ClientModuleHostService extends Service {
     }
 
     ctx.effect(
-      () => ctx.httpServer.register({ kind: 'prefix', path: '/plugins', handler: this.serveBundle }),
+      () => ctx.webServer.register({ kind: 'prefix', path: '/plugins', handler: this.serveBundle }),
       'client-modules: bundle route',
     )
     ctx.effect(
-      () => { return ctx.httpServer.tapIndex(html => injectBootManifest(html, this.composed)) },
+      () => { return ctx.webServer.tapIndex(html => injectBootManifest(html, this.composed)) },
       'client-modules: boot manifest injection',
     )
   }

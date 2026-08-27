@@ -338,7 +338,7 @@ describe('server-filesystem — real filesystem operations', () => {
 
 describe('streamable-http — in-process MCP server', () => {
   let ctx: Context
-  let httpServer: Server
+  let webServer: Server
   let baseUrl: string
   /** Authorization header values observed by the HTTP server, in arrival order. */
   const seenAuth: Array<string | undefined> = []
@@ -379,15 +379,15 @@ describe('streamable-http — in-process MCP server', () => {
   }
 
   beforeAll(async () => {
-    httpServer = createServer((req, res) => {
+    webServer = createServer((req, res) => {
       handleMcpRequest(req, res).catch((error: unknown) => {
         res.writeHead(500).end(String(error))
       })
     })
     const listening: PromiseWithResolvers<void> = Promise.withResolvers()
-    httpServer.listen(0, '127.0.0.1', listening.resolve)
+    webServer.listen(0, '127.0.0.1', listening.resolve)
     await listening.promise
-    const address = httpServer.address()
+    const address = webServer.address()
     if (address === null || typeof address === 'string') throw new Error(`expected a TCP AddressInfo, got ${String(address)}`)
     baseUrl = `http://127.0.0.1:${address.port}/mcp`
 
@@ -407,7 +407,7 @@ describe('streamable-http — in-process MCP server', () => {
     if (ctx) await ctx.fiber.dispose()
     await sleep(200)
     const closed: PromiseWithResolvers<void> = Promise.withResolvers()
-    httpServer.close(() => { closed.resolve() })
+    webServer.close(() => { closed.resolve() })
     await closed.promise
   })
 

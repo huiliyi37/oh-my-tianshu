@@ -1,8 +1,8 @@
 /**
  * @huiliyi37/dsh-host-webserver — Web route-registration plugin: a node:http
- * server plus the `httpServer` service (HTTP and upgrade route registries,
- * index transform taps, and the single fallback seat for everything no route
- * claims). Knows no harness concepts and serves no files; the composing
+ * server plus the `webServer` service (HTTP and upgrade route registries, the
+ * structured index injection table with raw transform taps behind it, and the
+ * single fallback seat for everything no route claims). Knows no harness concepts and serves no files; the composing
  * application's frontend plugin owns dist serving through the fallback hook.
  * Web shape only — Electron loads dist over file:// and carries fetch over an
  * IPC bridge. This package never prints: the URL line belongs to the shell.
@@ -14,12 +14,24 @@ import type { AddressInfo } from 'node:net'
 import type { Duplex } from 'node:stream'
 import { Context, Service } from '@huiliyi37/cordis'
 import z from '@huiliyi37/schemastery'
+import { renderIndexInjections, type IndexInjection } from './injections.ts'
+
+export { renderIndexInjections } from './injections.ts'
+export type { IndexInjection, IndexInjectionPlacement } from './injections.ts'
 
 declare module '@huiliyi37/cordis' {
   interface Context {
-    httpServer: HttpServerService
-    /** Upstream dsh alias: `webServer` resolves to the same instance. */
     webServer: HttpServerService
+  }
+  interface Events {
+    /**
+     * Collect the structured index injection table. Emitted on every index
+     * render and every worker boot-payload request; listeners push their
+     * current rows, so a row's data is read fresh at emit time.
+     * @param table - Mutable row table; listeners append in activation order.
+     * @mode emit
+     */
+    'webserver/index-inject'(table: IndexInjection[]): void
   }
 }
 
@@ -75,11 +87,10 @@ export class HttpServerService extends Service {
   private listenedPort!: number
 
   constructor(ctx: Context, private config: Config) {
-    super(ctx, 'httpServer')
+    super(ctx, 'webServer')
     // Upstream dsh compatibility: DeepSeek Harness plugins inject the
     // `webServer` service name. Register this instance under both names so
     // the whole upstream plugin ecosystem keeps working on the fork.
-    ctx.provide('webServer', this)
   }
 
   /** The listening port (the OS-assigned value when config.port is 0). */
@@ -242,7 +253,7 @@ export class HttpServerService extends Service {
         socket.destroy()
       }))
       await Promise.all([serverClosed, ...upgradedClosed])
-    }, 'httpServer.listen')
+    }, 'webServer.listen')
   }
 
   /** Longest-prefix-wins over the prefix table after an exact-table miss. */
@@ -267,6 +278,28 @@ export class HttpServerService extends Service {
     let out = html
     for (const transform of this.indexTaps) out = transform(out)
     return out
+  }
+
+  /**
+   * Gather the structured injection table: one `webserver/index-inject` emit,
+   * every subscriber pushes its current rows. Fresh per call, so subscribers
+   * read live state (module graph, theme preference) at emit time.
+   * @returns rows in subscriber activation order.
+   */
+  collectIndexInjections(): IndexInjection[] {
+    const table: IndexInjection[] = []
+    this.ctx.emit('webserver/index-inject', table)
+    return table
+  }
+
+  /**
+   * Render one index.html body: the structured injection table first, then
+   * the raw `tapIndex` transforms over the result.
+   * @param html - the raw index.html body.
+   * @returns the transformed body.
+   */
+  renderIndex(html: string): string {
+    return this.applyIndexTaps(renderIndexInjections(html, this.collectIndexInjections()))
   }
 }
 

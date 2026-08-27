@@ -737,7 +737,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
-    key: 'httpServer',
+    key: 'webServer',
     summary: 'The web-shape HTTP carrier service.',
     methods: [
       {

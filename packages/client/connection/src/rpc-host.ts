@@ -109,7 +109,7 @@ export class HostConnectionService extends Service implements HostConnectionHand
       },
     }
     return owner.effect(
-      () => owner.httpServer.register(route),
+      () => owner.webServer.register(route),
       `client-connection: ${channel} rpc channel`,
     )
   }

@@ -61,7 +61,7 @@ import SessionStore, {
 } from '@huiliyi37/dsh-session'
 import SessionPersistenceJsonl from '@huiliyi37/dsh-session-persistence-jsonl'
 import * as ToolCordis from '@huiliyi37/dsh-tool-cordis'
-// Empty type imports carry the httpServer/agents/sessionPersistence Context merges.
+// Empty type imports carry the webServer/agents/sessionPersistence Context merges.
 import type {} from '@huiliyi37/dsh-host-webserver'
 import type {} from '@huiliyi37/dsh-agent'
 import { REPO_ROOT, requireDist } from './support.ts'
@@ -442,9 +442,9 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
         op: 'set', path: [WELCOME_NOTICE_ACK_FIELD], value: WELCOME_NOTICE_VERSION,
       }])
     }
-    const boundPort = ctx.get('httpServer')?.port
+    const boundPort = ctx.get('webServer')?.port
     if (boundPort === undefined) {
-      throw new Error('web e2e scaffold: httpServer service missing after settled boot')
+      throw new Error('web e2e scaffold: webServer service missing after settled boot')
     }
     port = boundPort
 

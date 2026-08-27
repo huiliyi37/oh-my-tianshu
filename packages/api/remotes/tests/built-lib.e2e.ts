@@ -59,7 +59,7 @@ describe.skipIf(!requiredArtifacts)('Goal Remote built LIB chain', () => {
 
       const routes = []
       const host = new Context()
-      host.provide('httpServer', {
+      host.provide('webServer', {
         register(route) {
           routes.push(route)
           return () => { routes.splice(routes.indexOf(route), 1) }

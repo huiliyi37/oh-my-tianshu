@@ -22,7 +22,7 @@ import type {} from '@huiliyi37/dsh-host-webserver'
 export const name = 'frontend-static'
 
 /** Service required before the fallback seat can be claimed. */
-export const inject = ['httpServer']
+export const inject = ['webServer']
 
 /** Plugin config: the dist anchor. */
 export interface Config {
@@ -87,15 +87,15 @@ export async function serveStatic(
 
 /**
  * Claim the webserver fallback seat and serve the dist.
- * @param ctx - plugin context carrying the httpServer service.
+ * @param ctx - plugin context carrying the webServer service.
  * @param config - validated {@link Config}.
  */
 export function apply(ctx: Context, config: Config): void {
   const distIndex = config.distIndex
   const distRoot = dirname(distIndex)
   const renderIndex = async (): Promise<string> =>
-    ctx.httpServer.applyIndexTaps(await readFile(distIndex, 'utf8'))
-  ctx.effect(() => ctx.httpServer.registerFallback(async (req, res) => {
+    ctx.webServer.applyIndexTaps(await readFile(distIndex, 'utf8'))
+  ctx.effect(() => ctx.webServer.registerFallback(async (req, res) => {
     // Non-GET/HEAD without a matching named route is 405 (fallback-only
     // semantics: named routes own their method handling).
     if (req.method !== 'GET' && req.method !== 'HEAD') {

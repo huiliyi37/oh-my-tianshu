@@ -70,10 +70,10 @@ function fakeHttpServer(routes: WebRoute[]): HttpServerService {
   return fake as HttpServerService
 }
 
-async function mount(clientModuleHost: FakeHost, httpServer: HttpServerService) {
+async function mount(clientModuleHost: FakeHost, webServer: HttpServerService) {
   const ctx = new Context()
   ctx.provide('clientModuleHost', clientModuleHost)
-  ctx.provide('httpServer', httpServer)
+  ctx.provide('webServer', webServer)
   const fiber = ctx.plugin(
     { inject: [...inject], Config, apply },
     { pollIntervalMs: POLL_MS },
