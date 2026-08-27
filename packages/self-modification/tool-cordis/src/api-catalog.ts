@@ -651,6 +651,10 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         jsDoc: '/**\n * Stream the whole regular text file as decoded text chunks (same text\n * semantics as {@link readText}, for large files). The backend owns\n * cross-chunk UTF-8 decoding and binary rejection so the policy layer never\n * touches raw bytes.\n * @param target - the resolved target to read.\n * @param signal - aborts the stream, including between chunks.\n * @returns the chunk iterable, decoded and validated like {@link readText}.\n */',
       },
       {
+        signature: 'abstract readBytes(target: FsTarget, signal: AbortSignal | undefined, maxBytes: number): Promise<Uint8Array>',
+        jsDoc: '/**\n * Read the whole regular file as raw bytes with no decoding or binary\n * rejection. The bound lives at this seam so a backend can never buffer an\n * unbounded file: a target known or discovered to exceed `maxBytes` fails\n * with `FS_TOO_LARGE` instead of returning a truncated result.\n * @param target - the resolved target to read.\n * @param signal - aborts the read.\n * @param maxBytes - inclusive byte cap on the complete content.\n * @returns the full raw content, at most `maxBytes` long.\n */',
+      },
+      {
         signature: 'abstract listDir(target: FsTarget, signal?: AbortSignal): Promise<FsDirEntry[]>',
         jsDoc: '/**\n * List direct children of a directory in stable name order. Returns resolved\n * child targets plus cheap metadata only; never reads file contents.\n * @param target - the resolved directory target.\n * @param signal - aborts the listing.\n * @returns one entry per direct child, in stable name order.\n */',
       },
