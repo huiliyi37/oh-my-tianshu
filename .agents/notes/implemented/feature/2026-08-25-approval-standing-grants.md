@@ -24,4 +24,4 @@ Unit: approval-rules answerer mapping + facet (derive/append/`match: exact`/a `*
 
 ## Non-goals
 
-Revocation UX, rule edit from the card, and widening `p`'s pattern beyond exact match (glob authoring stays with `/permissions add`) are deferred; the remote/Web decide surface keeps its narrow union until it grows an always-allow affordance of its own.
+Revocation UX, rule edit from the card, and widening `p`'s pattern beyond exact match (glob authoring stays with `/permissions add`) are deferred; the remote/Web decide surface kept its narrow union until it grew an always-allow affordance of its own — landed as the Web approval standing grant ([2026-08-27-web-approval-standing-grant](2026-08-27-web-approval-standing-grant.md)).

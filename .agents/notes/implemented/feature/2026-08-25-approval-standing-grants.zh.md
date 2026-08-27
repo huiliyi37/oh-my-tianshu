@@ -24,4 +24,4 @@ TUI 审批卡新增 `[p] 永久允许`：先落盘，写入进行中忽略 y/n/a
 
 ## 非目标
 
-撤销 UX、卡片内规则编辑、`p` 的 pattern 放宽到精确匹配之外（glob 授权仍归 `/permissions add`）皆延后；远端/Web decide 面在自带 always-allow 入口之前保持窄并集。
+撤销 UX、卡片内规则编辑、`p` 的 pattern 放宽到精确匹配之外（glob 授权仍归 `/permissions add`）皆延后；远端/Web decide 面在自带 always-allow 入口之前保持窄并集——该入口已落地为 Web 审批常设授权（[2026-08-27-web-approval-standing-grant](2026-08-27-web-approval-standing-grant.md)）。

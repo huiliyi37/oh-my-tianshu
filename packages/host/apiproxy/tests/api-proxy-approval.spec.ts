@@ -80,7 +80,7 @@ async function waitForCount(mux: { frames: MuxFrame[] }, type: MuxFrame['type'],
   expect(mux.frames.filter(frame => frame.type === type).length).toBeGreaterThanOrEqual(count)
 }
 
-function answer(rpcId: RpcId, sessionId: unknown, approvalId: ApprovalRequestId, outcome: 'allowed-once' | 'rejected'): Parameters<ApiProxy['respond']>[0] {
+function answer(rpcId: RpcId, sessionId: unknown, approvalId: ApprovalRequestId, outcome: 'allowed-once' | 'allowed-always' | 'rejected'): Parameters<ApiProxy['respond']>[0] {
   return { type: 'client-response', rpcId, result: { ok: true, value: { sessionId, approvalId, outcome } } }
 }
 
@@ -326,5 +326,41 @@ describe('approval pending registry', () => {
     const agent = { session } as unknown as Agent
     const outcome = await ctx.waterfall('approval/request', { agent, toolName: 'x' }, () => Promise.resolve('unavailable' as const))
     expect(outcome).toBe('unavailable')
+  })
+
+  it('P2④: an allowed-always answer is a session standing grant — later asks short-circuit without a requested frame', async () => {
+    const { ctx, api } = await harness()
+    const abort = new AbortController()
+    const mux = openMux(api, abort)
+    const agent = agentOf(ctx)
+
+    // First ask: the client answers allowed-always.
+    const first = ctx.approval.request({ agent, toolName: 'bash', reason: 'first' })
+    const requested = requestedOf(await mux.waitFor('approval/requested'))
+    const envelope = mux.envelopes.find(e => e.payload.type === 'approval/requested') as RpcRequest<MuxFrame>
+    const receipt = await api.respond(answer(envelope.rpcId, requested.sessionId, requested.approvalId, 'allowed-always'))
+    expect(receipt).toEqual({ accepted: true })
+    await expect(first).resolves.toBe('allowed-always')
+    const resolved = await mux.waitFor('approval/resolved')
+    expect(resolved).toMatchObject({ outcome: 'allowed-always' })
+
+    // Second ask in the same session: settled by the grant before any frame
+    // is published — the requested-frame count stays at one.
+    const requestedFramesBefore = mux.frames.filter(frame => frame.type === 'approval/requested').length
+    const second = ctx.approval.request({ agent, toolName: 'bash', reason: 'second' })
+    await expect(second).resolves.toBe('allowed-always')
+    await new Promise(resolve => setTimeout(resolve, 10))
+    expect(mux.frames.filter(frame => frame.type === 'approval/requested').length).toBe(requestedFramesBefore)
+
+    // A different session still asks normally (the grant is per-session).
+    const other = agentOf(ctx)
+    const third = ctx.approval.request({ agent: other, toolName: 'bash', reason: 'other session' })
+    await waitForCount(mux, 'approval/requested', 2)
+    const otherEnvelope = mux.envelopes.findLast(e => e.payload.type === 'approval/requested') as RpcRequest<MuxFrame>
+    const otherRequested = requestedOf(otherEnvelope.payload)
+    expect(otherRequested.sessionId).toBe(other.session.id)
+    await api.respond(answer(otherEnvelope.rpcId, otherRequested.sessionId, otherRequested.approvalId, 'rejected'))
+    await expect(third).resolves.toBe('rejected')
+    abort.abort()
   })
 })

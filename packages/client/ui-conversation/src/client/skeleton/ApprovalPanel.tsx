@@ -10,8 +10,10 @@
 // buttons must be reachable no matter how long the command is.
 // One-shot: the buttons disable
 // after a click and the panel leaves (the InputBar returns) on the broadcast
-// resolved frame. The draft's "Always allow this type" is deferred with
-// grant storage.
+// resolved frame. The session standing grant (`allowed-always`, P2④) settles
+// this call and every later ask in the session through the host bridge's
+// per-session short-circuit; the audit pair stays per-request. Persistent
+// cross-session rules remain the host `/permissions` surface's territory.
 
 import { useMemo, useState } from 'react'
 import { Button } from '@huiliyi37/dsh-client-ui-primitives'
@@ -59,7 +61,7 @@ function ApprovalFlow({ pending, command, t }: {
   // lands; until then the buttons must not re-fire. An answer failure
   // (rejected receipt / transport) re-arms them for retry.
   const [answered, setAnswered] = useState(false)
-  const answer = (outcome: 'allowed-once' | 'rejected'): void => {
+  const answer = (outcome: 'allowed-once' | 'allowed-always' | 'rejected'): void => {
     setAnswered(true)
     void pending.answer(outcome).catch(() => { setAnswered(false) })
   }
@@ -77,6 +79,12 @@ function ApprovalFlow({ pending, command, t }: {
         <div className={css.actionRow}>
           <Button variant="outline" className={css.reject} disabled={answered} onClick={() => { answer('rejected') }}>
             {t('approval.reject')}
+          </Button>
+          {/* P2④: the session standing grant — one click settles this call
+              and every later ask in the session via the host bridge
+              short-circuit. */}
+          <Button variant="outline" disabled={answered} onClick={() => { answer('allowed-always') }}>
+            {t('approval.allowAlways')}
           </Button>
           <Button variant="primary" disabled={answered} onClick={() => { answer('allowed-once') }}>
             {t('approval.allowOnce')}

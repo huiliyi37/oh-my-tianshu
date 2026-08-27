@@ -504,6 +504,8 @@ describe('respond payload schemas', () => {
     expect(approvalRequestIdSchema.parse('a1')).toBe('a1')
     const approval = approvalResponsePayloadSchema.parse({ sessionId: 's', approvalId: 'a', outcome: 'rejected' })
     expect(approval.outcome).toBe('rejected')
+    const standing = approvalResponsePayloadSchema.parse({ sessionId: 's', approvalId: 'a', outcome: 'allowed-always' })
+    expect(standing.outcome).toBe('allowed-always')
     expect(() => approvalResponsePayloadSchema.parse({ sessionId: 's', approvalId: 'a', outcome: 'cancelled' })).toThrow()
     const answer = askUserQuestionAnswerSchema.parse({ answers: [{ id: 'q', selected: ['x'], custom: 'c' }] })
     expect(answer.answers[0]?.selected).toEqual(['x'])

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-25-approval-standing-grants.md
-2026-08-25-approval-standing-grants.md: 6f3da5a52ec50675295d7c9ccb68f3e6fe33c111
-2026-08-25-approval-standing-grants.zh.md: 865c79da499e85f276bad96e5e2aaf9da7a7db9a
+2026-08-25-approval-standing-grants.md: 2e3c67fe9e430745755ebfa39fb99929ebf32a96
+2026-08-25-approval-standing-grants.zh.md: 0dafaf47434b22b4286d72f03471b8f83d9e66f2

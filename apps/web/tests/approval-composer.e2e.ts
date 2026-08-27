@@ -139,7 +139,7 @@ describe('web e2e: approval takeover keeps its actions reachable', () => {
             viewport: window.innerHeight,
           }
         })
-        expect(geometry.buttons).toBe(2)
+        expect(geometry.buttons).toBe(3) // Reject · Always allow this session · Allow once
         expect(geometry.scrolls).toBe(true)
         // One cap for the seat: the panel's text region stops where the
         // composer draft does (sub-pixel tolerance for the shared padding).

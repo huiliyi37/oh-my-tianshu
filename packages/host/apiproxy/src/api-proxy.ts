@@ -762,6 +762,14 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
   let workspaceCreationChain = Promise.resolve()
   const pendingQuestions = new Map<RpcId, PendingQuestion>()
   const pendingApprovals = new Map<RpcId, PendingApproval>()
+  /**
+   * Sessions whose client answered `allowed-always` — a session-scoped standing
+   * grant owned by the proxy bridge (the web mirror of the TUI controller's
+   * always-approve flag): every subsequent ask for the session short-circuits
+   * to `allowed-always` before a pending entry exists, so the audit pair stays
+   * per-request while the client stops being prompted.
+   */
+  const standingGrantSessions = new Set<SessionId>()
   const muxQueues = new Set<FrameQueue<RpcRequest<MuxFrame>>>()
 
   /**
@@ -940,6 +948,13 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       // the signal fired — never invoked, entry pending forever, zombie frame
       // on every mux replay. Settle synchronously instead of publishing.
       if (req.signal?.aborted === true) return Promise.resolve<ApprovalOutcome>('cancelled')
+      // Session standing grant (P2④ web [a]): the client told us this session
+      // always allows — settle immediately with the grant's audit vocabulary,
+      // before any pending entry exists, so the client is never prompted again
+      // while every request still logs its own approval/asked + decided pair.
+      if (standingGrantSessions.has(req.agent.session.id)) {
+        return Promise.resolve<ApprovalOutcome>('allowed-always')
+      }
       // The audit pair `approval/asked` is already appended by the service
       // before dispatch, but dispatch rides a microtask: parallel tool calls
       // can append several asked events before any answerer runs. THIS
@@ -2784,6 +2799,10 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         if (!parsed.success || parsed.data.approvalId !== approval.approvalId || parsed.data.sessionId !== approval.sessionId) {
           return Promise.resolve({ accepted: false, reason: 'bad-response' })
         }
+        // P2④: an allowed-always answer is a standing grant for the session —
+        // record it before settling so the very next parallel ask (if any)
+        // already short-circuits.
+        if (parsed.data.outcome === 'allowed-always') standingGrantSessions.add(approval.sessionId)
         approval.resolve(parsed.data.outcome)
         return Promise.resolve({ accepted: true })
       }
