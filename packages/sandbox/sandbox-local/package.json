@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-sandbox-local",
   "description": "Local process-sandbox backends for the Tianshu Harness sandbox seam: bwrap, the npm-distributed landlock-run launcher, or macOS Seatbelt — functionally probed, fail-closed",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publishConfig": {
     "access": "public"
   },

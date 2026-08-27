@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/oh-my-tianshu",
   "description": "dsh CLI: profile boot, plugin management, and the browser UI alias",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publishConfig": {
     "access": "public"
   },

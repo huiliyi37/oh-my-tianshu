@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-repeat-tool-guard",
   "description": "Repeat-tool-call guard plugin: advisory reminders when an agent loops on identical tool calls",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publishConfig": {
     "access": "public"
   },

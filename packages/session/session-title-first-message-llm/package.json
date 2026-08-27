@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-session-title-first-message-llm",
   "description": "First-message LLM provider plugin for Tianshu Harness session titles",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publishConfig": {
     "access": "public"
   },

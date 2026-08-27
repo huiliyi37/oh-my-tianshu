@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tool-run-tests",
   "description": "Model-facing test-runner tools: run_tests executes the detected framework through the bash seam with machine-readable counts; related_tests lists test files near a source path by filename convention",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publishConfig": {
     "access": "public"
   },

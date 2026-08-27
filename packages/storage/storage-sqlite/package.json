@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-storage-sqlite",
   "description": "SQLite storage backend (kv facet) for the Tianshu Harness storage hub",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publishConfig": {
     "access": "public"
   },

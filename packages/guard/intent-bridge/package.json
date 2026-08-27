@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-intent-bridge",
   "description": "Intent bridge — a new session's first message is handled by a low-cost alignment model (multi-round clarification), then handed off as a structured task card to a fresh main session that naturally enters the zen phase",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publishConfig": {
     "access": "public"
   },

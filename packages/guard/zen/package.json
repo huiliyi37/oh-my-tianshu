@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-zen",
   "description": "Zen phase — anchored minimal tool face for a session's first steps, promoted to the full face by host-verified predicates",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publishConfig": {
     "access": "public"
   },

@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-permission",
   "description": "User-facing permission presets (ctx.permission) for the Tianshu Harness: one product-level Permissions select bundling the sandbox-mode and approval-policy knobs, written through to their own session events",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publishConfig": {
     "access": "public"
   },

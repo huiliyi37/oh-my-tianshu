@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-user-interaction",
   "description": "Abstract user-interaction seam (ctx.userInteraction) for asking the human during agent runs",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publishConfig": {
     "access": "public"
   },

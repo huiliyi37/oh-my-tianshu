@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-goal",
   "description": "Event-sourced same-session goal state and lifecycle service for the Tianshu Harness",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publishConfig": {
     "access": "public"
   },

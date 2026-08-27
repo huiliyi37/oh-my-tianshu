@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tasks-local",
   "description": "Process-local implementation of the Tianshu Harness background task registry seam",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publishConfig": {
     "access": "public"
   },

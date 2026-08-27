@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-message-feedback",
   "description": "Lifecycle-bound per-message rating and note sidecar for the Tianshu Harness",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publishConfig": {
     "access": "public"
   },
