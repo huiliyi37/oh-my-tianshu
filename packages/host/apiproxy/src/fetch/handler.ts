@@ -26,6 +26,7 @@ import {
   sessionSearchRequestSchema,
   sessionSelectModelRequestSchema,
   sessionUpdateQueueRequestSchema,
+  sessionRewindRequestSchema,
 } from '../api/sessions.schema.ts'
 import {
   hostCreateDirectoryRequestSchema, hostDescribeRequestSchema,
@@ -93,6 +94,7 @@ const UNARY_ROUTES: UnaryRoutes = {
   'session.prompt': { schema: sessionPromptRequestSchema, invoke: (api, r) => api.sessions.prompt(r) },
   'session.updateQueue': { schema: sessionUpdateQueueRequestSchema, invoke: (api, r) => api.sessions.updateQueue(r) },
   'session.cancel': { schema: sessionCancelRequestSchema, invoke: (api, r) => api.sessions.cancel(r) },
+  'session.rewind': { schema: sessionRewindRequestSchema, invoke: (api, r) => api.sessions.rewind(r) },
   'subagent.list': { schema: subagentListRequestSchema, invoke: (api, r, signal) => api.subagents.list(r, signal) },
   'subagent.history': { schema: subagentHistoryRequestSchema, invoke: (api, r, signal) => api.subagents.history(r, signal) },
   'subagent.prompt': { schema: subagentPromptRequestSchema, invoke: (api, r, signal) => api.subagents.prompt(r, signal) },

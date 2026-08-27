@@ -168,6 +168,15 @@ async function bench(snapshot = historySnapshot(NODES)) {
   slots.register(
     { name: 'conversation.view', id: 'chat', order: 0, label: 'Chat' } as never, chatBody as never)
   ctx.provide('sessionHistory', { source: () => history })
+  // The rewind face's wire dependency (inject now declares 'connection'):
+  // a fake connection whose session.rewind answers an empty restore.
+  ctx.provide('connection', {
+    api: {
+      sessions: {
+        rewind: vi.fn(async () => ({ result: { ok: true as const, value: { filesChanged: 0 } } })),
+      },
+    },
+  })
   const fiber = ctx.plugin({ inject: [...inject], apply })
   await fiber.await()
   return { ctx, slots, fiber, loadHistoryTail, loadOlderHistory }
@@ -214,6 +223,7 @@ function mount(slots: SlotsService, nodes: ConversationSnapshot['nodes'] = NODES
           loadHistoryTail: trajectory.loadHistoryTail,
           loadOlderHistory: trajectory.loadOlderHistory,
           setActualDuration: trajectory.setActualDuration,
+          rewind: (atSeq: number, mode: 'convo' | 'code' | 'both') => trajectory.rewind(atSeq, mode),
           useHistory: bindSnapshotSelector(trajectory.hooks.history),
           useDuration: bindSnapshotSelector(trajectory.hooks.duration),
         }
@@ -1061,6 +1071,7 @@ describe('timeline projection', () => {
         ...standaloneProps([]),
         ...standaloneHistory(historySnapshot([])),
         ...standaloneDuration(),
+        rewind: async () => ({ filesChanged: 0 }),
       },
     ))
     expect(screen.getByRole('toolbar', { name: 'Trajectory toolbar' })).toBeTruthy()
@@ -1080,6 +1091,7 @@ describe('TrajectoryView branches', () => {
         {...commonProps}
         useDuration={bindSnapshotSelector(firstDuration)}
         setActualDuration={(value) => { firstDuration.set(value) }}
+        rewind={async () => ({ filesChanged: 0 })}
       />,
     )
     const duration = screen.getByRole('button', { name: 'Use actual duration' })
@@ -1095,6 +1107,7 @@ describe('TrajectoryView branches', () => {
         {...commonProps}
         useDuration={bindSnapshotSelector(restoredDuration)}
         setActualDuration={(value) => { restoredDuration.set(value) }}
+        rewind={async () => ({ filesChanged: 0 })}
       />,
     )
     expect(screen.getByRole('button', { name: 'Use actual duration' }).getAttribute('aria-pressed'))
@@ -1160,6 +1173,7 @@ describe('TrajectoryView branches', () => {
         useHistory={bindSnapshotSelector(store)}
         loadHistoryTail={vi.fn(() => Promise.resolve())}
         loadOlderHistory={vi.fn(() => Promise.resolve(false))}
+        rewind={async () => ({ filesChanged: 0 })}
       />,
     )
 
@@ -1194,6 +1208,7 @@ describe('TrajectoryView branches', () => {
         useHistory={bindSnapshotSelector(store)}
         loadHistoryTail={vi.fn(() => Promise.resolve())}
         loadOlderHistory={vi.fn(() => Promise.resolve(false))}
+        rewind={async () => ({ filesChanged: 0 })}
       />,
     )
     const row = screen.getByRole('row', { name: /stable rewind response/ })
@@ -1223,6 +1238,7 @@ describe('TrajectoryView branches', () => {
         useHistory={bindSnapshotSelector(store)}
         loadHistoryTail={vi.fn(() => Promise.resolve())}
         loadOlderHistory={vi.fn(() => Promise.resolve(false))}
+        rewind={async () => ({ filesChanged: 0 })}
       />,
     )
     fireEvent.click(screen.getByRole('row', { name: /selected current response/ }))
@@ -1272,6 +1288,7 @@ describe('TrajectoryView branches', () => {
         useHistory={bindSnapshotSelector(store)}
         loadHistoryTail={vi.fn(() => Promise.resolve())}
         loadOlderHistory={vi.fn(() => Promise.resolve(false))}
+        rewind={async () => ({ filesChanged: 0 })}
       />,
     )
 

@@ -57,6 +57,7 @@ function scriptedApi(overrides: {
       prompt: r => ok(r, { accepted: true as const }),
       updateQueue: r => ok(r, { accepted: true as const }),
       cancel: r => ok(r, { accepted: true as const }),
+      rewind: r => ok(r, { filesChanged: 0, truncatedTo: r.payload.atSeq }),
       ...overrides.sessions,
     },
     subagents: {

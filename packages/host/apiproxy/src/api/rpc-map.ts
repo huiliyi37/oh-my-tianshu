@@ -33,6 +33,7 @@ export interface RpcMethodMap {
   'session.prompt': SessionsApi['prompt']
   'session.updateQueue': SessionsApi['updateQueue']
   'session.cancel': SessionsApi['cancel']
+  'session.rewind': SessionsApi['rewind']
   'subagent.list': SubagentsApi['list']
   'subagent.history': SubagentsApi['history']
   'subagent.prompt': SubagentsApi['prompt']

@@ -26,6 +26,7 @@ import {
   sessionModelsValueSchema,
   sessionPromptValueSchema,
   sessionRenameValueSchema,
+  sessionRewindValueSchema,
   sessionSearchValueSchema,
   sessionSelectModelValueSchema,
   sessionUpdateQueueValueSchema,
@@ -92,6 +93,7 @@ export interface IApiClient {
     prompt(payload: RequestPayload<'session.prompt'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'session.prompt'>>>
     updateQueue(payload: RequestPayload<'session.updateQueue'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'session.updateQueue'>>>
     cancel(payload: RequestPayload<'session.cancel'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'session.cancel'>>>
+    rewind(payload: RequestPayload<'session.rewind'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'session.rewind'>>>
   }
   subagents: {
     list(payload: RequestPayload<'subagent.list'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'subagent.list'>>>
@@ -170,6 +172,7 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'session.prompt': sessionPromptValueSchema,
   'session.updateQueue': sessionUpdateQueueValueSchema,
   'session.cancel': sessionCancelValueSchema,
+  'session.rewind': sessionRewindValueSchema,
   'subagent.list': subagentListValueSchema,
   'subagent.history': subagentHistoryValueSchema,
   'subagent.prompt': subagentPromptValueSchema,
@@ -404,6 +407,7 @@ export abstract class AbstractApiClient implements IApiClient {
     prompt: (payload, signal) => this.callUnary('session.prompt', payload, signal),
     updateQueue: (payload, signal) => this.callUnary('session.updateQueue', payload, signal),
     cancel: (payload, signal) => this.callUnary('session.cancel', payload, signal),
+    rewind: (payload, signal) => this.callUnary('session.rewind', payload, signal),
   }
 
   readonly subagents: IApiClient['subagents'] = {

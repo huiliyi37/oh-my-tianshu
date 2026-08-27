@@ -71,6 +71,12 @@ export interface RpcErrorDetailsMap {
   /** A credential write was refused (read-only shadowing layer or storage failure); the message is the seam's own text. */
   'credential-rejected': { ref: string }
   /**
+   * A code/both rewind reached a deployment that never assembled fs-snapshot:
+   * file restore is impossible there (convo truncation still works). The
+   * details name the session whose rewind was refused.
+   */
+  'rewind-file-history-unavailable': { sessionId: SessionId }
+  /**
    * Interrogating a draft provider endpoint did not produce a model listing:
    * no adapter family serves the namespace, the protocol has no listing this
    * build can read, or the endpoint was unreachable, refused the credential,

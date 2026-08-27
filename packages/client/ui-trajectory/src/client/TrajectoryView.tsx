@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ConvViewProps } from '@huiliyi37/dsh-client-ui-conversation/client'
 import type { InjectFace } from '@huiliyi37/dsh-client-ui-slots'
+import type { RewindMode } from '@huiliyi37/dsh-host-apiproxy/api'
 import type {
   AssistantBlock, AssistantMessageNode, ConversationContext, ConversationSnapshot,
-  SessionHistoryFace, SnapshotStore,
+  SessionHistoryFace, SnapshotStore, UserMessageNode,
 } from '@huiliyi37/dsh-client-runtime/client'
+import type { ContentBlock } from '@huiliyi37/dsh-llm/types'
 import {
   deriveTrajectoryContextBranches, trajectoryBranchContainsRequest,
 } from './context-branches.ts'
@@ -15,6 +17,7 @@ import {
   type TrajectoryRequestNumber,
   type TrajectoryUsage,
 } from './TrajectoryTable.tsx'
+import { RewindControl } from './RewindControl.tsx'
 import { TrajectoryToolbar } from './TrajectoryToolbar.tsx'
 import { TrajectoryTimeline } from './TrajectoryTimeline.tsx'
 import {
@@ -72,6 +75,11 @@ export interface TrajectoryViewInjected {
   loadHistoryTail: (signal: AbortSignal) => Promise<void>
   loadOlderHistory: (signal: AbortSignal) => Promise<boolean>
   setActualDuration: (actualDuration: boolean) => void
+  /**
+   * Host rewind execution (P2④): truncates/restores to a user-message
+   * checkpoint. Throws with the host's own text on rejection.
+   */
+  rewind(atSeq: number, mode: RewindMode): Promise<{ filesChanged: number; filesSkipped?: number; truncatedTo?: number }>
 }
 
 interface UsageLike {
@@ -182,8 +190,16 @@ function mergeSearchMatches(
   return new Set([...finalized, ...partial])
 }
 
+/** Fold one user message's text blocks into the checkpoint snippet. */
+function checkpointText(content: readonly ContentBlock[]): string {
+  return content
+    .filter((block): block is Extract<ContentBlock, { type: 'text' }> => block.type === 'text')
+    .map(block => block.text)
+    .join(' ')
+}
+
 export function TrajectoryView({
-  useHistory, useDuration, loadHistoryTail, loadOlderHistory, setActualDuration,
+  useHistory, useDuration, loadHistoryTail, loadOlderHistory, setActualDuration, rewind,
   inspect, onInspectDone,
 }: ConvViewProps & InjectFace<TrajectoryViewInjected>) {
   const [collapsedTurns, setCollapsedTurns] = useState<ReadonlySet<number>>(EMPTY_TURN_IDS)
@@ -209,6 +225,10 @@ export function TrajectoryView({
   const hasOlderHistory = useHistory(snapshot => snapshot.hasMore)
   const historyBaseSeq = useHistory(snapshot => snapshot.baseSeq)
   const nodes = inspection.eventNodes
+  // P2④: user-message checkpoints for the rewind control (oldest first).
+  const rewindCheckpoints = useMemo(() => nodes
+    .filter((node): node is UserMessageNode => node.kind === 'user')
+    .map(node => ({ seq: node.seq, text: checkpointText(node.content) })), [nodes])
   const partial = inspection.partial
   const runningCalls = inspection.runningCalls
   const loadHistoryTailRef = useRef(loadHistoryTail)
@@ -542,6 +562,7 @@ export function TrajectoryView({
         onToggleAllAssistants={toggleAllAssistants}
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
+        trailing={<RewindControl checkpoints={rewindCheckpoints} onRewind={rewind} />}
       />
       <TrajectoryTimeline
         turns={timelineTurns}

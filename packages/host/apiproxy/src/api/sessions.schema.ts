@@ -133,6 +133,20 @@ export const sessionForkValueSchema = z.object({
   sessionId: sessionIdSchema,
 }) satisfies z.ZodType<Wire<ResponseValue<'session.fork'>>>
 
+/** session.rewind request payload (checkpoint seq + scope). */
+export const sessionRewindRequestSchema = z.object({
+  sessionId: sessionIdSchema,
+  atSeq: z.number().int().nonnegative(),
+  mode: z.union([z.literal('convo'), z.literal('code'), z.literal('both')]),
+}) satisfies z.ZodType<Wire<RequestPayload<'session.rewind'>>>
+
+/** session.rewind response value (file restore counts + truncation boundary). */
+export const sessionRewindValueSchema = z.object({
+  filesChanged: z.number().int().nonnegative(),
+  filesSkipped: z.number().int().nonnegative().optional(),
+  truncatedTo: z.number().int().nonnegative().optional(),
+}) satisfies z.ZodType<Wire<ResponseValue<'session.rewind'>>>
+
 /** session.history request payload (beforeSeq/maxMessages page backwards from the window tail). */
 export const sessionHistoryRequestSchema = z.object({
   sessionId: sessionIdSchema,

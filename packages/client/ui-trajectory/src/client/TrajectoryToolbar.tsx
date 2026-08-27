@@ -1,5 +1,6 @@
 /** Trajectory toolbar: timeline and ledger fold controls. */
 
+import type { ReactNode } from 'react'
 import { IconSearchOutline16 } from '@huiliyi37/dsh-client-ui-primitives'
 import css from './TrajectoryToolbar.module.css'
 
@@ -24,6 +25,8 @@ export interface TrajectoryToolbarProps {
   searchQuery: string
   /** Update the live ledger search query. */
   onSearchQueryChange: (query: string) => void
+  /** Optional trailing action (P2④ rewind control). */
+  trailing?: ReactNode
 }
 
 /**
@@ -42,6 +45,7 @@ export function TrajectoryToolbar({
   onToggleAllAssistants,
   searchQuery,
   onSearchQueryChange,
+  trailing,
 }: TrajectoryToolbarProps) {
   return (
     <div className={css.root} role="toolbar" aria-label="Trajectory toolbar">
@@ -117,6 +121,7 @@ export function TrajectoryToolbar({
             onChange={(event) => { onSearchQueryChange(event.currentTarget.value) }}
           />
         </div>
+        {trailing}
       </div>
     </div>
   )

@@ -1,0 +1,131 @@
+.root {
+  position: relative;
+  display: inline-flex;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--border, #d0d7de);
+  border-radius: 6px;
+  background: var(--bg, #ffffff);
+  color: var(--fg, #24292f);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.toggle[aria-pressed='true'] {
+  border-color: var(--accent, #0969da);
+  color: var(--accent, #0969da);
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  width: 320px;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border, #d0d7de);
+  border-radius: 8px;
+  background: var(--bg, #ffffff);
+  box-shadow: 0 8px 24px rgba(31, 35, 40, 0.12);
+}
+
+.empty {
+  padding: 8px;
+  color: var(--muted, #59636e);
+  font-size: 12px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.item {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg, #24292f);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item[aria-selected='true'] {
+  background: var(--accent-soft, #ddf4ff);
+}
+
+.seq {
+  flex: none;
+  color: var(--muted, #59636e);
+  font-variant-numeric: tabular-nums;
+}
+
+.snippet {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modes {
+  display: flex;
+  gap: 4px;
+}
+
+.mode {
+  flex: 1;
+  padding: 4px 0;
+  border: 1px solid var(--border, #d0d7de);
+  border-radius: 6px;
+  background: var(--bg, #ffffff);
+  color: var(--fg, #24292f);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mode[aria-checked='true'] {
+  border-color: var(--accent, #0969da);
+  color: var(--accent, #0969da);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.execute {
+  padding: 6px 0;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent, #0969da);
+  color: #ffffff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.execute:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.outcome {
+  color: var(--muted, #59636e);
+  font-size: 12px;
+  line-height: 1.4;
+}

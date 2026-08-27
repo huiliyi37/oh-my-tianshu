@@ -59,6 +59,11 @@
     - id: workspace
       name: '@huiliyi37/dsh-workspace'
 
+    # File snapshot/rewind (P2④): pre-write snapshots for /rewind's code/both
+    # granularity via session.rewind. Same host row the TUI composition mounts.
+    - id: fs-snapshot
+      name: '@huiliyi37/dsh-fs-snapshot'
+
     # Cross-session memory service (provide 'memory'): `/remember` and
     # `/memory` from command-memory share this backend. Storage lands at
     # `<cwd>/.dsh/memory/`. TUI mounts its own copy and does not load

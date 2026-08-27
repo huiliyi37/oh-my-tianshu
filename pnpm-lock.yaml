@@ -1575,6 +1575,9 @@ importers:
       '@huiliyi37/dsh-frontend-static':
         specifier: workspace:^
         version: link:../../host/frontend-static
+      '@huiliyi37/dsh-fs-snapshot':
+        specifier: workspace:^
+        version: link:../../fs/fs-snapshot
       '@huiliyi37/dsh-host-apiproxy':
         specifier: workspace:^
         version: link:../../host/apiproxy

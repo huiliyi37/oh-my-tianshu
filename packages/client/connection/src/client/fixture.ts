@@ -33,7 +33,7 @@ import type {
   ModelProviderGroup, ModelSelection, RpcRequest, RpcResponse, RpcResult, ServerRequest, ServerResponse, SessionSummary,
   ToolCallView, ToolEventView, ToolResultView, WorkspaceId, WorkspaceView,
 } from './api.ts'
-import type { RequestPayload, ResponseValue, RpcMethodMap } from '@huiliyi37/dsh-host-apiproxy/api'
+import type { RequestPayload, ResponseValue, RewindMode, RpcMethodMap } from '@huiliyi37/dsh-host-apiproxy/api'
 import { AbstractApiClient, RpcId, SESSION_SEARCH_RESULT_LIMIT } from './api.ts'
 import { randomUuid } from './random-uuid.ts'
 import type { ClientConnectionRpc } from '../rpc.ts'
@@ -2207,6 +2207,30 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
         }
         return ok(request, { accepted: true as const })
       },
+      rewind: (request): Promise<RpcResponse<{ filesChanged: number; filesSkipped?: number; truncatedTo?: number }>> => {
+        // Fixture rewind: truncate the in-memory log to the checkpoint (the
+        // replay engine continues from the surviving events).
+        const log = logs.get(request.payload.sessionId)
+        if (log === undefined) {
+          return err<
+            { sessionId: SessionId; atSeq: number; mode: RewindMode },
+            { filesChanged: number; filesSkipped?: number; truncatedTo?: number }
+          >(request, {
+            code: 'session-not-found',
+            message: `session "${request.payload.sessionId}" not found`,
+            details: { sessionId: request.payload.sessionId },
+          })
+        }
+        const kept = log.filter(event => event.seq <= request.payload.atSeq)
+        logs.set(request.payload.sessionId, kept)
+        const result: { filesChanged: number; filesSkipped?: number; truncatedTo?: number } = {
+          filesChanged: 0,
+        }
+        if (request.payload.mode === 'convo' || request.payload.mode === 'both') {
+          result.truncatedTo = request.payload.atSeq
+        }
+        return ok(request, result)
+      },
     },
     subagents: {
       list: request => ok(request, { entries: [], parentAvailable: true }),
@@ -2765,6 +2789,7 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'session.prompt': return this.api.sessions.prompt(request)
       case 'session.updateQueue': return this.api.sessions.updateQueue(request)
       case 'session.cancel': return this.api.sessions.cancel(request)
+      case 'session.rewind': return this.api.sessions.rewind(request)
       case 'subagent.list': return this.api.subagents.list(request)
       case 'subagent.history': return this.api.subagents.history(request)
       case 'subagent.prompt': return this.api.subagents.prompt(request, signal)

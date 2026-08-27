@@ -26,6 +26,9 @@ declare module '@huiliyi37/dsh-llm' {
   }
 }
 
+/** session.rewind scope: conversation truncation, file restore, or both. */
+export type RewindMode = 'convo' | 'code' | 'both'
+
 /**
  * One history page entry: the raw event plus the optional host-computed render
  * intent (same semantics as the mux frame's `view` slot — a pagination-time
@@ -305,5 +308,20 @@ export interface SessionsApi {
    * subagents reject with `agent-busy`.
    */
   cancel(request: RpcRequest<{ sessionId: SessionId }>): Promise<RpcResponse<{ accepted: true }>>
+
+  /**
+   * Rewinds a live session to a user-message checkpoint (P2④ web parity with
+   * the TUI's `/rewind`). `atSeq` is the checkpoint's user-message seq
+   * (inclusive boundary). `mode` selects the scope: `convo` truncates the
+   * session (persisted first, then in-memory); `code` restores files written
+   * after the boundary through the fs-snapshot FileHistory; `both` does both.
+   * File rewind counts every post-boundary write-tool call whose snapshot
+   * restored (`filesChanged`) and every one without a snapshot
+   * (`filesSkipped`). A deployment without fs-snapshot answers code/both with
+   * `rewind-file-history-unavailable`.
+   */
+  rewind(
+    request: RpcRequest<{ sessionId: SessionId; atSeq: number; mode: RewindMode }>,
+  ): Promise<RpcResponse<{ filesChanged: number; filesSkipped?: number; truncatedTo?: number }>>
 
 }

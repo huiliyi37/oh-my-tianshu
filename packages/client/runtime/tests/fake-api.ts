@@ -87,6 +87,11 @@ export class FakeApiClient implements IApiClient {
   onPrompt: (payload: unknown) => Promise<RpcResponse<{ accepted: true }>> = () => Promise.resolve(ok({ accepted: true as const }))
   onUpdateQueue: (payload: unknown) => Promise<RpcResponse<{ accepted: true }>> = () => Promise.resolve(ok({ accepted: true as const }))
   onCancel: (payload: unknown) => Promise<RpcResponse<{ accepted: true }>> = () => Promise.resolve(ok({ accepted: true as const }))
+  onRewind: (payload: unknown) => Promise<RpcResponse<{
+    filesChanged: number
+    filesSkipped?: number
+    truncatedTo?: number
+  }>> = () => Promise.resolve(ok({ filesChanged: 0 }))
 
   onDescribe: (payload: unknown) => Promise<RpcResponse<{
     version: string
@@ -136,6 +141,7 @@ export class FakeApiClient implements IApiClient {
     prompt: (payload: unknown) => this.record('session.prompt', payload, this.onPrompt(payload)),
     updateQueue: (payload: unknown) => this.record('session.updateQueue', payload, this.onUpdateQueue(payload)),
     cancel: (payload: unknown) => this.record('session.cancel', payload, this.onCancel(payload)),
+    rewind: (payload: unknown) => this.record('session.rewind', payload, this.onRewind(payload)),
   }
 
   onSubagentList: (payload: unknown) => Promise<RpcResponse<{ entries: never[]; parentAvailable: boolean }>>

@@ -224,6 +224,13 @@ function err<T>(request: RpcRequest<unknown>, error: RpcError): RpcResponse<T> {
   return { rpcId: request.rpcId, result: { ok: false, error } }
 }
 
+/**
+ * Write-tool names fs-snapshot snapshots (its pre-write hook covers
+ * str_replace_editor write commands, `write`, and `edit`): the same predicate
+ * the TUI uses to collect post-boundary callIds for /rewind's code mode.
+ */
+const REWIND_WRITE_TOOLS = new Set(['write', 'edit', 'str_replace_editor'])
+
 /** Simple async queue: core callbacks push, the AsyncIterable pulls; abort/return cleans up. */
 class FrameQueue<F> {
   private buffer: F[] = []
@@ -1922,6 +1929,74 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         }
         agent.cancel({ kind: 'user' }, { keepInbox: true })
         return Promise.resolve(ok(request, { accepted: true as const }))
+      },
+
+      /**
+       * P2④: rewind a live session to a user-message checkpoint — the web
+       * mirror of the TUI's `/rewind`. `convo` truncates (persisted first,
+       * then in-memory, same ordering as the TUI so a persistence failure
+       * never desyncs the two); `code` restores post-boundary write-tool
+       * files through fs-snapshot's FileHistory; `both` does both.
+       */
+      async rewind(request) {
+        const { sessionId, atSeq, mode } = request.payload
+        const agent = ctx.agents.get(sessionId)
+        if (agent === undefined) {
+          return err(request, {
+            code: 'session-not-found',
+            message: `session "${sessionId}" not found (not attached)`,
+            details: { sessionId },
+          })
+        }
+        if (hasSubagentOwner(agent.session, agent)) {
+          return err(request, subagentOwnershipError(sessionId))
+        }
+        let filesChanged = 0
+        let filesSkipped: number | undefined
+        if (mode !== 'convo') {
+          const histories = ctx.reflect.get('fsSnapshot.histories', false) as
+            | Map<string, { rewindToBoundary(ids: Set<string>): Promise<{ changed: string[]; skipped: number }> }>
+            | undefined
+          if (histories === undefined) {
+            return err(request, {
+              code: 'rewind-file-history-unavailable',
+              message: 'file rewind unavailable (fs-snapshot not assembled on this host)',
+              details: { sessionId },
+            })
+          }
+          const history = histories.get(sessionId)
+          if (history === undefined) {
+            // No snapshot record for the session (it never wrote a file):
+            // an empty restore is the honest result, not an error.
+            filesSkipped = 0
+          } else {
+            // Post-boundary write-tool callIds: scan events with seq > atSeq.
+            const postBoundaryIds = new Set<string>()
+            for (const event of agent.session.events) {
+              if (event.seq <= atSeq) continue
+              if (event.type === 'tool/call' && REWIND_WRITE_TOOLS.has(event.data.name)) {
+                postBoundaryIds.add(event.data.callId)
+              }
+            }
+            const { changed, skipped } = await history.rewindToBoundary(postBoundaryIds)
+            filesChanged = changed.length
+            filesSkipped = skipped
+          }
+        }
+        let truncatedTo: number | undefined
+        if (mode === 'convo' || mode === 'both') {
+          const persistence = ctx.reflect.get('sessionPersistence', false) as
+            | { truncateStored(id: unknown, atSeq: number): Promise<void> }
+            | undefined
+          if (persistence !== undefined) await persistence.truncateStored(sessionId, atSeq)
+          agent.session.truncate(atSeq)
+          truncatedTo = atSeq
+        }
+        return ok(request, {
+          filesChanged,
+          ...(filesSkipped === undefined ? {} : { filesSkipped }),
+          ...(truncatedTo === undefined ? {} : { truncatedTo }),
+        })
       },
     },
 
