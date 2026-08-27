@@ -38,6 +38,8 @@ const WORKSPACE_CONTEXT_CONFIG = fileURLToPath(new URL('../workspace-context.cor
 const ADVANCED_CONFIG = fileURLToPath(new URL('../advanced.cordis.yml', import.meta.url))
 const FS_CONFIG = fileURLToPath(new URL('../fs.cordis.yml', import.meta.url))
 const SESSION_QUERY_CONFIG = fileURLToPath(new URL('../session-query.cordis.yml', import.meta.url))
+const IMAGE_CONFIG = fileURLToPath(new URL('../image.cordis.yml', import.meta.url))
+const IMAGE_TEXT_ROUTE_CONFIG = fileURLToPath(new URL('../image-text-route.cordis.yml', import.meta.url))
 const PTY_CONFIG = fileURLToPath(new URL('../pty.cordis.yml', import.meta.url))
 const DEPTH_TWO_CONFIG = fileURLToPath(new URL('../depth-two.cordis.yml', import.meta.url))
 const CHILD_QUESTION_CONFIG = fileURLToPath(new URL('../child-question.cordis.yml', import.meta.url))
@@ -155,6 +157,30 @@ const SCENARIOS: Scenario[] = [
     headerClass: 'session-query',
     configPath: SESSION_QUERY_CONFIG,
     posixOnly: true,
+  },
+  // Authored keyless replays through the assembled app: the replay catalog
+  // declares flash image-capable (success) or text-only (refusal), and the
+  // real read_image tool executes against the workspace fixture and the real
+  // attachment store. Both boot the same composed header (the tool registers
+  // with the attachment store, independent of route), so they share one class.
+  {
+    name: 'read-image',
+    hasModelTurn: true,
+    recorded: false,
+    pinsHeader: true,
+    headerClass: 'image',
+    // The overlay adds no prompt section (read_image carries no guidance), so
+    // the composed system prompt is byte-identical to the default class; only
+    // the tool-schema sidecar is class-specific.
+    systemPromptSource: 'text-turn',
+    configPath: IMAGE_CONFIG,
+  },
+  {
+    name: 'read-image-text-route',
+    hasModelTurn: true,
+    recorded: false,
+    headerClass: 'image',
+    configPath: IMAGE_TEXT_ROUTE_CONFIG,
   },
   {
     name: 'pty-tools',

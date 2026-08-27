@@ -592,7 +592,7 @@ describe('installLlmReplay (through the real LlmService)', () => {
             backoff: { initialDelayMs: 1, maxDelayMs: 1, jitterRatio: 0 },
           },
           models: [
-            { id: 'flash', contextWindow: 128_000 },
+            { id: 'flash', contextWindow: 128_000, inputModalities: ['text', 'image'] },
             { id: 'pro', name: 'Pro', description: 'Larger model' },
           ],
         },
@@ -605,13 +605,15 @@ describe('installLlmReplay (through the real LlmService)', () => {
       { id: 'empty', name: 'empty' },
     ])
     await expect(ctx.llm.listModels('deepseek')).resolves.toEqual([
-      { provider: 'deepseek', id: 'flash', name: 'flash' },
+      { provider: 'deepseek', id: 'flash', name: 'flash', inputModalities: ['text', 'image'] },
       { provider: 'deepseek', id: 'pro', name: 'Pro', description: 'Larger model' },
     ])
     await expect(ctx.llm.listModels('empty')).resolves.toEqual([])
     await expect(ctx.llm.resolveModelInfo('deepseek', 'flash')).resolves.toMatchObject({
       context: { contextWindow: 128_000 },
+      inputModalities: ['text', 'image'],
     })
+    await expect(ctx.llm.resolveModelInfo('deepseek', 'pro')).resolves.not.toHaveProperty('inputModalities')
     await expect(ctx.llm.resolveModelInfo('deepseek', 'pro')).resolves.not.toHaveProperty('context')
     await expect(ctx.llm.resolveModelInfo('deepseek', 'unlisted')).resolves.not.toHaveProperty('context')
     await expect(ctx.llm.resolveModelInfo('empty', 'unlisted')).resolves.not.toHaveProperty('context')

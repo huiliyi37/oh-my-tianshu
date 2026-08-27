@@ -373,6 +373,18 @@ abstract readText(target: FsTarget, signal?: AbortSignal): Promise<string>
 abstract streamText(target: FsTarget, signal?: AbortSignal): Promise<AsyncIterable<string>>
 
 /**
+ * Read the whole regular file as raw bytes with no decoding or binary
+ * rejection. The bound lives at this seam so a backend can never buffer an
+ * unbounded file: a target known or discovered to exceed `maxBytes` fails
+ * with `FS_TOO_LARGE` instead of returning a truncated result.
+ * @param target - the resolved target to read.
+ * @param signal - aborts the read.
+ * @param maxBytes - inclusive byte cap on the complete content.
+ * @returns the full raw content, at most `maxBytes` long.
+ */
+abstract readBytes(target: FsTarget, signal: AbortSignal | undefined, maxBytes: number): Promise<Uint8Array>
+
+/**
  * List direct children of a directory in stable name order. Returns resolved
  * child targets plus cheap metadata only; never reads file contents.
  * @param target - the resolved directory target.

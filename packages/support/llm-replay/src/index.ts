@@ -19,6 +19,7 @@ import type {
   LlmModelInfo,
   LlmProviderInfo,
   LlmResolvedModelInfo,
+  ModelModality,
   ResolvedRetryPolicy,
   RetryPolicyConfig,
   StreamChunk,
@@ -51,6 +52,8 @@ export interface ReplayModelConfig {
   description?: string
   /** Optional positive integer context capacity published by the replay adapter. */
   contextWindow?: number
+  /** Optional declared input modalities, so a scenario can exercise capability gates (e.g. image-capable `read_image`). */
+  inputModalities?: readonly ModelModality[]
 }
 
 /** One provider route exposed by the replay adapter. */
@@ -569,6 +572,7 @@ class ReplayAdapter extends LlmAdapter {
       id: model.id,
       name: model.name ?? model.id,
       ...model.description === undefined ? {} : { description: model.description },
+      ...model.inputModalities === undefined ? {} : { inputModalities: [...model.inputModalities] },
     })))
   }
 
@@ -582,6 +586,9 @@ class ReplayAdapter extends LlmAdapter {
       id: model,
       name: configuredModel?.name ?? model,
       ...configuredModel?.description === undefined ? {} : { description: configuredModel.description },
+      ...configuredModel?.inputModalities === undefined
+        ? {}
+        : { inputModalities: [...configuredModel.inputModalities] },
       ...configuredModel?.contextWindow === undefined
         ? {}
         : { context: { contextWindow: configuredModel.contextWindow } },

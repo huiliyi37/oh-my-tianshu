@@ -24,6 +24,32 @@ import * as BashEnvPlugin from '@huiliyi37/dsh-bash-env'
 import { PwshLocalExecutor } from '@huiliyi37/dsh-pwsh-local'
 import LocalSubprocessService from '@huiliyi37/dsh-subprocess-local'
 import LocalFileSystem from '@huiliyi37/dsh-fs-local'
+import { AttachmentStore } from '@huiliyi37/dsh-attachment'
+import type { ImageAttachmentLimits, ImageAttachmentRef, SaveImageAttachment, StoredImageAttachment } from '@huiliyi37/dsh-attachment'
+
+/** Attachment seam marker that makes the attachments-conditional `read_image` schema harvestable. */
+class CatalogAttachmentStore extends AttachmentStore {
+  readonly imageLimits: ImageAttachmentLimits = Object.freeze({
+    maxImageBytes: 1,
+    maxImagesPerMessage: 1,
+    maxMessageImageBytes: 1,
+    maxImagePixels: 1,
+    maxImageDimension: 1,
+    mediaTypes: Object.freeze(['image/png'] as const),
+  })
+
+  override validateImage(_input: SaveImageAttachment): Promise<void> {
+    return Promise.reject(new Error('gen-tool-catalog: attachment validation is unreachable during schema harvest'))
+  }
+
+  override saveImage(_input: SaveImageAttachment): Promise<ImageAttachmentRef> {
+    return Promise.reject(new Error('gen-tool-catalog: attachment writes are unreachable during schema harvest'))
+  }
+
+  override readImage(_ref: ImageAttachmentRef): Promise<StoredImageAttachment> {
+    return Promise.reject(new Error('gen-tool-catalog: attachment reads are unreachable during schema harvest'))
+  }
+}
 import UserInteractionService from '@huiliyi37/dsh-user-interaction'
 import PlanModeService from '@huiliyi37/dsh-plan-mode'
 import WebService from '@huiliyi37/dsh-web'
@@ -339,11 +365,13 @@ const TOOL_PACKAGES: ToolPackage[] = [
     pkg: '@huiliyi37/dsh-tool-fs',
     dir: 'tool-fs',
     source: 'packages/fs/tool-fs/src/index.ts',
-    requires: ['ctx.tools', 'ctx.fs', 'ctx.systemPrompt'],
-    writes: ['tool/call', 'fs/write-intent or fs/edit-intent for mutations', 'fs/observed after read presence/absence or successful mutation', 'tool/result'],
+    requires: ['ctx.tools', 'ctx.fs', 'ctx.systemPrompt', 'ctx.attachments (read_image registration)', 'ctx.llm + an image-capable route (read_image execution)'],
+    writes: ['tool/call', 'fs/write-intent or fs/edit-intent for mutations', 'fs/observed after read presence/absence or successful file operation', 'durable attachment (read_image)', 'tool/result'],
     async mount(ctx) {
       // The tool needs `fs`; the bare provider is sufficient because policy
-      // changes behavior, not schema shape.
+      // changes behavior, not schema shape. The catalog seam marker opts into
+      // the attachments-conditional read_image schema without attachment I/O.
+      await ctx.plugin(CatalogAttachmentStore)
       await ctx.plugin(LocalFileSystem)
       await ctx.plugin(ToolFs)
     },

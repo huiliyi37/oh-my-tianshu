@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-`ctx.fs` 提供方约定（[`@huiliyi37/dsh-fs`](../fs)）的**本地文件系统实现**。它使用宿主文件系统支持十一个 `FileSystem` 原语；将其作为插件加载会填充 `ctx.fs`。
+`ctx.fs` 提供方约定（[`@huiliyi37/dsh-fs`](../fs)）的**本地文件系统实现**。它使用宿主文件系统支持十二个 `FileSystem` 原语；将其作为插件加载会填充 `ctx.fs`。
 
 ```ts ignore-check
 import { LocalFileSystem } from '@huiliyi37/dsh-fs-local'

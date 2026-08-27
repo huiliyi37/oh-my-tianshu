@@ -227,6 +227,24 @@ export class E2BFileSystem extends FileSystem {
     }
   }
 
+  override async readBytes(target: FsTarget, signal: AbortSignal | undefined, maxBytes: number): Promise<Uint8Array> {
+    const sandbox = await this.ctx.e2b.getSandbox()
+    await this.requireRegular(target, signal)
+    let bytes: Uint8Array
+    try {
+      // The E2B files API returns the whole object; the remote sandbox owns
+      // that buffering, so the seam bound is enforced on the complete result.
+      bytes = await sandbox.files.read(String(target.targetKey), { format: 'bytes', ...signalOpts(signal) })
+    } catch (error: unknown) {
+      throw mapError(error, 'read', target.displayPath, signal)
+    }
+    assertNotAborted(signal, 'read')
+    if (bytes.byteLength > maxBytes) {
+      throw new FsError(`cannot read "${target.displayPath}": ${bytes.byteLength} bytes exceeds the ${maxBytes}-byte limit`, 'FS_TOO_LARGE')
+    }
+    return bytes
+  }
+
   override async streamText(target: FsTarget, signal?: AbortSignal): Promise<AsyncIterable<string>> {
     const sandbox = await this.ctx.e2b.getSandbox()
     await this.requireRegular(target, signal)

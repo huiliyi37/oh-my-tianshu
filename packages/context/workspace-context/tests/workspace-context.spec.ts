@@ -58,6 +58,7 @@ async function write(path: string, content: string): Promise<void> {
 }
 
 class RecordingFileSystem extends FileSystem {
+  override async readBytes(): Promise<Uint8Array> { return new Uint8Array() }
   entries = new Map<string, { type: FsInfo['type']; content?: string; version?: FsVersion }>()
   throwOnStat = new Set<string>()
   throwOnRead = new Set<string>()
@@ -145,6 +146,8 @@ class RecordingFileSystem extends FileSystem {
 }
 
 class BlockingReadFileSystem extends RecordingFileSystem {
+  override async readBytes(): Promise<Uint8Array> { return new Uint8Array() }
+
   readonly started = Promise.withResolvers<undefined>()
 
   override async streamText(target: FsTarget, signal?: AbortSignal): Promise<AsyncIterable<string>> {

@@ -471,6 +471,23 @@ describe('E2BFileSystem identity, metadata, and reads', () => {
     await expectCode(fs.streamText(raced), 'FS_NOT_FOUND')
   })
 
+  it('readBytes returns raw content, enforces the byte cap, and maps failures', async () => {
+    const remote = new FakeRemote()
+    remote.file('/workspace/img.bin', [0x89, 0, 0xff, 0x47])
+    remote.dir('/workspace/directory')
+    const { fs } = await setup(remote)
+    const target = await fs.resolve('img.bin')
+    expect(Array.from(await fs.readBytes(target, undefined, 4))).toEqual([0x89, 0, 0xff, 0x47])
+    await expectCode(fs.readBytes(target, undefined, 3), 'FS_TOO_LARGE')
+    await expectCode(fs.readBytes(await fs.resolve('missing'), undefined, 4), 'FS_NOT_FOUND')
+    await expectCode(fs.readBytes(await fs.resolve('directory'), undefined, 4), 'FS_NOT_REGULAR_FILE')
+
+    const live = new AbortController()
+    expect((await fs.readBytes(target, live.signal, 4)).byteLength).toBe(4)
+    remote.nextReadError = new DOMException('aborted', 'AbortError')
+    await expectCode(fs.readBytes(target, undefined, 4), 'FS_ABORTED')
+  })
+
   it('honors aborts before and during remote reads', async () => {
     const remote = new FakeRemote()
     remote.file('/workspace/a', 'a')

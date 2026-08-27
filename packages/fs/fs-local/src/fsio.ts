@@ -97,6 +97,8 @@ export interface FsIoInternals {
   removeStagingDir?: (stagingDir: string) => Promise<void>
   /** Test hook after the temp file is written/synced but before final chmod+publication. */
   inspectTemp?: (paths: { stagingDir: string; tempPath: string }) => void | Promise<void>
+  /** Test hook after raw-read stat preflight and before bounded content I/O. */
+  inspectReadBytesAfterStat?: (target: LocalTarget) => void | Promise<void>
 }
 
 /** A resolved local path: the absolute path shown to callers and its realpath identity. */
@@ -377,6 +379,50 @@ export async function readWholeText(target: LocalTarget, signal?: AbortSignal): 
     throw new FsError(`cannot read "${target.displayPath}": binary file`, 'FS_NOT_TEXT')
   }
   return decodeUtf8(raw, 'read', target.displayPath)
+}
+
+/**
+ * Read a whole regular file as raw bytes with no decoding or binary rejection.
+ * `maxBytes` bounds the complete content: the stat size short-circuits an
+ * oversized file before any content I/O, and the stream reads at most one byte
+ * beyond the cap so a file growing after stat cannot cause unbounded buffering.
+ * @param target - the resolved file to read.
+ * @param signal - aborts the read (`FS_ABORTED`).
+ * @param maxBytes - inclusive byte cap on the complete content (`FS_TOO_LARGE`).
+ * @param internals - test seam for a deterministic post-stat growth race.
+ * @returns the full raw content, at most `maxBytes` long.
+ */
+export async function readWholeBytes(
+  target: LocalTarget,
+  signal: AbortSignal | undefined,
+  maxBytes: number,
+  internals: FsIoInternals = {},
+): Promise<Uint8Array> {
+  const info = await statRegularFile(target, 'read', signal)
+  if (info.size > maxBytes) {
+    throw new FsError(`cannot read "${target.displayPath}": ${info.size} bytes exceeds the ${maxBytes}-byte limit`, 'FS_TOO_LARGE')
+  }
+  await internals.inspectReadBytesAfterStat?.(target)
+  const stream = createReadStream(target.targetKey, {
+    end: maxBytes,
+    ...signal ? { signal } : {},
+  })
+  const chunks: Buffer[] = []
+  let bytes = 0
+  try {
+    for await (const chunk of stream as AsyncIterable<Buffer>) {
+      bytes += chunk.length
+      if (bytes > maxBytes) {
+        throw new FsError(`cannot read "${target.displayPath}": content exceeds the ${maxBytes}-byte limit`, 'FS_TOO_LARGE')
+      }
+      chunks.push(chunk)
+    }
+  } catch (error: unknown) {
+    /* v8 ignore next 2 -- a mid-stream abort needs cancellation racing an active read; pre-abort is deterministic. */
+    if (isAbortError(error)) throw new FsError('read aborted', 'FS_ABORTED')
+    throw error
+  }
+  return Buffer.concat(chunks, bytes)
 }
 
 /**

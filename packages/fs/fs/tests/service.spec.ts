@@ -21,6 +21,7 @@ import type {
 
 /** A minimal in-memory fake implementing the provider primitives. */
 class FakeFileSystem extends FileSystem {
+  override async readBytes(): Promise<Uint8Array> { return new Uint8Array() }
   files = new Map<string, string>()
 
   override async resolve(path: string): Promise<FsTarget> {

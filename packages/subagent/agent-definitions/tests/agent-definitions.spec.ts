@@ -34,6 +34,7 @@ async function setup(home: string, config: Config = {}): Promise<Context> {
 
 /** Minimal in-memory-passthrough filesystem service: proves discovery reads through `ctx.fs` when present. */
 class PassthroughFileSystem extends FileSystem {
+  override async readBytes(): Promise<Uint8Array> { return new Uint8Array() }
   readonly listDirCalls: string[] = []
 
   override async resolve(path: string): Promise<FsTarget> {
