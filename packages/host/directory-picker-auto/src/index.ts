@@ -11,7 +11,7 @@
  */
 
 import type { Context } from '@huiliyi37/cordis'
-// Empty type imports carry the `loader` and `httpServer` Context merges for the reads below.
+// Empty type imports carry the `loader` and `webServer` Context merges for the reads below.
 import type {} from '@huiliyi37/cordis-plugin-loader'
 import type {} from '@huiliyi37/dsh-host-webserver'
 import { canExecute, hasLinuxChooserBinary } from './probe.ts'
@@ -24,8 +24,8 @@ export { resolveDirectoryPickerBackend } from './resolve.ts'
 
 /** Cordis plugin name. */
 export const name = 'directory-picker-auto'
-/** Required services: the effective bind host (`httpServer`) and the entry tree the backend mounts into (`loader`). */
-export const inject = ['httpServer', 'loader']
+/** Required services: the effective bind host (`webServer`) and the entry tree the backend mounts into (`loader`). */
+export const inject = ['webServer', 'loader']
 
 /**
  * Backend package per resolved kind — fixed composition vocabulary, not a
@@ -43,11 +43,11 @@ export const BACKEND_PACKAGES: Record<DirectoryPickerBackendKind, string> = {
  * entry; the effect's disposer removes the entry and joins the backend
  * fiber's teardown, so unloading this plugin returns only after both faces
  * of the mounted backend (and their dependents) quiesced.
- * @param ctx - cordis context carrying the injected `httpServer` and `loader`.
+ * @param ctx - cordis context carrying the injected `webServer` and `loader`.
  */
 export async function apply(ctx: Context): Promise<void> {
   const backend = resolveDirectoryPickerBackend({
-    bindHost: ctx.httpServer.host,
+    bindHost: ctx.webServer.host,
     platform: process.platform,
     env: process.env,
     linuxChooser: hasLinuxChooserBinary(process.env.PATH, canExecute),
