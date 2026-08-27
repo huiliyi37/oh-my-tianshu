@@ -11,7 +11,10 @@ import { createWorkspaceViewStore } from '../src/client/stores.ts'
 const sid = (id: string) => id as SessionId
 const wid = (id: string) => id as WorkspaceId
 const summary = (id: string, updatedAt: number, cwd?: string): SessionSummary => ({
-  id: sid(id), displayTitle: id, running: false, blank: false, updatedAt, ...(cwd !== undefined ? { cwd } : {}),
+  id: sid(id), displayTitle: id, running: false, version: 0, blank: false, updatedAt, ...(cwd !== undefined ? { cwd } : {}),
+})
+const corruptSummary = (id: string, updatedAt: number): SessionSummary => ({
+  id: sid(id), displayTitle: id, running: false, version: -1, blank: false, updatedAt,
 })
 const list = (...items: SessionSummary[]): SessionListState => ({
   ids: items.map(item => item.id),
@@ -328,6 +331,7 @@ describe('deriveSearchResults', () => {
           runningSubagentCount: 0,
           pendingInteraction: 'plan-review',
           completed: false,
+          corrupt: false,
           snippet: 'title session body excerpt',
         },
         {
@@ -337,6 +341,7 @@ describe('deriveSearchResults', () => {
           running: false,
           runningSubagentCount: 0,
           completed: false,
+          corrupt: false,
         },
         {
           id: contentHit.id,
@@ -345,6 +350,7 @@ describe('deriveSearchResults', () => {
           running: false,
           runningSubagentCount: 0,
           completed: false,
+          corrupt: false,
           snippet: 'body needle excerpt',
         },
       ],
@@ -438,5 +444,16 @@ describe('relativeTime', () => {
     expect(relativeTime(now - 2 * 86_400_000, now)).toEqual({ unit: 'days', n: 2 })
     expect(relativeTime(now - 60 * 86_400_000, now)).toEqual({ unit: 'months', n: 2 })
     expect(relativeTime(0, now)).toEqual({ unit: 'years', n: 1 })
+  })
+})
+
+describe('P2④ stage 3: corrupt derivation', () => {
+  it('marks a negative-version summary corrupt in both browse and search nodes', () => {
+    const state = { ...list(corruptSummary('broken', 5), summary('fine', 10)), current: undefined }
+    const groups = deriveGroups(state, [workspace('w', ['broken', 'fine'])], noArchive, view(['w']))
+    const broken = groups[0]?.sessions.find(node => node.id === sid('broken'))
+    const fine = groups[0]?.sessions.find(node => node.id === sid('fine'))
+    expect(broken?.corrupt).toBe(true)
+    expect(fine?.corrupt).toBe(false)
   })
 })

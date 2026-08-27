@@ -534,7 +534,7 @@ export class SessionManager {
       const { result } = await this.api.sessions.create(payload)
       if (result.ok) {
         this.recordMutation({ kind: 'upsert', summary: {
-          sessionId: result.value.sessionId, updatedAt: Date.now(), running: false, blank: true,
+          sessionId: result.value.sessionId, updatedAt: Date.now(), running: false, version: 0, blank: true,
           ...(opts.cwd !== undefined ? { cwd: opts.cwd } : {}),
         } })
       } else {
@@ -547,6 +547,7 @@ export class SessionManager {
             sessionId: publishedSessionId,
             updatedAt: Date.now(),
             running: false,
+            version: 0,
             blank: true,
           } })
         }
@@ -580,7 +581,7 @@ export class SessionManager {
         : workspaceAttachSessionId(result.error)
       if (childId !== undefined) {
         this.recordMutation({ kind: 'upsert', summary: {
-          sessionId: childId, updatedAt: Date.now(), running: false, blank: false,
+          sessionId: childId, updatedAt: Date.now(), running: false, version: 0, blank: false,
           parentSessionId: opts.sessionId,
           ...(source?.cwd !== undefined ? { cwd: source.cwd } : {}),
         } })
@@ -752,7 +753,7 @@ export class SessionManager {
     switch (frame.type) {
       case 'host/session-added': {
         this.mergeSummary({
-          sessionId: frame.sessionId, updatedAt: Date.now(), running: false, blank: frame.blank,
+          sessionId: frame.sessionId, updatedAt: Date.now(), running: false, version: 0, blank: frame.blank,
           ...(frame.parentSessionId !== undefined ? { parentSessionId: frame.parentSessionId } : {}),
           ...(frame.origin !== undefined ? { origin: frame.origin } : {}),
           ...(frame.cwd !== undefined ? { cwd: frame.cwd } : {}),

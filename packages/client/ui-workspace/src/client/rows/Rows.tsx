@@ -411,7 +411,9 @@ export function SessionNodeItem({ node, currentId, now, onOpen, onRename, onFork
           </>
         )}
       </span>
-      <span className={css.title}>{title}</span>
+      <span className={clsx(css.title, row.corrupt && css.titleCorrupt)}>{title}</span>
+      {/* P2④ stage 3: corrupted persisted artifacts are annotated, never silently skipped. */}
+      {row.corrupt && <span className={css.corruptBadge}>{t('corrupt.badge')}</span>}
       {/* A blank New Session row is a provisional placeholder: nothing has
           happened in it yet, so a "now" timestamp and the row verbs
           (rename/fork/archive) would all act on content that does not

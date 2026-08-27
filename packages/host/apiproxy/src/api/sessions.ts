@@ -153,6 +153,13 @@ export interface SessionSummary {
   /** Status of the attached agent; always false for cold (unattached) sessions. */
   running: boolean
   /**
+   * Persisted header version (session.header.version passthrough). Negative
+   * versions are the persistence layer's corruption placeholders — the row is
+   * unreadable and must be annotated as unrecoverable, never silently skipped
+   * (P2④ stage 3 parity with the TUI's 不可恢复 rows).
+   */
+  version: number
+  /**
    * Derived conversation-not-started bit: true while no turn has run (no
    * prompt was accepted yet). Standalone plugin events — command lifecycle
    * records, plan/mode, titles, goals — do not open a turn and therefore do

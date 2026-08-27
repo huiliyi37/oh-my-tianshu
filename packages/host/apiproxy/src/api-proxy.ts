@@ -311,6 +311,7 @@ function summarize(session: Session, running: boolean): SessionSummary {
     // must not sort as freshly worked in.
     updatedAt: lastActivityTime(session.events) ?? session.header.createdAt,
     running,
+    version: session.header.version,
     blank: sessionBlank(session),
     ...sessionListFields(session.header),
   }
@@ -342,6 +343,7 @@ async function summarizeCold(
     sessionId: meta.id,
     updatedAt,
     running: false,
+    version: meta.version,
     // Lazy persistence keeps never-appended sessions out of list(); reading
     // a cold log to check for turns would defeat the index read, so a listed
     // cold session is served as not-blank (its log holds its conversation).

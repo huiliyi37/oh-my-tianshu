@@ -11,6 +11,9 @@
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
   'command.description': '选择本会话使用的模型',
+  'alias.sparkFlash': 'Spark Flash（快捷别名）',
+  'alias.sparkPro': 'Spark Pro（快捷别名）',
+  'alias.detail': 'DeepSeek Spark 一键路由',
   'option.loadError': '目录加载失败：{message}',
   'trigger.fallback': '选择模型',
   'trigger.selectAria': '选择模型',
@@ -35,6 +38,9 @@ export type ModelKey = keyof typeof zh
 /** English dictionary, checked complete against the zh key set. */
 export const en = {
   'command.description': 'Select the model for this conversation',
+  'alias.sparkFlash': 'Spark Flash (alias)',
+  'alias.sparkPro': 'Spark Pro (alias)',
+  'alias.detail': 'DeepSeek Spark one-click route',
   'option.loadError': 'Catalog failed to load: {message}',
   'trigger.fallback': 'Select model',
   'trigger.selectAria': 'Select model',

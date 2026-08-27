@@ -50,6 +50,8 @@ export interface SessionSummary {
   /** Coarse durable origin for navigation filtering; not a continuation capability. */
   origin?: 'subagent'
   running: boolean
+  /** Persisted header version (wire passthrough); negative = corrupt artifact. */
+  version: number
   /** User interaction currently blocking this session (sidebar amber-dot state). */
   pendingInteraction?: PendingInteractionStatus
   /** Finished while not selected and not yet opened — the sidebar's green "done" reminder. Absent = false. */
@@ -650,6 +652,7 @@ export class SessionsService implements ISessions {
         id: entry.sessionId,
         displayTitle: displayTitleOf(entry.title, entry.cwd, entry.sessionId),
         running: entry.running,
+        version: entry.version,
         ...(entry.completed ? { completed: true } : {}),
         blank: entry.blank,
         updatedAt: entry.updatedAt,
@@ -683,6 +686,7 @@ export class SessionsService implements ISessions {
             parentId: address.parentSessionId,
             origin: 'subagent',
             running: child.activity === 'running',
+            version: 0,
             blank: false,
             updatedAt: 0,
           }

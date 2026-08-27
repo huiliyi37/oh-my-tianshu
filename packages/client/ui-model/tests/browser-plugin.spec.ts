@@ -148,9 +148,27 @@ describe('ui-model dual entry', () => {
     const b = await bench()
     b.mint('s1')
     const options = await b.contribution().ui.options(projection('s1'), new AbortController().signal)
-    expect(options.map((o: SelectOption) => o.label)).toEqual(['DeepSeek-V4-Flash', 'DeepSeek-V4-Pro'])
-    expect(options[0]).toMatchObject({ active: true, detail: 'DeepSeek' })
-    expect(options[1]?.active).toBeUndefined()
+    expect(options.map((o: SelectOption) => o.label)).toEqual([
+      'Spark Flash（快捷别名）', 'Spark Pro（快捷别名）', 'DeepSeek-V4-Flash', 'DeepSeek-V4-Pro',
+    ])
+    expect(options[2]).toMatchObject({ active: true, detail: 'DeepSeek' })
+    expect(options[3]?.active).toBeUndefined()
+  })
+
+  it('P2④ stage 3: alias rows resolve to the fixed spark routes on selection', async () => {
+    const b = await bench()
+    b.mint('s1')
+    const options = await b.contribution().ui.options(projection('s1'), new AbortController().signal)
+    expect(options[0]?.id).toBe('alias/spark-flash')
+    expect(options[1]?.id).toBe('alias/spark-pro')
+    expect(options[0]).toMatchObject({ detail: 'DeepSeek Spark 一键路由' })
+    // Selecting an alias drives the same selectModel path with the fixed route
+    // (no reasoningEffort: aliases carry no directory reasoning metadata).
+    await b.contribution().ui.onSelect(options[1]!, projection('s1'))
+    expect(b.seat().inject!(sid('s1')).directory.getSnapshot().current).toMatchObject({
+      provider: 'deepseek-spark',
+      model: 'deepseek-v4-pro',
+    })
   })
 
   it('a seat selection is the current the popup marks active next — one shared state', async () => {

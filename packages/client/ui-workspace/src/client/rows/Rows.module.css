@@ -185,6 +185,20 @@
   flex: 1;
 }
 
+.titleCorrupt {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.corruptBadge {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--dsw-alias-danger-soft, #ffebe9);
+  color: var(--dsw-alias-danger, #cf222e);
+  font-size: 11px;
+  line-height: 16px;
+}
+
 .meta {
   overflow: hidden;
   text-overflow: ellipsis;

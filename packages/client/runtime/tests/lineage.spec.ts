@@ -8,7 +8,7 @@ import type { SessionId, SessionSummary } from '@huiliyi37/dsh-client-connection
 import { flattenLineage } from '../src/client/sessions/lineage.ts'
 
 const s = (id: string, updatedAt: number, parent?: string): SessionSummary => ({
-  sessionId: id as SessionId, updatedAt, running: false, blank: false,
+  sessionId: id as SessionId, updatedAt, running: false, version: 0, blank: false,
   ...(parent === undefined ? {} : { parentSessionId: parent as SessionId }),
 })
 

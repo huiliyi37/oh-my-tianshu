@@ -43,9 +43,32 @@ function rowId(providerId: string, modelId: string): string {
   return `${providerId}/${modelId}`
 }
 
+/**
+ * One-click alias routes (P2④ stage 3, mirroring the TUI's SPARK_ALIASES):
+ * fixed deepseek-spark routes listed ahead of the directory so the shortcut
+ * survives a slow or failed catalog load; the host still validates on select.
+ */
+const SPARK_ALIASES = [
+  { id: 'spark-flash', provider: 'deepseek-spark', model: 'deepseek-v4-flash', labelKey: 'alias.sparkFlash' as const },
+  { id: 'spark-pro', provider: 'deepseek-spark', model: 'deepseek-v4-pro', labelKey: 'alias.sparkPro' as const },
+] as const
+
+function aliasRowId(aliasId: string): string {
+  return `alias/${aliasId}`
+}
+
 /** Flatten the directory into popup rows; failure rows are listed for visibility but never selectable. */
 function optionsOf(directory: SessionModels, t: TranslateNS<'model'>): SelectOption[] {
   const rows: SelectOption[] = []
+  for (const alias of SPARK_ALIASES) {
+    rows.push({
+      id: aliasRowId(alias.id),
+      label: t(alias.labelKey),
+      detail: t('alias.detail'),
+      ...(directory.current.provider === alias.provider && directory.current.model === alias.model
+        ? { active: true } : {}),
+    })
+  }
   for (const group of directory.groups) {
     for (const model of group.models) {
       rows.push({
@@ -75,6 +98,8 @@ function optionsOf(directory: SessionModels, t: TranslateNS<'model'>): SelectOpt
  * @returns the row's model selection, or undefined for failure rows / stale ids.
  */
 function selectionOf(state: ModelDirectoryState, id: string): ModelSelection | undefined {
+  const alias = SPARK_ALIASES.find(entry => aliasRowId(entry.id) === id)
+  if (alias !== undefined) return { provider: alias.provider, model: alias.model }
   for (const group of state.groups) {
     for (const model of group.models) {
       if (rowId(group.id, model.id) !== id) continue

@@ -30,6 +30,8 @@ export interface SessionNode {
   /** Finished running while not selected and not yet opened (the green "done" reminder dot). */
   completed: boolean
   updatedAt: number
+  /** Persisted artifact is corrupt (version < 0) — render the unrecoverable annotation. */
+  corrupt: boolean
 }
 
 /** One workspace group section: header row facts + visible top-level session rows. */
@@ -214,6 +216,8 @@ function sessionNode(
     runningSubagentCount: descendants.get(s.id)?.runningCount ?? 0,
     completed: s.completed === true,
     updatedAt: s.updatedAt,
+    /** P2④ stage 3: negative persisted versions are corruption placeholders — annotated, never skipped. */
+    corrupt: s.version < 0,
     ...(s.pendingInteraction === undefined ? {} : { pendingInteraction: s.pendingInteraction }),
   }
 }
@@ -375,6 +379,7 @@ export function deriveSearchResults(
           ? {}
           : { pendingInteraction: summary.pendingInteraction }),
         completed: summary.completed === true,
+        corrupt: summary.version < 0,
         ...match === undefined ? {} : { snippet: match.snippet },
       }
     }),
