@@ -15,3 +15,7 @@ Service Definition 位于 `lsp/lsp/`。该 seam 恰好公开四种语义操作�
 设计原理见 [LSP 能力 seam Agent Note](../../.agents/notes/implemented/architecture/2026-07-15-lsp-capability-seam.md)，其中也解释了文档为何在每次查询时临时打开、stdio 主机为何使用共享的文件系统／子进程执行环境，以及扩展名归属为何在同一运行时内互斥。
 
 子系统参考——操作、坐标、请求/结果、`LspError`——见 [docs/subsystems/lsp.md](../../docs/subsystems/lsp.md)；设计依据见 [LSP 能力 seam Agent Note](../../.agents/notes/implemented/architecture/2026-07-15-lsp-capability-seam.md)。
+
+## 作为独立插件装配
+
+三件套按本仓惯例把 `@huiliyi37/*` 依赖声明为 **peerDependencies**——宿主树自带 fork 全家桶时开箱即用；但作为独立插件装进**没有**这套包的外部 profile 时（pnpm `autoInstallPeers: false`、npm `legacy-peer-deps` 均不自动补装 peer），需要在消费方显式声明全部运行时依赖，否则启动即 `ERR_MODULE_NOT_FOUND`、整棵插件树加载失败。真实案例与消费方（TUI 插件）的闭包清单见 [dsh-tianshu-tui#54](https://github.com/huiliyi37/dsh-tianshu-tui/issues/54)；`packages/lsp/lsp/tests/packaging.spec.ts` 以不变量守卫钉住「peer 必须覆盖全部值导入」。
