@@ -90,6 +90,14 @@ website/     VitePress projection of selected bilingual docs/ sources
 
 Package groups: packages/README.md.
 
+### Related repositories
+
+- **Tianshu core** — `../opencode-tui`, remote `huiliyi37/revit`, npm `tianshu-tui@3.x` (bin `rivet`). The standalone terminal-agent product and the source the render/UI engine in `packages/tui` is ported from.
+- **oh-my-tianshu integration (this repository)** — evolved from the official DeepSeek Harness base (the `upstream` remote), fusing that runtime with the Tianshu engine plus self-developed plugins into one independent distribution. Entry package `@huiliyi37/oh-my-tianshu` (bin `oh-my-tianshu`) serves profile boot, plugin management, and the browser UI alias.
+- **Official-harness TUI plugin** — `../dsh-tui`, npm `@huiliyi37/dsh-tianshu-tui` on the 0.1.2-rc line. Hosted by the official DeepSeek Harness; its UI core is ported from Tianshu and syncs bidirectionally with `packages/tui` here.
+
+The fusion direction matters for triage: runtime-bug fixes flow from the official harness `upstream`; UI/engine improvements flow between Tianshu core, this repository's `packages/tui`, and the plugin via the port/sync notes under each repository.
+
 ### TypeScript project layout
 
 The repository uses isolated Host and Client aggregates. An ordinary package is registered in exactly one aggregate: Host packages in `tsconfig.host.json` and Client packages in `tsconfig.client.json`.

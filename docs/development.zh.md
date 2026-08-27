@@ -91,6 +91,14 @@ website/     VitePress projection of selected bilingual docs/ sources
 
 Package groups: packages/README.md.
 
+### 相关仓库
+
+- **天枢本体** —— `../opencode-tui`，远端 `huiliyi37/revit`，npm `tianshu-tui@3.x`（bin `rivet`）。独立终端编码 agent 产品，也是本仓 `packages/tui` 渲染/UI 引擎的移植源头。
+- **oh-my-tianshu 融合发行（本仓库）** —— 在官方 DeepSeek Harness 基座（`upstream` 远端）上演进，把该运行时与天枢引擎及自研插件群融合为单一独立发行。入口包 `@huiliyi37/oh-my-tianshu`（bin 同名）负责 profile 启动、插件管理与浏览器 UI 别名。
+- **官方 harness 的 TUI 插件** —— `../dsh-tui`，npm `@huiliyi37/dsh-tianshu-tui`，0.1.2-rc 版本线。寄生于官方 DeepSeek Harness 宿主，UI 核心自天枢移植，与本仓 `packages/tui` 双向回流。
+
+排查问题时注意方向差异：运行时类修复自官方 `upstream` 流入；UI/引擎改进在天枢本体、本仓 `packages/tui` 与插件三处之间经各仓的移植/同步笔记双向流动。
+
 ### TypeScript 项目布局
 
 仓库使用相互隔离的 Host 与 Client aggregate。普通 package 只登记进其中一个 aggregate；Host 包进入 `tsconfig.host.json`，Client 包进入 `tsconfig.client.json`。
