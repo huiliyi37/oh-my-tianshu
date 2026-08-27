@@ -373,6 +373,9 @@ importers:
       '@huiliyi37/dsh-approval-rules':
         specifier: workspace:*
         version: link:../packages/interaction/approval-rules
+      '@huiliyi37/dsh-attachment-local':
+        specifier: workspace:*
+        version: link:../packages/attachment/attachment-local
       '@huiliyi37/dsh-bash':
         specifier: workspace:*
         version: link:../packages/bash/bash
@@ -5233,6 +5236,18 @@ importers:
 
   packages/llm/llm-deepseek:
     dependencies:
+      '@huiliyi37/dsh-atomic-write':
+        specifier: workspace:*
+        version: link:../../util/atomic-write
+      '@huiliyi37/dsh-attachment':
+        specifier: workspace:*
+        version: link:../../attachment/attachment
+      '@huiliyi37/dsh-brand':
+        specifier: workspace:*
+        version: link:../../util/brand
+      '@huiliyi37/dsh-paths':
+        specifier: workspace:*
+        version: link:../../util/paths
       '@huiliyi37/schemastery':
         specifier: ^3.18.0
         version: link:../../../vendor/schemastery
