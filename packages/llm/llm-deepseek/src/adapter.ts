@@ -22,6 +22,7 @@ import type { CredentialRef } from '@huiliyi37/dsh-credentials'
 import { idleWatchdog, timeoutOf } from '@huiliyi37/dsh-timeout'
 import { serializeRequest } from './serialize.ts'
 import type { RequestDefaults } from './serialize.ts'
+import { sharedWireFileStore, upgradeWireImages } from './wire-files.ts'
 import { parseSse } from './sse.ts'
 import { translate } from './translate.ts'
 import { SPARK_PROVIDER } from './spark.ts'
@@ -71,6 +72,18 @@ export interface DeepSeekConnectionOptions {
   streamIdleTimeoutMs: number
   /** Maximum accumulated base64 image payload in one request. */
   maxRequestImageBytes: number
+  /** Files API upgrade enabled in config. */
+  filesApiEnabled: boolean
+  /** Uploaded image lifetime in seconds. */
+  filesApiExpiresAfterSeconds: number
+  /** Re-upload remaining-lifetime margin in seconds. */
+  filesApiRefreshMarginSeconds: number
+  /** Quota-recovery cleanup batch size. */
+  filesApiQuotaCleanupBatch: number
+  /** Inline-floor byte size under which parts stay inline. */
+  filesApiMinInlineBytes: number
+  /** Whole-upgrade timeout in milliseconds. */
+  filesApiTimeoutMs: number
   /** Provider-owned model-request retry policy, already resolved. */
   retryPolicy: ResolvedRetryPolicy
 }
@@ -314,6 +327,29 @@ export class DeepSeekAdapter extends LlmAdapter {
     onComment: () => void,
   ): AsyncIterable<StreamChunk> {
     const body = serializeRequest(options, connection.defaults, connection.maxRequestImageBytes)
+    if (connection.filesApiEnabled) {
+      // Files 置换（上游 d618bfebb4 超时解耦语义）：升级窗口与流读超时互相
+      // 独立；任一 part 失败保留 inline——Files 是优化，不是正确性依赖。
+      const upgradeSignal = AbortSignal.any([signal,
+        AbortSignal.timeout(connection.filesApiTimeoutMs)])
+      try {
+        await upgradeWireImages(
+          body,
+          {
+            store: sharedWireFileStore(),
+            policy: {
+              expiresAfterSeconds: connection.filesApiExpiresAfterSeconds,
+              refreshMarginSeconds: connection.filesApiRefreshMarginSeconds,
+              quotaCleanupBatch: connection.filesApiQuotaCleanupBatch,
+            },
+            minInlineBytes: connection.filesApiMinInlineBytes,
+          },
+          { baseURL: connection.baseURL, apiKey },
+          upgradeSignal)
+      } catch {
+        /* 整段回退：保留序列化原样 inline。 */
+      }
+    }
     // Prepared outside the try so the TRANSPORT label below covers exactly the
     // transport boundary, never a serialization failure.
     const payload = JSON.stringify(body)

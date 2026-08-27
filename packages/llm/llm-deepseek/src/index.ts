@@ -14,6 +14,7 @@
 import type { Context } from '@huiliyi37/cordis'
 import z from '@huiliyi37/schemastery'
 import { assertUsableApiKey, LlmError, resolveRetryPolicy, RetryPolicySchema } from '@huiliyi37/dsh-llm'
+import { MAX_FILE_EXPIRY_SECONDS, MIN_FILE_EXPIRY_SECONDS } from './files-api.ts'
 import type { RetryPolicyConfig } from '@huiliyi37/dsh-llm'
 import { credentialRef } from '@huiliyi37/dsh-credentials'
 import { environmentOf, type EnvironmentSnapshot } from '@huiliyi37/dsh-environment'
@@ -40,6 +41,18 @@ export {
 export type { DeepSeekAdapterOptions, DeepSeekCatalogModel, DeepSeekConnectionOptions } from './adapter.ts'
 export type { RequestDefaults } from './serialize.ts'
 export type * from './types.ts'
+export {
+  DeepSeekFilesClient,
+  isFilesQuotaError,
+  MAX_FILE_EXPIRY_SECONDS,
+  MAX_FILE_UPLOAD_BYTES,
+  MAX_STORED_FILE_BYTES,
+  MAX_STORED_FILE_COUNT,
+  MIN_FILE_EXPIRY_SECONDS,
+} from './files-api.ts'
+export type { DeepSeekFileObject, DeepSeekFilePage } from './files-api.ts'
+export { upgradeWireImages, sharedWireFileStore } from './wire-files.ts'
+export type { WireFilesUpgradeOptions } from './wire-files.ts'
 // spark 内部能力：算法与 route 常量供锚点插件（dsh-spark-anchors）消费。
 export {
   defaultTokenizer,
@@ -97,6 +110,18 @@ export interface Config {
   streamIdleTimeoutMs?: number
   /** Maximum accumulated base64 image payload per request (default 20 MiB). */
   maxRequestImageBytes?: number
+  /** 启用 Files API 序列化后置图片升级；默认关闭。 */
+  filesApiEnabled?: boolean
+  /** 上传文件有效期（秒；默认一周）。 */
+  filesApiExpiresAfterSeconds?: number
+  /** 索引命中所需的剩余寿命下限（秒；默认一小时）。 */
+  filesApiRefreshMarginSeconds?: number
+  /** 配额恢复时一次清理的最旧文件数（默认 100）。 */
+  filesApiQuotaCleanupBatch?: number
+  /** 低于该字节数的 inline 图片保持内联（默认 64 KiB）。 */
+  filesApiMinInlineBytes?: number
+  /** 单请求整段升级窗口（毫秒；默认一分钟）。 */
+  filesApiTimeoutMs?: number
   /** Provider-owned model-request retry policy; omission uses normal defaults. */
   retryPolicy?: RetryPolicyConfig
   /**
@@ -136,6 +161,12 @@ export const Config: z<Config> = z.object({
   models: z.array(catalogModel).default(DEFAULT_MODELS),
   streamIdleTimeoutMs: z.number().min(Number.MIN_VALUE).max(MAX_TIMER_DELAY_MS).default(DEFAULT_STREAM_IDLE_TIMEOUT_MS),
   maxRequestImageBytes: z.number().step(1).min(1).default(DEFAULT_MAX_REQUEST_IMAGE_BYTES),
+  filesApiEnabled: z.boolean().default(false),
+  filesApiExpiresAfterSeconds: z.number().step(1).min(MIN_FILE_EXPIRY_SECONDS).max(MAX_FILE_EXPIRY_SECONDS).default(604_800),
+  filesApiRefreshMarginSeconds: z.number().step(1).min(60).default(3_600),
+  filesApiQuotaCleanupBatch: z.number().step(1).min(1).default(100),
+  filesApiMinInlineBytes: z.number().step(1).min(0).default(65_536),
+  filesApiTimeoutMs: z.number().min(Number.MIN_VALUE).max(MAX_TIMER_DELAY_MS).default(60_000),
   retryPolicy: RetryPolicySchema,
   spark: sparkPolicy,
 })
@@ -256,6 +287,12 @@ export function resolveAdapterOptions(config: Config, environment?: EnvironmentS
     models: resolveModels(config.models),
     streamIdleTimeoutMs,
     maxRequestImageBytes,
+    filesApiEnabled: config.filesApiEnabled ?? false,
+    filesApiExpiresAfterSeconds: config.filesApiExpiresAfterSeconds ?? 604_800,
+    filesApiRefreshMarginSeconds: config.filesApiRefreshMarginSeconds ?? 3_600,
+    filesApiQuotaCleanupBatch: config.filesApiQuotaCleanupBatch ?? 100,
+    filesApiMinInlineBytes: config.filesApiMinInlineBytes ?? 65_536,
+    filesApiTimeoutMs: config.filesApiTimeoutMs ?? 60_000,
     retryPolicy: resolveRetryPolicy(config.retryPolicy, 'llm-deepseek: retryPolicy'),
   }
 }

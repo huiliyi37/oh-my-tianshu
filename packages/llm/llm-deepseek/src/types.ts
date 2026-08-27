@@ -47,8 +47,14 @@ export interface WireContentImagePart {
   image_url: { url: string }
 }
 
-/** 用户消息的多模态 content parts（text + 图片）。 */
-export type WireContentPart = WireContentTextPart | WireContentImagePart
+/** Files API 引用 part（启用 filesApi 后由序列化后置置换产生；见 wire-files.ts）。 */
+export interface WireFileContentPart {
+  type: 'file'
+  file_id: string
+}
+
+/** 用户消息的多模态 content parts（text + 图片 inline/dataUrl/文件引用）。 */
+export type WireContentPart = WireContentTextPart | WireContentImagePart | WireFileContentPart
 
 /** User-role message: 纯文本字符串，或含图片的多模态 parts 数组。 */
 export interface WireUserMessage {

@@ -21,6 +21,10 @@ The package root exposes the Cordis plugin contract and `DeepSeekAdapter`; wire 
     maxTokens: 256000        # optional positive per-request output cap; this is the default
     streamIdleTimeoutMs: 300000 # optional; positive finite Node timer delay; five-minute default
     maxRequestImageBytes: 20971520 # optional positive integer; 20 MiB base64-payload default
+    filesApiEnabled: true   # optional; off by default — uploads inline images once and references them by file id
+    filesApiExpiresAfterSeconds: 604800 # optional; uploaded image lifetime (one week default)
+    filesApiMinInlineBytes: 65536 # optional; images under this size stay inline (64 KiB default)
+    filesApiTimeoutMs: 60000 # optional; whole-upgrade window per request (one-minute default)
     retryPolicy:             # optional; omission uses bounded normal defaults
       mode: always           # normal | always
       backoff:
@@ -49,6 +53,8 @@ The plugin registers the provider route `deepseek-official` together with its re
 An image-capable catalog entry declares `supportsVision: true`. The adapter then forwards user and tool-result `ImageBlock` data URLs as transient `image_url` parts without changing the durable session message. Text-only and unlisted models reject image input with `UNSUPPORTED_CONTENT` before credential or network I/O. System and assistant history remain image-free; tool-result images follow their string-only `tool` messages grouped into a separate `user` message introduced by `Attached image(s) from tool result:`.
 
 `maxRequestImageBytes` bounds the accumulated base64 image payload of one request and defaults to 20 MiB. When history exceeds the bound, the oldest images become the fixed model-visible placeholder `[image omitted to keep the request within its image limit; older images are omitted first. If this image is still needed, read its file again when a path is available; otherwise ask the user to attach it again.]` until the request fits, so a long image session keeps clearing gateway request-size caps instead of wedging on a 413. Admission of pasted images (format, byte, and dimension limits) stays with the TUI intake path.
+
+With `filesApiEnabled`, eligible PNG/JPEG/WebP `image_url` parts are upgraded to DeepSeek Files `{type:'file', file_id}` parts after serialization, so identical bytes upload once per endpoint+key namespace and later turns reference the stored file. Inline fallback keeps the request correct on any failure; per-request upgrades are bounded by `filesApiTimeoutMs` independently of stream reads.
 
 `contextWindow` is optional per configured model and is not exposed through the advisory catalog. `ctx.llm.resolveModelInfo('deepseek-official', model).context` returns an exact model value first, then `defaultContextWindow` for an entry without capacity or an unlisted pass-through id. The adapter default is 1,000,000; pressure-sensitive plugins therefore get deployment-owned capacity without treating the model selector as authoritative. Registering another adapter for `deepseek-official` throws `LlmError('DUPLICATE_ADAPTER')`.
 

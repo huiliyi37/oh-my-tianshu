@@ -34,6 +34,18 @@
     },
     {
       "path": "../../util/timeout"
+    },
+    {
+      "path": "../../attachment/attachment"
+    },
+    {
+      "path": "../../util/atomic-write"
+    },
+    {
+      "path": "../../util/brand"
+    },
+    {
+      "path": "../../util/paths"
     }
   ]
 }

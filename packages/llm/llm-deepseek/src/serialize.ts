@@ -116,7 +116,8 @@ function contentParts(blocks: readonly ContentBlock[]): WireContentPart[] {
 function userContent(parts: readonly WireContentPart[]): string | WireContentPart[] {
   const text: string[] = []
   for (const part of parts) {
-    if (part.type === 'image_url') return [...parts]
+    // image_url 与 file 引用都强制走 parts 形态；file 部分没有 text 字段。
+    if (part.type !== 'text') return [...parts]
     text.push(part.text)
   }
   return text.join('')

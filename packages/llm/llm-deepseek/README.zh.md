@@ -21,6 +21,10 @@ harness LLM（大语言模型）seam 的 DeepSeek chat-completions 适配器：�
     maxTokens: 256000        # optional positive per-request output cap; this is the default
     streamIdleTimeoutMs: 300000 # optional; positive finite Node timer delay; five-minute default
     maxRequestImageBytes: 20971520 # optional positive integer; 20 MiB base64-payload default
+    filesApiEnabled: true   # optional; off by default — uploads inline images once and references them by file id
+    filesApiExpiresAfterSeconds: 604800 # optional; uploaded image lifetime (one week default)
+    filesApiMinInlineBytes: 65536 # optional; images under this size stay inline (64 KiB default)
+    filesApiTimeoutMs: 60000 # optional; whole-upgrade window per request (one-minute default)
     retryPolicy:             # optional; omission uses bounded normal defaults
       mode: always           # normal | always
       backoff:
@@ -49,6 +53,12 @@ harness LLM（大语言模型）seam 的 DeepSeek chat-completions 适配器：�
 支持图片的 catalog 配置项声明 `supportsVision: true`。适配器随后把 user 与工具结果中 `ImageBlock` 的 data URL 作为瞬态 `image_url` 部分发送，不改变持久会话消息。纯文本模型与未列出模型会在凭据或网络 I/O 前以 `UNSUPPORTED_CONTENT` 拒绝图片输入。system 与 assistant 历史仍不能包含图片；工具结果图片跟在仅含字符串的 `tool` 消息之后，汇总进一条由 `Attached image(s) from tool result:` 引出的单独 `user` 消息。
 
 `maxRequestImageBytes` 限制单个请求累计的 base64 图片 payload，默认值为 20 MiB。历史超过上限时，适配器会从最旧图片开始替换为固定模型可见占位文本 `[image omitted to keep the request within its image limit; older images are omitted first. If this image is still needed, read its file again when a path is available; otherwise ask the user to attach it again.]`，直至请求可容纳，使图片很多的会话持续避开网关请求体上限，而不是卡在 413 上。粘贴图片的准入（格式、字节数与尺寸限制）仍由 TUI 录入路径负责。
+
+启用 `filesApiEnabled` 后，序列化完成后会把符合条件的 PNG/JPEG/WebP `image_url`
+part 置换为 DeepSeek Files 的 `{type:'file', file_id}` part：同一字节内容按
+endpoint+key 命名空间只上传一次，后续回合引用已存文件。任一失败都会回退为
+内联，保证请求正确性；单次升级受 `filesApiTimeoutMs` 独立限时段约束，与流读
+超时互不影响。
 
 `contextWindow` 对每个已配置模型都可选，不会通过建议 catalog 公开。`ctx.llm.resolveModelInfo('deepseek-official', model).context` 先返回精确模型值，再对不含容量的配置项或未列出原样传递 id 返回 `defaultContextWindow`。适配器默认值为 1,000,000；因此，压力敏感插件可以获得由部署决定的容量，不会将模型 selector 视为权威。为 `deepseek-official` 注册另一个适配器会抛出 `LlmError('DUPLICATE_ADAPTER')`。
 

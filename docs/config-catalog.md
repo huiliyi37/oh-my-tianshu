@@ -860,7 +860,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/fs/fs-local/src/index.ts:39`](../packages/fs/fs-local/src/index.ts)
+Source: [`packages/fs/fs-local/src/index.ts:40`](../packages/fs/fs-local/src/index.ts)
 
 ## `@huiliyi37/dsh-fs-sandbox`
 
@@ -1097,6 +1097,18 @@ export interface Config {
   streamIdleTimeoutMs?: number
   /** Maximum accumulated base64 image payload per request (default 20 MiB). */
   maxRequestImageBytes?: number
+  /** 启用 Files API 序列化后置图片升级；默认关闭。 */
+  filesApiEnabled?: boolean
+  /** 上传文件有效期（秒；默认一周）。 */
+  filesApiExpiresAfterSeconds?: number
+  /** 索引命中所需的剩余寿命下限（秒；默认一小时）。 */
+  filesApiRefreshMarginSeconds?: number
+  /** 配额恢复时一次清理的最旧文件数（默认 100）。 */
+  filesApiQuotaCleanupBatch?: number
+  /** 低于该字节数的 inline 图片保持内联（默认 64 KiB）。 */
+  filesApiMinInlineBytes?: number
+  /** 单请求整段升级窗口（毫秒；默认一分钟）。 */
+  filesApiTimeoutMs?: number
   /** Provider-owned model-request retry policy; omission uses normal defaults. */
   retryPolicy?: RetryPolicyConfig
   /**
@@ -1142,7 +1154,7 @@ export interface SparkTruncatePolicy {
 
 Depends on: [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
 
-Source: [`packages/llm/llm-deepseek/src/index.ts:81`](../packages/llm/llm-deepseek/src/index.ts)
+Source: [`packages/llm/llm-deepseek/src/index.ts:94`](../packages/llm/llm-deepseek/src/index.ts)
 
 ## `@huiliyi37/dsh-llm-pi-ai`
 
@@ -1418,12 +1430,14 @@ export interface ReplayModelConfig {
   description?: string
   /** Optional positive integer context capacity published by the replay adapter. */
   contextWindow?: number
+  /** Optional declared input modalities, so a scenario can exercise capability gates (e.g. image-capable `read_image`). */
+  inputModalities?: readonly ModelModality[]
 }
 ```
 
-Depends on: [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
+Depends on: [`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
 
-Source: [`packages/support/llm-replay/src/index.ts:744`](../packages/support/llm-replay/src/index.ts)
+Source: [`packages/support/llm-replay/src/index.ts:751`](../packages/support/llm-replay/src/index.ts)
 
 ## `@huiliyi37/dsh-llm-retry`
 
@@ -2868,7 +2882,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/fs/tool-fs/src/index.ts:25`](../packages/fs/tool-fs/src/index.ts)
+Source: [`packages/fs/tool-fs/src/index.ts:26`](../packages/fs/tool-fs/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-fs-search`
 
