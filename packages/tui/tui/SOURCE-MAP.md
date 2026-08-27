@@ -101,6 +101,7 @@
 | src/format/task-panel.ts | — | new |
 | src/format/todos-panel.ts | — | new（/todos 紧凑待办面板：保留快照 → 摘要卡/封顶明细，纯函数层） |
 | src/format/tool-card.ts | format/tool-card.ts | modified |
+| src/format/transcript-viewer.ts | — | new（T5 /scroll 全屏转录查看器：scrollback 平面化 + 行滚动/轮次跳转/搜索，纯状态机） |
 | src/format/tool-family.ts | tool-family.ts | modified（目录重排：上游根 → src/format/） |
 | src/format/tool-group.ts | — | new |
 | src/format/tool-view-card.ts | — | new（presenter 结算卡：diff/terminal 结构化渲染 + generic 回落；renderFileDiff 与审批预览共用） |

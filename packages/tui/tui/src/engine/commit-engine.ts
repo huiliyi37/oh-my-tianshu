@@ -51,12 +51,39 @@ export class CommitEngine {
    * 超过上限后最旧条目被自动丢弃（保留最近的，匹配 pager 实际可见范围）。
    */
   private buffer: RingBuffer<string>
+  /** Scrollback buffer 行数上限（capacity/isFull 的数据源）。 */
+  private readonly cap: number
 
   constructor(options: CommitEngineOptions) {
     this.stdout = options.stdout
     this.flush = options.flush ?? false
     const cap = options.scrollbackMaxLines ?? DEFAULT_SCROLLBACK_MAX_LINES
-    this.buffer = createRingBuffer<string>(Math.max(1, cap))
+    this.cap = Math.max(1, cap)
+    this.buffer = createRingBuffer<string>(this.cap)
+  }
+
+  /**
+   * Scrollback 缓冲当前行数（getContent() 的行数口径）。
+   * @returns 当前缓冲行数。
+   */
+  size(): number {
+    return this.buffer.size
+  }
+
+  /**
+   * Scrollback 缓冲行数上限。
+   * @returns 行数上限。
+   */
+  capacity(): number {
+    return this.cap
+  }
+
+  /**
+   * 缓冲是否已满（此后写入覆盖最旧行——pager 可据此提示内容截断）。
+   * @returns 满时为 true。
+   */
+  isFull(): boolean {
+    return this.buffer.size >= this.cap
   }
 
   /**

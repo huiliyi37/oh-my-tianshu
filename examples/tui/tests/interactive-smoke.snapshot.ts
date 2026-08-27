@@ -10,7 +10,9 @@
  * `/rewind` (list → granularity → done) → `/theme` switch → clean Ctrl+Q
  * exit. A second scenario exits with Ctrl+Q while the approval card is still
  * pending — the teardown path that used to leak pending state — and requires
- * a clean exit there too.
+ * a clean exit there too. A third pins the `p` persist-allow rule against a
+ * repeated call; a fourth drives the `/scroll` transcript viewer (open →
+ * in-overlay search hit → Esc clears the query → Esc closes → clean exit).
  *
  * Every marker waits on the parsed terminal buffer, never on raw bytes, so
  * ANSI framing or redraw order cannot fake a pass.
@@ -53,6 +55,10 @@ const PERMISSIONS_RULE_MARKER = 'project  bash' as const
 const THEME_SWITCH_MARKER = '主题已切换: '
 /** Theme picker markers: overlay title + key-hint row (never the slash-suggest menu). */
 const THEME_PICKER_MARKERS = ['选择主题', 'Enter 确认'] as const
+/** /scroll transcript viewer markers: overlay header + key-hint row. */
+const TRANSCRIPT_VIEWER_MARKERS = ['📜 transcript', 'Esc 关闭'] as const
+/** Viewer search-mode header marker (query typed in the overlay, not the input line). */
+const TRANSCRIPT_SEARCH_MARKER = '/smoke 命中' as const
 
 interface SmokeModel {
   readonly sequence: readonly MockLlmBehavior[]
@@ -238,6 +244,49 @@ describe.skipIf(process.platform === 'win32')('examples/tui interactive smoke', 
       const exit = await session.waitForExit(10_000)
       expect(exit.exitCode).toBe(0)
       expect(exit.signal ?? 0).toBe(0)
+    } catch (error: unknown) {
+      throw formatPtyFailure(error, session.rawOutput(), session.exit())
+    } finally {
+      await session.stop()
+    }
+  }, 180_000)
+
+  it('opens the /scroll transcript viewer, searches, and exits cleanly', async () => {
+    const session = await bootSmoke({
+      sequence: ['success'],
+    })
+    try {
+      await session.waitForMarkers(WELCOME_MARKERS, 'settled welcome')
+
+      // One settled turn so the scrollback holds a searchable exchange.
+      submitMessage(session, SMOKE_MESSAGE)
+      await session.waitForMarkers([SMOKE_ASSISTANT_REPLY], 'assistant reply')
+
+      // /scroll: the viewer overlay opens on the alternate screen.
+      submitMessage(session, '/scroll')
+      await session.waitForMarkers(TRANSCRIPT_VIEWER_MARKERS, 'transcript viewer')
+      expect(session.activeBufferType()).toBe('alternate')
+
+      // `/` search inside the viewer: the query accumulates and jumps to the
+      // first match — the header reports the hit, not the input line.
+      session.send('/smoke')
+      await session.waitForMarkers([TRANSCRIPT_SEARCH_MARKER], 'viewer search hit')
+
+      // Esc clears the query (viewer stays open on alt screen); Esc again
+      // closes the overlay and restores the normal buffer.
+      session.send('\x1b')
+      await session.waitForMarkerGone(TRANSCRIPT_SEARCH_MARKER, 'search cleared')
+      expect(session.activeBufferType()).toBe('alternate')
+      session.send('\x1b')
+      await session.waitForMarkerGone('📜 transcript', 'viewer closed')
+      expect(session.activeBufferType()).toBe('normal')
+
+      // Clean Ctrl+Q exit after the overlay round-trip.
+      session.send('\x11')
+      const exit = await session.waitForExit(10_000)
+      expect(exit.exitCode).toBe(0)
+      expect(exit.signal ?? 0).toBe(0)
+      expect(session.rawOutput()).not.toContain(FAKE_API_KEY)
     } catch (error: unknown) {
       throw formatPtyFailure(error, session.rawOutput(), session.exit())
     } finally {

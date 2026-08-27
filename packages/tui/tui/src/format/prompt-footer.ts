@@ -35,6 +35,7 @@ export const FOOTER_TIPS: readonly FooterTip[] = [
   { text: 'ctrl+o 展开推理', weight: 1 },
   { text: '/preset 切换 agent 面', weight: 1 },
   { text: '/theme 换主题', weight: 1 },
+  { text: '/scroll 全屏转录查看器', weight: 1 },
   { text: '/help 全部命令', weight: 1 },
 ]
 

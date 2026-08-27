@@ -2,7 +2,8 @@
  * Scrollback transcript parser — turns CommitEngine text into message-level units
  * for the `/scroll` (pager) overlay search and expansion.
  *
- * 预留：/scroll overlay 未接线——parseScrollbackTranscript 当前无消费端，仅登记 API。
+ * 消费端：/scroll 全屏转录查看器（format/transcript-viewer.ts）——解析/搜索/
+ * 行高估算全部为其服务；无其他消费端。
  *
  * 解析策略（保守启发式）：
  * - 按行扫描，识别消息起始标记。

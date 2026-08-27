@@ -236,7 +236,7 @@ interface MemoryFacet {
  * TuiApp 的显隐切换）；/status、/todos 保持 TuiApp 内注册（/todos：无参显隐 +
  * all 明细展开，数据源为 todos 投影保留快照）。
  */
-export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'resume', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'key', 'login', 'preset', 'tasks', 'density', 'info', 'goal', 'status', 'todos', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'export', 'exit', 'yolo', 'cost', 'help', 'restart'] as const
+export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'resume', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'key', 'login', 'preset', 'tasks', 'density', 'info', 'goal', 'status', 'todos', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'scroll', 'export', 'exit', 'yolo', 'cost', 'help', 'restart'] as const
 
 /**
  * /model 一键切换别名（TUI 便捷层）：展开为 deepseek-spark route 的
@@ -374,6 +374,8 @@ export interface BuiltinCommandDeps {
   askBtw(question: string): Promise<boolean>
   /** /memory（P2）：打开记忆浏览器 overlay；返回是否已打开（无 memory 服务时 false）。 */
   openMemoryBrowser(): Promise<boolean>
+  /** /scroll（T5）：打开全屏转录查看器 overlay；返回是否已打开（scrollback 为空时 false）。 */
+  openTranscriptViewer(): boolean
   /** /session switch（P3）：切换到既有 live 会话（id 字符串；app 侧转 SessionId）。 */
   switchSession(id: string): Promise<void>
   /** /export（T3）：导出当前会话转录为 Markdown；path 缺省由实现决定；返回导出文件路径。 */
@@ -1146,6 +1148,15 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
         echo(`MCP servers (${servers.length}):`)
         for (const s of servers) {
           echo(`  ${s.serverName}: ${s.getToolCount()} 工具`)
+        }
+      },
+    },
+    {
+      name: 'scroll',
+      description: '全屏转录查看器：翻页/轮次跳转/搜索会话内容（T5）',
+      run: ({ echo }) => {
+        if (!deps.openTranscriptViewer()) {
+          echo('⚠ 无可查看内容（scrollback 为空）')
         }
       },
     },

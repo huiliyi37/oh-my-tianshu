@@ -1619,6 +1619,70 @@ describe('TuiApp 审查 HIGH 修复回归（177c12e）', () => {
   })
 })
 
+
+describe('TuiApp /scroll 全屏转录查看器（T5）', () => {
+  it('/scroll 打开 overlay（alt screen + 标题），搜索命中，Esc 清 query 再 Esc 关闭', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('scroll-viewer')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    ;(agent.session as { id: SessionId }).id = app.sessionId ?? SessionId('scroll-viewer')
+    // handleSubmit 走正常提交路径：用户消息行落 scrollback（emitTranscriptUser
+    // 只进 live 区投影，不进 CommitEngine 缓冲——/scroll 的数据源）。
+    app.handleSubmit('smoke needle')
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    app.handleSubmit('/scroll')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    const opened = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(opened).toContain('\x1B[?1049h')
+    expect(opened).toContain('📜 transcript')
+    expect(opened).toContain('Esc 关闭')
+
+    // 查看器内 /smoke 进搜索：query 累积 + 实时跳转（顶栏报命中）。
+    stdin.emit('data', '/smoke')
+    await new Promise(resolve => setTimeout(resolve, 80))
+    const searched = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(searched).toContain('/smoke 命中 1/1')
+
+    // 搜索态 Esc 清 query（overlay 保持打开，alt screen 不退出）——只判
+    // 最后一次顶栏帧（累积历史里仍有旧搜索帧）。
+    stdin.emit('data', '\x1b')
+    await new Promise(resolve => setTimeout(resolve, 80))
+    const cleared = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    const clearedHeader = cleared.slice(cleared.lastIndexOf('📜 transcript'))
+    expect(clearedHeader).toContain('📜 transcript')
+    expect(clearedHeader).not.toContain('/smoke')
+    expect(cleared.split('\x1B[?1049l').length - 1).toBe(0)
+
+    // 再 Esc 关闭 overlay，退出 alt screen。
+    stdin.emit('data', '\x1b')
+    await new Promise(resolve => setTimeout(resolve, 80))
+    const closed = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(closed).toContain('\x1B[?1049l')
+    await app.dispose()
+  })
+
+  it('/scroll 无 scrollback 内容时不打开 overlay 并回显不可用', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('scroll-empty')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    app.handleSubmit('/scroll')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).not.toContain('\x1B[?1049h')
+    expect(written).not.toContain('📜 transcript')
+    await app.dispose()
+  })
+})
+
 describe('TuiApp Phase 6.4 外部编辑器', () => {
   /** 生成把临时文件内容改为指定文本的编辑器替身脚本（win32 用 .cmd，其余平台 .sh）。 */
   function makeEditorScript(replacement: string): { script: string; dir: string } {

@@ -338,6 +338,7 @@ import { formatSlashMenu, SLASH_MENU_MAX_ROWS } from '../format/slash-menu.js'
 import { formatSubagentRunning, formatSubagentDone } from '../format/subagent-line.js'
 import { glanceBarSegments } from '../format/glance-bar.js'
 import { MemoryBrowserOverlay } from '../format/memory-overlay.js'
+import { TranscriptViewer } from '../format/transcript-viewer.js'
 import { zenPhaseLabel } from '../preset-surface.js'
 import { formatCacheMissReason, isReportableMiss } from '../cache-telemetry.js'
 import type { CacheHealthWire } from '../cache-telemetry.js'
@@ -727,6 +728,8 @@ export class TuiApp {
   private expandedToolCallId: string | null = null
   /** P2：memory 浏览器 overlay（/memory 记忆列表/过滤/删除）。 */
   private memoryOverlay: MemoryBrowserOverlay | null = null
+  /** T5：全屏转录查看器 overlay（/scroll scrollback 翻页/轮次跳转/搜索）。 */
+  private transcriptViewer: TranscriptViewer | null = null
   /** Phase 9d：流利度追踪（tool 事件 → 渲染策略；stale 提示消费于 renderLive）。 */
   private readonly fluency = new FluencyTracker()
   /** Phase 5.3：底部 glance（状态/错误行派生 + 节流；renderLive 消费 current()）。 */
@@ -1078,6 +1081,7 @@ export class TuiApp {
       rewindSession: () => this.rewindSession(),
       askBtw: question => this.askBtw(question),
       openMemoryBrowser: () => this.openMemoryBrowser(),
+      openTranscriptViewer: () => this.openTranscriptViewer(),
       switchSession: id => this.switchSession(SessionId(id)),
       exportTranscript: path => this.exportTranscript(path),
       requestExit: () => { this.onExit?.() },
@@ -1475,6 +1479,9 @@ export class TuiApp {
     // P2：memory 浏览器 overlay（/memory）——条目快照 + 数据源在激活时注入。
     this.memoryOverlay = new MemoryBrowserOverlay()
     this.overlay.register('memory', this.memoryOverlay)
+    // T5：全屏转录查看器 overlay（/scroll）——scrollback 快照在激活时注入。
+    this.transcriptViewer = new TranscriptViewer()
+    this.overlay.register('transcript', this.transcriptViewer)
     // /key：API Key 设置对话框 overlay——异步状态翻转（探测/落盘完成）经 onChange
     // 重绘；保存成功经 onSaved 刷新 apiKeyReady（footer 在 overlay 关闭时统一重绘）。
     this.keyDialog = new KeyDialogController({
@@ -2722,6 +2729,26 @@ export class TuiApp {
       fetchPage: async (offset, limit) => memory.list({ offset, limit }),
     }, hasMore)
     overlay.activate('memory')
+    return true
+  }
+
+  /**
+   * T5：打开全屏转录查看器 overlay（/scroll）。数据快照 = CommitEngine 缓冲的
+   * scrollback 全文（含命令回显/steer 等屏幕记录）；缓冲满时顶栏提示截断。
+   * 打开期间为快照——流式新增不推送（alt screen 遮住主屏，关闭后自然最新）。
+   * @returns 是否已打开（scrollback 为空时 false）。
+   */
+  private openTranscriptViewer(): boolean {
+    const overlay = this.overlay
+    const viewer = this.transcriptViewer
+    if (overlay === null || viewer === null) return false
+    const content = this.commit.getContent()
+    if (content.trim() === '') return false
+    viewer.setContent(content, {
+      truncated: this.commit.isFull(),
+      maxLines: this.commit.capacity(),
+    })
+    overlay.activate('transcript')
     return true
   }
 
@@ -4395,6 +4422,23 @@ export class TuiApp {
       }
       if (this.rewindOverlay.isDone()) {
         this.overlay.deactivate()
+      }
+      return
+    }
+    // T5：转录查看器打开——Ctrl+C 关闭；Esc 在搜索态清 query、普通态关闭；
+    // 其余键转发 overlay 状态机。
+    if (this.overlay?.activeId() === 'transcript' && this.transcriptViewer !== null) {
+      if (key.name === 'ctrl_c') {
+        this.overlay.deactivate()
+      } else if (key.name === 'escape') {
+        if (this.transcriptViewer.isSearchMode()) {
+          this.transcriptViewer.handleKey(key.name, key.char)
+          this.overlay.rerender()
+        } else {
+          this.overlay.deactivate()
+        }
+      } else if (this.transcriptViewer.handleKey(key.name, key.char)) {
+        this.overlay.rerender()
       }
       return
     }

@@ -43,6 +43,8 @@
 
 **会话渲染面**（对标 Claude Code）：已结算工具卡在 `tool/result` 时实时提交进 scrollback，经软降级桥（`adapter/tool-view.ts`）消费 harness 的 presenter 渲染意图（`presentCall`/`presentResult`）——`diff` 结果渲染结构化红绿文件 diff（与审批预览共享 `renderFileDiff`），`terminal` 结果渲染命令标题 + cwd + exit/signal 徽标，其余回落文本折叠卡。think 推理通道流式期在 live 区渲染 shimmer 头行（`✻ 思考中…`，tick 驱动光带扫过，16 色终端静态降级）+ 暗色尾巴，段结束时以折叠头行落底进 scrollback（`✻ 思考 (3.2s) · 12 行`）——正文默认收起（对标竞品），`Ctrl+O` 在 live 区按需展开查看（scrollback append-only，展开不重复落底；中止的 turn 丢弃缓冲；紧凑模式只留头行）。resume/attach 经同一条桥重放，消息与工具卡按事件 seq 交错——live 与恢复转录渲染完全一致。
 
+**全屏转录查看器**（`/scroll`，T5）：对已提交 scrollback 的只读翻页器——屏幕上确切的记录（命令回显、steer 标记、/btw 折叠答案、工具卡），经预留的 `scrollback-transcript.ts` API 解析为消息块。↑/↓ j/k 单行滚动，PageUp/PageDown（Ctrl+U/D）半屏，home/end（g/G）跳顶/底，`[`/`]` 上一/下一轮（user 消息边界，循环），`/` 进搜索——字符累积 query 实时跳首个匹配，`n`/`N`/Enter 循环匹配，Esc 清 query 保持打开，再 Esc 或 Ctrl+C 关闭。打开时取快照（流式提交不推送进已打开的查看器）；1000 行环形缓冲封顶命中时顶栏显示截断提示。
+
 **待办紧凑面板**（`/todos`）：消费 `todos` 会话投影（`todo/write` 全量快照）渲染一行摘要卡——`📋 待办 ✓完成 ⏳进行 □待办 · 当前进行项`；`/todos all` 展开封顶明细（缺省 6 行，超出折叠为 `└ …(+N)`），再按一次收起。投影在 `turn/start` 被清成 null（清单随回合开始重置），面板改读「保留快照」——只吸收非空投影值，已显示的清单跨回合黏滞、不随回合边界闪烁消失；null 仅在会话从未写入时出现（渲染「尚无待办」空态），空数组渲染「全部完成 ✓」完成态（两种空语义可区分）。显隐是会话内 UI 状态：默认隐藏、`/clear` 随清屏收起、重开会话不保留。与 `/status` 的完整 checklist 任务段、`/tasks` 窗格同源不同呈现——完整清单仍在 `/status`。
 
 **LSP 诊断**（移植自天枢 LSP 栈）：agent 触碰文件时，桥按扩展名懒启动语言 server（typescript 经 `npx -y` 默认可用；pyright/gopls/rust-analyzer/clangd/jdtls 按 PATH 探测）拉取诊断——live 工具卡标题带 `⚠ N错 M警` 徽标，`/lsp` 面板按文件分组展示。诊断只进 TUI 本地展示缓存：不写会话事件、不注册任何模型面，dispose 时 kill 全部 server。装配了 `getDiagnostics` 形状的外部服务（`provide('lsp')`，如 dsh-lsp 伴生插件）时直接消费、与模型工具面共享 server 集；官方 `ctx.lsp` seam 经 `query(getDiagnostics)` 操作适配，官方操作落地前恒空。

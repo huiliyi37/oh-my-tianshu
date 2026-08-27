@@ -70,6 +70,7 @@ function commandByName(name: string) {
     rewindSession: vi.fn(() => true),
     askBtw: vi.fn(async () => true),
     openMemoryBrowser: vi.fn(async () => true),
+    openTranscriptViewer: vi.fn(() => true),
     switchSession: vi.fn(async () => undefined),
     exportTranscript: vi.fn(async (path?: string) => path ?? '/tmp/dsh-export-s1.md'),
     requestExit: vi.fn(),
@@ -1050,6 +1051,30 @@ describe('内置命令 — /export（T3 会话导出）', () => {
   })
 })
 
+
+describe('内置命令 — /scroll（T5 全屏转录查看器）', () => {
+  it('打开成功不回声（overlay 自身接管屏幕）', async () => {
+    const { cmd, deps } = commandByName('scroll')
+    const { args, echo } = makeArgs()
+    await cmd.run(args)
+    expect(deps.openTranscriptViewer).toHaveBeenCalledTimes(1)
+    expect(echo).not.toHaveBeenCalled()
+  })
+
+  it('scrollback 为空时回显不可用', async () => {
+    const { cmd, deps } = commandByName('scroll')
+    deps.openTranscriptViewer.mockReturnValue(false)
+    const { args, echo } = makeArgs()
+    await cmd.run(args)
+    expect(echo).toHaveBeenCalledWith(expect.stringContaining('无可查看内容'))
+  })
+
+  it('内置命令集含 /scroll，/sc 前缀可解析', () => {
+    expect(BUILTIN_COMMAND_NAMES).toContain('scroll')
+    expect(resolveSlashCommand('/scroll', BUILTIN_COMMAND_NAMES)?.command.name).toBe('scroll')
+    expect(resolveSlashCommand('/sc', BUILTIN_COMMAND_NAMES)?.command.name).toBe('scroll')
+  })
+})
 describe('内置命令 — /exit', () => {
   it('内置命令集含 /exit，完整名与 /exi 前缀可解析', () => {
     expect(BUILTIN_COMMAND_NAMES).toContain('exit')
@@ -2045,6 +2070,7 @@ describe('内置命令 — /effort', () => {
       rewindSession: vi.fn(() => true),
       askBtw: vi.fn(async () => true),
       openMemoryBrowser: vi.fn(async () => true),
+      openTranscriptViewer: vi.fn(() => true),
       switchSession: vi.fn(async () => undefined),
       exportTranscript: vi.fn(async (path?: string) => path ?? '/tmp/dsh-export-s1.md'),
       requestExit: vi.fn(),
