@@ -222,6 +222,8 @@ export interface LlmModelInfo {
   description?: string
   /** Adapter-declared image-input capability; absent = unknown (treated as text-only). */
   supportsVision?: boolean
+  /** Declared model-input modality set (`text`/`image`); absent = unknown. */
+  inputModalities?: readonly ('text' | 'image')[]
 }
 
 /** Provider-owned context capacity for one exact provider/model route. */

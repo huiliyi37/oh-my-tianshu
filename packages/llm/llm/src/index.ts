@@ -648,6 +648,9 @@ export class LlmService extends Service {
         name: model.name,
         ...model.description === undefined ? {} : { description: model.description },
         ...model.supportsVision === undefined ? {} : { supportsVision: model.supportsVision },
+        ...(model.inputModalities === undefined || !Array.isArray(model.inputModalities))
+          ? {}
+          : { inputModalities: [...model.inputModalities] },
       }
     })
   }
@@ -721,6 +724,9 @@ export class LlmService extends Service {
       name: resolved.name,
       ...resolved.description === undefined ? {} : { description: resolved.description },
       ...resolved.supportsVision === undefined ? {} : { supportsVision: resolved.supportsVision },
+      ...(resolved.inputModalities === undefined || !Array.isArray(resolved.inputModalities))
+        ? {}
+        : { inputModalities: [...resolved.inputModalities] },
       ...context === undefined ? {} : { context: { contextWindow: context.contextWindow } },
       ...defaultMaxTokens === undefined ? {} : { defaultMaxTokens },
     }
