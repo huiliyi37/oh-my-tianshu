@@ -4369,7 +4369,11 @@ export class TuiApp {
     }
     // C2 项 2：Ctrl+F 历史搜索 overlay。打开时快照 transcript 消息；
     // 再按一次或 Esc 关闭。palette 打开时不拦截（palette 优先，见下）。
-    if (key.name === 'ctrl_f' && this.palette?.isOpen() !== true) {
+    // Ctrl+R 是 Ctrl+F 历史搜索的 readline 惯例别名（回流 dsh-tui 181d517 之
+    // Ctrl+R 半）。本拦截先于 inputLine.handleKey，vim 非 insert 态不生效——
+    // NORMAL 态的 Ctrl+R redo 保留给 vim 引擎（Ctrl+F 无此冲突，不受限）。
+    if ((key.name === 'ctrl_f' || (key.name === 'ctrl_r' && !(this.vimEnabled && this.inputLine.vimMode !== 'insert')))
+      && this.palette?.isOpen() !== true) {
       const overlay = this.overlay
       const search = this.searchOverlay
       /* v8 ignore next 2 -- overlay/searchOverlay 在 attach 时恒创建（L539-547），null 仅类型收窄 */

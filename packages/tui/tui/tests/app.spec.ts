@@ -5936,6 +5936,20 @@ describe('TuiApp 历史搜索 overlay（C2 项 2）', () => {
     await app.dispose()
   })
 
+  it('Ctrl+R 是历史搜索别名（readline 惯例）：打开 overlay，Esc 关闭', async () => {
+    const { app, stdin, stdout } = await setupApp()
+    stdin.emit('data', '\x12') // Ctrl+R → ctrl_r
+    await new Promise(resolve => setTimeout(resolve, 30)) // 等 renderBatcher flush
+    let written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('输入搜索词')
+    stdout.write.mockClear()
+    stdin.emit('data', '\x1b') // Esc 关闭
+    await new Promise(resolve => setTimeout(resolve, 30))
+    written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).not.toContain('输入搜索词')
+    await app.dispose()
+  })
+
   it('overlay 打开时字符进 query，n 跳转', async () => {
     const { app, stdin, stdout } = await setupApp()
     stdin.emit('data', '\x06') // Ctrl+F
