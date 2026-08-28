@@ -25,6 +25,7 @@ import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 const SIGNAL = new AbortController().signal
 
 const FULL_CAPABILITIES: SubagentCapabilities = {
+  agentOptions: true,
   outputSchema: true,
   depthLimit: true,
   toolFilter: true,

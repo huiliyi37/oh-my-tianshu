@@ -124,6 +124,8 @@ flowchart LR
   cfg --> plugin_dsh_base_command_compact
   plugin_dsh_base_next_workflow["next-workflow<br/>@huiliyi37/dsh-next-workflow"]
   cfg --> plugin_dsh_base_next_workflow
+  plugin_dsh_base_subagent_model_selection_settings["subagent-model-selection-settings<br/>@huiliyi37/dsh-tool-subagent/model-selection-settings"]
+  cfg --> plugin_dsh_base_subagent_model_selection_settings
   plugin_dsh_base_subagent["subagent<br/>@huiliyi37/dsh-subagent"]
   cfg --> plugin_dsh_base_subagent
   plugin_dsh_base_agent_definitions["agent-definitions<br/>@huiliyi37/dsh-agent-definitions"]
@@ -246,6 +248,7 @@ flowchart LR
 | `compact-basic` | `@huiliyi37/dsh-compact-basic` |
 | `command-compact` | `@huiliyi37/dsh-command-compact` |
 | `next-workflow` | `@huiliyi37/dsh-next-workflow` |
+| `subagent-model-selection-settings` | `@huiliyi37/dsh-tool-subagent/model-selection-settings` |
 | `subagent` | `@huiliyi37/dsh-subagent` |
 | `agent-definitions` | `@huiliyi37/dsh-agent-definitions` |
 | `subagent-spawn` | `@huiliyi37/dsh-subagent-spawn` |

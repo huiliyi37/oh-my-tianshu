@@ -30,7 +30,8 @@
 | `toolName` | 面向模型的名称，默认 `subagent`；每个已加载实例必须不同。 |
 | `enableRunInBackground` | 公开后台模式，默认 `true`；禁用时也会拒绝强制后台调用。 |
 | `backgroundMode` | 后台生命周期策略，默认 `one-shot`。`continuable` 要求提供方具备 `prepareContinuable` 能力并返回持久化子 agent ID；它不要求加载后续消息工具。 |
-| `agentOptions` | 传给具体提供方的子 agent `provider`、`model` 和正整数 `maxTokens`；进程内提供方会用显式值覆盖 `subagent` 角色 pin 与继承的父级选项。 |
+| `agentOptions` | 传给具体提供方的子 agent `provider`、`model` 和正整数 `maxTokens`；进程内提供方会用显式值覆盖 `subagent` 角色 pin 与继承的父级选项。 需要 provider 声明 `agentOptions` 能力——服务拒绝请求、本插件挂载即失败，杜绝静默忽略路由。 |
+| `modelSelectionSettings` | 允许模型逐调用选择子 LLM 路由（`provider`+`model` 成对、可选 `reasoning_effort`），由 Host 的 `subagent-model-selection` 设置段把关（默认关；精确路由 allowlist）。需在 Host 作用域装配 `@huiliyi37/dsh-tool-subagent/model-selection-settings`；每个会话在首次委派时把决策一次性记录为 log-only 的 `subagent/model-selection-policy` 事件，固定 schema 的 `list_subagent_models` 工具从 llm 活目录发现已授权路由。出厂的 `subagent_fork` 实例刻意不启用选择，以保留继承前缀的 KV Cache 复用。 |
 | `persona` | 每个子 agent 独立的 persona；要求提供方具备 `persona` 能力。 |
 | `toolFilter` | 每个子 agent 独立的全局工具限制；要求提供方具备 `toolFilter` 能力。 |
 | `maxDepth` | 绝对委派深度上限，默认 `3`（`0` 禁止委派）；数值上限要求 `depthLimit` 能力，缺失时挂载失败。对于预算由子 harness 拥有的进程外提供方，`'provider-managed'` 不发送上限。工具在达到上限时仍然可见；每次尝试启动都会检查调用 agent 的当前深度，被拒绝时返回出错的工具结果。 |

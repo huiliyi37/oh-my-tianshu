@@ -211,7 +211,11 @@ function use256(): boolean {
 
 // ── NO_COLOR（no-color.org 规范：环境变量存在且非空字符串 → 禁用颜色）──
 
-/** 纯函数：给定 env 是否请求无色（便于测试注入）。 */
+/**
+ * 纯函数：给定 env 是否请求无色（便于测试注入）。
+ * @param env - 进程环境（缺省 process.env）。
+ * @returns 是否显式请求无色。
+ */
 export function noColorRequested(env: NodeJS.ProcessEnv = process.env): boolean {
   const v = env.NO_COLOR
   return v !== undefined && v !== ''
@@ -224,12 +228,16 @@ if (colorSuppressed) chalk.level = 0
 /**
  * 测试/显式覆写无色开关（只翻本模块旗标；不回改 chalk.level——生产路径由
  * 模块加载时的初始化统一压制）。测试用后应复原。
+ * @param v - 目标开关状态。
  */
 export function setColorSuppressed(v: boolean): void {
   colorSuppressed = v
 }
 
-/** 当前是否压制颜色输出（NO_COLOR 已显式请求时 fg/bg 输出空串）。 */
+/**
+ * 当前是否压制颜色输出（NO_COLOR 已显式请求时 fg/bg 输出空串）。
+ * @returns 是否处于无色模式。
+ */
 export function isColorSuppressed(): boolean {
   return colorSuppressed
 }

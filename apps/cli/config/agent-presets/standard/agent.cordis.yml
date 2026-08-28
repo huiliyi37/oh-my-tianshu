@@ -189,6 +189,11 @@
         provider: spawn
         toolName: subagent
         backgroundMode: continuable
+        # 子代理路由选择（回流上游弧）：schema 暴露 provider/model/
+        # reasoning_effort；授权由 Host 的 subagent-model-selection 设置段
+        # 持有（默认关），会话在首次委派时把决策记录为策略事件。fork 行
+        # 刻意不启用——继承前缀的 KV Cache 复用优先。
+        modelSelectionSettings: true
         # Ceiling for every child: official minimal recipe ∪ the built-in
         # explore role. A role allow-list is intersected with this; un-roled
         # children do not inherit the parent's overlapping stacks.

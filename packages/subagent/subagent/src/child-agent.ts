@@ -52,24 +52,6 @@ export function resolveChildDepth(parent: Agent, maxDepth: number | undefined): 
 }
 
 /**
- * Resolve the child's `AgentOptions` in ascending precedence: the parent's
- * provider/model/maxTokens route, then the subagent-role pin, then the
- * request's own overrides — stamped with the child's own delegation depth.
- *
- * The pin is the live user-level override from the optional `modelRoles`
- * service; context-holding callers resolve it at creation
- * (`ctx.get('modelRoles')?.resolve('subagent')`) so a committed settings
- * change applies to the next child with no restart. (The delegating tool
- * additionally merges the pin into `requested` below the instance's
- * configured `agentOptions` and above an agent definition's `model:`, which
- * this function only sees as already-merged request values.)
- * @param parent - the delegating parent whose route the child inherits.
- * @param requested - per-child overrides, if any.
- * @param childDepth - the resolved delegation depth to stamp.
- * @param rolePin - the subagent-role pin, when the optional service carries one.
- * @returns the resolved options for `ctx.agents.create()`.
- */
-/**
  * Resolve the parent values inherited by a child. The latest request header
  * owns provider, model, and reasoning effort after request-time selection;
  * creation options remain the fallback before the first request and retain
@@ -96,6 +78,24 @@ export function parentAgentOptionsForDelegation(parent: Agent): AgentOptions {
   }
 }
 
+/**
+ * Resolve the child's `AgentOptions` in ascending precedence: the parent's
+ * provider/model/maxTokens route, then the subagent-role pin, then the
+ * request's own overrides — stamped with the child's own delegation depth.
+ *
+ * The pin is the live user-level override from the optional `modelRoles`
+ * service; context-holding callers resolve it at creation
+ * (`ctx.get('modelRoles')?.resolve('subagent')`) so a committed settings
+ * change applies to the next child with no restart. (The delegating tool
+ * additionally merges the pin into `requested` below the instance's
+ * configured `agentOptions` and above an agent definition's `model:`, which
+ * this function only sees as already-merged request values.)
+ * @param parent - the delegating parent whose route the child inherits.
+ * @param requested - per-child overrides, if any.
+ * @param childDepth - the resolved delegation depth to stamp.
+ * @param rolePin - the subagent-role pin, when the optional service carries one.
+ * @returns the resolved options for `ctx.agents.create()`.
+ */
 export function resolveChildAgentOptions(
   parent: Agent,
   requested: AgentOptions | undefined,

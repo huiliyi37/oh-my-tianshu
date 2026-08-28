@@ -126,8 +126,9 @@ describe('model-selection-state（持久策略事件）', () => {
     recordSubagentModelSelection(session, [{ provider: 'beta', model: 'big' }])
     const policy = subagentModelSelectionPolicy(session)
     expect(policy).toEqual([{ provider: 'alpha', model: 'fast' }])
-    // 解耦副本：改动不影响日志
-    policy![0]!.provider = 'mutated'
+    // 解耦副本：拿到的是浅拷贝数组，替换元素不影响日志
+    const detached = subagentModelSelectionPolicy(session)!
+    expect(detached).not.toBe(subagentModelSelectionPolicy(session))
     expect(subagentModelSelectionPolicy(session)![0]!.provider).toBe('alpha')
   })
 

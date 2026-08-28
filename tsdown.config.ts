@@ -24,7 +24,7 @@ export default defineConfig(({ env }) => {
       include: ['vendor/*', 'packages/*/*', 'apps/cli'],
       exclude: ['**/node_modules/**', '**/dist/**', '**/t?(e)mp/**'],
     },
-    entry: client ? '' : ['lib/types/{index,invariant}.js'],
+    entry: client ? '' : ['lib/types/{index,invariant,model-selection-settings}.js'],
     outDir: 'lib',
     format: ['esm'],
     platform: 'node',

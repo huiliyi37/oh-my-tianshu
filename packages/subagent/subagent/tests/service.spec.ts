@@ -24,10 +24,10 @@ function fakeParent(id = 'parent-1'): Agent {
 }
 
 const ALL_CAPS: SubagentCapabilities = {
-  outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true,
+  agentOptions: true, outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true,
 }
 const NO_CAPS: SubagentCapabilities = {
-  outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false,
+  agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false,
 }
 
 function baseRequest(overrides: Partial<SubagentStartRequest> = {}): SubagentStartRequest {

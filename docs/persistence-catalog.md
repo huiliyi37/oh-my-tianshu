@@ -471,7 +471,7 @@ Source: [`packages/hooks/hook-protocol/src/types.ts:33`](../packages/hooks/hook-
 'intent-bridge/handoff': { alignSessionId: string; reason: string }
 ```
 
-Source: [`packages/guard/intent-bridge/src/index.ts:68`](../packages/guard/intent-bridge/src/index.ts)
+Source: [`packages/guard/intent-bridge/src/index.ts:69`](../packages/guard/intent-bridge/src/index.ts)
 
 ### `llm/*`
 
@@ -655,7 +655,7 @@ Source: [`packages/core/session/src/types.ts:290`](../packages/core/session/src/
 'router/adoption': { subagentSessionId: string; verdict: 'adopt' | 'reject'; reason: string }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:116`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:117`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/decision` — log-only
 
@@ -669,7 +669,7 @@ Source: [`packages/guard/agent-router/src/index.ts:116`](../packages/guard/agent
 'router/decision': RouterDecisionRecord
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:123`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:124`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/evaluation` — log-only
 
@@ -691,7 +691,7 @@ Source: [`packages/guard/agent-router/src/index.ts:123`](../packages/guard/agent
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:131`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:132`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/gate` — log-only
 
@@ -709,7 +709,7 @@ Source: [`packages/guard/agent-router/src/index.ts:131`](../packages/guard/agent
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:145`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:146`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/outcome` — log-only
 
@@ -726,7 +726,7 @@ Source: [`packages/guard/agent-router/src/index.ts:145`](../packages/guard/agent
 'router/outcome': { subagentSessionId: string; stopReason: string; finding?: RouterFinding }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:109`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:110`](../packages/guard/agent-router/src/index.ts)
 
 #### `router/route` — log-only
 
@@ -748,7 +748,7 @@ Source: [`packages/guard/agent-router/src/index.ts:109`](../packages/guard/agent
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:83`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:84`](../packages/guard/agent-router/src/index.ts)
 
 ### `sandbox/*`
 
@@ -878,6 +878,23 @@ Source: [`packages/core/session/src/types.ts:234`](../packages/core/session/src/
 ```
 
 Source: [`packages/subagent/subagent/src/descriptor.ts:37`](../packages/subagent/subagent/src/descriptor.ts)
+
+#### `subagent/model-selection-policy` — log-only
+
+```ts persistence-catalog
+/**
+ * Records that this session's delegation tool exposes child provider,
+ * model, and reasoning-effort selection. Appended before the first model
+ * request; absence means the fixed-route definition. Log-only: it carries
+ * no `surfaceOp` and never enters model history.
+ */
+'subagent/model-selection-policy': {
+  /** Exact routes this Session may select explicitly for a child. */
+  allowedModels: AllowedModelRoute[]
+}
+```
+
+Source: [`packages/subagent/tool-subagent/src/model-selection-state.ts:14`](../packages/subagent/tool-subagent/src/model-selection-state.ts)
 
 ### `todo/*`
 
@@ -1058,4 +1075,4 @@ Source: [`packages/web/web-search-deepseek/src/provider.ts:83`](../packages/web/
 'zen/phase': { phase: ZenPhase; reason: ZenTransitionReason }
 ```
 
-Source: [`packages/guard/zen/src/index.ts:68`](../packages/guard/zen/src/index.ts)
+Source: [`packages/guard/zen/src/index.ts:69`](../packages/guard/zen/src/index.ts)

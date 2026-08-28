@@ -236,7 +236,7 @@ interface MemoryFacet {
  * TuiApp 的显隐切换）；/status、/todos 保持 TuiApp 内注册（/todos：无参显隐 +
  * all 明细展开，数据源为 todos 投影保留快照）。
  */
-export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'resume', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'key', 'login', 'preset', 'tasks', 'density', 'info', 'goal', 'status', 'todos', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'scroll', 'export', 'exit', 'yolo', 'cost', 'help', 'restart'] as const
+export const BUILTIN_COMMAND_NAMES = ['theme', 'session', 'resume', 'fork', 'branch', 'clear', 'compact', 'steer', 'model', 'effort', 'key', 'login', 'preset', 'tasks', 'density', 'bell', 'info', 'goal', 'status', 'todos', 'subagents', 'workflow', 'config', 'skills', 'rewind', 'btw', 'doctor', 'mcp', 'remember', 'memory', 'scroll', 'export', 'exit', 'yolo', 'cost', 'help', 'restart'] as const
 
 /**
  * /model 一键切换别名（TUI 便捷层）：展开为 deepseek-spark route 的
@@ -1289,11 +1289,14 @@ function levenshteinDistance(a: string, b: string): number {
     const curr = [i, ...Array(n)]
     for (let j = 1; j <= n; j++) {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1
-      curr[j] = Math.min(prev[j]! + 1, curr[j - 1]! + 1, prev[j - 1]! + cost)
+      const up = prev[j] ?? n
+      const left = curr[j - 1] ?? m
+      const diag = prev[j - 1] ?? n
+      curr[j] = Math.min(up + 1, left + 1, diag + cost)
     }
     prev = curr
   }
-  return prev[n]!
+  return prev[n] ?? m
 }
 
 /** 最长公共前缀长度。 */

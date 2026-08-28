@@ -19,6 +19,7 @@ export interface BellStream {
   write: (s: string) => unknown
 }
 
+/** Bell 用户偏好门（与响铃开关共享形状，便于宿主/测试注入）。 */
 export interface BellPrefs {
   /** 响铃开关（prefs bellEnabled；`false` 时静默，缺省视为开）。 */
   bellEnabled?: boolean
@@ -32,6 +33,9 @@ function flag(env: NodeJS.ProcessEnv, key: string): boolean {
  * 是否允许响铃。
  * 关闭条件：用户偏好关、DSH_TUI_SKIP_NOTIFY、VITEST、CI。
  * SSH 不在此列——BEL 穿透 pty 到本地终端，远程会话反而最需要它。
+ * @param env - 待检查的进程环境。
+ * @param prefs - 可选用户偏好（bellEnabled）。
+ * @returns 是否允许响铃。
  */
 export function shouldBell(env: NodeJS.ProcessEnv, prefs?: BellPrefs): boolean {
   if (prefs?.bellEnabled === false) return false
@@ -43,6 +47,10 @@ export function shouldBell(env: NodeJS.ProcessEnv, prefs?: BellPrefs): boolean {
 
 /**
  * 门闸放行时向流写 BEL。写失败静默吞掉，永不抛。
+ * @param out - 目标最小可写流。
+ * @param env - 进程环境。
+ * @param prefs - 可选用户偏好。
+ * @returns 是否实际写出。
  */
 export function writeBell(out: BellStream, env: NodeJS.ProcessEnv, prefs?: BellPrefs): boolean {
   if (!shouldBell(env, prefs)) return false

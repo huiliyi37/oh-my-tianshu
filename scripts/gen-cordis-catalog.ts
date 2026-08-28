@@ -47,6 +47,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   agentPresets: 'core.md',
   agentDefaultModel: 'core.md',
   agentDefinitions: 'subagent.md',
+  subagentModelSelection: 'subagent.md',
   agents: 'core.md',
   approval: 'approval.md',
   attachments: 'attachment.md',
@@ -68,7 +69,6 @@ export const SERVICE_PAGE: Record<string, string> = {
   modelRoles: 'core.md',
   git: 'git.md',
   goals: 'goal.md',
-  httpServer: 'http-server.md',
   webServer: 'http-server.md',
   invariants: 'invariants.md',
   intentBridge: 'core.md',
@@ -167,6 +167,7 @@ export const EVENT_SCOPE_PAGE: Record<string, string> = {
   'approval': 'approval.md',
   'commands': 'commands.md',
   'cordis': 'extensions.md',
+  'webserver': 'http-server.md',
   'authorization': 'credentials.md',
   'credentials': 'credentials.md',
   'domain': 'storage.md',
@@ -217,6 +218,8 @@ export const EVENT_WALK_EXEMPTIONS: Record<string, string> = {
  * appear on more than one page.
  */
 export const LINK_MAP: Readonly<Record<string, string>> = {
+  SubagentModelSelectionSettings: 'subagent.md',
+  AllowedModelRoute: 'subagent.md',
   Agent: 'core.md',
   AgentCancelCause: 'core.md',
   AgentFactory: 'core.md',
@@ -513,6 +516,7 @@ export const FOUNDATION_TYPE_NAMES: ReadonlySet<string> = new Set([
 /** Project types deliberately documented outside the subsystems catalog. */
 export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   z: 'schemastery schema constructor is owned by vendor/schemastery (vendored upstream)',
+  IndexInjection: 'service-local index.html injection row is owned by packages/host/webserver/src/injections.ts',
   BeginCommandRequest: 'event-local request contract is owned by packages/client/ui-slash/src/types.ts',
   InsertReferenceRequest: 'event-local request contract is owned by packages/client/ui-slash/src/types.ts',
   ConsumeTokenRequest: 'event-local request contract is owned by packages/client/ui-slash/src/types.ts',

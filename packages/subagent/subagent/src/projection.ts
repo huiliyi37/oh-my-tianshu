@@ -187,6 +187,7 @@ export const subagentIdentityProjectionDefinition = {
   stateVersion: 2,
 } satisfies ProjectionDefinition<'subagent', IdentityState>
 
+/** subagent 投影的折叠状态：描述符边界后的执行位与轮次计数。 */
 export interface ProgressState {
   /** Whether the fold has crossed a descriptor in this logical log. */
   descriptorSeen: boolean

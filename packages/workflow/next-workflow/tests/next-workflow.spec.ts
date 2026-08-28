@@ -42,6 +42,7 @@ import { apply, distillCritique, distillPlan, distillReview, distillSelection, d
 import type { Config } from '../src/index.ts'
 
 const FULL_CAPABILITIES: SubagentCapabilities = {
+  agentOptions: true,
   outputSchema: true,
   depthLimit: true,
   toolFilter: true,

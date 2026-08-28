@@ -598,12 +598,20 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Owns WorkspaceId-branded records over the domain facility; stable sessionIds accounts drive Host RPC and GUI projections.',
   },
   {
-    key: 'httpServer',
+    key: 'webServer',
     pkg: 'webserver',
     title: 'HTTP route registration',
     mode: 'core',
     consumers: ['connection', 'modules', 'hmr'],
     note: 'Plain node:http carrier: named-route registry, index transform taps, and the static dist fallback; web-transport plugins register their own routes.',
+  },
+  {
+    key: 'subagentModelSelection',
+    pkg: 'tool-subagent',
+    title: 'Child LLM route authorization',
+    mode: 'plugin',
+    consumers: ['tool-subagent'],
+    note: 'Host-owned opt-in setting sampled when a session first delegates: exact allowed child routes, recorded once as the log-only model-selection policy event.',
   },
   {
     key: 'clientModuleHost',

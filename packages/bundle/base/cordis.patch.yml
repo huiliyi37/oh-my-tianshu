@@ -330,6 +330,13 @@
     - id: next-workflow
       name: '@huiliyi37/dsh-next-workflow'
 
+    # 子代理模型路由选择设置段（provide 'subagentModelSelection'）：默认关。
+    # standard preset 的 tool-subagent 行以 modelSelectionSettings 引用本服务；
+    # 装配本身行为中性——用户在 /config（或 settings 文档）启用并添加精确
+    # 路由后，仅新顶层会话在首次委派时记录策略事件。
+    - id: subagent-model-selection-settings
+      name: '@huiliyi37/dsh-tool-subagent/model-selection-settings'
+
     - id: subagent
       name: '@huiliyi37/dsh-subagent'
 

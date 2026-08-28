@@ -54,58 +54,6 @@ A request whose handling throws (a malformed %-escape hitting `decodeURIComponen
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — this section is byte-identical in both language sides of the page. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` surface lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
-<a id="ctxhttpserver--httpserverservice"></a>
-
-### `ctx.httpServer` — `HttpServerService`
-
-The web-shape HTTP carrier service. Activation listens immediately (route registration order carries no request-facing semantics: named routes are composed to be disjoint, and the fallback seat answers anything not yet claimed during the boot window — 404 until its owner registers). A listen failure throws out of init — a FAILED fiber the boot's fail-loud sweep reports.
-
-```ts cordis-catalog
-/**
- * Register a named route. Duplicate (kind, path) throws — route patterns are
- * a composition-level contract, so a collision is a misconfiguration.
- * @param route - kind, path, and the owning handler.
- * @returns the disposer removing the route.
- */
-register(route: WebRoute): () => void
-
-/**
- * Register an exact-path HTTP upgrade route. Duplicate paths throw because
- * one socket can have only one protocol owner.
- * @param route - pathname and handler owning negotiation plus socket use.
- * @returns the disposer removing the route.
- */
-registerUpgrade(route: WebUpgradeRoute): () => void
-
-/**
- * Claim the fallback seat: the handler answering every request no named
- * route matches (the SPA dist server in the shipped Web composition). One
- * owner only — a second registration throws, because two fallbacks cannot
- * compose.
- * @param handler - owns the full response lifecycle of unmatched requests.
- * @returns the disposer releasing the seat.
- */
-registerFallback(handler: WebRoute['handler']): () => void
-
-/**
- * Register an index.html transform, applied by the fallback owner to every
- * index response ({@link applyIndexTaps}) in registration order.
- * @param transform - pure html-to-html function.
- * @returns the disposer removing the transform.
- */
-tapIndex(transform: (html: string) => string): () => void
-
-/**
- * Run an index.html body through the registered taps in registration order
- * — called by the fallback owner on every index response it renders.
- * @param html - the raw index.html body.
- * @returns the transformed body.
- */
-applyIndexTaps(html: string): string
-```
-
-Source: [`packages/host/webserver/src/index.ts:62`](../../packages/host/webserver/src/index.ts)
-
 <a id="ctxwebserver--httpserverservice"></a>
 
 ### `ctx.webServer` — `HttpServerService`
@@ -154,7 +102,46 @@ tapIndex(transform: (html: string) => string): () => void
  * @returns the transformed body.
  */
 applyIndexTaps(html: string): string
+
+/**
+ * Gather the structured injection table: one `webserver/index-inject` emit,
+ * every subscriber pushes its current rows. Fresh per call, so subscribers
+ * read live state (module graph, theme preference) at emit time.
+ * @returns rows in subscriber activation order.
+ */
+collectIndexInjections(): IndexInjection[]
+
+/**
+ * Render one index.html body: the structured injection table first, then
+ * the raw `tapIndex` transforms over the result.
+ * @param html - the raw index.html body.
+ * @returns the transformed body.
+ */
+renderIndex(html: string): string
 ```
 
-Source: [`packages/host/webserver/src/index.ts:62`](../../packages/host/webserver/src/index.ts)
+Source: [`packages/host/webserver/src/index.ts:74`](../../packages/host/webserver/src/index.ts)
+
+<a id="webserver-events"></a>
+
+### `webserver/*` events
+
+<a id="webserverindex-inject--emit"></a>
+
+#### `webserver/index-inject` — emit
+
+Collect the structured index injection table. Emitted on every index render and every worker boot-payload request; listeners push their current rows, so a row's data is read fresh at emit time.
+
+```ts cordis-catalog
+/**
+ * Collect the structured index injection table. Emitted on every index
+ * render and every worker boot-payload request; listeners push their
+ * current rows, so a row's data is read fresh at emit time.
+ * @param table - Mutable row table; listeners append in activation order.
+ * @mode emit
+ */
+'webserver/index-inject'(table: IndexInjection[]): void
+```
+
+Source: [`packages/host/webserver/src/index.ts:34`](../../packages/host/webserver/src/index.ts)
 <!-- END GENERATED cordis-surface -->

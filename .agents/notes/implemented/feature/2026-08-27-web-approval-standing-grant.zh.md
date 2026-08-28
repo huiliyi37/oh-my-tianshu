@@ -8,7 +8,7 @@
 
 ## 问题
 
-Web 审批卡（composer takeover，`ApprovalPanel`）只能回答 `allowed-once` 或 `rejected`——正是[常设授权](../../../.agents/notes/implemented/feature/2026-08-25-approval-standing-grants.md)为远端/Web 通道保留的窄并集，"直到它长出属于自己的 always-allow 交互"。P2④（Web UI 追平）就是那个时刻：TUI 卡片的 `[a] 本会话总是允许` 在 Web 没有对应物，面对连续越权的 Web 用户只能每次点允许。
+Web 审批卡（composer takeover，`ApprovalPanel`）只能回答 `allowed-once` 或 `rejected`——正是[常设授权](2026-08-25-approval-standing-grants.md)为远端/Web 通道保留的窄并集，"直到它长出属于自己的 always-allow 交互"。P2④（Web UI 追平）就是那个时刻：TUI 卡片的 `[a] 本会话总是允许` 在 Web 没有对应物，面对连续越权的 Web 用户只能每次点允许。
 
 ## 决策
 

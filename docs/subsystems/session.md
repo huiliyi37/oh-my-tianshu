@@ -754,7 +754,7 @@ fork(source: SessionForkSource, boundary?: number, childSessionId?: SessionId): 
 
 Types: [CreateSessionOptions](persistence.md) · [PrepareSessionOptions](persistence.md) · [SessionId](core.md)
 
-Source: [`packages/core/session/src/index.ts:840`](../../packages/core/session/src/index.ts)
+Source: [`packages/core/session/src/index.ts:842`](../../packages/core/session/src/index.ts)
 
 <a id="session-events"></a>
 
@@ -783,7 +783,7 @@ Creation announcement during session publication. A synchronous throw vetoes and
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/session/src/index.ts:74`](../../packages/core/session/src/index.ts)
+Source: [`packages/core/session/src/index.ts:76`](../../packages/core/session/src/index.ts)
 
 <a id="sessiondisposed--emit"></a>
 
@@ -806,7 +806,7 @@ Emitted once when an announced session leaves the store, including publication r
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/session/src/index.ts:84`](../../packages/core/session/src/index.ts)
+Source: [`packages/core/session/src/index.ts:86`](../../packages/core/session/src/index.ts)
 
 <a id="sessionevent--emit"></a>
 
@@ -831,7 +831,7 @@ Post-commit, fire-and-forget append feed. The listener snapshot resolves before 
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/session/src/index.ts:96`](../../packages/core/session/src/index.ts)
+Source: [`packages/core/session/src/index.ts:98`](../../packages/core/session/src/index.ts)
 
 <a id="sessionflush--parallel"></a>
 
@@ -853,5 +853,5 @@ Awaited parallel durability checkpoint: every listener runs and the caller await
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/session/src/index.ts:105`](../../packages/core/session/src/index.ts)
+Source: [`packages/core/session/src/index.ts:107`](../../packages/core/session/src/index.ts)
 <!-- END GENERATED cordis-surface -->

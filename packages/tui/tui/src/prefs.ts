@@ -18,6 +18,7 @@ import { dirname, join } from 'node:path'
 
 /** 输入区信息密度档位（footerInfo）：full 全部 chrome / compact 仅身份栏 / off 全关。 */
 export const FOOTER_INFO_LEVELS = ['full', 'compact', 'off'] as const
+/** 输入区信息密度档位字面量联合（full/compact/off）。 */
 export type FooterInfoLevel = (typeof FOOTER_INFO_LEVELS)[number]
 
 /** 偏好形状（本包建模的 key；读取时其他 key 由合并写原样保留）。 */
@@ -28,6 +29,10 @@ export interface TuiPrefs {
   bellEnabled?: boolean
 }
 
+/**
+ * 缺省偏好文件路径。
+ * @returns `~/.dsh-tui/prefs.json`（与官方宿主插件共享的绝对路径）。
+ */
 export function defaultPrefsPath(): string {
   return join(homedir(), '.dsh-tui', 'prefs.json')
 }

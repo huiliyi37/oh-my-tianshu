@@ -25,6 +25,13 @@ Service Definition：[dsh-subagent](../../packages/subagent/subagent)（`ctx.sub
  * to `maxDepth`; the other names match.
  */
 interface SubagentCapabilities {
+  /**
+   * Whether the provider can honor {@link SubagentStartRequest.agentOptions}:
+   * merge host-Agent provider/model/effort/output-token overrides into the
+   * child at creation. A provider that would silently ignore the values must
+   * declare `false` — the service rejects such a request before `start` runs.
+   */
+  readonly agentOptions: boolean
   readonly outputSchema: boolean
   readonly depthLimit: boolean
   readonly toolFilter: boolean
@@ -615,6 +622,22 @@ async get(name: string, options: AgentDefinitionLookupOptions = {}): Promise<Age
 
 Source: [`packages/subagent/agent-definitions/src/index.ts:212`](../../packages/subagent/agent-definitions/src/index.ts)
 
+<a id="ctxsubagentmodelselection--subagentmodelselectionconfig"></a>
+
+### `ctx.subagentModelSelection` — `SubagentModelSelectionConfig`
+
+Singleton settings owner read by delegation tools when an Agent is published.
+
+```ts cordis-catalog
+/**
+ * Read a detached selection preference for the next eligible Agent publication.
+ * @returns the enabled state and exact allowed routes.
+ */
+current(): SubagentModelSelectionSettings
+```
+
+Source: [`packages/subagent/tool-subagent/src/model-selection-settings.ts:45`](../../packages/subagent/tool-subagent/src/model-selection-settings.ts)
+
 <a id="ctxsubagents--subagentservice"></a>
 
 ### `ctx.subagents` — `SubagentService`
@@ -798,7 +821,7 @@ activeExternalRuns(): SubagentActiveExternalRun[]
 
 Types: [Agent](core.md) · [ContentBlock](llm-streaming.md) · [MessageId](llm-streaming.md) · [SessionId](core.md)
 
-Source: [`packages/subagent/subagent/src/index.ts:186`](../../packages/subagent/subagent/src/index.ts)
+Source: [`packages/subagent/subagent/src/index.ts:187`](../../packages/subagent/subagent/src/index.ts)
 
 <a id="subagent-events"></a>
 
@@ -824,7 +847,7 @@ A published child settled. Scope-filtered dispatch uses the same delegating pare
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/subagent/subagent/src/index.ts:181`](../../packages/subagent/subagent/src/index.ts)
+Source: [`packages/subagent/subagent/src/index.ts:182`](../../packages/subagent/subagent/src/index.ts)
 
 <a id="subagentprovider-added--emit"></a>
 
@@ -841,7 +864,7 @@ A provider became resolvable in the registry.
 'subagent/provider-added'(provider: SubagentProvider): void
 ```
 
-Source: [`packages/subagent/subagent/src/index.ts:155`](../../packages/subagent/subagent/src/index.ts)
+Source: [`packages/subagent/subagent/src/index.ts:156`](../../packages/subagent/subagent/src/index.ts)
 
 <a id="subagentprovider-removed--emit"></a>
 
@@ -858,7 +881,7 @@ A provider left the registry. Accepted runs remain holder-owned.
 'subagent/provider-removed'(name: string): void
 ```
 
-Source: [`packages/subagent/subagent/src/index.ts:161`](../../packages/subagent/subagent/src/index.ts)
+Source: [`packages/subagent/subagent/src/index.ts:162`](../../packages/subagent/subagent/src/index.ts)
 
 <a id="subagentstart--emit"></a>
 
@@ -882,5 +905,5 @@ A provider established a published child. For in-process providers, `ctx.agents.
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/subagent/subagent/src/index.ts:172`](../../packages/subagent/subagent/src/index.ts)
+Source: [`packages/subagent/subagent/src/index.ts:173`](../../packages/subagent/subagent/src/index.ts)
 <!-- END GENERATED cordis-surface -->

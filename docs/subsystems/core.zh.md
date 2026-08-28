@@ -769,7 +769,7 @@ Source: [`packages/core/agent/src/index.ts:255`](../../packages/core/agent/src/i
 async createAlignedSession(options: CreateAlignedSessionOptions = {}): Promise<{ sessionId: string; handle: AgentHandle }>
 ```
 
-Source: [`packages/guard/intent-bridge/src/index.ts:227`](../../packages/guard/intent-bridge/src/index.ts)
+Source: [`packages/guard/intent-bridge/src/index.ts:228`](../../packages/guard/intent-bridge/src/index.ts)
 
 <a id="ctxmodelroles--modelrolesservice"></a>
 
@@ -1213,5 +1213,5 @@ An alignment session handed off to its main session. The main session already re
 'intent-bridge/handoff'(this: unknown, payload: IntentBridgeHandoff): void
 ```
 
-Source: [`packages/guard/intent-bridge/src/index.ts:57`](../../packages/guard/intent-bridge/src/index.ts)
+Source: [`packages/guard/intent-bridge/src/index.ts:58`](../../packages/guard/intent-bridge/src/index.ts)
 <!-- END GENERATED cordis-surface -->

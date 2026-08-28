@@ -8,7 +8,7 @@ Scope: `packages/host/apiproxy` (`api/approvals.ts`, `api/approvals.schema.ts`, 
 
 ## Problem
 
-The web approval panel (composer takeover, `ApprovalPanel`) could answer `allowed-once` or `rejected` only — the exact narrow union [standing grants](../../../.agents/notes/implemented/feature/2026-08-25-approval-standing-grants.md) left on the remote/Web channel "until it grows an always-allow affordance of its own". P2④ (Web UI parity) is that moment: the TUI card's `[a] 本会话总是允许` had no Web counterpart, so a Web user facing repeated escalations had to click Allow every time.
+The web approval panel (composer takeover, `ApprovalPanel`) could answer `allowed-once` or `rejected` only — the exact narrow union [standing grants](2026-08-25-approval-standing-grants.md) left on the remote/Web channel "until it grows an always-allow affordance of its own". P2④ (Web UI parity) is that moment: the TUI card's `[a] 本会话总是允许` had no Web counterpart, so a Web user facing repeated escalations had to click Allow every time.
 
 ## Decision
 

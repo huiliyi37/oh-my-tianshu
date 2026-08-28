@@ -375,7 +375,7 @@ export interface AgentRouterConfig {
 }
 ```
 
-Source: [`packages/guard/agent-router/src/index.ts:212`](../packages/guard/agent-router/src/index.ts)
+Source: [`packages/guard/agent-router/src/index.ts:213`](../packages/guard/agent-router/src/index.ts)
 
 ## `@huiliyi37/dsh-agent-spine-demo`
 
@@ -596,7 +596,7 @@ Source: [`packages/llm/cache-diagnostic/src/index.ts:86`](../packages/llm/cache-
 
 ## `@huiliyi37/dsh-client-connection`
 
-Requires: `httpServer`
+Requires: `webServer`
 
 ```ts config-catalog
 /** Plugin config: the deployment's non-loopback serving authorities. */
@@ -617,7 +617,7 @@ Source: [`packages/client/connection/src/index.ts:32`](../packages/client/connec
 
 ## `@huiliyi37/dsh-client-hmr`
 
-Requires: `clientModuleHost` · `httpServer`
+Requires: `clientModuleHost` · `webServer`
 
 ```ts config-catalog
 /** Plugin config, validated by the same-named schemastery schema. */
@@ -838,7 +838,7 @@ Source: [`packages/guard/evidence-gate/src/index.ts:94`](../packages/guard/evide
 
 ## `@huiliyi37/dsh-frontend-static`
 
-Requires: `httpServer`
+Requires: `webServer`
 
 ```ts config-catalog
 /** Plugin config: the dist anchor. */
@@ -1021,7 +1021,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/host/webserver/src/index.ts:47`](../packages/host/webserver/src/index.ts)
+Source: [`packages/host/webserver/src/index.ts:59`](../packages/host/webserver/src/index.ts)
 
 ## `@huiliyi37/dsh-intent-bridge`
 
@@ -1047,7 +1047,7 @@ export interface IntentBridgeConfig {
 }
 ```
 
-Source: [`packages/guard/intent-bridge/src/index.ts:83`](../packages/guard/intent-bridge/src/index.ts)
+Source: [`packages/guard/intent-bridge/src/index.ts:84`](../packages/guard/intent-bridge/src/index.ts)
 
 ## `@huiliyi37/dsh-invariants`
 
@@ -1762,7 +1762,7 @@ export interface Config {
 export type OutputStyle = 'default' | 'explanatory' | 'learning'
 ```
 
-Source: [`packages/interaction/output-style/src/index.ts:72`](../packages/interaction/output-style/src/index.ts)
+Source: [`packages/interaction/output-style/src/index.ts:74`](../packages/interaction/output-style/src/index.ts)
 
 ## `@huiliyi37/dsh-permission`
 
@@ -2698,7 +2698,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/core/system-prompt/src/index.ts:179`](../packages/core/system-prompt/src/index.ts)
+Source: [`packages/core/system-prompt/src/index.ts:228`](../packages/core/system-prompt/src/index.ts)
 
 ## `@huiliyi37/dsh-task-card`
 
@@ -2801,7 +2801,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/bash/tool-bash/src/index.ts:50`](../packages/bash/tool-bash/src/index.ts)
+Source: [`packages/bash/tool-bash/src/index.ts:51`](../packages/bash/tool-bash/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-bash-persistent`
 
@@ -2940,7 +2940,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/goal/tool-goal/src/index.ts:26`](../packages/goal/tool-goal/src/index.ts)
+Source: [`packages/goal/tool-goal/src/index.ts:27`](../packages/goal/tool-goal/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-json-repair`
 
@@ -2978,7 +2978,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/lsp/tool-lsp/src/index.ts:58`](../packages/lsp/tool-lsp/src/index.ts)
+Source: [`packages/lsp/tool-lsp/src/index.ts:59`](../packages/lsp/tool-lsp/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-memory`
 
@@ -2998,7 +2998,7 @@ export interface ToolMemoryConfig {
 }
 ```
 
-Source: [`packages/memory/tool-memory/src/index.ts:63`](../packages/memory/tool-memory/src/index.ts)
+Source: [`packages/memory/tool-memory/src/index.ts:64`](../packages/memory/tool-memory/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-memory-recall`
 
@@ -3022,7 +3022,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/memory/tool-memory-recall/src/index.ts:85`](../packages/memory/tool-memory-recall/src/index.ts)
+Source: [`packages/memory/tool-memory-recall/src/index.ts:86`](../packages/memory/tool-memory-recall/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-meridian`
 
@@ -3058,7 +3058,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/pty/tool-pty/src/index.ts:35`](../packages/pty/tool-pty/src/index.ts)
+Source: [`packages/pty/tool-pty/src/index.ts:36`](../packages/pty/tool-pty/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-pwsh`
 
@@ -3072,7 +3072,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/bash/tool-pwsh/src/index.ts:43`](../packages/bash/tool-pwsh/src/index.ts)
+Source: [`packages/bash/tool-pwsh/src/index.ts:44`](../packages/bash/tool-pwsh/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-pwsh-persistent`
 
@@ -3112,7 +3112,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/workflow/tool-ralph/src/index.ts:23`](../packages/workflow/tool-ralph/src/index.ts)
+Source: [`packages/workflow/tool-ralph/src/index.ts:24`](../packages/workflow/tool-ralph/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-run-tests`
 
@@ -3171,7 +3171,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/session-query/tool-session-query/src/index.ts:29`](../packages/session-query/tool-session-query/src/index.ts)
+Source: [`packages/session-query/tool-session-query/src/index.ts:30`](../packages/session-query/tool-session-query/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-skill`
 
@@ -3210,6 +3210,14 @@ Requires: `tools` · `subagents`
 ```ts config-catalog
 /** Config: which registered provider this tool delegates to, plus child defaults. */
 export interface Config {
+  /**
+   * Sample the Host `subagent-model-selection` user setting for each new
+   * top-level session and inherit that decision in its child sessions
+   * (requires the `subagent-model-selection-settings` entry in the
+   * composition). Route fields are then advertised and enforced per Session
+   * policy; the decision itself is recorded once in the session log.
+   */
+  modelSelectionSettings?: boolean
   /** The `ctx.subagents` provider name to start runs on (e.g. `spawn`, `acp`). */
   provider: string
   /**
@@ -3288,7 +3296,7 @@ export interface Config {
 
 Depends on: [`AgentOptions`](subsystems/core.md)
 
-Source: [`packages/subagent/tool-subagent/src/index.ts:44`](../packages/subagent/tool-subagent/src/index.ts)
+Source: [`packages/subagent/tool-subagent/src/index.ts:54`](../packages/subagent/tool-subagent/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-subagent-report`
 
@@ -3324,7 +3332,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/tasks/tool-tasks/src/index.ts:23`](../packages/tasks/tool-tasks/src/index.ts)
+Source: [`packages/tasks/tool-tasks/src/index.ts:24`](../packages/tasks/tool-tasks/src/index.ts)
 
 ## `@huiliyi37/dsh-tool-todo`
 
@@ -3386,7 +3394,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/workflow/tool-workflow/src/index.ts:27`](../packages/workflow/tool-workflow/src/index.ts)
+Source: [`packages/workflow/tool-workflow/src/index.ts:28`](../packages/workflow/tool-workflow/src/index.ts)
 
 ## `@huiliyi37/dsh-tools`
 
@@ -3508,6 +3516,7 @@ export type KeyName =
   | 'ctrl_.'
   | 'ctrl_y'
   | 'ctrl_q'
+  | 'ctrl_return'
   | 'shift_tab'
   | 'unknown'
 
@@ -3656,7 +3665,7 @@ Source: [`packages/web/web/src/index.ts:55`](../packages/web/web/src/index.ts)
 
 ## `@huiliyi37/dsh-web-app`
 
-Requires: `httpServer`
+Requires: `webServer`
 
 ```ts config-catalog
 /** Plugin config: the surface facts the launcher patches over this bundle's defaults. */
@@ -3687,7 +3696,7 @@ export interface Config {
 export type WebMode = 'production' | 'development'
 ```
 
-Source: [`packages/bundle/web-app/src/index.ts:36`](../packages/bundle/web-app/src/index.ts)
+Source: [`packages/bundle/web-app/src/index.ts:37`](../packages/bundle/web-app/src/index.ts)
 
 ## `@huiliyi37/dsh-web-fetch-local`
 
@@ -3917,7 +3926,7 @@ export interface ZenConfig {
 }
 ```
 
-Source: [`packages/guard/zen/src/index.ts:88`](../packages/guard/zen/src/index.ts)
+Source: [`packages/guard/zen/src/index.ts:89`](../packages/guard/zen/src/index.ts)
 
 ## Loadable plugins with no config
 
@@ -3928,7 +3937,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@huiliyi37/dsh-api-remotes` ([`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts))
 - `@huiliyi37/dsh-authorization` — requires `credentials` ([`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts))
 - `@huiliyi37/dsh-client-locale` ([`packages/client/locale/src/index.ts`](../packages/client/locale/src/index.ts))
-- `@huiliyi37/dsh-client-modules` — requires `httpServer` · `loader` ([`packages/client/modules/src/index.ts`](../packages/client/modules/src/index.ts))
+- `@huiliyi37/dsh-client-modules` — requires `webServer` · `loader` ([`packages/client/modules/src/index.ts`](../packages/client/modules/src/index.ts))
 - `@huiliyi37/dsh-client-runtime` ([`packages/client/runtime/src/index.ts`](../packages/client/runtime/src/index.ts))
 - `@huiliyi37/dsh-client-ui-command` ([`packages/client/ui-command/src/index.ts`](../packages/client/ui-command/src/index.ts))
 - `@huiliyi37/dsh-client-ui-conversation` ([`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts))
@@ -3960,7 +3969,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@huiliyi37/dsh-fs-e2b` — requires `e2b` ([`packages/e2b/fs-e2b/src/index.ts`](../packages/e2b/fs-e2b/src/index.ts))
 - `@huiliyi37/dsh-fs-policy` ([`packages/fs/fs-policy/src/index.ts`](../packages/fs/fs-policy/src/index.ts))
 - `@huiliyi37/dsh-goal-session` — requires `agents` · `goals` · `sessions` ([`packages/goal/goal-session/src/index.ts`](../packages/goal/goal-session/src/index.ts))
-- `@huiliyi37/dsh-host-directory-picker-auto` — requires `httpServer` · `loader` ([`packages/host/directory-picker-auto/src/index.ts`](../packages/host/directory-picker-auto/src/index.ts))
+- `@huiliyi37/dsh-host-directory-picker-auto` — requires `webServer` · `loader` ([`packages/host/directory-picker-auto/src/index.ts`](../packages/host/directory-picker-auto/src/index.ts))
 - `@huiliyi37/dsh-host-directory-picker-native` ([`packages/host/directory-picker-native/src/index.ts`](../packages/host/directory-picker-native/src/index.ts))
 - `@huiliyi37/dsh-host-plugin-inventory` — requires `loader` ([`packages/host/plugin-inventory/src/index.ts`](../packages/host/plugin-inventory/src/index.ts))
 - `@huiliyi37/dsh-llm` ([`packages/llm/llm/src/index.ts`](../packages/llm/llm/src/index.ts))

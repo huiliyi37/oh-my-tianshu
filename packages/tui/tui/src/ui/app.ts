@@ -3535,7 +3535,10 @@ export class TuiApp {
   }
 
   /** 写设置段；失败回显 ⚠（fail loud，不静默），成功回显并回开面板。 */
-  private updateSubagentModelSelection(patch: { enabled?: boolean; allowedModels?: Array<{ provider: string; model: string }> }, successEcho: string): void {
+  private updateSubagentModelSelection(
+    patch: { enabled?: boolean; allowedModels?: Array<{ provider: string; model: string }> },
+    successEcho: string,
+  ): void {
     const settings = this.ctx.reflect.get('settings', false) as
       | { update(ns: ReturnType<typeof settingsNamespace>, patch: object): Promise<void> }
       | undefined
@@ -3619,27 +3622,33 @@ export class TuiApp {
         this.finishConfigReturn()
         return
       }
-      picker.open('选择 Model', provider.models.map(model => ({ label: model.id, value: model.id })), (modelItem) => {
-        const selection = this.subagentModelSelectionSettings()
-        if (selection === undefined) {
-          this.finishConfigReturn()
-          return
-        }
-        const current = selection.current()
-        const route = { provider: provider.id, model: modelItem.value }
-        const duplicated = current.allowedModels.some(entry => entry.provider === route.provider && entry.model === route.model)
-        if (duplicated) {
-          this.echoWarn(`⚠ 路由 ${route.provider}/${route.model} 已在授权列表中`)
-          this.finishConfigReturn()
-          return
-        }
-        const enabled = current.enabled || current.allowedModels.length === 0
-        this.updateSubagentModelSelection(
-          { allowedModels: [...current.allowedModels, route], ...(current.enabled ? {} : { enabled }) },
-          `已${current.enabled ? '添加' : '添加并启用'}路由 ${route.provider}/${route.model}（新顶层会话生效）`,
-        )
+      // 二级 picker 在微任务里开：共享键分支在 commit 回调返回后统一
+      // deactivate overlay（见 handleKey 的 picker 分支），同步重开会被
+      // 立即关闭；让分支先完成清理再激活下一级。
+      queueMicrotask(() => {
+        if (this.disposed) return
+        picker.open('选择 Model', provider.models.map(model => ({ label: model.id, value: model.id })), (modelItem) => {
+          const selection = this.subagentModelSelectionSettings()
+          if (selection === undefined) {
+            this.finishConfigReturn()
+            return
+          }
+          const current = selection.current()
+          const route = { provider: provider.id, model: modelItem.value }
+          const duplicated = current.allowedModels.some(entry => entry.provider === route.provider && entry.model === route.model)
+          if (duplicated) {
+            this.echoWarn(`⚠ 路由 ${route.provider}/${route.model} 已在授权列表中`)
+            this.finishConfigReturn()
+            return
+          }
+          const enabled = current.enabled || current.allowedModels.length === 0
+          this.updateSubagentModelSelection(
+            { allowedModels: [...current.allowedModels, route], ...(current.enabled ? {} : { enabled }) },
+            `已${current.enabled ? '添加' : '添加并启用'}路由 ${route.provider}/${route.model}（新顶层会话生效）`,
+          )
+        })
+        overlay.activate('picker')
       })
-      overlay.activate('picker')
     })
     overlay.activate('picker')
   }

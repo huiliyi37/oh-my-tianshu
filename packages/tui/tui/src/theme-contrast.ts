@@ -26,6 +26,7 @@ function linearizeChannel(v: number): number {
 /**
  * hex 颜色的 WCAG 相对亮度（0 近黑 ~ 1 近白）。
  * @param hex - `#rgb` / `#rrggbb`；无法解析返回 null。
+ * @returns WCAG 相对亮度；无法解析为 null。
  */
 export function relativeLuminance(hex: string): number | null {
   const rgb = hexToRgb(hex)
@@ -35,6 +36,9 @@ export function relativeLuminance(hex: string): number | null {
 
 /**
  * 两色对比度比（1.0 同色 ~ 21.0 黑白）；任一色无法解析返回 null。
+ * @param a - 一侧颜色（hex）。
+ * @param b - 另一侧颜色（hex）。
+ * @returns 对比度比；任一色不可解析为 null。
  */
 export function contrastRatio(a: string, b: string): number | null {
   const la = relativeLuminance(a)

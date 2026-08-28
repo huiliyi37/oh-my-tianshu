@@ -9,7 +9,8 @@ import { Session, SessionId } from '@huiliyi37/dsh-session'
 import { ToolRegistry } from '@huiliyi37/dsh-tools'
 import SystemPrompt from '@huiliyi37/dsh-system-prompt'
 import SubagentService from '@huiliyi37/dsh-subagent'
-import type { Agent, SubagentCapabilities, SubagentProvider, SubagentStartRequest } from '@huiliyi37/dsh-subagent'
+import type { Agent } from '@huiliyi37/dsh-agent'
+import type { SubagentCapabilities, SubagentProvider, SubagentStartRequest } from '@huiliyi37/dsh-subagent'
 import * as tool from '../src/index.ts'
 import { recordSubagentModelSelection } from '../src/model-selection-state.ts'
 
@@ -41,7 +42,7 @@ function captureProvider(
     name: 'capture',
     capabilities,
     inheritsParentContext: false,
-    start: async (request) => {
+    start: async (request: SubagentStartRequest) => {
       seen.request = request
       return {
         id: SessionId('capture-child'),
@@ -52,8 +53,6 @@ function captureProvider(
     },
   } as unknown as SubagentProvider
 }
-
-const STUB_LLM = { resolveCallConfig: vi.fn(async (config: unknown) => config) }
 
 describe('list_subagent_models（发现工具）', () => {
   it('无参列出策略内 provider；带 provider 列目录交集；带 model 列 efforts 与默认', async () => {

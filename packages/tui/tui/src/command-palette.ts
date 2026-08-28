@@ -29,7 +29,7 @@ export const PALETTE_COMMAND_GROUPS: Readonly<Record<string, string>> = {
   exit: '会话', restart: '会话', btw: '会话', memory: '会话', remember: '会话', export: '会话', scroll: '会话',
   compact: '会话',
   // 配置
-  theme: '配置', model: '配置', effort: '配置', preset: '配置', density: '配置',
+  theme: '配置', model: '配置', effort: '配置', preset: '配置', density: '配置', bell: '配置',
   info: '配置', config: '配置', yolo: '配置',
   // 认证
   key: '认证', login: '认证',
@@ -184,7 +184,9 @@ export function renderCommandPalette(
     const rows: Array<{ kind: 'header'; text: string } | { kind: 'entry'; index: number; entry: PaletteEntry }> = []
     const byGroup = new Map<string, number[]>()
     for (let i = 0; i < visible.length; i++) {
-      const g = visible[i]!.group ?? PALETTE_FALLBACK_GROUP
+      const entry = visible[i]
+      if (entry === undefined) continue
+      const g = entry.group ?? PALETTE_FALLBACK_GROUP
       const list = byGroup.get(g)
       if (list === undefined) byGroup.set(g, [i])
       else list.push(i)
@@ -198,8 +200,9 @@ export function renderCommandPalette(
     }
     for (const g of groups) {
       rows.push({ kind: 'header', text: g })
-      for (const i of byGroup.get(g)!) {
-        rows.push({ kind: 'entry', index: i, entry: visible[i]! })
+      for (const i of byGroup.get(g) ?? []) {
+        const entry = visible[i]
+        if (entry !== undefined) rows.push({ kind: 'entry', index: i, entry })
       }
     }
     // 滚动窗口：选中条目所在行保持可见（组标题随行滚动，不单独计数）。

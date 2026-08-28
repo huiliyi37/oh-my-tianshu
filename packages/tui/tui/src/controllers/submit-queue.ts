@@ -16,30 +16,47 @@ export interface QueuedSubmit {
   images: string[] | undefined
 }
 
+/** 运行中提交的本地排队控制器（对标 CC queue；↑ 取回队首、turn/end 按序投递）。 */
 export class SubmitQueueController {
   private items: QueuedSubmit[] = []
 
-  /** 入队（保持提交顺序）。 */
+  /**
+   * 入队（保持提交顺序）。
+   * @param text - 待发正文。
+   * @param images - 随队暂存的图片 data URL 列表。
+   */
   push(text: string, images: string[] | undefined): void {
     this.items.push({ text, images })
   }
 
-  /** 当前队列长度。 */
+  /**
+   * 当前队列长度。
+   * @returns 队列条数。
+   */
   size(): number {
     return this.items.length
   }
 
-  /** 只读快照（渲染用）。 */
+  /**
+   * 只读快照（渲染用）。
+   * @returns 队列的只读视图。
+   */
   peekAll(): readonly QueuedSubmit[] {
     return this.items
   }
 
-  /** 取回队首（最旧一条）回输入行。 */
+  /**
+   * 取回队首（最旧一条）回输入行。
+   * @returns 队首条目；空队列返回 undefined。
+   */
   takeFirst(): QueuedSubmit | undefined {
     return this.items.shift()
   }
 
-  /** turn/end 全量取出（按提交顺序投递）。 */
+  /**
+   * turn/end 全量取出（按提交顺序投递）。
+   * @returns 取出的全部条目（调用后队列清空）。
+   */
   drain(): QueuedSubmit[] {
     const out = this.items
     this.items = []
@@ -56,6 +73,7 @@ export class SubmitQueueController {
  * 排队展示行：`⏳ N 条排队 · 最旧一条（↑ 取回）`，超宽截断。
  * @param cols - 终端列数。
  * @param items - 只读队列快照。
+ * @returns 超宽截断后的展示行。
  */
 export function formatQueueLine(cols: number, items: readonly QueuedSubmit[]): string {
   const first = items[0]
@@ -63,6 +81,7 @@ export function formatQueueLine(cols: number, items: readonly QueuedSubmit[]): s
   return truncateToDisplayWidth(`⏳ ${items.length} 条排队${head}（↑ 取回）`, Math.max(10, cols - 2))
 }
 
+/** cancelAndSendInput 的装配依赖（输入行 / 控制面 / 打断 / 提交）。 */
 export interface CancelAndSendDeps {
   /** 输入行（读取当前草稿 + 提交前清空）。 */
   input: { value: string; images: readonly string[]; setValue(value: string, cursor?: number): void; clearImages(): void }

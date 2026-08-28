@@ -89,6 +89,14 @@ export interface WireFilesUpgradeDeps {
   onPartError?: (error: unknown) => void
 }
 
+/**
+ * 把 wire 请求中的内联图片升级为 Files API 引用（序列化后置策略的执行体）。
+ * @param request - 待升级的 wire 请求。
+ * @param deps - Files 上传依赖面。
+ * @param connection - DeepSeek Files 连接。
+ * @param signal - 取消信号。
+ * @returns 升级后的请求与替换统计。
+ */
 export async function upgradeWireImages(
   request: WireRequest,
   deps: WireFilesUpgradeDeps,

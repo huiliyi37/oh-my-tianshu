@@ -53,7 +53,7 @@ interface ProjectionDefinition<
     view(state: NoInfer<S>): SessionProjectionMap[K]
   } : never
   /**
-   * Persisted-cache invalidation version: bump whenever the serialized state fields or the
+   * Persisted-cache invalidation anchor: bump whenever the serialized state fields or the
    * fold semantics change, so persisted `(sessionId, key, ver, seq, val)`
    * rows from an older unit are discarded instead of being forward-applied
    * into garbage. Non-negative integer.

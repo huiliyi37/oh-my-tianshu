@@ -10122,7 +10122,8 @@ describe('TuiApp /config 子代理模型路由授权（回流上游 aefc083be7 �
       name === 'subagentModelSelection' ? stubSelection(true, [{ provider: 'alpha', model: 'fast' }]) : undefined)
     const stdout = makeStdout()
     const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
-    const data = await (app as unknown as { buildConfigPanelData(): Promise<{ categories: Array<{ key: string; fields: Array<{ value: string }> }> }> }).buildConfigPanelData()
+    type PanelData = { categories: Array<{ key: string; fields: Array<{ value: string }> }> }
+    const data = await (app as unknown as { buildConfigPanelData(): Promise<PanelData> }).buildConfigPanelData()
     const category = data.categories.find(c => c.key === 'subagent-models')
     expect(category).toBeDefined()
     expect(category!.fields.map(f => f.value)).toEqual(['开（1 条路由）', 'alpha/fast', '从模型目录选择…'])
@@ -10135,7 +10136,8 @@ describe('TuiApp /config 子代理模型路由授权（回流上游 aefc083be7 �
     ctx.agents.create.mockResolvedValue(makeHandle(agent))
     ctx.sessions.get.mockReturnValue(agent.session)
     const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
-    const data = await (app as unknown as { buildConfigPanelData(): Promise<{ categories: Array<{ key: string }> }> }).buildConfigPanelData()
+    type Keys = { categories: Array<{ key: string }> }
+    const data = await (app as unknown as { buildConfigPanelData(): Promise<Keys> }).buildConfigPanelData()
     expect(data.categories.find(c => c.key === 'subagent-models')).toBeUndefined()
     await app.dispose()
   })
@@ -10189,6 +10191,69 @@ describe('TuiApp /config 子代理模型路由授权（回流上游 aefc083be7 �
     expect(update).toHaveBeenCalledWith(expect.anything(), { allowedModels: [], enabled: false })
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('选择自动关闭')
+    await app.dispose()
+  })
+})
+
+describe('TuiApp /config 添加子代理路由（provider→model 两级 picker）', () => {
+  it('两级 picker 选定后写入 settings；首条路由随写启用选择；重复路由拒绝', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('cfg-add-1')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const update = vi.fn(async () => {})
+    let routes: Array<{ provider: string; model: string }> = []
+    ctx.get.mockImplementation((name: string) =>
+      name === 'subagentModelSelection'
+        ? { current: () => ({ enabled: routes.length > 0, allowedModels: routes.map(r => ({ ...r })) }) }
+        : undefined)
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'settings') return { update }
+      if (name === 'llm') {
+        return {
+          listProviders: () => [{ id: 'alpha', name: 'Alpha' }, { id: 'beta', name: 'Beta' }],
+          listModels: async (provider: string) =>
+            provider === 'alpha' ? [{ id: 'fast' }] : [{ id: 'big' }],
+          // mountSession 的识图探测会查询当前选择（缺省 face）
+          resolveModelInfo: async () => ({ supportsVision: undefined }),
+        }
+      }
+      return undefined
+    })
+    const stdin = makeStdin()
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    const handlers = app as unknown as { addSubagentModelRoute(): Promise<void> }
+    stdout.write.mockClear()
+    await handlers.addSubagentModelRoute()
+    await new Promise(resolve => setImmediate(resolve))
+    // 第一级：provider 列表渲染
+    expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('选择 Provider')
+    // picker 的确认回调经 Enter 驱动：选中 alpha（第 1 项）
+    stdin.emit('data', '\r')
+    await new Promise(resolve => setImmediate(resolve))
+    await new Promise(resolve => setTimeout(resolve, 20))
+    // 第二级：model 列表
+    expect(stdout.write.mock.calls.map(c => `${c[0]}`).join('')).toContain('选择 Model')
+    stdin.emit('data', '\r')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(update).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ allowedModels: [{ provider: 'alpha', model: 'fast' }], enabled: true }),
+    )
+    // 重复添加同一路由：拒绝且不写
+    routes = [{ provider: 'alpha', model: 'fast' }]
+    update.mockClear()
+    stdout.write.mockClear()
+    await handlers.addSubagentModelRoute()
+    await new Promise(resolve => setImmediate(resolve))
+    stdin.emit('data', '\r')
+    await new Promise(resolve => setImmediate(resolve))
+    await new Promise(resolve => setTimeout(resolve, 20))
+    stdin.emit('data', '\r')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(update).not.toHaveBeenCalled()
     await app.dispose()
   })
 })

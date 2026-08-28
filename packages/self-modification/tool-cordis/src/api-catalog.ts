@@ -737,32 +737,6 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
-    key: 'webServer',
-    summary: 'The web-shape HTTP carrier service.',
-    methods: [
-      {
-        signature: 'register(route: WebRoute): () => void',
-        jsDoc: '/**\n * Register a named route. Duplicate (kind, path) throws — route patterns are\n * a composition-level contract, so a collision is a misconfiguration.\n * @param route - kind, path, and the owning handler.\n * @returns the disposer removing the route.\n */',
-      },
-      {
-        signature: 'registerUpgrade(route: WebUpgradeRoute): () => void',
-        jsDoc: '/**\n * Register an exact-path HTTP upgrade route. Duplicate paths throw because\n * one socket can have only one protocol owner.\n * @param route - pathname and handler owning negotiation plus socket use.\n * @returns the disposer removing the route.\n */',
-      },
-      {
-        signature: 'registerFallback(handler: WebRoute[\'handler\']): () => void',
-        jsDoc: '/**\n * Claim the fallback seat: the handler answering every request no named\n * route matches (the SPA dist server in the shipped Web composition). One\n * owner only — a second registration throws, because two fallbacks cannot\n * compose.\n * @param handler - owns the full response lifecycle of unmatched requests.\n * @returns the disposer releasing the seat.\n */',
-      },
-      {
-        signature: 'tapIndex(transform: (html: string) => string): () => void',
-        jsDoc: '/**\n * Register an index.html transform, applied by the fallback owner to every\n * index response ({@link applyIndexTaps}) in registration order.\n * @param transform - pure html-to-html function.\n * @returns the disposer removing the transform.\n */',
-      },
-      {
-        signature: 'applyIndexTaps(html: string): string',
-        jsDoc: '/**\n * Run an index.html body through the registered taps in registration order\n * — called by the fallback owner on every index response it renders.\n * @param html - the raw index.html body.\n * @returns the transformed body.\n */',
-      },
-    ],
-  },
-  {
     key: 'intentBridge',
     summary: '`ctx.intentBridge`: owns alignment sessions and the handoff.',
     methods: [
@@ -1327,6 +1301,16 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'subagentModelSelection',
+    summary: 'Singleton settings owner read by delegation tools when an Agent is published.',
+    methods: [
+      {
+        signature: 'current(): SubagentModelSelectionSettings',
+        jsDoc: '/**\n * Read a detached selection preference for the next eligible Agent publication.\n * @returns the enabled state and exact allowed routes.\n */',
+      },
+    ],
+  },
+  {
     key: 'subagents',
     summary: 'Named provider registry with one-shot runs, durable discovery, and continuable-child operations.',
     methods: [
@@ -1674,6 +1658,14 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: 'applyIndexTaps(html: string): string',
         jsDoc: '/**\n * Run an index.html body through the registered taps in registration order\n * — called by the fallback owner on every index response it renders.\n * @param html - the raw index.html body.\n * @returns the transformed body.\n */',
+      },
+      {
+        signature: 'collectIndexInjections(): IndexInjection[]',
+        jsDoc: '/**\n * Gather the structured injection table: one `webserver/index-inject` emit,\n * every subscriber pushes its current rows. Fresh per call, so subscribers\n * read live state (module graph, theme preference) at emit time.\n * @returns rows in subscriber activation order.\n */',
+      },
+      {
+        signature: 'renderIndex(html: string): string',
+        jsDoc: '/**\n * Render one index.html body: the structured injection table first, then\n * the raw `tapIndex` transforms over the result.\n * @param html - the raw index.html body.\n * @returns the transformed body.\n */',
       },
     ],
   },
@@ -2140,6 +2132,13 @@ export const EVENT_API: readonly EventApiEntry[] = [
     summary: 'Observe the frozen, lossless-JSON final outcome.',
   },
   {
+    name: 'webserver/index-inject',
+    mode: 'emit',
+    signature: '\'webserver/index-inject\'(table: IndexInjection[]): void',
+    jsDoc: '/**\n * Collect the structured index injection table. Emitted on every index\n * render and every worker boot-payload request; listeners push their\n * current rows, so a row\'s data is read fresh at emit time.\n * @param table - Mutable row table; listeners append in activation order.\n * @mode emit\n */',
+    summary: 'Collect the structured index injection table.',
+  },
+  {
     name: 'workflow/agent-end',
     mode: 'emit',
     signature: '\'workflow/agent-end\'(info: WorkflowRunInfo, agent: WorkflowAgentEndInfo): void',
@@ -2248,6 +2247,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'AgentStatus',
     declaration: 'export type AgentStatus = \'idle\' | \'running\';',
+  },
+  {
+    name: 'AllowedModelRoute',
+    declaration: 'export interface AllowedModelRoute {\n    readonly provider: string;\n    readonly model: string;\n}',
   },
   {
     name: 'ApiKeyRecord',
@@ -2962,6 +2965,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type InboxTarget = \'next-turn\' | \'next-step\';',
   },
   {
+    name: 'IndexInjection',
+    declaration: 'export type IndexInjection = {\n    kind: \'global\';\n    name: string;\n    value: unknown;\n} | {\n    kind: \'script\';\n    placement: IndexInjectionPlacement;\n    text: string;\n} | {\n    kind: \'script-src\';\n    placement: IndexInjectionPlacement;\n    src: string;\n} | {\n    kind: \'style\';\n    text: string;\n} | {\n    kind: \'html\';\n    placement: IndexInjectionPlacement;\n    html: string;\n};',
+  },
+  {
+    name: 'IndexInjectionPlacement',
+    declaration: 'export type IndexInjectionPlacement = \'head\' | \'body\';',
+  },
+  {
     name: 'IntentBridgeExecRoute',
     declaration: 'export interface IntentBridgeExecRoute {\n    provider: string;\n    model: string;\n    reasoningEffort?: ReasoningEffortId;\n}',
   },
@@ -3051,7 +3062,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'LlmModelInfo',
-    declaration: 'export interface LlmModelInfo {\n    provider: string;\n    id: string;\n    name: string;\n    description?: string;\n    supportsVision?: boolean;\n}',
+    declaration: 'export interface LlmModelInfo {\n    provider: string;\n    id: string;\n    name: string;\n    description?: string;\n    supportsVision?: boolean;\n    inputModalities?: readonly (\'text\' | \'image\')[];\n}',
   },
   {
     name: 'LlmModelReasoningInfo',
@@ -3803,7 +3814,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SubagentCapabilities',
-    declaration: 'export interface SubagentCapabilities {\n    readonly outputSchema: boolean;\n    readonly depthLimit: boolean;\n    readonly toolFilter: boolean;\n    readonly persona: boolean;\n    readonly sandboxMode: boolean;\n    readonly runBudget: boolean;\n}',
+    declaration: 'export interface SubagentCapabilities {\n    readonly agentOptions: boolean;\n    readonly outputSchema: boolean;\n    readonly depthLimit: boolean;\n    readonly toolFilter: boolean;\n    readonly persona: boolean;\n    readonly sandboxMode: boolean;\n    readonly runBudget: boolean;\n}',
   },
   {
     name: 'SubagentDescendantListEntry',
@@ -3824,6 +3835,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SubagentListEntry',
     declaration: 'export type SubagentListEntry = {\n    readonly kind: \'child\';\n    readonly id: SessionId;\n    readonly activity: \'running\' | \'inactive\';\n    readonly hasChildren: boolean;\n    readonly progress?: SubagentProgressProjection;\n    readonly timing?: SubagentTimingProjection;\n} & ({\n    readonly mode: \'one-shot\';\n    readonly label?: string;\n} | {\n    readonly mode: \'continuable\';\n    readonly label: string;\n}) | {\n    readonly kind: \'diagnostic\';\n    readonly id: SessionId;\n    readonly reason: \'corrupt\' | \'unsupported\' | \'unavailable\';\n};',
+  },
+  {
+    name: 'SubagentModelSelectionSettings',
+    declaration: 'export interface SubagentModelSelectionSettings {\n    enabled: boolean;\n    allowedModels: AllowedModelRoute[];\n}',
   },
   {
     name: 'SubagentProgressProjection',

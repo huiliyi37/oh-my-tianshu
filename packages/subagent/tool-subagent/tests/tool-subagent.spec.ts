@@ -202,7 +202,7 @@ describe('dsh-tool-subagent', () => {
     ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'weird',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async () => ({
         id: SessionId('weird-child'),
@@ -260,7 +260,7 @@ describe('dsh-tool-subagent', () => {
     ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'bare',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         seen = request
@@ -395,7 +395,7 @@ describe('dsh-tool-subagent', () => {
     ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'spy',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async () => ({
         id: SessionId('spy-child'),
@@ -419,7 +419,7 @@ describe('dsh-tool-subagent', () => {
     ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'spy',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async () => ({
         id: SessionId('spy-child'),
@@ -444,7 +444,7 @@ describe('dsh-tool-subagent', () => {
     ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'spy',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async () => ({
         id: SessionId('spy-child'),
@@ -473,7 +473,7 @@ describe('dsh-tool-subagent', () => {
     ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'spy',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async () => ({
         id: SessionId('spy-child'),
@@ -501,7 +501,7 @@ describe('dsh-tool-subagent', () => {
     ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'spy',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         if (request.signal.aborted) throw new Error('start aborted')
@@ -541,7 +541,7 @@ describe('dsh-tool-subagent', () => {
     ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'spy',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         if (request.signal.aborted) sawAborted()
@@ -606,7 +606,7 @@ describe('dsh-tool-subagent', () => {
     ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'capture2',
-      capabilities: { outputSchema: false, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true },
+      capabilities: { agentOptions: true, outputSchema: false, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true },
       inheritsParentContext: false,
       start: async (request) => {
         seen = request
@@ -683,7 +683,7 @@ describe('dsh-tool-subagent', () => {
     ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'capture3',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: true, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: true, outputSchema: false, depthLimit: false, toolFilter: true, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         seen = request
@@ -714,7 +714,7 @@ describe('dsh-tool-subagent', () => {
     ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'capture4',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         seen = request
@@ -740,7 +740,7 @@ describe('dsh-tool-subagent', () => {
     ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'p',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: true, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: true, outputSchema: false, depthLimit: false, toolFilter: true, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: () => { throw new Error('unreachable') },
     })
@@ -779,7 +779,7 @@ describe('dsh-tool-subagent background mode', () => {
     let prepareCalls = 0
     ctx.subagents.registerProvider({
       name: 'resumable',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async request => ({
         id: SessionId('one-shot-child'),
@@ -885,7 +885,7 @@ describe('dsh-tool-subagent background mode', () => {
     const parent = ownerAgent(ctx, 'sess-parent')
     ctx.subagents.registerProvider({
       name: 'broken-start',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async () => { throw new Error('setup failed') },
     })
@@ -914,7 +914,7 @@ describe('dsh-tool-subagent background mode', () => {
     const parent = ownerAgent(ctx, 'sess-parent')
     ctx.subagents.registerProvider({
       name: 'pending-start',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: request => new Promise((_resolve, reject) => {
         request.signal.addEventListener('abort', () => { reject(new Error('startup aborted')) }, { once: true })
@@ -1070,7 +1070,7 @@ describe('background preflight failure (no orphaned child, by construction)', ()
     let starts = 0
     ctx.subagents.registerProvider({
       name: 'probe',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async () => {
         starts += 1
@@ -1148,7 +1148,7 @@ describe('depth budget configuration', () => {
     ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'no-depth',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async () => { throw new Error('unreachable') },
     })
@@ -1165,7 +1165,7 @@ describe('depth budget configuration', () => {
     ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'external',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         requests.push(request)
