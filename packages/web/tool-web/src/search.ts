@@ -10,6 +10,7 @@ import { defineTool } from '@huiliyi37/dsh-tools'
 import type { GenericCallView, JsonValue, ToolResult, WebSearchResultView, WebSource } from '@huiliyi37/dsh-tools'
 import type { WebSearchResult, WebSearchSource } from '@huiliyi37/dsh-web'
 import type {} from '@huiliyi37/dsh-system-prompt'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 /**
  * Default upper bound on returned sources (the `searchMaxResults` config).
@@ -315,7 +316,7 @@ export function applyWebSearchTool(
 ): void {
   ctx.systemPrompt.section({
     name: 'tool:web_search',
-    order: 110,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_WEB_SEARCH,
     text: fetchEnabled
       ? `Use the web_search tool to discover current information on the web. The required queries array accepts 1–${maxQueries} non-empty search queries; use a one-item array for a single search. It returns an optional answer plus a list of source URLs. Follow up with web_fetch when you need the full content of a specific result, and cite the relevant URLs as markdown links.`
       : `Use the web_search tool to discover current information on the web. The required queries array accepts 1–${maxQueries} non-empty search queries; use a one-item array for a single search. It returns an optional answer plus a list of source URLs. Use the returned source snippets when available, and cite the relevant URLs as markdown links.`,

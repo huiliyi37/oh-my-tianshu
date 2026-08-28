@@ -13,6 +13,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Context } from '@huiliyi37/cordis'
 import { apply } from '../src/index.js'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 interface CapturedTool {
   name: string
@@ -68,7 +69,7 @@ describe('tool-memory', () => {
     expect(tools.map(t => t.name).sort()).toEqual(['memory_save', 'memory_search'])
     expect(sections).toHaveLength(1)
     expect(sections[0]?.name).toBe('tool:memory')
-    expect(sections[0]?.order).toBe(130)
+    expect(sections[0]?.order).toBe(FIRST_PARTY_SECTION_ORDER.TOOL_MEMORY)
     expect(typeof sections[0]?.text).toBe('function')
   })
 

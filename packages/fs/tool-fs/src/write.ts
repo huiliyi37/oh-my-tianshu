@@ -15,6 +15,7 @@ import { computeHunkDiffs, diffsFromMeta } from './diff.ts'
 import { remediateFsError } from './error.ts'
 import { sessionResolveOptions } from './session-cwd.ts'
 import type { FsSandboxSurface } from './sandbox.ts'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 /**
  * Validate value constraints the schema DSL can't express: only a non-blank
@@ -62,7 +63,7 @@ interface WriteToolArgs {
 export function applyWriteTool(ctx: Context, sandbox: FsSandboxSurface): void {
   ctx.systemPrompt.section({
     name: 'tool:write',
-    order: 101,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_WRITE,
     text: 'Use the write tool to create files or completely replace file contents. Existing files are overwritten, so read an existing file first (the default fs-policy requires it) and prefer edit for targeted changes.',
   })
 

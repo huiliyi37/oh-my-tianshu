@@ -19,6 +19,7 @@ import type {} from '@huiliyi37/dsh-sandbox-policy'
 // Type-only: the subagent-role pin type lives in the pins package; callers
 // resolve it through the optional `ctx.get('modelRoles')` service.
 import type { ModelRoleSelection } from '@huiliyi37/dsh-model-roles'
+import { PERSONA_ORDER } from '@huiliyi37/dsh-system-prompt'
 import { delegationDepthOf } from './depth.ts'
 
 /** Thrown when starting a child would exceed the requested depth cap. */
@@ -138,7 +139,7 @@ export interface ChildComposition {
  */
 export function applyChildComposition(childCtx: Context, composition: ChildComposition): void {
   if (composition.persona !== undefined) {
-    childCtx.systemPrompt.section({ name: 'deployment:persona', order: 0, text: composition.persona })
+    childCtx.systemPrompt.section({ name: 'deployment:persona', order: PERSONA_ORDER, text: composition.persona })
   }
   if (composition.toolFilter !== undefined) childCtx.tools.restrict(composition.toolFilter)
   if (composition.sandboxMode !== undefined) {

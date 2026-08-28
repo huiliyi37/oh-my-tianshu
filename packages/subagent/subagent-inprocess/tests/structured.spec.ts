@@ -552,14 +552,14 @@ describe('in-process structured output', () => {
         toolCallResponse('c1', STRUCTURED_OUTPUT_TOOL, { answer: 7 }),
       ])
       // A global tool sorts lexicographically after structured_output, while a
-      // global section above the 190 band follows the capture instruction.
+      // global section above the structured band (TOOL_STRUCTURED_OUTPUT) follows the capture instruction.
       ctx.tools.register(defineContentToolFixture({
         name: 'zz_probe',
         description: 'probe',
         parameters: {},
         execute: () => Promise.resolve([{ type: 'text', text: 'x' }]),
       }))
-      ctx.systemPrompt.section({ name: 'after-band', order: 200, text: 'AFTER-BAND' })
+      ctx.systemPrompt.section({ name: 'after-band', order: 400, text: 'AFTER-BAND' })
       const run = await ctx.subagents.start('spawn', structuredRequest(parent))
       await run.result
       const request = adapter.requests[0]!

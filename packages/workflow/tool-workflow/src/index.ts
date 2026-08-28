@@ -19,6 +19,7 @@ import type { JsonValue } from '@huiliyi37/dsh-session'
 import type { WorkflowResult, WorkflowRun } from '@huiliyi37/dsh-workflow'
 // Declaration merge only: makes ctx.systemPrompt visible for the section registration.
 import type {} from '@huiliyi37/dsh-system-prompt'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 export const name = 'tool-workflow'
 export const inject = ['tools', 'workflows', 'systemPrompt']
@@ -118,7 +119,7 @@ export function apply(ctx: Context, config: Config): void {
   // lives in tool plugins as prompt sections, not in the deployment persona).
   ctx.systemPrompt.section({
     name: `tool:${toolName}`,
-    order: 115,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_WORKFLOW,
     text: `Use the ${toolName} tool ONLY when the user explicitly asks for a workflow or for large multi-agent orchestration: you write a JavaScript script (the tool description documents the exact format) that fans work out across many subagents with phases and structured results. For one or two delegations, prefer plain subagent calls.`,
   })
   ctx.tools.register(defineTool({

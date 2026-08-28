@@ -22,6 +22,7 @@ import type {} from '@huiliyi37/cordis-plugin-loader'
 import type {} from '@huiliyi37/dsh-host-webserver'
 import type {} from '@huiliyi37/dsh-system-prompt'
 import type {} from '@huiliyi37/dsh-bash-env'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 /** Stable Cordis plugin name. */
 export const name = 'web-app'
@@ -210,7 +211,7 @@ export function apply(ctx: Context, config: Config): void {
     ctx.inject(['systemPrompt'], (promptCtx) => {
       promptCtx.systemPrompt.section({
         name: 'app:web-surface',
-        order: -98,
+        order: FIRST_PARTY_SECTION_ORDER.WEB_SURFACE,
         text: () => webSurfacePrompt(localWebUrl(promptCtx), config.mode),
       })
     })

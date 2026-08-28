@@ -15,6 +15,7 @@ import type { GenericCallView, ToolDefinition, ToolExecution } from '@huiliyi37/
 import { TaskId } from '@huiliyi37/dsh-tasks'
 import type { TaskSnapshot } from '@huiliyi37/dsh-tasks'
 import type {} from '@huiliyi37/dsh-system-prompt'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 export const name = 'tool-tasks'
 export const inject = ['tools', 'tasks', 'systemPrompt']
@@ -222,7 +223,7 @@ export function apply(ctx: Context, config: Config): void {
   // Cross-call guidance follows the bash section and precedes product sections.
   ctx.systemPrompt.section({
     name: 'tool:tasks',
-    order: 106,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_TASKS,
     text: 'Track every background task id you start. You are notified in-session when a task finishes — do not busy-poll or sleep on one; keep working on independent steps and do not duplicate a running task\'s work. Before giving a final answer, collect every still-relevant task with task_output (set wait: true only when you are genuinely blocked on it), and task_kill tasks that stopped mattering.',
   })
 

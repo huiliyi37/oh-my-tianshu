@@ -31,6 +31,7 @@ import type { ContentBlock } from '@huiliyi37/dsh-llm'
 import type {} from '@huiliyi37/dsh-session-query'
 import type {} from '@huiliyi37/dsh-subagent'
 import type { SubagentResult } from '@huiliyi37/dsh-subagent'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 /** Cordis plugin name used by Loader diagnostics. */
 export const name = 'tool-memory-recall'
@@ -225,7 +226,7 @@ export function apply(ctx: Context, config: Config = {}): void {
 
   ctx.systemPrompt.section({
     name: 'tool:memory-recall',
-    order: 131,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_MEMORY_RECALL,
     text: RECALL_GUIDANCE,
   })
 

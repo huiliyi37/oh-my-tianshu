@@ -14,6 +14,7 @@ import { computeHunkDiffs, diffsFromMeta } from './diff.ts'
 import { remediateFsError } from './error.ts'
 import { sessionResolveOptions } from './session-cwd.ts'
 import type { FsSandboxSurface } from './sandbox.ts'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 /** Validated `edit` arguments after defaulting. */
 interface EditInput {
@@ -76,7 +77,7 @@ export function formatEditOutput(displayPath: string, replaceAll: boolean): stri
 export function applyEditTool(ctx: Context, sandbox: FsSandboxSurface): void {
   ctx.systemPrompt.section({
     name: 'tool:edit',
-    order: 102,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_EDIT,
     text: 'Use the edit tool for targeted changes to existing UTF-8 text files. It replaces literal old_string with new_string; by default old_string must appear exactly once. If old_string appears multiple times, provide a more specific old_string or set replace_all to true. Read the file first (the default fs-policy requires it), unless you just created or edited it in this session.',
   })
 

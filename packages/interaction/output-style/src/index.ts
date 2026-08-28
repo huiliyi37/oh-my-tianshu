@@ -24,6 +24,7 @@ import { installSettingsSection, settingsNamespace } from '@huiliyi37/dsh-settin
 import type {} from '@huiliyi37/dsh-system-prompt'
 // Declaration merging: teaches Context about ctx.commands used below.
 import type {} from '@huiliyi37/dsh-commands'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 /** Cordis plugin name. */
 export const name = 'output-style'
@@ -44,7 +45,8 @@ export const OUTPUT_STYLE_SETTINGS_NAMESPACE = settingsNamespace('output-style')
 export const OUTPUT_STYLE_SECTION_NAME = 'output-style'
 
 /** Section order: after the deployment persona (`0`), before tool guidance (`100`–`199`). */
-export const OUTPUT_STYLE_SECTION_ORDER = 10
+/** Section order: the output-style guidance band (see FIRST_PARTY_SECTION_ORDER). */
+export const OUTPUT_STYLE_SECTION_ORDER = FIRST_PARTY_SECTION_ORDER.OUTPUT_STYLE
 
 /**
  * The three verbatim preset bodies rendered as the `output-style` section.

@@ -20,6 +20,7 @@ import { createEnvironmentSnapshot, type EnvironmentSnapshot } from '@huiliyi37/
 import type {} from '@huiliyi37/cordis-plugin-hmr'
 // Side-effect type import: resolves `ctx.get('systemPrompt')` to the service.
 import type {} from '@huiliyi37/dsh-system-prompt'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 declare module '@huiliyi37/cordis' {
   interface Context {
@@ -805,7 +806,7 @@ export function addHarnessSourceSection(ctx: Context, sourceRoot: string): (() =
   if (systemPrompt === undefined) return undefined
   return systemPrompt.section({
     name: HARNESS_SOURCE_SECTION,
-    order: -99,
+    order: FIRST_PARTY_SECTION_ORDER.HARNESS_SOURCE,
     text: `The Tianshu Harness implementation checkout is at ${sourceRoot}. The checkout location and current working directory are separate values and may differ; never infer the working directory from this path. Use pwd to determine the current working directory. Use this checkout only to inspect or extend DSH itself.`,
   })
 }

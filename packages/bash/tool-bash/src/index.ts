@@ -29,6 +29,7 @@ import { commandFilterDropsLines, type CommandFilterConfig } from './command-fil
 import { composeResultBody, outputShapingDropsLines, type OutputShaping } from './model-output.ts'
 import { processOutcome } from './background.ts'
 import { parseExitStatus, renderProcessRead, renderResult } from './render.ts'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 export const name = 'tool-bash'
 export const inject = ['tools', 'bash', 'systemPrompt', 'bashEnv']
@@ -329,7 +330,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   // Cross-call guidance belongs in the prompt rather than one-call schema prose.
   ctx.systemPrompt.section({
     name: 'tool:bash',
-    order: 105,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_BASH,
     text: 'Check the [exit code: N] marker on every bash result; investigate failures before moving on.',
   })
 

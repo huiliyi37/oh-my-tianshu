@@ -13,6 +13,7 @@ import type { GenericCallView, JsonValue, ToolResult, WebFetchResultView } from 
 import type { WebFetchBody, WebFetchResult } from '@huiliyi37/dsh-web'
 import { assertNever } from '@huiliyi37/dsh-llm'
 import type {} from '@huiliyi37/dsh-system-prompt'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 /**
  * The shared HTML→markdown converter: turndown over its bundled domino DOM,
@@ -429,7 +430,7 @@ export function presentFetchResult(args: { url: string }, result: ToolResult): W
 export function applyWebFetchTool(ctx: Context, timeoutMs: number, maxOutputChars: number): void {
   ctx.systemPrompt.section({
     name: 'tool:web_fetch',
-    order: 111,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_WEB_FETCH,
     text: 'Use the web_fetch tool to retrieve the content of a specific HTTP(S) URL (for example a result from web_search). It returns the page content decoded to text. Cite the URL as a markdown link when you use its content.',
   })
 

@@ -18,6 +18,7 @@ import {
   requireDirectHuman,
 } from './authority.ts'
 import { renderWrapupContext } from './wrapup.ts'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 export const name = 'tool-goal'
 export const inject = ['agents', 'goals', 'tools', 'systemPrompt']
@@ -188,7 +189,7 @@ export function apply(ctx: Context, config: Config): void {
   const resolved = resolveConfig(config)
   ctx.systemPrompt.section({
     name: 'tool:goal',
-    order: 114,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_GOAL,
     text: guidance(resolved.blockedAfterConsecutiveRounds),
   })
 

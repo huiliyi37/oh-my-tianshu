@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
-import SystemPrompt, { AssembleContext, PromptAssembly, renderContextSnapshot, renderPrompt } from '@huiliyi37/dsh-system-prompt'
+import SystemPrompt, { AssembleContext, FIRST_PARTY_SECTION_ORDER, PERSONA_ORDER, PromptAssembly, renderContextSnapshot, renderPrompt } from '@huiliyi37/dsh-system-prompt'
 
 /**
  * Every assembly carries the plugin's own built-ins — `harness:identity`
@@ -228,7 +228,8 @@ describe('SystemPrompt', () => {
   it('composes multiple system-prompt/assemble waterfall listeners in order, with the context', async () => {
     const ctx = new Context()
     await ctx.plugin(SystemPrompt)
-    ctx.systemPrompt.section({ name: 'base', order: 0, text: 'base' })
+    // order 10: persona 槽位是 0——同 order 现按名字决胜，测试意图是瀑布编排而非 tie 语义
+    ctx.systemPrompt.section({ name: 'base', order: 10, text: 'base' })
 
     // Listener A appends a section, then delegates.
     const contexts: AssembleContext[] = []
@@ -267,7 +268,7 @@ describe('SystemPrompt', () => {
   it('assembles snapshots so one-step mutations do not leak into future assemblies', async () => {
     const ctx = new Context()
     await ctx.plugin(SystemPrompt)
-    ctx.systemPrompt.section({ name: 'base', order: 0, text: 'base' })
+    ctx.systemPrompt.section({ name: 'base', order: 10, text: 'base' })
     ctx.systemPrompt.tools(() => ({ schemas: [{ name: 't', description: 'tool', parameters: { type: 'object', properties: {} } }] }))
 
     const first = await ctx.systemPrompt.assemble()
@@ -531,5 +532,38 @@ describe('SystemPrompt', () => {
       })
       expect(text).toBe('v = literal {{sneaky}} inside!')
     })
+  })
+})
+
+describe('FIRST_PARTY_SECTION_ORDER（稀疏一手 section 顺序表，回流上游 43ac97b554）', () => {
+  const entries = Object.entries(FIRST_PARTY_SECTION_ORDER) as Array<[string, number]>
+
+  it('全部是有限整数且唯一', () => {
+    for (const [key, order] of entries) {
+      expect(Number.isInteger(order), key).toBe(true)
+      expect(Number.isFinite(order), key).toBe(true)
+    }
+    expect(new Set(entries.map(([, o]) => o)).size).toBe(entries.length)
+  })
+
+  it('相邻键差 ≥ 10——新一手 section 插入不重排邻序', () => {
+    for (let i = 1; i < entries.length; i++) {
+      const prev = entries[i - 1]!
+      const curr = entries[i]!
+      expect(curr[1] - prev[1], `${prev[0]} → ${curr[0]}`).toBeGreaterThanOrEqual(10)
+    }
+  })
+
+  it('persona 槽位引用表值', () => {
+    expect(PERSONA_ORDER).toBe(FIRST_PARTY_SECTION_ORDER.DEPLOYMENT_PERSONA)
+  })
+
+  it('同 order 的 section 按名字 code-unit 序决胜（确定性跨机器）', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SystemPrompt)
+    ctx.systemPrompt.section({ name: 'b:second', order: 7, text: 'B' })
+    ctx.systemPrompt.section({ name: 'a:first', order: 7, text: 'A' })
+    const assembly = await ctx.systemPrompt.assemble()
+    expect(assembly.sections.map(s => s.name)).toEqual(['harness:identity', 'deployment:persona', 'a:first', 'b:second'])
   })
 })

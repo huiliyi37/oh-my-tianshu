@@ -13,6 +13,7 @@ import type {} from '@huiliyi37/dsh-system-prompt'
 import { buildWindow, formatReadOutput, langFromPath, readMetaFromMeta } from './read-render.ts'
 import { focusedWindow } from './focus.ts'
 import { sessionResolveOptions } from './session-cwd.ts'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 /** Default and maximum number of lines returned by one `read` call (the `readLimit` config). */
 export const READ_LIMIT = 2000
@@ -124,7 +125,7 @@ export function parseReadArgs(
 export function applyReadTool(ctx: Context, caps: ReadToolCaps): void {
   ctx.systemPrompt.section({
     name: 'tool:read',
-    order: 100,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_READ,
     text: 'Use the read tool — not shell commands like cat — to inspect text files. Results include line numbers. Use offset and limit to continue reading large files.',
   })
 

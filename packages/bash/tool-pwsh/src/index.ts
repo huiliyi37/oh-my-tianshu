@@ -29,6 +29,7 @@ import type { BashRunResult } from '@huiliyi37/dsh-bash'
 import { parseExitStatus } from '@huiliyi37/dsh-bash'
 import { processOutcome } from './background.ts'
 import { renderPwshProcessRead, renderPwshResult } from './render.ts'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 declare module '@huiliyi37/dsh-tasks' {
   interface TaskKindMap {
@@ -144,7 +145,7 @@ export function apply(ctx: Context, config: Config = {}): void {
 
   ctx.systemPrompt.section({
     name: 'tool:pwsh',
-    order: 105,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_PWSH,
     text: 'Non-zero exits are reported as `[exit code: N]` markers; investigate failures before moving on. '
       + 'On Windows a killed process settles as `[exit code: 1]` without a signal marker; treat a bare exit 1 after an interruption as a termination, not a command failure.',
   })

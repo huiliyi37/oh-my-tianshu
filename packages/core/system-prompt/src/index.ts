@@ -52,9 +52,9 @@ export interface PromptSection {
   /** Unique name — a duplicate registration throws (see {@link SystemPrompt.section}). */
   readonly name: string
   /**
-   * Sections are concatenated in ascending order. Convention: `-100` is the
-   * harness identity, `0` the deployment persona, tool guidance uses 100–199;
-   * other negative orders also render before the persona.
+   * Sections are concatenated in ascending order. Equal orders use code-unit
+   * name order. Repository-owned placements use
+   * {@link FIRST_PARTY_SECTION_ORDER}.
    */
   readonly order: number
   /**
@@ -120,6 +120,45 @@ export interface PromptAssembly {
 /** Valid variable names: how they are written between the braces. */
 const VARIABLE_NAME = /^[a-z][a-z0-9_]*$/
 
+/**
+ * Sparse integer placements for repository-owned prompt sections.
+ *
+ * Adjacent values differ by at least ten so a new first-party section can be
+ * inserted without renumbering the surrounding sequence.
+ * External plugins may use any finite order; equal orders are deterministic by
+ * section name.
+ */
+export const FIRST_PARTY_SECTION_ORDER = {
+  HARNESS_IDENTITY: -100,
+  HARNESS_SOURCE: -90,
+  WEB_SURFACE: -80,
+  DEPLOYMENT_PERSONA: 0,
+  OUTPUT_STYLE: 10,
+  ZEN_FACE: 40,
+  INTENT_BRIDGE: 50,
+  AGENT_ROUTER: 60,
+  TOOL_READ: 100,
+  TOOL_WRITE: 110,
+  TOOL_EDIT: 120,
+  TOOL_GLOB: 130,
+  TOOL_GREP: 140,
+  TOOL_GIT: 150,
+  TOOL_BASH: 160,
+  TOOL_PWSH: 170,
+  TOOL_TASKS: 180,
+  TOOL_PTY: 190,
+  TOOL_WEB_SEARCH: 200,
+  TOOL_WEB_FETCH: 210,
+  TOOL_LSP: 220,
+  TOOL_SESSION_QUERY: 230,
+  TOOL_GOAL: 240,
+  TOOL_WORKFLOW: 250,
+  TOOL_RALPH: 260,
+  TOOL_MEMORY: 270,
+  TOOL_MEMORY_RECALL: 280,
+  TOOL_STRUCTURED_OUTPUT: 300,
+} as const
+
 /** A complete `{{...}}` reference group at the scan position (validated after). */
 const GROUP_AT = /^\{\{([^{}]*)\}\}/
 
@@ -129,8 +168,8 @@ export const TOOL_ORDER_REST = '<unlisted-tools>'
 /** The deployment persona section name; a scoped section with this name shadows it. */
 export const PERSONA_SECTION = 'deployment:persona'
 
-/** Prompt order of the persona slot; the first section a model reads. */
-export const PERSONA_ORDER = 0
+/** Prompt order of the persona slot. */
+export const PERSONA_ORDER = FIRST_PARTY_SECTION_ORDER.DEPLOYMENT_PERSONA
 
 /**
  * Validate duplicate names and the required {@link TOOL_ORDER_REST} marker.
@@ -170,9 +209,19 @@ function orderTools(tools: ToolSchema[], toolOrder: string[] | undefined, knownN
     name === TOOL_ORDER_REST ? rest : tools.filter(tool => tool.name === name))
 }
 
-/** Lexicographic (code-unit) name comparison — locale-independent, so the order is identical on every machine. */
+/** Code-unit name comparison — locale-independent, so the order is identical on every machine. */
+function compareNames(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0
+}
+
+/** Order prompt sections by their explicit placement, then deterministically by name. */
+function comparePromptSections(a: PromptSection, b: PromptSection): number {
+  return a.order - b.order || compareNames(a.name, b.name)
+}
+
+/** Order tool schemas lexicographically by name. */
 function compareToolNames(a: ToolSchema, b: ToolSchema): number {
-  return a.name < b.name ? -1 : a.name > b.name ? 1 : 0
+  return compareNames(a.name, b.name)
 }
 
 /** Plugin config: the deployment-authored fragment of the system prompt (see {@link Config.persona} for its contract). */
@@ -347,7 +396,7 @@ export class SystemPrompt extends Service {
     if (config.includeHarnessIdentity ?? true) {
       this.section({
         name: 'harness:identity',
-        order: -100,
+        order: FIRST_PARTY_SECTION_ORDER.HARNESS_IDENTITY,
         text: 'You are an AI agent powered by the Tianshu Harness SDK.',
       })
     }
@@ -467,7 +516,7 @@ export class SystemPrompt extends Service {
         variables[name] = provider(context)
       }
     }
-    // Scoped sections shadow globals before the stable order sort.
+    // Scoped sections shadow globals before the deterministic order sort.
     const sectionByName = this.layers.merge(scope, layer => layer.sections)
     const contextByName = this.layers.merge(scope, layer => layer.contexts)
     // Validate order against pre-restriction names while collecting visible schemas.
@@ -488,7 +537,7 @@ export class SystemPrompt extends Service {
       collected.push(...schemas)
       for (const name of acceptedKnownNames) knownNames.add(name)
     }
-    const sectionDefinitions = [...sectionByName.values()].sort((a, b) => a.order - b.order)
+    const sectionDefinitions = [...sectionByName.values()].sort(comparePromptSections)
     const completeSections = sectionDefinitions.filter(section => section.complete === true)
     if (completeSections.length > 1) {
       throw new Error(`multiple complete prompt sections are active: ${completeSections.map(section => JSON.stringify(section.name)).join(', ')}`)

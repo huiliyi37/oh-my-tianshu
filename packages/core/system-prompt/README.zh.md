@@ -30,7 +30,7 @@
 ### 关键类型
 
 - `AssembleContext`：说明一次 `assemble()` 调用的用途。它可通过合并扩展；此处声明 `scope?: ScopeKey`（层选择器）与 `signal?: AbortSignal`（显式请求控制能力），而 `dsh-agent` 声明 `agent?: Agent`（类型化 DX 字段；绝不能在没有 `scope` 时设置，应使用 `assembleContextFor(agent, signal)`）。提供方必须容忍字段缺席，因为裸 `assemble()` 携带的是无作用域、无信号的空上下文。`signal` 是请求值，不是环境 Agent 执行 frame 的一部分。
-- `PromptSection`：`{ name, order, text }`。各段按 `order` 升序拼接。顺序区间：`-100` 是 harness 身份，`0` 是部署 persona，工具引导使用 `100–199`。
+- `PromptSection`：`{ name, order, text }`。各段按 `order` 升序拼接；同 `order` 按名字 code-unit 序决胜。仓库自有 section 的落位集中在稀疏表 `FIRST_PARTY_SECTION_ORDER`（相邻值差 ≥ 10，新增一手 section 无需重排邻序）；外部插件可用任意有限 order。
 - `PromptAssembly`：`{ sections: AssembledSection[], tools: ToolSchema[], variables: Record<string, string | undefined> }`。段文本到达时已解析，但尚未插值；`variables` 包含对上下文解析后的每个已注册变量。工具 schema 按设计属于组装结果：「模型获知自己能做什么」是一个连贯整体，尽管适配器把 schema 作为独立 wire 字段传输。
 - `renderPrompt(assembly)`：插值每个段中的 `{{variable}}` 引用，删除空段，并用空行连接。严格规则：未知引用（使用 `Object.hasOwn` 查找，因此 `{{constructor}}` 等原型名称未知）、已注册但无值的引用、格式错误的完整 `{{…}}` 组，或一个起始 `{{` 没有打开完整组、但后面仍有 `}}`（`{{{model}}}`），都会抛出；明确失败胜过交付格式错误的提示词。孤立的 `{{` 如果后面任何位置都没有 `}}`，会按字面量通过；替换值绝不再次扫描。
 

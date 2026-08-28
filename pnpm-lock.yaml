@@ -7409,6 +7409,9 @@ importers:
       '@huiliyi37/dsh-storage-domain':
         specifier: workspace:^
         version: link:../../storage/storage-domain
+      '@huiliyi37/dsh-system-prompt':
+        specifier: workspace:^
+        version: link:../../core/system-prompt
       '@huiliyi37/dsh-tasks':
         specifier: workspace:^
         version: link:../../tasks/tasks

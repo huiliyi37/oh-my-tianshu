@@ -50,6 +50,7 @@ import type {} from '@huiliyi37/dsh-commands'
 import { selectFaceExtras, selectedFace } from './face-selection.ts'
 import { clipDescription } from './schema-diet.ts'
 import { stripUnbackedToolSections } from './tool-sections.ts'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 export { BASH_OVERLAP_TOOLS, selectFaceExtras, selectedFace } from './face-selection.ts'
 export { clipDescription } from './schema-diet.ts'
@@ -419,7 +420,7 @@ export class ZenPhaseService extends Service {
 
     ctx.systemPrompt.section({
       name: 'zen:policy',
-      order: 48,
+      order: FIRST_PARTY_SECTION_ORDER.ZEN_FACE,
       text: (context) => {
         if (context.agent === undefined) return ''
         if (foldZenPhase(context.agent.session.events) !== 'zen') return ''

@@ -10,6 +10,7 @@ import { defineTool } from '@huiliyi37/dsh-tools'
 import type {} from '@huiliyi37/dsh-system-prompt'
 import type {} from '@huiliyi37/dsh-git'
 import { resolveCwd } from './cwd.ts'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 /** log 默认条数。 */
 const DEFAULT_MAX_COUNT = 20
@@ -25,7 +26,7 @@ const OPERATIONS = ['status', 'diff', 'log', 'commit'] as const
 export function applyGitTool(ctx: Context): void {
   ctx.systemPrompt.section({
     name: 'tool:git',
-    order: 100,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_GIT,
     text: 'git: run one git operation (status/diff/log/commit) in the session workspace; inspect before commit.',
   })
   ctx.tools.register(defineTool({

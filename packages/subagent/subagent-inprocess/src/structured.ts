@@ -14,6 +14,7 @@ import type { Context } from '@huiliyi37/cordis'
 import type { ToolSchema } from '@huiliyi37/dsh-llm'
 import type { ToolExecution, ToolRunContext } from '@huiliyi37/dsh-tools'
 import { ToolArgsError, validateJsonSchemaValue, type ObjectJsonSchema } from '@huiliyi37/dsh-tools'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 /** The model-facing tool name a structured child must call to finish. */
 export const STRUCTURED_OUTPUT_TOOL = 'structured_output'
@@ -98,7 +99,7 @@ export function attachStructuredRuntime(childCtx: Context, schema: ObjectJsonSch
 
   childCtx.systemPrompt.section({
     name: `tool:${STRUCTURED_OUTPUT_TOOL}`,
-    order: 190,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_STRUCTURED_OUTPUT,
     text: STRUCTURED_OUTPUT_INSTRUCTION,
   })
 

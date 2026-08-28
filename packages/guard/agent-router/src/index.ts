@@ -67,6 +67,7 @@ import {
 import { resolveCanaryHealthGate, resolveShadowReadinessGate } from './promotion.js'
 import { RouterDecisionId } from './ids.js'
 import { FINDING_SCHEMA_BY_PROFILE, type RouterFinding } from './finding.js'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 /** 插件名（cordis.yml 装配用）。 */
 export const name = 'agent-router'
@@ -571,7 +572,7 @@ export function apply(ctx: Context, config: AgentRouterConfig = {}): void {
     }), 'agent-router.synthesis-variable')
     ctx.effect(() => ctx.systemPrompt.section({
       name: 'router:synthesis',
-      order: 51,
+      order: FIRST_PARTY_SECTION_ORDER.AGENT_ROUTER,
       text: '{{router_synthesis}}',
     }), 'agent-router.synthesis-section')
   }

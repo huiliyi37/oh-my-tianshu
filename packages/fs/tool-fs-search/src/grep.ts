@@ -21,6 +21,7 @@ import type { GrepMatch } from './search-core.ts'
 import { SearchError, previewLine, retainGrepMatches, runRipgrep, toWorkdirRelative, trySaveFormattedResult } from './search-core.ts'
 import { grepSearchMeta, searchViewFromMeta } from './presentation.ts'
 import { acceptedSurfaceValue } from './surface.ts'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 /**
  * Default cap on flat matches retained inline by one `grep` call (the
@@ -275,7 +276,7 @@ export function presentGrepResult(
 export function applyGrepTool(ctx: Context, caps: GrepToolCaps): void {
   ctx.systemPrompt.section({
     name: 'tool:grep',
-    order: 104,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_GREP,
     text: 'Use the grep tool — not shell grep or rg — to search file contents. Use read on a matched file when you need surrounding context.',
   })
 

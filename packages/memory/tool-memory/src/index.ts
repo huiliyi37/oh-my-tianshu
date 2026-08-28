@@ -19,6 +19,7 @@ import { Context } from '@huiliyi37/cordis'
 import z from '@huiliyi37/schemastery'
 import { defineTool } from '@huiliyi37/dsh-tools'
 import type { MemoryService } from '@huiliyi37/dsh-memory'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 export const name = 'tool-memory'
 
@@ -109,7 +110,7 @@ export function apply(ctx: Context, config: ToolMemoryConfig = {}): void {
   // 追加动态摘要（text 同步读缓存；装配时即最新摘要）。
   ctx.systemPrompt.section({
     name: 'tool:memory',
-    order: 130,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_MEMORY,
     text: () => resolved.digest ? `${MEMORY_GUIDANCE}\n${digestCache}` : MEMORY_GUIDANCE,
   })
 

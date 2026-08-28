@@ -12,6 +12,7 @@ import type {} from '@huiliyi37/dsh-system-prompt'
 import { toolInput } from './input.ts'
 import { operations } from './operations.ts'
 import { presentation } from './presentation.ts'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 /** Cordis plugin name used by Loader diagnostics. */
 export const name = 'tool-session-query'
@@ -59,7 +60,7 @@ export function apply(ctx: Context, config: Config): void {
   const resolved = resolveConfig(config)
   ctx.systemPrompt.section({
     name: 'tool:session-query',
-    order: 113,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_SESSION_QUERY,
     text: PROMPT_TEXT,
   })
 

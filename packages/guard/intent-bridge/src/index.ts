@@ -40,6 +40,7 @@ import type { ToolDefinition } from '@huiliyi37/dsh-tools'
 import { ALIGN_FACE_STATEMENT, ALIGN_SECTION } from './align.ts'
 import { FINALIZE_TOOL_NAME, parseFinalizeArgs } from './finalize.ts'
 import type { FinalizeArgs } from './finalize.ts'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 declare module '@huiliyi37/cordis' {
   interface Context {
@@ -256,7 +257,7 @@ export class IntentBridgeService extends Service {
     // The alignment contract renders only while an alignment session is live.
     ctx.systemPrompt.section({
       name: 'intent:policy',
-      order: 49,
+      order: FIRST_PARTY_SECTION_ORDER.INTENT_BRIDGE,
       text: (context) => {
         if (context.agent === undefined) return ''
         return this.aligns.has(context.agent.session.id) ? this.config.section : ''

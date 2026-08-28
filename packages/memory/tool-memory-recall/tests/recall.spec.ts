@@ -20,6 +20,7 @@ import type { SubagentCapabilities, SubagentResult, SubagentRun, SubagentStartRe
 import { SessionId } from '@huiliyi37/dsh-session'
 import { apply, distillRecallResult } from '../src/index.ts'
 import type { RecallResult } from '../src/index.ts'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 const SIGNAL = new AbortController().signal
 
@@ -136,7 +137,7 @@ describe('memory_deep_recall', () => {
     expect(h.tools.map(t => t.name)).toEqual(['memory_deep_recall'])
     expect(h.sections).toHaveLength(1)
     expect(h.sections[0]?.name).toBe('tool:memory-recall')
-    expect(h.sections[0]?.order).toBe(131)
+    expect(h.sections[0]?.order).toBe(FIRST_PARTY_SECTION_ORDER.TOOL_MEMORY_RECALL)
     expect(typeof h.sections[0]?.text).toBe('string')
     expect(String(h.sections[0]?.text)).toContain('memory_deep_recall')
   })

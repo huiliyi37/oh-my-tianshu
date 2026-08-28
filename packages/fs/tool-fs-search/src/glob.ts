@@ -18,6 +18,7 @@ import type {} from '@huiliyi37/dsh-system-prompt'
 import { runRipgrep, toWorkdirRelative, trySaveFormattedResult } from './search-core.ts'
 import { globSearchMeta, searchViewFromMeta } from './presentation.ts'
 import { acceptedSurfaceValue } from './surface.ts'
+import { FIRST_PARTY_SECTION_ORDER } from '@huiliyi37/dsh-system-prompt'
 
 /**
  * Default cap on paths retained inline by one `glob` call (the `globMaxResults`
@@ -300,7 +301,7 @@ export function applyGlobTool(ctx: Context, caps: GlobToolCaps): void {
     : 'while a larger one keeps the modification-time-ordered head.'
   ctx.systemPrompt.section({
     name: 'tool:glob',
-    order: 103,
+    order: FIRST_PARTY_SECTION_ORDER.TOOL_GLOB,
     text: 'Use the glob tool — not shell find — to discover files by path pattern. A pattern with no "/" matches basenames at any depth, so "*" matches every file in the tree rather than its top level. '
       + `Results are files only, never directories, and include hidden and ignored files: a result that fits comes back in modification-time order, ${overCapGuidance}`,
   })
