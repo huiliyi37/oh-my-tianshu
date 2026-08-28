@@ -43,7 +43,7 @@
 
 **输入区信息密度**（`/info`）：循环三档——`full`（输入框顶栏身份与 metrics 段、footer 提示行全显，缺省）/ `compact`（保留 model/effort 身份段与 API/git 标记，隐 metrics 段）/ `off`（顶栏与 footer 全关，动态区让出两行）。档位持久化到 `~/.dsh-tui/prefs.json`：与官方宿主插件同文件共享，合并写只覆盖本包建模的 key、原样保留对方设置。
 
-**运行中排队提交**（Claude Code 对标）：agent 忙碌时按 Enter 消息进本地队列——队列渲染在输入轨上方（`⏳ N 条排队 · 最旧一条 · ↑ 取回`）而非直发 followup，下个 `turn/end` 按提交顺序逐条投递（中止轮保留队列：打断永不丢弃用户意图）。空输入按 ↑ 把最旧一条取回输入行；切换会话丢弃队列并回显条数。中轮即时纠偏仍走 `/steer` 与 Ctrl+T。
+**运行中排队提交**（Claude Code 对标）：agent 忙碌时按 Enter 消息进本地队列——队列渲染在输入轨上方（`⏳ N 条排队 · 最旧一条 · ↑ 取回`）而非直发 followup，下个 `turn/end` 按提交顺序逐条投递（中止轮保留队列：打断永不丢弃用户意图）。空输入按 ↑ 把最旧一条取回输入行；切换会话丢弃队列并回显条数。中轮即时纠偏走 `/steer` 与 Ctrl+T；Ctrl+Enter（kitty 终端）是第三条通道——插队发送（cancel-and-send）：打断当前回合（`keepInbox` 保留宿主 inbox 未消费的残留），agent 落定后把草稿走正常提交路径直发，排到更老的排队消息之前。
 
 **会话渲染面**（对标 Claude Code）：已结算工具卡在 `tool/result` 时实时提交进 scrollback，经软降级桥（`adapter/tool-view.ts`）消费 harness 的 presenter 渲染意图（`presentCall`/`presentResult`）——`diff` 结果渲染结构化红绿文件 diff（与审批预览共享 `renderFileDiff`），`terminal` 结果渲染命令标题 + cwd + exit/signal 徽标，其余回落文本折叠卡。think 推理通道流式期在 live 区渲染 shimmer 头行（`✻ 思考中…`，tick 驱动光带扫过，16 色终端静态降级）+ 暗色尾巴，段结束时以折叠头行落底进 scrollback（`✻ 思考 (3.2s) · 12 行`）——正文默认收起（对标竞品），`Ctrl+O` 在 live 区按需展开查看（scrollback append-only，展开不重复落底；中止的 turn 丢弃缓冲；紧凑模式只留头行）。resume/attach 经同一条桥重放，消息与工具卡按事件 seq 交错——live 与恢复转录渲染完全一致。
 

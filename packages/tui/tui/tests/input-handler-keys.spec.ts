@@ -39,6 +39,17 @@ describe('Kitty / xterm 增强键', () => {
     expect(keys).toEqual([{ name: 'return', shift: true }])
   })
 
+  it('CSI 13;5u → ctrl_return（Ctrl+Enter 插队键，kitty 键盘增强）', async () => {
+    const stdin = makeStdin()
+    const handler = new InputHandler({ stdin, mode: 'input' })
+    const keys: Array<{ name: string; ctrl: boolean }> = []
+    handler.onAnyKey(k => keys.push({ name: k.name, ctrl: k.ctrl }))
+    stdin.emit('data', '\x1b[13;5u')
+    await Promise.resolve()
+    handler.dispose()
+    expect(keys).toEqual([{ name: 'ctrl_return', ctrl: true }])
+  })
+
   it('xterm modifyOtherKeys CSI 27;2;13~ → return+shift', async () => {
     const stdin = makeStdin()
     const handler = new InputHandler({ stdin, mode: 'input' })

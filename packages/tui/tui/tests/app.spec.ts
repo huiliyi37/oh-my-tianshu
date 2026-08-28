@@ -10028,4 +10028,62 @@ describe('TuiApp 运行中排队（对标 CC queue；↑ 取回）', () => {
     expect(agent.followup).not.toHaveBeenCalled()
     await app.dispose()
   }, 15_000)
+
+  /** 模拟 agent/status 广播（trackAgent/statusLine 的全部订阅者）。 */
+  function emitAgentStatus(ctx: ReturnType<typeof makeCtx>, id: SessionId, status: string): void {
+    const handlers = (ctx.on as ReturnType<typeof vi.fn>).mock.calls
+      .filter((call: unknown[]) => call[0] === 'agent/status')
+      .map(call => call[1] as (payload: { agent: { id: SessionId }; status: string }) => void)
+    for (const handler of handlers) handler({ agent: { id }, status })
+  }
+
+  it('Esc 打断：cancel 带 keepInbox（宿主 inbox 未消费的 steer/排队残留保留）', async () => {
+    const { app, agent, stdin } = await bootQueueApp()
+    // lone ESC 走 80ms 防误触超时才派发
+    stdin.emit('data', '\x1b')
+    await new Promise(resolve => setTimeout(resolve, 150))
+    expect(agent.cancel).toHaveBeenCalledWith({ kind: 'user' }, { keepInbox: true })
+    await app.dispose()
+  })
+
+  it('Ctrl+Enter 插队：cancel(keepInbox) 打断，idle 落定后走正常提交路径直发（调用序 cancel → followup）', async () => {
+    const { app, agent, stdin, ctx, id } = await bootQueueApp()
+    stdin.emit('data', 'jump the queue')
+    await new Promise(resolve => setImmediate(resolve))
+    stdin.emit('data', '\x1B[13;5u') // kitty CSI u：Ctrl+Enter
+    // 打断同步发生；提交等 whenIdle 落定（此时期货未兑现，不直发）
+    expect(agent.cancel).toHaveBeenCalledWith({ kind: 'user' }, { keepInbox: true })
+    expect(agent.followup).not.toHaveBeenCalled()
+    // 落定 → whenIdle 兑现 → agent 已 idle → handleSubmit 直发
+    emitAgentStatus(ctx, id, 'idle')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(agent.followup).toHaveBeenCalledTimes(1)
+    expect(firstCallText(agent.followup)).toBe('jump the queue')
+    await app.dispose()
+  })
+
+  it('Ctrl+Enter running 但空输入：不消费（无打断无发送）', async () => {
+    const { app, agent, stdin } = await bootQueueApp()
+    stdin.emit('data', '\x1B[13;5u')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(agent.cancel).not.toHaveBeenCalled()
+    expect(agent.followup).not.toHaveBeenCalled()
+    await app.dispose()
+  })
+
+  it('Ctrl+Enter 空闲时不消费：草稿保留、无打断无发送', async () => {
+    const { app, agent, stdout, stdin, ctx, id } = await bootQueueApp()
+    emitAgentStatus(ctx, id, 'idle')
+    await new Promise(resolve => setImmediate(resolve))
+    stdin.emit('data', 'still here')
+    await new Promise(resolve => setImmediate(resolve))
+    stdin.emit('data', '\x1B[13;5u')
+    await new Promise(resolve => setImmediate(resolve))
+    expect(agent.cancel).not.toHaveBeenCalled()
+    expect(agent.followup).not.toHaveBeenCalled()
+    // 草稿仍在输入轨
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('still here')
+    await app.dispose()
+  })
 })

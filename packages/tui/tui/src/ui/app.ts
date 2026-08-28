@@ -267,7 +267,7 @@ import {
 } from '../commands/registry.js'
 import { FOOTER_INFO_LEVELS, prefsEnabled, readPrefs, writePrefs, type TuiPrefs } from '../prefs.js'
 import { writeBell } from '../term-bell.js'
-import { formatQueueLine, SubmitQueueController } from '../controllers/submit-queue.js'
+import { formatQueueLine, SubmitQueueController, cancelAndSendInput } from '../controllers/submit-queue.js'
 import { renderTranscript, parseToolArguments, toolResultText, type RenderedRow } from './render.js'
 import { CommandPalette } from '../command-palette.js'
 import { OverlayController } from '../engine/overlay-controller.js'
@@ -4118,7 +4118,9 @@ export class TuiApp {
     this.overlay?.deactivate()
     this.palette?.close()
     this.picker?.close()
-    this.controls?.cancel({ kind: 'user' })
+    // keepInbox（回流 dsh-tui c53a497）：手动打断不清宿主 inbox——未消费的
+    // steer/排队残留留到下一轮，与本地队列「中断不清队」一致。
+    this.controls?.cancel({ kind: 'user' }, { keepInbox: true })
     // 先丢弃流式残文再提交中止提示：提交编舞会同步重绘一帧，残尾若还留在
     // peek/pending 里就会把上一个 run 的残留画进那一帧（提交与丢弃的次序
     // 曾被延迟重绘掩盖，同步化后必须理顺）。
@@ -4704,6 +4706,21 @@ export class TuiApp {
       if (text !== '') {
         this.inputLine.setValue('')
         this.handleSteer(text)
+      }
+      return
+    }
+    // Ctrl+Enter 插队（cancel-and-send，回流 dsh-tui c53a497）：打断当前回合，
+    // whenIdle 落定后把草稿走正常提交路径直发——与 Ctrl+T（不打断在途 step）
+    // 语义分层。仅 running 态消费：空闲时不消费（草稿保留）；无 kitty 增强的
+    // 终端发不出该键，天然静默。
+    if (key.name === 'ctrl_return') {
+      if (this.liveAgent?.state.status === 'running') {
+        cancelAndSendInput({
+          input: this.inputLine,
+          controls: this.controls ?? undefined,
+          abort: () => { this.handleAbort() },
+          submit: (text, images) => { this.handleSubmit(text, images) },
+        })
       }
       return
     }

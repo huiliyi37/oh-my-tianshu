@@ -62,3 +62,39 @@ export function formatQueueLine(cols: number, items: readonly QueuedSubmit[]): s
   const head = first === undefined ? '' : ` · ${first.text.replace(/\s+/g, ' ')}`
   return truncateToDisplayWidth(`⏳ ${items.length} 条排队${head}（↑ 取回）`, Math.max(10, cols - 2))
 }
+
+export interface CancelAndSendDeps {
+  /** 输入行（读取当前草稿 + 提交前清空）。 */
+  input: { value: string; images: readonly string[]; setValue(value: string, cursor?: number): void; clearImages(): void }
+  /** live agent 控制面（whenIdle 等打断落定；undefined = 无 live agent 时直接提交）。 */
+  controls: { whenIdle(): Promise<void> } | undefined
+  /** 用户主动打断（app.handleAbort：cancel 带 keepInbox + 流式残文清理 + 回显）。 */
+  abort(): void
+  /** 正常提交路径（app.handleSubmit：排队/直发由运行态分流）。 */
+  submit(text: string, images?: string[]): void
+}
+
+/**
+ * Ctrl+Enter 插队（cancel-and-send）：打断当前回合并把输入行草稿立即发出去。
+ * 与 Ctrl+T steer 的区别：steer 不打断在途 step（下一轮边界才被消费），
+ * cancel-and-send 先 cancel（keepInbox——宿主 inbox 里未消费的 steer/排队残留
+ * 保留），等 whenIdle 落定后再走正常提交路径——此时 agent 已 idle，handleSubmit
+ * 直发 followup，本地队列里更老的消息排在其后投递（「插队」语义）。先取草稿
+ * 快照再清空输入行（与 steerInput 同款先清后送）；whenIdle 是 quiescence 语义
+ * 只 resolve 不 reject。空白草稿且无图时不插队。
+ * @param deps - 装配依赖（输入行 / 控制面 / 打断 / 提交）。
+ */
+export function cancelAndSendInput(deps: CancelAndSendDeps): void {
+  const text = deps.input.value
+  const images = deps.input.images.length > 0 ? [...deps.input.images] : undefined
+  if (text.trim() === '' && images === undefined) return
+  deps.input.setValue('')
+  if (images !== undefined) deps.input.clearImages()
+  deps.abort()
+  const idle = deps.controls?.whenIdle()
+  if (idle === undefined) {
+    deps.submit(text, images)
+    return
+  }
+  void idle.then(() => { deps.submit(text, images) })
+}

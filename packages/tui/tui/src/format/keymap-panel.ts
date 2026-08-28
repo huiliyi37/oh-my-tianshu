@@ -34,6 +34,7 @@ export const KEYMAP_ENTRIES: KeymapEntry[] = [
   { keys: 'Ctrl+O', action: '展开/收起推理块' },
   { keys: 'Ctrl+E', action: '外部编辑器' },
   { keys: 'Ctrl+T', action: '中轮转向' },
+  { keys: 'Ctrl+Enter', action: '插队发送（打断当前回合，kitty 终端）' },
   { keys: 'Ctrl+V', action: '粘贴剪贴板图片/文本' },
   { keys: 'Ctrl+U', action: '删除到行首' },
   { keys: 'Ctrl+C', action: '打断；再按退出进程' },
