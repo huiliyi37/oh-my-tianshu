@@ -20,7 +20,7 @@ The delegation tool could configure child routes only at deployment time (`Confi
 
 **Preflight closes the race.** After the asynchronous `resolveCallConfig`, the tool re-checks that the same provider instance is still registered before creating the child, so an HMR swap cannot combine one provider's defaults with another provider's process. The parent options read is lazy — a bare calling agent (direct invocation, test doubles) never touches the header path.
 
-Not ported: upstream's `tool:subagent` prompt guidance section (this fork's delegation tool never registered one; adopting it is an independent model-visible change), the invariant machinery pinning upstream's per-Agent definition stability (our single instance has one static definition), and the Web settings card (a later wave).
+Not ported: upstream's `tool:subagent` prompt guidance section (this fork's delegation tool never registered one; adopting it is an independent model-visible change), the invariant machinery pinning upstream's per-Agent definition stability (our single instance has one static definition), and the Web management card (a later wave).
 
 ## Alternatives considered
 
@@ -38,4 +38,4 @@ Advertising `true` without implementing wire transport would claim a route choic
 
 ## Consequences
 
-Bought: model-facing child route selection with durable per-Session authorization, prefix-stable discovery, capability honesty across every provider, and fail-loud behavior where this fork previously ignored configuration silently. The authorization matrix is complete at the tool/service layer; what remains for later waves is the UI (TUI/Web management of the `subagent-model-selection` section) and the DSH SDK transport.
+Bought: model-facing child route selection with durable per-Session authorization, prefix-stable discovery, capability honesty across every provider, and fail-loud behavior where this fork previously ignored configuration silently. The authorization matrix is complete at the tool/service layer, and the TUI management surface landed with the arc: a `/config` 子代理模型 category (present when the settings entry is composed) toggles the switch, removes authorized routes in place, and adds routes through a provider/model picker over the live LLM directory — all through revision-fenced writes to the settings document. What remains for later waves is the Web management card and the DSH SDK transport.

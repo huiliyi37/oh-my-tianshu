@@ -28,6 +28,9 @@ export type ConfigFieldAction =
   | { kind: 'edit-role'; role: 'vision' | 'secondary' | 'subagent' }
   | { kind: 'edit-permission' }
   | { kind: 'edit-credential'; provider: string }
+  | { kind: 'edit-subagent-selection-toggle' }
+  | { kind: 'edit-subagent-route-remove'; index: number }
+  | { kind: 'edit-subagent-route-add' }
   | { kind: 'none' }
 
 /** 一个可展示/可编辑的配置字段。 */

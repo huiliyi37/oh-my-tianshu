@@ -20,7 +20,7 @@ Scope: `packages/subagent/subagent`、`packages/subagent/tool-subagent`，及全
 
 **预检关闭竞态。** 异步 `resolveCallConfig` 之后，工具复核同一 provider 实例仍在注册表，HMR 交换不能把一个 provider 的默认值配到另一个 provider 的进程上。父选项读取是惰性的——裸调用 agent（直接调用、测试替身）不触碰请求头路径。
 
-未移植：上游的 `tool:subagent` 提示词指引段（本仓委派工具从未注册过；采纳它是独立的模型可见变更）、钉住上游 per-Agent 定义稳定性的 invariant 机制（本仓单实例只有一份静态定义）、以及 Web 设置卡片（后续浪）。
+未移植：上游的 `tool:subagent` 提示词指引段（本仓委派工具从未注册过；采纳它是独立的模型可见变更）、钉住上游 per-Agent 定义稳定性的 invariant 机制（本仓单实例只有一份静态定义）、以及 Web 管理卡片（后续浪）。
 
 ## 已考虑的替代方案
 
@@ -38,4 +38,4 @@ Scope: `packages/subagent/subagent`、`packages/subagent/tool-subagent`，及全
 
 ## 后果
 
-买到：带持久 per-Session 授权的模型可见子路由选择、前缀稳定的发现工具、所有 provider 上的能力诚实，以及本仓此前静默忽略配置处的 fail-loud。授权矩阵在工具/服务层已经完整；留给后续浪的是 UI（TUI/Web 对 `subagent-model-selection` 段的管理）与 DSH SDK 传输。
+买到：带持久 per-Session 授权的模型可见子路由选择、前缀稳定的发现工具、所有 provider 上的能力诚实，以及本仓此前静默忽略配置处的 fail-loud。授权矩阵在工具/服务层已经完整，且 TUI 管理面随本弧落地：`/config` 的「子代理模型」类目（装配设置入口时出现）切换开关、原位移除授权路由、并经 provider/model 两级 picker 从 llm 活目录添加路由——全部走 settings 文档的修订 fence 写入。留给后续浪的是 Web 管理卡片与 DSH SDK 传输。

@@ -10101,3 +10101,94 @@ describe('TuiApp 运行中排队（对标 CC queue；↑ 取回）', () => {
     await app.dispose()
   })
 })
+
+describe('TuiApp /config 子代理模型路由授权（回流上游 aefc083be7 弧子浪 C）', () => {
+  function stubSelection(enabled: boolean, routes: Array<{ provider: string; model: string }>) {
+    return { current: () => ({ enabled, allowedModels: routes.map(r => ({ ...r })) }) }
+  }
+
+  it('服务装配时 /config 出现子代理模型类别：开关、逐条路由、添加入口', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('cfg-sub-1')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'subagentModelSelection') {
+        return stubSelection(true, [{ provider: 'alpha', model: 'fast' }])
+      }
+      return undefined
+    })
+    ctx.get.mockImplementation((name: string) =>
+      name === 'subagentModelSelection' ? stubSelection(true, [{ provider: 'alpha', model: 'fast' }]) : undefined)
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    const data = await (app as unknown as { buildConfigPanelData(): Promise<{ categories: Array<{ key: string; fields: Array<{ value: string }> }> }> }).buildConfigPanelData()
+    const category = data.categories.find(c => c.key === 'subagent-models')
+    expect(category).toBeDefined()
+    expect(category!.fields.map(f => f.value)).toEqual(['开（1 条路由）', 'alpha/fast', '从模型目录选择…'])
+    await app.dispose()
+  })
+
+  it('服务缺席（入口未装配）时不出现在面板', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('cfg-sub-2')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+    const data = await (app as unknown as { buildConfigPanelData(): Promise<{ categories: Array<{ key: string }> }> }).buildConfigPanelData()
+    expect(data.categories.find(c => c.key === 'subagent-models')).toBeUndefined()
+    await app.dispose()
+  })
+
+  it('开关写入 settings：关→开带 enabled:true；服务端校验失败回显 ⚠', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('cfg-sub-3')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const update = vi.fn(async (ns: unknown, patch: object) => {
+      void ns
+      if ((patch as { enabled?: boolean }).enabled === true) throw new Error('enabled subagent model selection requires at least one allowed model')
+    })
+    ctx.get.mockImplementation((name: string) =>
+      name === 'subagentModelSelection' ? stubSelection(false, []) : undefined)
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'settings') return { update }
+      return undefined
+    })
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    const handlers = app as unknown as { toggleSubagentModelSelection(): void }
+    stdout.write.mockClear()
+    handlers.toggleSubagentModelSelection()
+    await new Promise(resolve => setImmediate(resolve))
+    expect(update).toHaveBeenCalledTimes(1)
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('⚠ enabled subagent model selection requires at least one allowed model')
+    await app.dispose()
+  })
+
+  it('移除最后一条路由时随写自动关闭选择（enabled:false 一次性落盘）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('cfg-sub-4')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const update = vi.fn(async () => {})
+    ctx.get.mockImplementation((name: string) =>
+      name === 'subagentModelSelection'
+        ? stubSelection(true, [{ provider: 'alpha', model: 'fast' }])
+        : undefined)
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'settings') return { update }
+      return undefined
+    })
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    const handlers = app as unknown as { removeSubagentModelRoute(index: number): void }
+    handlers.removeSubagentModelRoute(0)
+    await new Promise(resolve => setImmediate(resolve))
+    expect(update).toHaveBeenCalledWith(expect.anything(), { allowedModels: [], enabled: false })
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('选择自动关闭')
+    await app.dispose()
+  })
+})

@@ -341,6 +341,7 @@ import { formatSubagentRunning, formatSubagentDone } from '../format/subagent-li
 import { glanceBarSegments } from '../format/glance-bar.js'
 import { MemoryBrowserOverlay } from '../format/memory-overlay.js'
 import { TranscriptViewer } from '../format/transcript-viewer.js'
+import { settingsNamespace } from '@huiliyi37/dsh-settings'
 import { zenPhaseLabel } from '../preset-surface.js'
 import { formatCacheMissReason, isReportableMiss } from '../cache-telemetry.js'
 import type { CacheHealthWire } from '../cache-telemetry.js'
@@ -3420,6 +3421,15 @@ export class TuiApp {
       case 'edit-credential':
         void this.openCredentialFromConfig(action.provider)
         return
+      case 'edit-subagent-selection-toggle':
+        void this.toggleSubagentModelSelection()
+        return
+      case 'edit-subagent-route-remove':
+        void this.removeSubagentModelRoute(action.index)
+        return
+      case 'edit-subagent-route-add':
+        void this.addSubagentModelRoute()
+        return
       case 'none':
         this.finishConfigReturn()
         return
@@ -3511,6 +3521,129 @@ export class TuiApp {
     await this.openKeyDialogForEntry(entry, credentials)
   }
 
+  /** `subagent-model-selection` 设置命名空间（属主在 dsh-tool-subagent 的
+   *  model-selection-settings；id 是跨包稳定契约，此处就地 brand 避免反向依赖）。 */
+  private static readonly SUBAGENT_MODEL_SELECTION_NS = settingsNamespace('subagent-model-selection')
+
+  /** 读已装载的子代理路由选择设置服务；缺席（入口未装配）返回 undefined。 */
+  private subagentModelSelectionSettings():
+    | { current(): { enabled: boolean; allowedModels: Array<{ provider: string; model: string }> } }
+    | undefined {
+    return this.ctx.get('subagentModelSelection') as
+      | { current(): { enabled: boolean; allowedModels: Array<{ provider: string; model: string }> } }
+      | undefined
+  }
+
+  /** 写设置段；失败回显 ⚠（fail loud，不静默），成功回显并回开面板。 */
+  private updateSubagentModelSelection(patch: { enabled?: boolean; allowedModels?: Array<{ provider: string; model: string }> }, successEcho: string): void {
+    const settings = this.ctx.reflect.get('settings', false) as
+      | { update(ns: ReturnType<typeof settingsNamespace>, patch: object): Promise<void> }
+      | undefined
+    if (settings === undefined) {
+      this.echoWarn('⚠ settings 服务不可用，无法写入子代理路由选择')
+      this.finishConfigReturn()
+      return
+    }
+    void settings.update(TuiApp.SUBAGENT_MODEL_SELECTION_NS, patch)
+      .then(() => {
+        this.commitToScrollback({ text: successEcho, trailingNewline: true })
+        this.finishConfigReturn()
+      })
+      .catch((error: unknown) => {
+        this.echoWarn(`⚠ ${error instanceof Error ? error.message : String(error)}`)
+        this.finishConfigReturn()
+      })
+  }
+
+  /** 子代理路由选择开关：开↔关。开启需至少一条路由（服务端校验，错误回显）。 */
+  private toggleSubagentModelSelection(): void {
+    const selection = this.subagentModelSelectionSettings()
+    if (selection === undefined) {
+      this.finishConfigReturn()
+      return
+    }
+    const current = selection.current()
+    const nextEnabled = !current.enabled
+    this.updateSubagentModelSelection(
+      { enabled: nextEnabled },
+      nextEnabled
+        ? `子代理路由选择：开（${current.allowedModels.length} 条路由；新顶层会话生效）`
+        : '子代理路由选择：关（已录会话的决策不受影响）',
+    )
+  }
+
+  /** 移除一条已授权路由（整段写剩余列表）。 */
+  private removeSubagentModelRoute(index: number): void {
+    const selection = this.subagentModelSelectionSettings()
+    if (selection === undefined) {
+      this.finishConfigReturn()
+      return
+    }
+    const current = selection.current()
+    const removed = current.allowedModels[index]
+    if (removed === undefined) {
+      this.finishConfigReturn()
+      return
+    }
+    const allowedModels = current.allowedModels.filter((_, i) => i !== index)
+    this.updateSubagentModelSelection(
+      { allowedModels, ...(current.enabled && allowedModels.length === 0 ? { enabled: false } : {}) },
+      `已移除路由 ${removed.provider}/${removed.model}${current.enabled && allowedModels.length === 0 ? '（最后一条路由已移除，选择自动关闭）' : ''}`,
+    )
+  }
+
+  /** 添加路由：provider picker → model picker（llm 活目录，与 /model 同源）。 */
+  private async addSubagentModelRoute(): Promise<void> {
+    const overlay = this.overlay
+    const picker = this.picker
+    if (overlay === null || picker === null) {
+      this.finishConfigReturn()
+      return
+    }
+    const llm = this.ctx.reflect.get('llm', false) as
+      | { listProviders(): Array<{ id: string }>; listModels(provider: string): Promise<Array<{ id: string }>> }
+      | undefined
+    if (llm === undefined) {
+      this.echoWarn('⚠ llm 服务不可用（未装配 llm 插件），模型选择器不可用')
+      this.finishConfigReturn()
+      return
+    }
+    const providers: Array<{ id: string; models: Array<{ id: string }> }> = []
+    for (const provider of llm.listProviders()) {
+      const models = await llm.listModels(provider.id).catch(() => [])
+      providers.push({ id: provider.id, models })
+    }
+    picker.open('选择 Provider', providers.map(provider => ({ label: provider.id, value: provider.id })), (picked) => {
+      const provider = providers.find(entry => entry.id === picked.value)
+      if (provider === undefined || provider.models.length === 0) {
+        this.finishConfigReturn()
+        return
+      }
+      picker.open('选择 Model', provider.models.map(model => ({ label: model.id, value: model.id })), (modelItem) => {
+        const selection = this.subagentModelSelectionSettings()
+        if (selection === undefined) {
+          this.finishConfigReturn()
+          return
+        }
+        const current = selection.current()
+        const route = { provider: provider.id, model: modelItem.value }
+        const duplicated = current.allowedModels.some(entry => entry.provider === route.provider && entry.model === route.model)
+        if (duplicated) {
+          this.echoWarn(`⚠ 路由 ${route.provider}/${route.model} 已在授权列表中`)
+          this.finishConfigReturn()
+          return
+        }
+        const enabled = current.enabled || current.allowedModels.length === 0
+        this.updateSubagentModelSelection(
+          { allowedModels: [...current.allowedModels, route], ...(current.enabled ? {} : { enabled }) },
+          `已${current.enabled ? '添加' : '添加并启用'}路由 ${route.provider}/${route.model}（新顶层会话生效）`,
+        )
+      })
+      overlay.activate('picker')
+    })
+    overlay.activate('picker')
+  }
+
   /**
    * 构建 /config 面板数据：模型（默认模型/推理档位/三角色 pin）恒在；
    * 权限（permission 服务）、凭据（key-wizard 目录 + describe）、概览
@@ -3557,6 +3690,39 @@ export class TuiApp {
         roleField('role-subagent', '子代理模型', 'subagent', '委派子代理会话的默认路由'),
       ],
     })
+    // 子代理模型路由授权（回流上游 aefc083be7 弧子浪 C）：服务装配且 settings
+    // 服务在场时出现；开关 + 路由列表（逐条移除）+ 添加路由（活目录 picker）。
+    const subagentSelection = this.subagentModelSelectionSettings()
+    if (subagentSelection !== undefined) {
+      const selection = subagentSelection.current()
+      const routeFields: ConfigField[] = [{
+        key: 'subagent-selection-toggle',
+        label: '路由选择',
+        value: selection.enabled ? `开（${selection.allowedModels.length} 条路由）` : '关',
+        editable: true,
+        action: { kind: 'edit-subagent-selection-toggle' },
+        hint: '开启后新顶层会话可由模型经 list_subagent_models 选择子代理路由',
+      }]
+      selection.allowedModels.forEach((route, index) => {
+        routeFields.push({
+          key: `subagent-route:${route.provider}/${route.model}`,
+          label: `路由 ${index + 1}`,
+          value: `${route.provider}/${route.model}`,
+          editable: true,
+          action: { kind: 'edit-subagent-route-remove', index },
+          hint: 'Enter 移除该路由',
+        })
+      })
+      routeFields.push({
+        key: 'subagent-route-add',
+        label: '添加路由',
+        value: '从模型目录选择…',
+        editable: true,
+        action: { kind: 'edit-subagent-route-add' },
+        hint: 'Provider → Model 两级 picker，来源为 llm 活目录',
+      })
+      categories.push({ key: 'subagent-models', label: '子代理模型', fields: routeFields })
+    }
     const permission = this.ctx.reflect.get('permission', false) as
       | { names: readonly string[]; current(events: readonly unknown[]): string } | undefined
     if (permission !== undefined) {

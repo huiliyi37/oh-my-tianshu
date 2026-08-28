@@ -47,6 +47,7 @@
     "@huiliyi37/dsh-model-roles": "^0.3.0",
     "@huiliyi37/dsh-session": "^0.2.0",
     "@huiliyi37/dsh-session-title": "^0.2.0",
+    "@huiliyi37/dsh-settings": "^0.2.0",
     "@huiliyi37/dsh-tools": "^0.2.0",
     "@huiliyi37/dsh-user-interaction": "^0.2.0"
   },
@@ -64,6 +65,7 @@
     "@huiliyi37/dsh-model-roles": "workspace:^",
     "@huiliyi37/dsh-session": "workspace:^",
     "@huiliyi37/dsh-session-title": "workspace:^",
+    "@huiliyi37/dsh-settings": "workspace:^",
     "@huiliyi37/dsh-tools": "workspace:^",
     "@huiliyi37/dsh-user-approval": "workspace:^",
     "@huiliyi37/dsh-user-interaction": "workspace:^",
