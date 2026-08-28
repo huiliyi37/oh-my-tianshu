@@ -209,14 +209,40 @@ function use256(): boolean {
   return chalk.level === 2
 }
 
+// ── NO_COLOR（no-color.org 规范：环境变量存在且非空字符串 → 禁用颜色）──
+
+/** 纯函数：给定 env 是否请求无色（便于测试注入）。 */
+export function noColorRequested(env: NodeJS.ProcessEnv = process.env): boolean {
+  const v = env.NO_COLOR
+  return v !== undefined && v !== ''
+}
+
+let colorSuppressed = noColorRequested()
+/* v8 ignore next -- 测试环境不设 NO_COLOR；生产设了才走本行 */
+if (colorSuppressed) chalk.level = 0
+
+/**
+ * 测试/显式覆写无色开关（只翻本模块旗标；不回改 chalk.level——生产路径由
+ * 模块加载时的初始化统一压制）。测试用后应复原。
+ */
+export function setColorSuppressed(v: boolean): void {
+  colorSuppressed = v
+}
+
+/** 当前是否压制颜色输出（NO_COLOR 已显式请求时 fg/bg 输出空串）。 */
+export function isColorSuppressed(): boolean {
+  return colorSuppressed
+}
+
 /**
  * 设置前景色。接受 hex（`#a8e6cf`）或 chalk 命名色（`cyan`/`redBright`）。
  * hex 在 truecolor 终端发 38;2，在 256 色终端（chalk.level === 2）量化为 38;5；
- * 命名色发基础 16 色码。无法解析时返回 ''（无着色）。
+ * 命名色发基础 16 色码。无法解析时返回 ''（无着色）。NO_COLOR 请求时恒返回 ''。
  * @param colorValue - hex 颜色字符串或 chalk 命名色
- * @returns SGR 前景色序列；无法解析时为空字符串
+ * @returns SGR 前景色序列；无法解析或无色模式时为空字符串
  */
 export function fg(colorValue: string): string {
+  if (colorSuppressed) return ''
   const rgb = hexToRgb(colorValue)
   if (!rgb) {
     const code = NAMED_FG_CODES[colorValue]
@@ -233,6 +259,7 @@ export function fg(colorValue: string): string {
  * @returns SGR 背景色序列；无法解析时为空字符串
  */
 export function bg(colorValue: string): string {
+  if (colorSuppressed) return ''
   const rgb = hexToRgb(colorValue)
   if (!rgb) {
     const code = NAMED_FG_CODES[colorValue]

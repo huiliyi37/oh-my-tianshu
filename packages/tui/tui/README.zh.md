@@ -45,6 +45,8 @@
 
 **运行中排队提交**（Claude Code 对标）：agent 忙碌时按 Enter 消息进本地队列——队列渲染在输入轨上方（`⏳ N 条排队 · 最旧一条 · ↑ 取回`）而非直发 followup，下个 `turn/end` 按提交顺序逐条投递（中止轮保留队列：打断永不丢弃用户意图）。空输入按 ↑ 把最旧一条取回输入行；切换会话丢弃队列并回显条数。中轮即时纠偏走 `/steer` 与 Ctrl+T；Ctrl+Enter（kitty 终端）是第三条通道——插队发送（cancel-and-send）：打断当前回合（`keepInbox` 保留宿主 inbox 未消费的残留），agent 落定后把草稿走正常提交路径直发，排到更老的排队消息之前。
 
+**主题可达性**（`~/.dsh-tui/themes`）：自定义主题 JSON 加载时做 WCAG 对比度校验——前景 token 对声明背景对比度低于 3.0:1 时写 `[theme] low contrast in <file>` 的 stderr 警告，但照常注册（fail-open：保留用户意图，警告给出知情权）。同时遵循 no-color.org 的 `NO_COLOR` 规范：变量存在且非空时 `fg`/`bg` 不再输出 SGR 序列，启动即把 chalk 压到 level 0。
+
 **会话渲染面**（对标 Claude Code）：已结算工具卡在 `tool/result` 时实时提交进 scrollback，经软降级桥（`adapter/tool-view.ts`）消费 harness 的 presenter 渲染意图（`presentCall`/`presentResult`）——`diff` 结果渲染结构化红绿文件 diff（与审批预览共享 `renderFileDiff`），`terminal` 结果渲染命令标题 + cwd + exit/signal 徽标，其余回落文本折叠卡。think 推理通道流式期在 live 区渲染 shimmer 头行（`✻ 思考中…`，tick 驱动光带扫过，16 色终端静态降级）+ 暗色尾巴，段结束时以折叠头行落底进 scrollback（`✻ 思考 (3.2s) · 12 行`）——正文默认收起（对标竞品），`Ctrl+O` 在 live 区按需展开查看（scrollback append-only，展开不重复落底；中止的 turn 丢弃缓冲；紧凑模式只留头行）。resume/attach 经同一条桥重放，消息与工具卡按事件 seq 交错——live 与恢复转录渲染完全一致。
 
 **全屏转录查看器**（`/scroll`，T5）：对已提交 scrollback 的只读翻页器——屏幕上确切的记录（命令回显、steer 标记、/btw 折叠答案、工具卡），经预留的 `scrollback-transcript.ts` API 解析为消息块。↑/↓ j/k 单行滚动，PageUp/PageDown（Ctrl+U/D）半屏，home/end（g/G）跳顶/底，`[`/`]` 上一/下一轮（user 消息边界，循环），`/` 进搜索——字符累积 query 实时跳首个匹配，`n`/`N`/Enter 循环匹配，Esc 清 query 保持打开，再 Esc 或 Ctrl+C 关闭。打开时取快照（流式提交不推送进已打开的查看器）；1000 行环形缓冲封顶命中时顶栏显示截断提示。

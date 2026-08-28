@@ -20,6 +20,7 @@ import { homedir } from 'node:os'
 import { join, basename } from 'node:path'
 import { registerCustomTheme, type CustomThemeInput, type ColorSet, type ThemeOverrides } from './theme.js'
 import { THEME_PALETTES } from './theme-palettes.js'
+import { validateThemeContrast } from './theme-contrast.js'
 
 /** 默认自定义主题根目录（`~/.dsh-tui`；源 `rivetHome()` 为天枢路径，移植时改为本包路径）。 */
 function defaultThemesRoot(): string {
@@ -105,6 +106,16 @@ export function loadCustomThemes(baseDir?: string): string[] {
       if (!input) {
         process.stderr.write(`[theme] skip invalid custom theme: ${file}\n`)
         continue
+      }
+      // 对比度警告（fail-open，回流 dsh-tui 3e2cb2f）：对声明背景 < 3.0 的
+      // token 提示，不阻断注册。
+      const issues = validateThemeContrast(
+        { ...input.colors, ...input.overrides },
+        input.background ?? 'dark',
+      )
+      if (issues.length > 0) {
+        const list = issues.map(i => `${i.token}(${i.value} ×${i.ratio.toFixed(1)})`).join(', ')
+        process.stderr.write(`[theme] low contrast in ${file}: ${list}\n`)
       }
       registerCustomTheme(name, input)
       loaded.push(name)

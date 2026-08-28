@@ -143,6 +143,7 @@
 | src/term-bell.ts | — | new（完成事件 BEL 通道：SSH 下唯一可达的完成提醒，VITEST/CI/SKIP 门闸 + prefs bellEnabled；回流自 dsh-tianshu-tui 704a833，prefs 门为本包语义适配——上游与 os-notify 共用 notifyOs，本包无 os-notify） |
 | src/term-caps.ts | term-caps.ts | modified |
 | src/theme-custom.ts | theme-custom.ts | modified（自定义主题根路径重指到本包 home） |
+| src/theme-contrast.ts | — | new（WCAG 2.x 相对亮度/对比度校验：自定义主题对声明背景 < 3.0 的 token 加载警告，fail-open；回流自 dsh-tianshu-tui 3e2cb2f） |
 | src/theme-detect.ts | theme-detect.ts | modified（pause 对称恢复：仅在进入时为暂停态才 `pause()`） |
 | src/theme-palettes.ts | theme-palettes.ts | modified |
 | src/format/top-bar.ts | — | new（C4 概念稿顶部栏：cwd + 分支 + 模型，纯渲染） |
