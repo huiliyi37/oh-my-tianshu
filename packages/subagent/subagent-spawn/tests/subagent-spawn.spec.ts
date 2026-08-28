@@ -286,7 +286,7 @@ describe('dsh-subagent-spawn', () => {
     const { ctx } = await setup([])
     const provider = ctx.subagents.getProvider('spawn')!
     expect(provider.capabilities).toEqual({
-      outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true,
+      agentOptions: true, outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true,
     })
   })
 

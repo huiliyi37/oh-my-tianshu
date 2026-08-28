@@ -359,6 +359,7 @@ describe('dsh-subagent-dsh-sdk provider', () => {
     expect(ctx.subagents.getProvider('sdk-hmr')?.name).toBe('sdk-hmr')
     expect(ctx.subagents.getProvider('sdk-hmr')?.inheritsParentContext).toBe(false)
     expect(ctx.subagents.getProvider('sdk-hmr')?.capabilities).toEqual({
+      agentOptions: false,
       outputSchema: false,
       depthLimit: false,
       toolFilter: false,

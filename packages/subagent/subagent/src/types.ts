@@ -83,6 +83,13 @@ export interface SubagentRunEndInfo {
  * to `maxDepth`; the other names match.
  */
 export interface SubagentCapabilities {
+  /**
+   * Whether the provider can honor {@link SubagentStartRequest.agentOptions}:
+   * merge host-Agent provider/model/effort/output-token overrides into the
+   * child at creation. A provider that would silently ignore the values must
+   * declare `false` — the service rejects such a request before `start` runs.
+   */
+  readonly agentOptions: boolean
   readonly outputSchema: boolean
   readonly depthLimit: boolean
   readonly toolFilter: boolean

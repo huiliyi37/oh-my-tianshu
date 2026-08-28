@@ -120,6 +120,7 @@ export { assertSubagentMaxDepth, delegationDepthOf } from './depth.ts'
 export {
   applyChildComposition,
   childSessionMeta,
+  parentAgentOptionsForDelegation,
   resolveChildAgentOptions,
   resolveChildDepth,
   SubagentDepthError,
@@ -528,6 +529,7 @@ export class SubagentService extends Service {
   /** Reject the first requested capability that the provider lacks. */
   private assertCapabilities(provider: SubagentProvider, request: SubagentStartRequest): void {
     const needs: { when: boolean; cap: keyof SubagentCapabilities }[] = [
+      { when: request.agentOptions !== undefined, cap: 'agentOptions' },
       { when: request.outputSchema !== undefined, cap: 'outputSchema' },
       { when: request.maxDepth !== undefined, cap: 'depthLimit' },
       { when: request.toolFilter !== undefined, cap: 'toolFilter' },

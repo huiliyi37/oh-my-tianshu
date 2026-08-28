@@ -39,7 +39,13 @@ const testToolSignal = new AbortController().signal
 
 /** A minimal parent Agent passed through to the provider request. */
 function fakeAgent(id = 'parent-1'): Agent {
-  return { id: SessionId(id) } as unknown as Agent
+  // 路由预检/策略解析读取 requestHeader 与 events：替身提供最小会话面
+  //（无已录请求头 → 父选项回退创建选项）。
+  return {
+    id: SessionId(id),
+    options: { provider: 'parent-provider', model: 'parent-model' },
+    session: { header: { id: SessionId(id) }, requestHeader: () => undefined, events: [] },
+  } as unknown as Agent
 }
 
 async function setup(toolConfig: tool.Config, mockConfig: Partial<mock.Config> = {}) {
@@ -47,6 +53,8 @@ async function setup(toolConfig: tool.Config, mockConfig: Partial<mock.Config> =
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRegistry)
   await ctx.plugin(SubagentService)
+  // 配置了 agentOptions/角色路由的委派会做活适配器预检——替身 llm 原样回显。
+  ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
   await mock.mountScriptedProvider(ctx, { name: 'mock', ...mockConfig })
   await ctx.plugin(tool, toolConfig)
   return ctx
@@ -169,6 +177,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     await mock.mountScriptedProvider(ctx, { name: 'spawn', reply: 'from spawn' })
     await mock.mountScriptedProvider(ctx, { name: 'acp', reply: 'from acp' })
     await ctx.plugin(tool, { provider: 'spawn', toolName: 'subagent' })
@@ -190,6 +199,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'weird',
       capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
@@ -216,9 +226,10 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'capture',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: true, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         seen = request
@@ -246,6 +257,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'bare',
       capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
@@ -281,6 +293,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     // Tool first: no provider yet — the tool must be absent, not broken.
     // Direct apply (schema bypass): also covers the waiting-note's default
     // toolName fallback, which validated config pre-fills.
@@ -298,6 +311,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     const backend = await mock.mountScriptedProvider(ctx, { name: 'mock' }) // fresh conversation (descriptor: false)
     await ctx.plugin(tool, { provider: 'mock' })
     expect(ctx.tools.schemas().find(s => s.name === 'subagent')!.description).toContain('does not see this conversation')
@@ -317,6 +331,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
 
     // Arm 1: a mounted tool dies with its plugin fiber; the provider survives.
     await mock.mountScriptedProvider(ctx, { name: 'mock' })
@@ -340,6 +355,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     await mock.mountScriptedProvider(ctx, { name: 'mock' })
     await ctx.plugin(tool, { provider: 'mock' })
     // An unrelated provider registering (added-event with another name) and
@@ -376,6 +392,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'spy',
       capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
@@ -399,6 +416,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'spy',
       capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
@@ -423,6 +441,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'spy',
       capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
@@ -451,6 +470,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'spy',
       capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
@@ -478,6 +498,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'spy',
       capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
@@ -517,6 +538,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'spy',
       capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
@@ -581,6 +603,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'capture2',
       capabilities: { outputSchema: false, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true },
@@ -657,6 +680,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'capture3',
       capabilities: { outputSchema: false, depthLimit: false, toolFilter: true, persona: false, sandboxMode: false, runBudget: false },
@@ -687,6 +711,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'capture4',
       capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
@@ -712,6 +737,7 @@ describe('dsh-tool-subagent', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'p',
       capabilities: { outputSchema: false, depthLimit: false, toolFilter: true, persona: false, sandboxMode: false, runBudget: false },
@@ -732,8 +758,8 @@ describe('dsh-tool-subagent background mode', () => {
       id,
       ctx: scopeFiber.ctx,
       inject,
-      options: {},
-      session: { id, header: { version: 0, id, createdAt: 0 } },
+      options: { provider: 'parent-provider', model: 'parent-model' },
+      session: { id, header: { version: 0, id, createdAt: 0 }, requestHeader: () => undefined, events: [] },
     } as unknown as Agent
     ctx.agents.register(agent)
     return agent
@@ -928,7 +954,7 @@ describe('dsh-tool-subagent background mode', () => {
     let starts = 0
     ctx.subagents.registerProvider({
       name: 'hanging',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
+      capabilities: { agentOptions: true, outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
       inheritsParentContext: false,
       start: async (request) => {
         let settle!: (value: { output: { type: 'text'; text: string }[]; stopReason: 'aborted' }) => void
@@ -1080,9 +1106,10 @@ describe('depth budget configuration', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'capture',
-      capabilities: { outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true },
+      capabilities: { agentOptions: true, outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true },
       inheritsParentContext: false,
       start: async (request) => {
         requests.push(request)
@@ -1118,6 +1145,7 @@ describe('depth budget configuration', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'no-depth',
       capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
@@ -1134,6 +1162,7 @@ describe('depth budget configuration', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     ctx.subagents.registerProvider({
       name: 'external',
       capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false, sandboxMode: false, runBudget: false },
@@ -1161,8 +1190,8 @@ describe('agent roles and the available-agents catalog', () => {
     const id = SessionId(`parent-${cwd}`)
     return {
       id,
-      options: {},
-      session: { id, header: { version: 0, id, createdAt: 0, cwd } },
+      options: { provider: 'parent-provider', model: 'parent-model' },
+      session: { id, header: { version: 0, id, createdAt: 0, cwd }, requestHeader: () => undefined, events: [] },
     } as unknown as Agent
   }
 
@@ -1177,6 +1206,7 @@ describe('agent roles and the available-agents catalog', () => {
     await ctx.plugin(ToolRegistry)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(SubagentService)
+    ctx.provide('llm', { resolveCallConfig: vi.fn(async (config: unknown) => config) })
     if (options.withDefinitions !== false) {
       const home = mkdtempSync(path.join(tmpdir(), 'dsh-tool-agents-'))
       await ctx.plugin(AgentDefinitionService, {
@@ -1188,7 +1218,7 @@ describe('agent roles and the available-agents catalog', () => {
     }
     ctx.subagents.registerProvider({
       name: 'capture',
-      capabilities: { outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true },
+      capabilities: { agentOptions: true, outputSchema: true, depthLimit: true, toolFilter: true, persona: true, sandboxMode: true, runBudget: true },
       inheritsParentContext: false,
       start: async (request) => {
         requests.push(request)

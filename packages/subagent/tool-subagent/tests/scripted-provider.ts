@@ -13,6 +13,7 @@ import type {
 } from '@huiliyi37/dsh-subagent'
 
 const DEFAULT_CAPABILITIES: SubagentCapabilities = {
+  agentOptions: true,
   outputSchema: true,
   depthLimit: true,
   toolFilter: true,

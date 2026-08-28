@@ -26,7 +26,7 @@ import { createUserMessage } from '@huiliyi37/dsh-llm'
 import type { ContentBlock } from '@huiliyi37/dsh-llm'
 import type { JsonValue, UserMessage } from '@huiliyi37/dsh-session'
 import { escapeText } from '@huiliyi37/dsh-skill'
-import { assertSubagentMaxDepth, MAX_SUBAGENT_RUN_TIMEOUT_MS, settleRun } from '@huiliyi37/dsh-subagent'
+import { assertSubagentMaxDepth, MAX_SUBAGENT_RUN_TIMEOUT_MS, parentAgentOptionsForDelegation, settleRun } from '@huiliyi37/dsh-subagent'
 import type { SubagentProvider, SubagentResult, SubagentRun } from '@huiliyi37/dsh-subagent'
 import type { TaskOutcome } from '@huiliyi37/dsh-tasks'
 // Type-only: resolve the optional `ctx.agentDefinitions` service when the
@@ -36,12 +36,30 @@ import type { AgentDefinition, AgentDefinitionSummary } from '@huiliyi37/dsh-age
 // composed; the subagent pin is consumed opportunistically, never a hard dep.
 import type { ModelRoleSelection } from '@huiliyi37/dsh-model-roles'
 import { scopeOf } from '@huiliyi37/dsh-scope'
+import {
+  assertAllowedModelSelection,
+  hasConfiguredLlmSelection,
+  hasDelegationModelRequest,
+  preflightChildLlmRoute,
+  requestedAgentOptions,
+} from './model-selection.ts'
+import type { DelegationModelRequest, ModelSelectionPolicy } from './model-selection.ts'
+import { registerListSubagentModels } from './list-models.ts'
+import { recordSubagentModelSelection, subagentModelSelectionPolicy } from './model-selection-state.ts'
 
 export const name = 'tool-subagent'
 export const inject = ['tools', 'subagents']
 
 /** Config: which registered provider this tool delegates to, plus child defaults. */
 export interface Config {
+  /**
+   * Sample the Host `subagent-model-selection` user setting for each new
+   * top-level session and inherit that decision in its child sessions
+   * (requires the `subagent-model-selection-settings` entry in the
+   * composition). Route fields are then advertised and enforced per Session
+   * policy; the decision itself is recorded once in the session log.
+   */
+  modelSelectionSettings?: boolean
   /** The `ctx.subagents` provider name to start runs on (e.g. `spawn`, `acp`). */
   provider: string
   /**
@@ -123,6 +141,7 @@ const DEFAULT_CATALOG_DESCRIPTION_MAX_LENGTH = 500
 export const Config: z<Config> = z.object({
   provider: z.string().required(),
   toolName: z.string().default('subagent'),
+  modelSelectionSettings: z.boolean().default(false),
   enableRunInBackground: z.boolean().default(true),
   backgroundMode: z.union(['one-shot', 'continuable'] as const).default('one-shot'),
   // Prevent Schemastery from materializing omitted agentOptions as `{}`.
@@ -313,6 +332,39 @@ export function apply(ctx: Context, config: Config): void {
     throw new Error('tool-subagent: `toolFilter` is configured but names neither `allow` nor `deny` — remove the key or fill the filter')
   }
   const toolName = config.toolName ?? 'subagent'
+  const selectionCapable = config.modelSelectionSettings === true
+  /**
+   * 解析调用方 Session 的路由选择策略（本仓分叉 B-β）：部署级单实例没有上游的
+   * per-Agent 发布点，故在首次委派时解析——读已录事件 → 缺席且子会话 → 继承
+   * 父会话事件 → 顶层新会话（firstLiveSeq 0）采样设置并记录一次。此后该会话
+   * 的决策锚定在日志里，设置变更只影响尚未记录的会话。设置服务缺席在首次
+   * 可解析点 fail loud。见阶段 4 浪级 Note。
+   */
+  const resolveSelectionPolicy = (parent: Agent): ModelSelectionPolicy | undefined => {
+    if (!selectionCapable) return undefined
+    let allowedModels = subagentModelSelectionPolicy(parent.session)
+    if (allowedModels === undefined) {
+      const parentId = parent.session.header.origin === 'subagent'
+        ? parent.session.header.parentSession
+        : undefined
+      if (parentId !== undefined) {
+        const parentAgent = ctx.get('agents')?.get(parentId)
+        allowedModels = parentAgent === undefined ? undefined : subagentModelSelectionPolicy(parentAgent.session)
+      } else if (parent.session.firstLiveSeq === 0) {
+        const settings = ctx.get('subagentModelSelection')
+        if (settings === undefined) {
+          throw new Error(
+            'tool-subagent: `modelSelectionSettings` requires the '
+            + '@huiliyi37/dsh-tool-subagent/model-selection-settings entry in the composition',
+          )
+        }
+        const current = settings.current()
+        allowedModels = current.enabled ? current.allowedModels : undefined
+      }
+    }
+    if (allowedModels !== undefined) recordSubagentModelSelection(parent.session, allowedModels)
+    return allowedModels === undefined ? undefined : { routes: allowedModels }
+  }
   const catalogDescriptionMaxLength = config.catalogDescriptionMaxLength ?? DEFAULT_CATALOG_DESCRIPTION_MAX_LENGTH
   assertPositiveInteger('catalogDescriptionMaxLength', catalogDescriptionMaxLength, 3)
   // Mirror provider lifecycle because sibling load order and HMR replacement
@@ -336,7 +388,17 @@ export function apply(ctx: Context, config: Config): void {
         `tool-subagent: provider "${provider.name}" cannot enforce runBudget (no runBudget capability)`,
       )
     }
+    if (config.agentOptions !== undefined && !provider.capabilities.agentOptions) {
+      throw new Error(
+        `tool-subagent: provider "${provider.name}" cannot honor agentOptions (no agentOptions capability) — `
+        + 'the configured child route would be silently ignored; remove agentOptions or switch providers',
+      )
+    }
     const wording = providerWording(provider.inheritsParentContext)
+    // 发现工具名是全局单例：只在此部署级实例启用选择时注册一次（policy 按调用方
+    // Session 解析，故传 resolver 而非静态策略——与上游 per-Agent 静态策略的差异，
+    // 见阶段 4 浪级 Note）。
+    if (selectionCapable) registerListSubagentModels(ctx, agent => resolveSelectionPolicy(agent))
     const backgroundEnabled = config.enableRunInBackground !== false
     const continuable = (config.backgroundMode ?? 'one-shot') === 'continuable'
     if (continuable && provider.prepareContinuable === undefined) {
@@ -372,6 +434,23 @@ export function apply(ctx: Context, config: Config): void {
           + 'catalog (<available_agents>). The role supplies the child\'s instructions, tool set, and sandbox. '
           + 'Omit for a general-purpose subagent.',
         },
+        ...selectionCapable ? {
+          provider: {
+            type: 'string' as const,
+            description: 'LLM provider route for the child. Supply together with model; omit both '
+            + 'to use configured child defaults or inherit the parent route.',
+          },
+          model: {
+            type: 'string' as const,
+            description: 'Model id interpreted by provider. Supply together with provider; omit both '
+            + 'to use configured child defaults or inherit the parent route.',
+          },
+          reasoning_effort: {
+            type: 'string' as const,
+            description: 'Adapter-owned reasoning effort for the effective child route. Omit to '
+            + 'inherit a compatible configured/parent effort or use a newly selected model\'s default.',
+          },
+        } : {},
         ...backgroundEnabled ? {
           run_in_background: {
             type: 'boolean' as const,
@@ -435,13 +514,44 @@ export function apply(ctx: Context, config: Config): void {
           role,
           ctx.get('modelRoles')?.resolve('subagent'),
         )
+        // 模型可见路由选择（回流上游弧）：合并 → Session 策略强制 → 活适配器预检。
+        // 父选项仅在确需路由解析时读取（上游 per-Agent 发布点恒有完整 session；
+        // 本仓直接调用/测试替身的 agent 可能只携带 id——惰性化等价且省一次头读取）。
+        const selectionPolicy = resolveSelectionPolicy(parent)
+        const modelRequest = args as DelegationModelRequest
+        let childAgentOptions = agentOptions
+        if (selectionPolicy !== undefined
+          || hasDelegationModelRequest(modelRequest)
+          || hasConfiguredLlmSelection(agentOptions)) {
+          const parentOptions = parentAgentOptionsForDelegation(parent)
+          const requiresRoutePreflight = hasDelegationModelRequest(modelRequest)
+            || hasConfiguredLlmSelection(agentOptions)
+          childAgentOptions = requestedAgentOptions(
+            parentOptions,
+            agentOptions,
+            modelRequest,
+            selectionPolicy !== undefined,
+          )
+          assertAllowedModelSelection(selectionPolicy, parentOptions, childAgentOptions, modelRequest)
+          if (requiresRoutePreflight) {
+            const llm = ctx.get('llm')
+            if (llm === undefined) {
+              throw new Error('cannot resolve the selected child LLM route because the `llm` service is unavailable')
+            }
+            await preflightChildLlmRoute(llm, parentOptions, childAgentOptions, exec.signal)
+            // 预检跨 await：确认同一 provider 仍在位，HMR 不能把一个 provider 的默认值配另一个进程。
+            if (ctx.subagents.getProvider(config.provider) !== provider) {
+              throw new Error(`subagent provider "${config.provider}" changed while resolving the child LLM route; retry the delegation`)
+            }
+          }
+        }
         const toolFilter = resolveRoleToolFilter(config.toolFilter, role)
         const persona = role?.content ?? config.persona
         const request = {
           label: args.description,
           prompt: [{ type: 'text', text: args.prompt }] as ContentBlock[],
           parent,
-          ...agentOptions !== undefined ? { agentOptions } : {},
+          ...childAgentOptions !== undefined ? { agentOptions: childAgentOptions } : {},
           ...persona !== undefined ? { persona } : {},
           ...toolFilter !== undefined ? { toolFilter } : {},
           ...role?.sandbox !== undefined ? { sandboxMode: role.sandbox } : {},
