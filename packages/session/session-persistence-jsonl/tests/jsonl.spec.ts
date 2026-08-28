@@ -831,13 +831,20 @@ describe('SessionPersistenceJsonl: scanLog unit', () => {
     expect(() => scanLog(Buffer.from(log))).toThrow(/seq gap in committed region/)
   })
 
-  it('rejects a corrupt line BEFORE a later committed turn/end (committed data damaged)', () => {
-    const log = [
-      JSON.stringify({ type: 'session', version: 0, id: 'c', createdAt: 1, delegationDepth: 0 }),
-      '{not json', // corrupt, sits in the committed region (a turn/end follows)
-      JSON.stringify({ type: 'turn/end', seq: 1, time: 2, data: { turn: 1, reason: { kind: 'completed' } } }),
-    ].join('\n') + '\n'
-    expect(() => scanLog(Buffer.from(log))).toThrow(/unparsable committed event/)
+  it('rejects malformed records before a later committed turn/end', () => {
+    const corruptRecords = [
+      '{not json',
+      'null',
+      JSON.stringify({ type: 'assistant/message', sourceEventSeqs: [0], data: {} }),
+    ]
+    for (const record of corruptRecords) {
+      const log = [
+        JSON.stringify({ type: 'session', version: 0, id: 'c', createdAt: 1, delegationDepth: 0 }),
+        record,
+        JSON.stringify({ type: 'turn/end', seq: 1, time: 2, data: { turn: 1, reason: { kind: 'completed' } } }),
+      ].join('\n') + '\n'
+      expect(() => scanLog(Buffer.from(log))).toThrow(/unparsable committed event/)
+    }
   })
 
   it('a header-only log (no event lines at all) preserves nothing — committedBytes is the header', () => {
@@ -1016,9 +1023,20 @@ describe('SessionPersistenceJsonl: default packed chunk rows', () => {
     expect(scanned.committedBytes).toBe(Buffer.byteLength(headerAndTurn, 'utf8'))
   })
 
-  it('eventLines(packChunks: false) is byte-identical to the pre-packing layout', () => {
+  it('eventLines(packChunks: false) keeps one event per line and round-trips provenance', () => {
     const log = chunkRunLog()
-    expect(eventLines(log, false)).toBe(log.map(e => JSON.stringify(e)).join('\n'))
+    const text = eventLines(log, false)
+    const lines = text.split('\n')
+    expect(lines).toHaveLength(log.length)
+    for (const line of lines) {
+      expect((JSON.parse(line) as { type: string }).type).not.toMatch(/-chunks$/)
+    }
+    // the message's consecutive provenance is stored as an inclusive range
+    const messageLine = lines.map(l => JSON.parse(l) as { type: string; sourceEventSeqs?: unknown })
+      .find(r => r.type === 'assistant/message')
+    expect(messageLine?.sourceEventSeqs).toEqual([[2, 6]])
+    const header = JSON.stringify(toHeaderLine(meta('packed', '/work'))) + '\n'
+    expect(scanLog(Buffer.from(header + text + '\n')).events).toEqual(log)
   })
 })
 
