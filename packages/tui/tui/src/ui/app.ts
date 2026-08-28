@@ -342,6 +342,7 @@ import { glanceBarSegments } from '../format/glance-bar.js'
 import { MemoryBrowserOverlay } from '../format/memory-overlay.js'
 import { TranscriptViewer } from '../format/transcript-viewer.js'
 import { settingsNamespace } from '@huiliyi37/dsh-settings'
+import { findRecommendedRoute, routeResolvesDirectory, subagentRoutingNudgeText, type RoutingDirectoryProvider } from '../subagent-routing-config.js'
 import { zenPhaseLabel } from '../preset-surface.js'
 import { formatCacheMissReason, isReportableMiss } from '../cache-telemetry.js'
 import type { CacheHealthWire } from '../cache-telemetry.js'
@@ -759,6 +760,8 @@ export class TuiApp {
   private controls: AgentControls | null = null
   /** 运行中提交的本地排队（turn/end 投递、↑ 取回；见 controllers/submit-queue，回流 dsh-tui 9d7f421）。 */
   private readonly submitQueue = new SubmitQueueController()
+  /** 委派树的路由 nudge 已出（每会话一次；见 subagent-routing-config）。 */
+  private subagentRoutingNudgeShown = false
   /** 工作流阶段/活动投影（Phase 5.1/6.2）；随会话挂载/卸载，dispose 时解绑订阅。 */
   private statusLine: WorkflowStatusLine | null = null
   /** 流式提交供给的 session/event 订阅；随会话挂载/卸载。 */
@@ -1073,6 +1076,15 @@ export class TuiApp {
         this.subagentsPanelVisible = !this.subagentsPanelVisible
         if (this.subagentsPanelVisible && this.ctx.reflect.get('subagents', false) === undefined) {
           this.echoWarn('⚠ subagents 服务不可用（未装配 subagent 插件），委派树面板无数据')
+        }
+        // 路由发现性 nudge（回流 opencode-tui 01313be6c，触发点适配为本仓的
+        // 委派树查看时刻）：选择关且无授权路由时每会话提示一次。
+        if (this.subagentsPanelVisible && !this.subagentRoutingNudgeShown) {
+          const selection = this.subagentModelSelectionSettings()?.current()
+          if (selection !== undefined && !selection.enabled && selection.allowedModels.length === 0) {
+            this.subagentRoutingNudgeShown = true
+            this.commitToScrollback({ text: subagentRoutingNudgeText(), trailingNewline: true })
+          }
         }
         this.renderBatcher.schedule()
       },
@@ -3430,6 +3442,9 @@ export class TuiApp {
       case 'edit-subagent-route-add':
         void this.addSubagentModelRoute()
         return
+      case 'edit-subagent-apply-recommendation':
+        void this.applyRecommendedSubagentRoute()
+        return
       case 'none':
         this.finishConfigReturn()
         return
@@ -3595,6 +3610,39 @@ export class TuiApp {
     )
   }
 
+  /** llm 活目录投影（provider × model id）；服务缺席或列举失败返回空。 */
+  private async routingDirectory(): Promise<RoutingDirectoryProvider[]> {
+    const llm = this.ctx.reflect.get('llm', false) as
+      | { listProviders(): Array<{ id: string }>; listModels(provider: string): Promise<Array<{ id: string }>> }
+      | undefined
+    if (llm === undefined) return []
+    const providers: RoutingDirectoryProvider[] = []
+    for (const provider of llm.listProviders()) {
+      const models = (await llm.listModels(provider.id).catch(() => [])).map(model => model.id)
+      providers.push({ id: provider.id, models })
+    }
+    return providers
+  }
+
+  /** 一键推荐（回流 opencode-tui 01313be6c）：flash > deepseek > 首个目录模型。 */
+  private async applyRecommendedSubagentRoute(): Promise<void> {
+    const selection = this.subagentModelSelectionSettings()
+    if (selection === undefined) {
+      this.finishConfigReturn()
+      return
+    }
+    const recommended = findRecommendedRoute(await this.routingDirectory())
+    if (recommended === null) {
+      this.echoWarn('⚠ llm 目录无可用模型——先配置 provider 再回来（/key）')
+      this.finishConfigReturn()
+      return
+    }
+    this.updateSubagentModelSelection(
+      { enabled: true, allowedModels: [recommended] },
+      `已启用子代理路由选择并推荐路由 ${recommended.provider}/${recommended.model}（新顶层会话生效；/config 可增删）`,
+    )
+  }
+
   /** 添加路由：provider picker → model picker（llm 活目录，与 /model 同源）。 */
   private async addSubagentModelRoute(): Promise<void> {
     const overlay = this.overlay
@@ -3704,22 +3752,43 @@ export class TuiApp {
     const subagentSelection = this.subagentModelSelectionSettings()
     if (subagentSelection !== undefined) {
       const selection = subagentSelection.current()
-      const routeFields: ConfigField[] = [{
+      const directory = await this.routingDirectory()
+      const routeFields: ConfigField[] = []
+      // 一键推荐（回流 opencode-tui 01313be6c）：未启用或尚无授权路由时置顶；
+      // 即写型面板没有草稿缓冲，已配置时不再覆盖式推荐。
+      if (!selection.enabled || selection.allowedModels.length === 0) {
+        const recommended = findRecommendedRoute(directory)
+        if (recommended !== null) {
+          routeFields.push({
+            key: 'subagent-apply-recommendation',
+            label: '一键推荐',
+            value: `${recommended.provider}/${recommended.model}`,
+            editable: true,
+            action: { kind: 'edit-subagent-apply-recommendation' },
+            hint: '启用选择并把该目录模型设为授权路由（flash 优先，其次 deepseek 系）',
+          })
+        }
+      }
+      routeFields.push({
         key: 'subagent-selection-toggle',
         label: '路由选择',
         value: selection.enabled ? `开（${selection.allowedModels.length} 条路由）` : '关',
         editable: true,
         action: { kind: 'edit-subagent-selection-toggle' },
         hint: '开启后新顶层会话可由模型经 list_subagent_models 选择子代理路由',
-      }]
+      })
       selection.allowedModels.forEach((route, index) => {
+        // 目录校验（advisory）：失效路由 ⚠ 显性化，不阻断已存授权（适配器仍可接受目录外 id）。
+        const broken = directory.length > 0 && !routeResolvesDirectory(route, directory)
+          ? ` ⚠ ${route.provider} 未注册或目录无此模型——该路由当前不可选`
+          : ''
         routeFields.push({
           key: `subagent-route:${route.provider}/${route.model}`,
           label: `路由 ${index + 1}`,
           value: `${route.provider}/${route.model}`,
           editable: true,
           action: { kind: 'edit-subagent-route-remove', index },
-          hint: 'Enter 移除该路由',
+          hint: `Enter 移除该路由${broken}`,
         })
       })
       routeFields.push({

@@ -140,6 +140,7 @@
 | src/statusline.ts | statusline.ts | modified（追加工作流投影层 + WorkflowStatusLine） |
 | src/stream-window.ts | stream-window.ts | ported |
 | src/summary-state.ts | summary-state.ts | modified |
+| src/subagent-routing-config.ts | — | new（子代理路由授权的推荐探测/目录校验/nudge 纯函数；回流自 opencode-tui 01313be6c 引导三件套，接缝适配本仓 llm 活目录） |
 | src/term-bell.ts | — | new（完成事件 BEL 通道：SSH 下唯一可达的完成提醒，VITEST/CI/SKIP 门闸 + prefs bellEnabled；回流自 dsh-tianshu-tui 704a833，prefs 门为本包语义适配——上游与 os-notify 共用 notifyOs，本包无 os-notify） |
 | src/term-caps.ts | term-caps.ts | modified |
 | src/theme-custom.ts | theme-custom.ts | modified（自定义主题根路径重指到本包 home） |

@@ -31,6 +31,7 @@ export type ConfigFieldAction =
   | { kind: 'edit-subagent-selection-toggle' }
   | { kind: 'edit-subagent-route-remove'; index: number }
   | { kind: 'edit-subagent-route-add' }
+  | { kind: 'edit-subagent-apply-recommendation' }
   | { kind: 'none' }
 
 /** 一个可展示/可编辑的配置字段。 */

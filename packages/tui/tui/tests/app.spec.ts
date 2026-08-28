@@ -10257,3 +10257,91 @@ describe('TuiApp /config 添加子代理路由（provider→model 两级 picker�
     await app.dispose()
   })
 })
+
+describe('TuiApp 子代理路由引导三件套（回流 opencode-tui 01313be6c，适配接缝）', () => {
+  function bootWithSelection(
+    enabled: boolean,
+    routes: Array<{ provider: string; model: string }>,
+    dirProviders: Record<string, string[]>,
+  ) {
+    const ctx = makeCtx()
+    const agent = makeAgent('route-cfg-1')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const update = vi.fn(async () => {})
+    ctx.get.mockImplementation((name: string) =>
+      name === 'subagentModelSelection'
+        ? { current: () => ({ enabled, allowedModels: routes.map(r => ({ ...r })) }) }
+        : undefined)
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'settings') {
+        return { update, describe: () => [] }
+      }
+      if (name === 'llm') {
+        return {
+          listProviders: () => Object.keys(dirProviders).map(id => ({ id })),
+          listModels: async (provider: string) =>
+            (dirProviders[provider] ?? []).map(id => ({ id })),
+          resolveModelInfo: async () => ({ supportsVision: undefined }),
+        }
+      }
+      return undefined
+    })
+    return { ctx, update }
+  }
+
+  it('未启用且无路由时类目置顶一键推荐行（flash 优先）；已配置时不出现', async () => {
+    const { ctx } = bootWithSelection(false, [], { 'fast-co': ['lite-flash'], 'big-co': ['pro'] })
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+    type PanelData = { categories: Array<{ key: string; fields: Array<{ key: string; value: string }> }> }
+    const data = await (app as unknown as { buildConfigPanelData(): Promise<PanelData> }).buildConfigPanelData()
+    const fields = data.categories.find(c => c.key === 'subagent-models')!.fields
+    expect(fields[0]!.key).toBe('subagent-apply-recommendation')
+    expect(fields[0]!.value).toBe('fast-co/lite-flash')
+    await app.dispose()
+
+    const { ctx: ctx2 } = bootWithSelection(true, [{ provider: 'big-co', model: 'pro' }], { 'big-co': ['pro'] })
+    const app2 = new TuiApp({ ctx: ctx2, stdout: makeStdout(), stdin: makeStdin() })
+    const data2 = await (app2 as unknown as { buildConfigPanelData(): Promise<PanelData> }).buildConfigPanelData()
+    const fields2 = data2.categories.find(c => c.key === 'subagent-models')!.fields
+    expect(fields2.some(f => f.key === 'subagent-apply-recommendation')).toBe(false)
+    await app2.dispose()
+  })
+
+  it('失效路由的 hint 追加 ⚠（目录在场才校验）；一键推荐经 settings 写入 enabled+路由', async () => {
+    const { ctx, update } = bootWithSelection(true, [{ provider: 'alpha', model: 'gone' }], { 'alpha': ['fast'] })
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+    type PanelData = { categories: Array<{ key: string; fields: Array<{ key: string; hint?: string }> }> }
+    const data = await (app as unknown as { buildConfigPanelData(): Promise<PanelData> }).buildConfigPanelData()
+    const routeRow = data.categories.find(c => c.key === 'subagent-models')!.fields
+      .find(f => f.key === 'subagent-route:alpha/gone')
+    expect(routeRow?.hint).toContain('⚠ alpha 未注册或目录无此模型')
+
+    const handlers = app as unknown as { applyRecommendedSubagentRoute(): Promise<void> }
+    await handlers.applyRecommendedSubagentRoute()
+    await new Promise(resolve => setImmediate(resolve))
+    expect(update).toHaveBeenCalledWith(expect.anything(), {
+      enabled: true,
+      allowedModels: [{ provider: 'alpha', model: 'fast' }],
+    })
+    await app.dispose()
+  })
+
+  it('/subagents 打开时若选择关且无路由，每会话提示一次 nudge', async () => {
+    const { ctx } = bootWithSelection(false, [], { 'alpha': ['fast'] })
+    const stdout = makeStdout()
+    const app = new TuiApp({ ctx, stdout, stdin: makeStdin() })
+    app.handleSubmit('/subagents')
+    await new Promise(resolve => setImmediate(resolve))
+    let written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('子代理当前跟随主模型')
+    stdout.write.mockClear()
+    app.handleSubmit('/subagents')
+    await new Promise(resolve => setImmediate(resolve))
+    app.handleSubmit('/subagents')
+    await new Promise(resolve => setImmediate(resolve))
+    written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).not.toContain('子代理当前跟随主模型')
+    await app.dispose()
+  })
+})
