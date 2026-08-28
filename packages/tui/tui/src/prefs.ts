@@ -24,6 +24,8 @@ export type FooterInfoLevel = (typeof FOOTER_INFO_LEVELS)[number]
 export interface TuiPrefs {
   /** 输入区信息密度（缺省 full）。 */
   footerInfo?: FooterInfoLevel
+  /** 完成事件终端 BEL 响铃（/bell 切换；缺省 true，见 term-bell.ts）。 */
+  bellEnabled?: boolean
 }
 
 export function defaultPrefsPath(): string {
@@ -49,6 +51,7 @@ export function parsePrefs(text: string): TuiPrefs {
   if (typeof obj.footerInfo === 'string' && (FOOTER_INFO_LEVELS as readonly string[]).includes(obj.footerInfo)) {
     prefs.footerInfo = obj.footerInfo as FooterInfoLevel
   }
+  if (typeof obj.bellEnabled === 'boolean') prefs.bellEnabled = obj.bellEnabled
   return prefs
 }
 
@@ -85,6 +88,8 @@ export function writePrefs(path: string, prefs: TuiPrefs): void {
     }
     if (prefs.footerInfo === undefined) delete base.footerInfo
     else base.footerInfo = prefs.footerInfo
+    if (prefs.bellEnabled === undefined) delete base.bellEnabled
+    else base.bellEnabled = prefs.bellEnabled
     mkdirSync(dirname(path), { recursive: true })
     const tmp = `${path}.${process.pid}.tmp`
     writeFileSync(tmp, `${JSON.stringify(base, null, 2)}\n`)

@@ -6361,6 +6361,38 @@ describe('TuiApp /config /skills /density 面板命令', () => {
       rmSync(prefsPath, { force: true })
     }
   })
+
+  it('/bell 切换响铃偏好：回显状态、落盘 prefs（缺省开 → 关 → 开）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('bell-1')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+    const prefsPath = join(tmpdir(), `dsh-tui-bell-${Date.now()}-${process.pid}.json`)
+    try {
+      const app = new TuiApp({ ctx, stdout, stdin: makeStdin(), prefsPath })
+      await app.attach()
+
+      // 缺省开 → 关：回显 + 落盘
+      stdout.write.mockClear()
+      app.handleSubmit('/bell')
+      await new Promise(resolve => setImmediate(resolve))
+      let written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('完成响铃：关')
+      expect(JSON.parse(readFileSync(prefsPath, 'utf-8'))).toEqual({ bellEnabled: false })
+
+      // 关 → 开：显式 true 落盘
+      stdout.write.mockClear()
+      app.handleSubmit('/bell')
+      await new Promise(resolve => setImmediate(resolve))
+      written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('完成响铃：开')
+      expect(JSON.parse(readFileSync(prefsPath, 'utf-8'))).toEqual({ bellEnabled: true })
+      await app.dispose()
+    } finally {
+      rmSync(prefsPath, { force: true })
+    }
+  })
 })
 
 describe('TuiApp 生命周期边界', () => {

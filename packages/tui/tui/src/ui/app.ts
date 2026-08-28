@@ -266,6 +266,7 @@ import {
   type ModelFacet,
 } from '../commands/registry.js'
 import { FOOTER_INFO_LEVELS, prefsEnabled, readPrefs, writePrefs, type TuiPrefs } from '../prefs.js'
+import { writeBell } from '../term-bell.js'
 import { renderTranscript, parseToolArguments, toolResultText, type RenderedRow } from './render.js'
 import { CommandPalette } from '../command-palette.js'
 import { OverlayController } from '../engine/overlay-controller.js'
@@ -1194,6 +1195,18 @@ export class TuiApp {
           this.refreshSkillItems()
         }
         this.renderBatcher.schedule()
+      },
+    })
+    // BEL 完成响铃开关（回流 dsh-tui 704a833）：子代理/工作流/后台任务完成时
+    // 写 BEL，SSH 会话下唯一可达的完成提示；持久化到 prefs bellEnabled。
+    // 注册在 /info /density 之前——菜单环绕末项契约测试锚定 /density。
+    this.slash.register({
+      name: 'bell',
+      description: '切换完成事件终端响铃（BEL，SSH 下同样可达）',
+      run: ({ echo }) => {
+        this.prefs.bellEnabled = this.prefs.bellEnabled === false
+        this.persistPrefs()
+        echo(this.prefs.bellEnabled === false ? '完成响铃：关' : '完成响铃：开')
       },
     })
     // /info 注册在 /density 前——菜单环绕末项契约测试锚定 /density。
@@ -3112,6 +3125,9 @@ export class TuiApp {
         }, this.theme),
         trailingNewline: true,
       })
+      // BEL 完成提醒（回流 dsh-tui 704a833）：SSH 下唯一可达的完成提示，
+      // 长时委派结束时穿透 pty 到本地终端响铃/闪屏。
+      writeBell(this.stdout, process.env, this.prefs)
       this.renderBatcher.schedule()
     })
     this.subagentDisposer = () => { onSubStart(); onSubEnd(); onRunStart(); onRunEnd() }
@@ -3177,6 +3193,7 @@ export class TuiApp {
           this.workflowRuns.delete(info.id)
           this.completedWorkflowRuns.set(info.id, view)
           this.commitWorkflowSummary(view)
+          writeBell(this.stdout, process.env, this.prefs)
           this.flushLiveRender()
         }
       }),
@@ -3193,6 +3210,7 @@ export class TuiApp {
       this.taskDoneDisposer = tasks.onTaskDone((snapshot) => {
         this.taskNotice = `✓ 任务完成: ${snapshot.label}`
         this.taskSnapshots = tasks.list()
+        writeBell(this.stdout, process.env, this.prefs)
         this.flushLiveRender()
       })
       this.taskSurfaceDisposer = tasks.attachSurface('tui')
