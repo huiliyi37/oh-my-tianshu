@@ -135,7 +135,8 @@ describe('PickerController', () => {
     expect(onPreview).toHaveBeenCalledWith(items[1])
     c.move(1)
     expect(onPreview).toHaveBeenLastCalledWith(items[2])
-    expect(onPreview).toHaveBeenCalledTimes(2)
+    // open 即触发一次初始预览 + 两次 move = 3（dde14eb54 回流后行为）。
+    expect(onPreview).toHaveBeenCalledTimes(3)
   })
 
   it('close 触发 onCancel（Esc/q 关闭路径；还原预览）', () => {
@@ -158,5 +159,49 @@ describe('PickerController', () => {
     c.commit()
     expect(onCommit).toHaveBeenCalledWith(items[1])
     expect(onCancel).not.toHaveBeenCalled()
+  })
+})
+
+describe('PickerController 同行步进（</> 调档位，回流 opencode-tui dde14eb54）', () => {
+  function boot() {
+    const c = new PickerController({ getTheme: fakeTheme })
+    return { c }
+  }
+
+  it('step 经 onStep 写回选中行 detail 并返回 true；null 静默返回 false', () => {
+    const { c } = boot()
+    let call = 0
+    c.open('t', [{ label: 'a', value: 'a' }, { label: 'b', value: 'b' }], () => {}, 1, {
+      onStep: (delta) => {
+        call += 1
+        return delta === 1 ? '档位 high' : null
+      },
+    })
+    expect(c.step(1)).toBe(true)
+    expect(c.selectedValue()).toBe('b')
+    // setDetail 由 step 内部写入：经渲染可见
+    const lines = c.render(40, 10).map(l => l.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''))
+    expect(lines.some(l => l.includes('档位 high'))).toBe(true)
+    expect(c.step(-1)).toBe(false)
+    expect(call).toBe(2)
+  })
+
+  it('无 onStep 的选择器 step 恒 false；setDetail 越界安全', () => {
+    const { c } = boot()
+    c.open('t', [{ label: 'a', value: 'a' }], () => {})
+    expect(c.step(1)).toBe(false)
+    expect(() => c.setDetail(9, 'x')).not.toThrow()
+  })
+
+  it('footer 在 onStep 存在时提示 </> 键位；open 即触发一次 onPreview', () => {
+    const { c } = boot()
+    const previews: string[] = []
+    c.open('t', [{ label: 'a', value: 'a' }], () => {}, 0, {
+      onPreview: (item) => { previews.push(item.value) },
+      onStep: () => 'x',
+    })
+    expect(previews).toEqual(['a'])
+    const lines = c.render(40, 10).map(l => l.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''))
+    expect(lines.some(l => l.includes('</> 调档位'))).toBe(true)
   })
 })

@@ -10345,3 +10345,87 @@ describe('TuiApp 子代理路由引导三件套（回流 opencode-tui 01313be6c�
     await app.dispose()
   })
 })
+
+describe('TuiApp /model 同行档位调节（回流 opencode-tui dde14eb54）', () => {
+  async function bootModelPicker(dirProviders: Record<string, string[]>, efforts: Record<string, string[]>) {
+    const ctx = makeCtx()
+    const agent = makeAgent('model-step-1')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const saveSelection = vi.fn(async () => {})
+    ctx.agentDefaultModel = {
+      currentSelection: () => ({ provider: 'alpha', model: 'a1', reasoningEffort: 'low' }),
+      saveSelection,
+    } as never
+    ctx.reflect.get.mockImplementation((name: string) => {
+      if (name === 'llm') {
+        return {
+          listProviders: () => Object.keys(dirProviders).map(id => ({ id })),
+          listModels: async (provider: string) => (dirProviders[provider] ?? []).map(id => ({ id })),
+          resolveModelInfo: async (provider: string, model: string) => ({
+            reasoning: { efforts: (efforts[`${provider}/${model}`] ?? []).map(id => ({ id })) },
+          }),
+        }
+      }
+      return undefined
+    })
+    const stdout = makeStdout()
+    const stdin = makeStdin()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    await app.attach()
+    return { ctx, app, stdin, stdout, saveSelection }
+  }
+
+  it('打开即解析当前行档位；</> 步进上屏；Enter 连同档位持久化；未步进不动档位', async () => {
+    const { app, stdin, stdout, saveSelection } = await bootModelPicker(
+      { alpha: ['a1'] },
+      { 'alpha/a1': ['low', 'high', 'max'] },
+    )
+    app.handleSubmit('/model')
+    // 等目录 + 初始 preview 的异步 efforts 解析
+    await new Promise(resolve => setTimeout(resolve, 40))
+    let written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('</> 调档位')
+    expect(written).toContain('档位 low')
+
+    // > 步进到 high，再 Enter
+    stdin.emit('data', '>')
+    await new Promise(resolve => setImmediate(resolve))
+    stdin.emit('data', '\r')
+    await new Promise(resolve => setTimeout(resolve, 30))
+    written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('模型已切换: alpha/a1 · 档位 high')
+    expect(saveSelection).toHaveBeenCalledWith({ provider: 'alpha', model: 'a1', reasoningEffort: 'high' })
+    await app.dispose()
+  })
+
+  it('无 efforts 目录的模型 </> 静默、Enter 只切模型（档位不写入）', async () => {
+    const { app, stdin, saveSelection } = await bootModelPicker({ alpha: ['a1'] }, {})
+    app.handleSubmit('/model')
+    await new Promise(resolve => setTimeout(resolve, 40))
+    stdin.emit('data', '>')
+    await new Promise(resolve => setImmediate(resolve))
+    stdin.emit('data', '\r')
+    await new Promise(resolve => setTimeout(resolve, 30))
+    expect(saveSelection).toHaveBeenCalledWith({ provider: 'alpha', model: 'a1' })
+    await app.dispose()
+  })
+
+  it('环形步进：从 max 再 > 回到 low', async () => {
+    const { app, stdin, stdout } = await bootModelPicker(
+      { alpha: ['a1'] },
+      { 'alpha/a1': ['low', 'high', 'max'] },
+    )
+    app.handleSubmit('/model')
+    await new Promise(resolve => setTimeout(resolve, 40))
+    for (let i = 0; i < 3; i += 1) {
+      stdin.emit('data', '>')
+      await new Promise(resolve => setImmediate(resolve))
+    }
+    stdin.emit('data', '\r')
+    await new Promise(resolve => setTimeout(resolve, 30))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('档位 low')
+    await app.dispose()
+  })
+})

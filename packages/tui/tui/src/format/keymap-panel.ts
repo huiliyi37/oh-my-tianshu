@@ -23,7 +23,8 @@ export interface KeymapEntry {
  *  与 README 快捷键表同源维护；审批卡的 y/N/a/Ctrl+C 为上下文键位，
  *  由审批卡自带提示承担，不在此列。 */
 export const KEYMAP_ENTRIES: KeymapEntry[] = [
-  { keys: 'Enter', action: '发送' },
+  { keys: 'Enter', action: '发送（选择器内确认）' },
+  { keys: '</>', action: '模型选择器内步进档位' },
   { keys: 'Shift+Enter', action: '切换换行模式' },
   { keys: 'Ctrl+N', action: '新会话' },
   { keys: 'Ctrl+S', action: '恢复最近会话' },

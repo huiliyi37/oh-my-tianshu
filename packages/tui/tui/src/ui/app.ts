@@ -2375,23 +2375,87 @@ export class TuiApp {
       this.echoWarn('⚠ 无可用模型（llm 目录为空），模型选择器不可用')
       return
     }
+    // 同行档位调节（回流 opencode-tui dde14eb54，适配本仓异步 efforts 目录）：
+    // 选中行的档位经 resolveModelInfo 惰性解析（按 routeKey 缓存），`</>` 环形
+    // 步进写回行内 detail；Enter 时步进过的档位随模型一次持久化（未步进则
+    // 保持既有语义——只切模型不动档位）。
+    const llmInfo = this.ctx.reflect.get('llm', false) as
+      | {
+        resolveModelInfo(provider: string, model: string): Promise<
+          { reasoning?: { efforts: Array<{ id: string }> } } | Record<string, never>
+        >
+      }
+      | undefined
+    const effortCache = new Map<string, string[]>()
+    const stepped = new Map<string, string>()
+    const currentEffort = current?.reasoningEffort
+    const shownEffort = (routeKey: string): string | null => {
+      const efforts = effortCache.get(routeKey)
+      if (efforts === undefined || efforts.length === 0) return null
+      return stepped.get(routeKey) ?? efforts.find(id => id === currentEffort) ?? efforts[0] ?? null
+    }
+    const applyDetail = (routeKey: string): void => {
+      const shown = shownEffort(routeKey)
+      const idx = items.findIndex(candidate => candidate.value === routeKey)
+      picker.setDetail(idx, shown === null ? undefined : `档位 ${shown}`)
+      overlay.rerender()
+    }
     picker.open('选择模型', items, (item) => {
       const selection = parseRouteKey(item.value)
       if (selection === undefined) return
-      this.switchLiveModel(selection)
-      void this.ctx.agentDefaultModel.saveSelection(selection)
-      this.commitToScrollback({ text: `模型已切换: ${selection.provider}/${selection.model}`, trailingNewline: true })
-    }, selectedIndex)
+      const effort = stepped.get(item.value)
+      const withEffort = effort === undefined
+        ? selection
+        : {
+          provider: selection.provider,
+          model: selection.model,
+          reasoningEffort: effort as Exclude<ModelSelection['reasoningEffort'], undefined>,
+        }
+      this.switchLiveModel(withEffort)
+      void this.ctx.agentDefaultModel.saveSelection(withEffort)
+      this.commitToScrollback({
+        text: effort === undefined
+          ? `模型已切换: ${selection.provider}/${selection.model}`
+          : `模型已切换: ${selection.provider}/${selection.model} · 档位 ${effort}`,
+        trailingNewline: true,
+      })
+    }, selectedIndex, {
+      onPreview: (item) => {
+        if (llmInfo === undefined) return
+        const routeKey = item.value
+        if (effortCache.has(routeKey)) {
+          if (picker.selectedValue() === routeKey) applyDetail(routeKey)
+          return
+        }
+        const selection = parseRouteKey(routeKey)
+        if (selection === undefined) return
+        void llmInfo.resolveModelInfo(selection.provider, selection.model)
+          .then((info) => {
+            const efforts = (info as { reasoning?: { efforts: Array<{ id: string }> } }).reasoning?.efforts.map(e => e.id) ?? []
+            effortCache.set(routeKey, efforts)
+            // 异步返回时选中行可能已移走：仅当仍选中该行才上屏。
+            if (picker.selectedValue() === routeKey) applyDetail(routeKey)
+          })
+          .catch(() => {
+            effortCache.set(routeKey, [])
+          })
+      },
+      onStep: (delta) => {
+        const routeKey = picker.selectedValue()
+        if (routeKey === null) return null
+        const efforts = effortCache.get(routeKey)
+        if (efforts === undefined || efforts.length === 0) return null
+        const shown = shownEffort(routeKey)
+        const idx = shown === null ? 0 : efforts.indexOf(shown)
+        const next = efforts[(idx + delta + efforts.length) % efforts.length]
+        if (next === undefined) return null
+        stepped.set(routeKey, next)
+        return `档位 ${next}`
+      },
+    })
     overlay.activate('picker')
   }
 
-  /**
-   * /model vision|secondary|subagent：打开角色模型选择器。条目构建与回显文案在
-   * model-roles.ts 纯函数层；此处只做服务现取与接线。首行「跟随默认（清除 pin）」
-   * 选中即 unpin（目录为空时仍可达，故不做主模型选择器的空目录拒绝）；确认后
-   * pin/unpin 经 modelRoles 服务写 settings 用户层（热生效，无需重启）。
-   * @param role - 目标角色（命令层已解析为保留字）。
-   */
   private async openRoleModelPicker(role: ModelRole): Promise<void> {
     const overlay = this.overlay
     const picker = this.picker
@@ -2437,7 +2501,6 @@ export class TuiApp {
     }, selectedIndex)
     overlay.activate('picker')
   }
-
   /**
    * /key：供应商密钥配置向导。llm 配置目录可用时先开供应商 picker（默认
    * 供应商 ● 置首、已配置 ✓ 后缀），选中后链到参数化的 key 对话框（掩码
@@ -4694,6 +4757,9 @@ export class TuiApp {
       } else if (key.name === 'pagedown') {
         picker.move(10)
         this.overlay.rerender()
+      } else if (key.char === '<' || key.char === '>') {
+        // 同行档位步进（回流 opencode-tui dde14eb54）：仅带 onStep 的选择器响应。
+        if (picker.step(key.char === '>' ? 1 : -1)) this.overlay.rerender()
       } else if (key.name === 'return') {
         picker.commit()
         this.overlay.deactivate()
