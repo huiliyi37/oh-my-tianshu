@@ -267,6 +267,7 @@ import {
 } from '../commands/registry.js'
 import { FOOTER_INFO_LEVELS, prefsEnabled, readPrefs, writePrefs, type TuiPrefs } from '../prefs.js'
 import { writeBell } from '../term-bell.js'
+import { formatQueueLine, SubmitQueueController } from '../controllers/submit-queue.js'
 import { renderTranscript, parseToolArguments, toolResultText, type RenderedRow } from './render.js'
 import { CommandPalette } from '../command-palette.js'
 import { OverlayController } from '../engine/overlay-controller.js'
@@ -755,6 +756,8 @@ export class TuiApp {
   private transcript: Transcript | null = null
   private liveAgent: LiveAgent | null = null
   private controls: AgentControls | null = null
+  /** 运行中提交的本地排队（turn/end 投递、↑ 取回；见 controllers/submit-queue，回流 dsh-tui 9d7f421）。 */
+  private readonly submitQueue = new SubmitQueueController()
   /** 工作流阶段/活动投影（Phase 5.1/6.2）；随会话挂载/卸载，dispose 时解绑订阅。 */
   private statusLine: WorkflowStatusLine | null = null
   /** 流式提交供给的 session/event 订阅；随会话挂载/卸载。 */
@@ -2846,6 +2849,13 @@ export class TuiApp {
   async switchSession(id: SessionId): Promise<void> {
     // 1.1：任何会话切换都结束欢迎阶段（数字键列表只在冷启动首屏有效）。
     this.welcomeDigitsActive = false
+    // 切会话清空运行中排队：待发消息属于原会话上下文，不跨会话投递；丢弃前
+    // 在旧会话视图回显条数（此时尚未 detach，transcript 仍是旧的）。
+    // 回流 dsh-tui 9d7f421。
+    if (this.submitQueue.size() > 0) {
+      this.commitToScrollback({ text: `⚠ 切换会话：丢弃 ${this.submitQueue.size()} 条未发送的排队消息`, trailingNewline: true })
+    }
+    this.submitQueue.clear()
     // 代际号：快速连续切换时旧代作废——resume 是异步的，迟到完成的旧代
     // 不得再提交/挂载（乱序完成会把旧目标挂到新 active 上）。
     const epoch = ++this.switchEpoch
@@ -3764,6 +3774,14 @@ export class TuiApp {
     this.historyStore.record(trimmed)
     this.history = this.historyStore.snapshot()
     this.inputLine.setHistory(this.history)
+    // 运行中排队（对标 CC，回流 dsh-tui 9d7f421）：本地队列让 ↑ 取回不惊动宿主
+    // （取舍见 submit-queue 模块头）；turn/end 按序投递。图片随队列入暂存。
+    if (this.liveAgent?.state.status === 'running') {
+      this.submitQueue.push(expanded, images)
+      this.inputLine.clearImages()
+      this.flushLiveRender()
+      return
+    }
     // 用户气泡：正文 + 📎 附件行 + 识图能力提示；有图且终端支持图形协议时
     // 异步 prepare 后在同一写窗口追加终端图片（见 commitUserPrompt 时序说明）。
     this.commitUserPrompt(expanded, images)
@@ -3777,6 +3795,21 @@ export class TuiApp {
     // 图片不可达时不发送（气泡已警告「图片未发送」）；可达时直发或经视觉桥转描述。
     this.controls?.followup(expanded, imagesReachable ? images : undefined)
     this.flushLiveRender()
+  }
+
+  /**
+   * turn/end → 本地队列按序投递（气泡 → followup），回流 dsh-tui 9d7f421。
+   * aborted 不 flush——打断后用户可能想 ↑ 取回队首改投；与「中断不清队」一致。
+   * 本包 followup 是同步 inbox 入队（void），无上游 Promise 拒绝的失败回显路径。
+   */
+  private flushSubmitQueue(reason: 'completed' | 'aborted'): void {
+    if (reason === 'aborted') return
+    const items = this.submitQueue.drain()
+    for (const item of items) {
+      this.commitUserPrompt(item.text, item.images)
+      this.controls?.followup(item.text, item.images)
+    }
+    if (items.length > 0) this.flushLiveRender()
   }
 
   /**
@@ -4720,6 +4753,13 @@ export class TuiApp {
       return
     }
     if (key.name === 'up' || key.name === 'down') {
+      // 排队取回（对标 CC，回流 dsh-tui 9d7f421）：空输入 ↑ 取回队首回输入行。
+      if (key.name === 'up' && this.inputLine.value === '' && this.submitQueue.size() > 0) {
+        const first = this.submitQueue.takeFirst()
+        if (first !== undefined) this.inputLine.setValue(first.text, first.text.length)
+        this.flushLiveRender()
+        return
+      }
       // 交给 InputLine 的历史导航（InputLineEvent 'history' 不消费即已处理）
       this.inputLine.handleKey(key.name, key.char, key.ctrl, key.meta, key.shift, key.inline === true)
       this.flushLiveRender()
@@ -4911,6 +4951,9 @@ export class TuiApp {
       case 'turn/end': {
         // Phase 9d：turn 边界复位流利度信号
         this.fluency.onTurnComplete()
+        // 运行中排队 → turn 边界按序投递（中止轮不 flush，见 flushSubmitQueue；
+        // 回流 dsh-tui 9d7f421）。
+        this.flushSubmitQueue(event.data.reason.kind === 'aborted' ? 'aborted' : 'completed')
         // A3：回合边界刷新 git 未提交计数（footer ●N；不逐帧 spawn）。
         this.gitDirty = gitDirtyCount()
         // A5：回合结束复位工具卡展开态（工具已结算，展开无意义）。
@@ -5478,6 +5521,10 @@ export class TuiApp {
     }
     for (const summary of this.inputLine.imageSummary(cols)) {
       lines.push({ text: color(summary, theme.muted) })
+    }
+    // 运行中排队行（对标 CC：待发消息显示在输入上方；↑ 取回队首）。
+    if (this.submitQueue.size() > 0) {
+      lines.push({ text: formatQueueLine(cols, this.submitQueue.peekAll()) })
     }
     // 阶段 2：slash 菜单选中命令 → 输入行 ghost 预览（补全剩余/参数占位）。
     this.inputLine.setGhost(this.slashGhostText())

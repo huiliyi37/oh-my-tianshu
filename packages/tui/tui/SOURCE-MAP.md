@@ -38,6 +38,7 @@
 | src/controllers/btw-controller.ts | — | new |
 | src/controllers/question-controller.ts | — | new |
 | src/controllers/session-manager.ts | — | new |
+| src/controllers/submit-queue.ts | — | new（运行中提交的本地排队：turn/end 按序投递、↑ 取回队首、切会话丢弃；对标 CC queue，回流自 dsh-tianshu-tui 9d7f421） |
 | src/controllers/welcome-intro-controller.ts | — | new（欢迎开场一次性生命周期：冻结启动快照、按 monotonic 时间采样生成帧、幂等 settle/cancel） |
 | src/delegation-panel.ts | — | new |
 | src/engine/ansi.ts | engine/ansi.ts | modified（新增 DECSCUSR 光标形状常量：稳态竖条 + 默认恢复，overlay 输入光标用） |
