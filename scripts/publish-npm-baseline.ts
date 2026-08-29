@@ -577,6 +577,11 @@ class BaselinePackager {
       this.runner.run('pnpm', ['install', '--frozen-lockfile'], worktree.path)
       this.runner.run('pnpm', ['run', 'constraints'], worktree.path)
       packageSet.stage(worktree.path, plan.version)
+      // pnpm 11 re-verifies lockfile freshness before run-scripts: the staged
+      // exact-version internal deps are intentionally ahead of the workspace:*
+      // lockfile, so re-sync the throwaway worktree lockfile after staging
+      // (never the repository's own lockfile).
+      this.runner.run('pnpm', ['install', '--no-frozen-lockfile'], worktree.path)
       mkdirSync(artifactDirectory, { recursive: true })
       createdArtifactDirectory = true
 
