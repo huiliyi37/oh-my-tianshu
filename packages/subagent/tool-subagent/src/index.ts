@@ -395,10 +395,6 @@ export function apply(ctx: Context, config: Config): void {
       )
     }
     const wording = providerWording(provider.inheritsParentContext)
-    // 发现工具名是全局单例：只在此部署级实例启用选择时注册一次（policy 按调用方
-    // Session 解析，故传 resolver 而非静态策略——与上游 per-Agent 静态策略的差异，
-    // 见阶段 4 浪级 Note）。
-    if (selectionCapable) registerListSubagentModels(ctx, agent => resolveSelectionPolicy(agent))
     const backgroundEnabled = config.enableRunInBackground !== false
     const continuable = (config.backgroundMode ?? 'one-shot') === 'continuable'
     if (continuable && provider.prepareContinuable === undefined) {
@@ -620,6 +616,25 @@ export function apply(ctx: Context, config: Config): void {
     /* v8 ignore next 3 -- register() publishes synchronously or throws; this guards future registry drift. */
     if (activeTool === undefined) {
       throw new Error('dsh-tool-subagent: registered subagent tool is not visible in the calling scope')
+    }
+  }
+
+  // The discovery tool depends only on the live LLM directory and the calling
+  // Session's policy, never on the subagent provider, so it registers once with
+  // this fiber instead of following provider availability: a provider
+  // disappear/reappear cycle neither orphans nor re-registers it (re-inserting
+  // the global-singleton name inside `mount()` would throw on re-add). The
+  // resolver is per-calling-Session, so multiple selection-capable instances
+  // are interchangeable — a concurrent sibling's registration is shared.
+  if (selectionCapable) {
+    try {
+      registerListSubagentModels(ctx, agent => resolveSelectionPolicy(agent))
+    } catch (error) {
+      // Loader starts siblings concurrently: another selection-capable
+      // instance may have registered the same name between our check and
+      // insert. Its resolver is equivalent (policy is resolved per calling
+      // Session), so sharing its tool is correct; anything else rethrows.
+      if (ctx.tools.get('list_subagent_models', scopeOf(ctx)) === undefined) throw error
     }
   }
 

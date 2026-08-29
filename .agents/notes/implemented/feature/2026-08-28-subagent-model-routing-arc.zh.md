@@ -20,6 +20,8 @@ Scope: `packages/subagent/subagent`、`packages/subagent/tool-subagent`，及全
 
 **预检关闭竞态。** 异步 `resolveCallConfig` 之后，工具复核同一 provider 实例仍在注册表，HMR 交换不能把一个 provider 的默认值配到另一个 provider 的进程上。父选项读取是惰性的——裸调用 agent（直接调用、测试替身）不触碰请求头路径。
 
+**发现工具的注册跟随 fiber，而非 provider 可用性。** `list_subagent_models` 只读 llm 活目录与调用方会话的策略，因此在 `apply()` 中随 fiber 注册一次——绝不放在 `mount()` 内，否则 provider 消失/再现循环会重插全局单例名并抛 `tool "list_subagent_models" is already registered`，委派工具自此无法重新挂载。多个启用选择的实例共享同一份注册：resolver 按调用方会话解析、与实例无关，并发兄弟的工具可互换——注册 catch 在确认同作用域已有该工具后跳过，其余错误照常重抛。
+
 未移植：上游的 `tool:subagent` 提示词指引段（本仓委派工具从未注册过；采纳它是独立的模型可见变更）、钉住上游 per-Agent 定义稳定性的 invariant 机制（本仓单实例只有一份静态定义）、以及 Web 管理卡片（后续浪）。
 
 ## 已考虑的替代方案
@@ -36,6 +38,10 @@ Scope: `packages/subagent/subagent`、`packages/subagent/tool-subagent`，及全
 
 不实现协议传输就广告 `true`，等于声称一次从未发生的路由选择。上游的 SDK 路由是自成一体的后续项。
 
+### 为什么不把发现工具注册在 `mount()` 里？
+
+最初的接线在 `mount()` 内注册 `list_subagent_models` 且未保存 disposer。provider 消失→再现循环（HMR、重连）会重跑 `mount()` 并重插全局单例名，从 `subagent/provider-added` 监听器抛出 `tool "list_subagent_models" is already registered`，委派工具自此无法挂载且没有恢复路径；两个启用选择的实例在加载时撞同一冲突。修复改为在 `apply()` 中随 fiber 注册一次，碰撞时共享兄弟实例的注册而非 fail loud：两侧 resolver 等价（策略按调用方会话解析），拒绝第二个实例只会阻碍一份完全相同且正确的行为。
+
 ## 后果
 
-买到：带持久 per-Session 授权的模型可见子路由选择、前缀稳定的发现工具、所有 provider 上的能力诚实，以及本仓此前静默忽略配置处的 fail-loud。授权矩阵在工具/服务层已经完整，且 TUI 管理面随本弧落地：`/config` 的「子代理模型」类目（装配设置入口时出现）切换开关、原位移除授权路由、并经 provider/model 两级 picker 从 llm 活目录添加路由——全部走 settings 文档的修订 fence 写入。留给后续浪的是 Web 管理卡片与 DSH SDK 传输。
+买到：带持久 per-Session 授权的模型可见子路由选择、前缀稳定的发现工具、所有 provider 上的能力诚实，以及本仓此前静默忽略配置处的 fail-loud。授权矩阵在工具/服务层已经完整，且 TUI 管理面随本弧落地：`/config` 的「子代理模型」类目（装配设置入口时出现）切换开关、原位移除授权路由、并经 provider/model 两级 picker 从 llm 活目录添加路由——全部走 settings 文档的修订 fence 写入。发现工具现在能扛过 provider 消失/再现循环（注册跟随 fiber，启用选择的兄弟实例共享同一份等价工具）；回归测试覆盖 re-add 循环与双实例共享。留给后续浪的是 Web 管理卡片与 DSH SDK 传输。
