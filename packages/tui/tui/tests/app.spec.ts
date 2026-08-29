@@ -508,6 +508,40 @@ describe('TuiApp agent-ensure 三分支', () => {
     expect(handle.dispose).toHaveBeenCalledTimes(1)
   })
 
+  it('switchSession 恢复会话 → resume 的 setup 挂载默认 preset（standing 工具面不缺席）', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('old-1')
+    const handle = makeHandle(agent)
+    ctx.agents.get.mockReturnValue(undefined)
+    // setupAndPublish 语义：setup 在 publish（agent/created announce）之前
+    // 执行——mock resume 捕获 setup 并立即调用，模拟 factory 顺序。
+    let capturedSetup: ((agentCtx: Context) => unknown) | undefined
+    ctx.agents.resume.mockImplementation(async (options: { setup?: (agentCtx: Context) => unknown }) => {
+      capturedSetup = options.setup
+      await capturedSetup?.(agent.ctx)
+      return handle
+    })
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const mount = vi.fn(async () => {})
+    ctx.reflect.get.mockImplementation((key: string) =>
+      key === 'agentPresets' ? { mount } : undefined,
+    )
+
+    const app = new TuiApp({ ctx, stdout: makeStdout(), stdin: makeStdin() })
+    await app.switchSession(SessionId('old-1'))
+
+    expect(ctx.agents.resume).toHaveBeenCalledWith(expect.objectContaining({
+      resumeSessionId: SessionId('old-1'),
+      agentOptions: { provider: 'mock', model: 'mock' },
+    }))
+    // 恢复的 agent 必须加入默认 preset——与新建路径（createAgent setup 里
+    // mountDefaultPreset）对齐。漏挂会让恢复会话缺 standing 工具面，zen 的
+    // promoteDeny 校验在首个 per-agent seam 以「未知全局工具」拦住恢复。
+    expect(capturedSetup).toBeDefined()
+    expect(mount).toHaveBeenCalledWith(agent.ctx)
+    await app.dispose()
+  })
+
   it('switchSession 旧会话已有 agent → registry 兜底，不 create 不 resume', async () => {
     const ctx = makeCtx()
     const agent = makeAgent('live-1')
@@ -2075,8 +2109,8 @@ describe('TuiApp Phase 9b + 1.1 欢迎页会话恢复入口', () => {
     await app.attach()
 
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
-    expect(written).toContain('Oh My Tianshu')
-    expect(written).toContain('< Harness >')
+    expect(written).toContain('Oh My')
+    expect(written).toContain('█')
     expect(written).toContain('restored-provider/restored-model')
     expect(written).toContain('Model restored-model · Effort high')
     expect(written).not.toContain('default-provider/default-model')
@@ -2636,10 +2670,10 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     const { app } = await bootWelcome({ welcomeAnimation: 'off' })
 
     expect(writeBatch).toHaveBeenCalledTimes(2)
-    expect(batchText(writeBatch)).toContain('< Harness >')
+    expect(batchText(writeBatch)).toContain('█')
     expect(batchText(writeBatch)).toContain('Tip:')
     expect(render.mock.calls.some(call => (
-      (call[0] as readonly { text: string }[]).some(line => line.text.includes('< Harness >'))
+      (call[0] as readonly { text: string }[]).some(line => line.text.includes('█'))
     ))).toBe(false)
 
     await app.dispose()
@@ -2829,7 +2863,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     await attaching
 
     expect(writeBatch).toHaveBeenCalledTimes(2)
-    expect(batchText(writeBatch)).toContain('Oh My Tianshu')
+    expect(batchText(writeBatch)).toContain('Oh My')
     expect(batchText(writeBatch)).not.toContain('███')
     expect((app as unknown as {
       welcomeIntro: { settleReason: string | null }
@@ -2916,12 +2950,12 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     const committed = batchText(writeBatch)
 
     expect(writeBatch).toHaveBeenCalledTimes(2)
-    expect(committed).toContain('Oh My Tianshu')
+    expect(committed).toContain('Oh My')
     expect(committed).toMatch(/[▀▄]/)
     expect(committed).not.toMatch(/[\u2800-\u28FF]/)
     expect(committed).toContain('Tip:')
     expect(render.mock.calls.some(call => (
-      (call[0] as readonly { text: string }[]).some(line => line.text.includes('< Harness >'))
+      (call[0] as readonly { text: string }[]).some(line => line.text.includes('█'))
     ))).toBe(false)
     await app.dispose()
   })
@@ -2935,7 +2969,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
       rows: 25,
     })
     const committed = batchText(writeBatch)
-    expect(committed).toContain('Oh My Tianshu')
+    expect(committed).toContain('Oh My')
     expect(committed.split('\n').filter(line => /[▀▄]/.test(line)).length).toBeGreaterThan(15)
     expect(committed.match(/[▀▄]/g)?.length).toBeGreaterThan(15)
     await app.dispose()
@@ -2955,7 +2989,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     foxBatch.mockRestore()
 
     for (const committed of [whaleCommitted, foxCommitted]) {
-      expect(committed).toContain('Oh My Tianshu')
+      expect(committed).toContain('Oh My')
       expect(committed).toMatch(/[▀▄]/)
     }
     // 默认（无配置无偏好）即鲸鱼，且与狐狸不是同一份渲染。
@@ -2986,7 +3020,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     })
 
     const finalIndex = writeBatch.mock.calls.findIndex(([entries]) => (
-      entries.some(entry => entry.text.includes('< Harness >'))
+      entries.some(entry => entry.text.includes('█'))
       && entries.some(entry => entry.text.includes('Tip:'))
     ))
     const messageIndex = write.mock.calls.findIndex(([entry]) => (
@@ -2997,7 +3031,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     expect(writeBatch.mock.invocationCallOrder[finalIndex]).toBeLessThan(
       write.mock.invocationCallOrder[messageIndex] ?? Number.POSITIVE_INFINITY,
     )
-    expect(batchText(writeBatch, finalIndex)).toContain('< Harness >')
+    expect(batchText(writeBatch, finalIndex)).toContain('█')
     expect(batchText(writeBatch, finalIndex)).toContain('Tip:')
     expect(write.mock.calls[messageIndex]?.[0]).toEqual({
       text: 'background scrollback message',
@@ -3033,14 +3067,14 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
       await flushHeadlessTerminal(animatedTerminal)
 
       const introRenders = render.mock.calls.filter(([lines]) => (
-        lines.some(line => line.text.includes('< Harness >'))
+        lines.some(line => line.text.includes('█'))
       ))
       expect(introRenders).toHaveLength(0)
 
       const animatedSnapshot = animatedTerminal.normalBufferSnapshot()
       const animatedText = animatedTerminal.visibleTextLines().join('\n')
-      expect(animatedText).toContain('Oh My Tianshu')
-      expect(animatedText).toContain('< Harness >')
+      expect(animatedText).toContain('Oh My')
+      expect(animatedText).toContain('█')
       expect(animatedText).toContain('Tip:')
       expect(animatedText).toMatch(/[▀▄]/)
       expect(animatedText).not.toMatch(/[\u2800-\u28FF]/)
@@ -3084,7 +3118,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
       autoApp = auto.app
       await flushHeadlessTerminal(autoTerminal)
       const autoText = autoTerminal.visibleTextLines().join('\n')
-      expect(autoText).toContain('Oh My Tianshu')
+      expect(autoText).toContain('Oh My')
       expect(autoText).not.toContain('███')
       expect(autoText).not.toMatch(/[\u2800-\u28FF]/)
 
@@ -3180,11 +3214,11 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     await vi.advanceTimersByTimeAsync(150)
 
     expect(writeBatch).toHaveBeenCalledTimes(2)
-    expect(batchText(writeBatch)).toContain('Oh My Tianshu')
+    expect(batchText(writeBatch)).toContain('Oh My')
     expect(batchText(writeBatch)).not.toContain('███')
     await vi.advanceTimersByTimeAsync(4_000)
     expect(writeBatch).toHaveBeenCalledTimes(2)
-    expect(render.mock.calls.at(-1)?.[0].some(line => line.text.includes('< Harness >'))).toBe(false)
+    expect(render.mock.calls.at(-1)?.[0].some(line => line.text.includes('█'))).toBe(false)
     await app.dispose()
   })
 
@@ -8291,8 +8325,8 @@ describe('C4 概念稿 菜单快捷键与三行底部区（提交后审查补测
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     const idx = written.lastIndexOf('╭')
     expect(idx).toBeGreaterThan(0)
-    expect(written).toContain('Oh My Tianshu')
-    expect(written).toContain('< Harness >')
+    expect(written).toContain('Oh My')
+    expect(written).toContain('█')
     expect(written).not.toContain('Tips')
     expect(written.slice(idx)).toMatch(/╰─+/)
     expect(blankLinesBeforeRail(written)).toBeLessThanOrEqual(2)

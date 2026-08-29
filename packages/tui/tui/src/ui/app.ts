@@ -2303,7 +2303,14 @@ export class TuiApp {
     return facet?.defaultId
   }
 
-  /** Join a freshly-created agent to the default preset; no-op without a roster. */
+  /**
+   * Join a freshly-created or resumed agent to the deployment default preset;
+   * no-op without a roster. Resume mounts the default because the durable
+   * header does not carry `agentPreset` (persisted session rows lack the
+   * field) — a restored session must still land on a preset, or its standing
+   * tool face is missing and zen's promoteDeny check fails the first seam.
+   * @param agentCtx - the agent's scoped context.
+   */
   private async mountDefaultPreset(agentCtx: Context): Promise<void> {
     const facet = this.ctx.reflect.get('agentPresets', false) as
       | { mount?(ctx: Context, id?: string): Promise<unknown> }
@@ -2998,11 +3005,17 @@ export class TuiApp {
     if (rows.some(s => s.id === id && s.corrupt)) {
       throw new Error(`会话工件损坏，不可恢复: ${id}`)
     }
+    // 恢复的 agent 与新建一样必须加入默认 preset：standing scope 的工具面
+    // （bash 栈、fs 工具）只随 preset 挂载。漏挂会让恢复会话的注册表只剩
+    // 全局层，zen 的 promoteDeny 校验在首个 per-agent seam 以「未知全局工
+    // 具」拦住整个会话（配置名都在，注册表缺层）。持久化 header 不携带
+    // agentPreset，挂默认即与新建路径对齐。
     return this.ctx.agents.resume({
       resumeSessionId: id,
       agentOptions: callConfigFrom(selection),
-      setup: (agentCtx) => {
+      setup: async (agentCtx) => {
         this.bindModelSelection(agentCtx, ref)
+        await this.mountDefaultPreset(agentCtx)
       },
     })
   }
