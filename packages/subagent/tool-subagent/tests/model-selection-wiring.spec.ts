@@ -268,4 +268,36 @@ describe('策略解析（resume 顶层与父不可达采样）', () => {
     expect(result.isError).toBe(false)
     if (!result.isError) expect(result.value).toEqual({ output: 'beta — Beta' })
   })
+
+  it('每次解析只扫一次本会话事件日志；重复解析不重复落盘', async () => {
+    const ctx = await routedCtx()
+    ctx.provide('agents', { get: () => undefined })
+    ctx.provide('subagentModelSelection', {
+      current: () => ({ enabled: true, allowedModels: [{ provider: 'alpha', model: 'fast-model' }] }),
+    })
+    const base = Session.create(SessionId('scan-1'), [
+      { type: 'turn/start', seq: 0, time: 1, data: { turn: 1 } },
+    ])
+    const scans = { count: 0 }
+    const session = new Proxy(base, {
+      get(target, key, receiver) {
+        if (key === 'events') scans.count += 1
+        return Reflect.get(target, key, receiver)
+      },
+    }) as Session
+    const agent = fakeAgent('scan-agent', { session })
+
+    const first = await ctx.tools.execute({
+      signal: TEST_SIGNAL, callId: CallId('s1'), name: 'list_subagent_models', arguments: {}, agent,
+    })
+    expect(first.isError).toBe(false)
+    const second = await ctx.tools.execute({
+      signal: TEST_SIGNAL, callId: CallId('s2'), name: 'list_subagent_models', arguments: {}, agent,
+    })
+    expect(second.isError).toBe(false)
+    // 采样路径与已录路径各读一次事件日志；append 不再为幂等性重扫。
+    expect(scans.count).toBe(2)
+    // 幂等语义迁移不回归：策略事件只落一个。
+    expect(base.events.filter(event => event.type === 'subagent/model-selection-policy')).toHaveLength(1)
+  })
 })

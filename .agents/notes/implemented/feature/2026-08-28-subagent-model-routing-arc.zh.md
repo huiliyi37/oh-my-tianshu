@@ -44,4 +44,4 @@ Scope: `packages/subagent/subagent`、`packages/subagent/tool-subagent`，及全
 
 ## 后果
 
-买到：带持久 per-Session 授权的模型可见子路由选择、前缀稳定的发现工具、所有 provider 上的能力诚实，以及本仓此前静默忽略配置处的 fail-loud。授权矩阵在工具/服务层已经完整，且 TUI 管理面随本弧落地：`/config` 的「子代理模型」类目（装配设置入口时出现）切换开关、原位移除授权路由、并经 provider/model 两级 picker 从 llm 活目录添加路由——全部走 settings 文档的修订 fence 写入。发现工具现在能扛过 provider 消失/再现循环（注册跟随 fiber，启用选择的兄弟实例共享同一份等价工具）；回归测试覆盖 re-add 循环、双实例共享、resume 会话采样与父可达继承。策略解析现在也以采样覆盖 resume 旧会话与父不可达子会话，而非拒绝每一次显式路由请求。留给后续浪的是 Web 管理卡片与 DSH SDK 传输。
+买到：带持久 per-Session 授权的模型可见子路由选择、前缀稳定的发现工具、所有 provider 上的能力诚实，以及本仓此前静默忽略配置处的 fail-loud。授权矩阵在工具/服务层已经完整，且 TUI 管理面随本弧落地：`/config` 的「子代理模型」类目（装配设置入口时出现）切换开关、原位移除授权路由、并经 provider/model 两级 picker 从 llm 活目录添加路由——全部走 settings 文档的修订 fence 写入。发现工具现在能扛过 provider 消失/再现循环（注册跟随 fiber，启用选择的兄弟实例共享同一份等价工具）；回归测试覆盖 re-add 循环、双实例共享、resume 会话采样与父可达继承。策略解析现在也以采样覆盖 resume 旧会话与父不可达子会话，而非拒绝每一次显式路由请求；且每次委派只对事件日志做恰好一次扫描——已锚定决策直接复用，新采样或继承的决策直接落盘，不再为幂等性扫第二遍。留给后续浪的是 Web 管理卡片与 DSH SDK 传输。

@@ -40,6 +40,19 @@ export function subagentModelSelectionPolicy(session: Session): AllowedModelRout
  */
 export function recordSubagentModelSelection(session: Session, allowedModels: readonly AllowedModelRoute[]): void {
   if (subagentModelSelectionPolicy(session) !== undefined) return
+  appendSubagentModelSelection(session, allowedModels)
+}
+
+/**
+ * Append the route policy directly, without the idempotence scan
+ * {@link recordSubagentModelSelection} performs. The caller must have just
+ * confirmed this session records no policy event (its own durable read IS the
+ * scan); appending twice would surface only as a later durable-read failure,
+ * not as a rejection here.
+ * @param session - session receiving the model-selectable definition.
+ * @param allowedModels - exact routes the definition may select explicitly.
+ */
+export function appendSubagentModelSelection(session: Session, allowedModels: readonly AllowedModelRoute[]): void {
   session.append('subagent/model-selection-policy', {
     allowedModels: allowedModels.map(route => ({ ...route })),
   })

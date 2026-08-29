@@ -45,7 +45,7 @@ import {
 } from './model-selection.ts'
 import type { DelegationModelRequest, ModelSelectionPolicy } from './model-selection.ts'
 import { registerListSubagentModels } from './list-models.ts'
-import { recordSubagentModelSelection, subagentModelSelectionPolicy } from './model-selection-state.ts'
+import { appendSubagentModelSelection, subagentModelSelectionPolicy } from './model-selection-state.ts'
 
 export const name = 'tool-subagent'
 export const inject = ['tools', 'subagents']
@@ -344,7 +344,8 @@ export function apply(ctx: Context, config: Config): void {
    */
   const resolveSelectionPolicy = (parent: Agent): ModelSelectionPolicy | undefined => {
     if (!selectionCapable) return undefined
-    let allowedModels = subagentModelSelectionPolicy(parent.session)
+    const recorded = subagentModelSelectionPolicy(parent.session)
+    let allowedModels = recorded
     if (allowedModels === undefined) {
       const parentId = parent.session.header.origin === 'subagent'
         ? parent.session.header.parentSession
@@ -364,8 +365,12 @@ export function apply(ctx: Context, config: Config): void {
         const current = settings.current()
         allowedModels = current.enabled ? current.allowedModels : undefined
       }
+      if (allowedModels !== undefined) {
+        // 本会话刚确认无已录策略事件（recorded === undefined）：直接落盘，
+        // 不为幂等性重扫一遍事件日志。已录会话复用 recorded，同样不扫第二遍。
+        appendSubagentModelSelection(parent.session, allowedModels)
+      }
     }
-    if (allowedModels !== undefined) recordSubagentModelSelection(parent.session, allowedModels)
     return allowedModels === undefined ? undefined : { routes: allowedModels }
   }
   const catalogDescriptionMaxLength = config.catalogDescriptionMaxLength ?? DEFAULT_CATALOG_DESCRIPTION_MAX_LENGTH
