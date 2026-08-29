@@ -335,10 +335,12 @@ export function apply(ctx: Context, config: Config): void {
   const selectionCapable = config.modelSelectionSettings === true
   /**
    * 解析调用方 Session 的路由选择策略（本仓分叉 B-β）：部署级单实例没有上游的
-   * per-Agent 发布点，故在首次委派时解析——读已录事件 → 缺席且子会话 → 继承
-   * 父会话事件 → 顶层新会话（firstLiveSeq 0）采样设置并记录一次。此后该会话
-   * 的决策锚定在日志里，设置变更只影响尚未记录的会话。设置服务缺席在首次
-   * 可解析点 fail loud。见阶段 4 浪级 Note。
+   * per-Agent 发布点，故在首次委派时解析——读已录事件（决策锚定在日志里）→
+   * 缺席且父 agent 可达的子会话继承父会话事件（父子一致优先）→ 其余无锚定
+   * 会话（顶层新会话、resume 的旧顶层会话、父不可达的子会话）采样设置并记录
+   * 一次。父不可达子会话的采样与上游 per-Agent 发布采样等价，可能与该父会话
+   * 的已锚定决策分叉（父进程已不可问询）。设置服务缺席在首次可解析点 fail
+   * loud。见阶段 4 浪级 Note。
    */
   const resolveSelectionPolicy = (parent: Agent): ModelSelectionPolicy | undefined => {
     if (!selectionCapable) return undefined
@@ -347,10 +349,11 @@ export function apply(ctx: Context, config: Config): void {
       const parentId = parent.session.header.origin === 'subagent'
         ? parent.session.header.parentSession
         : undefined
-      if (parentId !== undefined) {
-        const parentAgent = ctx.get('agents')?.get(parentId)
-        allowedModels = parentAgent === undefined ? undefined : subagentModelSelectionPolicy(parentAgent.session)
-      } else if (parent.session.firstLiveSeq === 0) {
+      const parentAgent = parentId === undefined ? undefined : ctx.get('agents')?.get(parentId)
+      if (parentAgent !== undefined) {
+        allowedModels = subagentModelSelectionPolicy(parentAgent.session)
+      }
+      if (allowedModels === undefined) {
         const settings = ctx.get('subagentModelSelection')
         if (settings === undefined) {
           throw new Error(

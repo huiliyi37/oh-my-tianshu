@@ -5,7 +5,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@huiliyi37/cordis'
 import { CallId } from '@huiliyi37/dsh-llm'
-import { Session, SessionId } from '@huiliyi37/dsh-session'
+import { Session, SESSION_FORMAT_VERSION, SessionId } from '@huiliyi37/dsh-session'
 import { ToolRegistry } from '@huiliyi37/dsh-tools'
 import SystemPrompt from '@huiliyi37/dsh-system-prompt'
 import SubagentService from '@huiliyi37/dsh-subagent'
@@ -186,5 +186,86 @@ describe('执行器 allowlist 强制与能力位拒绝', () => {
     const rejection = await ctx.plugin(tool, { provider: 'capture', agentOptions: { model: 'm' }, maxDepth: 'provider-managed' })
       .then(() => undefined, (error: unknown) => error)
     expect(String((rejection as Error)?.message ?? rejection)).toMatch(/cannot honor agentOptions/)
+  })
+})
+
+describe('策略解析（resume 顶层与父不可达采样）', () => {
+  const routedCtx = async () => {
+    const ctx = new Context()
+    await ctx.plugin(SystemPrompt)
+    await ctx.plugin(ToolRegistry)
+    await ctx.plugin(SubagentService)
+    ctx.subagents.registerProvider(captureProvider(ALL_CAPS, {}))
+    ctx.provide('llm', {
+      listProviders: () => [{ id: 'alpha', name: 'Alpha' }, { id: 'beta', name: 'Beta' }],
+      listModels: async () => [],
+      resolveModelInfo: async () => ({}),
+    })
+    tool.apply(ctx, { provider: 'capture', modelSelectionSettings: true })
+    return ctx
+  }
+
+  it('resume 的旧顶层会话（firstLiveSeq > 0 无锚定）采样设置', async () => {
+    const ctx = await routedCtx()
+    ctx.provide('subagentModelSelection', {
+      current: () => ({ enabled: true, allowedModels: [{ provider: 'alpha', model: 'fast-model' }] }),
+    })
+    // 带 seed 构造的会话 firstLiveSeq > 0，模拟 resume 的旧顶层会话：日志无策略事件。
+    const resumed = Session.create(SessionId('resumed-top'), [
+      { type: 'turn/start', seq: 0, time: 1, data: { turn: 1 } },
+    ])
+    const result = await ctx.tools.execute({
+      signal: TEST_SIGNAL, callId: CallId('r1'), name: 'list_subagent_models', arguments: {},
+      agent: fakeAgent('resumed-1', { session: resumed }),
+    })
+    expect(result.isError).toBe(false)
+    if (!result.isError) expect(result.value).toEqual({ output: 'alpha — Alpha' })
+  })
+
+  it('父可达的子会话继承父会话已锚定决策，而非采样当前设置', async () => {
+    const ctx = await routedCtx()
+    // 父会话锚定 alpha；设置此刻指向 beta——继承必须让子会话拿到 alpha。
+    const parentSession = Session.create(SessionId('parent-anchored'))
+    recordSubagentModelSelection(parentSession, [{ provider: 'alpha', model: 'fast-model' }])
+    ctx.provide('agents', {
+      get: (id: string) => id === 'parent-anchored' ? fakeAgent('parent-anchored', { session: parentSession }) : undefined,
+    })
+    ctx.provide('subagentModelSelection', {
+      current: () => ({ enabled: true, allowedModels: [{ provider: 'beta', model: 'beta-model' }] }),
+    })
+    const child = Session.create(SessionId('child-inherits'), [], {
+      version: SESSION_FORMAT_VERSION,
+      id: SessionId('child-inherits'),
+      createdAt: Date.now(),
+      origin: 'subagent',
+      parentSession: SessionId('parent-anchored'),
+    })
+    const result = await ctx.tools.execute({
+      signal: TEST_SIGNAL, callId: CallId('r2'), name: 'list_subagent_models', arguments: {},
+      agent: fakeAgent('child-1', { session: child }),
+    })
+    expect(result.isError).toBe(false)
+    if (!result.isError) expect(result.value).toEqual({ output: 'alpha — Alpha' })
+  })
+
+  it('父不可达的子会话采样设置（上游 per-Agent 采样的等价路径）', async () => {
+    const ctx = await routedCtx()
+    ctx.provide('agents', { get: () => undefined })
+    ctx.provide('subagentModelSelection', {
+      current: () => ({ enabled: true, allowedModels: [{ provider: 'beta', model: 'beta-model' }] }),
+    })
+    const orphan = Session.create(SessionId('child-orphan'), [], {
+      version: SESSION_FORMAT_VERSION,
+      id: SessionId('child-orphan'),
+      createdAt: Date.now(),
+      origin: 'subagent',
+      parentSession: SessionId('gone-parent'),
+    })
+    const result = await ctx.tools.execute({
+      signal: TEST_SIGNAL, callId: CallId('r3'), name: 'list_subagent_models', arguments: {},
+      agent: fakeAgent('orphan-1', { session: orphan }),
+    })
+    expect(result.isError).toBe(false)
+    if (!result.isError) expect(result.value).toEqual({ output: 'beta — Beta' })
   })
 })
