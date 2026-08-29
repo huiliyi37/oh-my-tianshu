@@ -13,6 +13,7 @@ import type { Context } from '@huiliyi37/cordis'
 import type { ReadStream, WriteStream } from 'node:tty'
 import type { SessionId } from '@huiliyi37/dsh-session'
 import type { KeyName } from './engine/input-handler.ts'
+import { WELCOME_MASCOTS, type WelcomeMascot } from './format/welcome-mascots.ts'
 import { spawnSelfRestart } from './restart.ts'
 import { TuiApp, type WelcomeAnimationMode } from './ui/app.ts'
 
@@ -31,8 +32,10 @@ export interface TuiRunnerConfig {
   editorKey?: KeyName
   /** 是否启用 Vim 键位（Phase 6.5）；缺省 false。 */
   vimEnabled?: boolean
-  /** 欢迎策略；`auto` 与 `off` 都立即提交静态狐狸终态。 */
+  /** 欢迎策略；`auto` 与 `off` 都立即提交静态吉祥物终态。 */
   welcomeAnimation?: WelcomeAnimationMode
+  /** 欢迎页吉祥物（部署级缺省；用户 /welcome 偏好覆盖之；缺省 whale）。 */
+  welcomeMascot?: WelcomeMascot
   /** 主控模型的识图能力与视觉桥状态（图片附件气泡提示数据源）。 */
   vision?: {
     /** 主控模型是否原生支持识图（图片直发）。 */
@@ -84,6 +87,14 @@ export function apply(ctx: Context, config: TuiRunnerConfig = {}): void {
       ? welcomeAnimation
       : `<${welcomeAnimation === null ? 'null' : typeof welcomeAnimation}>`
     throw new Error(`[tui-runner] welcomeAnimation must be "auto" or "off", got ${received}`)
+  }
+  const welcomeMascot: unknown = config.welcomeMascot
+  if (welcomeMascot !== undefined
+    && !(WELCOME_MASCOTS as readonly string[]).includes(welcomeMascot as string)) {
+    const received = typeof welcomeMascot === 'string'
+      ? welcomeMascot
+      : `<${welcomeMascot === null ? 'null' : typeof welcomeMascot}>`
+    throw new Error(`[tui-runner] welcomeMascot must be "whale" or "fox", got ${received}`)
   }
   const stdin = config.stdin ?? process.stdin
   const stdout = config.stdout ?? process.stdout
@@ -146,6 +157,7 @@ export function apply(ctx: Context, config: TuiRunnerConfig = {}): void {
       ...(config.editorKey === undefined ? {} : { editorKey: config.editorKey }),
       ...(config.vimEnabled === undefined ? {} : { vimEnabled: config.vimEnabled }),
       welcomeAnimation: config.welcomeAnimation ?? 'auto',
+      ...(config.welcomeMascot === undefined ? {} : { welcomeMascot: config.welcomeMascot }),
       ...(config.vision === undefined ? {} : { vision: config.vision }),
       ...(config.workflowHistoryLimit === undefined ? {} : { workflowHistoryLimit: config.workflowHistoryLimit }),
       ...(config.lsp === undefined ? {} : { lsp: config.lsp }),

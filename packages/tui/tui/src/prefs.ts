@@ -15,6 +15,7 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { WELCOME_MASCOTS, type WelcomeMascot } from './format/welcome-mascots.js'
 
 /** 输入区信息密度档位（footerInfo）：full 全部 chrome / compact 仅身份栏 / off 全关。 */
 export const FOOTER_INFO_LEVELS = ['full', 'compact', 'off'] as const
@@ -27,6 +28,8 @@ export interface TuiPrefs {
   footerInfo?: FooterInfoLevel
   /** 完成事件终端 BEL 响铃（/bell 切换；缺省 true，见 term-bell.ts）。 */
   bellEnabled?: boolean
+  /** 欢迎页吉祥物（/welcome 切换；缺省跟随 tui-runner 配置，再缺省 whale）。 */
+  welcomeMascot?: WelcomeMascot
 }
 
 /**
@@ -57,6 +60,9 @@ export function parsePrefs(text: string): TuiPrefs {
     prefs.footerInfo = obj.footerInfo as FooterInfoLevel
   }
   if (typeof obj.bellEnabled === 'boolean') prefs.bellEnabled = obj.bellEnabled
+  if (typeof obj.welcomeMascot === 'string' && (WELCOME_MASCOTS as readonly string[]).includes(obj.welcomeMascot)) {
+    prefs.welcomeMascot = obj.welcomeMascot as WelcomeMascot
+  }
   return prefs
 }
 
@@ -95,6 +101,8 @@ export function writePrefs(path: string, prefs: TuiPrefs): void {
     else base.footerInfo = prefs.footerInfo
     if (prefs.bellEnabled === undefined) delete base.bellEnabled
     else base.bellEnabled = prefs.bellEnabled
+    if (prefs.welcomeMascot === undefined) delete base.welcomeMascot
+    else base.welcomeMascot = prefs.welcomeMascot
     mkdirSync(dirname(path), { recursive: true })
     const tmp = `${path}.${process.pid}.tmp`
     writeFileSync(tmp, `${JSON.stringify(base, null, 2)}\n`)

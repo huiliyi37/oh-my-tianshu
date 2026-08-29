@@ -22,18 +22,19 @@
 | `initialSessionId` | 启动即切入的会话；缺省恢复最近 live 会话，否则新建（`dsh tui --session <id>` 从命令行设置） |
 | `editorKey` | 外部编辑器触发键（Phase 6.4）；缺省 `ctrl_o` |
 | `vimEnabled` | Vim 键位（Phase 6.5）；缺省 `false` |
-| `welcomeAnimation` | 启动欢迎策略：`auto`（缺省）与 `off` 都在终端能承载时提交所选档的静态狐狸；其他值在插件加载时失败 |
+| `welcomeAnimation` | 启动欢迎策略：`auto`（缺省）与 `off` 都在终端能承载时提交所选档的静态吉祥物；其他值在插件加载时失败 |
+| `welcomeMascot` | 欢迎页吉祥物：`whale`（缺省）或 `fox`；用户 `/welcome` 偏好覆盖此部署级缺省；其他值在插件加载时失败 |
 | `vision` | 主控模型识图能力与视觉桥状态（图片附件气泡提示数据源：`supportsVision` / `bridgeEnabled` / `bridgeSource`）；由装配方按 vision-bridge 插件配置派生——装配方未派生时，`bridgeEnabled` 经插件 apply 时 provide 的 `visionBridge` 服务自动探测 |
 | `workflowHistoryLimit` | `/workflow` 面板已结算 run 缓存条数上限，超限 drop-oldest；正整数，缺省 `50` |
 | `lsp` | LSP 诊断桥：`enabled`（缺省 `true`）/ `timeoutMs`（缺省 `2000`）。agent 触碰文件时按扩展名懒启动语言 server 拉取诊断，展示于工具卡徽标与 `/lsp` 面板。纯展示——不写会话事件、不注册任何模型面 |
 
 ## 启动欢迎
 
-启动欢迎以 Oh My Tianshu 作为产品身份。支持彩色与窄半块字形的终端在 `Oh My Tianshu >` 与 `< Harness >` 旁放置 nearest-neighbor 休息档坐姿狐狸：80–104 列使用 `28×30` 狐狸（`28×15` 单元格）；105 列且行数足够时使用 `36×38` 狐狸。标题留在狐狸右侧，间距比原先的平级行更宽。其后是所选模型、有效 effort、cwd 与版本。放不下 `28×15` 狐狸加 chrome 的视口，以及无色或全宽块字形终端，以同一身份与元数据的文本形式呈现。
+启动欢迎以 Oh My Tianshu 作为产品身份。支持彩色与窄半块字形的终端在 `Oh My Tianshu >` 与 `< Harness >` 旁放置 nearest-neighbor 休息档吉祥物——缺省是举着星星的像素鲸鱼，原先的坐姿狐狸保留为可选项：80–104 列使用 `28×30` 档（`28×15` 单元格）；105 列且行数足够时使用 `36×38` 档，两种吉祥物共用这套几何。吉祥物由 `/welcome fox|whale` 偏好（持久化到 `~/.dsh-tui/prefs.json`）决定，其后回退到 `welcomeMascot` 配置，最终缺省为鲸鱼；已结算的欢迎块永不重写，因此切换从下次启动生效。标题留在吉祥物右侧，间距比原先的平级行更宽。其后是所选模型、有效 effort、cwd 与版本。放不下 `28×15` 图案加 chrome 的视口，以及无色或全宽块字形终端，以同一身份与元数据的文本形式呈现。
 
-最终欢迎最多追加三行可恢复会话与一条已选 `Tip:`。`auto` 与 `off` 都立即提交该静态狐狸，没有开场时间线。effort 查找有界并回退到 `auto`，装饰性元数据不能阻塞启动。
+最终欢迎最多追加三行可恢复会话与一条已选 `Tip:`。`auto` 与 `off` 都立即提交该静态吉祥物，没有开场时间线。effort 查找有界并回退到 `auto`，装饰性元数据不能阻塞启动。
 
-会话挂载阶段的恢复历史——恢复横幅、回放的 transcript 与恢复分隔符——直接写入并位于欢迎之前。挂载完成且欢迎取得启动所有权之后，attach 先结算规范终态欢迎再接受输入；首次输入、粘贴、命令行初始提示词、resize，或后续 scrollback 提交，都保持该已结算块与挂起动作顺序。终块经仅追加提交路径进入 scrollback 一次，resize 永不擦除已提交历史。自动密钥设置仅在非输入结算后打开，而输入会取消挂起的 overlay。欢迎页纯展示，不增加模型可见输入、会话事件、持久化行为或 agent-loop 行为。[狐狸欢迎 Agent Note](../../../.agents/notes/implemented/feature/2026-08-22-tui-fox-welcome.md) 拥有品牌层级、结算顺序与运行时资产边界；[狐狸欢迎清晰度](../../../.agents/notes/implemented/feature/2026-08-23-tui-fox-welcome-clarity.md) 拥有两档投影、折行与静态挂载；[坐姿狐狸欢迎](../../../.agents/notes/implemented/feature/2026-08-25-tui-sitting-fox-welcome.md) 拥有坐姿抠图、等比例档高与 splash 文案。
+会话挂载阶段的恢复历史——恢复横幅、回放的 transcript 与恢复分隔符——直接写入并位于欢迎之前。挂载完成且欢迎取得启动所有权之后，attach 先结算规范终态欢迎再接受输入；首次输入、粘贴、命令行初始提示词、resize，或后续 scrollback 提交，都保持该已结算块与挂起动作顺序。终块经仅追加提交路径进入 scrollback 一次，resize 永不擦除已提交历史。自动密钥设置仅在非输入结算后打开，而输入会取消挂起的 overlay。欢迎页纯展示，不增加模型可见输入、会话事件、持久化行为或 agent-loop 行为。[狐狸欢迎 Agent Note](../../../.agents/notes/implemented/feature/2026-08-22-tui-fox-welcome.md) 拥有品牌层级、结算顺序与运行时资产边界；[狐狸欢迎清晰度](../../../.agents/notes/implemented/feature/2026-08-23-tui-fox-welcome-clarity.md) 拥有两档投影、折行与静态挂载；[坐姿狐狸欢迎](../../../.agents/notes/implemented/feature/2026-08-25-tui-sitting-fox-welcome.md) 拥有坐姿抠图、等比例档高与 splash 文案。[鲸鱼吉祥物欢迎](../../../.agents/notes/implemented/feature/2026-08-30-tui-welcome-whale-mascot.md) 拥有吉祥物选择、鲸鱼资产链与切换面。
 
 **输入框剪贴板与图片粘贴**（移植自 opencode-tui 输入面）：`Ctrl+V` 读系统剪贴板图片（无图 fallback 剪贴板文本）；右键/终端菜单粘贴先识别剪贴板图片（命中则附图并吞掉图片字节乱码），粘贴内容像图片路径时加载为附件；编辑期间，最后一张附件以真彩半块字符缩略图（纯 ANSI 文本，任意终端可用）渲染在 `📎 N images` 计数行上方，提交后图片在用户气泡下方以终端内联图形渲染（kitty / iTerm2），终端无图形协议时回退为同样的半块渲染。vim yank / `Alt+W` 选区复制经 OSC52 写系统剪贴板。用户气泡携带识图提示——图片直发 / 经识图桥转描述 / 未发送（无识图桥）。
 

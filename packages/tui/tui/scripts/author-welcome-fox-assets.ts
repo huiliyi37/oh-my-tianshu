@@ -9,14 +9,21 @@
 
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import sharp from 'sharp'
+import {
+  cropToOpaqueBounds,
+  decodePngBuffer,
+  isEntryPoint,
+  type RawImage,
+} from './welcome-art-shared.ts'
 import {
   WELCOME_FOX_FRAME_HEIGHT,
   WELCOME_FOX_FRAME_IDS,
   WELCOME_FOX_FRAME_WIDTH,
   WELCOME_FOX_SHEET_WIDTH,
 } from './welcome-fox-contract.ts'
+
+const LABEL = 'welcome fox'
 
 const CUTOUT_INSET = 2
 const FRAME_INSET = 1
@@ -25,12 +32,6 @@ const packageRoot = resolve(import.meta.dirname, '..')
 const sourcePath = resolve(packageRoot, 'assets/welcome-fox-source.png')
 const cutoutPath = resolve(packageRoot, 'assets/welcome-fox-cutout.png')
 const sheetPath = resolve(packageRoot, 'assets/welcome-fox-sprite-sheet.png')
-
-interface RawImage {
-  data: Buffer
-  width: number
-  height: number
-}
 
 /** PNG assets produced by the in-memory welcome-fox authoring pipeline. */
 export interface WelcomeFoxAuthoredAssets {
@@ -66,7 +67,7 @@ export async function authorWelcomeFoxAssets(): Promise<void> {
 export async function authorWelcomeFoxAssetBuffers(
   source: Buffer,
 ): Promise<WelcomeFoxAuthoredAssets> {
-  const cropped = cropToOpaqueBounds(await decodeSource(source), CUTOUT_INSET)
+  const cropped = cropToOpaqueBounds(await decodeSource(source), CUTOUT_INSET, LABEL)
 
   const cutout = await sharp(cropped.data, {
     raw: { width: cropped.width, height: cropped.height, channels: 4 },
@@ -88,53 +89,12 @@ export async function authorWelcomeFoxAssetBuffers(
 }
 
 async function decodeSource(source: Buffer): Promise<RawImage> {
-  const image = sharp(source, { failOn: 'error' })
-  const metadata = await image.metadata()
-  if (metadata.format !== 'png' || metadata.hasAlpha !== true) {
-    throw new Error(
-      `welcome fox source must be a PNG with an alpha channel, got ${metadata.format ?? 'unknown format'}.`,
-    )
-  }
-  const { data, info } = await image
-    .ensureAlpha()
-    .toColourspace('srgb')
-    .raw()
-    .toBuffer({ resolveWithObject: true })
-  if (info.channels !== 4) {
-    throw new Error(
-      `welcome fox source must decode to RGBA pixels, got ${info.width}×${info.height} with ${info.channels} channels.`,
-    )
-  }
-  return { data, width: info.width, height: info.height }
-}
-
-function cropToOpaqueBounds(source: RawImage, inset: number): RawImage {
-  let left = source.width
-  let top = source.height
-  let right = -1
-  let bottom = -1
-  for (let y = 0; y < source.height; y++) {
-    for (let x = 0; x < source.width; x++) {
-      if (source.data[(y * source.width + x) * 4 + 3] === 0) continue
-      left = Math.min(left, x)
-      top = Math.min(top, y)
-      right = Math.max(right, x)
-      bottom = Math.max(bottom, y)
-    }
-  }
-  if (right < left || bottom < top) throw new Error('welcome fox cutout contains no opaque pixels.')
-  left = Math.max(0, left - inset)
-  top = Math.max(0, top - inset)
-  right = Math.min(source.width - 1, right + inset)
-  bottom = Math.min(source.height - 1, bottom + inset)
-  const width = right - left + 1
-  const height = bottom - top + 1
-  const data = Buffer.alloc(width * height * 4)
-  for (let y = 0; y < height; y++) {
-    const sourceStart = ((top + y) * source.width + left) * 4
-    source.data.copy(data, y * width * 4, sourceStart, sourceStart + width * 4)
-  }
-  return { data, width, height }
+  return decodePngBuffer(source, {
+    subject: 'source',
+    label: LABEL,
+    requireAlpha: true,
+    combinedFormatAlphaMessage: true,
+  })
 }
 
 async function canonicalFrame(cutout: RawImage): Promise<Buffer> {
@@ -168,10 +128,6 @@ function blitFrame(sheet: Buffer, sheetWidth: number, frame: Buffer, left: numbe
       sourceStart + WELCOME_FOX_FRAME_WIDTH * 4,
     )
   }
-}
-
-function isEntryPoint(argv1: string | undefined, moduleUrl: string): boolean {
-  return argv1 !== undefined && resolve(argv1) === fileURLToPath(moduleUrl)
 }
 
 if (isEntryPoint(process.argv[1], import.meta.url)) {

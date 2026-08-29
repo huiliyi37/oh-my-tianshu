@@ -143,6 +143,7 @@ TUI 是天枢(opencode-tui)渲染核心适配 harness 接缝的移植,界面对�
 | `/branch` | `/fork` 别名 |
 | `/model [provider/model]` | 查看/切换模型(热切当前会话;`spark-flash` / `spark-pro` 别名一键切 DeepSeek Spark) |
 | `/theme [name]` | 切换主题 |
+| `/welcome [whale\|fox]` | 切换欢迎页吉祥物（默认鲸鱼；下次启动生效） |
 | `/clear` | 清空当前会话滚动区 |
 | `/compact` | 压缩当前会话上下文 |
 | `/steer <text>` | 中轮转向(不中断地纠正方向) |

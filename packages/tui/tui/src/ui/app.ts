@@ -323,12 +323,13 @@ import { QuestionController } from '../controllers/question-controller.js'
 import { BtwController } from '../controllers/btw-controller.js'
 import { SessionManager } from '../controllers/session-manager.js'
 import { renderBtwPanel } from '../format/btw-panel.js'
-import { formatFoxFrame } from '../format/fox.js'
+import { formatWelcomeMascotArt } from '../format/welcome-mascot-art.js'
+import { DEFAULT_WELCOME_MASCOT, type WelcomeMascot } from '../format/welcome-mascots.js'
+import { createWelcomeMascotCommand } from '../controllers/welcome-mascot-command.js'
 import {
   CHROME_GUTTER,
   formatWelcome,
   pickWelcomeTip,
-  resolveWelcomeArtWidth,
 } from '../format/welcome.js'
 import { formatTopBar } from '../format/top-bar.js'
 import { formatSeparator } from '../format/separator.js'
@@ -413,8 +414,10 @@ export interface TuiAppOptions {
   initialSessionId?: SessionId
   /** 主题名；'auto' 走系统终端配色探测，缺省 'auto'。 */
   theme?: string
-  /** 欢迎策略；`auto` 与 `off` 都立即提交所选档的静态狐狸。 */
+  /** 欢迎策略；`auto` 与 `off` 都立即提交所选档的静态吉祥物。 */
   welcomeAnimation?: WelcomeAnimationMode
+  /** 欢迎页吉祥物（部署级缺省；用户 /welcome 偏好覆盖之；缺省 whale）。 */
+  welcomeMascot?: WelcomeMascot
   /** Ctrl+C 连按窗口内第二次的退出回调（不要求空输入；raw-mode 下 Ctrl+C 是数据字节非 SIGINT）。 */
   onExit?: () => void
   /** /restart：请求重启当前 dsh 进程（装配方负责 dispose + spawn 同 argv + 退出）。 */
@@ -883,6 +886,8 @@ export class TuiApp {
   private readonly prefsPath: string | null
   /** 已加载偏好（footerInfo 等）；persistPrefs 时合并写回 prefsPath。 */
   private prefs: TuiPrefs = {}
+  /** 欢迎页吉祥物的部署级缺省（tui-runner config；被 prefs.welcomeMascot 覆盖）。 */
+  private readonly welcomeMascotDefault: WelcomeMascot
   /** reasoning 流缓冲（reasoning-delta 累积）；段结束 commitReasoningBlock 落底清空。 */
   private reasoningText = ''
   /** 当前推理段起点（首个 reasoning-delta 的事件时间，Unix epoch ms）；live/落底耗时数据源。 */
@@ -948,6 +953,7 @@ export class TuiApp {
     // 本地偏好：构造期同步读取（小 JSON，阻塞可忽略）；禁用（VITEST 密封）时空偏好。
     this.prefsPath = prefsEnabled(options.prefsPath)
     if (this.prefsPath !== null) this.prefs = readPrefs(this.prefsPath)
+    this.welcomeMascotDefault = options.welcomeMascot ?? DEFAULT_WELCOME_MASCOT
     this.historyStore = new InputHistoryStore(options.historyPath)
     this.initialSessionId = options.initialSessionId
     this.themeName = options.theme ?? 'auto'
@@ -1229,6 +1235,11 @@ export class TuiApp {
         echo(this.prefs.bellEnabled === false ? '完成响铃：关' : '完成响铃：开')
       },
     })
+    // /welcome 吉祥物切换：命令体在 controllers/，prefs 偏好覆盖部署级 welcomeMascot。
+    this.slash.register(createWelcomeMascotCommand({
+      currentMascot: () => this.prefs.welcomeMascot ?? this.welcomeMascotDefault,
+      setMascot: (mascot) => { this.prefs.welcomeMascot = mascot; this.persistPrefs() },
+    }))
     // /info 注册在 /density 前——菜单环绕末项契约测试锚定 /density。
     // 输入区信息密度档位：full 全部 chrome（顶栏身份+metrics、footer 提示行）/
     // compact 保留顶栏身份段与 API/git，隐 metrics / off 顶栏与 footer 全关。
@@ -2157,18 +2168,18 @@ export class TuiApp {
     this.autoKeyDialogPending = false
 
     this.live.clearForCommit()
-    const artWidth = resolveWelcomeArtWidth(this.stdout.columns, this.stdout.rows)
-    const artLines = artWidth === 28 || artWidth === 36
-      ? formatFoxFrame({
-        colorLevel: this.welcomeColorLevel(),
-        width: artWidth,
-      })
-      : []
+    // 吉祥物在 settle 时现读（prefs /welcome 偏好 > 部署级配置）：未 settle 窗口期切换即时生效。
+    const art = formatWelcomeMascotArt(
+      this.prefs.welcomeMascot ?? this.welcomeMascotDefault,
+      this.stdout.columns,
+      this.stdout.rows,
+      this.welcomeColorLevel(),
+    )
     const snapshot = intro.snapshot
     const finalLines = formatWelcome({
       width: this.stdout.columns,
       rows: this.stdout.rows,
-      art: { lines: artLines, width: artWidth ?? 0 },
+      art,
       modelId: snapshot.modelId,
       ...(snapshot.reasoningEffort === undefined
         ? {}

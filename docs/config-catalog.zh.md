@@ -3213,6 +3213,14 @@ export interface Config {
 ```ts config-catalog
 /** Config: which registered provider this tool delegates to, plus child defaults. */
 export interface Config {
+  /**
+   * Sample the Host `subagent-model-selection` user setting for each new
+   * top-level session and inherit that decision in its child sessions
+   * (requires the `subagent-model-selection-settings` entry in the
+   * composition). Route fields are then advertised and enforced per Session
+   * policy; the decision itself is recorded once in the session log.
+   */
+  modelSelectionSettings?: boolean
   /** The `ctx.subagents` provider name to start runs on (e.g. `spawn`, `acp`). */
   provider: string
   /**
@@ -3437,8 +3445,10 @@ export interface TuiRunnerConfig {
   editorKey?: KeyName
   /** 是否启用 Vim 键位（Phase 6.5）；缺省 false。 */
   vimEnabled?: boolean
-  /** 欢迎策略；`auto` 与 `off` 都立即提交静态狐狸终态。 */
+  /** 欢迎策略；`auto` 与 `off` 都立即提交静态吉祥物终态。 */
   welcomeAnimation?: WelcomeAnimationMode
+  /** 欢迎页吉祥物（部署级缺省；用户 /welcome 偏好覆盖之；缺省 whale）。 */
+  welcomeMascot?: WelcomeMascot
   /** 主控模型的识图能力与视觉桥状态（图片附件气泡提示数据源）。 */
   vision?: {
     /** 主控模型是否原生支持识图（图片直发）。 */
@@ -3511,16 +3521,20 @@ export type KeyName =
   | 'ctrl_.'
   | 'ctrl_y'
   | 'ctrl_q'
+  | 'ctrl_return'
   | 'shift_tab'
   | 'unknown'
 
 /** Fixed welcome-opening policy selected at runner load. */
 export type WelcomeAnimationMode = 'auto' | 'off'
+
+/** One selectable welcome mascot. */
+export type WelcomeMascot = (typeof WELCOME_MASCOTS)[number]
 ```
 
 依赖：`ReadStream` （`node:tty`） · [`SessionId`](subsystems/core.md) · `WriteStream` （`node:tty`）
 
-来源：[`packages/tui/tui/src/index.ts:23`](../packages/tui/tui/src/index.ts)
+来源：[`packages/tui/tui/src/index.ts:24`](../packages/tui/tui/src/index.ts)
 
 ## `@huiliyi37/dsh-typert-loader`
 

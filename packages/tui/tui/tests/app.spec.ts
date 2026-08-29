@@ -1,6 +1,6 @@
 import { execFileSync, type ChildProcess } from 'node:child_process'
 import { EventEmitter } from 'node:events'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { PassThrough } from 'node:stream'
@@ -2469,6 +2469,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
 
   async function bootWelcome(options: {
     welcomeAnimation?: 'auto' | 'off'
+    welcomeMascot?: 'whale' | 'fox'
     inputTty?: boolean
     cmdline?: string[]
     restorable?: boolean
@@ -2527,6 +2528,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
       stdin,
       theme: 'graphite',
       welcomeAnimation: options.welcomeAnimation ?? 'auto',
+      ...(options.welcomeMascot === undefined ? {} : { welcomeMascot: options.welcomeMascot }),
     })
     try {
       await app.attach()
@@ -2928,6 +2930,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     const writeBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
     const { app } = await bootWelcome({
       welcomeAnimation: 'auto',
+      welcomeMascot: 'fox',
       columns: 105,
       rows: 25,
     })
@@ -2936,6 +2939,32 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     expect(committed.split('\n').filter(line => /[▀▄]/.test(line)).length).toBeGreaterThan(15)
     expect(committed.match(/[▀▄]/g)?.length).toBeGreaterThan(15)
     await app.dispose()
+  })
+
+  it('默认吉祥物为鲸鱼；与狐狸输出不同且均可产出半块 hero', async () => {
+    const whaleBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
+    const { app: whaleApp } = await bootWelcome({ columns: 105, rows: 25 })
+    const whaleCommitted = batchText(whaleBatch)
+    await whaleApp.dispose()
+    whaleBatch.mockRestore()
+
+    const foxBatch = vi.spyOn(CommitEngine.prototype, 'writeBatch')
+    const { app: foxApp } = await bootWelcome({ welcomeMascot: 'fox', columns: 105, rows: 25 })
+    const foxCommitted = batchText(foxBatch)
+    await foxApp.dispose()
+    foxBatch.mockRestore()
+
+    for (const committed of [whaleCommitted, foxCommitted]) {
+      expect(committed).toContain('Oh My Tianshu')
+      expect(committed).toMatch(/[▀▄]/)
+    }
+    // 默认（无配置无偏好）即鲸鱼，且与狐狸不是同一份渲染。
+    expect(whaleCommitted).not.toBe(foxCommitted)
+    // 鲸鱼 36 档 contain 保持 1.31:1 画幅：有半块 glyph 的行少于满幅狐狸。
+    const glyphRows = (text: string): number =>
+      text.split('\n').filter(line => /[▀▄]/.test(line)).length
+    expect(glyphRows(whaleCommitted)).toBeGreaterThan(10)
+    expect(glyphRows(whaleCommitted)).toBeLessThan(glyphRows(foxCommitted))
   })
 
   it('后台 scrollback commit 先结算 canonical welcome 再追加外部消息', async () => {
@@ -6402,6 +6431,59 @@ describe('TuiApp /config /skills /density 面板命令', () => {
       written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
       expect(written).toContain('完成响铃：开')
       expect(JSON.parse(readFileSync(prefsPath, 'utf-8'))).toEqual({ bellEnabled: true })
+      await app.dispose()
+    } finally {
+      rmSync(prefsPath, { force: true })
+    }
+  })
+
+  it('/welcome 切换吉祥物偏好：无参回显、非法拒绝、落盘覆盖部署级缺省', async () => {
+    const ctx = makeCtx()
+    const agent = makeAgent('welcome-mascot-1')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+    const prefsPath = join(tmpdir(), `dsh-tui-welcome-${Date.now()}-${process.pid}.json`)
+    try {
+      // 部署级缺省 fox：无参回显它；用户偏好尚未落盘。
+      const app = new TuiApp({
+        ctx,
+        stdout,
+        stdin: makeStdin(),
+        prefsPath,
+        welcomeMascot: 'fox',
+      })
+      await app.attach()
+
+      stdout.write.mockClear()
+      app.handleSubmit('/welcome')
+      await new Promise(resolve => setImmediate(resolve))
+      let written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('欢迎页吉祥物：fox')
+      expect(existsSync(prefsPath)).toBe(false)
+
+      // 非法值：拒绝且不落盘。
+      stdout.write.mockClear()
+      app.handleSubmit('/welcome shark')
+      await new Promise(resolve => setImmediate(resolve))
+      written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('未知吉祥物: shark')
+      expect(existsSync(prefsPath)).toBe(false)
+
+      // fox → whale：回显 + 合并落盘。
+      stdout.write.mockClear()
+      app.handleSubmit('/welcome whale')
+      await new Promise(resolve => setImmediate(resolve))
+      written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('欢迎页吉祥物已切换: whale')
+      expect(JSON.parse(readFileSync(prefsPath, 'utf-8'))).toEqual({ welcomeMascot: 'whale' })
+
+      // 幂等：已是当前吉祥物时不重复切换。
+      stdout.write.mockClear()
+      app.handleSubmit('/welcome whale')
+      await new Promise(resolve => setImmediate(resolve))
+      written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+      expect(written).toContain('欢迎页吉祥物已是 whale')
       await app.dispose()
     } finally {
       rmSync(prefsPath, { force: true })

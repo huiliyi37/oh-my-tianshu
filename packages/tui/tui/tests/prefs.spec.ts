@@ -41,6 +41,13 @@ describe('parsePrefs — 容错解析', () => {
     expect(parsePrefs('{"footerInfo":2}')).toEqual({})
   })
 
+  it('合法 welcomeMascot 原样保留，非法值丢弃', () => {
+    expect(parsePrefs('{"welcomeMascot":"fox"}')).toEqual({ welcomeMascot: 'fox' })
+    expect(parsePrefs('{"welcomeMascot":"whale"}')).toEqual({ welcomeMascot: 'whale' })
+    expect(parsePrefs('{"welcomeMascot":"shark"}')).toEqual({})
+    expect(parsePrefs('{"welcomeMascot":1}')).toEqual({})
+  })
+
   it('损坏 JSON / 非对象根 → 空偏好，永不抛', () => {
     expect(parsePrefs('{broken')).toEqual({})
     expect(parsePrefs('[1]')).toEqual({})
@@ -74,6 +81,19 @@ describe('readPrefs / writePrefs — 文件层', () => {
     writePrefs(path, { footerInfo: 'off' })
     writePrefs(path, {})
     expect(JSON.parse(readFileSync(path, 'utf-8'))).toEqual({})
+  })
+
+  it('welcomeMascot 合并写：覆盖/清除建模 key，保留未知 key', () => {
+    const path = join(tempDir(), 'prefs.json')
+    writeFileSync(path, '{"theme":"cobalt"}\n')
+    writePrefs(path, { welcomeMascot: 'fox' })
+    let merged = JSON.parse(readFileSync(path, 'utf-8')) as Record<string, unknown>
+    expect(merged.welcomeMascot).toBe('fox')
+    expect(merged.theme).toBe('cobalt')
+    writePrefs(path, {})
+    merged = JSON.parse(readFileSync(path, 'utf-8')) as Record<string, unknown>
+    expect(merged.welcomeMascot).toBeUndefined()
+    expect(merged.theme).toBe('cobalt')
   })
 
   it('损坏基线：从空对象起步覆盖，不继承垃圾文本', () => {

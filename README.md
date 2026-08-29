@@ -143,6 +143,7 @@ The TUI is a port of the Tianshu (opencode-tui) render core adapted to the harne
 | `/branch` | alias of `/fork` |
 | `/model [provider/model]` | view or switch the model (hot-swaps the live session; `spark-flash` / `spark-pro` aliases switch to DeepSeek Spark) |
 | `/theme [name]` | switch themes |
+| `/welcome [whale\|fox]` | switch the welcome hero mascot (default whale; applies on next startup) |
 | `/clear` | clear the current conversation's scrollback |
 | `/compact` | compact the current session's context |
 | `/steer <text>` | mid-turn steering (redirect without interrupting) |

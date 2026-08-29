@@ -454,20 +454,93 @@ export function renderIndexedHalfBlocks(input: RenderIndexedHalfBlocksInput): st
 }
 
 /**
- * Runtime palette derived from the generated hex palette.
+ * Binds a generated hex palette to runtime entries with ANSI16 approximations.
  *
  * ANSI16 approximations are computed from the RGB value with the same
  * perceptual weighting used during generation, so a regenerated palette needs
  * no hand-maintained SGR table.
+ *
+ * @param palette - Generated hex colors; null entries stay transparent.
+ * @returns Runtime palette in the same index order.
  */
-const FOX_PALETTE: readonly (IndexedHalfBlockPaletteEntry | null)[] =
-  WELCOME_FOX_PALETTE.map((hex) => {
+export function bindIndexedPalette(
+  palette: readonly (`#${string}` | null)[],
+): readonly (IndexedHalfBlockPaletteEntry | null)[] {
+  return palette.map((hex) => {
     if (hex === null) return null
     const rgb = hexToRgb(hex) as readonly [number, number, number]
     return { rgb: hex, ansi16: nearestAnsi16(rgb) }
   })
+}
 
-/** Input for rendering one generated welcome-fox rest band. */
+/** One generated rest band: pixel geometry plus palette-index rows. */
+export interface IndexedMascotBand {
+  width: number
+  height: number
+  rows: readonly string[]
+}
+
+/** Generated frame data for one welcome mascot (28- and 36-column bands). */
+export interface IndexedMascotFrames {
+  /** Rest bands keyed by the two supported runtime widths. */
+  bands: { readonly 28: IndexedMascotBand; readonly 36: IndexedMascotBand }
+  /** Runtime palette whose null entries are transparent. */
+  palette: readonly (IndexedHalfBlockPaletteEntry | null)[]
+  /** Mascot label used in validation errors (`welcome fox`). */
+  label: string
+}
+
+/** Input for {@link formatIndexedMascotFrame}. */
+export interface FormatIndexedMascotFrameInput {
+  /** Terminal color level; defaults to detected chalk capability. */
+  colorLevel?: number
+  /**
+   * Runtime band width in columns. Only `28` and `36` are accepted; omitted
+   * width selects the 28-column band.
+   */
+  width?: number
+}
+
+/**
+ * Renders one generated mascot rest band without runtime asset access.
+ *
+ * @param frames - The mascot's generated bands, palette, and error label.
+ * @param input - Optional color level and band width.
+ * @returns Half-block ANSI rows, or no rows when art is unsupported.
+ * @throws {TypeError} When `width` is present and is not `28` or `36`.
+ */
+export function formatIndexedMascotFrame(
+  frames: IndexedMascotFrames,
+  input: FormatIndexedMascotFrameInput = {},
+): string[] {
+  const width = input.width ?? 28
+  if (width !== 28 && width !== 36) {
+    throw new TypeError(`${frames.label} band width must be 28 or 36, got ${String(input.width)}`)
+  }
+  const band = frames.bands[width]
+  return renderIndexedHalfBlocks({
+    width: band.width,
+    rows: band.rows,
+    palette: frames.palette,
+    colorLevel: input.colorLevel ?? chalk.level,
+  })
+}
+
+/**
+ * Runtime palette derived from the generated hex palette; see
+ * {@link bindIndexedPalette}.
+ */
+const FOX_PALETTE: readonly (IndexedHalfBlockPaletteEntry | null)[] =
+  bindIndexedPalette(WELCOME_FOX_PALETTE)
+
+/** The fox mascot's generated bands, palette, and error label. */
+const FOX_FRAMES: IndexedMascotFrames = {
+  bands: WELCOME_FOX_BANDS,
+  palette: FOX_PALETTE,
+  label: 'welcome fox',
+}
+
+/** Input for {@link formatFoxFrame}. */
 export interface FormatFoxFrameInput {
   /** Terminal color level; defaults to detected chalk capability. */
   colorLevel?: number
@@ -486,15 +559,5 @@ export interface FormatFoxFrameInput {
  * @throws {TypeError} When `width` is present and is not `28` or `36`.
  */
 export function formatFoxFrame(input: FormatFoxFrameInput = {}): string[] {
-  const width = input.width ?? 28
-  if (width !== 28 && width !== 36) {
-    throw new TypeError(`welcome fox band width must be 28 or 36, got ${String(input.width)}`)
-  }
-  const band = WELCOME_FOX_BANDS[width]
-  return renderIndexedHalfBlocks({
-    width: band.width,
-    rows: band.rows,
-    palette: FOX_PALETTE,
-    colorLevel: input.colorLevel ?? chalk.level,
-  })
+  return formatIndexedMascotFrame(FOX_FRAMES, input)
 }

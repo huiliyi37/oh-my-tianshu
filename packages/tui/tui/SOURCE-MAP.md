@@ -40,6 +40,7 @@
 | src/controllers/session-manager.ts | — | new |
 | src/controllers/submit-queue.ts | — | new（运行中提交的本地排队：turn/end 按序投递、↑ 取回队首、切会话丢弃；对标 CC queue，回流自 dsh-tianshu-tui 9d7f421） |
 | src/controllers/welcome-intro-controller.ts | — | new（欢迎开场一次性生命周期：冻结启动快照、按 monotonic 时间采样生成帧、幂等 settle/cancel） |
+| src/controllers/welcome-mascot-command.ts | — | new（/welcome 吉祥物切换命令工厂：回显/校验/落盘 prefs；注册调用留在 app 装配层一行） |
 | src/delegation-panel.ts | — | new |
 | src/engine/ansi.ts | engine/ansi.ts | modified（新增 DECSCUSR 光标形状常量：稳态竖条 + 默认恢复，overlay 输入光标用） |
 | src/engine/clipboard-image.ts | engine/clipboard-image.ts | modified（移除未声明的 @mariozechner/clipboard native 路径，保留 shell 链 + 注入点；readText 注入测试密封化） |
@@ -77,7 +78,11 @@
 | src/format/lsp-diagnostics.ts | — | new（诊断展示纯函数：工具卡徽标 + /lsp 面板段，severity 语义色） |
 | src/format/export.ts | — | new（/export 会话导出：事件日志 → Markdown 转录，纯渲染） |
 | src/format/fox-frames.ts | — | new（由欢迎狐狸 sprite sheet 确定性生成的调色板、八帧索引数据与尺寸常量；运行时无资产 I/O） |
-| src/format/fox.ts | — | new（欢迎狐狸生成帧的 ANSI 半块渲染器：truecolor、xterm-256 与 ANSI16 分档，零色深或全宽块字符终端降级为空） |
+| src/format/fox.ts | — | new（欢迎吉祥物生成帧的 ANSI 半块渲染器：truecolor、xterm-256 与 ANSI16 分档，零色深或全宽块字符终端降级为空；兼作狐狸帧绑定与 mascot 通用渲染入口） |
+| src/format/whale-frames.ts | — | new（由欢迎鲸鱼抠图确定性生成的调色板与索引数据；运行时无资产 I/O。图源：AI 生成像素鲸鱼（ChatGPT，2026-08-22），已抠除深色背景并裁掉底部文字带） |
+| src/format/whale.ts | — | new（欢迎鲸鱼生成帧绑定：共享半块渲染器的鲸鱼数据入口） |
+| src/format/welcome-mascot-art.ts | — | new（欢迎 hero 图案选择：按吉祥物分发 28/36 档渲染，app 装配层不具名任何吉祥物） |
+| src/format/welcome-mascots.ts | — | new（欢迎吉祥物标识叶模块：whale/fox 封闭集合与缺省，供渲染分发、/welcome 命令、prefs 与 runner 配置校验共用） |
 | src/format/fluency-policy.ts | fluency-policy.ts | modified（目录重排：上游根 → src/format/） |
 | src/format/activity-band.ts | — | new（CC 对标统一活动带：subagent/workflow/后台任务活跃项折叠 + 高度封顶固定带渲染，纯函数层） |
 | src/format/glance-bar.ts | format/glance-bar.ts | modified |

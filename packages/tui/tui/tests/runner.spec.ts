@@ -248,6 +248,34 @@ describe('index apply() welcomeAnimation 配置边界', () => {
   })
 })
 
+describe('index apply() welcomeMascot 配置边界', () => {
+  it('fails loud during plugin load for an unknown welcomeMascot value', () => {
+    const ctx = makeCtx()
+
+    expect(() => {
+      apply(ctx, {
+        stdin: makeStdin(),
+        stdout: makeStdout(),
+        welcomeMascot: 'shark',
+      } as unknown as Parameters<typeof apply>[1])
+    }).toThrow(
+      '[tui-runner] welcomeMascot must be "whale" or "fox", got shark',
+    )
+    expect(ctx.inject.mock.calls).toHaveLength(0)
+  })
+
+  it.each(['whale', 'fox'] as const)(
+    'welcomeMascot=%s constructs and attaches the app',
+    (welcomeMascot) => {
+      const ctx = makeCtx()
+      const attach = vi.spyOn(TuiApp.prototype, 'attach').mockResolvedValue(undefined)
+      vi.spyOn(TuiApp.prototype, 'dispose').mockResolvedValue(undefined)
+      apply(ctx, { stdin: makeStdin(), stdout: makeStdout(), welcomeMascot })
+      expect(attach).toHaveBeenCalledTimes(1)
+    },
+  )
+})
+
 describe('index apply() — /restart 重启装配（#34）', () => {
   beforeEach(() => {
     vi.mocked(spawnSelfRestart).mockReset().mockResolvedValue(true)
