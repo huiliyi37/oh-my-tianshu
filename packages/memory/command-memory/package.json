@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-command-memory",
   "description": "Human-facing /remember and /memory slash commands over the optional memory service",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publishConfig": {
     "access": "public"
   },

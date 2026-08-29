@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-client-ui-model",
   "description": "Model selection: the /model popupSelect over session.models / session.selectModel",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publishConfig": {
     "access": "public"
   },

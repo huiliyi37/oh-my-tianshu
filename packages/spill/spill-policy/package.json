@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-spill-policy",
   "description": "Tool-result spill policy for the Tianshu Harness — replaces oversized plain-text tool results with a retained preview plus a spill-file path (no service surface)",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publishConfig": {
     "access": "public"
   },

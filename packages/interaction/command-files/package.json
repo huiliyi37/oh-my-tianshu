@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-command-files",
   "description": "Load user-defined slash commands from two layers of Markdown command files (user home + project .dsh), rendered through a template and steered to the model",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publishConfig": {
     "access": "public"
   },

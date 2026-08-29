@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tool-memory-recall",
   "description": "memory_deep_recall: on-demand raw session-history recall through a read-only in-process reader subagent returning a bounded distillation",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publishConfig": {
     "access": "public"
   },

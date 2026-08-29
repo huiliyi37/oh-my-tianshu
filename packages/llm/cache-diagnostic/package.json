@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-cache-diagnostic",
   "description": "Prefix-cache health observation and miss diagnosis (ctx.cacheDiagnostic) for the Tianshu Harness",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publishConfig": {
     "access": "public"
   },

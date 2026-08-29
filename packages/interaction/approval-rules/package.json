@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-approval-rules",
   "description": "Persistent per-tool allow/deny approval rules as a policy layer over the ctx.approval seam, managed by the /permissions command (distinct from the /permission preset switcher)",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publishConfig": {
     "access": "public"
   },

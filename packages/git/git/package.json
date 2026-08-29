@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-git",
   "description": "Git capability seam: the Git service definition + the local CLI provider in one package (thin wrapper over git subprocess)",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publishConfig": {
     "access": "public"
   },

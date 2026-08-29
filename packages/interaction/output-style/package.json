@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-output-style",
   "description": "Switchable output-style presets (default / explanatory / learning) as an ordered system-prompt section, hot-switched through the settings seam and driven by the /style command",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publishConfig": {
     "access": "public"
   },

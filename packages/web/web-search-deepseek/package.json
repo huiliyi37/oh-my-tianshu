@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-web-search-deepseek",
   "description": "DeepSeek-backed search provider (native web_search via the Anthropic-compatible API) for the Tianshu Harness web capability seam (ctx.web)",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publishConfig": {
     "access": "public"
   },

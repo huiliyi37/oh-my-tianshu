@@ -1,6 +1,6 @@
 {
   "name": "@huiliyi37/oh-my-tianshu-root",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.7.0",

@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tool-bash",
   "description": "Model-facing bash tool with optional generic background-task and sandbox-escalation support",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publishConfig": {
     "access": "public"
   },

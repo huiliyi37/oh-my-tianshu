@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-client-runtime",
   "description": "Client core services: SlotsService, SessionsService (scope tree + object layer)",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publishConfig": {
     "access": "public"
   },

@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-frontend",
   "description": "Web application entry: vite build over the @huiliyi37/dsh-client-web shell library; dist/ served by apps/cli's tianshu web",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publishConfig": {
     "access": "public"
   },

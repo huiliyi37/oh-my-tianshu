@@ -2,9 +2,9 @@
 
 English | [中文](CHANGELOG.zh.md)
 
-## 2026-08-29 — 0.6.0
+## 2026-08-29 — 0.7.0
 
-0.6.0 closes the Web-parity program, backflows two upstream waves (official harness alpha.1 and the sibling opencode-tui), and lands the child-model routing arc end to end — the 21 commits since the version line opened.
+0.7.0 closes the Web-parity program, backflows two upstream waves (official harness alpha.1 and the sibling opencode-tui), and lands the child-model routing arc end to end — 21 commits since the 0.6.0 release.
 
 ### Web parity (P2④)
 

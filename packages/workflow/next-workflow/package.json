@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-next-workflow",
   "description": "Human-facing /next-workflow command running the fixed intent pipeline (INTENT → PLAN → CRITIQUE → IMPLEMENT → VERIFY → REVIEW)",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publishConfig": {
     "access": "public"
   },

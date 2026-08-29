@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-web",
   "description": "Abstract web access capability seam (ctx.web) for the Tianshu Harness — search/fetch provider registry, registration-order-independent selection, request/result vocabulary, and the WebError taxonomy",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publishConfig": {
     "access": "public"
   },

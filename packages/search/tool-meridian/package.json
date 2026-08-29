@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tool-meridian",
   "description": "repo_graph tool (graph/impact/flow) over the dsh-meridian codebase index + bounded dynamic-context codebase-index summary (Tianshu meridian port)",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publishConfig": {
     "access": "public"
   },
