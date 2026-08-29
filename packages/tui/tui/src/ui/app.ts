@@ -343,6 +343,7 @@ import { MemoryBrowserOverlay } from '../format/memory-overlay.js'
 import { TranscriptViewer } from '../format/transcript-viewer.js'
 import { settingsNamespace } from '@huiliyi37/dsh-settings'
 import { findRecommendedRoute, routeResolvesDirectory, subagentRoutingNudgeText, type RoutingDirectoryProvider } from '../subagent-routing-config.js'
+import { errorRecoveryGuidance, errorRefillNotice } from '../format/error-recovery.js'
 import { zenPhaseLabel } from '../preset-surface.js'
 import { formatCacheMissReason, isReportableMiss } from '../cache-telemetry.js'
 import type { CacheHealthWire } from '../cache-telemetry.js'
@@ -762,6 +763,9 @@ export class TuiApp {
   private readonly submitQueue = new SubmitQueueController()
   /** 委派树的路由 nudge 已出（每会话一次；见 subagent-routing-config）。 */
   private subagentRoutingNudgeShown = false
+  /** 最近一次真实提交的用户文本——错误终态回填输入框用（slash 命令不算）；
+   * 成功终态清、abort 清（abort 路径自有草稿保留语义，防双份回填）。 */
+  private lastSubmittedText: string | null = null
   /** 工作流阶段/活动投影（Phase 5.1/6.2）；随会话挂载/卸载，dispose 时解绑订阅。 */
   private statusLine: WorkflowStatusLine | null = null
   /** 流式提交供给的 session/event 订阅；随会话挂载/卸载。 */
@@ -4078,6 +4082,9 @@ export class TuiApp {
     // Phase 9a：@mention 用户侧摘要展开（cwd 边界/截断/降级见 mention-expand）。
     // 展开后的文本进用户消息与 followup——agent 看到的是摘要而非裸路径。
     const expanded = expandMentions(trimmed, this.sessionCwd())
+    // 错误终态回填底料（回流 opencode-tui 807686a02）：slash 已在上面分流，
+    // 走到这里的都是真实用户消息。
+    this.lastSubmittedText = trimmed
     this.historyStore.record(trimmed)
     this.history = this.historyStore.snapshot()
     this.inputLine.setHistory(this.history)
@@ -4419,6 +4426,9 @@ export class TuiApp {
 
   /** 取消当前运行（Esc/Ctrl+C）：cancel agent、丢弃未发出的流式/推理缓冲并重置流渲染。 */
   handleAbort(): void {
+    // 中断走自有的草稿保留语义——错误回填底料作废，防双份回填
+    //（回流 opencode-tui 807686a02 的生命周期约定）。
+    this.lastSubmittedText = null
     // 防御：打断优先于 overlay——释放任何激活的全屏 overlay（palette/search/
     // rewind/picker），保证主屏（含输入轨）在下一帧必然恢复。按键路径上 overlay
     // 分支先于 ctrl_c 分支拦截，此防御覆盖未来新增路径在 overlay 激活时调 abort。
@@ -5289,7 +5299,29 @@ export class TuiApp {
         this.gitDirty = gitDirtyCount()
         // A5：回合结束复位工具卡展开态（工具已结算，展开无意义）。
         this.expandedToolCallId = null
-        if (event.data.reason.kind !== 'aborted') {
+        if (event.data.reason.kind === 'error') {
+          // 错误终态三件套（回流 opencode-tui 807686a02）：本体摘要 + 分类
+          // 「下一步」指引 + 上一条回填（输入框有草稿时不抢写）。
+          const failure = event.data.reason.error
+          const brief = failure.message.length > 160 ? `${failure.message.slice(0, 80)}…${failure.message.slice(-70)}` : failure.message
+          this.commitToScrollback({
+            text: color(`⚠ 运行失败: ${brief}`, this.theme.error),
+            trailingNewline: true,
+          })
+          this.commitToScrollback({
+            text: color(`  ${errorRecoveryGuidance(failure)}`, this.theme.muted),
+            trailingNewline: true,
+          })
+          const refill = this.lastSubmittedText
+          this.lastSubmittedText = null
+          if (refill !== null && this.inputLine.value === '') {
+            this.inputLine.setValue(refill)
+            this.commitToScrollback({ text: color(`  ${errorRefillNotice()}`, this.theme.muted), trailingNewline: true })
+          }
+          void this.flushStream()
+        } else if (event.data.reason.kind !== 'aborted') {
+          // 成功终态：错误回填底料作废。
+          this.lastSubmittedText = null
           // 错误终止的 turn 可能没有 assistant/message——落底已累积的推理
           //（durable log 已含这些 chunk，与「模型可见 ⟺ 已记录」一致）。
           this.commitReasoningBlock()

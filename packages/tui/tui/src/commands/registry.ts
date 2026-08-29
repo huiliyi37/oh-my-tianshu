@@ -1106,6 +1106,9 @@ export function createBuiltinCommands(deps: BuiltinCommandDeps): SlashCommand[] 
           }
           echo('运行 /doctor fix <id> 查看详细修复指引')
         }
+        // 排障指针（回流 opencode-tui 807686a02 之 /doctor 尾部）。
+        echo('')
+        echo('持续失败时：/key 复查凭据 · /config「概览」看已解析配置 · /model 切换供应商')
       },
     },
     {

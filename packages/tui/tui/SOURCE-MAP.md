@@ -73,6 +73,7 @@
 | src/format/collapsed-bash.ts | format/collapsed-bash.ts | modified |
 | src/format/diff.ts | format/diff.ts | modified |
 | src/format/doctor-report.ts | — | new |
+| src/format/error-recovery.ts | — | new（错误终态分类「下一步」指引与回填告知；回流自 opencode-tui 807686a02，分类面适配本仓 LlmFailure 事实） |
 | src/format/lsp-diagnostics.ts | — | new（诊断展示纯函数：工具卡徽标 + /lsp 面板段，severity 语义色） |
 | src/format/export.ts | — | new（/export 会话导出：事件日志 → Markdown 转录，纯渲染） |
 | src/format/fox-frames.ts | — | new（由欢迎狐狸 sprite sheet 确定性生成的调色板、八帧索引数据与尺寸常量；运行时无资产 I/O） |

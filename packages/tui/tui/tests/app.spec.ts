@@ -10429,3 +10429,82 @@ describe('TuiApp /model 同行档位调节（回流 opencode-tui dde14eb54）', 
     await app.dispose()
   })
 })
+
+describe('TuiApp 错误终态三件套（回流 opencode-tui 807686a02）', () => {
+  function bootErr() {
+    const ctx = makeCtx()
+    const agent = makeAgent('err-1')
+    ctx.agents.create.mockResolvedValue(makeHandle(agent))
+    ctx.sessions.get.mockReturnValue(agent.session)
+    const stdout = makeStdout()
+    const stdin = makeStdin()
+    const app = new TuiApp({ ctx, stdout, stdin })
+    // session/event 订阅在 attach 时注册——bus 须延后取。
+    const emit = (id: SessionId, event: Record<string, unknown>) => {
+      sessionEventBus(ctx)(id, event)
+    }
+    return { ctx, app, stdin, stdout, emit }
+  }
+
+  it('error 终态：错误摘要 + 分类指引 + 上一条回填；成功终态清底料不回填', async () => {
+    const { app, stdout, emit } = await bootErr()
+    await app.attach()
+    const id = app.sessionId
+    if (id === null) throw new Error('no session')
+    app.handleSubmit('please retry me')
+    await new Promise(resolve => setImmediate(resolve))
+    stdout.write.mockClear()
+    emit(id, {
+      seq: 2, time: 2, type: 'turn/end',
+      data: { turn: 1, reason: { kind: 'error', error: { message: 'rate limited', code: 'RATE', status: 429 } } },
+    })
+    await new Promise(resolve => setImmediate(resolve))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('⚠ 运行失败: rate limited')
+    expect(written).toContain('/model')
+    expect(written).toContain('已回填输入框')
+    await app.dispose()
+  })
+
+  it('输入框有草稿时不抢写（无回填告知行）；abort 清底料', async () => {
+    const { app, stdin, stdout, emit } = await bootErr()
+    await app.attach()
+    const id = app.sessionId
+    if (id === null) throw new Error('no session')
+    app.handleSubmit('lost message')
+    await new Promise(resolve => setImmediate(resolve))
+    // 错误终态前用户已在输入新草稿
+    for (const ch of 'new draft') stdin.emit('data', ch)
+    await new Promise(resolve => setImmediate(resolve))
+    stdout.write.mockClear()
+    emit(id, {
+      seq: 2, time: 2, type: 'turn/end',
+      data: { turn: 1, reason: { kind: 'error', error: { message: 'boom', code: 'PROVIDER', status: 500 } } },
+    })
+    await new Promise(resolve => setImmediate(resolve))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).not.toContain('已回填输入框')
+    await app.dispose()
+  })
+
+  it('成功终态后紧跟的 error 不回填（底料已在 completed 清空）', async () => {
+    const { app, stdout, emit } = await bootErr()
+    await app.attach()
+    const id = app.sessionId
+    if (id === null) throw new Error('no session')
+    app.handleSubmit('first ok')
+    await new Promise(resolve => setImmediate(resolve))
+    emit(id, { seq: 2, time: 2, type: 'turn/end', data: { turn: 1, reason: { kind: 'completed' } } })
+    await new Promise(resolve => setImmediate(resolve))
+    stdout.write.mockClear()
+    emit(id, {
+      seq: 3, time: 3, type: 'turn/end',
+      data: { turn: 2, reason: { kind: 'error', error: { message: 'later', code: 'X' } } },
+    })
+    await new Promise(resolve => setImmediate(resolve))
+    const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
+    expect(written).toContain('⚠ 运行失败: later')
+    expect(written).not.toContain('已回填输入框')
+    await app.dispose()
+  })
+})
