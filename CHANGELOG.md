@@ -2,6 +2,34 @@
 
 English | [中文](CHANGELOG.zh.md)
 
+## 2026-08-29 — 0.6.0
+
+0.6.0 closes the Web-parity program, backflows two upstream waves (official harness alpha.1 and the sibling opencode-tui), and lands the child-model routing arc end to end — the 21 commits since the version line opened.
+
+### Web parity (P2④)
+
+The Web face catches up with the TUI: the approval card grows `[a] allow for this session` backed by standing grants, `session.rewind` drives a trajectory-bar rewind control, corrupt sessions are labeled in lists with the spark alias, and `/model` role pins get a settings row.
+
+### Upstream alpha.1 backflow (wave 1)
+
+`FIRST_PARTY_SECTION_ORDER` centralizes every first-party prompt-section placement in a sparse table (adjacent gaps ≥ 10) with deterministic name tie-breaks — three previously registration-order-dependent section pairs become deterministic. JSONL logs range-encode `sourceEventSeqs` (−14.1% stored size upstream's corpus measured, read/write backward compatible). Deliberately deferred with written dependency inventories: the SQLite compression stack (schema 19), the subagent authorization layer's Web card, and the fail-closed event vocabulary.
+
+### TUI interaction backflow (dsh-tui rc.25)
+
+Completion events ring a terminal BEL (the only reminder that reaches SSH sessions; `/bell` toggles). Messages typed while the agent runs queue locally (`⏳` line, ↑ takes back, turn/end delivers in order, interrupts keep the queue). Ctrl+Enter is cancel-and-send — abort with `keepInbox`, then the draft submits ahead of the queue once the agent settles. Custom themes get WCAG contrast warnings at load (fail-open) and `NO_COLOR` is honored. Ctrl+R aliases the history search.
+
+### Child-model routing arc
+
+The model can route a delegation to an exact provider/model/effort: a Host-owned `subagent-model-selection` settings section (default off, exact-route allowlist), a log-only per-session policy event recorded at first delegation, `provider`+`model`+`reasoning_effort` fields on the delegation tool gated by that policy, a prefix-stable `list_subagent_models` discovery tool, executor-side enforcement, and an `agentOptions` capability that ends accepted-then-ignored route config (in-process providers `true`; `acp`/`dsh-sdk` `false` until the SDK transport ships). The TUI `/config` gains a 子代理模型 category: toggle, per-route removal, provider→model picker, a ⚡ one-click recommendation (flash → deepseek → first catalog model), live-catalog ⚠ warnings on routes that stopped resolving, and a per-session `/subagents` nudge. `/model` adjusts the reasoning effort on the selected row (`</>`) and persists model + effort in one save. Fork delegation keeps selection off to preserve inherited-prefix KV Cache reuse.
+
+### Error-terminal recovery
+
+A turn ending in `error` prints the failure summary plus a one-line classified next step (auth → `/key`, quota → wait or lighter model, 5xx → provider switch, context overflow → `/compact`, network → `/doctor`), refills the last real user message into the input rail (never overwriting a draft; the base clears on success and abort), and `/doctor` ends with a troubleshooting pointer.
+
+### Hygiene
+
+Capability literals swept repo-wide (16 sites) after the new required `agentOptions` field, three max-len violations and seven legacy non-null assertions cleared, generated catalogs/graphs/type-equiv blocks re-synced (390+390), three pre-format Agent Notes restructured into the standard skeleton, and example configs' upstream-name remnants rescoped.
+
 ## 2026-08-22 — 0.4.0
 
 0.4.0 lands the single-expert routing rollout foundation, the automatic memory pipeline, a multi-provider vision chain, and the configuration/keys/preview surfaces of the TUI — 127 commits since 0.3.0.

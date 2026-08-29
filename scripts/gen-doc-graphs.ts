@@ -609,7 +609,7 @@ const SERVICE_ROLES: ServiceRole[] = [
     key: 'subagentModelSelection',
     pkg: 'tool-subagent',
     title: 'Child LLM route authorization',
-    mode: 'plugin',
+    mode: 'seam',
     consumers: ['tool-subagent'],
     note: 'Host-owned opt-in setting sampled when a session first delegates: exact allowed child routes, recorded once as the log-only model-selection policy event.',
   },

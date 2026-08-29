@@ -2,6 +2,34 @@
 
 [English](CHANGELOG.md) | 中文
 
+## 2026-08-29 — 0.6.0
+
+0.6.0 收束 Web 追平计划、回流两路上游（官方 harness alpha.1 与兄弟仓 opencode-tui），并端到端落地子代理模型路由弧——自版本线开启以来 21 个提交。
+
+### Web 追平（P2④）
+
+Web 面追平 TUI：审批卡新增 `[a] 本会话总是允许`（常设授权背书）、`session.rewind` 驱动轨迹栏回退控制、损坏会话在列表中标注并带 spark 别名、`/model` 角色 pin 获得设置行。
+
+### 上游 alpha.1 回流（第一浪）
+
+`FIRST_PARTY_SECTION_ORDER` 把全部一手提示词 section 落位集中到稀疏表（相邻差 ≥10）并按名字确定性决胜——三对此前依赖注册序的 section 落位转为确定。JSONL 日志对 `sourceEventSeqs` 做区间编码（上游语料实测存储 −14.1%，读写双向向后兼容）。刻意延后并写明依赖清单：SQLite 压缩栈（schema 19）、子代理授权层的 Web 卡片、fail-closed 事件词汇。
+
+### TUI 交互回流（dsh-tui rc.25）
+
+完成事件终端 BEL 响铃（唯一能到达 SSH 会话的完成提醒；`/bell` 切换）。agent 运行期间的输入进本地队列（`⏳` 行、↑ 取回、turn/end 按序投递、打断保留队列）。Ctrl+Enter 是 cancel-and-send——带 `keepInbox` 打断，落定后草稿插队直发。自定义主题加载时做 WCAG 对比度警告（fail-open），`NO_COLOR` 获规范支持。Ctrl+R 成为历史搜索别名。
+
+### 子代理模型路由弧
+
+模型可以把一次委派路由到精确的 provider/model/effort：Host 自有的 `subagent-model-selection` 设置段（默认关、精确路由 allowlist）、首次委派时落一次的 log-only 会话策略事件、委派工具上由策略把关的 `provider`+`model`+`reasoning_effort` 字段、前缀稳定的 `list_subagent_models` 发现工具、执行器侧强制，以及终结 accepted-then-ignored 路由配置的 `agentOptions` 能力位（进程内 provider `true`；`acp`/`dsh-sdk` 在 SDK 传输实现前 `false`）。TUI `/config` 新增「子代理模型」类目：开关、逐条路由移除、provider→model picker、⚡ 一键推荐（flash → deepseek → 目录首个模型）、失效路由的活目录 ⚠ 警告，以及每会话一次的 `/subagents` nudge。`/model` 在选中行调档位（`</>`）并把模型+档位一次持久化。fork 委派保持不启用选择，以保留继承前缀的 KV Cache 复用。
+
+### 错误终态恢复
+
+回合以 `error` 收尾时输出失败摘要与一行分类「下一步」（认证 → `/key`、额度 → 等待或轻量档、5xx → 换供应商、上下文超限 → `/compact`、网络 → `/doctor`），最近一条真实用户消息回填输入轨（不覆盖已有草稿；底料在成功与打断时清空），`/doctor` 尾部附排障指针。
+
+### 卫生
+
+新增必选 `agentOptions` 字段后全仓清扫能力位字面量（16 处），清掉三处超长行与七处存量非空断言，生成目录/关系图/type-equiv 块重新同步（390+390），三份前格式 Agent Note 重构入标准骨架，examples 配置的上游名残留改回本仓域。
+
 ## 2026-08-22 — 0.4.0
 
 0.4.0 落地单专家路由灰度地基、自动记忆管线、多供应商视觉链，以及 TUI 的配置/密钥/预览三个面——自 0.3.0 起 127 个提交。
