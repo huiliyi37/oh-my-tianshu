@@ -2110,7 +2110,7 @@ describe('TuiApp Phase 9b + 1.1 欢迎页会话恢复入口', () => {
 
     const written = stdout.write.mock.calls.map(c => `${c[0]}`).join('')
     expect(written).toContain('Oh My')
-    expect(written).toContain('█')
+    expect(written).toContain('< Harness >')
     expect(written).toContain('restored-provider/restored-model')
     expect(written).toContain('Model restored-model · Effort high')
     expect(written).not.toContain('default-provider/default-model')
@@ -2673,7 +2673,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     expect(batchText(writeBatch)).toContain('█')
     expect(batchText(writeBatch)).toContain('Tip:')
     expect(render.mock.calls.some(call => (
-      (call[0] as readonly { text: string }[]).some(line => line.text.includes('█'))
+      (call[0] as readonly { text: string }[]).some(line => line.text.includes('Oh My'))
     ))).toBe(false)
 
     await app.dispose()
@@ -2955,7 +2955,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
     expect(committed).not.toMatch(/[\u2800-\u28FF]/)
     expect(committed).toContain('Tip:')
     expect(render.mock.calls.some(call => (
-      (call[0] as readonly { text: string }[]).some(line => line.text.includes('█'))
+      (call[0] as readonly { text: string }[]).some(line => line.text.includes('Oh My'))
     ))).toBe(false)
     await app.dispose()
   })
@@ -3067,7 +3067,7 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
       await flushHeadlessTerminal(animatedTerminal)
 
       const introRenders = render.mock.calls.filter(([lines]) => (
-        lines.some(line => line.text.includes('█'))
+        lines.some(line => line.text.includes('Oh My'))
       ))
       expect(introRenders).toHaveLength(0)
 
@@ -3215,10 +3215,13 @@ describe('TuiApp welcome intro 一次性 settle 生命周期', () => {
 
     expect(writeBatch).toHaveBeenCalledTimes(2)
     expect(batchText(writeBatch)).toContain('Oh My')
-    expect(batchText(writeBatch)).not.toContain('███')
+    // 不重播：含 Tip: 的 canonical 终批恰一次（字形随品牌块字演进，不再锚定字形）。
+    expect(writeBatch.mock.calls.filter(([entries]) => (
+      entries.some(entry => entry.text.includes('Tip:'))
+    ))).toHaveLength(1)
     await vi.advanceTimersByTimeAsync(4_000)
     expect(writeBatch).toHaveBeenCalledTimes(2)
-    expect(render.mock.calls.at(-1)?.[0].some(line => line.text.includes('█'))).toBe(false)
+    expect(render.mock.calls.at(-1)?.[0].some(line => line.text.includes('Oh My'))).toBe(false)
     await app.dispose()
   })
 

@@ -121,6 +121,7 @@ describe('welcome fox generator', () => {
     expect(generated.asset.bands.map(band => [band.width, band.height])).toEqual([
       [28, 30],
       [36, 38],
+      [44, 46],
     ])
     expect(generated.asset.finalFrame).toBe('rest')
     expect(generated.source).not.toContain('WELCOME_FOX_TIMELINE')

@@ -329,8 +329,8 @@ export function renderIndexedArtModule(
   if (forbiddenTokens.some(token => source.includes(token))) {
     throw new Error(`${label} generated module must not emit a timeline.`)
   }
-  if (widths.length !== 2 || widths.some(width => width !== 28 && width !== 36)) {
-    throw new Error(`${label} generated module must emit only the 28 and 36 rest bands.`)
+  if (widths.length !== 3 || widths.some(width => width !== 28 && width !== 36 && width !== 44)) {
+    throw new Error(`${label} generated module must emit only the 28, 36, and 44 rest bands.`)
   }
   return source
 }
@@ -460,6 +460,15 @@ export interface ProjectCutoutInput {
   cutout: RawImage
   /** Palette-source projection geometry (`96×72` for both mascots). */
   paletteSource: { width: number; height: number }
+  /**
+   * Optional native pixel-art grid recovered before projection. High-
+   * resolution pixel-art cutouts (the whale) carry their art pixels on a
+   * coarse native grid; snapping to that grid first keeps small shapes (the
+   * star) readable in the tiny runtime bands, where one-shot nearest sampling
+   * sub-samples and destroys them. Omit for cutouts already near their
+   * native resolution (the fox) to keep byte-identical output.
+   */
+  nativeGrid?: { width: number; height: number }
   /** Runtime rest bands in emission order. */
   bands: readonly { width: number; height: number }[]
   /** Mascot label used in errors (`welcome fox`). */
@@ -471,7 +480,9 @@ export interface ProjectCutoutInput {
  *
  * The shared palette is median-cut from the nearest-neighbor palette-source
  * projection; every band is then contain-fit with nearest-neighbor and
- * snapped to that palette with no error diffusion.
+ * snapped to that palette with no error diffusion. With {@link
+ * ProjectCutoutInput.nativeGrid} set, both steps read the recovered native
+ * grid instead of the raw cutout.
  *
  * @param input - Cutout, palette-source geometry, band table, and label.
  * @returns The validated indexed asset, ready for {@link renderIndexedArtModule}.
@@ -480,8 +491,22 @@ export interface ProjectCutoutInput {
  */
 export async function projectCutoutToBands(input: ProjectCutoutInput): Promise<WelcomeArtAsset> {
   const { cutout, bands, label } = input
-  const paletteSource = await sharp(cutout.data, {
-    raw: { width: cutout.width, height: cutout.height, channels: 4 },
+  const working: RawImage = input.nativeGrid === undefined
+    ? cutout
+    : await (async () => {
+      const grid = await sharp(cutout.data, {
+        raw: { width: cutout.width, height: cutout.height, channels: 4 },
+      })
+        .resize(input.nativeGrid.width, input.nativeGrid.height, {
+          kernel: sharp.kernel.nearest,
+          fit: 'fill',
+        })
+        .raw()
+        .toBuffer({ resolveWithObject: true })
+      return { data: grid.data, width: grid.info.width, height: grid.info.height }
+    })()
+  const paletteSource = await sharp(working.data, {
+    raw: { width: working.width, height: working.height, channels: 4 },
   })
     .resize({
       width: input.paletteSource.width,
@@ -499,8 +524,8 @@ export async function projectCutoutToBands(input: ProjectCutoutInput): Promise<W
   )))
   const projected: WelcomeArtAsset['bands'] = []
   for (const band of bands) {
-    const resized = await sharp(cutout.data, {
-      raw: { width: cutout.width, height: cutout.height, channels: 4 },
+    const resized = await sharp(working.data, {
+      raw: { width: working.width, height: working.height, channels: 4 },
     })
       .resize({
         width: band.width,

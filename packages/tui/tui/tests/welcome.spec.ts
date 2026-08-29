@@ -63,7 +63,7 @@ function heroInput(over: Partial<FormatWelcomeHeroInput> = {}): FormatWelcomeHer
 }
 
 describe('formatWelcomeHero', () => {
-  it('selects 28 at 80–104 columns and 36 at 105+ when rows fit', () => {
+  it('selects 28 at 80–104 columns, 36 at 105+, and 44 at 140+ when rows fit', () => {
     expect(WELCOME_HERO_WIDE_MIN).toBe(80)
     expect(resolveWelcomeArtWidth(79, 40)).toBeNull()
     expect(resolveWelcomeArtWidth(80, 20)).toBeNull()
@@ -71,6 +71,9 @@ describe('formatWelcomeHero', () => {
     expect(resolveWelcomeArtWidth(104, 25)).toBe(28)
     expect(resolveWelcomeArtWidth(105, 24)).toBe(28)
     expect(resolveWelcomeArtWidth(105, 25)).toBe(36)
+    expect(resolveWelcomeArtWidth(140, 28)).toBe(36)
+    expect(resolveWelcomeArtWidth(140, 29)).toBe(44)
+    expect(resolveWelcomeArtWidth(139, 29)).toBe(36)
   })
 
   it('places a one-line Oh My Tianshu title beside 28-column art', () => {
@@ -107,12 +110,15 @@ describe('formatWelcomeHero', () => {
       art: WIDE_ART,
     }), fakeTheme()))
     expect(lines.some(line => line.includes('fox-0'))).toBe(true)
-    expect(lines.some(line => line.includes('Oh My Tianshu'))).toBe(true)
-    expect(lines.some(line => line.includes('█'))).toBe(false)
+    // 105 列细节栏 61 列：品牌字渲染为块字母（'Oh My' 文本行 + 块行）。
+    expect(lines.some(line => line.includes('Oh My'))).toBe(true)
+    expect(lines.some(line => line.includes('█'))).toBe(true)
+    expect(lines.some(line => line.includes('Oh My Tianshu'))).toBe(false)
   })
 
   it('renders the splash title with a mark caret and Harness line', () => {
-    const lines = formatWelcomeHero(heroInput(), fakeTheme())
+    // 细节栏不足 61 列时退回单行文本标题。
+    const lines = formatWelcomeHero(heroInput({ width: 89 }), fakeTheme())
     const title = lines.find(line => plainLine(line).includes('Oh My Tianshu'))
     const harness = lines.find(line => plainLine(line).includes('< Harness >'))
 
@@ -121,6 +127,21 @@ describe('formatWelcomeHero', () => {
     expect(title).toContain('\x1B[38;2;180;140;255m\x1B[1m >')
     expect(harness).toBeDefined()
     expect(harness).toContain('\x1B[38;2;180;140;255m\x1B[1m< Harness >')
+  })
+
+  it('renders the oversized block-letter brand when the details column fits', () => {
+    const lines = formatWelcomeHero(heroInput(), fakeTheme())
+    const flat = lines.map(plainLine)
+
+    // 'Oh My' 文本行保留身份前缀；块行覆盖 TIANSHU > 与 < HARNESS >。
+    expect(flat.some(line => line.includes('Oh My'))).toBe(true)
+    const inkedRows = lines.filter(line => line.includes('█'))
+    expect(inkedRows.length).toBe(10)
+    expect(inkedRows.some(line => line.includes('\x1B[38;2;238;238;238m\x1B[1m'))).toBe(true)
+    expect(inkedRows.some(line => line.includes('\x1B[38;2;180;140;255m\x1B[1m'))).toBe(true)
+    expect(flat.some(line => line.includes('Oh My Tianshu'))).toBe(false)
+    expect(flat.some(line => line.includes('< Harness >'))).toBe(false)
+    for (const line of lines) expect(displayWidth(line)).toBeLessThanOrEqual(100)
   })
 
   it('shows model, effort, cwd, and optional version in the balanced right column', () => {
@@ -148,7 +169,7 @@ describe('formatWelcomeHero', () => {
 
     expect(lines[0]).toContain('fox-only')
     expect(lines[1]).not.toContain('fox-')
-    expect(lines.some(line => line.includes('Oh My Tianshu'))).toBe(true)
+    expect(lines.some(line => line.includes('Oh My'))).toBe(true)
   })
 
   it('keeps the mid-band layout wide while truncating long metadata', () => {

@@ -33,7 +33,7 @@ export type FormatWhaleFrameInput = FormatIndexedMascotFrameInput
  *
  * @param input - Optional color level and band width.
  * @returns Half-block ANSI rows, or no rows when art is unsupported.
- * @throws {TypeError} When `width` is present and is not `28` or `36`.
+ * @throws {TypeError} When `width` is present and is not `28`, `36`, or `44`.
  */
 export function formatWhaleFrame(input: FormatWhaleFrameInput = {}): string[] {
   return formatIndexedMascotFrame(WHALE_FRAMES, input)

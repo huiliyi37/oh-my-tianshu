@@ -147,7 +147,7 @@ describe('formatFoxFrame', () => {
       formatFoxFrame({ colorLevel: 3, width: 28 }),
     )
     expect(() => formatFoxFrame({ colorLevel: 3, width: 40 })).toThrow(
-      /welcome fox band width must be 28 or 36/,
+      /welcome fox band width must be 28, 36, or 44/,
     )
   })
 })

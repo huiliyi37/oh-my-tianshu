@@ -47,7 +47,7 @@ describe('formatWhaleFrame', () => {
       formatWhaleFrame({ colorLevel: 3, width: 28 }),
     )
     expect(() => formatWhaleFrame({ colorLevel: 3, width: 40 })).toThrow(
-      /welcome whale band width must be 28 or 36/,
+      /welcome whale band width must be 28, 36, or 44/,
     )
   })
 

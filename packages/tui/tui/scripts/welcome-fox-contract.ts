@@ -14,6 +14,7 @@ export const WELCOME_FOX_FRAME_HEIGHT = 72
 export const WELCOME_FOX_RUNTIME_BANDS = [
   { width: 28, height: 30 },
   { width: 36, height: 38 },
+  { width: 44, height: 46 },
 ] as const
 
 /** Stable frame ids in horizontal sprite-sheet order. */

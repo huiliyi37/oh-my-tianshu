@@ -480,10 +480,14 @@ export interface IndexedMascotBand {
   rows: readonly string[]
 }
 
-/** Generated frame data for one welcome mascot (28- and 36-column bands). */
+/** Generated frame data for one welcome mascot (28-, 36-, and 44-column bands). */
 export interface IndexedMascotFrames {
-  /** Rest bands keyed by the two supported runtime widths. */
-  bands: { readonly 28: IndexedMascotBand; readonly 36: IndexedMascotBand }
+  /** Rest bands keyed by the three supported runtime widths. */
+  bands: {
+    readonly 28: IndexedMascotBand
+    readonly 36: IndexedMascotBand
+    readonly 44: IndexedMascotBand
+  }
   /** Runtime palette whose null entries are transparent. */
   palette: readonly (IndexedHalfBlockPaletteEntry | null)[]
   /** Mascot label used in validation errors (`welcome fox`). */
@@ -495,8 +499,8 @@ export interface FormatIndexedMascotFrameInput {
   /** Terminal color level; defaults to detected chalk capability. */
   colorLevel?: number
   /**
-   * Runtime band width in columns. Only `28` and `36` are accepted; omitted
-   * width selects the 28-column band.
+   * Runtime band width in columns. Only `28`, `36`, and `44` are accepted;
+   * omitted width selects the 28-column band.
    */
   width?: number
 }
@@ -507,15 +511,15 @@ export interface FormatIndexedMascotFrameInput {
  * @param frames - The mascot's generated bands, palette, and error label.
  * @param input - Optional color level and band width.
  * @returns Half-block ANSI rows, or no rows when art is unsupported.
- * @throws {TypeError} When `width` is present and is not `28` or `36`.
+ * @throws {TypeError} When `width` is present and is not `28`, `36`, or `44`.
  */
 export function formatIndexedMascotFrame(
   frames: IndexedMascotFrames,
   input: FormatIndexedMascotFrameInput = {},
 ): string[] {
   const width = input.width ?? 28
-  if (width !== 28 && width !== 36) {
-    throw new TypeError(`${frames.label} band width must be 28 or 36, got ${String(input.width)}`)
+  if (width !== 28 && width !== 36 && width !== 44) {
+    throw new TypeError(`${frames.label} band width must be 28, 36, or 44, got ${String(input.width)}`)
   }
   const band = frames.bands[width]
   return renderIndexedHalfBlocks({
@@ -556,7 +560,7 @@ export interface FormatFoxFrameInput {
  *
  * @param input - Optional color level and band width.
  * @returns Half-block ANSI rows, or no rows when art is unsupported.
- * @throws {TypeError} When `width` is present and is not `28` or `36`.
+ * @throws {TypeError} When `width` is present and is not `28`, `36`, or `44`.
  */
 export function formatFoxFrame(input: FormatFoxFrameInput = {}): string[] {
   return formatIndexedMascotFrame(FOX_FRAMES, input)

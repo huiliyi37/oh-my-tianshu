@@ -21,6 +21,7 @@ import {
   type WelcomeArtAsset,
 } from './welcome-art-shared.ts'
 import {
+  WELCOME_WHALE_NATIVE_GRID,
   WELCOME_WHALE_PALETTE_SOURCE_HEIGHT,
   WELCOME_WHALE_PALETTE_SOURCE_WIDTH,
   WELCOME_WHALE_RUNTIME_BANDS,
@@ -68,6 +69,7 @@ export async function generateWelcomeWhaleModule(
       width: WELCOME_WHALE_PALETTE_SOURCE_WIDTH,
       height: WELCOME_WHALE_PALETTE_SOURCE_HEIGHT,
     },
+    nativeGrid: WELCOME_WHALE_NATIVE_GRID,
     bands: WELCOME_WHALE_RUNTIME_BANDS,
     label: LABEL,
   })

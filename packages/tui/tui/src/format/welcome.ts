@@ -8,6 +8,11 @@
 import { color } from '../engine/ansi.js'
 import type { RivetTheme } from '../theme.js'
 import { displayWidth, truncateToDisplayWidth, wrapToDisplayWidth } from '../width.js'
+import {
+  layoutBlockText,
+  measureBlockText,
+  renderBlockRows,
+} from './block-text.js'
 
 /** Welcome and live-chrome left inset in terminal columns. */
 export const CHROME_GUTTER = 2
@@ -24,15 +29,28 @@ const WELCOME_FALLBACK_COLUMNS = 80
 const HERO_GAP = 6
 const WELCOME_FOX_NARROW_COLS = 28
 const WELCOME_FOX_WIDE_COLS = 36
+const WELCOME_FOX_XWIDE_COLS = 44
 const WELCOME_FOX_NARROW_CELLS = 15
 const WELCOME_FOX_WIDE_CELLS = 19
+const WELCOME_FOX_XWIDE_CELLS = 23
 const WELCOME_BAND_NARROW_MIN_COLS = 80
 const WELCOME_BAND_WIDE_MIN_COLS = 105
+const WELCOME_BAND_XWIDE_MIN_COLS = 140
 const WELCOME_UNWRAP_MIN_COLS = 89
 const WELCOME_MARK = '#b48cff'
 
 /** Terminal rows reserved for chrome when deriving the fox art height budget. */
 const WELCOME_ART_CHROME_ROWS = 6
+
+/** Wordmark strings rendered as block letters when the details column fits. */
+const BLOCK_BRAND_TITLE = 'TIANSHU >'
+const BLOCK_BRAND_HARNESS = '< HARNESS >'
+
+/** Details-column width required for the block-letter brand stack. */
+const WELCOME_BLOCK_BRAND_MIN_COLS = Math.max(
+  measureBlockText(BLOCK_BRAND_TITLE),
+  measureBlockText(BLOCK_BRAND_HARNESS),
+)
 
 /** Minimum terminal width for the split 28-column fox hero. */
 export const WELCOME_HERO_WIDE_MIN = WELCOME_BAND_NARROW_MIN_COLS
@@ -90,17 +108,40 @@ function heroDetails(
   input: FormatWelcomeHeroInput,
   theme: RivetTheme,
   wrapWidth?: number,
+  brand: 'blocks' | 'text' = 'text',
 ): string[] {
-  const lines = [
+  const lines = brand === 'blocks' ? blockBrandLines(theme) : [
     ...(wrapWidth === undefined ? [titleLine(theme), harnessLine()] : wrapIdentityLines(theme, wrapWidth)),
+  ]
+  lines.push(
     modelLine(input, theme),
     color(`cwd ${input.cwd}`, theme.muted),
-  ]
+  )
   if (input.version !== undefined && input.version !== '') {
     lines.push(versionLine(input.version, theme))
   }
   if (wrapWidth === undefined) return lines
   return lines.flatMap(line => wrapToDisplayWidth(line, wrapWidth))
+}
+
+/**
+ * The oversized pixel-letter brand stack: a small `Oh My` text row, then the
+ * `TIANSHU >` wordmark and `< HARNESS >` subtitle as block letters, matching
+ * the reference wordmark hierarchy (big wordmark, smaller purple subtitle).
+ */
+function blockBrandLines(theme: RivetTheme): string[] {
+  return [
+    color('Oh My', theme.secondary),
+    ...renderBlockRows(
+      layoutBlockText(BLOCK_BRAND_TITLE),
+      ink => color(ink, theme.brandColor, { bold: true }),
+    ),
+    '',
+    ...renderBlockRows(
+      layoutBlockText(BLOCK_BRAND_HARNESS),
+      ink => color(ink, WELCOME_MARK, { bold: true }),
+    ),
+  ]
 }
 
 function compactHero(input: FormatWelcomeHeroInput, theme: RivetTheme): string[] {
@@ -134,12 +175,13 @@ export interface FormatWelcomeHeroInput {
 }
 
 /**
- * Resolves the fox art width for a terminal of the given size.
+ * Resolves the art width for a terminal of the given size.
  *
- * The split hero is one of two rest bands: 28 columns from 80×21, and 36
- * columns from 105×25. Anything smaller uses the compact text form. A
- * 105-column terminal that lacks the 36-band row budget stays on 28.
- * The title stays beside the fox; it is never stacked above it.
+ * The split hero is one of three rest bands: 28 columns from 80×21, 36
+ * columns from 105×25, and 44 columns from 140×29. Anything smaller uses the
+ * compact text form. A wider terminal that lacks the larger band's row
+ * budget stays on the smaller band. The title stays beside the art; it is
+ * never stacked above it.
  *
  * @param width - Current terminal columns.
  * @param rows - Current terminal rows.
@@ -150,6 +192,9 @@ export function resolveWelcomeArtWidth(width: number, rows: number): number | nu
   const foxRows = rows - WELCOME_ART_CHROME_ROWS
   if (foxRows < WELCOME_FOX_NARROW_CELLS) return null
   if (columns < WELCOME_BAND_NARROW_MIN_COLS) return null
+  if (columns >= WELCOME_BAND_XWIDE_MIN_COLS && foxRows >= WELCOME_FOX_XWIDE_CELLS) {
+    return WELCOME_FOX_XWIDE_COLS
+  }
   if (columns >= WELCOME_BAND_WIDE_MIN_COLS && foxRows >= WELCOME_FOX_WIDE_CELLS) {
     return WELCOME_FOX_WIDE_COLS
   }
@@ -184,6 +229,7 @@ export function formatWelcomeHero(
     input,
     theme,
     width < WELCOME_UNWRAP_MIN_COLS ? detailWidth : undefined,
+    detailWidth >= WELCOME_BLOCK_BRAND_MIN_COLS ? 'blocks' : 'text',
   )
 
   const rowCount = Math.max(input.art.lines.length, details.length)

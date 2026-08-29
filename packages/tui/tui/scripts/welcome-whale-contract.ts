@@ -5,14 +5,22 @@
  * bands so the welcome hero layout is mascot-independent.
  */
 
-/** Palette-source projection width in pixels (matches the fox frame grid). */
-export const WELCOME_WHALE_PALETTE_SOURCE_WIDTH = 96
+/**
+ * Native pixel-art grid of the whale cutout (each art pixel ≈ 8 source
+ * pixels). Projection recovers this grid before sampling so the star and
+ * other small shapes survive the tiny runtime bands.
+ */
+export const WELCOME_WHALE_NATIVE_GRID = { width: 116, height: 88 } as const
 
-/** Palette-source projection height in pixels (matches the fox frame grid). */
-export const WELCOME_WHALE_PALETTE_SOURCE_HEIGHT = 72
+/** Palette-source projection geometry: the recovered native grid itself. */
+export const WELCOME_WHALE_PALETTE_SOURCE_WIDTH = WELCOME_WHALE_NATIVE_GRID.width
 
-/** Runtime rest-pose grids projected from the cutout. */
+/** Palette-source projection geometry: the recovered native grid itself. */
+export const WELCOME_WHALE_PALETTE_SOURCE_HEIGHT = WELCOME_WHALE_NATIVE_GRID.height
+
+/** Runtime rest-pose grids projected from the recovered native grid. */
 export const WELCOME_WHALE_RUNTIME_BANDS = [
   { width: 28, height: 30 },
   { width: 36, height: 38 },
+  { width: 44, height: 46 },
 ] as const

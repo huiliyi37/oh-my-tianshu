@@ -224,7 +224,7 @@ function hasSettledSurface(terminal: Terminal): boolean {
   if (terminal.buffer.active.type !== 'normal') return false
   const lines = normalBufferLines(terminal)
   return lines.some(line => line.includes('Tip:'))
-    && lines.some(line => line.includes('< Harness >'))
+    && lines.some(line => line.includes('Oh My'))
     && lines.some(line => line.includes('❯'))
 }
 
@@ -732,9 +732,11 @@ describe.skipIf(process.platform === 'win32')('examples/tui settled welcome', ()
     expect(capture.rawSurface).toContain(`cwd ${capture.workspace}`)
     expect(capture.snapshot).toMatch(/[▀▄]/)
     expect(capture.snapshot).not.toMatch(/[\u2800-\u28FF]/)
-    expect(capture.snapshot.match(/Oh My Tianshu/g)).toEqual(['Oh My Tianshu'])
-    expect(capture.snapshot).not.toContain('███ █ █  █ █ █ █')
-    expect(capture.snapshot).toContain('< Harness >')
+    // 100×40 细节栏 64 列：品牌为 'Oh My' 文本行 + 块字母 TIANSHU > / < HARNESS >。
+    expect(capture.snapshot.match(/Oh My/g)).toEqual(['Oh My'])
+    expect(capture.snapshot).not.toContain('Oh My Tianshu')
+    expect(capture.snapshot).not.toContain('< Harness >')
+    expect(capture.snapshot.split('\n').filter(line => line.includes('█')).length).toBe(10)
     expect(capture.snapshot).toContain('Model deepseek-v4-flash · Effort max')
     expect(capture.snapshot).toContain('cwd ~/workspace')
     expect(capture.snapshot).toMatch(/\bv\d+\.\d+\.\d+\b/)
