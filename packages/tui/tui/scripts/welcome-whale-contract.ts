@@ -6,11 +6,12 @@
  */
 
 /**
- * Native pixel-art grid of the whale cutout (each art pixel ≈ 8 source
- * pixels). Projection recovers this grid before sampling so the star and
- * other small shapes survive the tiny runtime bands.
+ * Native pixel-art grid of the whale cutout (each art pixel ≈ 6 source
+ * pixels, measured from the cutout's dominant structural run length).
+ * Projection recovers this grid before sampling so the star, the eye glint,
+ * and the belly ridges survive the tiny runtime bands.
  */
-export const WELCOME_WHALE_NATIVE_GRID = { width: 116, height: 88 } as const
+export const WELCOME_WHALE_NATIVE_GRID = { width: 155, height: 118 } as const
 
 /** Palette-source projection geometry: the recovered native grid itself. */
 export const WELCOME_WHALE_PALETTE_SOURCE_WIDTH = WELCOME_WHALE_NATIVE_GRID.width

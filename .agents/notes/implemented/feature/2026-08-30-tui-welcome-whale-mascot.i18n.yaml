@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-30-tui-welcome-whale-mascot.md
-2026-08-30-tui-welcome-whale-mascot.md: fabd101a9dc81e573037832596a60e9f691e9dcc
-2026-08-30-tui-welcome-whale-mascot.zh.md: d46bb8b7d096dec926baa5cfa551feab0b4744b4
+2026-08-30-tui-welcome-whale-mascot.md: 185bc19b8dd89d0a60caafa05f5a830927343cee
+2026-08-30-tui-welcome-whale-mascot.zh.md: 8c8d609ba588ea0a5fb2d3f039d74a09ea9d61d8

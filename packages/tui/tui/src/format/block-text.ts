@@ -1,38 +1,120 @@
 /**
  * Pixel block-letter brand text for the welcome hero.
  *
- * A hand-authored 5×5 block font covering the wordmark glyph set. Rendering
- * maps `#` cells to `█` under the caller's color, preserving the pixel-art
- * aesthetic of the mascot bands. Pure functions with no terminal I/O.
+ * A hand-authored 10-row mixed-case pixel font for the wordmark glyph set,
+ * rendered as half-block rows (two pixel rows per terminal cell) for twice
+ * the vertical resolution of a plain full-block font — the difference between
+ * mushy and crisp letterforms at terminal scale. Pure functions, no I/O.
  *
  * @module @huiliyi37/dsh-tui/format/block-text
  */
 
-/** Five-row pixel rows of one glyph; `#` marks an inked cell. */
-type BlockGlyph = readonly [string, string, string, string, string]
+/** Ten pixel rows of one glyph; `#` marks an inked cell. */
+type BlockGlyph = readonly [
+  string, string, string, string, string,
+  string, string, string, string, string,
+]
 
-const SPACE_GLYPH: BlockGlyph = ['   ', '   ', '   ', '   ', '   ']
+const SPACE_GLYPH: BlockGlyph = [
+  '  ', '  ', '  ', '  ', '  ',
+  '  ', '  ', '  ', '  ', '  ',
+]
 
+/**
+ * The wordmark glyph inventory: cap/ascender letters occupy rows 1–10,
+ * x-height letters rows 4–10, and the `i` dot rows 1–2. Every row of a glyph
+ * is exactly its advance width long, so layout never misaligns columns.
+ */
 const GLYPHS: Readonly<Record<string, BlockGlyph>> = {
-  O: [' ### ', '#   #', '#   #', '#   #', ' ### '],
-  H: ['#   #', '#   #', '#####', '#   #', '#   #'],
-  M: ['#   #', '## ##', '# # #', '#   #', '#   #'],
-  Y: ['#   #', ' # # ', '  #  ', '  #  ', '  #  '],
-  T: ['#####', '  #  ', '  #  ', '  #  ', '  #  '],
-  I: ['#####', '  #  ', '  #  ', '  #  ', '#####'],
-  A: [' ### ', '#   #', '#####', '#   #', '#   #'],
-  N: ['#   #', '##  #', '# # #', '#  ##', '#   #'],
-  S: [' ####', '#    ', ' ### ', '    #', '#### '],
-  U: ['#   #', '#   #', '#   #', '#   #', ' ### '],
-  R: ['#### ', '#   #', '#### ', '# #  ', '#  # '],
-  E: ['#####', '#    ', '#### ', '#    ', '#####'],
-  '>': ['#    ', ' #   ', '  #  ', ' #   ', '#    '],
-  '<': ['    #', '   # ', '  #  ', '   # ', '    #'],
+  T: [
+    '######',
+    '  ##  ',
+    '  ##  ',
+    '  ##  ',
+    '  ##  ',
+    '  ##  ',
+    '  ##  ',
+    '  ##  ',
+    '  ##  ',
+    '  ##  ',
+  ],
+  i: [
+    '## ',
+    '## ',
+    '   ',
+    '## ',
+    '## ',
+    '## ',
+    '## ',
+    '## ',
+    '## ',
+    '## ',
+  ],
+  a: [
+    '     ',
+    '     ',
+    '     ',
+    ' ### ',
+    '   ##',
+    ' ####',
+    '## ##',
+    '## ##',
+    '## ##',
+    ' ####',
+  ],
+  n: [
+    '     ',
+    '     ',
+    '     ',
+    '#### ',
+    '##  #',
+    '##  #',
+    '##  #',
+    '##  #',
+    '##  #',
+    '##  #',
+  ],
+  s: [
+    '     ',
+    '     ',
+    '     ',
+    ' ####',
+    '##   ',
+    '##   ',
+    ' ### ',
+    '   ##',
+    '##  #',
+    '#### ',
+  ],
+  h: [
+    '##   ',
+    '##   ',
+    '##   ',
+    '#### ',
+    '##  #',
+    '##  #',
+    '##  #',
+    '##  #',
+    '##  #',
+    '##  #',
+  ],
+  u: [
+    '     ',
+    '     ',
+    '     ',
+    '##  #',
+    '##  #',
+    '##  #',
+    '##  #',
+    '##  #',
+    '##  #',
+    ' ####',
+  ],
   ' ': SPACE_GLYPH,
 }
 
-/** Terminal rows occupied by one block-text line. */
-const BLOCK_TEXT_ROWS = 5
+/** Pixel rows of one laid-out block-text line. */
+const BLOCK_TEXT_PIXEL_ROWS = 10
 
 /**
  * Measures the block-text rendering width of a wordmark string in columns.
@@ -43,37 +125,47 @@ const BLOCK_TEXT_ROWS = 5
 export function measureBlockText(text: string): number {
   if (text.length === 0) return 0
   let width = 0
-  for (const ch of text) width += (GLYPHS[ch]?.[0].length ?? SPACE_GLYPH[0].length) + 1
+  // 字标字形集为纯 ASCII，split('') 与码点展开等价。
+  for (const ch of text.split('')) width += (GLYPHS[ch]?.[0].length ?? SPACE_GLYPH[0].length) + 1
   return width - 1
 }
 
 /**
- * Lays out one wordmark string as five pixel rows of `#` and spaces.
+ * Lays out one wordmark string as ten pixel rows of `#` and spaces.
  *
  * @param text - Wordmark characters (unknown glyphs render as spaces).
- * @returns Five rows; each row's trailing blanks are trimmed.
+ * @returns Ten rows; each row's trailing blanks are trimmed.
  */
 export function layoutBlockText(text: string): string[] {
-  // 字标字形集为纯 ASCII，split('') 与码点展开等价。
   const glyphs = text.split('').map(ch => GLYPHS[ch] ?? SPACE_GLYPH)
   const rows: string[] = []
-  for (let row = 0; row < BLOCK_TEXT_ROWS; row++) {
+  for (let row = 0; row < BLOCK_TEXT_PIXEL_ROWS; row++) {
     rows.push(glyphs.map(glyph => glyph[row] ?? '').join(' ').replace(/ +$/g, ''))
   }
   return rows
 }
 
 /**
- * Renders block-text pixel rows as terminal lines: inked cells become `█`
- * under the given color, blanks stay blank.
+ * Renders one wordmark string as five half-block terminal rows: each cell
+ * holds two vertically stacked pixels (`█` both, `▀` top, `▄` bottom).
  *
- * @param rows - Pixel rows from {@link layoutBlockText}.
- * @param paint - Color applier for one inked run (receives the `█` run).
- * @returns Terminal lines ready for the welcome hero details column.
+ * @param text - Wordmark characters (unknown glyphs render as spaces).
+ * @returns Five terminal rows; each row's trailing blanks are trimmed.
  */
-export function renderBlockRows(
-  rows: readonly string[],
-  paint: (ink: string) => string,
-): string[] {
-  return rows.map(row => row.replace(/#+/g, ink => paint(ink.replaceAll('#', '█'))))
+export function formatBlockLines(text: string): string[] {
+  const pixelRows = layoutBlockText(text)
+  const lines: string[] = []
+  for (let row = 0; row < BLOCK_TEXT_PIXEL_ROWS; row += 2) {
+    const top = pixelRows[row] ?? ''
+    const bottom = pixelRows[row + 1] ?? ''
+    const width = Math.max(top.length, bottom.length)
+    let line = ''
+    for (let column = 0; column < width; column++) {
+      const upper = top[column] === '#'
+      const lower = bottom[column] === '#'
+      line += upper && lower ? '█' : upper ? '▀' : lower ? '▄' : ' '
+    }
+    lines.push(line.replace(/ +$/g, ''))
+  }
+  return lines
 }

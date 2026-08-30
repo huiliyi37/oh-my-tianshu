@@ -76,30 +76,30 @@ describe('formatWelcomeHero', () => {
     expect(resolveWelcomeArtWidth(139, 29)).toBe(36)
   })
 
-  it('places a one-line Oh My Tianshu title beside 28-column art', () => {
+  it('places the half-block Tianshu wordmark beside 28-column art', () => {
     const lines = plain(formatWelcomeHero(heroInput({
       width: 89,
       rows: 40,
     }), fakeTheme()))
-    expect(lines.some(line => line.includes('Oh My Tianshu'))).toBe(true)
-    expect(lines.some(line => line.includes('█'))).toBe(false)
-    expect(lines.find(line => line.includes('< Harness >'))).toBeDefined()
-    const titleLine = lines.find(line => line.includes('Oh My Tianshu'))
-    expect(titleLine).toMatch(/fox-\d/)
-    expect(lines.findIndex(line => line.includes('Oh My Tianshu')))
+    expect(lines.some(line => line.includes('Oh My Tianshu'))).toBe(false)
+    expect(lines.some(line => /[█▀▄]/.test(line))).toBe(true)
+    expect(lines.find(line => line.includes('< tianshu harness · from deepseek >'))).toBeDefined()
+    const wordmarkLine = lines.find(line => /[█▀▄]/.test(line))
+    expect(wordmarkLine).toMatch(/fox-\d/)
+    expect(lines.findIndex(line => /[█▀▄]/.test(line)))
       .toBeGreaterThanOrEqual(lines.findIndex(line => /fox-\d/.test(line)))
   })
 
-  it('keeps the peer copy beside the 28-column fox at 80 columns', () => {
+  it('keeps the block brand beside the 28-column art at 80 columns', () => {
     const lines = plain(formatWelcomeHero(heroInput({
       width: 80,
       rows: 40,
     }), fakeTheme()))
     const joined = lines.join('\n')
     expect(joined).toContain('fox-0')
-    expect(joined).toContain('Oh My Tianshu')
-    expect(joined).toContain('< Harness >')
-    expect(lines.some(line => line.includes('fox-') && line.includes('Oh My Tianshu'))).toBe(true)
+    expect(joined).toContain('Oh My')
+    expect(joined).toContain('< tianshu harness · from deepseek >')
+    expect(lines.some(line => line.includes('fox-') && /[█▀▄]/.test(line))).toBe(true)
     for (const line of lines) expect(displayWidth(line)).toBeLessThanOrEqual(80)
   })
 
@@ -116,9 +116,9 @@ describe('formatWelcomeHero', () => {
     expect(lines.some(line => line.includes('Oh My Tianshu'))).toBe(false)
   })
 
-  it('renders the splash title with a mark caret and Harness line', () => {
-    // 细节栏不足 61 列时退回单行文本标题。
-    const lines = formatWelcomeHero(heroInput({ width: 89 }), fakeTheme())
+  it('renders the splash title with a mark caret and Harness line in the compact fallback', () => {
+    // 无图案（窄/无色终端）时品牌退化为单行文本标题。
+    const lines = formatWelcomeHero(heroInput({ art: { lines: [], width: 0 } }), fakeTheme())
     const title = lines.find(line => plainLine(line).includes('Oh My Tianshu'))
     const harness = lines.find(line => plainLine(line).includes('< Harness >'))
 
@@ -133,12 +133,12 @@ describe('formatWelcomeHero', () => {
     const lines = formatWelcomeHero(heroInput(), fakeTheme())
     const flat = lines.map(plainLine)
 
-    // 'Oh My' 文本行保留身份前缀；块行覆盖 TIANSHU > 与 < HARNESS >。
+    // 'Oh My' kicker 文本行 + Tianshu 半块字标（5 行）+ 由来小字行。
     expect(flat.some(line => line.includes('Oh My'))).toBe(true)
-    const inkedRows = lines.filter(line => line.includes('█'))
-    expect(inkedRows.length).toBe(10)
-    expect(inkedRows.some(line => line.includes('\x1B[38;2;238;238;238m\x1B[1m'))).toBe(true)
-    expect(inkedRows.some(line => line.includes('\x1B[38;2;180;140;255m\x1B[1m'))).toBe(true)
+    const brandRows = lines.filter(line => /[█▀▄]/.test(line))
+    expect(brandRows.length).toBe(5)
+    expect(brandRows.every(line => line.includes('\x1B[38;2;238;238;238m\x1B[1m'))).toBe(true)
+    expect(lines.some(line => line.includes('\x1B[38;2;180;140;255m\x1B[1m< tianshu harness · from deepseek >'))).toBe(true)
     expect(flat.some(line => line.includes('Oh My Tianshu'))).toBe(false)
     expect(flat.some(line => line.includes('< Harness >'))).toBe(false)
     for (const line of lines) expect(displayWidth(line)).toBeLessThanOrEqual(100)
@@ -183,7 +183,7 @@ describe('formatWelcomeHero', () => {
     const cwdLine = lines.find(line => plainLine(line).includes('cwd /工作区/'))
 
     expect(flat.some(line => line.includes('fox-0'))).toBe(true)
-    expect(flat.some(line => line.includes('Oh My Tianshu'))).toBe(true)
+    expect(flat.some(line => line.includes('Oh My'))).toBe(true)
     expect(cwdLine).toBeDefined()
     expect(plainLine(cwdLine!)).not.toContain('最终目录')
     expect(cwdLine!.endsWith(ANSI.RESET)).toBe(true)
@@ -200,7 +200,7 @@ describe('formatWelcomeHero', () => {
     const lines = plain(formatWelcomeHero(heroInput(over), fakeTheme()))
     const joined = lines.join('\n')
 
-    expect(joined).toContain('Oh My Tianshu')
+    expect(joined).toContain('Oh My')
     expect(joined).toContain('< Harness >')
     expect(joined).toContain('Model deepseek-chat · Effort high')
     expect(joined).toContain('cwd /work/tianshu')
@@ -230,7 +230,7 @@ describe('formatWelcomeHero', () => {
     }
     // 零宽流回退到 80 列：够放 28 档狐狸，标题留在右侧。
     const fallbackLines = plain(formatWelcomeHero(heroInput({ width: 0 }), fakeTheme()))
-    expect(fallbackLines.join('\n')).toContain('Oh My Tianshu')
+    expect(fallbackLines.join('\n')).toContain('Oh My')
     for (const line of fallbackLines) expect(displayWidth(line)).toBeLessThanOrEqual(80)
   })
 
@@ -294,7 +294,7 @@ describe('formatWelcome', () => {
       restoreLines: ['[1] resize'],
       tip: 'Tip: hidden',
     }, fakeTheme()))
-    expect(fallbackLines.join('\n')).toContain('Oh My Tianshu')
+    expect(fallbackLines.join('\n')).toContain('Oh My')
     expect(fallbackLines.join('\n')).toContain('Tip: hidden')
     for (const line of fallbackLines) expect(displayWidth(line)).toBeLessThanOrEqual(80)
   })

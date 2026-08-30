@@ -41,7 +41,7 @@ const SMOKE_ASSISTANT_REPLY = 'smoke turn complete'
 const ESCALATION_JUSTIFICATION = 'P0 interactive smoke: verify the approval card settle path'
 
 /** Settled-welcome markers (the append-only band the welcome snapshot also pins). */
-const WELCOME_MARKERS = ['Tip:', '< Harness >', '❯'] as const
+const WELCOME_MARKERS = ['Tip:', 'Oh My', '❯'] as const
 /** Approval card markers: rail title, prompt, and the key-hint row. */
 const APPROVAL_MARKERS = ['审批 · bash', '允许执行 bash', '[y] 允许'] as const
 /** Rewind overlay markers per stage. */

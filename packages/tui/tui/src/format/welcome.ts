@@ -9,9 +9,8 @@ import { color } from '../engine/ansi.js'
 import type { RivetTheme } from '../theme.js'
 import { displayWidth, truncateToDisplayWidth, wrapToDisplayWidth } from '../width.js'
 import {
-  layoutBlockText,
+  formatBlockLines,
   measureBlockText,
-  renderBlockRows,
 } from './block-text.js'
 
 /** Welcome and live-chrome left inset in terminal columns. */
@@ -42,15 +41,12 @@ const WELCOME_MARK = '#b48cff'
 /** Terminal rows reserved for chrome when deriving the fox art height budget. */
 const WELCOME_ART_CHROME_ROWS = 6
 
-/** Wordmark strings rendered as block letters when the details column fits. */
-const BLOCK_BRAND_TITLE = 'TIANSHU >'
-const BLOCK_BRAND_HARNESS = '< HARNESS >'
+/** Wordmark and lineage strings rendered as block letters when the details column fits. */
+const BLOCK_BRAND_TITLE = 'Tianshu'
+const BLOCK_BRAND_SUBTITLE = '< tianshu harness · from deepseek >'
 
 /** Details-column width required for the block-letter brand stack. */
-const WELCOME_BLOCK_BRAND_MIN_COLS = Math.max(
-  measureBlockText(BLOCK_BRAND_TITLE),
-  measureBlockText(BLOCK_BRAND_HARNESS),
-)
+const WELCOME_BLOCK_BRAND_MIN_COLS = measureBlockText(BLOCK_BRAND_TITLE)
 
 /** Minimum terminal width for the split 28-column fox hero. */
 export const WELCOME_HERO_WIDE_MIN = WELCOME_BAND_NARROW_MIN_COLS
@@ -125,22 +121,16 @@ function heroDetails(
 }
 
 /**
- * The oversized pixel-letter brand stack: a small `Oh My` text row, then the
- * `TIANSHU >` wordmark and `< HARNESS >` subtitle as block letters, matching
- * the reference wordmark hierarchy (big wordmark, smaller purple subtitle).
+ * The oversized brand stack: a small `Oh My` kicker row, then the `Tianshu`
+ * wordmark as half-block pixel letters (twice the vertical resolution of a
+ * full-block font), then the lineage line crediting the DeepSeek origin.
  */
 function blockBrandLines(theme: RivetTheme): string[] {
   return [
     color('Oh My', theme.secondary),
-    ...renderBlockRows(
-      layoutBlockText(BLOCK_BRAND_TITLE),
-      ink => color(ink, theme.brandColor, { bold: true }),
-    ),
-    '',
-    ...renderBlockRows(
-      layoutBlockText(BLOCK_BRAND_HARNESS),
-      ink => color(ink, WELCOME_MARK, { bold: true }),
-    ),
+    ...formatBlockLines(BLOCK_BRAND_TITLE)
+      .map(line => color(line, theme.brandColor, { bold: true })),
+    color(BLOCK_BRAND_SUBTITLE, WELCOME_MARK, { bold: true }),
   ]
 }
 

@@ -69,7 +69,7 @@
 | src/format/activity-labels.ts | format/activity-labels.ts | modified |
 | src/format/approval-card.ts | — | new（审批卡：圆角轨 + diff 体 + y/n/a/esc 键位，纯渲染） |
 | src/format/btw-panel.ts | — | new |
-| src/format/block-text.ts | — | new（欢迎页大字品牌块字体：手绘 5×5 像素字形表 + 布局/着色纯函数，与吉祥物档共享像素美学） |
+| src/format/block-text.ts | — | new（欢迎页字标半块像素字体：手绘 10 行混合大小写字形表（每格两纵向像素，清晰度两倍于全块字体）+ 布局纯函数） |
 | src/format/bg-block.ts | — | new（omp 风格表面底色块：单行/多行垫底色补到整宽，纯渲染） |
 | src/format/chrome-colors.ts | — | new（输入轨/footer 雾蓝 chrome token，对齐 dsh-cc-tui Gentle Mist Blue） |
 | src/format/collapsed-bash.ts | format/collapsed-bash.ts | modified |
