@@ -455,6 +455,11 @@
     - id: doom-loop-guard
       name: '@huiliyi37/dsh-doom-loop-guard'
 
+    # Citation guard: fabricated upgrade-card IDs, legacy error codes, and
+    # read-before-cite path checks (advisory, never vetoes).
+    - id: cite-gate
+      name: '@huiliyi37/dsh-cite-gate'
+
     # Every mode enables the stable web_search model surface. DeepSeek search
     # resolves the same DEEPSEEK_API_KEY credential the Models page manages for
     # chat, at each search; its Messages endpoint is separate from the

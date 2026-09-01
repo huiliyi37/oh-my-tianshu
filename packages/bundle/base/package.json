@@ -57,6 +57,7 @@
     "@huiliyi37/dsh-compact-tool-result-prune": "workspace:^",
     "@huiliyi37/dsh-credentials-local": "workspace:^",
     "@huiliyi37/dsh-doom-loop-guard": "workspace:^",
+    "@huiliyi37/dsh-cite-gate": "workspace:^",
     "@huiliyi37/dsh-fs-policy": "workspace:^",
     "@huiliyi37/dsh-fs-sandbox": "workspace:^",
     "@huiliyi37/dsh-git": "workspace:^",
