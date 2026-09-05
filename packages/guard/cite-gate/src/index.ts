@@ -16,17 +16,26 @@ import {
 
 export const name = 'cite-gate'
 
+/**
+ * Cite-gate plugin config. Every check is advisory: findings surface as
+ * per-turn reminders and never block a reply or tool call.
+ */
 export interface Config {
   /** Master switch. When false the guard registers no behavior. */
   enabled?: boolean
   /** Reminders injected per assistant message (deduplicated per session). */
   reminderBudget?: number
+  /** Flag upgrade/feature card IDs absent from the compiled vocabulary. */
   cardCheck?: boolean
+  /** Flag error codes in legacy forms the current catalog replaced. */
   legacyCodeCheck?: boolean
   /** Optional: also flag namespaced error codes not in the curated list. Noisy — off by default. */
   namespacedCodeCheck?: boolean
+  /** Flag workspace paths cited before any read ({@link Config.readTools} history). */
   pathCheck?: boolean
+  /** Tool names whose successful calls mark a path as read. */
   readTools?: string[]
+  /** Tool names whose successful calls mark a path as read-and-written. */
   writeTools?: string[]
 }
 

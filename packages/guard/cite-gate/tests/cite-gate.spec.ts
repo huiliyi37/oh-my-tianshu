@@ -45,9 +45,9 @@ describe('scanText (pure)', () => {
   })
 
   it('flags unread paths, passes seen and noise paths', () => {
-    const seen = new Set(['docs/read.md'])
-    const findings = scanText('见 docs/unread.md 和 docs/read.md，https://x.io/a.md 与 /usr/lib/x.ts', VOCAB, seen, ALL_ON)
-    expect(findings.filter(f => f.kind === 'unread-path').map(f => 'path' in f ? f.path : '')).toEqual(['docs/unread.md'])
+    const seen = new Set(['notes/read.md'])
+    const findings = scanText('见 notes/unread.md 和 notes/read.md，https://x.io/a.md 与 /usr/lib/x.ts', VOCAB, seen, ALL_ON)
+    expect(findings.filter(f => f.kind === 'unread-path').map(f => 'path' in f ? f.path : '')).toEqual(['notes/unread.md'])
   })
 
   it('extracts text from assembled messages and normalizes tool paths', () => {
@@ -57,7 +57,7 @@ describe('scanText (pure)', () => {
       source: { kind: 'model' },
     } as never)
     expect(text).toBe('见 DSH-0.1.2-A1-25 迁移。')
-    expect(normalizePath('./docs/a.md')).toBe('docs/a.md')
+    expect(normalizePath('./notes/a.md')).toBe('notes/a.md')
   })
 })
 
@@ -98,22 +98,22 @@ describe('cite-gate (harness)', () => {
   it('injects notices for a fabricated card and an unread path', async () => {
     const ctx = await harness()
     const agent = await runAgent(ctx, new MockAdapter([
-      textResponse('按 DSH-0.1.2-A9-99 迁移，改动见 docs/never-read.md。'),
+      textResponse('按 DSH-0.1.2-A9-99 迁移，改动见 notes/never-read.md。'),
       textResponse('ok'),
     ]), 2)
 
     const reminders = guardReminders(agent)
     expect(reminders).toHaveLength(2)
     expect(reminders.some(r => r.text.includes('DSH-0.1.2-A9-99'))).toBe(true)
-    expect(reminders.some(r => r.text.includes('docs/never-read.md'))).toBe(true)
+    expect(reminders.some(r => r.text.includes('notes/never-read.md'))).toBe(true)
     expect(reminders.every(r => (r.source as { form?: string }).form === 'notice')).toBe(true)
   })
 
   it('does not remind for a path the session actually read', async () => {
     const ctx = await harness()
     const agent = await runAgent(ctx, new MockAdapter([
-      toolCallResponse('r1', 'read', { path: 'docs/read.md' }),
-      textResponse('按 DSH-0.1.2-A9-99 迁移，改动见 docs/read.md。'),
+      toolCallResponse('r1', 'read', { path: 'notes/read.md' }),
+      textResponse('按 DSH-0.1.2-A9-99 迁移，改动见 notes/read.md。'),
       textResponse('ok'),
     ]), 2)
 
@@ -125,14 +125,14 @@ describe('cite-gate (harness)', () => {
   it('respects the reminder budget and stays silent when disabled', async () => {
     const ctx = await harness({ reminderBudget: 1 })
     const agent = await runAgent(ctx, new MockAdapter([
-      textResponse('按 DSH-0.1.2-A9-99 迁移，另见 DSH-0.1.2-A8-88 和 docs/a.md、docs/b.md。'),
+      textResponse('按 DSH-0.1.2-A9-99 迁移，另见 DSH-0.1.2-A8-88 和 notes/a.md、notes/b.md。'),
       textResponse('ok'),
     ]), 2)
     expect(guardReminders(agent)).toHaveLength(1)
 
     const off = await harness({ enabled: false })
     const quiet = await runAgent(off, new MockAdapter([
-      textResponse('按 DSH-0.1.2-A9-99 迁移，改动见 docs/never-read.md。'),
+      textResponse('按 DSH-0.1.2-A9-99 迁移，改动见 notes/never-read.md。'),
       textResponse('ok'),
     ]), 2)
     expect(guardReminders(quiet)).toHaveLength(0)
