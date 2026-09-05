@@ -2,6 +2,19 @@
 
 [English](README.md) | 中文
 
+<p align="center">
+  <img src="docs/tui-welcome.png" alt="天枢 TUI 欢迎页:像素鲸鱼吉祥物、块字品牌字标与会话恢复列表" width="88%">
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@huiliyi37/oh-my-tianshu"><img src="https://img.shields.io/npm/v/@huiliyi37/oh-my-tianshu?color=8B5CF6&style=for-the-badge" alt="npm version"></a>
+  <a href="https://github.com/huiliyi37/oh-my-tianshu/releases"><img src="https://img.shields.io/github/v/release/huiliyi37/oh-my-tianshu?color=8B5CF6&style=for-the-badge" alt="GitHub release"></a>
+  <a href="https://github.com/huiliyi37/oh-my-tianshu/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/huiliyi37/oh-my-tianshu/ci.yml?branch=main&label=CI&style=for-the-badge" alt="CI"></a>
+  <img src="https://img.shields.io/badge/License-Apache%202.0-3B5BDB?style=for-the-badge&logo=apache" alt="Apache-2.0">
+  <img src="https://img.shields.io/badge/Node-%5E22.19%20%7C%7C%20%3E%3D24-339933?style=for-the-badge&logo=nodedotjs" alt="Node">
+  <a href="https://github.com/huiliyi37/oh-my-tianshu/stargazers"><img src="https://img.shields.io/github/stars/huiliyi37/oh-my-tianshu?style=for-the-badge&color=f1c40f" alt="Stars"></a>
+</p>
+
 Oh My Tianshu(`oh-my-tianshu`)是一款完全体开源 coding agent,构建在插件式 harness 之上:模型、工具、策略、记忆、检索与界面全部是 Cordis 插件,部署方无需改动 agent 循环即可组合、替换或扩展。
 
 一个发行版,四种表面——全屏终端 UI、浏览器 UI、无头单发任务、ACP 自动化服务器——之下是深厚的能力面:视觉桥加 `ask_image` 副驾让纯文本主模型照样处理图片、带写入质量门的跨会话项目记忆、强制 bugfix 编辑先红后绿的证据门、从影子记录走向灰度派发的 agent 路由(派发到原生子代理)、语义检索(BM25、CJK 感知、可选向量层)与 tree-sitter 图谱代码检索、按会话预设组合的 plan mode、支撑 `/rewind` 的写前文件快照,以及让长会话保持低成本的 prefix 缓存健康观测。
@@ -9,8 +22,6 @@ Oh My Tianshu(`oh-my-tianshu`)是一款完全体开源 coding agent,构建在插
 会话权威且可重建:模型可见的一切都记录在会话事件流里,持久化、恢复/分叉/查询、回放、遥测与所有界面都从同一份事件派生。组合天然对缓存友好——预设拥有 agent 面,会话的工具面与人设随需变化,而被缓存的前缀保持字节稳定。
 
 它是 [DeepSeek Harness](https://github.com/deepseek-ai)(`dsh`,MIT)的友好 fork,以 **Apache License 2.0** 发布;分叉点为 2026-08 基线,本线独立演进,不追踪上游。完整署名见 [NOTICE](NOTICE)。
-
-![天枢 TUI 欢迎页:像素鲸鱼吉祥物、块字品牌字标与会话恢复列表](docs/tui-welcome.png)
 
 仓库是一个 pnpm monorepo:250+ 个 Cordis 插件包(含 vendored 上游)按 `core / tui / host / client / guard / subagent / context / memory` 等组索引在 [packages/README.md](packages/README.md),全部以 `@huiliyi37/*` scope 发布 npm;整体架构见[架构文档](docs/architecture.md),使用文档在 [docs/user](docs/user/index.md)。
 

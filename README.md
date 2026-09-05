@@ -2,6 +2,19 @@
 
 English | [中文](README.zh.md)
 
+<p align="center">
+  <img src="docs/tui-welcome.png" alt="Tianshu TUI welcome screen: the pixel-whale mascot, the block-letter wordmark, and the resume-session list" width="88%">
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@huiliyi37/oh-my-tianshu"><img src="https://img.shields.io/npm/v/@huiliyi37/oh-my-tianshu?color=8B5CF6&style=for-the-badge" alt="npm version"></a>
+  <a href="https://github.com/huiliyi37/oh-my-tianshu/releases"><img src="https://img.shields.io/github/v/release/huiliyi37/oh-my-tianshu?color=8B5CF6&style=for-the-badge" alt="GitHub release"></a>
+  <a href="https://github.com/huiliyi37/oh-my-tianshu/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/huiliyi37/oh-my-tianshu/ci.yml?branch=main&label=CI&style=for-the-badge" alt="CI"></a>
+  <img src="https://img.shields.io/badge/License-Apache%202.0-3B5BDB?style=for-the-badge&logo=apache" alt="Apache-2.0">
+  <img src="https://img.shields.io/badge/Node-%5E22.19%20%7C%7C%20%3E%3D24-339933?style=for-the-badge&logo=nodedotjs" alt="Node">
+  <a href="https://github.com/huiliyi37/oh-my-tianshu/stargazers"><img src="https://img.shields.io/github/stars/huiliyi37/oh-my-tianshu?style=for-the-badge&color=f1c40f" alt="Stars"></a>
+</p>
+
 Oh My Tianshu (`oh-my-tianshu`) is a full-capability open-source coding agent built on a plugin harness: models, tools, policies, memory, retrieval, and interfaces are all Cordis plugins a deployment can compose, replace, or extend without touching the agent loop.
 
 One distribution, four surfaces — full-screen terminal UI, browser UI, headless one-shot runs, and an ACP automation server — over a deep capability bench: a vision bridge plus an `ask_image` co-pilot so text-only primaries still work with images, cross-session project memory with a write-quality gate, an evidence gate enforcing RED→GREEN on bugfix edits, an agent router that moves from shadow to gradual dispatch over native subagents, semantic (BM25, CJK-aware, optional vector) and tree-sitter graph code retrieval, plan mode with per-session presets, pre-write file snapshots behind `/rewind`, and prefix-cache health observation that keeps long sessions cheap.
@@ -9,8 +22,6 @@ One distribution, four surfaces — full-screen terminal UI, browser UI, headles
 Sessions are authoritative and reconstructable: anything the model sees is logged to the session stream, and persistence, resume/fork/query, replay, telemetry, and every UI derive from the same events. Composition stays cache-friendly by design — presets own the agent plane, so the cached prefix stays byte-stable while a session's toolset and persona change.
 
 It is a friendly fork of [DeepSeek Harness](https://github.com/deepseek-ai) (`dsh`, MIT) released under the **Apache License 2.0**; this line evolves independently from the 2026-08 baseline and does not track upstream. Full attribution lives in [NOTICE](NOTICE).
-
-![Tianshu TUI welcome screen: the pixel-whale mascot, the block-letter wordmark, and the resume-session list](docs/tui-welcome.png)
 
 The repository is a pnpm monorepo: 250+ Cordis plugin packages (including vendored upstreams), indexed by group — `core / tui / host / client / guard / subagent / context / memory` and friends — in [packages/README.md](packages/README.md), all published to npm under the `@huiliyi37/*` scope. See the [architecture doc](docs/architecture.md) for the design overview and [docs/user](docs/user/index.md) for usage docs.
 
