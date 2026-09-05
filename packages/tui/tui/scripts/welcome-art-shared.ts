@@ -490,14 +490,14 @@ export interface ProjectCutoutInput {
  * contract fails.
  */
 export async function projectCutoutToBands(input: ProjectCutoutInput): Promise<WelcomeArtAsset> {
-  const { cutout, bands, label } = input
-  const working: RawImage = input.nativeGrid === undefined
+  const { cutout, bands, label, nativeGrid } = input
+  const working: RawImage = nativeGrid === undefined
     ? cutout
     : await (async () => {
       const grid = await sharp(cutout.data, {
         raw: { width: cutout.width, height: cutout.height, channels: 4 },
       })
-        .resize(input.nativeGrid.width, input.nativeGrid.height, {
+        .resize(nativeGrid.width, nativeGrid.height, {
           kernel: sharp.kernel.nearest,
           fit: 'fill',
         })
