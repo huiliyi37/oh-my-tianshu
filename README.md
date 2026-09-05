@@ -100,7 +100,7 @@ Beyond the upstream baseline (files, shell/PTY, skills, tasks/goals/plans, subag
 | Meridian | `@huiliyi37/dsh-meridian` | Codebase graph index (tree-sitter → sqlite): repo map, impact analysis, flow queries, behavior signals; powers `repo_graph`. |
 | File rewind | `@huiliyi37/dsh-fs-snapshot` | Pre-write snapshots of every file a write tool touches, backing `/rewind`'s code/both granularity. |
 | Git seam | `@huiliyi37/dsh-git` | Typed git capability service (`GitLocal` CLI provider, typed `GitError`s) consumed by tools and UI. |
-| Terminal UI | `@huiliyi37/dsh-tui` | Full-screen TUI on the Tianshu (opencode-tui) render core — Apache-2.0 provenance chain preserved. |
+| Terminal UI | `@huiliyi37/dsh-tui` | Full-screen TUI on the Tianshu ([Tianshu-harness](https://github.com/huiliyi37/Tianshu-harness)) render core — Apache-2.0 provenance chain preserved. |
 | Spark anchors | `@huiliyi37/dsh-spark-anchors` | Pairs with reasoning-truncating provider routes: re-injects excluded paths so the model does not re-derive ruled-out options. |
 
 ## Use Tianshu
@@ -136,7 +136,7 @@ Start the full-screen terminal interface:
 oh-my-tianshu tui          # or: oh-my-tianshu --profile tui
 ```
 
-The TUI is a port of the Tianshu (opencode-tui) render core adapted to the harness seams, with an oh-my-pi-aligned interface: a bordered welcome card with a gradient logo, a segmented status bar embedded in the composer's top border, full-width message-surface tints (user bubble, per-status tool blocks), and 17 themes (the amber `omp` is the default, `graphite` and friends remain via `/theme`). Type `/` to open the command menu — ↑↓ to select, Tab to accept, Enter to submit, Esc to close. Press `Ctrl+.` any time for the shortcut map.
+The TUI is a port of the Tianshu (Tianshu-harness) render core adapted to the harness seams, with an oh-my-pi-aligned interface: a bordered welcome card with a gradient logo, a segmented status bar embedded in the composer's top border, full-width message-surface tints (user bubble, per-status tool blocks), and 17 themes (the amber `omp` is the default, `graphite` and friends remain via `/theme`). Type `/` to open the command menu — ↑↓ to select, Tab to accept, Enter to submit, Esc to close. Press `Ctrl+.` any time for the shortcut map.
 
 **Slash commands**
 
@@ -270,7 +270,7 @@ This project forked from DeepSeek Harness (MIT) at the 2026-08 baseline and evol
 | This repo (oh-my-tianshu, formerly tianshu-public) | A standalone integrated distribution with its own CLI (`oh-my-tianshu`) | A dedicated `$DSH_HOME` (defaults to `~/.dsh-tianshu`, isolated from the official `~/.dsh`) |
 
 - This repo fully honors `$DSH_HOME` (precedence: explicit config > `$DSH_HOME` > default home). When coexisting with the official dsh, set `export DSH_HOME=~/.dsh-tianshu` (no manual setup needed once the default-home isolation lands). Sessions / profiles / settings stay separate.
-- **Naming memo (avoid confusion)**: `dsh-tianshu-tui` = the TUI plugin for official dsh; `oh-my-tianshu` / `@huiliyi37/oh-my-tianshu` = the standalone integrated distribution; `Tianshu-Tui` = the upstream render-core source (Apache-2.0).
+- **Naming memo (avoid confusion)**: `dsh-tianshu-tui` = the TUI plugin for official dsh; `oh-my-tianshu` / `@huiliyi37/oh-my-tianshu` = the standalone integrated distribution; `Tianshu-harness` (Tianshu) = the render-core source repository (Apache-2.0).
 - **Renaming plan (phase 2)**: the repo will be uniformly named `oh-my-tianshu`, and the launch command plus npm package name will follow (`oh-my-tianshu` → new command name) to eliminate semantic confusion with the plugin name `dsh-tianshu-tui`; this section will be updated then.
 
 ## Development

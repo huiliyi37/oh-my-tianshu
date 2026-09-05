@@ -100,7 +100,7 @@ pnpm oh-my-tianshu web
 | Meridian | `@huiliyi37/dsh-meridian` | 代码图谱索引(tree-sitter → sqlite):repo map、影响分析、流查询、行为信号;支撑 `repo_graph`。 |
 | 文件回滚 | `@huiliyi37/dsh-fs-snapshot` | 写工具触碰的每个文件先做写前快照,支撑 `/rewind` 的 code/both 粒度。 |
 | Git 接缝 | `@huiliyi37/dsh-git` | 类型化 git 能力服务(`GitLocal` CLI provider、类型化 `GitError`),供工具与 UI 消费。 |
-| 终端 UI | `@huiliyi37/dsh-tui` | 基于天枢(opencode-tui)渲染核的全屏 TUI——Apache-2.0 来源链原样保留。 |
+| 终端 UI | `@huiliyi37/dsh-tui` | 基于天枢（[Tianshu-harness](https://github.com/huiliyi37/Tianshu-harness)）渲染核的全屏 TUI——Apache-2.0 来源链原样保留。 |
 | Spark 锚点 | `@huiliyi37/dsh-spark-anchors` | 与截断推理的 provider route 成对:回注被排除的路径,防止模型重复推导。 |
 
 ## 使用天枢
@@ -136,7 +136,7 @@ profile 布局、层语义与配置输出命令详见 [CLI(命令行界面)约�
 oh-my-tianshu tui          # or: oh-my-tianshu --profile tui
 ```
 
-TUI 是天枢(opencode-tui)渲染核心适配 harness 接缝的移植,界面对标 oh-my-pi:边框欢迎卡 + 渐变 logo、嵌入输入框顶边的段式状态栏、消息面整宽底色(用户气泡、按状态着色的工具块)、17 个主题(琥珀色 `omp` 为默认,`graphite` 等可经 `/theme` 切换)。输入 `/` 打开命令菜单——↑↓ 选择、Tab 接受、Enter 提交、Esc 关闭;随时按 `Ctrl+.` 查看键位表。
+TUI 移植自天枢（Tianshu-harness）的渲染核心并适配 harness 接缝,界面对标 oh-my-pi:边框欢迎卡 + 渐变 logo、嵌入输入框顶边的段式状态栏、消息面整宽底色(用户气泡、按状态着色的工具块)、17 个主题(琥珀色 `omp` 为默认,`graphite` 等可经 `/theme` 切换)。输入 `/` 打开命令菜单——↑↓ 选择、Tab 接受、Enter 提交、Esc 关闭;随时按 `Ctrl+.` 查看键位表。
 
 **Slash 命令**
 
@@ -270,7 +270,7 @@ pnpm run demo:acp
 | 本仓库(oh-my-tianshu,原 tianshu-public) | 独立集成发行,自带 CLI(`oh-my-tianshu`) | 独立 `$DSH_HOME`(默认 `~/.dsh-tianshu`,与官方 `~/.dsh` 隔离) |
 
 - 本仓库完全尊重 `$DSH_HOME`(优先级:显式配置 > `$DSH_HOME` > 默认 home): 与官方 dsh 共存时设 `export DSH_HOME=~/.dsh-tianshu`(默认值独立化落地后无需手动设置)。 会话 / profile / settings 各自独立,互不覆盖。
-- **命名备忘(防止混淆)**:`dsh-tianshu-tui` = 官方 dsh 的 TUI 插件; `oh-my-tianshu` / `@huiliyi37/oh-my-tianshu` = 独立集成发行;`Tianshu-Tui` = 上游渲染核心 来源(Apache-2.0,天枢)。
+- **命名备忘(防止混淆)**:`dsh-tianshu-tui` = 官方 dsh 的 TUI 插件; `oh-my-tianshu` / `@huiliyi37/oh-my-tianshu` = 独立集成发行;`Tianshu-harness`（天枢）= 渲染核心来源仓(Apache-2.0)。
 - **更名计划(第二批)**:仓库名统一为 `oh-my-tianshu`,启动命令与 npm 包名同步改名 (`oh-my-tianshu` → 新命令名),消除与插件名 `dsh-tianshu-tui` 的语义混淆;本说明届时同步更新。
 
 ## 开发
