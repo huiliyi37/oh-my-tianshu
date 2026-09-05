@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-tool-todo",
   "description": "Model-facing todo_write tool over the Tianshu Harness event-sourced session log",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publishConfig": {
     "access": "public"
   },

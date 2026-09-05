@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-memory",
   "description": "Project-level memory/knowledge persistence — Markdown-file backend with a Cordis memory service",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publishConfig": {
     "access": "public"
   },

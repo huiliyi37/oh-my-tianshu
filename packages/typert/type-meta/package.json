@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-type-meta",
   "description": "Compiler-independent Remote metadata and TypeRT provider protocols",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publishConfig": {
     "access": "public"
   },

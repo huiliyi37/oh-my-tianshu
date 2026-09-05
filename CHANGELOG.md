@@ -2,6 +2,30 @@
 
 English | [中文](CHANGELOG.zh.md)
 
+## 2026-09-05 — 0.8.0
+
+0.8.0 ships the advisory citation gate, the TUI welcome-page and brand-wordmark redesign, three subagent routing fixes, and a repo-wide release/docs-chain repair — 23 commits since the 0.7.0 tag.
+
+### cite-gate: advisory citation reminders
+
+A base-bundle guard folds one budgeted advisory reminder into the next step when an assistant message cites something it cannot back: fabricated upgrade-card IDs absent from the compiled vocabulary, 0.1.1-era legacy error codes, and workspace paths the session never read or wrote (read-before-cite). Findings never block — `reminderBudget` caps per turn (default 3), deduplicated per finding; opt-in `namespacedCodeCheck` flags unknown namespaced codes.
+
+### TUI welcome page and brand wordmark
+
+The welcome card gains a switchable mascot (pixel whale by default, fox retained via `/welcome`), a two-step pixel-grid fidelity pass with a 44-band oversized wordmark, and a semi-block mixed-case brand font with whale-native grid refinement. Resuming a session re-attaches the default preset so the standing tool surface no longer goes missing.
+
+### Subagent routing fixes
+
+Routing-policy parsing covers resume top-level and parent-unreachable child sessions (sampling instead of rejecting), strategy parsing scans events exactly once per delegation by writing to disk directly, and `list_subagent_models` registers with the fiber (not the provider) lifecycle so re-adding no longer crashes on duplicate registration.
+
+### Release and docs chain repair
+
+The first clean-checkout build since 09-01 exposed and fixed: ten phantom ide/mission project references in `tsconfig.host.json` (build blocker), a strict-mode type error in the welcome-art scripts, cite-gate's packaging conventions (outDir, files whitelist, `./invariant` export, baseline version), and tool-subagent's hashed chunk missing from its publish whitelist. doc-sync returns to 27/27 green: generated catalogs and graphs regenerated with zh counterparts synced, eight stale pairing records re-recorded, and the doctor note restructured.
+
+### README and branding
+
+The README is retitled **Oh My Tianshu** (the repository's own name — `Tianshu-harness` is the render-core source repository), carries the TUI welcome screenshot, documents the web startup path with its full flag set, and corrects every render-core attribution to Tianshu-harness (`SOURCE-MAP.md` included).
+
 ## 2026-08-29 — 0.7.0
 
 0.7.0 closes the Web-parity program, backflows two upstream waves (official harness alpha.1 and the sibling opencode-tui), and lands the child-model routing arc end to end — 21 commits since the 0.6.0 release.

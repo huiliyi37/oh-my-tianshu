@@ -2,7 +2,7 @@
 
 本包渲染核心移植自天枢（Tianshu，曾用代号 Rivet）终端 UI 引擎，Apache License 2.0：
 
-- 上游：https://github.com/huiliyi37/Tianshu-Tui（`src/tui/` 子树）
+- 上游：https://github.com/huiliyi37/Tianshu-harness（`src/tui/` 子树；曾用名 Tianshu-Tui）
 - port 时点：本仓提交 `b26ebed`（2026-08-10）自上游 `src/tui` @ `bc2aa2a0c` 移植；上游快照不随仓分发
 - 上游版权：Apache License 2.0, Copyright 2025-2026 Tianshu Contributors（许可全文见 `LICENSE`；再分发与修改声明见 `NOTICE`）
 

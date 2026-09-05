@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-host-directory-picker",
   "description": "Abstract workspace-directory picking seam (ctx.directoryPicker) for the Tianshu Harness web GUI host",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publishConfig": {
     "access": "public"
   },

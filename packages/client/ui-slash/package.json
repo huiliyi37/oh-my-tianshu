@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-client-ui-slash",
   "description": "Input trigger pipeline: '/' and '@' detection, candidate menu, pick routing to registered sources",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publishConfig": {
     "access": "public"
   },

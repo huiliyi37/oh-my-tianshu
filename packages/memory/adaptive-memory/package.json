@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-adaptive-memory",
   "description": "Adaptive memory: intent-gated STM snapshots via the append-on-change runtime-context channel (prefix-cache safe)",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publishConfig": {
     "access": "public"
   },

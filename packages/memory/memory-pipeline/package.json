@@ -1,6 +1,6 @@
 {
   "name": "@huiliyi37/dsh-memory-pipeline",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",

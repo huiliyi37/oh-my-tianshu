@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-acp-demo",
   "description": "ACP automation server app: agent spine + JSONL persistence + ACP transport, with a JSON-RPC stdio bin",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publishConfig": {
     "access": "public"
   },

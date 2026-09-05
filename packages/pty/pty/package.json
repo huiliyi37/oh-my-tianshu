@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-pty",
   "description": "Persistent PTY session seam for the Tianshu Harness — owner-scoped ids, backend registry, interactive sends, reads, signals, and awaited cleanup",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publishConfig": {
     "access": "public"
   },

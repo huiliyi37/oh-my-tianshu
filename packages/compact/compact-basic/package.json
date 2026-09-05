@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-compact-basic",
   "description": "Token-meter-driven compaction policy and LLM summarization backend for the Tianshu Harness",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publishConfig": {
     "access": "public"
   },

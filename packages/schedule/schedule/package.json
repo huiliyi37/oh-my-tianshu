@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-schedule",
   "description": "Agent-scoped durable after, at, and fixed-rate reminders over the session event log",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publishConfig": {
     "access": "public"
   },

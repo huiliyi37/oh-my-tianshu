@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-doom-loop-guard",
   "description": "Advisory loop-guard plugin: reminders when an agent oscillates between two tools, retries a failing same-file edit, or re-runs an unchanged failing test",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publishConfig": {
     "access": "public"
   },

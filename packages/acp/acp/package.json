@@ -1,7 +1,7 @@
 {
   "name": "@huiliyi37/dsh-acp",
   "description": "Automation-only Agent Client Protocol server for driving Tianshu Harness agents over JSON-RPC stdio",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publishConfig": {
     "access": "public"
   },

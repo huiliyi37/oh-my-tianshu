@@ -2,6 +2,30 @@
 
 [English](CHANGELOG.md) | 中文
 
+## 2026-09-05 — 0.8.0
+
+0.8.0 发布建议性引用闸门、TUI 欢迎页与品牌字标重设计、三项子代理路由修复，以及全仓发布/文档链修复——自 0.7.0 tag 以来 23 个提交。
+
+### cite-gate：建议性引用提醒
+
+基准 bundle 新增守卫：当 assistant 消息引用了无法自证的内容时，向下一步折叠一条有预算的建议性提醒——编译词表里不存在的幻觉升级卡 ID、0.1.1 时代的旧错误码、以及会话从未读写的 workspace 路径（引了没读）。发现项绝不拦截——`reminderBudget` 按轮封顶（默认 3），逐发现项去重；可选 `namespacedCodeCheck` 标记 curated 清单外的命名空间错误码。
+
+### TUI 欢迎页与品牌字标
+
+欢迎卡吉祥物可切换（默认像素鲸鱼，`/welcome` 保留狐狸）、两步法像素网格保真 + 44 档超大字标、半块混合大小写品牌字体与鲸鱼原生网格细化。恢复会话补挂默认 preset——standing 工具面不再缺席。
+
+### 子代理路由修复
+
+路由策略解析覆盖 resume 顶层与父不可达子会话（采样而非拒绝）；策略解析每委派恰一次事件扫描（直接落盘替代二次幂等扫描）；`list_subagent_models` 注册随 fiber（而非 provider）生命周期——修复 re-add 重复注册崩溃。
+
+### 发布与文档链修复
+
+9 月 1 日以来首次干净 checkout 构建暴露并修复：`tsconfig.host.json` 十行幻影 ide/mission 引用（构建阻断）、欢迎页脚本的 strict 类型错误、cite-gate 打包约定（outDir、files 白名单、`./invariant` 导出、基线版本）、tool-subagent 哈希 chunk 缺席发布白名单。doc-sync 回到 27/27 全绿：生成目录/图谱再生成并同步 zh 对侧、8 对过期配对记录重录、doctor 笔记结构重构。
+
+### README 与品牌
+
+README 改题 **Oh My Tianshu**（仓库本体名——`Tianshu-harness` 是渲染核心来源仓）、首屏 TUI 欢迎页截图、补全 web 启动方式与全量旗标，渲染核出处全部更正为 Tianshu-harness（含 `SOURCE-MAP.md`）。
+
 ## 2026-08-29 — 0.7.0
 
 0.7.0 收束 Web 追平计划、回流两路上游（官方 harness alpha.1 与兄弟仓 opencode-tui），并端到端落地子代理模型路由弧——自 0.6.0 发布以来 21 个提交。
