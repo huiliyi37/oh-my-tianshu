@@ -14,7 +14,6 @@
   },
   "files": [
     "lib/index.js",
-    "lib/scan.js",
     "lib/types/**/*.d.ts"
   ],
   "dependencies": {
