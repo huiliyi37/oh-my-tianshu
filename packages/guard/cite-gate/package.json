@@ -1,6 +1,6 @@
 {
   "name": "@huiliyi37/dsh-cite-gate",
-  "version": "0.1.0",
+  "version": "0.7.0",
   "description": "Advisory citation gate: flags fabricated upgrade-card IDs, legacy error codes, and read-before-cite violations in agent answers",
   "type": "module",
   "main": "lib/index.js",
