@@ -10,6 +10,10 @@ Sessions are authoritative and reconstructable: anything the model sees is logge
 
 It is a friendly fork of [DeepSeek Harness](https://github.com/deepseek-ai) (`dsh`, MIT) released under the **Apache License 2.0**; this line evolves independently from the 2026-08 baseline and does not track upstream. Full attribution lives in [NOTICE](NOTICE).
 
+![Tianshu TUI welcome screen: the pixel-whale mascot, the block-letter wordmark, and the resume-session list](docs/tui-welcome.png)
+
+The repository is a pnpm monorepo: 250+ Cordis plugin packages (including vendored upstreams), indexed by group — `core / tui / host / client / guard / subagent / context / memory` and friends — in [packages/README.md](packages/README.md), all published to npm under the `@huiliyi37/*` scope. See the [architecture doc](docs/architecture.md) for the design overview and [docs/user](docs/user/index.md) for usage docs.
+
 ## Install
 
 Requirements: Node `^22.19 || >=24`, and a DeepSeek API key (`DEEPSEEK_API_KEY`).
@@ -103,14 +107,14 @@ Beyond the upstream baseline (files, shell/PTY, skills, tasks/goals/plans, subag
 
 ### Web UI
 
-For the recommended local interface, start the Web UI from the npm install (`oh-my-tianshu web`) or from a built checkout:
+One command from the npm install; the default `http://127.0.0.1:3080` opens in your browser automatically (`--no-open` suppresses the auto-open):
 
 ```sh
-pnpm run build
-pnpm oh-my-tianshu web
+oh-my-tianshu web
+oh-my-tianshu web --host 0.0.0.0 --port 8080
 ```
 
-The Web UI is served at `http://127.0.0.1:3080` by default.
+Common flags: `--host` / `--port` bind the address and port, `--dev` mounts the HMR receiver (run `pnpm run dev:web` alongside to rebuild bundles), `--workspace-root` sets the parent directory for workspaces created from the browser, `--trusted-host` extends the `/api` browser-trust fence, `--no-open` skips the auto-open. A source checkout runs `pnpm run build` for the frontend artifacts, then `pnpm oh-my-tianshu web`.
 
 ### Profiles
 

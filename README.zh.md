@@ -10,6 +10,10 @@
 
 它是 [DeepSeek Harness](https://github.com/deepseek-ai)(`dsh`,MIT)的友好 fork,以 **Apache License 2.0** 发布;分叉点为 2026-08 基线,本线独立演进,不追踪上游。完整署名见 [NOTICE](NOTICE)。
 
+![天枢 TUI 欢迎页:像素鲸鱼吉祥物、块字品牌字标与会话恢复列表](docs/tui-welcome.png)
+
+仓库是一个 pnpm monorepo:250+ 个 Cordis 插件包(含 vendored 上游)按 `core / tui / host / client / guard / subagent / context / memory` 等组索引在 [packages/README.md](packages/README.md),全部以 `@huiliyi37/*` scope 发布 npm;整体架构见[架构文档](docs/architecture.md),使用文档在 [docs/user](docs/user/index.md)。
+
 ## 安装
 
 要求:Node `^22.19 || >=24`,以及一个 DeepSeek API key(`DEEPSEEK_API_KEY`)。
@@ -103,14 +107,14 @@ pnpm oh-my-tianshu web
 
 ### Web UI
 
-推荐在本地使用 Web UI;可从 npm 安装直接启动(`oh-my-tianshu web`),或从构建好的检出启动:
+npm 安装后一条命令启动,默认 `http://127.0.0.1:3080` 并自动打开浏览器(`--no-open` 关闭自动打开):
 
 ```sh
-pnpm run build
-pnpm oh-my-tianshu web
+oh-my-tianshu web
+oh-my-tianshu web --host 0.0.0.0 --port 8080
 ```
 
-Web UI 默认通过 `http://127.0.0.1:3080` 提供服务。
+常用旗标:`--host` / `--port` 绑定地址与端口,`--dev` 挂载 HMR 接收端(另开 `pnpm run dev:web` 重建 bundle),`--workspace-root` 指定浏览器端新建 workspace 的父目录,`--trusted-host` 向 `/api` 浏览器信任围栏追加权威,`--no-open` 不自动开浏览器。源码检出走 `pnpm run build` 产出前端产物后 `pnpm oh-my-tianshu web`。
 
 ### Profile
 
