@@ -1,6 +1,9 @@
 {
   "name": "@huiliyi37/dsh-cite-gate",
   "version": "0.7.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Advisory citation gate: flags fabricated upgrade-card IDs, legacy error codes, and read-before-cite violations in agent answers",
   "type": "module",
   "main": "lib/index.js",
@@ -14,6 +17,7 @@
   },
   "files": [
     "lib/index.js",
+    "lib/invariant.js",
     "lib/types/**/*.d.ts"
   ],
   "dependencies": {
@@ -33,6 +37,6 @@
     "@huiliyi37/dsh-agent-loop-testkit": "workspace:^",
     "@huiliyi37/dsh-session": "workspace:^",
     "@huiliyi37/dsh-tools": "workspace:^",
-    "@huiliyi37/cordis": "workspace:^"
+    "@huiliyi37/cordis": "^4.0.0-rc.7"
   }
 }
