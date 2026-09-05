@@ -1,8 +1,8 @@
-# 天枢 Harness(Tianshu)
+# Oh My Tianshu
 
 [English](README.md) | 中文
 
-天枢 Harness(`oh-my-tianshu`)是一款完全体开源 coding agent,构建在插件式 harness 之上:模型、工具、策略、记忆、检索与界面全部是 Cordis 插件,部署方无需改动 agent 循环即可组合、替换或扩展。
+Oh My Tianshu(`oh-my-tianshu`)是一款完全体开源 coding agent,构建在插件式 harness 之上:模型、工具、策略、记忆、检索与界面全部是 Cordis 插件,部署方无需改动 agent 循环即可组合、替换或扩展。
 
 一个发行版,四种表面——全屏终端 UI、浏览器 UI、无头单发任务、ACP 自动化服务器——之下是深厚的能力面:视觉桥加 `ask_image` 副驾让纯文本主模型照样处理图片、带写入质量门的跨会话项目记忆、强制 bugfix 编辑先红后绿的证据门、从影子记录走向灰度派发的 agent 路由(派发到原生子代理)、语义检索(BM25、CJK 感知、可选向量层)与 tree-sitter 图谱代码检索、按会话预设组合的 plan mode、支撑 `/rewind` 的写前文件快照,以及让长会话保持低成本的 prefix 缓存健康观测。
 

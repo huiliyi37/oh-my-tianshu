@@ -1,8 +1,8 @@
-# Tianshu Harness (天枢)
+# Oh My Tianshu
 
 English | [中文](README.zh.md)
 
-Tianshu Harness (`oh-my-tianshu`) is a full-capability open-source coding agent built on a plugin harness: models, tools, policies, memory, retrieval, and interfaces are all Cordis plugins a deployment can compose, replace, or extend without touching the agent loop.
+Oh My Tianshu (`oh-my-tianshu`) is a full-capability open-source coding agent built on a plugin harness: models, tools, policies, memory, retrieval, and interfaces are all Cordis plugins a deployment can compose, replace, or extend without touching the agent loop.
 
 One distribution, four surfaces — full-screen terminal UI, browser UI, headless one-shot runs, and an ACP automation server — over a deep capability bench: a vision bridge plus an `ask_image` co-pilot so text-only primaries still work with images, cross-session project memory with a write-quality gate, an evidence gate enforcing RED→GREEN on bugfix edits, an agent router that moves from shadow to gradual dispatch over native subagents, semantic (BM25, CJK-aware, optional vector) and tree-sitter graph code retrieval, plan mode with per-session presets, pre-write file snapshots behind `/rewind`, and prefix-cache health observation that keeps long sessions cheap.
 
