@@ -1204,6 +1204,9 @@ importers:
       '@huiliyi37/dsh-bash-sandbox':
         specifier: workspace:^
         version: link:../../bash/bash-sandbox
+      '@huiliyi37/dsh-cite-gate':
+        specifier: workspace:^
+        version: link:../../guard/cite-gate
       '@huiliyi37/dsh-command-compact':
         specifier: workspace:^
         version: link:../../compact/command-compact
@@ -4357,6 +4360,34 @@ importers:
       '@huiliyi37/dsh-zen':
         specifier: workspace:^
         version: link:../zen
+
+  packages/guard/cite-gate:
+    dependencies:
+      '@huiliyi37/schemastery':
+        specifier: ^3.18.0
+        version: link:../../../vendor/schemastery
+    devDependencies:
+      '@huiliyi37/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@huiliyi37/dsh-agent':
+        specifier: workspace:^
+        version: link:../../core/agent
+      '@huiliyi37/dsh-agent-loop':
+        specifier: workspace:^
+        version: link:../../core/agent-loop
+      '@huiliyi37/dsh-agent-loop-testkit':
+        specifier: workspace:^
+        version: link:../../support/agent-loop-testkit
+      '@huiliyi37/dsh-llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
+      '@huiliyi37/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@huiliyi37/dsh-tools':
+        specifier: workspace:^
+        version: link:../../core/tools
 
   packages/guard/doom-loop-guard:
     dependencies:
