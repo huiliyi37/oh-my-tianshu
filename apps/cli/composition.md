@@ -170,6 +170,8 @@ flowchart LR
   cfg --> plugin_dsh_base_repeat_tool_guard
   plugin_dsh_base_doom_loop_guard["doom-loop-guard<br/>@huiliyi37/dsh-doom-loop-guard"]
   cfg --> plugin_dsh_base_doom_loop_guard
+  plugin_dsh_base_cite_gate["cite-gate<br/>@huiliyi37/dsh-cite-gate"]
+  cfg --> plugin_dsh_base_cite_gate
   plugin_dsh_base_web["web<br/>@huiliyi37/dsh-web"]
   cfg --> plugin_dsh_base_web
   plugin_dsh_base_web_search_deepseek["web-search-deepseek<br/>@huiliyi37/dsh-web-search-deepseek"]
@@ -271,6 +273,7 @@ flowchart LR
 | `tool-str-replace-editor` | `@huiliyi37/dsh-tool-str-replace-editor` |
 | `repeat-tool-guard` | `@huiliyi37/dsh-repeat-tool-guard` |
 | `doom-loop-guard` | `@huiliyi37/dsh-doom-loop-guard` |
+| `cite-gate` | `@huiliyi37/dsh-cite-gate` |
 | `web` | `@huiliyi37/dsh-web` |
 | `web-search-deepseek` | `@huiliyi37/dsh-web-search-deepseek` |
 | `tool-web` | `@huiliyi37/dsh-tool-web` |

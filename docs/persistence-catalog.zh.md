@@ -880,6 +880,24 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 
 来源：[`packages/subagent/subagent/src/descriptor.ts:37`](../packages/subagent/subagent/src/descriptor.ts)
 
+#### `subagent/model-selection-policy` — log-only
+
+```ts persistence-catalog
+/**
+ * Records that this session's delegation tool exposes child provider,
+ * model, and reasoning-effort selection. Appended before the first model
+ * request; absence means the fixed-route definition. Log-only: it carries
+ * no `surfaceOp` and never enters model history.
+ */
+'subagent/model-selection-policy': {
+  /** Exact routes this Session may select explicitly for a child. */
+  allowedModels: AllowedModelRoute[]
+}
+```
+
+
+来源：[`packages/subagent/tool-subagent/src/model-selection-state.ts:14`](../packages/subagent/tool-subagent/src/model-selection-state.ts)
+
 ### `todo/*`
 
 #### `todo/write` — log-only

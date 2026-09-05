@@ -203,7 +203,7 @@ flowchart LR
   pkg_message_feedback["message-feedback"]
   svc_messageFeedback["ctx.messageFeedback<br/>Lifecycle-bound message feedback"]
   svc_workspaceRegistry["ctx.workspaceRegistry<br/>Workspace entity registry"]
-  svc_httpServer["ctx.httpServer<br/>HTTP route registration"]
+  svc_subagentModelSelection["ctx.subagentModelSelection<br/>Child LLM route authorization"]
   svc_clientModuleHost["ctx.clientModuleHost<br/>Client plugin graph host"]
   pkg_workflow["workflow"]
   svc_workflows["ctx.workflows<br/>Workflow script engine"]
@@ -302,6 +302,7 @@ flowchart LR
   pkg_tasks --> svc_tasks
   pkg_tasks_local --> svc_tasks
   pkg_token_meter --> svc_tokenMeter
+  pkg_tool_subagent --> svc_subagentModelSelection
   pkg_tools --> svc_tools
   pkg_typert_registry --> svc_typert
   pkg_user_interaction --> svc_userInteraction
@@ -310,7 +311,6 @@ flowchart LR
   pkg_web_search_deepseek --> svc_web
   pkg_web_search_exa --> svc_web
   pkg_web_search_perplexity --> svc_web
-  pkg_webserver --> svc_httpServer
   pkg_webserver --> svc_webServer
   pkg_workflow --> svc_workflows
   pkg_workflow_workerthread --> svc_workflows
@@ -347,9 +347,6 @@ flowchart LR
   svc_e2b --> pkg_subprocess_e2b
   svc_fs --> pkg_tool_fs
   svc_git --> pkg_tool_git
-  svc_httpServer --> pkg_connection
-  svc_httpServer --> pkg_hmr
-  svc_httpServer --> pkg_modules
   svc_invariants --> pkg_agent
   svc_invariants --> pkg_agent_loop
   svc_invariants --> pkg_scope
@@ -388,6 +385,7 @@ flowchart LR
   svc_spillStore --> pkg_spill_policy
   svc_storage --> pkg_storage_domain
   svc_storageDomain --> pkg_workspace
+  svc_subagentModelSelection --> pkg_tool_subagent
   svc_subagents --> pkg_tool_ralph
   svc_subagents --> pkg_tool_subagent
   svc_subagents --> pkg_tool_subagent_control
@@ -496,7 +494,8 @@ flowchart LR
 | `ctx.webServer` | `core` | `webserver` | - | `connection`, `modules`, `hmr` | - | 纯 node:http 载体：命名路由注册表、index 变换挂接点与静态 dist 回退；web 传输插件注册自己的路由。 |
 | `ctx.messageFeedback` | `core` | [`message-feedback`](../packages/feedback/message-feedback) | - | - | - | 拥有本地逐助手消息反馈、生命周期与目标校验、逐项 CAS 与 Host unary Remote 契约,不进入 Session 历史或 telemetry。 |
 | `ctx.workspaceRegistry` | `core` | [`workspace`](../packages/workspace/workspace) | - | `apiproxy` | - | 在域设施之上拥有 WorkspaceId 标记的记录；稳定 sessionIds 账户驱动 Host RPC 与 GUI 投影。 |
-| `ctx.httpServer` | `core` | `webserver` | - | `connection`、`modules`、`hmr` | - | 普通的 node:http 载体：具名路由注册表、索引转换 tap，以及静态 dist 回退；Web 传输插件注册自己的路由。 |
+| `ctx.webServer` | `core` | `webserver` | - | `connection`, `modules`, `hmr` | - | 纯 node:http 载体：命名路由注册表、index 变换挂接点与静态 dist 回退；web 传输插件注册自己的路由。 |
+| `ctx.subagentModelSelection` | `seam` | [`tool-subagent`](../packages/subagent/tool-subagent) | - | [`tool-subagent`](../packages/subagent/tool-subagent) | - | 宿主拥有的可选设置，在会话首次委派时采样：精确的允许子路由集合，一次性记录为 log-only 的模型选择策略事件。 |
 | `ctx.clientModuleHost` | `core` | `modules` | - | `hmr` | - | 通过增量 dshClient 扫描组合 __DSH_BOOT__ 入口图，提供插件组合包，并通知重建／图变更订阅方。 |
 | `ctx.workflows` | `seam` | [`workflow`](../packages/workflow/workflow) | [`workflow-workerthread`](../packages/workflow/workflow-workerthread) | [`tool-workflow`](../packages/workflow/tool-workflow)、[`tool-ralph`](../packages/workflow/tool-ralph) | - | 每个上下文使用一个引擎（bash 形态，无具名提供方注册表）；通用工作流与固定 Ralph 消费方启动运行，其中的 agent() 调用通过 ctx.subagents 扇出。 |
 
